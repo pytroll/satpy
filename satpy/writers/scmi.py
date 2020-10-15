@@ -1153,7 +1153,11 @@ class SCMIWriter(Writer):
                       source_name=None, filename=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
-                      use_end_time=False, use_sector_reference=False,
+                      use_end_time=False, time_attr_name="start_time",
+                      source_attr_name=None, platform_attr_name=None,
+                      variable_name_map=None, multi_variable=False,
+                      use_sector_reference=False,
+                      include_dataset_name=False,
                       compute=True, **kwargs):
         """Write a series of DataArray objects to multiple NetCDF4 SCMI files.
 
@@ -1197,6 +1201,28 @@ class SCMIWriter(Writer):
                 ``end_time``. This is useful for multi-day composites where
                 the ``end_time`` is a better representation of what data is
                 in the file.
+            time_attr_name (str): Name of the global attribute representing
+                a particular dataset's start or end time (see ``use_end_time``
+                above). By default this is "start_time".
+            source_attr_name (str or None): Name of the global attribute
+                representing the site or source where these files were
+                generated. The value will always be equal to ``source_name``.
+                By default this is ``None`` meaning don't write this attribute.
+                Common values include "production_site" or "production_location".
+            platform_attr_name (str or None): Name of the global attribute
+                for the ``platform_name`` metadata. The value will be taken
+                from the ``.attrs`` of the ``DataArray`` being saved.
+                By default this is ``None`` meaning don't write this attribute.
+                Common values include "platform_ID". Note that Python format
+                strings can also be used to customize this and will be provided
+                all metadata of the ``DataArray``.
+            variable_name_map (dict or None): Dictionary mapping the name of
+                the ``DataArray`` to the name of the variable that will be
+                created in the NetCDF file.
+            multi_variable (bool): Whether or not to store all input datasets
+                as a single set of NetCDF files (multiple variables per file)
+                or as one variable per file. Default is ``False`` for single
+                variable per file.
             use_sector_reference (bool): For lettered tiles only, whether to
                 shift the data locations to align with the preconfigured
                 grid's pixels. By default this is False meaning that the
@@ -1204,6 +1230,13 @@ class SCMIWriter(Writer):
                 If True, the data is shifted. At most the data will be shifted
                 by 0.5 pixels. See :mod:`satpy.writers.scmi` for more
                 information.
+            include_dataset_name (bool): Include a special 'dataset_name'
+                global attribute in the produced NetCDF files that matches
+                the filename for that file. This is a typical practice for
+                files produced for the US National Weather Service. It is
+                generally not needed unless the XML configuration on the
+                AWIPS backend server expects it. This defaults to ``False``
+                meaning it will not be included.
             compute (bool): Compute and write the output immediately using
                 dask. Default to ``False``.
 
