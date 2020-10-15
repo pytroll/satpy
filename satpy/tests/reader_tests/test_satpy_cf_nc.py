@@ -18,12 +18,12 @@
 """Tests for the CF reader."""
 
 from satpy import Scene
-from satpy.tests.writer_tests.test_cf import TempFile
 import unittest
 from datetime import datetime
 import xarray as xr
 import os
 import numpy as np
+
 
 class TestCFReader(unittest.TestCase):
     """Test case for CF reader."""
@@ -39,34 +39,42 @@ class TestCFReader(unittest.TestCase):
         qual_data = [[1, 2, 3, 4, 5, 6, 7],
                      [1, 2, 3, 4, 5, 6, 7]]
         time_vis006 = [1, 2]
-        time_ir_108 = [3, 4]
         lat = 33.0 * np.array([[1, 2], [3, 4]])
         lon = -13.0 * np.array([[1, 2], [3, 4]])
-        common_attrs = {'start_time': datetime.utcnow(),
-                        'start_time': tstart,
+        common_attrs = {'start_time': tstart,
                         'end_time': tend,
                         'platform_name': 'tirosn',
-                        'coordinates': 'lat lon',
                         'orbit_number': 99999}
         vis006 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
                               coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_vis006)},
-                              attrs={'name': 'image0','id_tag': 'ch_r06'})
+                              attrs={'name': 'image0', 'id_tag': 'ch_r06', 'coordinates': 'lat lon'})
 
         ir_108 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
                               coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_vis006)},
-                              attrs={'name': 'image1','id_tag': 'ch_tb11'})
-        
+                              attrs={'name': 'image1', 'id_tag': 'ch_tb11', 'coordinates': 'lat lon'})
         qual_f = xr.DataArray(qual_data,
                               dims=('y', 'z'),
                               coords={'y': y_visir, 'z': z_visir, 'acq_time': ('y', time_vis006)},
                               attrs={'name': 'qual_flags',
                                      'id_tag': 'qual_flags'})
+        lat = xr.DataArray(lat,
+                           dims=('y', 'x'),
+                           coords={'y': y_visir, 'x': x_visir},
+                           attrs={'name': 'lat',
+                                  'standard_name': 'latitude'})
+        lon = xr.DataArray(lon,
+                           dims=('y', 'x'),
+                           coords={'y': y_visir, 'x': x_visir},
+                           attrs={'name': 'lon',
+                                  'standard_name': 'longitude'})
         self.scene = Scene()
         self.scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
         scene_dict = {'image0': vis006,
                       'image1': ir_108,
+                      'lat': lat,
+                      'lon': lon,
                       'qual_flags': qual_f}
         for key in scene_dict:
             self.scene[key] = scene_dict[key]
@@ -78,15 +86,15 @@ class TestCFReader(unittest.TestCase):
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
         self.scene.save_datasets(writer='cf',
-                                 filename= filename,
+                                 filename=filename,
                                  header_attrs={'instrument': 'avhrr'},
                                  engine='h5netcdf',
                                  flatten_attrs=True,
-                                 include_lonlats=True,  # Included anyway as they are datasets in scn_
                                  pretty=True)
         scn_ = Scene(reader='satpy_cf_nc',
                      filenames=[filename])
-        scn_.load(['image0', 'image1'])
-        self.assertTrue(np.all(scn_['image0'].data ==  self.scene['image0'].data))
+        scn_.load(['image0', 'image1', 'lat'])
+        self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
+        # self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset, Not OK
+        self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
         os.remove(filename)
-            
