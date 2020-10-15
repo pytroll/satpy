@@ -76,7 +76,7 @@ file_types:
 datasets:
   C01:
     name: C01
-    wavelength: [0.447, 0.470, 0.494]
+    wavelength: [0.448, 0.470, 0.493]
     resolution: 1000
     calibration:
       radiance:
@@ -89,7 +89,7 @@ datasets:
 
   C02:
     name: C02
-    wavelength: [0.587, 0.640, 0.688]
+    wavelength: [0.589, 0.640, 0.687]
     resolution: 500
     calibration:
       radiance:
@@ -102,7 +102,7 @@ datasets:
 
   C03:
     name: C03
-    wavelength: [0.840, 0.865, 0.889]
+    wavelength: [0.841, 0.865, 0.887]
     resolution: 1000
     calibration:
       radiance:
@@ -115,7 +115,7 @@ datasets:
 
   C04:
     name: C04
-    wavelength: [1.364, 1.378, 1.382]
+    wavelength: [1.365, 1.378, 1.382]
     resolution: 2000
     calibration:
       radiance:
@@ -128,7 +128,7 @@ datasets:
 
   C05:
     name: C05
-    wavelength: [1.576, 1.610, 1.643]
+    wavelength: [1.578, 1.610, 1.641]
     resolution: 1000
     calibration:
       radiance:
@@ -141,7 +141,7 @@ datasets:
 
   C06:
     name: C06
-    wavelength: [2.214, 2.250, 2.272]
+    wavelength: [2.215, 2.250, 2.270]
     resolution: 2000
     calibration:
       radiance:
@@ -154,7 +154,7 @@ datasets:
 
   C07:
     name: C07
-    wavelength: [3.77, 3.90, 4.021]
+    wavelength: [3.777, 3.90, 4.014]
     resolution: 2000
     calibration:
       radiance:
@@ -167,7 +167,7 @@ datasets:
 
   C08:
     name: C08
-    wavelength: [5.749, 6.185, 6.636]
+    wavelength: [5.759, 6.185, 6.625]
     resolution: 2000
     calibration:
       radiance:
@@ -180,7 +180,7 @@ datasets:
 
   C09:
     name: C09
-    wavelength: [6.665, 6.95, 7.199]
+    wavelength: [6.678, 6.95, 7.186]
     resolution: 2000
     calibration:
       radiance:
@@ -193,7 +193,7 @@ datasets:
 
   C10:
     name: C10
-    wavelength: [7.215, 7.34, 7.457]
+    wavelength: [7.221, 7.34, 7.452]
     resolution: 2000
     calibration:
       radiance:
@@ -206,7 +206,7 @@ datasets:
 
   C11:
     name: C11
-    wavelength: [8.174, 8.50, 8.727]
+    wavelength: [8.184, 8.50, 8.713]
     resolution: 2000
     calibration:
       radiance:
@@ -219,7 +219,7 @@ datasets:
 
   C12:
     name: C12
-    wavelength: [9.378, 9.61, 9.850]
+    wavelength: [9.389, 9.61, 9.839]
     resolution: 2000
     calibration:
       radiance:
@@ -232,7 +232,7 @@ datasets:
 
   C13:
     name: C13
-    wavelength: [10.096, 10.35, 10.595]
+    wavelength: [10.115, 10.35, 10.570]
     resolution: 2000
     calibration:
       radiance:
@@ -245,7 +245,7 @@ datasets:
 
   C14:
     name: C14
-    wavelength: [10.695, 11.20, 11.715]
+    wavelength: [10.722, 11.20, 11.690]
     resolution: 2000
     calibration:
       radiance:
@@ -258,7 +258,7 @@ datasets:
 
   C15:
     name: C15
-    wavelength: [11.703, 12.30, 12.883]
+    wavelength: [11.730, 12.30, 12.855]
     resolution: 2000
     calibration:
       radiance:
@@ -271,7 +271,7 @@ datasets:
 
   C16:
     name: C16
-    wavelength: [12.925, 13.30, 13.652]
+    wavelength: [12.938, 13.30, 13.635]
     resolution: 2000
     calibration:
       radiance:
