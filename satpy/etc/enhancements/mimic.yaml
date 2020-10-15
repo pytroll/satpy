@@ -29,6 +29,7 @@ enhancements:
         method: !!python/name:satpy.enhancements.colorize
         kwargs:
            palettes:
+              - {colors: spectral, min_value: 0, max_value: 480, reverse: True}
               - {colors: rainbow, min_value: 0, max_value: 480}
 
    timeAwayGridSubseq:
@@ -38,6 +39,7 @@ enhancements:
          method: !!python/name:satpy.enhancements.colorize
          kwargs:
            palettes:
+             - { colors: spectral, min_value: 0, max_value: 480, reverse: True }
              - { colors: rainbow, min_value: 0, max_value: 480 }
 
    footGridPrior:
