@@ -19,6 +19,7 @@
 
 import os
 import unittest
+import datetime
 from unittest import mock
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
@@ -59,8 +60,8 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         file_content = {
-            '/attr/time_coverage_start': filename_info['start_time'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            '/attr/time_coverage_end': filename_info['end_time'].strftime('%Y-%m-%dT%H:%M:%SZ'),
+            '/attr/time_coverage_start': "2020-10-20T12:00:00.5Z",
+            '/attr/time_coverage_end': "2020-10-20T12:00:36Z",
             '/attr/start_orbit_number': 1,
             '/attr/end_orbit_number': 2,
             '/attr/platform_name': 'NPP',
@@ -213,8 +214,8 @@ class TestNUCAPSReader(unittest.TestCase):
             # self.assertEqual(v.info['units'], 'degrees')
             self.assertEqual(v.ndim, 1)
             self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
-            self.assertEqual(v.attrs['start_time'].dtype, np.type(np.datetime64))
-            self.assertEqual(v.attrs['end_time'].dtype, np.type(np.datetime64))
+            self.assertEqual(type(v.attrs['start_time']), datetime.datetime)
+            self.assertEqual(type(v.attrs['end_time']), datetime.datetime)
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
@@ -399,8 +400,8 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.ndim, 1)
             self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
-            self.assertEqual(v.attrs['start_time'].dtype, np.type(np.datetime64))
-            self.assertEqual(v.attrs['end_time'].dtype, np.type(np.datetime64))
+            self.assertEqual(type(v.attrs['start_time']), datetime.datetime)
+            self.assertEqual(type(v.attrs['end_time']), datetime.datetime)
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
