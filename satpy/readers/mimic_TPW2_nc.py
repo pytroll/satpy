@@ -116,13 +116,6 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         if 'lat' in data.dims:
             data.rename({'lat': 'y'})
 
-        # update specific data attributes
-        if isinstance(self.file_content[ds_id['name']], netCDF4.Variable):
-            variable_attributes = self.file_content[ds_id['name']].ncattrs()
-            for var_attr in variable_attributes:
-                value = self.file_content["{}/attr/{}".format(ds_id['name'], var_attr)]
-                data.attrs.update({var_attr: value})
-
         return data
 
     def get_area_def(self, dsid):
@@ -158,6 +151,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
             'start_time': self.start_time,
             'end_time': self.end_time,
         })
+        metadata.update(self[info.get('file_key')].variable.attrs)
 
         return metadata
 
