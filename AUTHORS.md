@@ -60,6 +60,7 @@ The following people have made contributions to this project:
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
+- [Johan Strandgren (strandgren)](https://github.com/strandgren)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
 - [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
 - [Helga Weber (helgaweb)](https://github.com/helgaweb)
