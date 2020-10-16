@@ -40,6 +40,7 @@ DEFAULT_FILE_UBYTE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1
 float_variables = ['tpwGrid', 'tpwGridPrior', 'tpwGridSubseq', 'footGridPrior', 'footGridSubseq']
 date_variables = ['timeAwayGridPrior', 'timeAwayGridSubseq']
 ubyte_variables = ['satGridPrior', 'satGridSubseq']
+file_content_attr = dict()
 
 
 class FakeNetCDF4FileHandlerMimicLow(FakeNetCDF4FileHandler):
@@ -71,15 +72,16 @@ class FakeNetCDF4FileHandlerMimicLow(FakeNetCDF4FileHandler):
             for float_var in float_variables:
                 file_content[float_var] = DEFAULT_FILE_FLOAT_DATA.reshape(DEFAULT_FILE_SHAPE)
                 file_content['{}/shape'.format(float_var)] = DEFAULT_FILE_SHAPE
-                file_content['{}/attr/units'.format(float_var)] = 'mm'
+                file_content_attr[float_var] = {"units": "mm"}
             for date_var in date_variables:
                 file_content[date_var] = DEFAULT_FILE_DATE_DATA.reshape(DEFAULT_FILE_SHAPE)
                 file_content['{}/shape'.format(date_var)] = DEFAULT_FILE_SHAPE
+                file_content_attr[date_var] = {"units": "minutes"}
             for ubyte_var in ubyte_variables:
                 file_content[ubyte_var] = DEFAULT_FILE_UBYTE_DATA.reshape(DEFAULT_FILE_SHAPE)
                 file_content['{}/shape'.format(ubyte_var)] = DEFAULT_FILE_SHAPE
-                file_content['{}/attr/source_key'.format(ubyte_var)] = "Key: 0: None, 1: NOAA-N, 2: NOAA-P, 3: Metop-A, \
-                     4: Metop-B, 5: SNPP, 6: SSMI-17, 7: SSMI-18"
+                file_content_attr[ubyte_var] = {"source_key": "Key: 0: None, 1: NOAA-N, 2: NOAA-P, 3: Metop-A, \
+                                                              4: Metop-B, 5: SNPP, 6: SSMI-17, 7: SSMI-18"}
 
             # convert to xarrays
             for key, val in file_content.items():
@@ -87,7 +89,7 @@ class FakeNetCDF4FileHandlerMimicLow(FakeNetCDF4FileHandler):
                     file_content[key] = xr.DataArray(val)
                 elif isinstance(val, np.ndarray):
                     if val.ndim > 1:
-                        file_content[key] = xr.DataArray(val, dims=('y', 'x'))
+                        file_content[key] = xr.DataArray(val, dims=('y', 'x'), attrs=file_content_attr[key])
                     else:
                         file_content[key] = xr.DataArray(val)
             for key in itertools.chain(float_variables, ubyte_variables):
@@ -147,6 +149,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['platform_shortname'], 'aggregated microwave')
             self.assertEqual(d.attrs['sensor'], 'mimic')
+            self.assertEqual(d.attrs['units'], 'mm')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
@@ -164,6 +167,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['platform_shortname'], 'aggregated microwave')
             self.assertEqual(d.attrs['sensor'], 'mimic')
+            self.assertEqual(d.attrs['units'], 'minutes')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
             self.assertEqual(d.dtype, DEFAULT_FILE_DTYPE)
@@ -182,6 +186,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['platform_shortname'], 'aggregated microwave')
             self.assertEqual(d.attrs['sensor'], 'mimic')
+            self.assertIn('source_key', d.attrs)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
             self.assertEqual(d.dtype, np.uint8)

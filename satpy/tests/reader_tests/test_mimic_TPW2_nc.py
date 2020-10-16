@@ -33,6 +33,7 @@ DEFAULT_LAT = np.linspace(-90, 90, DEFAULT_FILE_SHAPE[0], dtype=DEFAULT_FILE_DTY
 DEFAULT_LON = np.linspace(-180, 180, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+file_content_units = dict()
 
 
 class FakeNetCDF4FileHandlerMimic(FakeNetCDF4FileHandler):
@@ -61,6 +62,7 @@ class FakeNetCDF4FileHandlerMimic(FakeNetCDF4FileHandler):
 
             file_content['tpwGrid'] = DEFAULT_FILE_DATA
             file_content['tpwGrid/shape'] = DEFAULT_FILE_SHAPE
+            file_content_units['tpwGrid'] = 'mm'
 
             file_content['/dimension/lat'] = DEFAULT_FILE_SHAPE[0]
             file_content['/dimension/lon'] = DEFAULT_FILE_SHAPE[1]
@@ -71,13 +73,9 @@ class FakeNetCDF4FileHandlerMimic(FakeNetCDF4FileHandler):
                     file_content[key] = DataArray(val)
                 elif isinstance(val, np.ndarray):
                     if val.ndim > 1:
-                        file_content[key] = DataArray(val, dims=('y', 'x'))
+                        file_content[key] = DataArray(val, dims=('y', 'x'), attrs={"units": file_content_units[key]})
                     else:
                         file_content[key] = DataArray(val)
-            file_content['tpwGrid'].attrs['_FillValue'] = -999.0
-            file_content['tpwGrid'].attrs['name'] = 'tpwGrid'
-            file_content['tpwGrid'].attrs['file_key'] = 'tpwGrid'
-            file_content['tpwGrid'].attrs['file_type'] = self.filetype_info['file_type']
         else:
             msg = 'Wrong Test Reader for file_type {}'.format(filetype_info['file_type'])
             raise AssertionError(msg)
@@ -131,4 +129,5 @@ class TestMimicTPW2Reader(unittest.TestCase):
             self.assertEqual(d.attrs['platform_shortname'], 'aggregated microwave')
             self.assertEqual(d.attrs['sensor'], 'mimic')
             self.assertIn('area', d.attrs)
+            self.assertIn('units', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
