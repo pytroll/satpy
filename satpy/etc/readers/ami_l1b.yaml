@@ -69,7 +69,7 @@ datasets:
   #   https://directory.eoportal.org/web/eoportal/satellite-missions/content/-/article/geo-kompsat-2
   C01:
     name: VI004
-    wavelength: [0.450, 0.470, 0.490]
+    wavelength: [0.446], 0.471, 0.494]
     resolution: 1000
     calibration:
       counts:
@@ -86,7 +86,7 @@ datasets:
 
   C02:
     name: VI005
-    wavelength: [0.495, 0.509, 0.523]
+    wavelength: [0.490, 0.509, 0.528]
     resolution: 1000
     calibration:
       counts:
@@ -103,7 +103,7 @@ datasets:
 
   C03:
     name: VI006
-    wavelength: [0.599, 0.639, 0.679]
+    wavelength: [0.590, 0.639, 0.686]
     resolution: 500
     calibration:
       counts:
@@ -120,7 +120,7 @@ datasets:
 
   C04:
     name: VI008
-    wavelength: [0.846, 0.863, 0.880]
+    wavelength: [0.839, 0.863, 0.885]
     resolution: 1000
     calibration:
       counts:
@@ -137,7 +137,7 @@ datasets:
 
   C05:
     name: NR013
-    wavelength: [1.363, 1.37, 1.377]
+    wavelength: [1.362, 1.374, 1.385]
     resolution: 2000
     calibration:
       counts:
@@ -154,7 +154,7 @@ datasets:
 
   C06:
     name: NR016
-    wavelength: [1.590, 1.61, 1.630]
+    wavelength: [1.579, 1.609, 1.640]
     resolution: 2000
     calibration:
       counts:
@@ -171,7 +171,7 @@ datasets:
 
   C07:
     name: SW038
-    wavelength: [3.74, 3.83, 3.92]
+    wavelength: [3.711, 3.830, 3.947]
     resolution: 2000
     calibration:
       counts:
@@ -188,7 +188,7 @@ datasets:
 
   C08:
     name: WV063
-    wavelength: [5.79, 6.21, 6.63]
+    wavelength: [5.751, 6.212, 6.663]
     resolution: 2000
     calibration:
       counts:
@@ -205,7 +205,7 @@ datasets:
 
   C09:
     name: WV069
-    wavelength: [6.74, 6.94, 7.14]
+    wavelength: [6.709, 6.943, 7.179]
     resolution: 2000
     calibration:
       counts:
@@ -222,7 +222,7 @@ datasets:
 
   C10:
     name: WV073
-    wavelength: [7.24, 7.33, 7.42]
+    wavelength: [7.212, 7.326, 7.439]
     resolution: 2000
     calibration:
       counts:
@@ -239,7 +239,7 @@ datasets:
 
   C11:
     name: IR087
-    wavelength: [8.415, 8.59, 8.765]
+    wavelength: [8.377, 8.588, 8.811]
     resolution: 2000
     calibration:
       counts:
@@ -256,7 +256,7 @@ datasets:
 
   C12:
     name: IR096
-    wavelength: [9.43, 9.62, 9.81]
+    wavelength: [9.398, 9.620, 9.811]
     resolution: 2000
     calibration:
       counts:
@@ -273,7 +273,7 @@ datasets:
 
   C13:
     name: IR105
-    wavelength: [10.115, 10.35, 10.585]
+    wavelength: [10.083, 10.357, 10.639]
     resolution: 2000
     calibration:
       counts:
@@ -290,7 +290,7 @@ datasets:
 
   C14:
     name: IR112
-    wavelength: [10.90, 11.23, 11.56]
+    wavelength: [10.798, 11.227, 11.650]
     resolution: 2000
     calibration:
       counts:
@@ -307,7 +307,7 @@ datasets:
 
   C15:
     name: IR123
-    wavelength: [11.805, 12.36, 12.915]
+    wavelength: [11.716, 12.362, 13.016]
     resolution: 2000
     calibration:
       counts:
@@ -324,7 +324,7 @@ datasets:
 
   C16:
     name: IR133
-    wavelength: [13.005, 13.29, 13.575]
+    wavelength: [12.955, 13.285, 13.639]
     resolution: 2000
     calibration:
       counts:

@@ -93,7 +93,7 @@ datasets:
   S1:
     name: S1
     sensor: slstr
-    wavelength: [0.545,0.555,0.565]
+    wavelength: [0.543, 0.554, 0.566]
     resolution: 500
     view: [nadir, oblique]
     stripe: [a, b]
@@ -110,7 +110,7 @@ datasets:
   S2:
     name: S2
     sensor: slstr
-    wavelength: [0.649, 0.659, 0.669]
+    wavelength: [0.648, 0.659, 0.671]
     resolution: 500
     view: [nadir, oblique]
     stripe: [a, b]
@@ -127,7 +127,7 @@ datasets:
   S3:
     name: S3
     sensor: slstr
-    wavelength: [0.855, 0.865, 0.875]
+    wavelength: [0.856, 0.868, 0.880]
     resolution: 500
     view: [nadir, oblique]
     stripe: [a, b]
@@ -146,7 +146,7 @@ datasets:
   S4:
     name: S4
     sensor: slstr
-    wavelength: [1.3675, 1.375, 1.36825]
+    wavelength: [1.363, 1.375, 1.387]
     resolution: 500
     view: [nadir, oblique]
     stripe: [a, b]
@@ -163,7 +163,7 @@ datasets:
   S5:
     name: S5
     sensor: slstr
-    wavelength: [1.58, 1.61, 1.64]
+    wavelength: [1.575, 1.613, 1.651]
     resolution: 500
     view: [nadir, oblique]
     stripe: [a, b]
@@ -180,7 +180,7 @@ datasets:
   S6:
     name: S6
     sensor: slstr
-    wavelength: [2.225, 2.25, 2.275]
+    wavelength: [2.225, 2.256, 2.287]
     resolution: 500
     view: [nadir, oblique]
     stripe: [a, b]
@@ -198,7 +198,7 @@ datasets:
   S7:
     name: S7
     sensor: slstr
-    wavelength: [3.55, 3.74, 3.93]
+    wavelength: [3.492, 3.742, 4.008]
     resolution: 1000
     view: [nadir, oblique]
     stripe: i
@@ -212,7 +212,7 @@ datasets:
   S8:
     name: S8
     sensor: slstr
-    wavelength: [10.4, 10.85, 11.3]
+    wavelength: [10.370, 10.857, 11.368]
     resolution: 1000
     view: [nadir, oblique]
     stripe: i
@@ -226,7 +226,7 @@ datasets:
   S9:
     name: S9
     sensor: slstr
-    wavelength: [11.57, 12.0225, 12.475]
+    wavelength: [11.415, 12.032, 12.645]
     resolution: 1000
     view: [nadir, oblique]
     stripe: i
@@ -240,7 +240,7 @@ datasets:
   F1:
     name: F1
     sensor: slstr
-    wavelength: [3.55, 3.74, 3.93]
+    wavelength: [3.492, 3.742, 4.008]
     resolution: 1000
     view: [nadir, oblique]
     stripe: f
@@ -254,7 +254,7 @@ datasets:
   F2:
     name: F2
     sensor: slstr
-    wavelength: [10.4, 10.85, 11.3]
+    wavelength: [10.370, 10.857, 11.368]
     resolution: 1000
     view: [nadir, oblique]
     stripe: i

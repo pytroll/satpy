@@ -66,7 +66,7 @@ datasets:
   HRV:
     name: HRV
     resolution: 1000.134348869
-    wavelength: [0.5, 0.7, 0.9]
+    wavelength: [0.456, 0.716, 1.002]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -76,7 +76,7 @@ datasets:
   IR_016:
     name: IR_016
     resolution: 3000.403165817
-    wavelength: [1.5, 1.64, 1.78]
+    wavelength: [1.567, 1.638, 1.707]
     calibration:
       reflectance:
         standard_name: reflectance
@@ -86,7 +86,7 @@ datasets:
   IR_039:
     name: IR_039
     resolution: 3000.403165817
-    wavelength: [3.48, 3.92, 4.36]
+    wavelength: [3.603, 3.920, 4.254]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature
@@ -96,7 +96,7 @@ datasets:
   IR_087:
     name: IR_087
     resolution: 3000.403165817
-    wavelength: [8.3, 8.7, 9.1]
+    wavelength: [8.492, 8.717, 8.940]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature
@@ -106,7 +106,7 @@ datasets:
   IR_097:
     name: IR_097
     resolution: 3000.403165817
-    wavelength: [9.38, 9.66, 9.94]
+    wavelength: [9.526, 9.667, 9.817]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature
@@ -116,7 +116,7 @@ datasets:
   IR_108:
     name: IR_108
     resolution: 3000.403165817
-    wavelength: [9.8, 10.8, 11.8]
+    wavelength: [10.200, 10.796, 11.400]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature
@@ -126,7 +126,7 @@ datasets:
   IR_120:
     name: IR_120
     resolution: 3000.403165817
-    wavelength: [11.0, 12.0, 13.0]
+    wavelength: [11.400, 11.957, 12.520]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature
@@ -136,7 +136,7 @@ datasets:
   IR_134:
     name: IR_134
     resolution: 3000.403165817
-    wavelength: [12.4, 13.4, 14.4]
+    wavelength: [12.600, 13.379, 14.160]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature
@@ -146,7 +146,7 @@ datasets:
   VIS006:
     name: VIS006
     resolution: 3000.403165817
-    wavelength: [0.56, 0.635, 0.71]
+    wavelength: [0.596, 0.638, 0.680]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -156,7 +156,7 @@ datasets:
   VIS008:
     name: VIS008
     resolution: 3000.403165817
-    wavelength: [0.74, 0.81, 0.88]
+    wavelength: [0.776, 0.808, 0.844]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -166,7 +166,7 @@ datasets:
   WV_062:
     name: WV_062
     resolution: 3000.403165817
-    wavelength: [5.35, 6.25, 7.15]
+    wavelength: [5.818, 6.307, 6.790]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature
@@ -176,7 +176,7 @@ datasets:
   WV_073:
     name: WV_073
     resolution: 3000.403165817
-    wavelength: [6.85, 7.35, 7.85]
+    wavelength: [7.070, 7.364, 7.650]
     calibration:
       brightness_temperature:
         standard_name: brightness_temperature

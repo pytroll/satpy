@@ -50,7 +50,7 @@ datasets:
   Oa01:
     name: Oa01
     sensor: olci
-    wavelength: [0.3925,0.4,0.4075]
+    wavelength: [0.392, 0.400, 0.408]
     resolution: 300
     calibration:
       radiance:
@@ -65,7 +65,7 @@ datasets:
   Oa02:
     name: Oa02
     sensor: olci
-    wavelength: [0.4075, 0.4125, 0.4175]
+    wavelength: [0.406, 0.412, 0.417]
     resolution: 300
     calibration:
       radiance:
@@ -80,7 +80,7 @@ datasets:
   Oa03:
     name: Oa03
     sensor: olci
-    wavelength: [0.4375,0.4425,0.4475]
+    wavelength: [0.437, 0.443, 0.449]
     resolution: 300
     calibration:
       radiance:
@@ -95,7 +95,7 @@ datasets:
   Oa04:
     name: Oa04
     sensor: olci
-    wavelength: [0.485,0.49,0.495]
+    wavelength: [0.485, 0.490, 0.496]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -110,7 +110,7 @@ datasets:
   Oa05:
     name: Oa05
     sensor: olci
-    wavelength: [0.505,0.51,0.515]
+    wavelength: [0.505, 0.510, 0.516]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -125,7 +125,7 @@ datasets:
   Oa06:
     name: Oa06
     sensor: olci
-    wavelength: [0.555,0.56,0.565]
+    wavelength: [0.555, 0.560, 0.566]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -140,7 +140,7 @@ datasets:
   Oa07:
     name: Oa07
     sensor: olci
-    wavelength: [0.615,0.62,0.625]
+    wavelength: [0.615, 0.620, 0.626]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -155,7 +155,7 @@ datasets:
   Oa08:
     name: Oa08
     sensor: olci
-    wavelength: [0.66,0.665,0.67]
+    wavelength: [0.660, 0.665, 0.671]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -170,7 +170,7 @@ datasets:
   Oa09:
     name: Oa09
     sensor: olci
-    wavelength: [0.67,0.67375,0.6775]
+    wavelength: [0.670, 0.674, 0.678]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -185,7 +185,7 @@ datasets:
   Oa10:
     name: Oa10
     sensor: olci
-    wavelength: [0.6775,0.68125,0.685]
+    wavelength: [0.677, 0.682, 0.686]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -200,7 +200,7 @@ datasets:
   Oa11:
     name: Oa11
     sensor: olci
-    wavelength: [0.70375,0.70875,0.71375]
+    wavelength: [0.703, 0.709, 0.715]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -215,7 +215,7 @@ datasets:
   Oa12:
     name: Oa12
     sensor: olci
-    wavelength: [0.75,0.75375,0.7575]
+    wavelength: [0.750, 0.754, 0.759]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -230,7 +230,7 @@ datasets:
   Oa13:
     name: Oa13
     sensor: olci
-    wavelength: [0.76,0.76125,0.7625]
+    wavelength: [0.760, 0.762, 0.764]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -245,7 +245,7 @@ datasets:
   Oa14:
     name: Oa14
     sensor: olci
-    wavelength: [0.760625, 0.764375, 0.768125]
+    wavelength: [0.762, 0.765, 0.767]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -260,7 +260,7 @@ datasets:
   Oa15:
     name: Oa15
     sensor: olci
-    wavelength: [0.76625, 0.7675, 0.76875]
+    wavelength: [0.766, 0.768, 0.770]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -275,7 +275,7 @@ datasets:
   Oa16:
     name: Oa16
     sensor: olci
-    wavelength: [0.77125, 0.77875, 0.78625]
+    wavelength: [0.771, 0.779, 0.787]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -290,7 +290,7 @@ datasets:
   Oa17:
     name: Oa17
     sensor: olci
-    wavelength: [0.855, 0.865, 0.875]
+    wavelength: [0.855, 0.865, 0.876]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -305,7 +305,7 @@ datasets:
   Oa18:
     name: Oa18
     sensor: olci
-    wavelength: [0.88, 0.885, 0.89]
+    wavelength: [0.879, 0.884, 0.890]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -320,7 +320,7 @@ datasets:
   Oa19:
     name: Oa19
     sensor: olci
-    wavelength: [0.895, 0.9, 0.905]
+    wavelength: [0.894, 0.899, 0.905]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -335,7 +335,7 @@ datasets:
   Oa20:
     name: Oa20
     sensor: olci
-    wavelength: [0.93, 0.94, 0.95]
+    wavelength: [0.929, 0.939, 0.950]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:
@@ -350,7 +350,7 @@ datasets:
   Oa21:
     name: Oa21
     sensor: olci
-    wavelength: [1.0, 1.02, 1.04]
+    wavelength: [0.999, 1.016, 1.039]
     resolution: 300
     coordinates: [longitude, latitude]
     calibration:

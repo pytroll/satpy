@@ -23,10 +23,7 @@ datasets:
       1000: {file_type: hdf_eos_data_1000m}
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.62
-    - 0.645
-    - 0.67
+    wavelength: [0.618, 0.646, 0.673]
   '2':
     name: '2'
     resolution:
@@ -35,10 +32,7 @@ datasets:
       1000: {file_type: hdf_eos_data_1000m}
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.841
-    - 0.8585
-    - 0.876
+    wavelength: [0.832, 0.857, 0.879]
   '3':
     name: '3'
     resolution:
@@ -46,10 +40,7 @@ datasets:
       1000: {file_type: hdf_eos_data_1000m}
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.459
-    - 0.469
-    - 0.479
+    wavelength: [0.455, 0.466, 0.478]
   '4':
     name: '4'
     resolution:
@@ -57,10 +48,7 @@ datasets:
       1000: {file_type: hdf_eos_data_1000m}
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.545
-    - 0.555
-    - 0.565
+    wavelength: [0.543, 0.554, 0.566]
   '5':
     name: '5'
     resolution:
@@ -68,10 +56,7 @@ datasets:
       1000: {file_type: hdf_eos_data_1000m}
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 1.23
-    - 1.24
-    - 1.25
+    wavelength: [1.224, 1.241, 1.257]
   '6':
     name: '6'
     resolution:
@@ -79,10 +64,7 @@ datasets:
       1000: {file_type: hdf_eos_data_1000m}
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 1.628
-    - 1.64
-    - 1.652
+    wavelength: [1.608, 1.628, 1.648]
   '7':
     name: '7'
     resolution:
@@ -90,320 +72,224 @@ datasets:
       1000: {file_type: hdf_eos_data_1000m}
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 2.105
-    - 2.13
-    - 2.155
+    wavelength: [2.082, 2.114, 2.152]
   '8':
     file_type: hdf_eos_data_1000m
     name: '8'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.405
-    - 0.4125
-    - 0.42
+    wavelength: [0.404, 0.412, 0.419]
   '9':
     file_type: hdf_eos_data_1000m
     name: '9'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.438
-    - 0.443
-    - 0.448
+    wavelength: [0.436, 0.442, 0.448]
   '10':
     file_type: hdf_eos_data_1000m
     name: '10'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.483
-    - 0.488
-    - 0.493
+    wavelength: [0.480, 0.487, 0.493]
   '11':
     file_type: hdf_eos_data_1000m
     name: '11'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.526
-    - 0.531
-    - 0.536
+    wavelength: [0.522, 0.530, 0.537]
   '12':
     file_type: hdf_eos_data_1000m
     name: '12'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.546
-    - 0.551
-    - 0.556
+    wavelength: [0.540, 0.547, 0.553]
   13hi:
     file_type: hdf_eos_data_1000m
     name: '13hi'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.662
-    - 0.667
-    - 0.672
+    wavelength: [0.660, 0.666, 0.673]
   13lo:
     file_type: hdf_eos_data_1000m
     name: '13lo'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.662
-    - 0.667
-    - 0.672
+    wavelength: [0.660, 0.666, 0.673]
   14hi:
     file_type: hdf_eos_data_1000m
     name: '14hi'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.673
-    - 0.678
-    - 0.683
+    wavelength: [0.670, 0.678, 0.685]
   14lo:
     file_type: hdf_eos_data_1000m
     name: '14lo'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.673
-    - 0.678
-    - 0.683
+    wavelength: [0.670, 0.678, 0.685]
   '15':
     file_type: hdf_eos_data_1000m
     name: '15'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.743
-    - 0.748
-    - 0.753
+    wavelength: [0.740, 0.747, 0.753]
   '16':
     file_type: hdf_eos_data_1000m
     name: '16'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.862
-    - 0.8695
-    - 0.877
+    wavelength: [0.856, 0.867, 0.877]
   '17':
     file_type: hdf_eos_data_1000m
     name: '17'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.89
-    - 0.905
-    - 0.92
+    wavelength: [0.884, 0.904, 0.926]
   '18':
     file_type: hdf_eos_data_1000m
     name: '18'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.931
-    - 0.936
-    - 0.941
+    wavelength: [0.927, 0.936, 0.946]
   '19':
     file_type: hdf_eos_data_1000m
     name: '19'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 0.915
-    - 0.94
-    - 0.965
+    wavelength: [0.907, 0.936, 0.967]
   '20':
     file_type: hdf_eos_data_1000m
     name: '20'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 3.66
-    - 3.75
-    - 3.84
+    wavelength: [3.666, 3.780, 3.886]
   '21':
     file_type: hdf_eos_data_1000m
     name: '21'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 3.929
-    - 3.959
-    - 3.989
+    wavelength: [3.928, 3.982, 4.038]
   '22':
     file_type: hdf_eos_data_1000m
     name: '22'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 3.929
-    - 3.959
-    - 3.989
+    wavelength: [3.917, 3.972, 4.027]
   '23':
     file_type: hdf_eos_data_1000m
     name: '23'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 4.02
-    - 4.05
-    - 4.08
+    wavelength: [4.006, 4.062, 4.111]
   '24':
     file_type: hdf_eos_data_1000m
     name: '24'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 4.433
-    - 4.4655
-    - 4.498
+    wavelength: [4.389, 4.448, 4.504]
   '25':
     file_type: hdf_eos_data_1000m
     name: '25'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 4.482
-    - 4.5155
-    - 4.549
+    wavelength: [4.467, 4.526, 4.587]
   '26':
     file_type: hdf_eos_data_1000m
     name: '26'
     resolution: 1000
     calibration: [reflectance, radiance, counts]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 1.36
-    - 1.375
-    - 1.39
+    wavelength: [1.353, 1.382, 1.409]
   '27':
     file_type: hdf_eos_data_1000m
     name: '27'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 6.535
-    - 6.715
-    - 6.895
+      wavelength: [6.609, 6.787, 6.939]
   '28':
     file_type: hdf_eos_data_1000m
     name: '28'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 7.175
-    - 7.325
-    - 7.475
+    wavelength: [7.129, 7.349, 7.564]
   '29':
     file_type: hdf_eos_data_1000m
     name: '29'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 8.4
-    - 8.55
-    - 8.7
+    wavelength: [8.325, 8.556, 8.775]
   '30':
     file_type: hdf_eos_data_1000m
     name: '30'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 9.58
-    - 9.73
-    - 9.88
+    wavelength: [9.515, 9.724, 9.934]
   '31':
     file_type: hdf_eos_data_1000m
     name: '31'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 10.78
-    - 11.03
-    - 11.28
+    wavelength: [10.668, 11.026, 11.393]
   '32':
     file_type: hdf_eos_data_1000m
     name: '32'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 11.77
-    - 12.02
-    - 12.27
+    wavelength: [11.764, 12.043, 12.339]
   '33':
     file_type: hdf_eos_data_1000m
     name: '33'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 13.185
-    - 13.335
-    - 13.485
+    wavelength: [13.176, 13.365, 13.556]
   '34':
     file_type: hdf_eos_data_1000m
     name: '34'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 13.485
-    - 13.635
-    - 13.785
+    wavelength: [13.477, 13.686, 13.897]
   '35':
     file_type: hdf_eos_data_1000m
     name: '35'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 13.785
-    - 13.935
-    - 14.085
+    wavelength: [13.716, 13.925, 14.136]
   '36':
     file_type: hdf_eos_data_1000m
     name: '36'
     resolution: 1000
     calibration: [brightness_temperature, radiance]
     coordinates: [longitude, latitude]
-    wavelength:
-    - 14.085
-    - 14.235
-    - 14.385
+    wavelength: [14.017, 14.215, 14.417]
 
   longitude:
     name: longitude

@@ -210,7 +210,7 @@ datasets:
   B01:
     name: B01
     sensor: ahi
-    wavelength: [0.45,0.47,0.49]
+    wavelength: [0.445, 0.471, 0.494]
     resolution: 1000
     calibration:
       reflectance:
@@ -224,7 +224,7 @@ datasets:
   B02:
     name: B02
     sensor: ahi
-    wavelength: [0.49,0.51,0.53]
+    wavelength: [0.489, 0.510, 0.530]
     resolution: 1000
     calibration:
       reflectance:
@@ -238,7 +238,7 @@ datasets:
   B03:
     name: B03
     sensor: ahi
-    wavelength: [0.62,0.64,0.66]
+    wavelength: [0.590, 0.639, 0.686]
     resolution: 1000
     calibration:
       reflectance:
@@ -252,7 +252,7 @@ datasets:
   B04:
     name: B04
     sensor: ahi
-    wavelength: [0.83, 0.85, 0.87]
+    wavelength: [0.834, 0.857, 0.880]
     resolution: 4000
     calibration:
       reflectance:
@@ -266,7 +266,7 @@ datasets:
   B05:
     name: B05
     sensor: ahi
-    wavelength: [1.5, 1.6, 1.7]
+    wavelength: [1.580, 1.610, 1.640]
     resolution: 4000
     calibration:
       reflectance:
@@ -280,7 +280,7 @@ datasets:
   B06:
     name: B06
     sensor: ahi
-    wavelength: [2.2, 2.3, 2.4]
+    wavelength: [2.223, 2.257, 2.291]
     resolution: 4000
     calibration:
       reflectance:
@@ -296,7 +296,7 @@ datasets:
     resolution: 4000
 #    resolution: 2000
     sensor: ahi
-    wavelength: [3.7, 3.9, 4.1]
+    wavelength: [3.768, 3.885, 4.012]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -324,7 +324,7 @@ datasets:
   B08:
     name: B08
     sensor: ahi
-    wavelength: [6.0, 6.2, 6.4]
+    wavelength: [5.792, 6.243, 6.686]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -338,7 +338,7 @@ datasets:
   B09:
     name: B09
     sensor: ahi
-    wavelength: [6.7, 6.9, 7.1]
+    wavelength: [6.707, 6.941, 7.179]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -352,7 +352,7 @@ datasets:
   B10:
     name: B10
     sensor: ahi
-    wavelength: [7.1, 7.3, 7.5]
+    wavelength: [7.232, 7.347, 7.460]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -366,7 +366,7 @@ datasets:
   B11:
     name: B11
     sensor: ahi
-    wavelength: [8.4, 8.6, 8.8]
+    wavelength: [8.365, 8.593, 8.817]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -380,7 +380,7 @@ datasets:
   B12:
     name: B12
     sensor: ahi
-    wavelength: [9.4, 9.6, 9.8]
+    wavelength: [9.410, 9.637, 9.860]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -394,7 +394,7 @@ datasets:
   B13:
     name: B13
     sensor: ahi
-    wavelength: [10.2, 10.4, 10.6]
+    wavelength: [10.157, 10.407, 10.672]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -408,7 +408,7 @@ datasets:
   B14:
     name: B14
     sensor: ahi
-    wavelength: [11.0, 11.2, 11.4]
+    wavelength: [10.810, 11.240, 11.669]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -422,7 +422,7 @@ datasets:
   B15:
     name: B15
     sensor: ahi
-    wavelength: [12.2, 12.4, 12.6]
+    wavelength: [11.809, 12.381, 13.004]
     resolution: 4000
     calibration:
       brightness_temperature:
@@ -436,7 +436,7 @@ datasets:
   B16:
     name: B16
     sensor: ahi
-    wavelength: [13.1, 13.3, 13.5]
+    wavelength: [12.947, 13.281, 13.628]
     resolution: 4000
     calibration:
       brightness_temperature:

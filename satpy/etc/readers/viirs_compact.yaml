@@ -37,7 +37,7 @@ datasets:
   M01:
     name: M01
     sensor: viirs
-    wavelength: [0.402,0.412,0.422]
+    wavelength: [0.399, 0.412, 0.421]
     resolution: 742
     calibration:
       reflectance:
@@ -52,7 +52,7 @@ datasets:
   M02:
     name: M02
     sensor: viirs
-    wavelength: [0.436,0.445,0.454]
+    wavelength: [0.434, 0.445, 0.454]
     resolution: 742
     calibration:
       reflectance:
@@ -67,7 +67,7 @@ datasets:
   M03:
     name: M03
     sensor: viirs
-    wavelength: [0.478,0.488,0.498]
+    wavelength: [0.478, 0.489, 0.500]
     resolution: 742
     calibration:
       reflectance:
@@ -82,7 +82,7 @@ datasets:
   M04:
     name: M04
     sensor: viirs
-    wavelength: [0.545,0.555,0.565]
+    wavelength: [0.545, 0.557, 0.569]
     resolution: 742
     calibration:
       reflectance:
@@ -97,7 +97,7 @@ datasets:
   M05:
     name: M05
     sensor: viirs
-    wavelength: [0.662,0.672,0.682]
+    wavelength: [0.655, 0.667, 0.678]
     resolution: 742
     calibration:
       reflectance:
@@ -112,7 +112,7 @@ datasets:
   M06:
     name: M06
     sensor: viirs
-    wavelength: [0.739,0.746,0.754]
+    wavelength: [0.737, 0.746, 0.754]
     resolution: 742
     calibration:
       reflectance:
@@ -127,7 +127,7 @@ datasets:
   M07:
     name: M07
     sensor: viirs
-    wavelength: [0.846,0.865,0.885]
+    wavelength: [0.846, 0.867, 0.888]
     resolution: 742
     calibration:
       reflectance:
@@ -142,7 +142,7 @@ datasets:
   M08:
     name: M08
     sensor: viirs
-    wavelength: [1.230,1.240,1.250]
+    wavelength: [1.222, 1.241, 1.254]
     resolution: 742
     calibration:
       reflectance:
@@ -158,7 +158,7 @@ datasets:
     name: M09
     sensor: viirs
     resolution: 742
-    wavelength: [1.371,1.378,1.386]
+    wavelength: [1.365, 1.374, 1.383]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -172,7 +172,7 @@ datasets:
   M10:
     name: M10
     sensor: viirs
-    wavelength: [1.580,1.610,1.640]
+    wavelength: [1.564, 1.603, 1.640]
     resolution: 742
     calibration:
       reflectance:
@@ -188,7 +188,7 @@ datasets:
     name: M11
     sensor: viirs
     resolution: 742
-    wavelength: [2.225,2.250,2.275]
+    wavelength: [2.226, 2.260, 2.294]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -202,7 +202,7 @@ datasets:
   M12:
     name: M12
     sensor: viirs
-    wavelength: [3.610,3.700,3.790]
+    wavelength: [3.579, 3.699, 3.823]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -217,7 +217,7 @@ datasets:
   M13:
     name: M13
     sensor: viirs
-    wavelength: [3.973,4.050,4.128]
+    wavelength: [3.972, 4.071, 4.170]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -233,7 +233,7 @@ datasets:
     name: M14
     sensor: viirs
     resolution: 742
-    wavelength: [8.400,8.550,8.700]
+    wavelength: [8.395, 8.585, 8.775]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -248,7 +248,7 @@ datasets:
     name: M15
     sensor: viirs
     resolution: 742
-    wavelength: [10.263,10.763,11.263]
+    wavelength: [10.117, 10.707, 11.317]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -262,7 +262,7 @@ datasets:
   M16:
     name: M16
     sensor: viirs
-    wavelength: [11.538,12.013,12.489]
+    wavelength: [11.352, 11.861, 12.392]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -277,7 +277,7 @@ datasets:
   DNB:
     name: DNB
     sensor: viirs
-    wavelength: [0.500,0.700,0.900]
+    wavelength: [0.496, 0.703, 0.893]
     resolution: 743
     calibration:
       radiance:

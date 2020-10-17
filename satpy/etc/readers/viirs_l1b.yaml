@@ -105,7 +105,7 @@ datasets:
     standard_name: latitude
   I01:
     name: I01
-    wavelength: [0.600, 0.640, 0.680]
+    wavelength: [0.600, 0.643, 0.684]
     resolution: 371
     calibration:
       reflectance:
@@ -118,7 +118,7 @@ datasets:
     file_type: vl1bi
   I02:
     name: I02
-    wavelength: [0.845, 0.865, 0.884]
+    wavelength: [0.846, 0.866, 0.888]
     resolution: 371
     calibration:
       reflectance:
@@ -131,7 +131,7 @@ datasets:
     file_type: vl1bi
   I03:
     name: I03
-    wavelength: [1.580, 1.610, 1.640]
+    wavelength: [1.562, 1.601, 1.638]
     resolution: 371
     calibration:
       reflectance:
@@ -144,7 +144,7 @@ datasets:
     file_type: vl1bi
   I04:
     name: I04
-    wavelength: [3.580, 3.740, 3.900]
+    wavelength: [3.526, 3.747, 3.958]
     resolution: 371
     calibration:
       brightness_temperature:
@@ -157,7 +157,7 @@ datasets:
     file_type: vl1bi
   I05:
     name: I05
-    wavelength: [10.500, 11.450, 12.300]
+    wavelength: [10.412, 11.466, 12.732]
     resolution: 371
     calibration:
       brightness_temperature:
@@ -202,7 +202,7 @@ datasets:
     file_key: geolocation_data/sensor_azimuth
   M01:
     name: M01
-    wavelength: [0.402, 0.412, 0.422]
+    wavelength: [0.399, 0.412, 0.421]
     resolution: 742
     calibration:
       reflectance:
@@ -215,7 +215,7 @@ datasets:
     file_type: vl1bm
   M02:
     name: M02
-    wavelength: [0.436, 0.445, 0.454]
+    wavelength: [0.434, 0.445, 0.454]
     resolution: 742
     calibration:
       reflectance:
@@ -228,7 +228,7 @@ datasets:
     file_type: vl1bm
   M03:
     name: M03
-    wavelength: [0.478, 0.488, 0.498]
+    wavelength: [0.478, 0.489, 0.500]
     resolution: 742
     calibration:
       reflectance:
@@ -241,7 +241,7 @@ datasets:
     file_type: vl1bm
   M04:
     name: M04
-    wavelength: [0.545, 0.555, 0.565]
+    wavelength: [0.545, 0.557, 0.569]
     resolution: 742
     calibration:
       reflectance:
@@ -254,7 +254,7 @@ datasets:
     file_type: vl1bm
   M05:
     name: M05
-    wavelength: [0.662, 0.672, 0.682]
+    wavelength: [0.655, 0.667, 0.678]
     resolution: 742
     calibration:
       reflectance:
@@ -267,7 +267,7 @@ datasets:
     file_type: vl1bm
   M06:
     name: M06
-    wavelength: [0.739, 0.746, 0.754]
+    wavelength: [0.737, 0.746, 0.754]
     resolution: 742
     calibration:
       reflectance:
@@ -280,7 +280,7 @@ datasets:
     file_type: vl1bm
   M07:
     name: M07
-    wavelength: [0.846, 0.865, 0.885]
+    wavelength: [0.846, 0.867, 0.888]
     resolution: 742
     calibration:
       reflectance:
@@ -293,7 +293,7 @@ datasets:
     file_type: vl1bm
   M08:
     name: M08
-    wavelength: [1.230, 1.240, 1.250]
+    wavelength: [1.222, 1.241, 1.254]
     resolution: 742
     calibration:
       reflectance:
@@ -306,7 +306,7 @@ datasets:
     file_type: vl1bm
   M09:
     name: M09
-    wavelength: [1.371, 1.378, 1.386]
+    wavelength: [1.365, 1.374, 1.383]
     resolution: 742
     calibration:
       reflectance:
@@ -319,7 +319,7 @@ datasets:
     file_type: vl1bm
   M10:
     name: M10
-    wavelength: [1.580, 1.610, 1.640]
+    wavelength: [1.564, 1.603, 1.640]
     resolution: 742
     calibration:
       reflectance:
@@ -332,7 +332,7 @@ datasets:
     file_type: vl1bm
   M11:
     name: M11
-    wavelength: [2.225, 2.250, 2.275]
+    wavelength: [2.226, 2.260, 2.294]
     resolution: 742
     calibration:
       reflectance:
@@ -345,7 +345,7 @@ datasets:
     file_type: vl1bm
   M12:
     name: M12
-    wavelength: [3.610, 3.700, 3.790]
+    wavelength: [3.579, 3.699, 3.823]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -358,7 +358,7 @@ datasets:
     file_type: vl1bm
   M13:
     name: M13
-    wavelength: [3.973, 4.050, 4.128]
+    wavelength: [3.972, 4.071, 4.170]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -371,7 +371,7 @@ datasets:
     file_type: vl1bm
   M14:
     name: M14
-    wavelength: [8.400, 8.550, 8.700]
+    wavelength: [8.395, 8.585, 8.775]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -384,7 +384,7 @@ datasets:
     file_type: vl1bm
   M15:
     name: M15
-    wavelength: [10.263, 10.763, 11.263]
+    wavelength: [10.117, 10.707, 11.317]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -397,7 +397,7 @@ datasets:
     file_type: vl1bm
   M16:
     name: M16
-    wavelength: [11.538, 12.013, 12.489]
+    wavelength: [11.352, 11.861, 12.392]
     resolution: 742
     calibration:
       brightness_temperature:
@@ -442,7 +442,7 @@ datasets:
     file_key: geolocation_data/sensor_azimuth
   DNB:
     name: DNB
-    wavelength: [0.500, 0.700, 0.900]
+    wavelength: [0.496, 0.703, 0.893]
     resolution: 743
     calibration:
       radiance:

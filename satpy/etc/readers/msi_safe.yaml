@@ -19,56 +19,56 @@ datasets:
   B01:
     name: B01
     sensor: MSI
-    wavelength: [0.415, 0.443, 0.470]
+    wavelength: [0.432, 0.443, 0.453]
     resolution: 60
     file_type: safe_granule
 
   B02:
     name: B02
     sensor: MSI
-    wavelength: [0.440, 0.490, 0.540]
+    wavelength: [0.458, 0.492, 0.526]
     resolution: 10
     file_type: safe_granule
 
   B03:
     name: B03
     sensor: MSI
-    wavelength: [0.540, 0.560, 0.580]
+    wavelength: [0.541, 0.560, 0.579]
     resolution: 10
     file_type: safe_granule
 
   B04:
     name: B04
     sensor: MSI
-    wavelength: [0.645, 0.665, 0.685]
+    wavelength: [0.649, 0.665, 0.681]
     resolution: 10
     file_type: safe_granule
 
   B05:
     name: B05
     sensor: MSI
-    wavelength: [0.695, 0.705, 0.715]
+    wavelength: [0.697, 0.704, 0.712]
     resolution: 20
     file_type: safe_granule
 
   B06:
     name: B06
     sensor: MSI
-    wavelength: [0.731, 0.740, 0.749]
+    wavelength: [0.733, 0.740, 0.748]
     resolution: 20
     file_type: safe_granule
 
   B07:
     name: B07
     sensor: MSI
-    wavelength: [0.764, 0.783, 0.802]
+    wavelength: [0.772, 0.783, 0.794]
     resolution: 20
     file_type: safe_granule
 
   B08:
     name: B08
     sensor: MSI
-    wavelength: [0.780, 0.842, 0.905]
+    wavelength: [0.780, 0.833, 0.901]
     resolution: 10
     file_type: safe_granule
 
@@ -82,28 +82,28 @@ datasets:
   B09:
     name: B09
     sensor: MSI
-    wavelength: [0.935, 0.945, 0.955]
+    wavelength: [0.934, 0.945, 0.956]
     resolution: 60
     file_type: safe_granule
 
   B10:
     name: B10
     sensor: MSI
-    wavelength: [1.365, 1.375, 1.385]
+    wavelength: [1.357, 1.373, 1.390]
     resolution: 60
     file_type: safe_granule
 
   B11:
     name: B11
     sensor: MSI
-    wavelength: [1.565, 1.610, 1.655]
+    wavelength: [1.565, 1.614, 1.662]
     resolution: 20
     file_type: safe_granule
 
   B12:
     name: B12
     sensor: MSI
-    wavelength: [2.100, 2.190, 2.280]
+    wavelength: [2.104, 2.202, 2.295]
     resolution: 20
     file_type: safe_granule
 
