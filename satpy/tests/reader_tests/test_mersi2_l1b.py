@@ -208,7 +208,6 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         }
         return geo
 
-
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         rows_per_scan = self.filetype_info.get('rows_per_scan', 10)
