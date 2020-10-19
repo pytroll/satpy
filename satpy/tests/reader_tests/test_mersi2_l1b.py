@@ -196,8 +196,18 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                         'valid_range': [-180, 180],
                     },
                     dims=('_rows', '_cols')),
+            prefix + 'SensorZenith':
+                xr.DataArray(
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    attrs={
+                        'Slope': [.01] * 1, 'Intercept': [0.] * 1,
+                        'units': 'degree',
+                        'valid_range': [0, 28000],
+                    },
+                    dims=('_rows', '_cols')),
         }
         return geo
+
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
@@ -338,8 +348,9 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ds_ids = []
         for band_name in ['1', '2', '3', '4', '5', '20', '24', '25']:
             ds_ids.append(make_dataid(name=band_name, calibration='counts'))
+        ds_ids.append(make_dataid(name='satellite_zenith_angle'))
         res = reader.load(ds_ids)
-        self.assertEqual(8, len(res))
+        self.assertEqual(9, len(res))
         self.assertEqual((2 * 40, 2048 * 2), res['1'].shape)
         self.assertEqual('counts', res['1'].attrs['calibration'])
         self.assertEqual(res['1'].dtype, np.uint16)
