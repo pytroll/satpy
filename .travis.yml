@@ -7,7 +7,7 @@ env:
         - MAIN_CMD='python setup.py'
         - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml
           pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf
-          mock libtiff geoviews zarr python-eccodes eccodes geoviews pytest pytest-cov fsspec pylibtiff'
+          mock libtiff geoviews zarr python-eccodes=2.18.0 geoviews pytest pytest-cov fsspec pylibtiff'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
