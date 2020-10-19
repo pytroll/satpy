@@ -830,7 +830,7 @@ class BilinearResampler(BaseResampler):
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
-        from pyresample.bilinear.xarr import XArrayBilinearResampler
+        from pyresample.bilinear import XArrayBilinearResampler
 
         del kwargs
         del mask
