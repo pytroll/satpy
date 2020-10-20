@@ -576,6 +576,10 @@ class TestScene(unittest.TestCase):
         scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
                                 attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
 
+        scene1["4"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def, 'standard_name': 'backscatter',
+                                       '_satpy_id_keys': default_id_keys_config})
+
         scene2 = scene1.aggregate(func='sum', x=2, y=2)
         self.assertIs(scene1['1'], scene2['1'])
         self.assertIs(scene1['2'], scene2['2'])
@@ -583,6 +587,8 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(scene2['1'].shape, (y_size, x_size))
         self.assertTupleEqual(scene2['2'].shape, (y_size, x_size))
         self.assertTupleEqual(scene2['3'].shape, (y_size / 2, x_size / 2))
+        assert 'standard_name' in scene2['4'].attrs
+        assert scene2['4'].attrs['standard_name'] == 'backscatter'
 
     def test_contains(self):
         """Test contains."""
