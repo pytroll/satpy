@@ -672,6 +672,7 @@ class Scene:
                 res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
 
                 new_scn._datasets[ds_id] = getattr(res, func)()
+                new_scn._datasets[ds_id].attrs = self[ds_id].attrs.copy()
                 new_scn._datasets[ds_id].attrs['area'] = target_area
                 new_scn._datasets[ds_id].attrs['resolution'] = resolution
 
