@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017 - 2020 Satpy developers
 #
-# This file is part of satpy.
+# This file is part of Satpy.
 #
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for Sentinel-3 SLSTR SST data."""
+"""Reader for the GHRSST level-2 formatted data."""
 
 from datetime import datetime
 from satpy.readers.file_handlers import BaseFileHandler
@@ -22,12 +22,12 @@ from satpy import CHUNK_SIZE
 import xarray as xr
 
 
-class SLSTRL2FileHandler(BaseFileHandler):
-    """File handler for Sentinel-3 SSL L2 netCDF files."""
+class GHRSSTL2FileHandler(BaseFileHandler):
+    """File handler for GHRSST L2 netCDF files."""
 
     def __init__(self, filename, filename_info, filetype_info, engine=None):
-        """Initialize the file handler for Sentinel-3 SSL L2 netCDF data."""
-        super(SLSTRL2FileHandler, self).__init__(filename, filename_info, filetype_info)
+        """Initialize the file handler for GHRSST L2 netCDF data."""
+        super(GHRSSTL2FileHandler, self).__init__(filename, filename_info, filetype_info)
 
         if filename.endswith('tar'):
             import tarfile
@@ -36,7 +36,7 @@ class SLSTRL2FileHandler(BaseFileHandler):
             with tempfile.TemporaryDirectory() as tempdir:
                 with tarfile.open(name=filename, mode='r') as tf:
                     sst_filename = next((name for name in tf.getnames()
-                                        if name.endswith('nc') and 'GHRSST-SSTskin' in name))
+                                         if name.endswith('nc') and 'GHRSST-SSTskin' in name))
                     tf.extract(sst_filename, tempdir)
                     fullpath = os.path.join(tempdir, sst_filename)
                     self.nc = xr.open_dataset(fullpath,

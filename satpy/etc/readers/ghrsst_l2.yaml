@@ -1,0 +1,36 @@
+reader:
+  description: NC Reader for GHRSST Level 2 data
+  name: ghrsst_l2
+  sensors: []
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    GHRSST_OSISAF:
+        file_reader: !!python/name:satpy.readers.ghrsst_l2.GHRSSTL2FileHandler
+        # S-OSI_-FRA_-NPP_-NARSST_FIELD-202010141300Z.nc
+        file_patterns: ['S-OSI_-{generating_centre:4s}-{satid:4s}-{field_type:s}_FIELD-{valid_time:%Y%m%d%H%M}Z.nc']
+
+
+datasets:
+  longitude:
+    name: longitude
+    resolution: 2000
+    file_type: GHRSST_OSISAF
+    standard_name: lon
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution: 2000
+    file_type: GHRSST_OSISAF    
+    standard_name: lat
+    units: degree
+
+  sea_surface_temperature:
+    name: sea_surface_temperature
+    coordinates: [longitude, latitude]
+    file_type: GHRSST_OSISAF
+    resolution: 2000
+    units: kelvin
+    standard_name: sea_surface_temperature
