@@ -17,14 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of helper functions."""
 
-import unittest
-from unittest import mock
 import os
-import sys
+import unittest
+from datetime import datetime
+from unittest import mock
+
+import dask.array as da
 import numpy as np
 import numpy.testing
 import pyresample.geometry
-
+import xarray as xr
 from satpy.readers import utils as hf
 
 
@@ -300,3 +302,92 @@ class TestHelpers(unittest.TestCase):
         filename = 'tester.DAT'
         new_fname = hf.unzip_file(filename)
         self.assertIsNone(new_fname)
+
+    def test_apply_rad_correction(self):
+        """Test radiance correction technique using user-supplied coefs."""
+        slope = 0.5
+        offset = -0.1
+        res = hf.apply_rad_correction(1.0, slope, offset)
+        np.testing.assert_allclose(2.2, res)
+
+    def test_get_user_calibration_factors(self):
+        """Test the retrieval of user-supplied calibration factors."""
+        radcor_dict = {'WV063': {'slope': 1.015,
+                                 'offset': -0.0556},
+                       'IR108': {'slo': 1.015,
+                                 'off': -0.0556}}
+        # Test that correct values are returned from the dict
+        slope, offset = hf.get_user_calibration_factors('WV063', radcor_dict)
+        self.assertEqual(slope, 1.015)
+        self.assertEqual(offset, -0.0556)
+
+        # Test that channels not present in dict return 1.0, 0.0
+        with self.assertWarns(UserWarning):
+            slope, offset = hf.get_user_calibration_factors('IR097', radcor_dict)
+        self.assertEqual(slope, 1.)
+        self.assertEqual(offset, 0.)
+
+        # Check that incorrect dict keys throw an error
+        with self.assertRaises(KeyError):
+            hf.get_user_calibration_factors('IR108', radcor_dict)
+
+
+class TestSunEarthDistanceCorrection(unittest.TestCase):
+    """Tests for applying Sun-Earth distance correction to reflectance."""
+
+    def setUp(self):
+        """Create input / output arrays for the tests."""
+        self.test_date = datetime(2020, 8, 15, 13, 0, 40)
+
+        raw_refl = xr.DataArray(da.from_array([10., 20., 40., 1., 98., 50.]),
+                                attrs={'start_time': self.test_date,
+                                       'scheduled_time': self.test_date})
+
+        corr_refl = xr.DataArray(da.from_array([10.50514689, 21.01029379,
+                                                42.02058758, 1.05051469,
+                                                102.95043957, 52.52573447]),
+                                 attrs={'start_time': self.test_date,
+                                        'scheduled_time': self.test_date})
+        self.raw_refl = raw_refl
+        self.corr_refl = corr_refl
+
+    def test_get_utc_time(self):
+        """Test the retrieval of scene time from a dataset."""
+        # First check correct time is returned with 'start_time'
+        tmp_array = self.raw_refl.copy()
+        del tmp_array.attrs['scheduled_time']
+        utc_time = hf.get_array_date(tmp_array, None)
+        self.assertEqual(utc_time, self.test_date)
+
+        # Now check correct time is returned with 'scheduled_time'
+        tmp_array = self.raw_refl.copy()
+        del tmp_array.attrs['start_time']
+        utc_time = hf.get_array_date(tmp_array, None)
+        self.assertEqual(utc_time, self.test_date)
+
+        # Now check correct time is returned with utc_date passed
+        tmp_array = self.raw_refl.copy()
+        new_test_date = datetime(2019, 2, 1, 15, 2, 12)
+        utc_time = hf.get_array_date(tmp_array, new_test_date)
+        self.assertEqual(utc_time, new_test_date)
+
+        # Finally, ensure error is raised if no datetime is available
+        tmp_array = self.raw_refl.copy()
+        del tmp_array.attrs['scheduled_time']
+        del tmp_array.attrs['start_time']
+        with self.assertRaises(KeyError):
+            hf.get_array_date(tmp_array, None)
+
+    def test_apply_sunearth_corr(self):
+        """Test the correction of reflectances with sun-earth distance."""
+        out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
+        np.testing.assert_allclose(out_refl, self.corr_refl)
+        self.assertTrue(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert isinstance(out_refl.data, da.Array)
+
+    def test_remove_sunearth_corr(self):
+        """Test the removal of the sun-earth distance correction."""
+        out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
+        np.testing.assert_allclose(out_refl, self.raw_refl)
+        self.assertFalse(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert isinstance(out_refl.data, da.Array)

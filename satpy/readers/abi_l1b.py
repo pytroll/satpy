@@ -37,17 +37,17 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', key.name)
+        logger.debug('Reading in get_dataset %s.', key['name'])
         radiances = self['Rad']
 
-        if key.calibration == 'reflectance':
+        if key['calibration'] == 'reflectance':
             logger.debug("Calibrating to reflectances")
             res = self._vis_calibrate(radiances)
-        elif key.calibration == 'brightness_temperature':
+        elif key['calibration'] == 'brightness_temperature':
             logger.debug("Calibrating to brightness temperatures")
             res = self._ir_calibrate(radiances)
-        elif key.calibration != 'radiance':
-            raise ValueError("Unknown calibration '{}'".format(key.calibration))
+        elif key['calibration'] != 'radiance':
+            raise ValueError("Unknown calibration '{}'".format(key['calibration']))
         else:
             res = radiances
 
@@ -78,6 +78,8 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs.pop('add_offset', None)
         res.attrs.pop('_Unsigned', None)
         res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
+        # although we could compute these, we'd have to update in calibration
+        res.attrs.pop('valid_range', None)
         # add in information from the filename that may be useful to the user
         for attr in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
             res.attrs[attr] = self.filename_info[attr]

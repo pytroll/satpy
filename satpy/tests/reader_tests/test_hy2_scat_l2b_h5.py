@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.hy2_scat_l2b_h5 module.
-"""
+"""Module for testing the satpy.readers.hy2_scat_l2b_h5 module."""
 
 import os
 import numpy as np
@@ -38,7 +37,7 @@ DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
 
     def _get_geo_data(self, num_rows, num_cols):
         geo = {
@@ -327,6 +326,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 class TestHY2SCATL2BH5Reader(unittest.TestCase):
     """Test HY2 Scatterometer L2B H5 Reader."""
+
     yaml_file = "hy2_scat_l2b_h5.yaml"
 
     def setUp(self):
@@ -350,9 +350,8 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -367,9 +366,8 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -385,9 +383,8 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -412,7 +409,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)

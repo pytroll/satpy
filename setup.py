@@ -35,7 +35,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'trollimage']
+                 'rasterio', 'geoviews', 'trollimage', 'fsspec']
 
 extras_require = {
     # Readers:
@@ -103,7 +103,8 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 
 NAME = 'satpy'
-README = open('README.rst', 'r').read()
+with open('README.rst', 'r') as readme:
+    README = readme.read()
 
 setup(name=NAME,
       description='Python package for earth-observing satellite data processing',

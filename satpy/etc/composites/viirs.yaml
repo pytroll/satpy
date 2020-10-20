@@ -435,7 +435,7 @@ composites:
       modifiers: [nir_reflectance_lowres]
     standard_name: snow
 
-  snow_hires: &snow_hires
+  snow_hires:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: I02
@@ -446,7 +446,16 @@ composites:
       modifiers: [nir_reflectance_hires]
     standard_name: snow
 
-  snow: *snow_hires
+  snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: I02
+        modifiers: [sunz_corrected_iband]
+      - name: I03
+        modifiers: [sunz_corrected_iband]
+      - name: I04
+        modifiers: [nir_reflectance_hires]
+    standard_name: snow
 
   histogram_dnb:
     compositor: !!python/name:satpy.composites.viirs.HistogramDNB
