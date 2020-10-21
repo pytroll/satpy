@@ -278,7 +278,10 @@ class NC_ABI_BASE(BaseFileHandler):
     def __del__(self):
         """Close the NetCDF file and file_system object that may still be open."""
         try:
+            # this probably doesn't do anything
             self.nc.close()
-            self.of.close()
+            # normally we should close the open file, but when resampling a
+            # multiscene this is called prematurely, see comments on #1321
+            # self.of.close()
         except (IOError, OSError, AttributeError):
             pass
