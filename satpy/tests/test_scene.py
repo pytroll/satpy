@@ -242,6 +242,7 @@ class TestScene(unittest.TestCase):
                     return r1
                 elif reader_configs == ["/fake/mastallone.yaml"]:
                     return r2
+                raise RuntimeError("Test is broken")  # pragma: no cover
             srl.side_effect = fake_lr
             src.return_value = [["/fake/strona.yaml"], ["/fake/mastallone.yaml"]]
             Scene(filenames={"strona": ["campello monti"],
