@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    satpy.composites
+   satpy.dataset
    satpy.demo
    satpy.enhancements
    satpy.readers
@@ -24,10 +25,10 @@ satpy.config module
    :undoc-members:
    :show-inheritance:
 
-satpy.dataset module
---------------------
+satpy.dependency\_tree module
+-----------------------------
 
-.. automodule:: satpy.dataset
+.. automodule:: satpy.dependency_tree
    :members:
    :undoc-members:
    :show-inheritance:
@@ -79,7 +80,6 @@ satpy.utils module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

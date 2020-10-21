@@ -28,7 +28,6 @@ satpy.enhancements.viirs module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 
