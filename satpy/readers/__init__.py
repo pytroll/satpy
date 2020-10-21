@@ -477,18 +477,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     else:
         remaining_filenames = set(filenames or [])
 
-    reader_kwargs = reader_kwargs or {}
-
-    # ensure one reader_kwargs per reader, None if not provided
-    if reader is None:
-        reader_kwargs = {None: reader_kwargs}
-    elif reader_kwargs.keys() != set(reader):
-        reader_kwargs = dict.fromkeys(reader, reader_kwargs)
-
-    reader_kwargs_without_filter = {}
-    for (k, v) in reader_kwargs.items():
-        reader_kwargs_without_filter[k] = v.copy()
-        reader_kwargs_without_filter[k].pop('filter_parameters', None)
+    (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
 
     for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
         if isinstance(filenames, dict):
@@ -527,3 +516,25 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
     return reader_instances
+
+
+def _get_reader_kwargs(reader, reader_kwargs):
+    """Helper for load_readers to form reader_kwargs.
+
+    Helper for load_readers to get reader_kwargs and
+    reader_kwargs_without_filter in the desirable form.
+    """
+    reader_kwargs = reader_kwargs or {}
+
+    # ensure one reader_kwargs per reader, None if not provided
+    if reader is None:
+        reader_kwargs = {None: reader_kwargs}
+    elif reader_kwargs.keys() != set(reader):
+        reader_kwargs = dict.fromkeys(reader, reader_kwargs)
+
+    reader_kwargs_without_filter = {}
+    for (k, v) in reader_kwargs.items():
+        reader_kwargs_without_filter[k] = v.copy()
+        reader_kwargs_without_filter[k].pop('filter_parameters', None)
+
+    return (reader_kwargs, reader_kwargs_without_filter)
