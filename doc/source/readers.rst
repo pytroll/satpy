@@ -251,3 +251,9 @@ hdf-eos based readers
 
 .. automodule:: satpy.readers.modis_l2
     :noindex:
+
+satpy cf nc readers
+---------------------
+
+.. automodule:: satpy.readers.satpy_cf_nc
+    :noindex:
