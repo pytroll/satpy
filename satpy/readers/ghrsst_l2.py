@@ -20,6 +20,9 @@ from datetime import datetime
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 import xarray as xr
+import tarfile
+import os
+import tempfile
 
 
 class GHRSSTL2FileHandler(BaseFileHandler):
@@ -30,9 +33,6 @@ class GHRSSTL2FileHandler(BaseFileHandler):
         super(GHRSSTL2FileHandler, self).__init__(filename, filename_info, filetype_info)
 
         if filename.endswith('tar'):
-            import tarfile
-            import os
-            import tempfile
             with tempfile.TemporaryDirectory() as tempdir:
                 with tarfile.open(name=filename, mode='r') as tf:
                     sst_filename = next((name for name in tf.getnames()
@@ -73,3 +73,8 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     def end_time(self):
         """Get end time."""
         return self.filename_info['end_time']
+
+    @property
+    def sensor(self):
+        """Get the sensor name."""
+        return self.nc.attrs['sensor'].lower()
