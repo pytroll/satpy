@@ -52,7 +52,6 @@ satpy.composites.viirs module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 
