@@ -108,6 +108,7 @@ Here is an example how to read the data in satpy:
 Output:
 
 .. code-block:: none
+
     <xarray.DataArray 'brightness_temperature_channel_4' (y: 11, x: 409)>
     dask.array<open_dataset-55ffbf3623b32077c67897f4283640a5brightness_temperature_channel_4, shape=(11, 409), dtype=float32, chunksize=(11, 409), chunktype=numpy.ndarray>
     Coordinates:
