@@ -1064,6 +1064,9 @@ class NetCDFTemplate:
         for attr_name, attr_config_dict in attr_configs.items():
             val = self._get_attr_value(attr_name, input_metadata,
                                        prefix=prefix, **attr_config_dict)
+            if val is None:
+                # NetCDF attributes can't have a None value
+                continue
             attrs[attr_name] = val
         return attrs
 
@@ -1146,7 +1149,16 @@ class NetCDFTemplate:
             new_encoding['scale_factor'] = 0.5
             new_encoding['add_offset'] = 0
             # no _FillValue
-        elif vmin is not None and vmax is not None:
+        elif (vmin is None or vmax is None) and not allow_no_scaling:
+            LOG.warning("'valid_min' and 'valid_max' not provided for '{}', "
+                        "will perform expensive min/max to determine suitable "
+                        "scaling parameters.".format(input_data_arr.attrs['name']))
+            vmin, vmax = da.compute(input_data_arr.data.min(), input_data_arr.data.max())
+            # raise NotImplementedError("'valid_range' or 'valid_min' or "
+            #                           "'valid_max' metadata not found. "
+            #                           "'scale_factor' and 'add_offset' can't "
+            #                           "be dynamically determined yet.")
+        if vmin is not None and vmax is not None:
             # calculate scale_factor and add_offset
             sf, ao, fill = self._get_factor_offset_fill(
                 input_data_arr, vmin, vmax, new_encoding
@@ -1154,11 +1166,6 @@ class NetCDFTemplate:
             new_encoding['scale_factor'] = sf
             new_encoding['add_offset'] = ao
             new_encoding['_FillValue'] = fill
-        elif not allow_no_scaling:
-            raise NotImplementedError("'valid_range' or 'valid_min' or "
-                                      "'valid_max' metadata not found. "
-                                      "'scale_factor' and 'add_offset' can't "
-                                      "be dynamically determined yet.")
         return new_encoding
 
     def _render_variable(self, data_arr):
@@ -1215,10 +1222,32 @@ class NetCDFTemplate:
 class AWIPSNetCDFTemplate(NetCDFTemplate):
     """NetCDF template renderer specifically for tiled AWIPS files."""
 
+    def __init__(self, template_dict, swap_end_time=False):
+        """Handle AWIPS special cases and initialize template helpers."""
+        if swap_end_time:
+            self._swap_end_time(template_dict)
+        super().__init__(template_dict)
+
+    def _swap_end_time(self, template_dict):
+        """Swap every use of 'start_time' to use 'end_time' instead."""
+        variable_attributes = [var_section['attributes'] for var_section in template_dict.get('variables', {}).values()]
+        global_attributes = template_dict.get('global_attributes', {})
+        for attr_section in variable_attributes + [global_attributes]:
+            for attr_name in attr_section:
+                attr_config = attr_section[attr_name]
+                if '{start_time' in attr_config.get('value', ''):
+                    attr_config['value'] = attr_config['value'].replace('{start_time', '{end_time')
+                if attr_config.get('raw_key', '') == 'start_time':
+                    attr_config['raw_key'] = 'end_time'
+
     def _data_units(self, input_metadata):
         units = input_metadata.get('units', '1')
         # we *know* AWIPS can't handle some units
         return UNIT_CONV.get(units, units)
+
+    def _global_start_date_time(self, input_metadata):
+        new_stime = input_metadata["start_time"] + timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
+        return new_stime.strftime("%Y-%m-%dT%H:%M:%S}")
 
     def _global_awips_id(self, input_metadata):
         return "AWIPS_" + input_metadata['name']
@@ -1297,6 +1326,12 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds = super().render(dataset_or_data_arrays)
         new_ds = self.apply_area_def(new_ds, area_def)
         return new_ds
+
+
+def tile_filler(data_arr_data, tile_shape, tile_slices, fill_value):
+    empty_tile = np.full(tile_shape, fill_value, dtype=data_arr_data.dtype)
+    empty_tile[tile_slices] = data_arr_data
+    return empty_tile
 
 
 class SCMIWriter(Writer):
@@ -1434,17 +1469,33 @@ class SCMIWriter(Writer):
 
         return new_datasets
 
+    def _tile_filler(self, tile_info, data_arr):
+        fill = np.nan if np.issubdtype(data_arr.dtype, np.floating) else data_arr.attrs.get('_FillValue', 0)
+        data_arr_data = data_arr.data[tile_info.data_slices]
+        data_arr_data = data_arr_data.rechunk(data_arr_data.shape)
+        new_data = da.map_blocks(tile_filler, data_arr_data,
+                                 tile_info.tile_shape, tile_info.tile_slices,
+                                 fill, dtype=data_arr.dtype, chunks=tile_info.tile_shape)
+        new_data = new_data.persist()
+        return xr.DataArray(new_data, dims=('y', 'x'),
+                            attrs=data_arr.attrs.copy())
+
     def _slice_and_update_coords(self, tile_info, data_arrays):
-        old_x = data_arrays[0].coords['x']
-        old_y = data_arrays[0].coords['y']
-        new_x = xr.DataArray(tile_info.x, dims=('x',), attrs=old_x.attrs.copy())
-        new_x.encoding = old_x.encoding
-        new_y = xr.DataArray(tile_info.y, dims=('y',), attrs=old_y.attrs.copy())
-        new_y.encoding = old_y.encoding
+        new_x = xr.DataArray(tile_info.x, dims=('x',))
+        if 'x' in data_arrays[0].coords:
+            old_x = data_arrays[0].coords['x']
+            new_x.attrs.update(old_x.attrs)
+            new_x.encoding = old_x.encoding
+        new_y = xr.DataArray(tile_info.y, dims=('y',))
+        if 'y' in data_arrays[0].coords:
+            old_y = data_arrays[0].coords['y']
+            new_x.attrs.update(old_y.attrs)
+            new_y.encoding = old_y.encoding
+
         for data_arr in data_arrays:
-            new_data_arr = data_arr[tile_info.tile_slices]
+            new_data_arr = self._tile_filler(tile_info, data_arr)
             new_data_arr.coords['x'] = new_x
-            new_data_arr.coords['y'] = new_x
+            new_data_arr.coords['y'] = new_y
             yield new_data_arr
 
     def _iter_tile_info_and_datasets(self, tile_gen, data_arrays, single_variable=True):
@@ -1455,8 +1506,8 @@ class SCMIWriter(Writer):
             all_data_arrays = [all_data_arrays]
         for data_arrays_set in all_data_arrays:
             for tile_info in tile_gen():
-                data_arrays_set = list(self._slice_and_update_coords(tile_info, data_arrays_set))
-                yield tile_info, data_arrays_set
+                data_arrays_tile_set = list(self._slice_and_update_coords(tile_info, data_arrays_set))
+                yield tile_info, data_arrays_tile_set
 
     def save_dataset(self, dataset, **kwargs):
         """Save a single DataArray to one or more NetCDF4 SCMI files."""
@@ -1554,25 +1605,22 @@ class SCMIWriter(Writer):
 
         if not isinstance(template, dict):
             template = self.config['templates'][template]
-        template = AWIPSNetCDFTemplate(template)
+        template = AWIPSNetCDFTemplate(template, swap_end_time=use_end_time)
         delayeds = []
         area_datasets = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
-        for area_def, ds_list in area_datasets.values():
+        for area_def, data_arrays in area_datasets.values():
             tile_gen = self._get_tile_generator(
                 area_def, lettered_grid, sector_id, num_subtiles, tile_size,
                 tile_count, use_sector_reference=use_sector_reference)
             for tile_info, data_arrs in self._iter_tile_info_and_datasets(
-                    tile_gen, ds_list, single_variable=template.is_single_variable):
+                    tile_gen, data_arrays, single_variable=template.is_single_variable):
                 # use the first data array as a "representative" for the group
                 ds_info = data_arrs[0].attrs.copy()
                 # TODO: Create Dataset object of all of the sliced-DataArrays
                 # TODO: Handle "file exists, update existing tile information"
-                if use_end_time:
-                    # replace start_time with end_time for multi-day composites
-                    ds_info['start_time'] = ds_info['end_time']
-
+                # TODO: Handle not generating empty tiles
                 output_filename = filename or self.get_filename(area_def, tile_info, sector_id,
                                                                 source_name=source_name,
                                                                 **ds_info)
@@ -1610,6 +1658,10 @@ class SCMIWriter(Writer):
                 new_ds.attrs['product_columns'] = total_pixels[1]
                 datasets_to_save.append(new_ds)
                 output_filenames.append(output_filename)
+        if not datasets_to_save:
+            # no tiles produced
+            return delayeds
+
         res = xr.save_mfdataset(datasets_to_save, output_filenames, compute=compute)
         if not compute:
             delayeds.append(res)

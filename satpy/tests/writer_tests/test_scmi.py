@@ -144,6 +144,7 @@ class TestSCMIWriter(unittest.TestCase):
                 start_time=now,
                 end_time=now + timedelta(minutes=20))
         )
+        # tile_count should be ignored since we specified lettered_grid
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 16)
