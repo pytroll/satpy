@@ -57,8 +57,8 @@ templates:
   polar:
     single_variable: true
     global_attributes:
-      start_date_time:
-        value: "{start_time:%Y-%m-%dT%H:%M:%S}"
+      start_date_time: {}  # special handler for debugging in scmi.py
+#        value: "{start_time:%Y-%m-%dT%H:%M:%S}"
       product_name:
         value: "{name}"
       production_location: {}
@@ -123,8 +123,8 @@ templates:
         var_name: data
         attributes:
           attributes:
-          physical_element:
-            raw_value: CLAVR-x Cloud Type
+            physical_element:
+              raw_value: CLAVR-x Cloud Type
       clavrx_cld_temp_acha:
         reader: clavrx
         name: cld_temp_acha
