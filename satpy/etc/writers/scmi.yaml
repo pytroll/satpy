@@ -53,196 +53,396 @@ sectors:
     upper_right_xy: [5499999.901174725, 5499999.901174725]
     resolution: [2500000, 2500000]
     projection: '+proj=geos +lon_0=140.7 +h=35785863.0 +a=6378137.0 +b=6356752.3 +sweep=y +units=m +no_defs'
-datasets:
-    default:
-       physical_element: '{name}'
+templates:
+  polar:
+    single_variable: true
+    global_attributes:
+      start_date_time:
+        value: "{start_time:%Y-%m-%dT%H:%M:%S}"
+      product_name:
+        value: "{name}"
+      production_location: {}
+#        value: "${ORGANIZATION}"
+      awips_id: {}
+#        value: "{awips_id}"  # special variable created by scmi.py
+      creating_entity:
+        value: "{platform_name!u}-{sensor!u}"
+    coordinates:
+      x:
+        attributes:
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: "int16"
+          _Unsigned: "true"
+      y:
+        attributes:
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: "int16"
+          _Unsigned: "true"
 
-    # ACSPO Products
-    acspo_sst:
-      reader: acspo
-      name: sst
-      physical_element: ACSPO SST
+    # XXX: Variable attributes *CAN NOT* be tile-specific.
+    variables:
+      # if no other section matches, we use this
+      default:
+        var_name: 'data'
+        attributes:
+          physical_element:
+            value: '{name}'
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: int16  # explicit uint16, also the default in scmi.py
+          _Unsigned: "true"
 
-    # CLAVR-x Products
-    default_clavrx:
-      reader: clavrx
-      physical_element: 'CLAVR-x {name}'
-    clavrx_cloud_type:
-      reader: clavrx
-      name: cloud_type
-      physical_element: CLAVR-x Cloud Type
-    clavrx_cld_temp_acha:
-      reader: clavrx
-      name: cld_temp_acha
-      physical_element: CLAVR-x Cloud Top Temperature (ACHA)
-    clavrx_cld_height_acha:
-      reader: clavrx
-      name: cld_height_acha
-      physical_element: CLAVR-x Cloud Top Height (ACHA)
-    clavrx_cloud_phase:
-      reader: clavrx
-      name: cloud_phase
-      physical_element: CLAVR-x Cloud Phase
-    clavrx_cld_opd_dcomp:
-      reader: clavrx
-      name: cld_opd_dcomp
-      physical_element: CLAVR-x Cloud Optical Depth (dcomp)
-    clavrx_clld_opd_nlcomp:
-      reader: clavrx
-      name: cloud_opd_nlcomp
-      physical_element: CLAVR-x Cloud Optical Depth (nlcomp)
-    clavrx_cld_reff_dcomp:
-      reader: clavrx
-      name: cld_reff_dcomp
-      physical_element: CLAVR-x Cloud Effective Radius (dcomp)
-    clavrx_cld_reff_nlcomp:
-      reader: clavrx
-      name: cld_reff_nlcomp
-      physical_element: CLAVR-x Cloud Effective Radius (nlcomp)
-    clavrx_cld_emiss_acha:
-      reader: clavrx
-      name: cld_emiss_acha
-      physical_element: CLAVR-x Cloud Emissivity (ACHA)
-    clavrx_refl_lunar_dnb_nom:
-      reader: clavrx
-      name: refl_lunar_dnb_nom
-      physical_element: CLAVR-x Cloud Lunar Reflectance
-    clavrx_rain_rate:
-      reader: clavrx
-      name: rain_rate
-      physical_element: CLAVR-x Rain Rate
 
-    # AVHRR L1B products
-    avhrr_band1_vis:
-      name: band1_vis
-      physical_element: 0.63 um
-    avhrr_band2_vis:
-      name: band2_vis
-      physical_element: 0.86 um
-    avhrr_band3a_vis:
-      name: band3a_vis
-      physical_element: 1.61 um
-    avhrr_band3b_bt:
-      name: band3b_bt
-      physical_element: 3.74 um
-    avhrr_band4_bt:
-      name: band4_bt
-      physical_element: 10.8 um
-    avhrr_band5_bt:
-      name: band5_bt
-      physical_element: 12.0 um
+      # ACSPO Products
+      acspo_sst:
+        reader: acspo
+        name: sst
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: ACSPO SST
 
-    # VIIRS SDRs
-    viirs_i01:
-      name: I01
-      physical_element: 0.64 um
-    viirs_i02:
-      name: I02
-      physical_element: 0.86 um
-    viirs_i03:
-      name: I03
-      physical_element: 1.61 um
-    viirs_i04:
-      name: I04
-      physical_element: 3.74 um
-    viirs_i05:
-      name: I05
-      physical_element: 11.5 um
-    viirs_histogram_dnb:
-      name: histogram_dnb
-      physical_element: Histogram DNB
-    viirs_adaptive_dnb:
-      name: adaptive_dnb
-      physical_element: Adaptive DNB
-    viirs_dynamic_dnb:
-      name: dynamic_dnb
-      physical_element: Dynamic DNB
-    viirs_hncc_dnb:
-      name: hncc_dnb
-      physical_element: HNCC DNB
-    viirs_ifog:
-      name: ssec_fog
-      physical_element: Fog
-    viirs_m01:
-      name: M01
-      physical_element: 0.41 um
-    viirs_m02:
-      name: M02
-      physical_element: 0.45 um
-    viirs_m03:
-      name: M03
-      physical_element: 0.49 um
-    viirs_m04:
-      name: M04
-      physical_element: 0.56 um
-    viirs_m05:
-      name: M05
-      physical_element: 0.67 um
-    viirs_m06:
-      name: M06
-      physical_element: 0.75 um
-    viirs_m07:
-      name: M07
-      physical_element: 0.86 um
-    viirs_m08:
-      name: M08
-      physical_element: 1.24 um
-    viirs_m09:
-      name: M09
-      physical_element: 1.38 um
-    viirs_m10:
-      name: M10
-      physical_element: 1.61 um
-    viirs_m11:
-      name: M11
-      physical_element: 2.25 um
-    viirs_m12:
-      name: M12
-      physical_element: 3.70 um
-    viirs_m13:
-      name: M13
-      physical_element: 4.05 um
-    viirs_m14:
-      name: M14
-      physical_element: 8.6 um
-    viirs_m15:
-      name: M15
-      physical_element: 10.8 um
-    viirs_m16:
-      name: M16
-      physical_element: 12.0 um
+      # CLAVR-x Products
+      default_clavrx:
+        reader: clavrx
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 'CLAVR-x {name}'
+      clavrx_cloud_type:
+        reader: clavrx
+        name: cloud_type
+        var_name: data
+        attributes:
+          attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Type
+      clavrx_cld_temp_acha:
+        reader: clavrx
+        name: cld_temp_acha
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Top Temperature (ACHA)
+      clavrx_cld_height_acha:
+        reader: clavrx
+        name: cld_height_acha
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Top Height (ACHA)
+      clavrx_cloud_phase:
+        reader: clavrx
+        name: cloud_phase
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Phase
+      clavrx_cld_opd_dcomp:
+        reader: clavrx
+        name: cld_opd_dcomp
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Optical Depth (dcomp)
+      clavrx_clld_opd_nlcomp:
+        reader: clavrx
+        name: cloud_opd_nlcomp
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Optical Depth (nlcomp)
+      clavrx_cld_reff_dcomp:
+        reader: clavrx
+        name: cld_reff_dcomp
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Effective Radius (dcomp)
+      clavrx_cld_reff_nlcomp:
+        reader: clavrx
+        name: cld_reff_nlcomp
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Effective Radius (nlcomp)
+      clavrx_cld_emiss_acha:
+        reader: clavrx
+        name: cld_emiss_acha
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Emissivity (ACHA)
+      clavrx_refl_lunar_dnb_nom:
+        reader: clavrx
+        name: refl_lunar_dnb_nom
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Cloud Lunar Reflectance
+      clavrx_rain_rate:
+        reader: clavrx
+        name: rain_rate
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: CLAVR-x Rain Rate
 
-    # VIIRS Corrected Reflectance
-#    viirs_viirs_crefl01:
-#      name: viirs_crefl01
-#      physical_element: 0.67 um CR
-#    viirs_viirs_crefl02:
-#      name: viirs_crefl02
-#      physical_element: 0.87 um CR
-#    viirs_viirs_crefl03:
-#      name: viirs_crefl03
-#      physical_element: 0.49 um CR
-#    viirs_viirs_crefl04:
-#      name: viirs_crefl04
-#      physical_element: 0.56 um CR
-#    viirs_viirs_crefl05:
-#      name: viirs_crefl05
-#      physical_element: 1.24 um CR
-#    viirs_viirs_crefl06:
-#      name: viirs_crefl06
-#      physical_element: 1.61 um CR
-#    viirs_crefl07:
-#      name: viirs_crefl07
-#      physical_element: 2.25 um CR
-#    viirs_crefl08:
-#      name: viirs_crefl08
-#      physical_element: 0.64 um CR
-#    viirs_crefl09:
-#      name: viirs_crefl09
-#      physical_element: 0.87 um CR
-#    viirs_crefl10:
-#      name: viirs_crefl10
-#      physical_element: 1.61 um CR
+      # AVHRR L1B products
+      avhrr_band1_vis:
+        name: band1_vis
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.63 um
+      avhrr_band2_vis:
+        name: band2_vis
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.86 um
+      avhrr_band3a_vis:
+        name: band3a_vis
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.61 um
+      avhrr_band3b_bt:
+        name: band3b_bt
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 3.74 um
+      avhrr_band4_bt:
+        name: band4_bt
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 10.8 um
+      avhrr_band5_bt:
+        name: band5_bt
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 12.0 um
+
+      # VIIRS SDRs
+      viirs_i01:
+        name: I01
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.64 um
+      viirs_i02:
+        name: I02
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.86 um
+      viirs_i03:
+        name: I03
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.61 um
+      viirs_i04:
+        name: I04
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 3.74 um
+      viirs_i05:
+        name: I05
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 11.5 um
+      viirs_histogram_dnb:
+        name: histogram_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Histogram DNB
+      viirs_adaptive_dnb:
+        name: adaptive_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Adaptive DNB
+      viirs_dynamic_dnb:
+        name: dynamic_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Dynamic DNB
+      viirs_hncc_dnb:
+        name: hncc_dnb
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: HNCC DNB
+      viirs_ifog:
+        name: ssec_fog
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Fog
+      viirs_m01:
+        name: M01
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.41 um
+      viirs_m02:
+        name: M02
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.45 um
+      viirs_m03:
+        name: M03
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.49 um
+      viirs_m04:
+        name: M04
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.56 um
+      viirs_m05:
+        name: M05
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.67 um
+      viirs_m06:
+        name: M06
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.75 um
+      viirs_m07:
+        name: M07
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 0.86 um
+      viirs_m08:
+        name: M08
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.24 um
+      viirs_m09:
+        name: M09
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.38 um
+      viirs_m10:
+        name: M10
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 1.61 um
+      viirs_m11:
+        name: M11
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 2.25 um
+      viirs_m12:
+        name: M12
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 3.70 um
+      viirs_m13:
+        name: M13
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 4.05 um
+      viirs_m14:
+        name: M14
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 8.6 um
+      viirs_m15:
+        name: M15
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 10.8 um
+      viirs_m16:
+        name: M16
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 12.0 um
+
+      # VIIRS Corrected Reflectance
+      #    viirs_viirs_crefl01:
+      #      name: viirs_crefl01
+      #      attributes:
+#          physical_element:
+#            raw_value: 0.67 um CR
+      #    viirs_viirs_crefl02:
+      #      name: viirs_crefl02
+      #      attributes:
+#          physical_element:
+#            raw_value: 0.87 um CR
+      #    viirs_viirs_crefl03:
+      #      name: viirs_crefl03
+      #      attributes:
+#          physical_element:
+#            raw_value: 0.49 um CR
+      #    viirs_viirs_crefl04:
+      #      name: viirs_crefl04
+      #      attributes:
+#          physical_element:
+#            raw_value: 0.56 um CR
+      #    viirs_viirs_crefl05:
+      #      name: viirs_crefl05
+      #      attributes:
+#          physical_element:
+#            raw_value: 1.24 um CR
+      #    viirs_viirs_crefl06:
+      #      name: viirs_crefl06
+      #      attributes:
+#          physical_element:
+#            raw_value: 1.61 um CR
+      #    viirs_crefl07:
+      #      name: viirs_crefl07
+      #      attributes:
+#          physical_element:
+#            raw_value: 2.25 um CR
+      #    viirs_crefl08:
+      #      name: viirs_crefl08
+      #      attributes:
+#          physical_element:
+#            raw_value: 0.64 um CR
+      #    viirs_crefl09:
+      #      name: viirs_crefl09
+      #      attributes:
+#          physical_element:
+#            raw_value: 0.87 um CR
+      #    viirs_crefl10:
+      #      name: viirs_crefl10
+      #      attributes:
+#          physical_element:
+#            raw_value: 1.61 um CR
 
     # MODIS L1B Products
 #    modis_vis01:
@@ -526,28 +726,54 @@ datasets:
 #      name: tskin
 #      physical_element: MIRS Skin Temperature
 
-    # AMSR-2 L1B
-    amsr2_btemp_36.5h:
-      name: btemp_36.5h
-      physical_element: 36.5 GHz H
-    amsr2_btemp_36.5v:
-      name: btemp_36.5v
-      physical_element: 36.5 GHz V
-    amsr2_btemp_89.0ah:
-      name: btemp_89.0ah
-      physical_element: 89.0 GHz AH
-    amsr2_btemp_89.0av:
-      name: btemp_89.0av
-      physical_element: 89.0 GHz AV
-    amsr2_btemp_89.0bh:
-      name: btemp_89.0bh
-      physical_element: 89.0 GHz BH
-    amsr2_btemp_89.0bv:
-      name: btemp_89.0bv
-      physical_element: 89.0 GHz BV
+      # AMSR-2 L1B
+      amsr2_btemp_36.5h:
+        name: btemp_36.5h
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 36.5 GHz H
+      amsr2_btemp_36.5v:
+        name: btemp_36.5v
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 36.5 GHz V
+      amsr2_btemp_89.0ah:
+        name: btemp_89.0ah
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz AH
+      amsr2_btemp_89.0av:
+        name: btemp_89.0av
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz AV
+      amsr2_btemp_89.0bh:
+        name: btemp_89.0bh
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz BH
+      amsr2_btemp_89.0bv:
+        name: btemp_89.0bv
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: 89.0 GHz BV
 
-    # GEOCAT Level 1 Products
-    geocat_surface_type:
-      name: pixel_surface_type
-      physical_element: Surface Type
-    # GEOCAT Level 2 Products
+      # GEOCAT Level 1 Products
+      geocat_surface_type:
+        name: pixel_surface_type
+        var_name: data
+        attributes:
+          physical_element:
+            raw_value: Surface Type
+      # GEOCAT Level 2 Products
+  glm_l2:
+    single_variable: false
+    global_attributes:
+
+    variables:
