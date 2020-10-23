@@ -775,5 +775,69 @@ templates:
   glm_l2:
     single_variable: false
     global_attributes:
-
+      dataset_name: {}  # special handler in scmi.py
+      time_coverage_end:
+        value: "{start_time:%Y-%m-%dT%H:%M:%S.%fZ}"
+      production_site: {}  # special handler in scmi.py
+      platform_ID:
+        # hack to make GOES-16 -> G16
+        value: "{platform_name[0]}{platform_name[5]}{platform_name[6]}"
+    coordinates:
+      x:
+        attributes:
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: "int16"
+      y:
+        attributes:
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: "int16"
     variables:
+      DQF:
+        # Not currently viewable by AWIPS
+        name: DQF
+        attributes:
+          physical_element:
+            raw_value: "GLM_DQF"
+
+      flash_extent_density:
+        name: "flash_extent_density"
+        var_name: "Flash_extent_density"
+        attributes:
+          physical_element:
+            raw_value: "GLM_Flash_Extent_Density"
+      flash_extent_density_window:
+        name: "flash_extent_density_window"
+        var_name: "Flash_extent_density_window"
+        attributes:
+          physical_element:
+            raw_value: "GLM_Flash_Extent_Density_Window"
+      average_flash_area:
+        name: "average_flash_area"
+        var_name: "Average_flash_area"
+        attributes:
+          physical_element:
+            raw_value: "GLM_Average_Flash_Area"
+      average_flash_area_window:
+        name: "average_flash_area_window"
+        var_name: "Average_flash_area_window"
+        attributes:
+          physical_element:
+            raw_value: "GLM_Average_Flash_Area_Window"
+      total_optical_energy:
+        name: "total_optical_energy"
+        var_name: "Total_Optical_energy"
+        attributes:
+          physical_element:
+            raw_value: "GLM_Total_Optical_Energy"
+      total_optical_energy_window:
+        name: "total_optical_energy_window"
+        var_name: "Total_optical_energy_window"
+        attributes:
+          physical_element:
+            raw_value: "GLM_Total_Optical_Energy_Window"

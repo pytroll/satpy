@@ -106,6 +106,7 @@ from pyproj import Proj
 import dask
 import dask.array as da
 from satpy.writers import Writer, DecisionTree, Enhancer, get_enhanced_image
+from satpy import __version__
 from pyresample.geometry import AreaDefinition
 from trollsift.parser import StringFormatter
 from collections import namedtuple
@@ -241,19 +242,7 @@ class NumberedTileGenerator(object):
         x, y = imaginary_grid_def.get_proj_coords()
         x = x[0].squeeze()  # all rows should have the same coordinates
         y = y[:, 0].squeeze()  # all columns should have the same coordinates
-        # scale the X and Y arrays to fit in the file for 16-bit integers
-        # AWIPS is dumb and requires the integer values to be 0, 1, 2, 3, 4
-        # Max value of a signed 16-bit integer is 32767 meaning
-        # 32768 values.
-        if x.shape[0] > 2**15:
-            # awips uses 0, 1, 2, 3 so we can't use the negative end of the variable space
-            raise ValueError("X variable too large for AWIPS-version of 16-bit integer space")
-        if y.shape[0] > 2**15:
-            # awips uses 0, 1, 2, 3 so we can't use the negative end of the variable space
-            raise ValueError("Y variable too large for AWIPS-version of 16-bit integer space")
-        # NetCDF library doesn't handle numpy arrays nicely anymore for some
-        # reason and has been masking values that shouldn't be
-        return np.ma.masked_array(x), np.ma.masked_array(y)
+        return x, y
 
     def _get_xy_scaling_parameters(self):
         """Get the X/Y coordinate limits for the full resulting image."""
@@ -1323,13 +1312,56 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         for data_arr in new_ds.data_vars.values():
             if 'y' in data_arr.dims and 'x' in data_arr.dims:
                 data_arr.attrs['grid_mapping'] = gmap_name
-        # TODO: Set x/y scale_factor and offset
+
+        new_ds.attrs['pixel_x_size'] = area_def.pixel_size_x / 1000.0
+        new_ds.attrs['pixel_y_size'] = area_def.pixel_size_y / 1000.0
         return new_ds
 
-    def render(self, dataset_or_data_arrays, area_def):
+    def apply_tile_coord_encoding(self, new_ds, xy_factors):
+        if 'x' in new_ds.coords:
+            new_ds.coords['x'].encoding['dtype'] = 'int16'
+            new_ds.coords['x'].encoding['scale_factor'] = np.float64(xy_factors.mx)
+            new_ds.coords['x'].encoding['add_offset'] = np.float64(xy_factors.bx)
+        if 'y' in new_ds.coords:
+            new_ds.coords['y'].encoding['dtype'] = 'int16'
+            new_ds.coords['y'].encoding['scale_factor'] = np.float64(xy_factors.my)
+            new_ds.coords['y'].encoding['add_offset'] = np.float64(xy_factors.by)
+        return new_ds
+
+    def apply_tile_info(self, new_ds, tile_info):
+        total_tiles = tile_info.tile_count
+        total_pixels = tile_info.image_shape
+        tile_row = tile_info.tile_row_offset
+        tile_column = tile_info.tile_column_offset
+        tile_height = new_ds.sizes['y']
+        tile_width = new_ds.sizes['x']
+        new_ds.attrs['tile_row_offset'] = tile_row
+        new_ds.attrs['tile_column_offset'] = tile_column
+        new_ds.attrs['product_tile_height'] = tile_height
+        new_ds.attrs['product_tile_width'] = tile_width
+        new_ds.attrs['number_product_tiles'] = total_tiles[0] * total_tiles[1]
+        new_ds.attrs['product_rows'] = total_pixels[0]
+        new_ds.attrs['product_columns'] = total_pixels[1]
+        return new_ds
+
+    def apply_misc_metadata(self, new_ds, sector_id, creator=None):
+        if creator is None:
+            creator = "Satpy Version {} - SCMI Writer".format(__version__)
+
+        new_ds.attrs['Conventions'] = "CF-1.7"
+        new_ds.attrs['creator'] = creator
+        new_ds.attrs['creation_time'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
+        new_ds.attrs['sector_id'] = sector_id
+        return new_ds
+
+    def render(self, dataset_or_data_arrays, area_def, xy_factors,
+               tile_info, sector_id, creator=None):
         """Create a :class:`xarray.Dataset` from template using information provided."""
         new_ds = super().render(dataset_or_data_arrays)
         new_ds = self.apply_area_def(new_ds, area_def)
+        new_ds = self.apply_tile_coord_encoding(new_ds, xy_factors)
+        new_ds = self.apply_tile_info(new_ds, tile_info)
+        new_ds = self.apply_misc_metadata(new_ds, sector_id, creator)
         return new_ds
 
 
@@ -1513,7 +1545,6 @@ class SCMIWriter(Writer):
         new_data = da.map_blocks(tile_filler, data_arr_data,
                                  tile_info.tile_shape, tile_info.tile_slices,
                                  fill, dtype=data_arr.dtype, chunks=tile_info.tile_shape)
-        new_data = new_data.persist()
         return xr.DataArray(new_data, dims=('y', 'x'),
                             attrs=data_arr.attrs.copy())
 
@@ -1653,6 +1684,8 @@ class SCMIWriter(Writer):
         area_datasets = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
+        # TODO: Combine these for loops into one helper iterator.
+        #    Will require putting tile_gen.xy_factors into TileInfo
         for area_def, data_arrays in area_datasets.values():
             tile_gen = self._get_tile_generator(
                 area_def, lettered_grid, sector_id, num_subtiles, tile_size,
@@ -1666,33 +1699,12 @@ class SCMIWriter(Writer):
                                                                 source_name=source_name,
                                                                 **ds_info)
                 self.check_tile_exists(output_filename)
-                new_ds = template.render(data_arrs, area_def)
+                # TODO: Provide attribute caching for things that likely won't change
+                new_ds = template.render(data_arrs, area_def, tile_gen.xy_factors,
+                                         tile_info, sector_id)
                 if self.compress:
                     new_ds.encoding['zlib'] = True
-                if 'x' in new_ds.coords:
-                    new_ds.coords['x'].encoding['dtype'] = 'int16'
-                    new_ds.coords['x'].encoding['scale_factor'] = np.float64(tile_gen.xy_factors.mx)
-                    new_ds.coords['x'].encoding['add_offset'] = np.float64(tile_gen.xy_factors.bx)
-                if 'y' in new_ds.coords:
-                    new_ds.coords['y'].encoding['dtype'] = 'int16'
-                    new_ds.coords['y'].encoding['scale_factor'] = np.float64(tile_gen.xy_factors.my)
-                    new_ds.coords['y'].encoding['add_offset'] = np.float64(tile_gen.xy_factors.by)
 
-                total_tiles = tile_info.tile_count
-                total_pixels = tile_info.image_shape
-                tile_row = tile_info.tile_row_offset
-                tile_column = tile_info.tile_column_offset
-                tile_height = data_arrs[0].sizes['y']
-                tile_width = data_arrs[0].sizes['x']
-                new_ds.attrs['creation_time'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
-                new_ds.attrs['sector_id'] = sector_id
-                new_ds.attrs['tile_row_offset'] = tile_row
-                new_ds.attrs['tile_column_offset'] = tile_column
-                new_ds.attrs['product_tile_height'] = tile_height
-                new_ds.attrs['product_tile_width'] = tile_width
-                new_ds.attrs['number_product_tiles'] = total_tiles[0] * total_tiles[1]
-                new_ds.attrs['product_rows'] = total_pixels[0]
-                new_ds.attrs['product_columns'] = total_pixels[1]
                 datasets_to_save.append(new_ds)
                 output_filenames.append(output_filename)
         if not datasets_to_save:

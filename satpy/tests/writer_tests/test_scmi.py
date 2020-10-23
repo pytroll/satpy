@@ -26,6 +26,41 @@ import dask.array as da
 import unittest
 
 
+def check_required_common_attributes(ds):
+    """Check common properties of the created AWIPS tiles for validity."""
+    assert 'x' in ds.coords
+    x_coord = ds.coords['x']
+    np.testing.assert_equal(np.diff(x_coord), 1)
+    x_attrs = x_coord.attrs
+    assert x_attrs.get('standard_name') == 'projection_x_coordinate'
+    assert x_attrs.get('units') == 'meters'
+    assert 'scale_factor' in x_attrs
+    assert 'add_offset' in x_attrs
+
+    assert 'y' in ds.coords
+    y_coord = ds.coords['y']
+    np.testing.assert_equal(np.diff(y_coord), 1)
+    y_attrs = y_coord.attrs
+    assert y_attrs.get('standard_name') == 'projection_y_coordinate'
+    assert y_attrs.get('units') == 'meters'
+    assert 'scale_factor' in y_attrs
+    assert 'add_offset' in y_attrs
+
+    for attr_name in ('tile_row_offset', 'tile_column_offset',
+                      'product_tile_height', 'product_tile_width',
+                      'number_product_tiles',
+                      'product_rows', 'product_columns'):
+        assert attr_name in ds.attrs
+
+    for data_arr in ds.data_vars.values():
+        if data_arr.ndim == 0:
+            # grid mapping variable
+            assert 'grid_mapping_name' in data_arr.attrs
+            continue
+        assert 'grid_mapping' in data_arr.attrs
+        assert data_arr.attrs['grid_mapping'] in ds
+
+
 class TestSCMIWriter(unittest.TestCase):
     """Test basic functionality of SCMI writer."""
 
@@ -50,6 +85,7 @@ class TestSCMIWriter(unittest.TestCase):
     def test_basic_numbered_1_tile(self):
         """Test creating a single numbered tile."""
         from satpy.writers.scmi import SCMIWriter
+        import xarray as xr
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
@@ -80,6 +116,9 @@ class TestSCMIWriter(unittest.TestCase):
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 1)
         self.assertEqual(os.path.basename(all_files[0]), 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc')
+        for fn in all_files:
+            ds = xr.open_dataset(fn, mask_and_scale=False)
+            check_required_common_attributes(ds)
 
     def test_basic_numbered_tiles(self):
         """Test creating a multiple numbered tiles."""
@@ -115,11 +154,9 @@ class TestSCMIWriter(unittest.TestCase):
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 9)
         for fn in all_files:
-            nc = xr.open_dataset(fn, mask_and_scale=False)
-            # geolocation coordinates should be monotonically increasing by 1
-            np.testing.assert_equal(np.diff(nc['x']), 1)
-            np.testing.assert_equal(np.diff(nc['y']), 1)
-            assert nc.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
+            ds = xr.open_dataset(fn, mask_and_scale=False)
+            check_required_common_attributes(ds)
+            assert ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid."""
@@ -156,11 +193,9 @@ class TestSCMIWriter(unittest.TestCase):
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 16)
         for fn in all_files:
-            nc = xr.open_dataset(fn, mask_and_scale=False)
-            # geolocation coordinates should be monotonically increasing by 1
-            np.testing.assert_equal(np.diff(nc['x']), 1)
-            np.testing.assert_equal(np.diff(nc['y']), 1)
-            assert nc.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
+            ds = xr.open_dataset(fn, mask_and_scale=False)
+            check_required_common_attributes(ds)
+            assert ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_lettered_tiles_sector_ref(self):
         """Test creating a lettered grid using the sector as reference."""
@@ -198,11 +233,9 @@ class TestSCMIWriter(unittest.TestCase):
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 16)
         for fn in all_files:
-            nc = xr.open_dataset(fn, mask_and_scale=False)
-            # geolocation coordinates should be monotonically increasing by 1
-            np.testing.assert_equal(np.diff(nc['x']), 1)
-            np.testing.assert_equal(np.diff(nc['y']), 1)
-            assert nc.attrs['start_date_time'] == (now + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
+            ds = xr.open_dataset(fn, mask_and_scale=False)
+            check_required_common_attributes(ds)
+            assert ds.attrs['start_date_time'] == (now + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_lettered_tiles_no_fit(self):
         """Test creating a lettered grid with no data overlapping the grid."""
@@ -311,6 +344,7 @@ class TestSCMIWriter(unittest.TestCase):
     def test_basic_numbered_tiles_rgb(self):
         """Test creating a multiple numbered tiles with RGB."""
         from satpy.writers.scmi import SCMIWriter
+        import xarray as xr
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
@@ -340,9 +374,15 @@ class TestSCMIWriter(unittest.TestCase):
                 end_time=now + timedelta(minutes=20))
         )
         w.save_datasets([ds], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_R*.nc'))
-        self.assertEqual(len(all_files), 9)
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_G*.nc'))
-        self.assertEqual(len(all_files), 9)
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_B*.nc'))
-        self.assertEqual(len(all_files), 9)
+        chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_R*.nc'))
+        all_files = chan_files[:]
+        self.assertEqual(len(chan_files), 9)
+        chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_G*.nc'))
+        all_files.extend(chan_files)
+        self.assertEqual(len(chan_files), 9)
+        chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_B*.nc'))
+        self.assertEqual(len(chan_files), 9)
+        all_files.extend(chan_files)
+        for fn in all_files:
+            ds = xr.open_dataset(fn, mask_and_scale=False)
+            check_required_common_attributes(ds)
