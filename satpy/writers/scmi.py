@@ -103,6 +103,7 @@ import xarray as xr
 
 import numpy as np
 from pyproj import Proj
+import dask
 import dask.array as da
 from satpy.writers import Writer, DecisionTree, Enhancer, get_enhanced_image
 from pyresample.geometry import AreaDefinition
@@ -1224,11 +1225,12 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     def __init__(self, template_dict, swap_end_time=False):
         """Handle AWIPS special cases and initialize template helpers."""
+        self._swap_end_time = swap_end_time
         if swap_end_time:
-            self._swap_end_time(template_dict)
+            self._swap_attributes_end_time(template_dict)
         super().__init__(template_dict)
 
-    def _swap_end_time(self, template_dict):
+    def _swap_attributes_end_time(self, template_dict):
         """Swap every use of 'start_time' to use 'end_time' instead."""
         variable_attributes = [var_section['attributes'] for var_section in template_dict.get('variables', {}).values()]
         global_attributes = template_dict.get('global_attributes', {})
@@ -1246,8 +1248,11 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         return UNIT_CONV.get(units, units)
 
     def _global_start_date_time(self, input_metadata):
-        new_stime = input_metadata["start_time"] + timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
-        return new_stime.strftime("%Y-%m-%dT%H:%M:%S}")
+        start_time = input_metadata['start_time']
+        if self._swap_end_time:
+            start_time = input_metadata['end_time']
+        new_stime = start_time + timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
+        return new_stime.strftime("%Y-%m-%dT%H:%M:%S")
 
     def _global_awips_id(self, input_metadata):
         return "AWIPS_" + input_metadata['name']
@@ -1326,6 +1331,38 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds = super().render(dataset_or_data_arrays)
         new_ds = self.apply_area_def(new_ds, area_def)
         return new_ds
+
+
+def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
+                       fix_awips=False):
+    """Save :class:`xarray.Dataset` to a NetCDF file if not all fills.
+
+    In addition to checking certain Dataset variables for fill values,
+    this function can also "update" an existing NetCDF file with the
+    new valid data provided.
+
+    This function will also allow for 'auto' scale_factor and add_offset
+    creation by taking the minimum and maximum value of the variable.
+
+    """
+    # check if this tile is empty
+    # if so, don't create it
+    for data_var in dataset_to_save.data_vars.values():
+        # TODO: Does this work for category products?
+        if data_var.ndim and data_var.notnull().any():
+            break
+    else:
+        LOG.debug("Skipping tile creation for {} because it would be empty.")
+        return
+
+    # TODO: Add dynamic vmin/vmax scaling
+    # TODO: Add ability to update existing files
+    dataset_to_save.to_netcdf(output_filename)
+    if fix_awips:
+        fix_awips_file(output_filename)
+
+
+delayed_to_notempty_netcdf = dask.delayed(to_nonempty_netcdf, pure=True)
 
 
 def tile_filler(data_arr_data, tile_shape, tile_slices, fill_value):
@@ -1531,6 +1568,12 @@ class SCMIWriter(Writer):
         if os.path.isfile(output_filename):
             LOG.info("AWIPS file already exists, will update with new data: %s", output_filename)
 
+    def _save_nonempty_mfdatasets(self, datasets_to_save, output_filenames, **kwargs):
+        for dataset_to_save, output_filename in zip(datasets_to_save, output_filenames):
+            delayed_res = delayed_to_notempty_netcdf(
+                dataset_to_save, output_filename, **kwargs)
+            yield delayed_res
+
     def save_datasets(self, datasets, sector_id=None,
                       source_name=None, filename=None,
                       tile_count=(1, 1), tile_size=None,
@@ -1618,9 +1661,7 @@ class SCMIWriter(Writer):
                     tile_gen, data_arrays, single_variable=template.is_single_variable):
                 # use the first data array as a "representative" for the group
                 ds_info = data_arrs[0].attrs.copy()
-                # TODO: Create Dataset object of all of the sliced-DataArrays
-                # TODO: Handle "file exists, update existing tile information"
-                # TODO: Handle not generating empty tiles
+                # TODO: Create Dataset object of all of the sliced-DataArrays (optional)
                 output_filename = filename or self.get_filename(area_def, tile_info, sector_id,
                                                                 source_name=source_name,
                                                                 **ds_info)
@@ -1662,13 +1703,15 @@ class SCMIWriter(Writer):
             # no tiles produced
             return delayeds
 
-        res = xr.save_mfdataset(datasets_to_save, output_filenames, compute=compute)
-        if not compute:
-            delayeds.append(res)
-        elif self.fix_awips:
+        for delayed_result in self._save_nonempty_mfdatasets(datasets_to_save, output_filenames):
+            if compute:
+                delayed_result.compute()
+                continue
+            delayeds.append(delayed_result)
+
+        if self.fix_awips:
             for fn in output_filenames:
                 fix_awips_file(fn)
-
         return delayeds
 
 

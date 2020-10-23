@@ -198,7 +198,7 @@ class TestSCMIWriter(unittest.TestCase):
             assert nc.attrs['start_date_time'] == (now + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_lettered_tiles_no_fit(self):
-        """Test creating a lettered grid with no data."""
+        """Test creating a lettered grid with no data overlapping the grid."""
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -228,6 +228,40 @@ class TestSCMIWriter(unittest.TestCase):
         )
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created
+        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        self.assertEqual(len(all_files), 0)
+
+    def test_lettered_tiles_no_valid_data(self):
+        """Test creating a lettered grid with no valid data."""
+        from satpy.writers.scmi import SCMIWriter
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            1000,
+            2000,
+            (-1000000., -1500000., 1000000., 1500000.),
+        )
+        now = datetime(2018, 1, 1, 12, 0, 0)
+        ds = DataArray(
+            da.full((2000, 1000), np.nan, chunks=500, dtype=np.float32),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
+        )
+        w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        # No files created - all NaNs should result in no tiles being created
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 0)
 
