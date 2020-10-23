@@ -441,15 +441,17 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
+            This can either be a single dictionary that will be passed to all
+            reader instances, or a mapping of reader names to dictionaries.  If
+            the keys of ``reader_kwargs`` match exactly the list of strings in
+            ``reader`` or the keys of filenames, each reader instance will get its
+            own keyword arguments accordingly.
         ppp_config_dir (str): The directory containing the configuration files for satpy.
 
     Returns: Dictionary mapping reader name to reader instance
 
     """
     reader_instances = {}
-    reader_kwargs = reader_kwargs or {}
-    reader_kwargs_without_filter = reader_kwargs.copy()
-    reader_kwargs_without_filter.pop('filter_parameters', None)
 
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
@@ -475,6 +477,8 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     else:
         remaining_filenames = set(filenames or [])
 
+    (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
+
     for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
         if isinstance(filenames, dict):
             readers_files = set(filenames[reader[idx]])
@@ -482,7 +486,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             readers_files = remaining_filenames
 
         try:
-            reader_instance = load_reader(reader_configs, **reader_kwargs)
+            reader_instance = load_reader(
+                    reader_configs,
+                    **reader_kwargs[None if reader is None else reader[idx]])
         except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
@@ -493,8 +499,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables,
-                                                fh_kwargs=reader_kwargs_without_filter)
+            reader_instance.create_filehandlers(
+                    loadables,
+                    fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:
@@ -509,3 +516,25 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
     return reader_instances
+
+
+def _get_reader_kwargs(reader, reader_kwargs):
+    """Helper for load_readers to form reader_kwargs.
+
+    Helper for load_readers to get reader_kwargs and
+    reader_kwargs_without_filter in the desirable form.
+    """
+    reader_kwargs = reader_kwargs or {}
+
+    # ensure one reader_kwargs per reader, None if not provided
+    if reader is None:
+        reader_kwargs = {None: reader_kwargs}
+    elif reader_kwargs.keys() != set(reader):
+        reader_kwargs = dict.fromkeys(reader, reader_kwargs)
+
+    reader_kwargs_without_filter = {}
+    for (k, v) in reader_kwargs.items():
+        reader_kwargs_without_filter[k] = v.copy()
+        reader_kwargs_without_filter[k].pop('filter_parameters', None)
+
+    return (reader_kwargs, reader_kwargs_without_filter)
