@@ -39,15 +39,16 @@ import xml.etree.ElementTree as ET
 from functools import lru_cache
 from threading import Lock
 
-import dask.array as da
 import numpy as np
 import rasterio
 import xarray as xr
+from dask import array as da
 from dask.base import tokenize
 from rasterio.windows import Window
+from xarray import DataArray
+
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from xarray import DataArray
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,7 @@ class SAFEXML(BaseFileHandler):
 
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
 
+    @lru_cache
     def get_noise_correction(self, shape, chunks=None):
         """Get the noise correction array."""
         data_items = self.root.findall(".//noiseVector")
@@ -194,6 +196,7 @@ class SAFEXML(BaseFileHandler):
             noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
+    @lru_cache
     def get_calibration(self, calibration, shape, chunks=None):
         """Get the calibration array."""
         calibration_name = calibration.name or 'gamma'
