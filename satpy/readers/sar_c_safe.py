@@ -179,7 +179,7 @@ class SAFEXML(BaseFileHandler):
 
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
 
-    @lru_cache
+    @lru_cache(maxsize=10)
     def get_noise_correction(self, shape, chunks=None):
         """Get the noise correction array."""
         data_items = self.root.findall(".//noiseVector")
@@ -196,7 +196,7 @@ class SAFEXML(BaseFileHandler):
             noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
-    @lru_cache
+    @lru_cache(maxsize=10)
     def get_calibration(self, calibration, shape, chunks=None):
         """Get the calibration array."""
         calibration_name = calibration.name or 'gamma'
