@@ -21,7 +21,7 @@ The Satpy library acts as a high-level abstraction layer on top of other
 libraries maintained by the Pytroll group including:
 
 - `Pyresample <http://pyresample.readthedocs.io/en/latest/>`_
-- `PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_
+- `PySpectral <https://pyspectral.readthedocs.io/en/latest/>`_
 - `Trollimage <http://trollimage.readthedocs.io/en/latest/>`_
 - `Pycoast <https://pycoast.readthedocs.io/en/latest/>`_
 - `Pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
