@@ -92,6 +92,10 @@ class Scene:
             filter_parameters (dict): Specify loaded file filtering parameters.
                                       Shortcut for `reader_kwargs['filter_parameters']`.
             reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
+                Either a single dictionary that will be passed onto to all
+                reader instances, or a dictionary mapping reader names to
+                sub-dictionaries to pass different arguments to different
+                reader instances.
             ppp_config_dir (str): The directory containing the configuration files for satpy.
             base_dir (str): (DEPRECATED) The directory to search for files containing the
                             data to load. If *filenames* is also provided,

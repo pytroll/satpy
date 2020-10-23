@@ -45,6 +45,7 @@ try:
     from pyspectral.near_infrared_reflectance import Calculator
 except ImportError:
     Calculator = None
+
 try:
     from pyorbital.astronomy import sun_zenith_angle
 except ImportError:
@@ -619,17 +620,25 @@ class PSPRayleighReflectance(CompositeBase):
 class NIRReflectance(CompositeBase):
     """Get the reflective part of NIR bands."""
 
-    def __init__(self, sunz_threshold=None, **kwargs):
+    TERMINATOR_LIMIT = 85.0
+    MASKING_LIMIT = 88.0
+
+    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,
+                 masking_limit=MASKING_LIMIT, **kwargs):
         """Collect custom configuration values.
 
         Args:
             sunz_threshold: The threshold sun zenith angle used when deriving
                 the near infrared reflectance. Above this angle the derivation
-                will assume this sun-zenith everywhere. Default None, in which
-                case the default threshold defined in Pyspectral will be used.
+                will assume this sun-zenith everywhere. Unless overridden, the
+                default threshold of 85.0 degrees will be used.
+            masking_limit: Mask the data (set to NaN) above this Sun zenith angle.
+                By default the limit is at 88.0 degrees.  If set to `None`, no masking
+                is done.
 
         """
         self.sun_zenith_threshold = sunz_threshold
+        self.masking_limit = masking_limit
         super(NIRReflectance, self).__init__(**kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -686,6 +695,7 @@ class NIRReflectance(CompositeBase):
         proj = xr.DataArray(reflectance, dims=base_dataarray.dims,
                             coords=base_dataarray.coords, attrs=base_dataarray.attrs.copy())
         proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
+        proj.attrs['sun_zenith_masking_limit'] = self.masking_limit
         self.apply_modifier_info(base_dataarray, proj)
         return proj
 
@@ -700,12 +710,9 @@ class NIRReflectance(CompositeBase):
             LOG.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
 
-        if self.sun_zenith_threshold is not None:
-            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
-                                                   sunz_threshold=self.sun_zenith_threshold)
-        else:
-            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'])
-            self.sun_zenith_threshold = reflectance_3x_calculator.sunz_threshold
+        reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
+                                               sunz_threshold=self.sun_zenith_threshold,
+                                               masking_limit=self.masking_limit)
         return reflectance_3x_calculator
 
 
