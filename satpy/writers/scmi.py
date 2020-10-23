@@ -225,8 +225,8 @@ class NumberedTileGenerator(object):
         # tiles start from upper-left
         new_extents = (
             gd.area_extent[0],
-            gd.area_extent[1] - ps_y * (imaginary_data_size[1] - gd.height),
-            gd.area_extent[2] + ps_x * (imaginary_data_size[0] - gd.width),
+            gd.area_extent[1] - ps_y * (imaginary_data_size[0] - gd.height),
+            gd.area_extent[2] + ps_x * (imaginary_data_size[1] - gd.width),
             gd.area_extent[3])
         imaginary_grid_def = AreaDefinition(
             gd.area_id,
@@ -1673,14 +1673,10 @@ class SCMIWriter(Writer):
                     new_ds.coords['x'].encoding['dtype'] = 'int16'
                     new_ds.coords['x'].encoding['scale_factor'] = np.float64(tile_gen.xy_factors.mx)
                     new_ds.coords['x'].encoding['add_offset'] = np.float64(tile_gen.xy_factors.bx)
-                    # new_ds.coords['x'].encoding['_FillValue'] = np.float64(tile_gen.xy_factors.fill)
-                    # new_ds.coords['x'] = tile_info.x
                 if 'y' in new_ds.coords:
                     new_ds.coords['y'].encoding['dtype'] = 'int16'
                     new_ds.coords['y'].encoding['scale_factor'] = np.float64(tile_gen.xy_factors.my)
                     new_ds.coords['y'].encoding['add_offset'] = np.float64(tile_gen.xy_factors.by)
-                    # new_ds.coords['y'].encoding['_FillValue'] = np.float64(tile_gen.xy_factors.fill)
-                    # new_ds.coords['y'] = tile_info.y
 
                 total_tiles = tile_info.tile_count
                 total_pixels = tile_info.image_shape
