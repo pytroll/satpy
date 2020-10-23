@@ -57,7 +57,7 @@ class TestSAFEGRD(unittest.TestCase):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        with mock.patch.object(self.test_fh, 'read_band') as fake_read_band:
+        with mock.patch('satpy.readers.sar_c_safe.xr.open_rasterio') as fake_read_band:
             fake_read_band.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
             xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                       calibration=calibration, quantity='natural'), info=dict())
@@ -67,7 +67,7 @@ class TestSAFEGRD(unittest.TestCase):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        with mock.patch.object(self.test_fh, 'read_band') as fake_read_band:
+        with mock.patch('satpy.readers.sar_c_safe.xr.open_rasterio') as fake_read_band:
             fake_read_band.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
             xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                       calibration=calibration, quantity='dB'), info=dict())
