@@ -22,8 +22,10 @@ References:
     FM 92 GRIB Edition 2
     https://www.wmo.int/pages/prog/www/WMOCodes/Guides/GRIB/GRIB2_062006.pdf
 
-"""
+    EUMETSAT Product Navigator
+    https://navigator.eumetsat.int/
 
+"""
 import logging
 import numpy as np
 import xarray as xr
