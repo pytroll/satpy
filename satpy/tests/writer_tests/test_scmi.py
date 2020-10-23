@@ -83,6 +83,7 @@ class TestSCMIWriter(unittest.TestCase):
 
     def test_basic_numbered_tiles(self):
         """Test creating a multiple numbered tiles."""
+        import xarray as xr
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -113,6 +114,12 @@ class TestSCMIWriter(unittest.TestCase):
         w.save_datasets([ds], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 9)
+        for fn in all_files:
+            nc = xr.open_dataset(fn, mask_and_scale=False)
+            # geolocation coordinates should be monotonically increasing by 1
+            np.testing.assert_equal(np.diff(nc['x']), 1)
+            np.testing.assert_equal(np.diff(nc['y']), 1)
+            assert nc.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid."""
