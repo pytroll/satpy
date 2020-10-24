@@ -101,8 +101,9 @@ class TestSCMIWriter(unittest.TestCase):
             (-1000., -1500., 1000., 1500.),
         )
         now = datetime(2018, 1, 1, 12, 0, 0)
+        data = np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100))
         ds = DataArray(
-            da.from_array(np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)), chunks=50),
+            da.from_array(data, chunks=50),
             attrs=dict(
                 name='test_ds',
                 platform_name='PLAT',
@@ -119,6 +120,8 @@ class TestSCMIWriter(unittest.TestCase):
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
+            ds = xr.open_dataset(fn, mask_and_scale=True)
+            np.testing.assert_allclose(data, ds['data'].data, rtol=0.1)
 
     def test_basic_numbered_tiles(self):
         """Test creating a multiple numbered tiles."""

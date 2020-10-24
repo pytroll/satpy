@@ -487,6 +487,37 @@ class LetteredTileGenerator(NumberedTileGenerator):
                 yield tile_info
 
 
+def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
+    dtype_str = encoding['dtype']
+    dtype = np.dtype(getattr(np, dtype_str))
+    file_bit_depth = dtype.itemsize * 8
+    unsigned_in_signed = encoding.get('_Unsigned') == "true"
+    is_unsigned = dtype.kind == 'u'
+    bit_depth = input_data_arr.attrs.get('bit_depth', file_bit_depth)
+    num_fills = 1  # future: possibly support more than one fill value
+    if bit_depth is None:
+        bit_depth = file_bit_depth
+    if bit_depth >= file_bit_depth:
+        bit_depth = file_bit_depth
+    else:
+        # don't take away from the data bit depth if there is room in
+        # file data type to allow for extra fill values
+        num_fills = 0
+
+    if is_unsigned or unsigned_in_signed:
+        # max value
+        fills = [2 ** file_bit_depth - 1]
+    else:
+        # max value
+        fills = [2 ** (file_bit_depth - 1) - 1]
+
+    mx = float(vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
+    bx = vmin
+    if not is_unsigned and not unsigned_in_signed:
+        bx += 2 ** (bit_depth - 1) * mx
+    return mx, bx, fills[0]
+
+
 class SCMIDatasetDecisionTree(DecisionTree):
     """Load AWIPS-specific metadata from YAML configuration."""
 
@@ -1082,80 +1113,15 @@ class NetCDFTemplate:
         coord_attrs = self._render_attrs(attr_configs, input_metadata, prefix="_coord_")
         return coord_attrs
 
-    def _get_data_vmin_vmax(self, input_data_arr):
-        input_metadata = input_data_arr.attrs
-        valid_range = input_metadata.get("valid_range", input_metadata.get("valid_range"))
-        if valid_range:
-            valid_min, valid_max = valid_range
-        else:
-            valid_min = input_metadata.get("valid_min", input_metadata.get("valid_min"))
-            valid_max = input_metadata.get("valid_max", input_metadata.get("valid_max"))
-        return valid_min, valid_max
-
-    def _get_factor_offset_fill(self, input_data_arr, vmin, vmax, encoding):
-        dtype_str = encoding['dtype']
-        dtype = np.dtype(getattr(np, dtype_str))
-        file_bit_depth = dtype.itemsize * 8
-        unsigned_in_signed = encoding.get('Unsigned') == "true"
-        is_unsigned = dtype.kind == 'u'
-        bit_depth = input_data_arr.attrs.get('bit_depth', file_bit_depth)
-        num_fills = 1  # future: possibly support more than one fill value
-        if bit_depth is None:
-            bit_depth = file_bit_depth
-        if bit_depth >= file_bit_depth:
-            bit_depth = file_bit_depth
-        else:
-            # don't take away from the data bit depth if there is room in
-            # file data type to allow for extra fill values
-            num_fills = 0
-
-        if is_unsigned or unsigned_in_signed:
-            # max value
-            fills = [2 ** file_bit_depth - 1]
-        else:
-            # max value
-            fills = [2 ** (file_bit_depth - 1) - 1]
-
-        mx = float(vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
-        bx = vmin
-        if not is_unsigned and not unsigned_in_signed:
-            bx += 2 ** (bit_depth - 1) * mx
-        return mx, bx, fills[0]
-
-    def _render_variable_encoding(self, var_config, input_data_arr, allow_no_scaling=False):
+    def _render_variable_encoding(self, var_config, input_data_arr):
         new_encoding = input_data_arr.encoding.copy()
         # determine fill value and
         if 'encoding' in var_config:
             new_encoding.update(var_config['encoding'])
-
-        # TODO: Move this to the AWIPS subclass?
-        vmin, vmax = self._get_data_vmin_vmax(input_data_arr)
-        has_flag_meanings = 'flag_meanings' in input_data_arr.attrs
-        is_int = np.issubdtype(input_data_arr.dtype, np.integer)
-        is_cat = has_flag_meanings or is_int
-        if is_cat:
-            # AWIPS doesn't like Identity conversion so we can't have
-            # a factor of 1 and an offset of 0
-            new_encoding['scale_factor'] = 0.5
-            new_encoding['add_offset'] = 0
-            # no _FillValue
-        elif (vmin is None or vmax is None) and not allow_no_scaling:
-            LOG.warning("'valid_min' and 'valid_max' not provided for '{}', "
-                        "will perform expensive min/max to determine suitable "
-                        "scaling parameters.".format(input_data_arr.attrs['name']))
-            vmin, vmax = da.compute(input_data_arr.data.min(), input_data_arr.data.max())
-            # raise NotImplementedError("'valid_range' or 'valid_min' or "
-            #                           "'valid_max' metadata not found. "
-            #                           "'scale_factor' and 'add_offset' can't "
-            #                           "be dynamically determined yet.")
-        if vmin is not None and vmax is not None:
-            # calculate scale_factor and add_offset
-            sf, ao, fill = self._get_factor_offset_fill(
-                input_data_arr, vmin, vmax, new_encoding
-            )
-            new_encoding['scale_factor'] = sf
-            new_encoding['add_offset'] = ao
-            new_encoding['_FillValue'] = fill
+        # handled during delayed 'to_netcdf' by taking min/max of data
+        new_encoding.setdefault('scale_factor', 'auto')
+        new_encoding.setdefault('add_offset', 'auto')
+        new_encoding.setdefault('_FillValue', 'auto')
         return new_encoding
 
     def _render_variable(self, data_arr):
@@ -1184,7 +1150,7 @@ class NetCDFTemplate:
             match_kwargs = self._get_matchable_coordinate_metadata(coord_name, coord_arr.attrs)
             coord_config = self._coord_tree.find_match(**match_kwargs)
             coord_attrs = self._render_coordinate_attributes(coord_config, coord_arr.attrs)
-            coord_encoding = self._render_variable_encoding(coord_config, coord_arr, allow_no_scaling=True)
+            coord_encoding = self._render_variable_encoding(coord_config, coord_arr)
             new_coords[coord_name] = ds.coords[coord_name].copy()
             new_coords[coord_name].attrs = coord_attrs
             new_coords[coord_name].encoding = coord_encoding
@@ -1257,6 +1223,38 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             import socket
             return socket.gethostname()  # FUTURE: something more correct but this will do for now
 
+    def _get_data_vmin_vmax(self, input_data_arr):
+        input_metadata = input_data_arr.attrs
+        valid_range = input_metadata.get("valid_range", input_metadata.get("valid_range"))
+        if valid_range:
+            valid_min, valid_max = valid_range
+        else:
+            valid_min = input_metadata.get("valid_min", input_metadata.get("valid_min"))
+            valid_max = input_metadata.get("valid_max", input_metadata.get("valid_max"))
+        return valid_min, valid_max
+
+    def _render_variable_encoding(self, var_config, input_data_arr):
+        new_encoding = super()._render_variable_encoding(var_config, input_data_arr)
+        vmin, vmax = self._get_data_vmin_vmax(input_data_arr)
+        has_flag_meanings = 'flag_meanings' in input_data_arr.attrs
+        is_int = np.issubdtype(input_data_arr.dtype, np.integer)
+        is_cat = has_flag_meanings or is_int
+        if is_cat:
+            # AWIPS doesn't like Identity conversion so we can't have
+            # a factor of 1 and an offset of 0
+            new_encoding['scale_factor'] = 0.5
+            new_encoding['add_offset'] = 0
+            # no _FillValue
+        elif vmin is not None and vmax is not None:
+            # calculate scale_factor and add_offset
+            sf, ao, fill = _get_factor_offset_fill(
+                input_data_arr, vmin, vmax, new_encoding
+            )
+            new_encoding['scale_factor'] = sf
+            new_encoding['add_offset'] = ao
+            new_encoding['_FillValue'] = fill
+        return new_encoding
+
     def _get_projection_attrs(self, area_def):
         """Assign projection attributes per CF standard."""
         proj_attrs = area_def.crs.to_cf()
@@ -1322,10 +1320,12 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             new_ds.coords['x'].encoding['dtype'] = 'int16'
             new_ds.coords['x'].encoding['scale_factor'] = np.float64(xy_factors.mx)
             new_ds.coords['x'].encoding['add_offset'] = np.float64(xy_factors.bx)
+            new_ds.coords['x'].encoding['_FillValue'] = -1
         if 'y' in new_ds.coords:
             new_ds.coords['y'].encoding['dtype'] = 'int16'
             new_ds.coords['y'].encoding['scale_factor'] = np.float64(xy_factors.my)
             new_ds.coords['y'].encoding['add_offset'] = np.float64(xy_factors.by)
+            new_ds.coords['y'].encoding['_FillValue'] = -1
         return new_ds
 
     def apply_tile_info(self, new_ds, tile_info):
@@ -1365,6 +1365,40 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         return new_ds
 
 
+def _assign_autoscale_encoding_parameters(dataset_to_save):
+    for data_var in dataset_to_save.data_vars.values():
+        # assume add_offset and scale_factor are both auto
+        sf_is_auto = data_var.encoding.get('scale_factor') == 'auto'
+        ao_is_auto = data_var.encoding.get('add_offset') == 'auto'
+        fv_is_auto = data_var.encoding.get('_FillValue') == 'auto'
+        if not any((sf_is_auto, ao_is_auto, fv_is_auto)):
+            continue
+        if not all((sf_is_auto, ao_is_auto, fv_is_auto)):
+            raise ValueError("Auto-scaling must be requested for all or none "
+                             "of the associated attributes (scale_factor, "
+                             "add_offset, _FillValue).")
+        vmin = data_var.min(skipna=True).data.item()
+        vmax = data_var.max(skipna=True).data.item()
+        sf, ao, fill = _get_factor_offset_fill(
+            data_var, vmin, vmax, data_var.encoding
+        )
+        data_var.encoding['scale_factor'] = sf
+        data_var.encoding['add_offset'] = ao
+        data_var.encoding['_FillValue'] = fill
+
+
+def _is_empty_tile(dataset_to_save):
+    # check if this tile is empty
+    # if so, don't create it
+    for data_var in dataset_to_save.data_vars.values():
+        # TODO: Does this work for category products?
+        if data_var.ndim and data_var.notnull().any():
+            break
+    else:
+        return True
+    return False
+
+
 def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
                        fix_awips=False):
     """Save :class:`xarray.Dataset` to a NetCDF file if not all fills.
@@ -1377,17 +1411,13 @@ def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
     creation by taking the minimum and maximum value of the variable.
 
     """
-    # check if this tile is empty
-    # if so, don't create it
-    for data_var in dataset_to_save.data_vars.values():
-        # TODO: Does this work for category products?
-        if data_var.ndim and data_var.notnull().any():
-            break
-    else:
-        LOG.debug("Skipping tile creation for {} because it would be empty.")
+    if _is_empty_tile(dataset_to_save):
+        LOG.debug("Skipping tile creation for {} because it would be "
+                  "empty.".format(output_filename))
         return
 
-    # TODO: Add dynamic vmin/vmax scaling
+    _assign_autoscale_encoding_parameters(dataset_to_save)
+
     # TODO: Add ability to update existing files
     dataset_to_save.to_netcdf(output_filename)
     if fix_awips:
