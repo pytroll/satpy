@@ -11,6 +11,7 @@ The following people have made contributions to this project:
 - [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Ray Bell (raybellwaves)](https://github.com/raybellwaves)
+- [Jorge Bravo (jhbravo)](https://github.com/jhbravo)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
@@ -59,6 +60,7 @@ The following people have made contributions to this project:
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
+- [Johan Strandgren (strandgren)](https://github.com/strandgren)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
 - [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
 - [Helga Weber (helgaweb)](https://github.com/helgaweb)

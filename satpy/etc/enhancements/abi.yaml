@@ -11,6 +11,7 @@ enhancements:
         kwargs: {gamma: 2.0}
       - name: contrast
         method: !!python/name:satpy.enhancements.abi.cimss_true_color_contrast
+
   cmi_reflectance_default:
     standard_name: toa_lambertian_equivalent_albedo_multiplied_by_cosine_solar_zenith_angle
     operations:
@@ -20,6 +21,7 @@ enhancements:
       - name: gamma
         method: !!python/name:satpy.enhancements.gamma
         kwargs: {gamma: 1.5}
+
   airmass:
     standard_name: airmass
     operations:
@@ -29,6 +31,45 @@ enhancements:
           stretch: crude
           min_stretch: [-26.2, -43.2, 243.9]
           max_stretch: [0.6, 6.7, 208.5]
+
+  cira_fire_temperature:
+    standard_name: cira_fire_temperature
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [273.15, 0.0, 0.0]
+          max_stretch: [333.15, 100.0, 75.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.4, 1, 1]
+
+  cira_day_convection:
+    standard_name: cira_day_convection
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-35.0, -5.0, -75.0]
+          max_stretch: [5.0, 60.0, 25.0]
+
+  cimss_cloud_type:
+    standard_name: cimss_cloud_type
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0.0, 0.0, 0.0]
+          max_stretch: [10.0, 80.0, 80.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.5, 0.75, 1.0]
+
 #
   ash_abi:
     ## RGB Ash recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf

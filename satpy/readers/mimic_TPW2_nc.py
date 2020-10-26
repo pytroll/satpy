@@ -40,13 +40,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 class MimicTPW2FileHandler(NetCDF4FileHandler):
     """NetCDF4 reader for MIMC TPW."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
-        super(MimicTPW2FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(MimicTPW2FileHandler, self).__init__(filename, filename_info,
+                                                   filetype_info,
+                                                   xarray_kwargs={"decode_times": False})
 
     def available_datasets(self, configured_datasets=None):
         """Get datasets in file matching gelocation shape (lat/lon)."""
@@ -113,6 +114,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
             data.rename({'lon': 'x'})
         if 'lat' in data.dims:
             data.rename({'lat': 'y'})
+
         return data
 
     def get_area_def(self, dsid):
@@ -130,11 +132,11 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         upper_right_x = latlon[0][0][width-1]
 
         area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
-        description = "MIMIC TPW Equirectangular Projection"
+        description = "MIMIC TPW WGS84"
         area_id = 'mimic'
-        proj_id = 'equirectangular'
-        proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84', }
-        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
+        proj_id = 'World Geodetic System 1984'
+        projection = 'EPSG:4326'
+        area_def = AreaDefinition(area_id, description, proj_id, projection, width, height, area_extent, )
         return area_def
 
     def get_metadata(self, data, info):
@@ -148,6 +150,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
             'start_time': self.start_time,
             'end_time': self.end_time,
         })
+        metadata.update(self[info.get('file_key')].variable.attrs)
 
         return metadata
 
