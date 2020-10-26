@@ -127,8 +127,8 @@ class TestSLSTRReader(TestSLSTRL1B):
                          'start_time': 0, 'end_time': 0,
                          'stripe': 'a', 'view': 'n'}
         test = NCSLSTR1B('somedir/S1_radiance_an.nc', filename_info, 'c')
-        assert (test.view == 'nadir')
-        assert (test.stripe == 'a')
+        assert test.view == 'nadir'
+        assert test.stripe == 'a'
         test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'foo'}))
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
@@ -139,8 +139,8 @@ class TestSLSTRReader(TestSLSTRL1B):
                          'start_time': 0, 'end_time': 0,
                          'stripe': 'c', 'view': 'o'}
         test = NCSLSTR1B('somedir/S1_radiance_co.nc', filename_info, 'c')
-        assert (test.view == 'oblique')
-        assert (test.stripe == 'c')
+        assert test.view == 'oblique'
+        assert test.stripe == 'c'
         test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'foo'}))
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
@@ -166,8 +166,8 @@ class TestSLSTRReader(TestSLSTRL1B):
         xr_.open_dataset.reset_mock()
 
         test = NCSLSTRFlag('somedir/S1_radiance_an.nc', filename_info, 'c')
-        assert (test.view == 'nadir')
-        assert (test.stripe == 'a')
+        assert test.view == 'nadir'
+        assert test.stripe == 'a'
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
         xr_.open_dataset.assert_called()
