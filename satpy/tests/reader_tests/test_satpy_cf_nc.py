@@ -82,7 +82,7 @@ class TestCFReader(unittest.TestCase):
 
     def test_write_and_read(self):
         """Save a file with cf_writer and read the data again."""
-        '{testin}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
+        # '{testin}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
         self.scene.save_datasets(writer='cf',
