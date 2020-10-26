@@ -17,13 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF reader."""
 
-from satpy import Scene
 import unittest
-from datetime import datetime
 import xarray as xr
 import os
 import numpy as np
-
+from datetime import datetime
+from satpy import Scene
 
 class TestCFReader(unittest.TestCase):
     """Test case for CF reader."""
