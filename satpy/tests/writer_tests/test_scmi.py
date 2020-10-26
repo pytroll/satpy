@@ -121,7 +121,9 @@ class TestSCMIWriter(unittest.TestCase):
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
             ds = xr.open_dataset(fn, mask_and_scale=True)
-            np.testing.assert_allclose(data, ds['data'].data, rtol=0.1)
+            scale_factor = ds['data'].encoding['scale_factor']
+            np.testing.assert_allclose(data, ds['data'].data,
+                                       atol=scale_factor / 2)
 
     def test_basic_numbered_tiles(self):
         """Test creating a multiple numbered tiles."""
@@ -199,6 +201,109 @@ class TestSCMIWriter(unittest.TestCase):
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
             assert ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
+
+    def test_lettered_tiles_update_existing(self):
+        """Test updating lettered tiles with additional data."""
+        import shutil
+        import xarray as xr
+        from satpy.writers.scmi import SCMIWriter
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        first_base_dir = os.path.join(self.base_dir, 'first')
+        w = SCMIWriter(base_dir=first_base_dir, compress=True)
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            1000,
+            2000,
+            (-1000000., -1500000., 1000000., 1500000.),
+        )
+        now = datetime(2018, 1, 1, 12, 0, 0)
+        data = np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000))
+        # pixels to be filled in later
+        data[:, -200:] = np.nan
+        ds = DataArray(
+            da.from_array(data, chunks=500),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
+        )
+        # tile_count should be ignored since we specified lettered_grid
+        w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        all_files = sorted(glob(os.path.join(first_base_dir, 'TESTS_AII*.nc')))
+        self.assertEqual(len(all_files), 16)
+        first_files = []
+        second_base_dir = os.path.join(self.base_dir, 'second')
+        os.makedirs(second_base_dir)
+        for fn in all_files:
+            new_fn = fn.replace(first_base_dir, second_base_dir)
+            shutil.copy(fn, new_fn)
+            first_files.append(new_fn)
+
+        # Second writing/updating
+        # Area is about 100 pixels to the right
+        area_def2 = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            1000,
+            2000,
+            (-800000., -1500000., 1200000., 1500000.),
+        )
+        data2 = np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000))
+        # a gap at the beginning where old values remain
+        data2[:, :200] = np.nan
+        # a gap at the end where old values remain
+        data2[:, -400:-300] = np.nan
+        ds2 = DataArray(
+            da.from_array(data2, chunks=500),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def2,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
+        )
+        w = SCMIWriter(base_dir=second_base_dir, compress=True)
+        w.save_datasets([ds2], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        all_files = glob(os.path.join(second_base_dir, 'TESTS_AII*.nc'))
+        # 16 original tiles + 4 new tiles
+        self.assertEqual(len(all_files), 20)
+
+        # these tiles should be the right-most edge of the first image
+        first_left_edge_files = [x for x in first_files if 'O01' in x or 'O03' in x or 'U01' in x or 'U01' in x]
+        first_right_edge_files = [x for x in first_files if 'P02' in x or 'P04' in x or 'V02' in x or 'V04' in x]
+        for new_file in first_right_edge_files:
+            orig_file = new_file.replace(second_base_dir, first_base_dir)
+            orig_nc = xr.open_dataset(orig_file)
+            orig_data = orig_nc['data'].values
+            if not np.isnan(orig_data).any():
+                # we only care about the tiles that had NaNs originally
+                continue
+
+            new_nc = xr.open_dataset(new_file)
+            new_data = new_nc['data'].values
+            # there should be at least some areas of the file
+            # that old data was present and hasn't been replaced
+            np.testing.assert_allclose(orig_data[:, :20], new_data[:, :20])
+            # it isn't exactly 200 because the tiles aren't aligned with the
+            # data (the left-most tile doesn't have data until some columns
+            # in), but it should be at least that many columns
+            assert np.isnan(orig_data[:, 200:]).all()
+            assert not np.isnan(new_data[:, 200:]).all()
 
     def test_lettered_tiles_sector_ref(self):
         """Test creating a lettered grid using the sector as reference."""
