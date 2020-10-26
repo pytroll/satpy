@@ -19,9 +19,9 @@
 import unittest
 import unittest.mock as mock
 import warnings
+from datetime import datetime
 import numpy as np
 import xarray as xr
-from datetime import datetime
 from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
 from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
 
