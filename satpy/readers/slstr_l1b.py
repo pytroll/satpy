@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
-# These are the default channel adjustment factors as of 14th Oct 2020
+# These are the default channel adjustment factors.
 # Defined in the product notice: S3.PN-SLSTR-L1.06
 # https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_S3A_PN_SLSTR_L1_06&RevisionSelectionMethod=LatestReleased&Rendition=Web
 CHANCALIB_FACTORS = {'S1_nadir': 1.0,
@@ -103,7 +103,23 @@ class NCSLSTRGeo(BaseFileHandler):
 
 
 class NCSLSTR1B(BaseFileHandler):
-    """Filehandler for l1 SLSTR data."""
+    """Filehandler for l1 SLSTR data.
+
+    By default, the calibration factors recommended by EUMETSAT are applied.
+    This is required as the SLSTR VIS channels are producing slightly incorrect
+    radiances that require adjustment.
+    Satpy uses the radiance corrections in S3.PN-SLSTR-L1.06, checked 26/10/2020.
+    User-supplied coefficients can be passed via the `user_calibration` kwarg
+    This should be a dict of channel names (such as `S1_nadir`, `S8_oblique`).
+
+    For example::
+    calib_dict = {'S1_nadir': 1.12}
+    scene = satpy.Scene(filenames,
+                        reader='slstr-l1b',
+                        reader_kwargs={'user_calib':: calib_dict})
+
+    Will multiply S1 nadir radiances by 1.12.
+    """
 
     def __init__(self, filename, filename_info, filetype_info,
                  user_calibration=None):
