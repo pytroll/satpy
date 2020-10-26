@@ -92,7 +92,7 @@ class MERSI2L1B(HDF5FileHandler):
 
         fill_value = attrs.pop('FillValue', np.nan)  # covered by valid_range
         valid_range = attrs.pop('valid_range', None)
-        if dataset_id['calibration'] == 'counts':
+        if dataset_id.get('calibration') == 'counts':
             # preserve integer type of counts if possible
             attrs['_FillValue'] = fill_value
             new_fill = fill_value
@@ -110,20 +110,20 @@ class MERSI2L1B(HDF5FileHandler):
 
         slope = attrs.pop('Slope', None)
         intercept = attrs.pop('Intercept', None)
-        if slope is not None and dataset_id['calibration'] != 'counts':
+        if slope is not None and dataset_id.get('calibration') != 'counts':
             if band_index is not None:
                 slope = slope[band_index]
                 intercept = intercept[band_index]
             data = data * slope + intercept
 
-        if dataset_id['calibration'] == "reflectance":
+        if dataset_id.get('calibration') == "reflectance":
             # some bands have 0 counts for the first N columns and
             # seem to be invalid data points
             data = data.where(data != 0)
             coeffs = self._get_coefficients(ds_info['calibration_key'],
                                             ds_info['calibration_index'])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2
-        elif dataset_id['calibration'] == "brightness_temperature":
+        elif dataset_id.get('calibration') == "brightness_temperature":
             cal_index = ds_info['calibration_index']
             # Apparently we don't use these calibration factors for Rad -> BT
             # coeffs = self._get_coefficients(ds_info['calibration_key'], cal_index)
