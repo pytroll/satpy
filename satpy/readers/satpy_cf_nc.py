@@ -55,7 +55,8 @@ Output:
 .. code-block:: none
 
     <xarray.DataArray 'M05' (y: 4592, x: 3200)>
-    dask.array<open_dataset-d91cfbf1bf4f14710d27446d91cdc6e4M05, shape=(4592, 3200), dtype=float32, chunksize=(4096, 3200), chunktype=numpy.ndarray>
+    dask.array<open_dataset-d91cfbf1bf4f14710d27446d91cdc6e4M05, shape=(4592, 3200),
+        dtype=float32, chunksize=(4096, 3200), chunktype=numpy.ndarray>
     Coordinates:
         longitude  (y, x) float32 dask.array<chunksize=(4096, 3200), meta=np.ndarray>
         latitude   (y, x) float32 dask.array<chunksize=(4096, 3200), meta=np.ndarray>
@@ -74,7 +75,7 @@ Output:
         standard_name:                toa_bidirectional_reflectance
         units:                        %
         wavelength:                   0.672 µm (0.662-0.682 µm)
-        date_created:                 2020-10-07T08:20:02Z 
+        date_created:                 2020-10-07T08:20:02Z
         instrument:                   VIIRS
 
 
@@ -110,7 +111,8 @@ Output:
 .. code-block:: none
 
     <xarray.DataArray 'brightness_temperature_channel_4' (y: 11, x: 409)>
-    dask.array<open_dataset-55ffbf3623b32077c67897f4283640a5brightness_temperature_channel_4, shape=(11, 409), dtype=float32, chunksize=(11, 409), chunktype=numpy.ndarray>
+    dask.array<open_dataset-55ffbf3623b32077c67897f4283640a5brightness_temperature_channel_4, shape=(11, 409),
+        dtype=float32, chunksize=(11, 409), chunktype=numpy.ndarray>
     Coordinates:
       * x          (x) int16 0 1 2 3 4 5 6 7 8 ... 401 402 403 404 405 406 407 408
       * y          (y) int64 0 1 2 3 4 5 6 7 8 9 10
