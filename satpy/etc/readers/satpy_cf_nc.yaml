@@ -1,6 +1,6 @@
 reader:
     name: satpy_cf_nc
-    description: Reader for Satpy's NC/CF files 
+    description: Reader for Satpy's NC/CF files
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [many]
     default_channels: []
