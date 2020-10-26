@@ -1399,6 +1399,26 @@ def _is_empty_tile(dataset_to_save):
     return False
 
 
+def _copy_to_existing(dataset_to_save, output_filename):
+    # if we leave the dataset open NetCDF will fail because the same
+    # file will be opened for reading and writing
+    # somehow though, copying makes it work and also closing it doesn't
+    # fail. The copy itself makes things work, but explicit closing seemed
+    # like a good idea too.
+    existing_dataset = xr.open_dataset(output_filename)
+    existing_dataset = existing_dataset.copy(deep=True)
+    existing_dataset.close()
+    # update existing data with new valid data
+    for var_name, var_data_arr in existing_dataset.data_vars.items():
+        if var_name not in dataset_to_save:
+            continue
+        new_data_arr = dataset_to_save[var_name]
+        # TODO: Make sure category products work
+        valid_existing = new_data_arr.notnull()
+        var_data_arr.data[valid_existing] = new_data_arr.data[valid_existing]
+    return existing_dataset
+
+
 def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
                        fix_awips=False):
     """Save :class:`xarray.Dataset` to a NetCDF file if not all fills.
@@ -1419,7 +1439,12 @@ def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
     _assign_autoscale_encoding_parameters(dataset_to_save)
 
     # TODO: Add ability to update existing files
-    dataset_to_save.to_netcdf(output_filename)
+    if update_existing and os.path.isfile(output_filename):
+        dataset_to_save = _copy_to_existing(dataset_to_save, output_filename)
+        mode = 'a'
+    else:
+        mode = 'w'
+    dataset_to_save.to_netcdf(output_filename, mode=mode)
     if fix_awips:
         fix_awips_file(output_filename)
 
