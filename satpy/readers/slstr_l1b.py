@@ -163,10 +163,6 @@ class NCSLSTR1B(BaseFileHandler):
     def _cal_rad(rad, didx, solar_flux=None):
         """Calibrate."""
         indices = np.isfinite(didx)
-        print(indices)
-        print(rad)
-        print(solar_flux)
-        print(didx)
         rad[indices] /= solar_flux[didx[indices].astype(int)]
         return rad
 
@@ -182,17 +178,14 @@ class NCSLSTR1B(BaseFileHandler):
         else:
             variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view[0])]
         radiances = self._apply_radiance_adjustment(variable)
-
         units = variable.attrs['units']
         if key['calibration'] == 'reflectance':
-            print("IN HERE")
             # TODO take into account sun-earth distance
             solar_flux = self.cal[re.sub('_[^_]*$', '', key['name']) + '_solar_irradiances']
             d_index = self.indices['detector_{}{}'.format(self.stripe, self.view[0])]
             idx = 0 if self.view[0] == 'n' else 1  # 0: Nadir view, 1: oblique (check).
             radiances.data = da.map_blocks(
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
-
             radiances *= np.pi * 100
             units = '%'
 
