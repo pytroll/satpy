@@ -18,8 +18,8 @@
 """Module for testing the satpy.readers.nc_slstr module."""
 import unittest
 import unittest.mock as mock
-import numpy as np
 import warnings
+import numpy as np
 import xarray as xr
 from datetime import datetime
 from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
@@ -179,7 +179,7 @@ class TestSLSTRCalibration(TestSLSTRL1B):
 
     @mock.patch('satpy.readers.slstr_l1b.xr')
     def test_radiance_calibration(self, xr_):
-        from satpy.readers.slstr_l1b import NCSLSTR1B, CHANCALIB_FACTORS
+        from satpy.readers.slstr_l1b import CHANCALIB_FACTORS
         xr_.open_dataset.return_value = self.fake_dataset
 
         ds_id = make_dataid(name='foo', calibration='radiance',
