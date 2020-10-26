@@ -24,6 +24,7 @@ import numpy as np
 from datetime import datetime
 from satpy import Scene
 
+
 class TestCFReader(unittest.TestCase):
     """Test case for CF reader."""
 
