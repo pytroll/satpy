@@ -108,7 +108,7 @@ import dask.array as da
 from satpy.writers import Writer, DecisionTree, Enhancer, get_enhanced_image
 from satpy import __version__
 from pyresample.geometry import AreaDefinition
-from trollsift.parser import StringFormatter
+from trollsift.parser import StringFormatter, Parser
 from collections import namedtuple
 
 try:
@@ -1011,7 +1011,23 @@ class NetCDFTemplate:
 
         self._var_tree = SCMIDatasetDecisionTree([self.variables])
         self._coord_tree = SCMIDatasetDecisionTree([self.coordinates])
+        self._filename_format_str = template_dict.get('filename')
         self._str_formatter = StringFormatter()
+
+    def get_filename(self, base_dir='', **kwargs):
+        """Generate output NetCDF file from metadata."""
+        # format the filename
+        if self._filename_format_str is None:
+            raise ValueError("Template does not have a configured "
+                             "'filename' pattern.")
+        fn_format_str = os.path.join(base_dir, self._filename_format_str)
+        filename_parser = Parser(fn_format_str)
+        output_filename = filename_parser.compose(kwargs)
+        dirname = os.path.dirname(output_filename)
+        if dirname and not os.path.isdir(dirname):
+            LOG.info("Creating output directory: {}".format(dirname))
+            os.makedirs(dirname)
+        return output_filename
 
     def _get_attr_value(self, attr_name, input_metadata, value=None, raw_key=None, raw_value=None, prefix="_"):
         """Determine attribute value using the provided configuration information.
@@ -1099,13 +1115,6 @@ class NetCDFTemplate:
     def _render_variable_attributes(self, var_config, input_metadata):
         attr_configs = var_config['attributes']
         var_attrs = self._render_attrs(attr_configs, input_metadata, prefix="_data_")
-
-        # Add variables that should be applied to all variables
-        # TODO: valid_min - based on dtype and needs to handle _Unsigned.
-        #   Also need to convert the valid min and valid max if specified by the DataArray?
-        #   Double check what I did before.
-        #   Need to handle _FillValue too (don't say that 0 is valid_min if it is a _FillValue)
-        # TODO: valid_max
         return var_attrs
 
     def _render_coordinate_attributes(self, coord_config, input_metadata):
@@ -1118,6 +1127,7 @@ class NetCDFTemplate:
         # determine fill value and
         if 'encoding' in var_config:
             new_encoding.update(var_config['encoding'])
+        new_encoding.setdefault('dtype', 'uint16')
         # handled during delayed 'to_netcdf' by taking min/max of data
         new_encoding.setdefault('scale_factor', 'auto')
         new_encoding.setdefault('add_offset', 'auto')
@@ -1185,6 +1195,11 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             self._swap_attributes_end_time(template_dict)
         super().__init__(template_dict)
 
+    def get_filename(self, **kwargs):
+        """Produce a filename based on the format configured in this template."""
+        kwargs["start_time"] += timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
+        return super().get_filename(**kwargs)
+
     def _swap_attributes_end_time(self, template_dict):
         """Swap every use of 'start_time' to use 'end_time' instead."""
         variable_attributes = [var_section['attributes'] for var_section in template_dict.get('variables', {}).values()]
@@ -1222,6 +1237,8 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
             import socket
             return socket.gethostname()  # FUTURE: something more correct but this will do for now
+
+    _global_production_site = _global_production_location
 
     def _get_data_vmin_vmax(self, input_data_arr):
         input_metadata = input_data_arr.attrs
@@ -1344,24 +1361,26 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds.attrs['product_columns'] = total_pixels[1]
         return new_ds
 
-    def apply_misc_metadata(self, new_ds, sector_id, creator=None):
+    def apply_misc_metadata(self, new_ds, sector_id, creator=None, creation_time=None):
         if creator is None:
             creator = "Satpy Version {} - SCMI Writer".format(__version__)
+        if creation_time is None:
+            creation_time = datetime.utcnow()
 
         new_ds.attrs['Conventions'] = "CF-1.7"
         new_ds.attrs['creator'] = creator
-        new_ds.attrs['creation_time'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
+        new_ds.attrs['creation_time'] = creation_time.strftime('%Y-%m-%dT%H:%M:%S')
         new_ds.attrs['sector_id'] = sector_id
         return new_ds
 
     def render(self, dataset_or_data_arrays, area_def, xy_factors,
-               tile_info, sector_id, creator=None):
+               tile_info, sector_id, creator=None, creation_time=None):
         """Create a :class:`xarray.Dataset` from template using information provided."""
         new_ds = super().render(dataset_or_data_arrays)
         new_ds = self.apply_area_def(new_ds, area_def)
         new_ds = self.apply_tile_coord_encoding(new_ds, xy_factors)
         new_ds = self.apply_tile_info(new_ds, tile_info)
-        new_ds = self.apply_misc_metadata(new_ds, sector_id, creator)
+        new_ds = self.apply_misc_metadata(new_ds, sector_id, creator, creation_time)
         return new_ds
 
 
@@ -1438,7 +1457,7 @@ def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
 
     _assign_autoscale_encoding_parameters(dataset_to_save)
 
-    # TODO: Add ability to update existing files
+    # TODO: Allow for new variables to be created
     if update_existing and os.path.isfile(output_filename):
         dataset_to_save = _copy_to_existing(dataset_to_save, output_filename)
         mode = 'a'
@@ -1473,9 +1492,9 @@ class SCMIWriter(Writer):
     def __init__(self, compress=False, fix_awips=False, **kwargs):
         """Initialize writer and decision trees."""
         super(SCMIWriter, self).__init__(default_config_filename="writers/scmi.yaml", **kwargs)
+        self.base_dir = kwargs.get('base_dir', '')
         self.scmi_sectors = self.config['sectors']
         self.templates = self.config['templates']
-        # self.scmi_datasets = SCMIDatasetDecisionTree([self.config['variables']])
         self.compress = compress
         self.fix_awips = fix_awips
         self._fill_sector_info()
@@ -1637,17 +1656,27 @@ class SCMIWriter(Writer):
         LOG.warning("For best performance use `save_datasets`")
         return self.save_datasets([dataset], **kwargs)
 
-    def get_filename(self, area_def, tile_info, sector_id, **kwargs):
+    def get_filename(self, template, area_def, tile_info, sector_id, **kwargs):
         """Generate output NetCDF file from metadata."""
         # format the filename
-        kwargs["start_time"] += timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
-        return super(SCMIWriter, self).get_filename(
-            area_id=area_def.area_id,
-            rows=area_def.height,
-            columns=area_def.width,
-            sector_id=sector_id,
-            tile_id=tile_info.tile_id,
-            **kwargs)
+        try:
+            return super(SCMIWriter, self).get_filename(
+                area_id=area_def.area_id,
+                rows=area_def.height,
+                columns=area_def.width,
+                sector_id=sector_id,
+                tile_id=tile_info.tile_id,
+                **kwargs)
+        except RuntimeError:
+            # the user didn't provide a specific filename, use the template
+            return template.get_filename(
+                base_dir=self.base_dir,
+                area_id=area_def.area_id,
+                rows=area_def.height,
+                columns=area_def.width,
+                sector_id=sector_id,
+                tile_id=tile_info.tile_id,
+                **kwargs)
 
     def check_tile_exists(self, output_filename):
         """Check if tile exists and report error accordingly."""
@@ -1661,7 +1690,7 @@ class SCMIWriter(Writer):
             yield delayed_res
 
     def save_datasets(self, datasets, sector_id=None,
-                      source_name=None, filename=None,
+                      source_name=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
                       use_end_time=False, use_sector_reference=False,
@@ -1680,9 +1709,6 @@ class SCMIWriter(Writer):
                 for better error handling in Satpy.
             source_name (str): Name of producer of these files (ex. "SSEC").
                 This name is used to create the output filename.
-            filename (str): Filename format pattern to be filled in with
-                dataset metadata for each tile. See YAML configuration file
-                for default.
             tile_count (tuple): For numbered tiles only, how many tile rows
                 and tile columns to produce. Default to ``(1, 1)``, a single
                 giant tile. Either ``tile_count``, ``tile_size``, or
@@ -1739,6 +1765,7 @@ class SCMIWriter(Writer):
         area_datasets = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
+        creation_time = datetime.utcnow()
         # TODO: Combine these for loops into one helper iterator.
         #    Will require putting tile_gen.xy_factors into TileInfo
         for area_def, data_arrays in area_datasets.values():
@@ -1750,13 +1777,16 @@ class SCMIWriter(Writer):
                 # use the first data array as a "representative" for the group
                 ds_info = data_arrs[0].attrs.copy()
                 # TODO: Create Dataset object of all of the sliced-DataArrays (optional)
-                output_filename = filename or self.get_filename(area_def, tile_info, sector_id,
-                                                                source_name=source_name,
-                                                                **ds_info)
+
+                output_filename = self.get_filename(template, area_def,
+                                                    tile_info, sector_id,
+                                                    source_name=source_name,
+                                                    creation_time=creation_time,
+                                                    **ds_info)
                 self.check_tile_exists(output_filename)
                 # TODO: Provide attribute caching for things that likely won't change
                 new_ds = template.render(data_arrs, area_def, tile_gen.xy_factors,
-                                         tile_info, sector_id)
+                                         tile_info, sector_id, creation_time=creation_time)
                 if self.compress:
                     new_ds.encoding['zlib'] = True
 

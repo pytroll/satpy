@@ -494,3 +494,57 @@ class TestSCMIWriter(unittest.TestCase):
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
+
+    def test_multivar_numbered_tiles_glm(self):
+        """Test creating a tiles with multiple variables."""
+        import xarray as xr
+        from satpy.writers.scmi import SCMIWriter
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+        now = datetime(2018, 1, 1, 12, 0, 0)
+        end_time = now + timedelta(minutes=20)
+        ds1 = DataArray(
+            da.from_array(np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)), chunks=50),
+            attrs=dict(
+                name='total_optical_energy',
+                platform_name='GOES-17',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=end_time,
+                scan_mode='M3',
+                scene_abbr='C',
+                platform_shortname="G17"
+            )
+        )
+        ds2 = ds1.copy()
+        ds2.attrs.update({
+            'name': 'flash_extent_density',
+        })
+        ds3 = ds1.copy()
+        ds3.attrs.update({
+            'name': 'average_flash_area',
+        })
+
+        w.save_datasets([ds1, ds2, ds3], sector_id='TEST', source_name="TESTS",
+                        tile_count=(3, 3), template='glm_l2')
+        all_files = glob(os.path.join(self.base_dir, '*_GLM*.nc'))
+        self.assertEqual(len(all_files), 9)
+        for fn in all_files:
+            ds = xr.open_dataset(fn, mask_and_scale=False)
+            check_required_common_attributes(ds)
+            assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
