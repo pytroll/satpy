@@ -150,7 +150,6 @@ except ImportError:
 try:
     from pyresample.gradient import GradientSearchResampler
 except ImportError:
-    warnings.warn('Gradient search resampler not available. Maybe missing `shapely`?.')
     GradientSearchResampler = None
 
 from satpy import CHUNK_SIZE
@@ -1248,6 +1247,8 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     elif isinstance(resampler, str):
         resampler_class = RESAMPLERS.get(resampler, None)
         if resampler_class is None:
+            if resampler == "gradient_search":
+                warnings.warn('Gradient search resampler not available. Maybe missing `shapely`?')
             raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler
