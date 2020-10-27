@@ -38,4 +38,3 @@ class ModifierBase(CompositeBase):
     def __call__(self, datasets, optional_datasets=None, **info):
         """Generate a modified copy of the first provided dataset."""
         raise NotImplementedError()
-
