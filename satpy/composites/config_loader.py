@@ -187,8 +187,8 @@ class CompositorLoader:
             os.path.join("composites", config_filename),
             *paths, check_exists=True)
         if not composite_configs:
-            logger.debug("No composite config found called %s" %
-                         (config_filename,))
+            logger.debug("No composite config found called %s",
+                         config_filename)
             return
         self._load_config(composite_configs)
 
