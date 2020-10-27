@@ -19,9 +19,9 @@
 
 import unittest
 import os
+from datetime import datetime
 import xarray as xr
 import numpy as np
-from datetime import datetime
 from satpy import Scene
 
 
