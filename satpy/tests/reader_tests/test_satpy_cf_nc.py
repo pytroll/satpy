@@ -18,8 +18,8 @@
 """Tests for the CF reader."""
 
 import unittest
-import xarray as xr
 import os
+import xarray as xr
 import numpy as np
 from datetime import datetime
 from satpy import Scene
