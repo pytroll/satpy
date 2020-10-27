@@ -87,8 +87,9 @@ class PSPRayleighReflectance(ModifierBase):
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
         rayleigh_key = (vis.attrs['platform_name'],
                         vis.attrs['sensor'], atmosphere, aerosol_type)
-        logger.info("Removing Rayleigh scattering with atmosphere '{}' and aerosol type '{}' for '{}'".format(
-            atmosphere, aerosol_type, vis.attrs['name']))
+        logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
+                    "aerosol type '%s' for '%s'" %
+                    (atmosphere, aerosol_type, vis.attrs['name']))
         if rayleigh_key not in self._rayleigh_cache:
             corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
                                  atmosphere=atmosphere,

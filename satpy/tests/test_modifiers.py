@@ -18,12 +18,11 @@
 """Tests for modifiers in modifiers/__init__.py."""
 
 import unittest
-from datetime import datetime
 from unittest import mock
+from datetime import datetime
 
 import dask.array as da
 import numpy as np
-import pytest
 import xarray as xr
 
 
@@ -282,9 +281,6 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
     @mock.patch('satpy.modifiers.spectral.Calculator')
     def test_compositor(self, calculator, apply_modifier_info, sza):
         """Test the NIR emissive part from reflectance compositor."""
-        import numpy as np
-        import xarray as xr
-        import dask.array as da
         from satpy.modifiers.spectral import NIRReflectance
 
         refl_arr = np.random.random((2, 2))
