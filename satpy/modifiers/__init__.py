@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes and other related utilities."""
 
-from .base import ModifierBase  # noqa
+from .base import ModifierBase  # noqa: F401
 from .spectral import NIREmissivePartFromReflectance, NIRReflectance  # noqa
 from .geometry import SunZenithCorrector, EffectiveSolarPathLengthCorrector  # noqa
 from .atmosphere import PSPRayleighReflectance, PSPAtmosphericalCorrection, CO2Corrector  # noqa
