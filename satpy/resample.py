@@ -830,7 +830,10 @@ class BilinearResampler(BaseResampler):
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
-        from pyresample.bilinear import XArrayBilinearResampler
+        try:
+            from pyresample.bilinear import XArrayBilinearResampler
+        except ImportError:
+            from pyresample.bilinear import XArrayResamplerBilinear as XArrayBilinearResampler
 
         del kwargs
         del mask
@@ -858,7 +861,11 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
-            self.resampler.load_resampling_info(filename)
+            try:
+                self.resampler.load_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, please upgrade Pyresample.")
+                raise IOError
         else:
             raise IOError
 
@@ -872,7 +879,10 @@ class BilinearResampler(BaseResampler):
             if os.path.exists(filename):
                 _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
-            self.resampler.save_resampling_info(filename)
+            try:
+                self.resampler.save_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, please upgrade Pyresample.")
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
