@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes and other related utilities."""
 
+# file deepcode ignore W0611: Ignore unused imports in init module
+
 from .base import ModifierBase  # noqa: F401
 from .spectral import NIREmissivePartFromReflectance, NIRReflectance  # noqa: F401
 from .geometry import SunZenithCorrector, EffectiveSolarPathLengthCorrector  # noqa: F401
