@@ -77,6 +77,10 @@ class FakeMessage(object):
         self.projparams = proj_params
         self._latlons = latlons
 
+    def keys(self):
+        """Get message keys."""
+        return self.attrs.keys()
+
     def latlons(self):
         """Get coordinates."""
         return self._latlons
