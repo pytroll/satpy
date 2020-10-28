@@ -271,25 +271,32 @@ class GRIBFileHandler(BaseFileHandler):
             center_description = msg['centreDescription']
         except (RuntimeError, KeyError):
             center_description = None
+
+        key_dicts = {
+            'shortName': 'shortName',
+            'long_name': 'name',
+            'pressureUnits': 'pressureUnits',
+            'typeOfLevel': 'typeOfLevel',
+            'standard_name': 'cfName',
+            'units': 'units',
+            'modelName': 'modelName',
+            'valid_min': 'minimum',
+            'valid_max': 'maximum',
+            'sensor': 'modelName'}
+
         ds_info.update({
             'filename': self.filename,
-            'shortName': msg['shortName'],
-            'long_name': msg['name'],
-            'pressureUnits': msg['pressureUnits'],
-            'typeOfLevel': msg['typeOfLevel'],
-            'standard_name': msg['cfName'],
-            'units': msg['units'],
-            'modelName': msg['modelName'],
             'model_time': model_time,
             'centreDescription': center_description,
-            'valid_min': msg['minimum'],
-            'valid_max': msg['maximum'],
             'start_time': start_time,
             'end_time': end_time,
-            'sensor': msg['modelName'],
-            # National Weather Prediction
-            'platform_name': 'unknown',
-        })
+            'platform_name': 'unknown'})
+
+        for key in key_dicts:
+            if key_dicts[key] in msg.keys():
+                ds_info.update({key: msg[key_dicts[key]]})
+            else:
+                ds_info.update({key: 'unknown'})
         return ds_info
 
     def get_dataset(self, dataset_id, ds_info):
