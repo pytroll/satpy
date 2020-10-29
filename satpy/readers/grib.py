@@ -293,7 +293,7 @@ class GRIBFileHandler(BaseFileHandler):
             'platform_name': 'unknown'})
 
         for key in key_dicts:
-            if key_dicts[key] in msg.keys():
+            if key_dicts[key] in msg.keys():  # deepcode ignore replace~keys~list~compare: not a dict
                 ds_info.update({key: msg[key_dicts[key]]})
             else:
                 ds_info.update({key: 'unknown'})
