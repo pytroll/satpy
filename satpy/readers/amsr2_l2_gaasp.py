@@ -25,13 +25,15 @@ https://www.star.nesdis.noaa.gov/jpss/gcom.php for more information.
 """
 
 import logging
+from datetime import datetime
+
 import numpy as np
 import xarray as xr
+from pyproj import CRS
+from pyresample.geometry import AreaDefinition
+
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
-from pyresample.geometry import AreaDefinition
-from pyproj import CRS
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
