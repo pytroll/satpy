@@ -52,12 +52,26 @@ def _get_shared_global_attrs(filename):
 
 
 def _create_two_rez_gaasp_dataset(filename):
+    lon_var_hi = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
+                              dims=('Number_of_Scans', 'Number_of_hi_rez_FOVs'),
+                              attrs={'standard_name': 'longitude'})
+    lat_var_hi = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
+                              dims=('Number_of_Scans', 'Number_of_hi_rez_FOVs'),
+                              attrs={'standard_name': 'latitude'})
+    lon_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
+                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              attrs={'standard_name': 'longitude'})
+    lat_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
+                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              attrs={'standard_name': 'latitude'})
     swath_var1 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
                               dims=('Number_of_Scans', 'Number_of_hi_rez_FOVs'),
+                              coords={'some_longitude_hi': lon_var_hi, 'some_latitude_hi': lat_var_hi},
                               attrs={'_FillValue': -9999.,
                                      'scale_factor': 0.5, 'add_offset': 2.0})
     swath_var2 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
                               dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              coords={'some_longitude_lo': lon_var_lo, 'some_latitude_lo': lat_var_lo},
                               attrs={'_FillValue': -9999.})
     swath_int_var = xr.DataArray(da.zeros((10, 10), dtype=np.uint16),
                                  dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
@@ -68,6 +82,10 @@ def _create_two_rez_gaasp_dataset(filename):
         'swath_var_hi': swath_var1,
         'swath_var_low': swath_var2,
         'swath_var_low_int': swath_int_var,
+        'some_longitude_hi': lon_var_hi,
+        'some_latitude_hi': lat_var_hi,
+        'some_longitude_lo': lon_var_lo,
+        'some_latitude_lo': lat_var_lo,
         'time_var': time_var,
     }
     attrs = _get_shared_global_attrs(filename)
@@ -93,8 +111,15 @@ def _create_gridded_gaasp_dataset(filename):
 
 
 def _create_one_rez_gaasp_dataset(filename):
+    lon_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
+                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              attrs={'standard_name': 'longitude'})
+    lat_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
+                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              attrs={'standard_name': 'latitude'})
     swath_var2 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
                               dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              coords={'some_longitude_lo': lon_var_lo, 'some_latitude_lo': lat_var_lo},
                               attrs={
                                   '_FillValue': -9999.,
                                   'scale_factor': 0.5, 'add_offset': 2.0
@@ -107,6 +132,8 @@ def _create_one_rez_gaasp_dataset(filename):
     ds_vars = {
         'swath_var': swath_var2,
         'swath_var_int': swath_int_var,
+        'some_longitude_lo': lon_var_lo,
+        'some_latitude_lo': lat_var_lo,
         'time_var': time_var,
     }
     attrs = _get_shared_global_attrs(filename)
@@ -201,7 +228,7 @@ class TestGAASPReader:
     def test_basic_load(self, filenames, loadable_ids):
         """Test that variables are loaded properly."""
         from satpy.readers import load_reader
-        from pyresample.geometry import AreaDefinition
+        from pyresample.geometry import AreaDefinition, SwathDefinition
         from datetime import datetime
         with mock.patch('satpy.readers.amsr2_l2_gaasp.xr.open_dataset') as od:
             od.side_effect = fake_open_dataset
@@ -212,9 +239,11 @@ class TestGAASPReader:
             assert loaded_data_arrs
             for data_id, data_arr in loaded_data_arrs.items():
                 attrs = data_arr.attrs
+                area = attrs['area']
                 if 'grid_var' in data_id['name']:
-                    area = attrs['area']
                     assert isinstance(area, AreaDefinition)
+                else:
+                    assert isinstance(area, SwathDefinition)
                 if 'int' in data_id['name']:
                     assert attrs['_FillValue'] == 100
                     assert np.issubdtype(data_arr.dtype, np.integer)
