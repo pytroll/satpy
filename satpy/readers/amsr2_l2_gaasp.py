@@ -22,6 +22,18 @@ and is also distributed by the CSPP group. More information on the products
 supported by this reader can be found here:
 https://www.star.nesdis.noaa.gov/jpss/gcom.php for more information.
 
+GAASP includes both swath/granule products and gridded products. Swath
+products are provided in files with "MBT", "OCEAN", "SNOW", or "SOIL" in the
+filename. Gridded products are in files with "SEAICE-SH" or "SEAICE-NH" in the
+filename where SH stands for South Hemisphere and NH stands for North
+Hemisphere. These gridded products are on the EASE2 North pole and South pole
+grids. See https://nsidc.org/ease/ease-grid-projection-gt for more details.
+
+Note that since SEAICE products can be on both the northern or
+southern hemisphere or both depending on what files are provided to Satpy, this
+reader appends a `_NH` and `_SH` suffix to all variable names that are
+dynamically discovered from the provided files.
+
 """
 
 import logging
