@@ -118,16 +118,16 @@ class GAASPFileHandler(BaseFileHandler):
 
         # handle scaling
         # take special care for integer/category fields
-        scale_factor = data_arr.attrs.pop('scale_factor', 1.)
-        add_offset = data_arr.attrs.pop('add_offset', 0.)
-        fill_value = data_arr.attrs.pop('_FillValue', None)
+        scale_factor = attrs.pop('scale_factor', 1.)
+        add_offset = attrs.pop('add_offset', 0.)
+        fill_value = attrs.pop('_FillValue', None)
 
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
 
         is_int = np.issubdtype(data_arr.dtype, np.integer)
-        has_flag_comment = 'comment' in data_arr.attrs
+        has_flag_comment = 'comment' in attrs
         if is_int and has_flag_comment:
             # category product
             fill_out = fill_value

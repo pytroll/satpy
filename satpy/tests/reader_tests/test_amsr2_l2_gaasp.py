@@ -45,51 +45,72 @@ def _get_shared_global_attrs(filename):
     attrs = {
         'time_coverage_start': '2020-08-12T05:58:31.0Z',
         'time_coverage_end': '2020-08-12T06:07:01.0Z',
+        'platform_name': 'GCOM-W1',
+        'instrument_name': 'AMSR2',
     }
     return attrs
 
 
 def _create_two_rez_gaasp_dataset(filename):
     swath_var1 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=('Number_of_Scans', 'Number_of_hi_rez_FOVs'))
+                              dims=('Number_of_Scans', 'Number_of_hi_rez_FOVs'),
+                              attrs={'_FillValue': -9999.,
+                                     'scale_factor': 0.5, 'add_offset': 2.0})
     swath_var2 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'))
+                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              attrs={'_FillValue': -9999.})
+    swath_int_var = xr.DataArray(da.zeros((10, 10), dtype=np.uint16),
+                                 dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                                 attrs={'_FillValue': 100, 'comment': 'Some comment'})
     time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
                             dims=('Time_Dimension',))
-    vars = {
+    ds_vars = {
         'swath_var_hi': swath_var1,
         'swath_var_low': swath_var2,
+        'swath_var_low_int': swath_int_var,
         'time_var': time_var,
     }
     attrs = _get_shared_global_attrs(filename)
-    ds = xr.Dataset(vars, attrs=attrs)
+    ds = xr.Dataset(ds_vars, attrs=attrs)
     return ds
 
 
 def _create_gridded_gaasp_dataset(filename):
     grid_var = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                            dims=('Number_of_Y_Dimension', 'Number_of_X_Dimension'))
+                            dims=('Number_of_Y_Dimension', 'Number_of_X_Dimension'),
+                            attrs={
+                                '_FillValue': -9999.,
+                                'scale_factor': 0.5, 'add_offset': 2.0
+                            })
     time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
                             dims=('Time_Dimension',))
-    vars = {
+    ds_vars = {
         'grid_var': grid_var,
         'time_var': time_var,
     }
     attrs = _get_shared_global_attrs(filename)
-    return xr.Dataset(vars, attrs=attrs)
+    return xr.Dataset(ds_vars, attrs=attrs)
 
 
 def _create_one_rez_gaasp_dataset(filename):
     swath_var2 = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'))
+                              dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                              attrs={
+                                  '_FillValue': -9999.,
+                                  'scale_factor': 0.5, 'add_offset': 2.0
+                              })
+    swath_int_var = xr.DataArray(da.zeros((10, 10), dtype=np.uint16),
+                                 dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
+                                 attrs={'_FillValue': 100, 'comment': 'Some comment'})
     time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
                             dims=('Time_Dimension',))
-    vars = {
+    ds_vars = {
         'swath_var': swath_var2,
+        'swath_var_int': swath_int_var,
         'time_var': time_var,
     }
     attrs = _get_shared_global_attrs(filename)
-    return xr.Dataset(vars, attrs=attrs)
+    return xr.Dataset(ds_vars, attrs=attrs)
 
 
 def fake_open_dataset(filename, **kwargs):
@@ -138,13 +159,18 @@ class TestGAASPReader:
     @pytest.mark.parametrize(
         ("filenames", "expected_datasets"),
         [
-            (EXAMPLE_FILENAMES, ['swath_var_hi', 'swath_var_low', 'swath_var', 'grid_var_NH', 'grid_var_SH']),
-            ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low']),
-            ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low']),
+            (EXAMPLE_FILENAMES, ['swath_var_hi', 'swath_var_low',
+                                 'swath_var_low_int', 'swath_var',
+                                 'swath_var_int',
+                                 'grid_var_NH', 'grid_var_SH']),
+            ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low',
+                              'swath_var_low_int']),
+            ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low',
+                                'swath_var_low_int']),
             ([SEAICE_NH_FILENAME], ['grid_var_NH']),
             ([SEAICE_SH_FILENAME], ['grid_var_SH']),
-            ([SNOW_FILENAME], ['swath_var']),
-            ([SOIL_FILENAME], ['swath_var']),
+            ([SNOW_FILENAME], ['swath_var', 'swath_var_int']),
+            ([SOIL_FILENAME], ['swath_var', 'swath_var_int']),
         ])
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
@@ -157,3 +183,46 @@ class TestGAASPReader:
             avails = list(r.available_dataset_names)
             for var_name in expected_datasets:
                 assert var_name in avails
+
+    @pytest.mark.parametrize(
+        ("filenames", "loadable_ids"),
+        [
+            (EXAMPLE_FILENAMES, ['swath_var_hi', 'swath_var_low',
+                                 'swath_var_low_int', 'swath_var',
+                                 'swath_var_int',
+                                 'grid_var_NH', 'grid_var_SH']),
+            ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low', 'swath_var_low_int']),
+            ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low', 'swath_var_low_int']),
+            ([SEAICE_NH_FILENAME], ['grid_var_NH']),
+            ([SEAICE_SH_FILENAME], ['grid_var_SH']),
+            ([SNOW_FILENAME], ['swath_var', 'swath_var_int']),
+            ([SOIL_FILENAME], ['swath_var', 'swath_var_int']),
+        ])
+    def test_basic_load(self, filenames, loadable_ids):
+        """Test that variables are loaded properly."""
+        from satpy.readers import load_reader
+        from pyresample.geometry import AreaDefinition
+        from datetime import datetime
+        with mock.patch('satpy.readers.amsr2_l2_gaasp.xr.open_dataset') as od:
+            od.side_effect = fake_open_dataset
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames(filenames)
+            r.create_filehandlers(loadables)
+            loaded_data_arrs = r.load(loadable_ids)
+            assert loaded_data_arrs
+            for data_id, data_arr in loaded_data_arrs.items():
+                attrs = data_arr.attrs
+                if 'grid_var' in data_id['name']:
+                    area = attrs['area']
+                    assert isinstance(area, AreaDefinition)
+                if 'int' in data_id['name']:
+                    assert attrs['_FillValue'] == 100
+                    assert np.issubdtype(data_arr.dtype, np.integer)
+                else:
+                    assert '_FillValue' not in attrs
+                assert 'scale_factor' not in attrs
+                assert 'add_offset' not in attrs
+                assert attrs['platform_name'] == 'GCOM-W1'
+                assert attrs['sensor'] == 'amsr2'
+                assert attrs['start_time'] == datetime(2020, 8, 12, 5, 58, 31)
+                assert attrs['end_time'] == datetime(2020, 8, 12, 6, 7, 1)
