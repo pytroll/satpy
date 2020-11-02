@@ -110,22 +110,18 @@ class GAASPFileHandler(BaseFileHandler):
             var_name = var_name[:-len(var_suffix)]
         return var_name
 
-    def get_dataset(self, dataid, ds_info):
-        """Load, scale, and collect metadata for the specified DataID."""
-        orig_var_name = self._get_var_name_without_suffix(dataid['name'])
-        data_arr = self.nc[orig_var_name].copy()
-        attrs = data_arr.attrs.copy()
-
+    def _scale_data(self, data_arr, attrs):
         # handle scaling
         # take special care for integer/category fields
         scale_factor = attrs.pop('scale_factor', 1.)
         add_offset = attrs.pop('add_offset', 0.)
-        fill_value = attrs.pop('_FillValue', None)
-
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
+        return data_arr, attrs
 
+    def _fill_data(self, data_arr, attrs):
+        fill_value = attrs.pop('_FillValue', None)
         is_int = np.issubdtype(data_arr.dtype, np.integer)
         has_flag_comment = 'comment' in attrs
         if is_int and has_flag_comment:
@@ -136,6 +132,15 @@ class GAASPFileHandler(BaseFileHandler):
             fill_out = np.nan
         if fill_value is not None:
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
+        return data_arr, attrs
+
+    def get_dataset(self, dataid, ds_info):
+        """Load, scale, and collect metadata for the specified DataID."""
+        orig_var_name = self._get_var_name_without_suffix(dataid['name'])
+        data_arr = self.nc[orig_var_name].copy()
+        attrs = data_arr.attrs.copy()
+        data_arr, attrs = self._scale_data(data_arr, attrs)
+        data_arr, attrs = self._fill_data(data_arr, attrs)
 
         attrs.update({
             'platform_name': self.platform_name,
@@ -151,14 +156,7 @@ class GAASPFileHandler(BaseFileHandler):
         data_arr.attrs = attrs
         return data_arr
 
-    def available_datasets(self, configured_datasets=None):
-        """Dynamically discover what variables can be loaded from this file.
-
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
-        for more information.
-
-        """
-        handled_variables = set()
+    def _available_if_this_file_type(self, configured_datasets):
         for is_avail, ds_info in (configured_datasets or []):
             if is_avail is not None:
                 # some other file handler said it has this dataset
@@ -168,8 +166,31 @@ class GAASPFileHandler(BaseFileHandler):
                 continue
             yield self.file_type_matches(ds_info['file_type']), ds_info
 
-        # Provide new datasets
+    def _add_lonlat_coords(self, data_arr, ds_info):
+        lat_coord = None
+        lon_coord = None
+        for coord_name in data_arr.coords:
+            if 'longitude' in coord_name.lower():
+                lon_coord = coord_name
+            if 'latitude' in coord_name.lower():
+                lat_coord = coord_name
+        ds_info['coordinates'] = [lon_coord, lat_coord]
+
+    def _get_ds_info_for_data_arr(self, var_name, data_arr):
         var_suffix = self.filetype_info.get('var_suffix', "")
+        ds_info = {
+            'file_type': self.filetype_info['file_type'],
+            'name': var_name + var_suffix,
+        }
+        x_dim_name = data_arr.dims[1]
+        if x_dim_name in self.dim_resolutions:
+            ds_info['resolution'] = self.dim_resolutions[x_dim_name]
+        if not self.is_gridded and data_arr.coords:
+            self._add_lonlat_coords(data_arr, ds_info)
+        return ds_info
+
+    def _available_new_datasets(self):
+        handled_variables = set()
         possible_vars = list(self.nc.data_vars.items()) + list(self.nc.coords.items())
         for var_name, data_arr in possible_vars:
             if var_name in handled_variables:
@@ -183,24 +204,19 @@ class GAASPFileHandler(BaseFileHandler):
                 # we need 'traditional' y/x dimensions currently
                 continue
 
-            ds_info = {
-                'file_type': self.filetype_info['file_type'],
-                'name': var_name + var_suffix,
-            }
-            x_dim_name = data_arr.dims[1]
-            if x_dim_name in self.dim_resolutions:
-                ds_info['resolution'] = self.dim_resolutions[x_dim_name]
-            if not self.is_gridded and data_arr.coords:
-                lat_coord = None
-                lon_coord = None
-                for coord_name in data_arr.coords:
-                    if 'longitude' in coord_name.lower():
-                        lon_coord = coord_name
-                    if 'latitude' in coord_name.lower():
-                        lat_coord = coord_name
-                ds_info['coordinates'] = [lon_coord, lat_coord]
+            ds_info = self._get_ds_info_for_data_arr(var_name, data_arr)
             handled_variables.add(var_name)
             yield True, ds_info
+
+    def available_datasets(self, configured_datasets=None):
+        """Dynamically discover what variables can be loaded from this file.
+
+        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        for more information.
+
+        """
+        yield from self._available_if_this_file_type(configured_datasets)
+        yield from self._available_new_datasets()
 
 
 class GAASPGriddedFileHandler(GAASPFileHandler):
@@ -217,6 +233,15 @@ class GAASPGriddedFileHandler(GAASPFileHandler):
     }
     is_gridded = True
 
+    @staticmethod
+    def _get_extents(data_shape, res):
+        # assume data is centered at projection center
+        x_min = -(data_shape[1] / 2.0) * res
+        x_max = (data_shape[1] / 2.0) * res
+        y_min = -(data_shape[0] / 2.0) * res
+        y_max = (data_shape[0] / 2.0) * res
+        return x_min, y_min, x_max, y_max
+
     def get_area_def(self, dataid):
         """Create area definition for equirectangular projected data."""
         var_suffix = self.filetype_info.get('var_suffix', '')
@@ -225,12 +250,7 @@ class GAASPGriddedFileHandler(GAASPFileHandler):
         data_shape = self.nc[orig_var_name].shape
         crs = CRS(self.filetype_info['grid_epsg'])
         res = dataid['resolution']
-        # assume data is centered at projection center
-        x_min = -(data_shape[1] / 2.0) * res
-        x_max = (data_shape[1] / 2.0) * res
-        y_min = -(data_shape[0] / 2.0) * res
-        y_max = (data_shape[0] / 2.0) * res
-        extent = (x_min, y_min, x_max, y_max)
+        extent = self._get_extents(data_shape, res)
         area_def = AreaDefinition(
             area_name,
             area_name,
