@@ -24,12 +24,12 @@ import xarray as xr
 import dask.array as da
 import numpy as np
 
-MBT_FILENAME = "AMSR2-MBT_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc",
-OCEAN_FILENAME = "AMSR2-OCEAN_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc",
-SEAICE_NH_FILENAME = "AMSR2-SEAICE-NH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc",
-SEAICE_SH_FILENAME = "AMSR2-SEAICE-SH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc",
-SNOW_FILENAME = "AMSR2-SNOW_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc",
-SOIL_FILENAME = "AMSR2-SOIL_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc",
+MBT_FILENAME = "AMSR2-MBT_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
+OCEAN_FILENAME = "AMSR2-OCEAN_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
+SEAICE_NH_FILENAME = "AMSR2-SEAICE-NH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
+SEAICE_SH_FILENAME = "AMSR2-SEAICE-SH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
+SNOW_FILENAME = "AMSR2-SNOW_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
+SOIL_FILENAME = "AMSR2-SOIL_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
 
 EXAMPLE_FILENAMES = [
     MBT_FILENAME,
@@ -41,7 +41,7 @@ EXAMPLE_FILENAMES = [
 ]
 
 
-def get_shared_global_attrs(filename):
+def _get_shared_global_attrs(filename):
     attrs = {
         'time_coverage_start': '2020-08-12T05:58:31.0Z',
         'time_coverage_end': '2020-08-12T06:07:01.0Z',
@@ -61,21 +61,21 @@ def _create_two_rez_gaasp_dataset(filename):
         'swath_var_low': swath_var2,
         'time_var': time_var,
     }
-    attrs = get_shared_global_attrs(filename)
+    attrs = _get_shared_global_attrs(filename)
     ds = xr.Dataset(vars, attrs=attrs)
     return ds
 
 
 def _create_gridded_gaasp_dataset(filename):
     grid_var = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
-                             dims=('Number_of_Y_Dimension', 'Number_of_X_Dimension'))
+                            dims=('Number_of_Y_Dimension', 'Number_of_X_Dimension'))
     time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
                             dims=('Time_Dimension',))
     vars = {
         'grid_var': grid_var,
         'time_var': time_var,
     }
-    attrs = get_shared_global_attrs(filename)
+    attrs = _get_shared_global_attrs(filename)
     return xr.Dataset(vars, attrs=attrs)
 
 
@@ -88,7 +88,7 @@ def _create_one_rez_gaasp_dataset(filename):
         'swath_var': swath_var2,
         'time_var': time_var,
     }
-    attrs = get_shared_global_attrs(filename)
+    attrs = _get_shared_global_attrs(filename)
     return xr.Dataset(vars, attrs=attrs)
 
 
@@ -102,6 +102,7 @@ def fake_open_dataset(filename, **kwargs):
 
 
 class TestGAASPReader:
+    """Tests for the GAASP reader."""
 
     yaml_file = 'amsr2_l2_gaasp.yaml'
 
@@ -114,12 +115,12 @@ class TestGAASPReader:
         ("filenames", "expected_loadables"),
         [
             (EXAMPLE_FILENAMES, 6),
-            (MBT_FILENAME, 1),
-            (OCEAN_FILENAME, 1),
-            (SEAICE_NH_FILENAME, 1),
-            (SEAICE_SH_FILENAME, 1),
-            (SNOW_FILENAME, 1),
-            (SOIL_FILENAME, 1),
+            ([MBT_FILENAME], 1),
+            ([OCEAN_FILENAME], 1),
+            ([SEAICE_NH_FILENAME], 1),
+            ([SEAICE_SH_FILENAME], 1),
+            ([SNOW_FILENAME], 1),
+            ([SOIL_FILENAME], 1),
         ]
     )
     def test_reader_creation(self, filenames, expected_loadables):
@@ -138,12 +139,12 @@ class TestGAASPReader:
         ("filenames", "expected_datasets"),
         [
             (EXAMPLE_FILENAMES, ['swath_var_hi', 'swath_var_low', 'swath_var', 'grid_var_NH', 'grid_var_SH']),
-            (MBT_FILENAME, ['swath_var_hi', 'swath_var_low']),
-            (OCEAN_FILENAME, ['swath_var_hi', 'swath_var_low']),
-            (SEAICE_NH_FILENAME, ['grid_var_NH']),
-            (SEAICE_SH_FILENAME, ['grid_var_SH']),
-            (SNOW_FILENAME, ['swath_var']),
-            (SOIL_FILENAME, ['swath_var']),
+            ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low']),
+            ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low']),
+            ([SEAICE_NH_FILENAME], ['grid_var_NH']),
+            ([SEAICE_SH_FILENAME], ['grid_var_SH']),
+            ([SNOW_FILENAME], ['swath_var']),
+            ([SOIL_FILENAME], ['swath_var']),
         ])
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
