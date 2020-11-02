@@ -19,6 +19,7 @@
 
 import os
 from unittest import mock
+from datetime import datetime
 import pytest
 import xarray as xr
 import dask.array as da
@@ -211,6 +212,33 @@ class TestGAASPReader:
             for var_name in expected_datasets:
                 assert var_name in avails
 
+    @staticmethod
+    def _check_area(data_id, data_arr):
+        from pyresample.geometry import AreaDefinition, SwathDefinition
+        area = data_arr.attrs['area']
+        if 'grid_var' in data_id['name']:
+            assert isinstance(area, AreaDefinition)
+        else:
+            assert isinstance(area, SwathDefinition)
+
+    @staticmethod
+    def _check_fill(data_id, data_arr):
+        if 'int' in data_id['name']:
+            assert data_arr.attrs['_FillValue'] == 100
+            assert np.issubdtype(data_arr.dtype, np.integer)
+        else:
+            assert '_FillValue' not in data_arr.attrs
+
+    @staticmethod
+    def _check_attrs(data_arr):
+        attrs = data_arr.attrs
+        assert 'scale_factor' not in attrs
+        assert 'add_offset' not in attrs
+        assert attrs['platform_name'] == 'GCOM-W1'
+        assert attrs['sensor'] == 'amsr2'
+        assert attrs['start_time'] == datetime(2020, 8, 12, 5, 58, 31)
+        assert attrs['end_time'] == datetime(2020, 8, 12, 6, 7, 1)
+
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids"),
         [
@@ -228,8 +256,6 @@ class TestGAASPReader:
     def test_basic_load(self, filenames, loadable_ids):
         """Test that variables are loaded properly."""
         from satpy.readers import load_reader
-        from pyresample.geometry import AreaDefinition, SwathDefinition
-        from datetime import datetime
         with mock.patch('satpy.readers.amsr2_l2_gaasp.xr.open_dataset') as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
@@ -238,20 +264,6 @@ class TestGAASPReader:
             loaded_data_arrs = r.load(loadable_ids)
             assert loaded_data_arrs
             for data_id, data_arr in loaded_data_arrs.items():
-                attrs = data_arr.attrs
-                area = attrs['area']
-                if 'grid_var' in data_id['name']:
-                    assert isinstance(area, AreaDefinition)
-                else:
-                    assert isinstance(area, SwathDefinition)
-                if 'int' in data_id['name']:
-                    assert attrs['_FillValue'] == 100
-                    assert np.issubdtype(data_arr.dtype, np.integer)
-                else:
-                    assert '_FillValue' not in attrs
-                assert 'scale_factor' not in attrs
-                assert 'add_offset' not in attrs
-                assert attrs['platform_name'] == 'GCOM-W1'
-                assert attrs['sensor'] == 'amsr2'
-                assert attrs['start_time'] == datetime(2020, 8, 12, 5, 58, 31)
-                assert attrs['end_time'] == datetime(2020, 8, 12, 6, 7, 1)
+                self._check_area(data_id, data_arr)
+                self._check_fill(data_id, data_arr)
+                self._check_attrs(data_arr)
