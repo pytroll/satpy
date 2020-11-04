@@ -26,6 +26,7 @@ import dask.array as da
 import numpy as np
 
 MBT_FILENAME = "AMSR2-MBT_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
+PRECIP_FILENAME = "AMSR2-PRECIP_v2r2_GW1_s202011020722300_e202011020733570_c202011032136450.nc"
 OCEAN_FILENAME = "AMSR2-OCEAN_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
 SEAICE_NH_FILENAME = "AMSR2-SEAICE-NH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
 SEAICE_SH_FILENAME = "AMSR2-SEAICE-SH_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
@@ -34,6 +35,7 @@ SOIL_FILENAME = "AMSR2-SOIL_v2r2_GW1_s202008120558310_e202008120607010_c20200812
 
 EXAMPLE_FILENAMES = [
     MBT_FILENAME,
+    PRECIP_FILENAME,
     OCEAN_FILENAME,
     SEAICE_NH_FILENAME,
     SEAICE_SH_FILENAME,
@@ -149,7 +151,7 @@ def _create_one_rez_gaasp_dataset(filename):
 
 def fake_open_dataset(filename, **kwargs):
     """Create a Dataset similar to reading an actual file with xarray.open_dataset."""
-    if filename in [MBT_FILENAME, OCEAN_FILENAME]:
+    if filename in [MBT_FILENAME, PRECIP_FILENAME, OCEAN_FILENAME]:
         return _create_two_rez_gaasp_dataset(filename)
     if filename in [SEAICE_NH_FILENAME, SEAICE_SH_FILENAME]:
         return _create_gridded_gaasp_dataset(filename)
@@ -169,8 +171,9 @@ class TestGAASPReader:
     @pytest.mark.parametrize(
         ("filenames", "expected_loadables"),
         [
-            (EXAMPLE_FILENAMES, 6),
+            (EXAMPLE_FILENAMES, 7),
             ([MBT_FILENAME], 1),
+            ([PRECIP_FILENAME], 1),
             ([OCEAN_FILENAME], 1),
             ([SEAICE_NH_FILENAME], 1),
             ([SEAICE_SH_FILENAME], 1),
@@ -200,6 +203,8 @@ class TestGAASPReader:
                                  'latency_var_NH', 'latency_var_SH']),
             ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low',
                               'swath_var_low_int']),
+            ([PRECIP_FILENAME], ['swath_var_hi', 'swath_var_low',
+                                 'swath_var_low_int']),
             ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low',
                                 'swath_var_low_int']),
             ([SEAICE_NH_FILENAME], ['grid_var_NH', 'latency_var_NH']),
@@ -255,6 +260,7 @@ class TestGAASPReader:
                                  'grid_var_NH', 'grid_var_SH',
                                  'latency_var_NH', 'latency_var_SH']),
             ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low', 'swath_var_low_int']),
+            ([PRECIP_FILENAME], ['swath_var_hi', 'swath_var_low', 'swath_var_low_int']),
             ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low', 'swath_var_low_int']),
             ([SEAICE_NH_FILENAME], ['grid_var_NH', 'latency_var_NH']),
             ([SEAICE_SH_FILENAME], ['grid_var_SH', 'latency_var_SH']),
