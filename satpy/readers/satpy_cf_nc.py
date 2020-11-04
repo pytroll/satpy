@@ -228,7 +228,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         for is_avail, ds_info in (configured_datasets or []):
             yield is_avail, ds_info
 
-    def _fix_modifier_attr(self, ds_info):
+    def fix_modifier_attr(self, ds_info):
         """Fix modifiers attribute."""
         # Empty modifiers are read as [], which causes problems later
         if 'modifiers' in ds_info and len(ds_info['modifiers']) == 0:
@@ -253,7 +253,7 @@ class SatpyCFFileHandler(BaseFileHandler):
                 ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
             except KeyError:
                 pass
-            self._fix_modifier_attr(ds_info)
+            self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
     def _coordinate_datasets(self, configured_datasets=None):

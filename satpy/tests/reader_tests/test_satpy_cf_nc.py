@@ -106,5 +106,5 @@ class TestCFReader(unittest.TestCase):
                                          {},
                                          {'filetype': 'info'})
         ds_info = {'modifiers': []}
-        self.reader._fix_modifier_attr(ds_info)
-        self.assertTrue(ds_info['modifiers'] == ())
+        self.reader.fix_modifier_attr(ds_info)
+        self.assertEqual(ds_info['modifiers'], ())
