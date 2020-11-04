@@ -18,8 +18,6 @@
 
 import numpy as np
 import xarray as xr
-import dask.array as da
-from satpy import CHUNK_SIZE
 from datetime import datetime
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
