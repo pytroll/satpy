@@ -23,6 +23,7 @@ from datetime import datetime
 import xarray as xr
 import numpy as np
 from satpy import Scene
+from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
 
 
 class TestCFReader(unittest.TestCase):
@@ -98,3 +99,12 @@ class TestCFReader(unittest.TestCase):
         self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
         self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
         os.remove(filename)
+
+    def test_fix_modifier_attr(self):
+        """Check that fix modifier can handle empty list as modifier attribute."""
+        self.reader = SatpyCFFileHandler('filename',
+                                         {},
+                                         {'filetype': 'info'})
+        ds_info = {'modifiers': []}
+        self.reader._fix_modifier_attr(ds_info)
+        self.assertTrue(ds_info['modifiers'] == ())

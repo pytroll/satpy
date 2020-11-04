@@ -228,6 +228,19 @@ class SatpyCFFileHandler(BaseFileHandler):
         for is_avail, ds_info in (configured_datasets or []):
             yield is_avail, ds_info
 
+    def _fix_modifier_attr(self, ds_info):
+        """Fix modifiers attribute."""
+        # Empty modifiers are read as [], which causes problems later
+        if 'modifiers' in ds_info and len(ds_info['modifiers']) == 0:
+            ds_info['modifiers'] = ()
+        try:
+            try:
+                ds_info['modifiers'] = tuple(ds_info['modifiers'].split(' '))
+            except AttributeError:
+                pass
+        except KeyError:
+            pass
+
     def _dynamic_datasets(self):
         """Add information of dynamic datasets."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
@@ -240,16 +253,7 @@ class SatpyCFFileHandler(BaseFileHandler):
                 ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
             except KeyError:
                 pass
-            # Empty modifiers are read as [], which causes problems later
-            if 'modifiers' in ds_info and len(ds_info['modifiers']) == 0:
-                ds_info['modifiers'] = ()
-            try:
-                try:
-                    ds_info['modifiers'] = tuple(ds_info['modifiers'].split(' '))
-                except AttributeError:
-                    pass
-            except KeyError:
-                pass
+            self._fix_modifier_attr(ds_info)
             yield True, ds_info
 
     def _coordinate_datasets(self, configured_datasets=None):
