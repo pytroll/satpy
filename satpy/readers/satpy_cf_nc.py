@@ -179,6 +179,7 @@ Output:
 """
 from satpy.readers.file_handlers import BaseFileHandler
 import logging
+import itertools
 import xarray as xr
 from satpy import CHUNK_SIZE
 
@@ -215,10 +216,20 @@ class SatpyCFFileHandler(BaseFileHandler):
         return {self.sensor}
 
     def available_datasets(self, configured_datasets=None):
-        """Add information to configured datasets."""
-        # pass along existing datasets
+        """Add information of available datasets."""
+        existing = self._existing_datasets(configured_datasets=configured_datasets)
+        dynamic = self._dynamic_datasets()
+        coordinates = self._coordinate_datasets()
+        for dataset_available, dataset_info in itertools.chain(existing, dynamic, coordinates):
+            yield dataset_available, dataset_info
+
+    def _existing_datasets(self, configured_datasets=None):
+        """Add information of existing datasets."""
         for is_avail, ds_info in (configured_datasets or []):
             yield is_avail, ds_info
+
+    def _dynamic_datasets(self):
+        """Add information of dynamic datasets."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
         # get dynamic variables known to this file (that we created)
         for var_name, val in nc.data_vars.items():
@@ -240,6 +251,10 @@ class SatpyCFFileHandler(BaseFileHandler):
             except KeyError:
                 pass
             yield True, ds_info
+
+    def _coordinate_datasets(self, configured_datasets=None):
+        """Add information of coordiante datasets."""
+        nc = xr.open_dataset(self.filename, engine=self.engine)
         for var_name, val in nc.coords.items():
             ds_info = dict(val.attrs)
             ds_info['file_type'] = self.filetype_info['file_type']
