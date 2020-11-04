@@ -101,10 +101,16 @@ def _create_gridded_gaasp_dataset(filename):
                                 '_FillValue': -9999.,
                                 'scale_factor': 0.5, 'add_offset': 2.0
                             })
+    latency_var = xr.DataArray(da.zeros((10, 10), dtype=np.timedelta64),
+                               dims=('Number_of_Y_Dimension', 'Number_of_X_Dimension'),
+                               attrs={
+                                   '_FillValue': -9999,
+                               })
     time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
                             dims=('Time_Dimension',))
     ds_vars = {
         'grid_var': grid_var,
+        'latency_var': latency_var,
         'time_var': time_var,
     }
     attrs = _get_shared_global_attrs(filename)
@@ -190,13 +196,14 @@ class TestGAASPReader:
             (EXAMPLE_FILENAMES, ['swath_var_hi', 'swath_var_low',
                                  'swath_var_low_int', 'swath_var',
                                  'swath_var_int',
-                                 'grid_var_NH', 'grid_var_SH']),
+                                 'grid_var_NH', 'grid_var_SH',
+                                 'latency_var_NH', 'latency_var_SH']),
             ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low',
                               'swath_var_low_int']),
             ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low',
                                 'swath_var_low_int']),
-            ([SEAICE_NH_FILENAME], ['grid_var_NH']),
-            ([SEAICE_SH_FILENAME], ['grid_var_SH']),
+            ([SEAICE_NH_FILENAME], ['grid_var_NH', 'latency_var_NH']),
+            ([SEAICE_SH_FILENAME], ['grid_var_SH', 'latency_var_SH']),
             ([SNOW_FILENAME], ['swath_var', 'swath_var_int']),
             ([SOIL_FILENAME], ['swath_var', 'swath_var_int']),
         ])
@@ -216,7 +223,7 @@ class TestGAASPReader:
     def _check_area(data_id, data_arr):
         from pyresample.geometry import AreaDefinition, SwathDefinition
         area = data_arr.attrs['area']
-        if 'grid_var' in data_id['name']:
+        if 'grid_var' in data_id['name'] or 'latency_var' in data_id['name']:
             assert isinstance(area, AreaDefinition)
         else:
             assert isinstance(area, SwathDefinition)
@@ -245,11 +252,12 @@ class TestGAASPReader:
             (EXAMPLE_FILENAMES, ['swath_var_hi', 'swath_var_low',
                                  'swath_var_low_int', 'swath_var',
                                  'swath_var_int',
-                                 'grid_var_NH', 'grid_var_SH']),
+                                 'grid_var_NH', 'grid_var_SH',
+                                 'latency_var_NH', 'latency_var_SH']),
             ([MBT_FILENAME], ['swath_var_hi', 'swath_var_low', 'swath_var_low_int']),
             ([OCEAN_FILENAME], ['swath_var_hi', 'swath_var_low', 'swath_var_low_int']),
-            ([SEAICE_NH_FILENAME], ['grid_var_NH']),
-            ([SEAICE_SH_FILENAME], ['grid_var_SH']),
+            ([SEAICE_NH_FILENAME], ['grid_var_NH', 'latency_var_NH']),
+            ([SEAICE_SH_FILENAME], ['grid_var_SH', 'latency_var_SH']),
             ([SNOW_FILENAME], ['swath_var', 'swath_var_int']),
             ([SOIL_FILENAME], ['swath_var', 'swath_var_int']),
         ])
