@@ -15,6 +15,10 @@ file_types:
     # Ex. AMSR2-MBT_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
     file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPFileHandler
     file_patterns: ['AMSR2-MBT_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+  amsr2_precip:
+    # Ex. AMSR2-OCEAN_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPFileHandler
+    file_patterns: ['AMSR2-PRECIP_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
   amsr2_ocean:
     # Ex. AMSR2-OCEAN_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
     file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPFileHandler
