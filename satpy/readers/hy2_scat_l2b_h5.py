@@ -92,16 +92,12 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         dims = ['y', 'x']
         if self[key['name']].ndim == 3:
             dims = ['y', 'x', 'selection']
+        data = self[key['name']]
         if key['name'] in 'wvc_row_time':
-            data = xr.DataArray(da.from_array(self[key['name']][:]),
-                                attrs={'fill_value': self[key['name']].attrs['fill_value']},
-                                name=key['name'],
-                                dims=['y', ])
+            data = data.rename({data.dims[0]: 'y'})
         else:
-            data = xr.DataArray(da.from_array(self[key['name']][:],
-                                              chunks=CHUNK_SIZE),
-                                name=key['name'], dims=dims)
-
+            dim_map = {curr_dim: new_dim for curr_dim, new_dim in zip(data.dims, dims)}
+            data = data.rename(dim_map)
             data = self._mask_data(key['name'], data)
             data = self._scale_data(key['name'], data)
 
