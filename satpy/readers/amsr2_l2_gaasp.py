@@ -120,6 +120,18 @@ class GAASPFileHandler(BaseFileHandler):
             data_arr = data_arr * scale_factor + add_offset
         return data_arr, attrs
 
+    @staticmethod
+    def _nan_for_dtype(data_arr_dtype):
+        # don't force the conversion from 32-bit float to 64-bit float
+        # if we don't have to
+        if data_arr_dtype.type == np.float32:
+            return np.float32(np.nan)
+        elif np.issubdtype(data_arr_dtype, np.timedelta64):
+            return np.timedelta64('NaT')
+        elif np.issubdtype(data_arr_dtype, np.datetime64):
+            return np.datetime64('NaT')
+        return np.nan
+
     def _fill_data(self, data_arr, attrs):
         fill_value = attrs.pop('_FillValue', None)
         is_int = np.issubdtype(data_arr.dtype, np.integer)
@@ -129,7 +141,7 @@ class GAASPFileHandler(BaseFileHandler):
             fill_out = fill_value
             attrs['_FillValue'] = fill_out
         else:
-            fill_out = np.nan
+            fill_out = self._nan_for_dtype(data_arr.dtype)
         if fill_value is not None:
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
         return data_arr, attrs
