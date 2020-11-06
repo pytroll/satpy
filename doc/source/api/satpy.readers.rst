@@ -364,6 +364,14 @@ satpy.readers.msi\_safe module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.mviri\_l1b\_fiduceo\_nc module
+------------------------------
+
+.. automodule:: satpy.readers.mviri_l1b_fiduceo_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.netcdf\_utils module
 ----------------------------------
 
