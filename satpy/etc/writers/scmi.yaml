@@ -774,8 +774,8 @@ templates:
       # GEOCAT Level 2 Products
   glm_l2:
     single_variable: false
-    filename: '{source_name}_AII_{platform_name}_{sensor}_GLM_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
-#    filename: 'OR_GLM-L2-GLM{scene_abbr}_{scan_mode}_{platform_shortname}_{start_time:%Y%j%H%M%S0}_{end_time:%Y%j%H%M%S0}_{creation_time:%Y%j%H%M%S0}.nc'
+    # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
+    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_{tile_id}_{end_time:%Y%%m%d%H%M%S}.nc'
     global_attributes:
       # FIXME: This should come from the reader's metadata
       dataset_name:
