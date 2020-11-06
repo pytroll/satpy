@@ -166,7 +166,13 @@ class FiduceoMviriBase(BaseFileHandler):
         super(FiduceoMviriBase, self).__init__(
             filename, filename_info, filetype_info)
         self.mask_bad_quality = mask_bad_quality
-        self.nc = xr.open_dataset(filename, chunks=CHUNK_SIZE)
+        self.nc = xr.open_dataset(
+            filename,
+            chunks={'x': CHUNK_SIZE,
+                    'y': CHUNK_SIZE,
+                    'x_ir_wv': CHUNK_SIZE,
+                    'y_ir_wv': CHUNK_SIZE}
+        )
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
@@ -189,8 +195,7 @@ class FiduceoMviriBase(BaseFileHandler):
             ds['acq_time'] = ('y', self._get_acq_time(ds))
         elif dataset_id['name'] in OTHER_REFLECTANCES:
             ds = ds * 100  # conversion to percent
-        self._update_attrs(ds)
-        ds.attrs['orbital_parameters'] = self._get_orbital_parameters()
+        self._update_attrs(ds, info)
         return ds
 
     def _get_nc_key(self, name):
@@ -205,11 +210,13 @@ class FiduceoMviriBase(BaseFileHandler):
             ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
         return ds
 
-    def _update_attrs(self, ds):
+    def _update_attrs(self, ds, info):
         """Update dataset attributes."""
+        ds.attrs.update(info)
         ds.attrs.update({'platform': self.filename_info['platform'],
                          'sensor': self.filename_info['sensor']})
         ds.attrs['raw_metadata'] = self.nc.attrs
+        ds.attrs['orbital_parameters'] = self._get_orbital_parameters()
 
     def get_area_def(self, dataset_id):
         """Get area definition of the given dataset."""
