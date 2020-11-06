@@ -365,7 +365,7 @@ satpy.readers.msi\_safe module
    :show-inheritance:
 
 satpy.readers.mviri\_l1b\_fiduceo\_nc module
-------------------------------
+--------------------------------------------
 
 .. automodule:: satpy.readers.mviri_l1b_fiduceo_nc
    :members:

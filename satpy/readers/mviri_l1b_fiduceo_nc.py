@@ -61,6 +61,17 @@ In the above example pixels considered bad quality are masked, see
 netCDF attributes are available in the ``raw_metadata`` attribute of
 each loaded dataset.
 
+
+Image Orientation
+-----------------
+The images are stored in MVIRI scanning direction, that means South is up and
+East is right. This can be changed as follows:
+
+.. code-block:: python
+
+    scn.load(['VIS'], upper_right_corner='NE')
+
+
 Geolocation
 -----------
 In addition to the image data, FIDUCEO also provides so called *static FCDRs*
@@ -79,7 +90,8 @@ are small differences. The mean difference is < 1E3 degrees for all channels
 and projection longitudes.
 
 
-References:
+References
+----------
     - `[Handbook]`_ MFG User Handbook
     - `[PUG]`_ FIDUCEO MVIRI FCDR Product User Guide
 
