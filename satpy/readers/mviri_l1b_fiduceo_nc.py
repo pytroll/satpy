@@ -295,6 +295,8 @@ class FiduceoMviriBase(BaseFileHandler):
                 return rad
             bt = self._ir_wv_radiance_to_brightness_temperature(rad, channel)
             return bt
+        else:
+            raise KeyError('Invalid calibration: {}'.format(calibration.name))
 
     def _ir_wv_counts_to_radiance(self, counts, channel):
         """Convert IR/WV counts to radiance.
