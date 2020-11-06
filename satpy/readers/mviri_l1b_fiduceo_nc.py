@@ -309,7 +309,10 @@ class FiduceoMviriBase(BaseFileHandler):
         return rad.where(rad > 0)
 
     def _ir_wv_radiance_to_brightness_temperature(self, rad, channel):
-        """Convert IR/WV radiance to brightness temperature."""
+        """Convert IR/WV radiance to brightness temperature.
+
+        Reference: [PUG], equations (5.1) and (5.2).
+        """
         if channel == 'WV':
             a, b = self.nc['bt_a_wv'], self.nc['bt_b_wv']
         else:
