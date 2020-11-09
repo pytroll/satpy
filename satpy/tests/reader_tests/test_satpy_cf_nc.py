@@ -98,7 +98,10 @@ class TestCFReader(unittest.TestCase):
         self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
         self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
         self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
-        os.remove(filename)
+        try:
+            os.remove(filename)
+        except PermissionError:
+            pass
 
     def test_fix_modifier_attr(self):
         """Check that fix modifier can handle empty list as modifier attribute."""
