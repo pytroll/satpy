@@ -73,29 +73,18 @@ class TestNcNWCSAF(unittest.TestCase):
         self.assertEqual(self.scn.sensor, set(['seviri']))
         self.assertEqual(self.scn.sensor_names, set(['seviri']))
 
-    def test_get_projection(self):
-        """Test generation of the navigation info."""
+    def test_get_area_def(self):
+        """Test that get_area_def() returns proper area."""
+        dsid = {'name': 'foo'}
+        self.scn.nc[dsid['name']].shape = (5, 10)
+
         # a, b and h in kilometers
         self.scn.nc.attrs = PROJ_KM
-        proj_str, area_extent = self.scn._get_projection()
-        self.assertTrue('+units=km' in proj_str)
-        self.assertAlmostEqual(area_extent[0],
-                               PROJ_KM['gdal_xgeo_up_left'] / 1000.)
-        self.assertAlmostEqual(area_extent[1],
-                               PROJ_KM['gdal_ygeo_low_right'] / 1000.)
-        self.assertAlmostEqual(area_extent[2],
-                               PROJ_KM['gdal_xgeo_low_right'] / 1000.)
-        self.assertAlmostEqual(area_extent[3],
-                               PROJ_KM['gdal_ygeo_up_left'] / 1000.)
+        _check_area_def(self.scn.get_area_def(dsid))
 
         # a, b and h in meters
         self.scn.nc.attrs = PROJ
-        proj_str, area_extent = self.scn._get_projection()
-        self.assertTrue('+units=m' in proj_str)
-        self.assertAlmostEqual(area_extent[0], PROJ['gdal_xgeo_up_left'])
-        self.assertAlmostEqual(area_extent[1], PROJ['gdal_ygeo_low_right'])
-        self.assertAlmostEqual(area_extent[2], PROJ['gdal_xgeo_low_right'])
-        self.assertAlmostEqual(area_extent[3], PROJ['gdal_ygeo_up_left'])
+        _check_area_def(self.scn.get_area_def(dsid))
 
     def test_scale_dataset_attr_removal(self):
         """Test the scaling of the dataset and removal of obsolete attributes."""
@@ -161,3 +150,11 @@ class TestNcNWCSAF(unittest.TestCase):
         self.assertNotIn('add_offset', var.attrs)
         self.assertEqual(var.attrs['valid_range'][0], -2000.)
         self.assertEqual(var.attrs['valid_range'][1], 25000.)
+
+
+def _check_area_def(adef):
+    assert adef.proj_dict['h'] > 100e3
+    assert adef.proj_dict['a'] > 10e3
+    assert adef.proj_dict['units'] == 'm'
+    assert min(adef.area_extent) < -100e3
+    assert max(adef.area_extent) > 100e3
