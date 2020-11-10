@@ -152,9 +152,9 @@ class TestNcNWCSAF(unittest.TestCase):
         self.assertEqual(var.attrs['valid_range'][1], 25000.)
 
 
-def _check_area_def(adef):
-    assert adef.proj_dict['h'] > 100e3
-    assert adef.proj_dict['a'] > 10e3
-    assert adef.proj_dict['units'] == 'm'
-    assert min(adef.area_extent) < -100e3
-    assert max(adef.area_extent) > 100e3
+def _check_area_def(area_definition):
+    assert area_definition.proj_dict['h'] > 100e3
+    assert area_definition.proj_dict['a'] > 10e3
+    assert area_definition.proj_dict['units'] == 'm'
+    assert min(area_definition.area_extent) < -100e3
+    assert max(area_definition.area_extent) > 100e3
