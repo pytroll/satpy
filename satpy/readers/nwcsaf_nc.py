@@ -281,8 +281,8 @@ class NcNWCSAF(BaseFileHandler):
     @staticmethod
     def _fix_adef_units(adef):
         """Fix units in Earth shape, satellite altitude and 'units' attribute."""
-        proj_dict = adef.proj_dict.copy()
-        if proj_dict["units"] == "km":
+        if adef.proj_dict["units"] == "km":
+            proj_dict = adef.proj_dict.copy()
             from pyresample.geometry import AreaDefinition
 
             proj_dict["units"] = "m"
