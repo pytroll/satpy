@@ -153,8 +153,13 @@ class TestNcNWCSAF(unittest.TestCase):
 
 
 def _check_area_def(area_definition):
-    assert area_definition.proj_dict['h'] > 100e3
-    assert area_definition.proj_dict['a'] > 10e3
+    correct_h = float(PROJ['gdal_projection'].split('+h=')[-1])
+    correct_a = float(PROJ['gdal_projection'].split('+a=')[-1].split()[0])
+    assert area_definition.proj_dict['h'] == correct_h
+    assert area_definition.proj_dict['a'] == correct_a
     assert area_definition.proj_dict['units'] == 'm'
-    assert min(area_definition.area_extent) < -100e3
-    assert max(area_definition.area_extent) > 100e3
+    correct_extent = (PROJ["gdal_xgeo_up_left"],
+                      PROJ["gdal_ygeo_low_right"],
+                      PROJ["gdal_xgeo_low_right"],
+                      PROJ["gdal_ygeo_up_left"])
+    assert area_definition.area_extent == correct_extent
