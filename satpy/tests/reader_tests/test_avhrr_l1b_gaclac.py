@@ -514,7 +514,7 @@ class TestGetDataset(ModulePatcher):
         return key, res
 
     @staticmethod
-    def _create_reader(reader):
+    def _create_file_handler(reader):
         """Mock reader and file handler."""
         fh = _get_fh_mocked(
             reader=reader,
