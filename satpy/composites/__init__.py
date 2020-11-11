@@ -565,8 +565,7 @@ def enhance2dataset(dset, convert_p=False):
     If `convert_p` is True, enhancements generating a P mode will be converted to RGB or RGBA.
     """
     attrs = dset.attrs
-    img = get_enhanced_image(dset)
-    data = _get_data_from_image(img, convert_p)
+    data = _get_data_from_enhanced_image(dset, convert_p)
     data.attrs = attrs
     # remove 'mode' if it is specified since it may have been updated
     data.attrs.pop('mode', None)
@@ -575,18 +574,23 @@ def enhance2dataset(dset, convert_p=False):
     return data
 
 
-def _get_data_from_image(img, convert_p):
+def _get_data_from_enhanced_image(dset, convert_p):
+    img = get_enhanced_image(dset)
     if convert_p and img.mode == 'P':
-        if len(img.palette[0]) == 3:
-            img = img.convert('RGB')
-        elif len(img.palette[0]) == 4:
-            img = img.convert('RGBA')
+        img = _apply_palette_to_image(img)
     if img.mode != 'P':
-        # Clip image data to interval [0.0, 1.0]
         data = img.data.clip(0.0, 1.0)
     else:
         data = img.data
     return data
+
+
+def _apply_palette_to_image(img):
+    if len(img.palette[0]) == 3:
+        img = img.convert('RGB')
+    elif len(img.palette[0]) == 4:
+        img = img.convert('RGBA')
+    return img
 
 
 def add_bands(data, bands):
