@@ -270,7 +270,7 @@ class GenericCompositor(CompositeBase):
             return data_arr.attrs['mode']
         if 'bands' not in data_arr.dims:
             return cls.modes[1]
-        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0], str):
+        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0].item(), str):
             return ''.join(data_arr.coords['bands'].values)
         return cls.modes[data_arr.sizes['bands']]
 
@@ -1038,7 +1038,6 @@ class BackgroundCompositor(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
         projectables = self.match_data_arrays(projectables)
-
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0], convert_p=True)
         background = enhance2dataset(projectables[1], convert_p=True)
