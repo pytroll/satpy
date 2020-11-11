@@ -1333,3 +1333,34 @@ class TestEnhance2Dataset(unittest.TestCase):
         res = enhance2dataset(dataset)
         assert res.attrs['mode'] == 'L'
         assert res.max().values == 1
+
+
+class TestInferMode(unittest.TestCase):
+    """Test the infer_mode utility."""
+
+    def test_bands_coords_is_used(self):
+        """Test that the `bands` coord is used."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((1, 5, 5)), dims=('bands', 'x', 'y'), coords={'bands': ['P']})
+        assert GenericCompositor.infer_mode(arr) == 'P'
+
+        arr = xr.DataArray(np.ones((3, 5, 5)), dims=('bands', 'x', 'y'), coords={'bands': ['Y', 'Cb', 'Cr']})
+        assert GenericCompositor.infer_mode(arr) == 'YCbCr'
+
+    def test_mode_is_used(self):
+        """Test that the `mode` attribute is used."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((1, 5, 5)), dims=('bands', 'x', 'y'), attrs={'mode': 'P'})
+        assert GenericCompositor.infer_mode(arr) == 'P'
+
+    def test_band_size_is_used(self):
+        """Test that the band size is used."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((2, 5, 5)), dims=('bands', 'x', 'y'))
+        assert GenericCompositor.infer_mode(arr) == 'LA'
+
+    def test_no_bands_is_l(self):
+        """Test that default (no band) is L."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((5, 5)), dims=('x', 'y'))
+        assert GenericCompositor.infer_mode(arr) == 'L'
