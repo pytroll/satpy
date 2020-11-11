@@ -416,7 +416,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         # this method should probably move to a dedicated class and module
         # in the tests.compositor_tests package
 
-        from satpy.composites import CompositorLoader
+        from satpy.composites.config_loader import CompositorLoader
         cl = CompositorLoader()
         (comps, mods) = cl.load_compositors(["fci"])
         assert len(comps["fci"]) > 0
