@@ -492,7 +492,7 @@ class TestGetDataset(ModulePatcher):
     def test_get_dataset_channels(self, get_channel, *mocks):
         """Test getting the channel datasets."""
         pygac_reader = _get_reader_mocked()
-        fh = self._create_reader(pygac_reader)
+        fh = self._create_file_handler(pygac_reader)
 
         # Test calibration to reflectance as well as attributes.
         key, res = self._get_dataset(fh)
@@ -551,7 +551,7 @@ class TestGetDataset(ModulePatcher):
         pygac_reader.get_tle_lines = mock.MagicMock()
         pygac_reader.get_tle_lines.side_effect = RuntimeError()
 
-        fh = self._create_reader(pygac_reader)
+        fh = self._create_file_handler(pygac_reader)
 
         # Test calibration to reflectance as well as attributes.
         key, res = self._get_dataset(fh)
