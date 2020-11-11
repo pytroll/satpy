@@ -25,6 +25,7 @@ from unittest import mock
 import dask
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 
@@ -367,7 +368,7 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
         # Three shades of grey
         rgb_arr = np.array([1, 50, 100, 200, 1, 50, 100, 200, 1, 50, 100, 200])
         rgb = xr.DataArray(rgb_arr.reshape((3, 2, 2)),
-                           dims=['bands', 'y', 'x'])
+                           dims=['bands', 'y', 'x'], coords={'bands': ['R', 'G', 'B']})
         # 100 % luminance -> all result values ~1.0
         lum = xr.DataArray(np.array([[100., 100.], [100., 100.]]),
                            dims=['y', 'x'])
@@ -778,7 +779,7 @@ class TestGenericCompositor(unittest.TestCase):
 class TestAddBands(unittest.TestCase):
     """Test case for the `add_bands` function."""
 
-    def test_add_bands(self):
+    def test_add_bands_l_rgb(self):
         """Test adding bands."""
         from satpy.composites import add_bands
         import dask.array as da
@@ -796,6 +797,12 @@ class TestAddBands(unittest.TestCase):
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
+    def test_add_bands_l_rgba(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
+        import dask.array as da
+        import numpy as np
+        import xarray as xr
         # L + RGBA -> RGBA
         data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
                             coords={'bands': ['L']}, attrs={'mode': 'L'})
@@ -806,6 +813,13 @@ class TestAddBands(unittest.TestCase):
         self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+    def test_add_bands_la_rgb(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
+        import dask.array as da
+        import numpy as np
+        import xarray as xr
 
         # LA + RGB -> RGBA
         data = xr.DataArray(da.ones((2, 3, 3)), dims=('bands', 'y', 'x'),
@@ -818,6 +832,13 @@ class TestAddBands(unittest.TestCase):
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
+    def test_add_bands_rgb_rbga(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
+        import dask.array as da
+        import numpy as np
+        import xarray as xr
+
         # RGB + RGBA -> RGBA
         data = xr.DataArray(da.ones((3, 3, 3)), dims=('bands', 'y', 'x'),
                             coords={'bands': ['R', 'G', 'B']},
@@ -829,6 +850,21 @@ class TestAddBands(unittest.TestCase):
         self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+    def test_add_bands_p_l(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
+        import dask.array as da
+        import xarray as xr
+
+        # P(RGBA) + L -> RGBA
+        data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
+                            coords={'bands': ['P']},
+                            attrs={'mode': 'P'})
+        new_bands = xr.DataArray(da.array(['L']), dims=('bands'),
+                                 coords={'bands': ['L']})
+        with pytest.raises(NotImplementedError):
+            add_bands(data, new_bands)
 
 
 class TestStaticImageCompositor(unittest.TestCase):
@@ -896,7 +932,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertEqual(comp.filename, "/path/to/image/foo.tif")
 
 
-def _enhance2dataset(dataset):
+def _enhance2dataset(dataset, convert_p=False):
     """Mock the enhance2dataset to return the original data."""
     return dataset
 
@@ -1240,3 +1276,60 @@ class TestNaturalEnhCompositor(unittest.TestCase):
         self.assertEqual(res[0], correct)
         self.assertEqual(res[1], projectables[1])
         self.assertEqual(res[2], projectables[2])
+
+
+class TestEnhance2Dataset(unittest.TestCase):
+    """Test the enhance2dataset utility."""
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_p_to_rgb(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in RGB mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img.palette = ((0, 0, 0), (4, 4, 4), (8, 8, 8))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset, convert_p=True)
+        assert res.attrs['mode'] == 'RGB'
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_p_to_rgba(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in RGBA mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset, convert_p=True)
+        assert res.attrs['mode'] == 'RGBA'
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_p(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in P mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset)
+        assert res.attrs['mode'] == 'P'
+        assert res.max().values == 2
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_l(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in P mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['L']}))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset)
+        assert res.attrs['mode'] == 'L'
+        assert res.max().values == 1
