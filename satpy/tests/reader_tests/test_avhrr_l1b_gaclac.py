@@ -69,6 +69,17 @@ LAC_KLM_FILENAMES = ['BRN.HRPT.M1.D14152.S0958.E1012.B0883232.UB',
                      'NSS.LHRR.NP.D16306.S1803.E1814.B3985555.WI']
 
 
+@mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
+def _get_fh_mocked(init_mock, **attrs):
+    """Create a mocked file handler with the given attributes."""
+    from satpy.readers.avhrr_l1b_gaclac import GACLACFile
+
+    fh = GACLACFile()
+    for name, value in attrs.items():
+        setattr(fh, name, value)
+    return fh
+
+
 class TestGACLACFile(TestCase):
     """Test the GACLAC file handler."""
 
@@ -103,16 +114,6 @@ class TestGACLACFile(TestCase):
         from trollsift import parse
         filename_info = parse(GAC_PATTERN, filename)
         return self.GACLACFile(filename, filename_info, {}, **kwargs)
-
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
-    def _get_fh_mocked(self, init_mock, **attrs):
-        """Create a mocked file handler with the given attributes."""
-        from satpy.readers.avhrr_l1b_gaclac import GACLACFile
-
-        fh = GACLACFile()
-        for name, value in attrs.items():
-            setattr(fh, name, value)
-        return fh
 
     def _get_reader_mocked(self, along_track=3):
         """Create a mocked reader."""
@@ -156,7 +157,7 @@ class TestGACLACFile(TestCase):
         from satpy.tests.utils import make_dataid
 
         # Mock reader and file handler
-        fh = self._get_fh_mocked(
+        fh = _get_fh_mocked(
             reader=self._get_reader_mocked(),
             chn_dict={'1': 0, '5': 0},
             start_line=None,
@@ -194,13 +195,62 @@ class TestGACLACFile(TestCase):
             fh.get_dataset(key=key, info={'name': 1})
             get_channel.assert_called_with(key)
 
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.read_raw_data')
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
+    def test_get_dataset_no_tle(self, get_channel, *mocks):
+        """Test getting the channel datasets."""
+        from satpy.tests.utils import make_dataid
+
+        reader = self._get_reader_mocked()
+        reader.get_tle_lines = mock.MagicMock()
+        reader.get_tle_lines.side_effect = RuntimeError()
+
+        # Mock reader and file handler
+        fh = _get_fh_mocked(
+            reader=reader,
+            chn_dict={'1': 0, '5': 0},
+            start_line=None,
+            end_line=None,
+            strip_invalid_coords=False,
+            filename_info={'orbit_number': 123},
+            sensor='sensor',
+        )
+
+        # Test calibration to reflectance as well as attributes.
+        counts = np.ones((3, 3))
+        get_channel.return_value = counts
+        key = make_dataid(name='1', calibration='reflectance')
+        info = {'name': '1', 'standard_name': 'my_standard_name'}
+
+        res = fh.get_dataset(key=key, info=info)
+        exp = xr.DataArray(da.ones((3, 3)),
+                           name=res.name,
+                           dims=('y', 'x'),
+                           coords={'acq_time': ('y', [0, 1, 2])},
+                           attrs={'name': '1',
+                                  'platform_name': 'spacecraft_name',
+                                  'orbit_number': 123,
+                                  'sensor': 'sensor',
+                                  'foo': 'bar',
+                                  'standard_name': 'my_standard_name'})
+        exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+        xr.testing.assert_identical(res, exp)
+        get_channel.assert_called_with(key)
+
+        # Counts & brightness temperature: Similar, just check _get_channel() call
+        for key in [make_dataid(name='1', calibration='counts'),
+                    make_dataid(name='5', calibration='brightness_temperature')]:
+            fh.get_dataset(key=key, info={'name': 1})
+            get_channel.assert_called_with(key)
+
     def test_read_raw_data(self):
         """Test raw data reading."""
-        fh = self._get_fh_mocked(reader=None,
-                                 interpolate_coords='interpolate_coords',
-                                 creation_site='creation_site',
-                                 reader_kwargs={'foo': 'bar'},
-                                 filename='myfile')
+        fh = _get_fh_mocked(reader=None,
+                            interpolate_coords='interpolate_coords',
+                            creation_site='creation_site',
+                            reader_kwargs={'foo': 'bar'},
+                            filename='myfile')
         reader = mock.MagicMock(mask=[0])
         reader_cls = mock.MagicMock(return_value=reader)
         fh.reader_class = reader_cls
@@ -244,7 +294,7 @@ class TestGACLACFile(TestCase):
                        {'strip_invalid_coords': True,
                         'start_line': 123, 'end_line': 456}]
         for kwargs in kwargs_list:
-            fh = self._get_fh_mocked(
+            fh = _get_fh_mocked(
                 reader=self._get_reader_mocked(along_track=len(acq)),
                 chn_dict={'1': 0},
                 **kwargs
@@ -267,7 +317,7 @@ class TestGACLACFile(TestCase):
         lats = 2 * lons
         reader = self._get_reader_mocked()
         reader.get_lonlat.return_value = lons, lats
-        fh = self._get_fh_mocked(
+        fh = _get_fh_mocked(
             reader=reader,
             start_line=None,
             end_line=None,
@@ -304,7 +354,7 @@ class TestGACLACFile(TestCase):
         ones = np.ones((3, 3))
         get_angle.return_value = ones
         reader = self._get_reader_mocked()
-        fh = self._get_fh_mocked(
+        fh = _get_fh_mocked(
             reader=reader,
             start_line=None,
             end_line=None,
@@ -339,7 +389,7 @@ class TestGACLACFile(TestCase):
         qual_flags = np.ones((3, 7))
         reader = self._get_reader_mocked()
         reader.get_qual_flags.return_value = qual_flags
-        fh = self._get_fh_mocked(
+        fh = _get_fh_mocked(
             reader=reader,
             start_line=None,
             end_line=None,
@@ -373,8 +423,8 @@ class TestGACLACFile(TestCase):
         reader = self._get_reader_mocked()
         reader.get_counts.return_value = counts
         reader.get_calibrated_channels.return_value = calib_channels
-        fh = self._get_fh_mocked(reader=reader, counts=None, calib_channels=None,
-                                 chn_dict={'1': 0})
+        fh = _get_fh_mocked(reader=reader, counts=None, calib_channels=None,
+                            chn_dict={'1': 0})
 
         key = make_dataid(name='1', calibration='counts')
         # Counts
@@ -413,7 +463,7 @@ class TestGACLACFile(TestCase):
 
         reader = mock.MagicMock()
         reader.get_angles.return_value = 1, 2, 3, 4, 5
-        fh = self._get_fh_mocked(reader=reader, angles=None)
+        fh = _get_fh_mocked(reader=reader, angles=None)
 
         # Test angle readout
         key = make_dataid(name='sensor_zenith_angle')
@@ -436,7 +486,7 @@ class TestGACLACFile(TestCase):
 
         reader = mock.MagicMock()
         reader.get_lonlat.return_value = None, None
-        fh = self._get_fh_mocked(reader=reader, first_valid_lat=None)
+        fh = _get_fh_mocked(reader=reader, first_valid_lat=None)
 
         # Test stripping
         pygac.utils.strip_invalid_lat.return_value = 1, 2
@@ -458,7 +508,7 @@ class TestGACLACFile(TestCase):
         data = np.zeros((4, 2))
         times = np.array([1, 2, 3, 4], dtype='datetime64[us]')
 
-        fh = self._get_fh_mocked(start_line=1, end_line=3, strip_invalid_coords=False)
+        fh = _get_fh_mocked(start_line=1, end_line=3, strip_invalid_coords=False)
         data_slc, times_slc = fh.slice(data, times)
         np.testing.assert_array_equal(data_slc, data[1:3])
         np.testing.assert_array_equal(times_slc, times[1:3])
@@ -478,7 +528,7 @@ class TestGACLACFile(TestCase):
         data = np.zeros((2, 2))
 
         # a) Only start/end line given
-        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=False)
+        fh = _get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=False)
         data_slc = fh._slice(data)
         self.assertEqual(data_slc, 'sliced')
         pygac.utils.check_user_scanlines.assert_called_with(
@@ -489,14 +539,14 @@ class TestGACLACFile(TestCase):
             first_valid_lat=None, last_valid_lat=None)
 
         # b) Only strip_invalid_coords=True
-        fh = self._get_fh_mocked(start_line=None, end_line=None, strip_invalid_coords=True)
+        fh = _get_fh_mocked(start_line=None, end_line=None, strip_invalid_coords=True)
         fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=0, end_line=0,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
 
         # c) Both
-        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=True)
+        fh = _get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=True)
         fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
