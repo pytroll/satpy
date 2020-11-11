@@ -2,7 +2,7 @@ sensor_name: visir/mersi-2
 
 modifiers:
   rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -14,12 +14,12 @@ modifiers:
     - name: solar_azimuth_angle
     - name: solar_zenith_angle
   sunz_corrected:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     prerequisites:
       - solar_zenith_angle
 
   nir_reflectance:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - name: '24'
     optional_prerequisites:
