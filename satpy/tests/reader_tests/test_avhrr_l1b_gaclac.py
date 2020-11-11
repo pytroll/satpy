@@ -80,8 +80,18 @@ def _get_fh_mocked(init_mock, **attrs):
     return fh
 
 
-class TestGACLACFile(TestCase):
-    """Test the GACLAC file handler."""
+def _get_reader_mocked(along_track=3):
+    """Create a mocked reader."""
+    reader = mock.MagicMock(spacecraft_name='spacecraft_name',
+                            meta_data={'foo': 'bar'})
+    reader.mask = [0, 0]
+    reader.get_times.return_value = np.arange(along_track)
+    reader.get_tle_lines.return_value = 'tle'
+    return reader
+
+
+class ModulePatcher(TestCase):
+    """Patch pygac."""
 
     def setUp(self):
         """Patch pygac imports."""
@@ -108,21 +118,16 @@ class TestGACLACFile(TestCase):
         """Unpatch the pygac imports."""
         self.module_patcher.stop()
 
+
+class TestGACLACFile(ModulePatcher):
+    """Test the GACLAC file handler."""
+
     def _get_fh(self, filename='NSS.GHRR.NG.D88002.S0614.E0807.B0670506.WI',
                 **kwargs):
         """Create a file handler."""
         from trollsift import parse
         filename_info = parse(GAC_PATTERN, filename)
         return self.GACLACFile(filename, filename_info, {}, **kwargs)
-
-    def _get_reader_mocked(self, along_track=3):
-        """Create a mocked reader."""
-        reader = mock.MagicMock(spacecraft_name='spacecraft_name',
-                                meta_data={'foo': 'bar'})
-        reader.mask = [0, 0]
-        reader.get_times.return_value = np.arange(along_track)
-        reader.get_tle_lines.return_value = 'tle'
-        return reader
 
     def test_init(self):
         """Test GACLACFile initialization."""
@@ -148,101 +153,6 @@ class TestGACLACFile(TestCase):
                                 "Start time must precede end time.")
                 self.assertIs(fh.reader_class, reader_cls,
                               'Wrong reader class assigned to {}'.format(filename))
-
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.read_raw_data')
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
-    def test_get_dataset_channels(self, get_channel, *mocks):
-        """Test getting the channel datasets."""
-        from satpy.tests.utils import make_dataid
-
-        # Mock reader and file handler
-        fh = _get_fh_mocked(
-            reader=self._get_reader_mocked(),
-            chn_dict={'1': 0, '5': 0},
-            start_line=None,
-            end_line=None,
-            strip_invalid_coords=False,
-            filename_info={'orbit_number': 123},
-            sensor='sensor',
-        )
-
-        # Test calibration to reflectance as well as attributes.
-        counts = np.ones((3, 3))
-        get_channel.return_value = counts
-        key = make_dataid(name='1', calibration='reflectance')
-        info = {'name': '1', 'standard_name': 'my_standard_name'}
-
-        res = fh.get_dataset(key=key, info=info)
-        exp = xr.DataArray(da.ones((3, 3)),
-                           name=res.name,
-                           dims=('y', 'x'),
-                           coords={'acq_time': ('y', [0, 1, 2])},
-                           attrs={'name': '1',
-                                  'platform_name': 'spacecraft_name',
-                                  'orbit_number': 123,
-                                  'sensor': 'sensor',
-                                  'orbital_parameters': {'tle': 'tle'},
-                                  'foo': 'bar',
-                                  'standard_name': 'my_standard_name'})
-        exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
-        xr.testing.assert_identical(res, exp)
-        get_channel.assert_called_with(key)
-
-        # Counts & brightness temperature: Similar, just check _get_channel() call
-        for key in [make_dataid(name='1', calibration='counts'),
-                    make_dataid(name='5', calibration='brightness_temperature')]:
-            fh.get_dataset(key=key, info={'name': 1})
-            get_channel.assert_called_with(key)
-
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.read_raw_data')
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
-    def test_get_dataset_no_tle(self, get_channel, *mocks):
-        """Test getting the channel datasets."""
-        from satpy.tests.utils import make_dataid
-
-        reader = self._get_reader_mocked()
-        reader.get_tle_lines = mock.MagicMock()
-        reader.get_tle_lines.side_effect = RuntimeError()
-
-        # Mock reader and file handler
-        fh = _get_fh_mocked(
-            reader=reader,
-            chn_dict={'1': 0, '5': 0},
-            start_line=None,
-            end_line=None,
-            strip_invalid_coords=False,
-            filename_info={'orbit_number': 123},
-            sensor='sensor',
-        )
-
-        # Test calibration to reflectance as well as attributes.
-        counts = np.ones((3, 3))
-        get_channel.return_value = counts
-        key = make_dataid(name='1', calibration='reflectance')
-        info = {'name': '1', 'standard_name': 'my_standard_name'}
-
-        res = fh.get_dataset(key=key, info=info)
-        exp = xr.DataArray(da.ones((3, 3)),
-                           name=res.name,
-                           dims=('y', 'x'),
-                           coords={'acq_time': ('y', [0, 1, 2])},
-                           attrs={'name': '1',
-                                  'platform_name': 'spacecraft_name',
-                                  'orbit_number': 123,
-                                  'sensor': 'sensor',
-                                  'foo': 'bar',
-                                  'standard_name': 'my_standard_name'})
-        exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
-        xr.testing.assert_identical(res, exp)
-        get_channel.assert_called_with(key)
-
-        # Counts & brightness temperature: Similar, just check _get_channel() call
-        for key in [make_dataid(name='1', calibration='counts'),
-                    make_dataid(name='5', calibration='brightness_temperature')]:
-            fh.get_dataset(key=key, info={'name': 1})
-            get_channel.assert_called_with(key)
 
     def test_read_raw_data(self):
         """Test raw data reading."""
@@ -295,7 +205,7 @@ class TestGACLACFile(TestCase):
                         'start_line': 123, 'end_line': 456}]
         for kwargs in kwargs_list:
             fh = _get_fh_mocked(
-                reader=self._get_reader_mocked(along_track=len(acq)),
+                reader=_get_reader_mocked(along_track=len(acq)),
                 chn_dict={'1': 0},
                 **kwargs
             )
@@ -315,7 +225,7 @@ class TestGACLACFile(TestCase):
 
         lons = np.ones((3, 3))
         lats = 2 * lons
-        reader = self._get_reader_mocked()
+        reader = _get_reader_mocked()
         reader.get_lonlat.return_value = lons, lats
         fh = _get_fh_mocked(
             reader=reader,
@@ -353,7 +263,7 @@ class TestGACLACFile(TestCase):
 
         ones = np.ones((3, 3))
         get_angle.return_value = ones
-        reader = self._get_reader_mocked()
+        reader = _get_reader_mocked()
         fh = _get_fh_mocked(
             reader=reader,
             start_line=None,
@@ -387,7 +297,7 @@ class TestGACLACFile(TestCase):
         from satpy.tests.utils import make_dataid
 
         qual_flags = np.ones((3, 7))
-        reader = self._get_reader_mocked()
+        reader = _get_reader_mocked()
         reader.get_qual_flags.return_value = qual_flags
         fh = _get_fh_mocked(
             reader=reader,
@@ -420,7 +330,7 @@ class TestGACLACFile(TestCase):
         counts = np.moveaxis(np.array([[[1, 2, 3],
                                         [4, 5, 6]]]), 0, 2)
         calib_channels = 2 * counts
-        reader = self._get_reader_mocked()
+        reader = _get_reader_mocked()
         reader.get_counts.return_value = counts
         reader.get_calibrated_channels.return_value = calib_channels
         fh = _get_fh_mocked(reader=reader, counts=None, calib_channels=None,
@@ -556,3 +466,107 @@ class TestGACLACFile(TestCase):
         pygac.utils.slice_channel.return_value = ('sliced', 'foo', 'bar')
         data_slc = fh._slice(data)
         self.assertEqual(data_slc, 'sliced')
+
+
+class TestGetDataset(ModulePatcher):
+    """Test the get_dataset method."""
+
+    def setUp(self):
+        """Set up the instance."""
+        self.exp = xr.DataArray(da.ones((3, 3)),
+                                name='1',
+                                dims=('y', 'x'),
+                                coords={'acq_time': ('y', [0, 1, 2])},
+                                attrs={'name': '1',
+                                       'platform_name': 'spacecraft_name',
+                                       'orbit_number': 123,
+                                       'sensor': 'sensor',
+                                       'foo': 'bar',
+                                       'standard_name': 'my_standard_name'})
+        self.exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+        super().setUp()
+
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.read_raw_data')
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel', return_value=np.ones((3, 3)))
+    def test_get_dataset_channels(self, get_channel, *mocks):
+        """Test getting the channel datasets."""
+        pygac_reader = _get_reader_mocked()
+        fh = self._create_reader(pygac_reader)
+
+        # Test calibration to reflectance as well as attributes.
+        key, res = self._get_dataset(fh)
+        exp = self._create_expected(res.name)
+        exp.attrs['orbital_parameters'] = {'tle': 'tle'}
+
+        xr.testing.assert_identical(res, exp)
+        get_channel.assert_called_with(key)
+
+        self._check_get_channel_calls(fh, get_channel)
+
+    @staticmethod
+    def _get_dataset(fh):
+        from satpy.tests.utils import make_dataid
+
+        key = make_dataid(name='1', calibration='reflectance')
+        info = {'name': '1', 'standard_name': 'my_standard_name'}
+        res = fh.get_dataset(key=key, info=info)
+        return key, res
+
+    @staticmethod
+    def _create_reader(reader):
+        """Mock reader and file handler."""
+        fh = _get_fh_mocked(
+            reader=reader,
+            chn_dict={'1': 0, '5': 0},
+            start_line=None,
+            end_line=None,
+            strip_invalid_coords=False,
+            filename_info={'orbit_number': 123},
+            sensor='sensor',
+        )
+        return fh
+
+    @staticmethod
+    def _create_expected(name):
+        exp = xr.DataArray(da.ones((3, 3)),
+                           name=name,
+                           dims=('y', 'x'),
+                           coords={'acq_time': ('y', [0, 1, 2])},
+                           attrs={'name': '1',
+                                  'platform_name': 'spacecraft_name',
+                                  'orbit_number': 123,
+                                  'sensor': 'sensor',
+                                  'foo': 'bar',
+                                  'standard_name': 'my_standard_name'})
+        exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+        return exp
+
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.read_raw_data')
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel', return_value=np.ones((3, 3)))
+    def test_get_dataset_no_tle(self, get_channel, *mocks):
+        """Test getting the channel datasets when no TLEs are present."""
+        pygac_reader = _get_reader_mocked()
+        pygac_reader.get_tle_lines = mock.MagicMock()
+        pygac_reader.get_tle_lines.side_effect = RuntimeError()
+
+        fh = self._create_reader(pygac_reader)
+
+        # Test calibration to reflectance as well as attributes.
+        key, res = self._get_dataset(fh)
+        exp = self._create_expected(res.name)
+        xr.testing.assert_identical(res, exp)
+        get_channel.assert_called_with(key)
+
+        self._check_get_channel_calls(fh, get_channel)
+
+    @staticmethod
+    def _check_get_channel_calls(fh, get_channel):
+        """Check _get_channel() calls."""
+        from satpy.tests.utils import make_dataid
+
+        for key in [make_dataid(name='1', calibration='counts'),
+                    make_dataid(name='5', calibration='brightness_temperature')]:
+            fh.get_dataset(key=key, info={'name': 1})
+            get_channel.assert_called_with(key)
