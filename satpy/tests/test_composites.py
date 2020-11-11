@@ -782,9 +782,6 @@ class TestAddBands(unittest.TestCase):
     def test_add_bands_l_rgb(self):
         """Test adding bands."""
         from satpy.composites import add_bands
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
 
         # L + RGB -> RGB
         data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
@@ -800,9 +797,7 @@ class TestAddBands(unittest.TestCase):
     def test_add_bands_l_rgba(self):
         """Test adding bands."""
         from satpy.composites import add_bands
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
+
         # L + RGBA -> RGBA
         data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
                             coords={'bands': ['L']}, attrs={'mode': 'L'})
@@ -817,9 +812,6 @@ class TestAddBands(unittest.TestCase):
     def test_add_bands_la_rgb(self):
         """Test adding bands."""
         from satpy.composites import add_bands
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
 
         # LA + RGB -> RGBA
         data = xr.DataArray(da.ones((2, 3, 3)), dims=('bands', 'y', 'x'),
@@ -835,9 +827,6 @@ class TestAddBands(unittest.TestCase):
     def test_add_bands_rgb_rbga(self):
         """Test adding bands."""
         from satpy.composites import add_bands
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
 
         # RGB + RGBA -> RGBA
         data = xr.DataArray(da.ones((3, 3, 3)), dims=('bands', 'y', 'x'),
@@ -854,8 +843,6 @@ class TestAddBands(unittest.TestCase):
     def test_add_bands_p_l(self):
         """Test adding bands."""
         from satpy.composites import add_bands
-        import dask.array as da
-        import xarray as xr
 
         # P(RGBA) + L -> RGBA
         data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
