@@ -563,6 +563,12 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
                               [0., 0.498, np.nan]],
                              [[0., 0.498, 0.],
                               [0., 0.498, np.nan]]])
+        self.exp_all_valid = np.array([[[0., 0.498, 0.],
+                                        [0., 0.498, 0.]],
+                                       [[0., 0.498, 0.],
+                                        [0., 0.498, 0.]],
+                                       [[0., 0.498, 0.],
+                                        [0., 0.498, 0.]]])
 
     def test_call_numpy_with_invalid_value_in_status(self):
         """Test the CloudTopHeight composite generation."""
@@ -592,7 +598,8 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
                             dims=['y', 'x'],
                             attrs={'_FillValue': 99})
         res = self.colormap_composite([data, self.palette, status])
-        np.testing.assert_allclose(res, self.exp, atol=1e-4)
+
+        np.testing.assert_allclose(res, self.exp_all_valid, atol=1e-4)
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
