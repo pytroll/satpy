@@ -601,6 +601,23 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
 
         np.testing.assert_allclose(res, self.exp_all_valid, atol=1e-4)
 
+    def test_call_with_alternative_fill_value_color(self):
+        """Test the CloudTopHeight composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535})
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 99})
+        self.palette.attrs['fill_value_color'] = np.array([1, 1, 1])
+        res = self.colormap_composite([data, self.palette, status])
+        exp = np.array([[[1., 0.498, 1.],
+                         [1., 0.498, 1.]],
+                        [[1., 0.498, 1.],
+                         [1., 0.498, 1.]],
+                        [[1., 0.498, 1.],
+                         [1., 0.498, 1.]]])
+        np.testing.assert_allclose(res, exp, atol=1e-4)
+
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
     """Test the PrecipClouds compositor."""
