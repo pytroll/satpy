@@ -51,17 +51,21 @@ class CloudTopHeightCompositor(ColormapCompositor):
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
         data, palette, status = projectables
+        fill_value_color = palette.attrs.get("fill_value_color", [0, 0, 0])
         colormap, palette = self.build_colormap(palette, data.attrs)
-        channels = colormap.colorize(np.asanyarray(data))
-        not_nan = np.logical_and(self._get_mask_from_data(data), status != status.attrs['_FillValue'])
-        not_cloud_free = np.logical_or((status + 1) % 2, np.logical_not(not_nan))
-        chans = []
-        for channel in channels:
-            chan = self._create_masked_dataarray_like(channel, data, not_nan)
-            # Set cloud-free pixels as black
-            chans.append(chan.where(not_cloud_free, 0))
+        mapped_channels = colormap.colorize(data.data)
+        valid = status != status.attrs['_FillValue']
+        # cloud-free pixels are marked invalid (fill_value in ctth_alti) but have status set to 1.
+        status_not_cloud_free = status % 2 == 0
+        not_cloud_free = np.logical_or(status_not_cloud_free, np.logical_not(valid))
 
-        res = GenericCompositor.__call__(self, chans, **data.attrs)
+        channels = []
+        for (channel, cloud_free_color) in zip(mapped_channels, fill_value_color):
+            channel_data = self._create_masked_dataarray_like(channel, data, valid)
+            # Set cloud-free pixels as fill_value_color
+            channels.append(channel_data.where(not_cloud_free, cloud_free_color))
+
+        res = GenericCompositor.__call__(self, channels, **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
 
