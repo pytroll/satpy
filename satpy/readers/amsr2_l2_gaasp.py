@@ -201,11 +201,10 @@ class GAASPFileHandler(BaseFileHandler):
             self._add_lonlat_coords(data_arr, ds_info)
         return ds_info
 
-    @staticmethod
     def _is_2d_yx_data_array(self, data_arr):
         has_y_dim = data_arr.dims[0] in self.y_dims
         has_x_dim = data_arr.dims[1] in self.x_dims
-        return not has_y_dim or not has_x_dim
+        return has_y_dim and has_x_dim
 
     def _available_new_datasets(self):
         handled_variables = set()
