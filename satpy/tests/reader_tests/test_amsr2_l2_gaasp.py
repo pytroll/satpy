@@ -54,7 +54,8 @@ def _get_shared_global_attrs(filename):
     return attrs
 
 
-def _create_two_rez_gaasp_dataset(filename):
+def _create_two_res_gaasp_dataset(filename):
+    """Represent files with two resolution of variables in them (ex. OCEAN)."""
     lon_var_hi = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
                               dims=('Number_of_Scans', 'Number_of_hi_rez_FOVs'),
                               attrs={'standard_name': 'longitude'})
@@ -97,6 +98,7 @@ def _create_two_rez_gaasp_dataset(filename):
 
 
 def _create_gridded_gaasp_dataset(filename):
+    """Represent files with gridded products."""
     grid_var = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
                             dims=('Number_of_Y_Dimension', 'Number_of_X_Dimension'),
                             attrs={
@@ -119,7 +121,8 @@ def _create_gridded_gaasp_dataset(filename):
     return xr.Dataset(ds_vars, attrs=attrs)
 
 
-def _create_one_rez_gaasp_dataset(filename):
+def _create_one_res_gaasp_dataset(filename):
+    """Represent files with one resolution of variables in them (ex. SOIL)."""
     lon_var_lo = xr.DataArray(da.zeros((10, 10), dtype=np.float32),
                               dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
                               attrs={'standard_name': 'longitude'})
@@ -152,10 +155,10 @@ def _create_one_rez_gaasp_dataset(filename):
 def fake_open_dataset(filename, **kwargs):
     """Create a Dataset similar to reading an actual file with xarray.open_dataset."""
     if filename in [MBT_FILENAME, PRECIP_FILENAME, OCEAN_FILENAME]:
-        return _create_two_rez_gaasp_dataset(filename)
+        return _create_two_res_gaasp_dataset(filename)
     if filename in [SEAICE_NH_FILENAME, SEAICE_SH_FILENAME]:
         return _create_gridded_gaasp_dataset(filename)
-    return _create_one_rez_gaasp_dataset(filename)
+    return _create_one_res_gaasp_dataset(filename)
 
 
 class TestGAASPReader:
