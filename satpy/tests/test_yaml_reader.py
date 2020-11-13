@@ -639,14 +639,14 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
 
         # check that left-right image is flipped correctly
-        dummy_ds_xr.attrs['area'].area_extent = (1500, -1000, -1500, 1000)
+        dummy_ds_xr.attrs['area']._area_extent = (1500, -1000, -1500, 1000)
         ldwa.return_value = dummy_ds_xr.copy()
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.fliplr(original_array))
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
 
         # check that upside down image is flipped correctly
-        dummy_ds_xr.attrs['area'].area_extent = (-1500, 1000, 1500, -1000)
+        dummy_ds_xr.attrs['area']._area_extent = (-1500, 1000, 1500, -1000)
         ldwa.return_value = dummy_ds_xr.copy()
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.flipud(original_array))
@@ -719,8 +719,8 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
                                    attrs={'area': StackedAreaDefinition(area_def0, area_def1)})
 
         # check that left-right image is flipped correctly
-        dummy_ds_xr.attrs['area'].defs[0].area_extent = (1500, -1000, -1500, 1000)
-        dummy_ds_xr.attrs['area'].defs[1].area_extent = (7000, 5000, 3000, 8000)
+        dummy_ds_xr.attrs['area'].defs[0]._area_extent = (1500, -1000, -1500, 1000)
+        dummy_ds_xr.attrs['area'].defs[1]._area_extent = (7000, 5000, 3000, 8000)
         ldwa.return_value = dummy_ds_xr.copy()
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.fliplr(original_array))
@@ -728,8 +728,8 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[1])
 
         # check that upside down image is flipped correctly
-        dummy_ds_xr.attrs['area'].defs[0].area_extent = (-1500, 1000, 1500, -1000)
-        dummy_ds_xr.attrs['area'].defs[1].area_extent = (3000, 8000, 7000, 5000)
+        dummy_ds_xr.attrs['area'].defs[0]._area_extent = (-1500, 1000, 1500, -1000)
+        dummy_ds_xr.attrs['area'].defs[1]._area_extent = (3000, 8000, 7000, 5000)
         ldwa.return_value = dummy_ds_xr.copy()
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.flipud(original_array))
