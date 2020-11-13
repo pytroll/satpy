@@ -82,7 +82,7 @@ the base Satpy installation.
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
       - `seviri_l1b_native`
-      - HRV full disk data cannot be remapped.
+      - Nominal.
     * - MSG (Meteosat 8 to 11) SEVIRI data in netCDF format
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata

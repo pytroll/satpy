@@ -73,15 +73,26 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     The Level1.5 Image data calibration method can be changed by adding the
     required mode to the Scene object instantiation  kwargs eg
     kwargs = {"calib_mode": "gsics",}
+
+    **Padding of the HRV channel**
+
+    By default, the HRV channel is loaded padded with no-data, that is it is
+    returned as a full-disk dataset. If you want the original, unpadded, data,
+    just provide the `fill_hrv` as False in the `reader_kwargs`::
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_native',
+                            reader_kwargs={'fill_hrv': False})
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal'):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal', fill_hrv=True):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
         self.platform_name = None
         self.calib_mode = calib_mode
+        self.fill_hrv = fill_hrv
 
         # Declare required variables.
         # Assume a full disk file, reset in _read_header if otherwise.
@@ -267,6 +278,9 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
+        # check if data is in Rapid Scanning Service mode (RSS)
+        is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
+
         if dataset_id['name'] == 'HRV':
             pdict['nlines'] = self.mda['hrv_number_of_lines']
             pdict['ncols'] = self.mda['hrv_number_of_columns']
@@ -279,13 +293,13 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 [upper_area_extent, lower_area_extent,
                  upper_nlines, upper_ncols, lower_nlines, lower_ncols] = self.get_area_extent(dataset_id)
 
-                # upper area
+                # upper HRV window
                 pdict['a_desc'] = 'SEVIRI high resolution channel, upper window'
                 pdict['nlines'] = upper_nlines
                 pdict['ncols'] = upper_ncols
                 upper_area = get_area_definition(pdict, upper_area_extent)
 
-                # lower area
+                # lower HRV window
                 pdict['a_desc'] = 'SEVIRI high resolution channel, lower window'
                 pdict['nlines'] = lower_nlines
                 pdict['ncols'] = lower_ncols
@@ -293,6 +307,15 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
                 area = geometry.StackedAreaDefinition(lower_area, upper_area)
                 area = area.squeeze()
+
+            elif is_rapid_scan:
+                # handle RSS HRV data separately in case of padding to full disk (ncols -> 11136)
+                [lower_area_extent, lower_nlines, lower_ncols] = self.get_area_extent(dataset_id)
+                pdict['a_desc'] = 'SEVIRI high resolution channel, lower window (rss)'
+                pdict['nlines'] = lower_nlines
+                pdict['ncols'] = lower_ncols
+                area = get_area_definition(pdict, lower_area_extent)
+
             else:
                 # if the HRV data is in a ROI, the HRV channel is delivered in one area
                 area = get_area_definition(pdict, self.get_area_extent(dataset_id))
@@ -373,9 +396,18 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
             # get actual navigation parameters from trailer data
             data15tr = self.trailer['15TRAILER']
-            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV']
+            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV'].copy()
+            if self.fill_hrv:
+                HRV_bounds['UpperEastColumnActual'] = 1
+                HRV_bounds['UpperWestColumnActual'] = 11136
+                HRV_bounds['LowerEastColumnActual'] = 1
+                HRV_bounds['LowerWestColumnActual'] = 11136
 
-            # lower window
+                if is_rapid_scan:
+                    HRV_bounds['LowerSouthLineActual'] = 1
+                    HRV_bounds['LowerNorthLineActual'] = 11136
+
+            # lower HRV window
             lower_north_line = HRV_bounds['LowerNorthLineActual']
             lower_west_column = HRV_bounds['LowerWestColumnActual']
             lower_south_line = HRV_bounds['LowerSouthLineActual']
@@ -387,13 +419,13 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 ns_offset, column_step, line_step
             )
 
-            if is_rapid_scan:
-                return lower_area_extent
-
             lower_nlines = lower_north_line - lower_south_line + 1
             lower_ncols = lower_west_column - lower_east_column + 1
 
-            # upper window
+            if is_rapid_scan:
+                return lower_area_extent, lower_nlines, lower_ncols
+
+            # upper HRV window
             upper_north_line = HRV_bounds['UpperNorthLineActual']
             upper_west_column = HRV_bounds['UpperWestColumnActual']
             upper_south_line = HRV_bounds['UpperSouthLineActual']
@@ -468,6 +500,10 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset = None
         else:
             dataset = self.calibrate(xarr, dataset_id)
+            attrs = dataset.attrs
+            if dataset_id['name'] == 'HRV' and self.fill_hrv:
+                dataset = self.pad_hrv_data(dataset)
+                dataset.attrs = attrs
             dataset.attrs['units'] = dataset_info['units']
             dataset.attrs['wavelength'] = dataset_info['wavelength']
             dataset.attrs['standard_name'] = dataset_info['standard_name']
@@ -479,6 +515,46 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 'projection_altitude': self.mda['projection_parameters']['h']}
 
         return dataset
+
+    def pad_hrv_data(self, dataset):
+        """Pad HRV data with empty pixels."""
+        logger.debug('Padding HRV data to full disk')
+        nlines = int(self.mda['hrv_number_of_lines'])
+        nlines_pad = 11136
+        ncols_pad = 11136
+        HRV_bounds = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
+
+        data_pad = np.zeros((nlines_pad, ncols_pad), dtype=dataset.dtype)
+        if np.issubdtype(data_pad.dtype, np.floating):
+            data_pad = data_pad * np.nan
+
+        # lower HRV window
+        lower_south_line = HRV_bounds['LowerSouthLineActual']
+        lower_north_line = HRV_bounds['LowerNorthLineActual']
+        lower_east_col = HRV_bounds['LowerEastColumnActual']
+        lower_west_col = HRV_bounds['LowerWestColumnActual']
+
+        if lower_north_line > lower_south_line:  # we have some of the lower HRV window
+            if lower_west_col - lower_east_col != dataset.data.shape[1] - 1:
+                raise IndexError('East and west bounds of lower HRV window do not match expected data shape')
+
+            data_pad[lower_south_line - 1:lower_north_line, lower_east_col - 1:lower_west_col] = \
+                dataset[lower_south_line - nlines_pad + nlines - 1: lower_north_line - nlines_pad + nlines, :].data
+
+        # upper HRV window
+        upper_north_line = HRV_bounds['UpperNorthLineActual']
+        upper_south_line = HRV_bounds['UpperSouthLineActual']
+        upper_east_col = HRV_bounds['UpperEastColumnActual']
+        upper_west_col = HRV_bounds['UpperWestColumnActual']
+
+        if upper_north_line > upper_south_line:  # we have some of the upper HRV window
+            if upper_west_col - upper_east_col != dataset.data.shape[1] - 1:
+                raise IndexError('East and west bounds of upper HRV window do not match expected data shape')
+
+            data_pad[upper_south_line - 1:upper_north_line, upper_east_col - 1:upper_west_col] = \
+                dataset[upper_south_line - nlines_pad + nlines - 1: upper_north_line - nlines_pad + nlines, :].data
+
+        return xr.DataArray(da.from_array(data_pad, chunks=CHUNK_SIZE), dims=('y', 'x'))
 
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
