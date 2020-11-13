@@ -864,7 +864,8 @@ class BilinearResampler(BaseResampler):
             try:
                 self.resampler.load_resampling_info(filename)
             except AttributeError:
-                warnings.warn("Bilinear resampler can't handle caching, please upgrade Pyresample.")
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
                 raise IOError
         else:
             raise IOError
@@ -882,7 +883,8 @@ class BilinearResampler(BaseResampler):
             try:
                 self.resampler.save_resampling_info(filename)
             except AttributeError:
-                warnings.warn("Bilinear resampler can't handle caching, please upgrade Pyresample.")
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
