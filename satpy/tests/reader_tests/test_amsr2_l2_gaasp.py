@@ -243,6 +243,9 @@ class TestGAASPReader:
             assert np.issubdtype(data_arr.dtype, np.integer)
         else:
             assert '_FillValue' not in data_arr.attrs
+            if np.issubdtype(data_arr.dtype, np.floating):
+                # we started with float32, it should stay that way
+                assert data_arr.dtype.type == np.float32
 
     @staticmethod
     def _check_attrs(data_arr):
