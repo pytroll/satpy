@@ -201,6 +201,12 @@ class GAASPFileHandler(BaseFileHandler):
             self._add_lonlat_coords(data_arr, ds_info)
         return ds_info
 
+    @staticmethod
+    def _is_2d_yx_data_array(self, data_arr):
+        has_y_dim = data_arr.dims[0] in self.y_dims
+        has_x_dim = data_arr.dims[1] in self.x_dims
+        return not has_y_dim or not has_x_dim
+
     def _available_new_datasets(self):
         handled_variables = set()
         possible_vars = list(self.nc.data_vars.items()) + list(self.nc.coords.items())
@@ -210,9 +216,7 @@ class GAASPFileHandler(BaseFileHandler):
             if data_arr.ndim != 2:
                 # we don't currently handle non-2D variables
                 continue
-            has_y_dim = data_arr.dims[0] in self.y_dims
-            has_x_dim = data_arr.dims[1] in self.x_dims
-            if not has_y_dim or not has_x_dim:
+            if not self._is_2d_yx_data_array(data_arr):
                 # we need 'traditional' y/x dimensions currently
                 continue
 
