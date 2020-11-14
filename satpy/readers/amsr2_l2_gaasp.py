@@ -278,7 +278,7 @@ class GAASPGriddedFileHandler(GAASPFileHandler):
         return area_def
 
 
-class GAASPLowRezFileHandler(GAASPFileHandler):
+class GAASPLowResFileHandler(GAASPFileHandler):
     """GAASP file handler for files that only have low resolution products."""
 
     x_dims = (
