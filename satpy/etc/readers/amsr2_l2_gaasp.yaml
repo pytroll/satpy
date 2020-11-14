@@ -39,11 +39,11 @@ file_types:
       - 'AMSR2-SEAICE-SH_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   amsr2_snow:
     # Ex. AMSR2-SNOW_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
-    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPLowRezFileHandler
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPLowResFileHandler
     file_patterns: ['AMSR2-SNOW_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
   amsr2_soil:
     # Ex. AMSR2-SOIL_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc
-    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPLowRezFileHandler
+    file_reader: !!python/name:satpy.readers.amsr2_l2_gaasp.GAASPLowResFileHandler
     file_patterns: ['AMSR2-SOIL_v{software_version:d}r{revision_number:d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
 
 datasets: {}
