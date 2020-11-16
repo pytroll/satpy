@@ -61,18 +61,22 @@ class MERSI2L1B(HDF5FileHandler):
         }.get(file_sensor, file_sensor)
         return sensor
 
+    def _get_single_slope_intercept(self, slope, intercept, cal_index):
+        try:
+            # convert scalar arrays to scalar
+            return slope.item(), intercept.item()
+        except ValueError:
+            # numpy array but has more than one element
+            return slope[cal_index], intercept[cal_index]
+        return slope, intercept
+
     def _get_coefficients(self, cal_key, cal_index):
         coeffs = self[cal_key][cal_index]
         slope = coeffs.attrs.pop('Slope', None)
         intercept = coeffs.attrs.pop('Intercept', None)
         if slope is not None:
-            # sometimes slope has multiple elements
-            if hasattr(slope, '__len__') and len(slope) == 1:
-                slope = slope[0]
-                intercept = intercept[0]
-            elif hasattr(slope, '__len__'):
-                slope = slope[cal_index]
-                intercept = intercept[cal_index]
+            slope, intercept = self._get_single_slope_intercept(
+                slope, intercept, cal_index)
             coeffs = coeffs * slope + intercept
         return coeffs
 
