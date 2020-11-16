@@ -37,3 +37,8 @@ dependencies:
   - fsspec
   - pylibtiff
   - pip
+  - pip:
+    - trollsift
+    - trollimage
+    - pyspectral
+    - pyorbital

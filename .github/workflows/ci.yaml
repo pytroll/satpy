@@ -32,7 +32,6 @@ jobs:
       - name: Install
         shell: bash -l {0}
         run: |
-          pip install trollsift trollimage pyspectral pyorbital
           pip install --no-deps -e .
 
       - name: Run tests
