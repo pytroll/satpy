@@ -33,6 +33,7 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
           mamba-version: "*"
+          channels: conda-forge,defaults
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
 
