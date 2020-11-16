@@ -5,44 +5,65 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    #continue-on-error: ${{ matrix.experimental }}
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
         python-version: ["3.7", "3.8"]
-        #experimental: [false]
-        #include:
-        #  - python-version: "3.9"
-        #    os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        #    experimental: [true]
+        experimental: [false]
+        include:
+          - python-version: "3.8"
+            os: ["ubuntu-latest"]
+            experimental: true
 
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       OS: ${{ matrix.os }}
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      UNSTABLE_DEPS: ${{ matrix.experimental }}
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v2
 
       - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v1.7.0
+        uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
-          auto-activate-base: false
+          #auto-activate-base: false
 
       - name: Install
         shell: bash -l {0}
         run: |
+          if [ "$UNSTABLE_DEPS" == "True" ]; then
+            python -m pip install
+            -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com
+            --no-deps --pre --upgrade
+            matplotlib
+            numpy
+            pandas
+            scipy;
+            python -m pip install
+            --no-deps --upgrade
+            git+https://github.com/dask/dask
+            git+https://github.com/dask/distributed
+            git+https://github.com/zarr-developers/zarr
+            git+https://github.com/Unidata/cftime
+            git+https://github.com/mapbox/rasterio
+            git+https://github.com/pydata/bottleneck
+            git+https://github.com/pydata/xarray;
+          fi
           pip install --no-deps -e .
 
       - name: Run tests
         shell: bash -l {0}
-        run: pytest --cov=satpy satpy/tests
+        run: |
+          pytest --cov=satpy satpy/tests
+          coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1
