@@ -563,6 +563,12 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
                               [0., 0.498, np.nan]],
                              [[0., 0.498, 0.],
                               [0., 0.498, np.nan]]])
+        self.exp_all_valid = np.array([[[0., 0.498, 0.],
+                                        [0., 0.498, 0.]],
+                                       [[0., 0.498, 0.],
+                                        [0., 0.498, 0.]],
+                                       [[0., 0.498, 0.],
+                                        [0., 0.498, 0.]]])
 
     def test_call_numpy_with_invalid_value_in_status(self):
         """Test the CloudTopHeight composite generation."""
@@ -592,7 +598,25 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
                             dims=['y', 'x'],
                             attrs={'_FillValue': 99})
         res = self.colormap_composite([data, self.palette, status])
-        np.testing.assert_allclose(res, self.exp, atol=1e-4)
+
+        np.testing.assert_allclose(res, self.exp_all_valid, atol=1e-4)
+
+    def test_call_with_alternative_fill_value_color(self):
+        """Test the CloudTopHeight composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535})
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 99})
+        self.palette.attrs['fill_value_color'] = np.array([1, 1, 1])
+        res = self.colormap_composite([data, self.palette, status])
+        exp = np.array([[[1., 0.498, 1.],
+                         [1., 0.498, 1.]],
+                        [[1., 0.498, 1.],
+                         [1., 0.498, 1.]],
+                        [[1., 0.498, 1.],
+                         [1., 0.498, 1.]]])
+        np.testing.assert_allclose(res, exp, atol=1e-4)
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
