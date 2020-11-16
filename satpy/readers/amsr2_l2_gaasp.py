@@ -85,14 +85,20 @@ class GAASPFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get start time of observation."""
-        time_str = self.nc.attrs['time_coverage_start']
-        return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+        try:
+            return self.filename_info['start_time']
+        except KeyError:
+            time_str = self.nc.attrs['time_coverage_start']
+            return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def end_time(self):
         """Get end time of observation."""
-        time_str = self.nc.attrs['time_coverage_end']
-        return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+        try:
+            return self.filename_info['end_time']
+        except KeyError:
+            time_str = self.nc.attrs['time_coverage_end']
+            return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def sensor_names(self):
