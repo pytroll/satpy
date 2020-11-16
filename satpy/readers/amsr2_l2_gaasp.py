@@ -216,8 +216,6 @@ class GAASPFileHandler(BaseFileHandler):
         handled_variables = set()
         possible_vars = list(self.nc.data_vars.items()) + list(self.nc.coords.items())
         for var_name, data_arr in possible_vars:
-            if var_name in handled_variables:
-                continue
             if data_arr.ndim != 2:
                 # we don't currently handle non-2D variables
                 continue
@@ -226,7 +224,6 @@ class GAASPFileHandler(BaseFileHandler):
                 continue
 
             ds_info = self._get_ds_info_for_data_arr(var_name, data_arr)
-            handled_variables.add(var_name)
             yield True, ds_info
 
     def available_datasets(self, configured_datasets=None):
