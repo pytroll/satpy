@@ -213,7 +213,6 @@ class GAASPFileHandler(BaseFileHandler):
         return has_y_dim and has_x_dim
 
     def _available_new_datasets(self):
-        handled_variables = set()
         possible_vars = list(self.nc.data_vars.items()) + list(self.nc.coords.items())
         for var_name, data_arr in possible_vars:
             if data_arr.ndim != 2:
