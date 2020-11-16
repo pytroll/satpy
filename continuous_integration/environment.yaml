@@ -36,6 +36,7 @@ dependencies:
   - pytest-cov
   - fsspec
   - pylibtiff
+  - python-geotiepoints
   - pip
   - pip:
     - trollsift
