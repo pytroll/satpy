@@ -11,11 +11,11 @@ jobs:
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
         python-version: ["3.7", "3.8"]
-        experimental: [stable]
+        experimental: [false]
         include:
           - python-version: "3.8"
             os: "ubuntu-latest"
-            experimental: unstable
+            experimental: true
 
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
@@ -39,7 +39,7 @@ jobs:
       - name: Install
         shell: bash -l {0}
         run: |
-          if [ "$UNSTABLE_DEPS" == "unstable" ]; then
+          if [ "$UNSTABLE_DEPS" == "true" ]; then
             python -m pip install
             -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com
             --no-deps --pre --upgrade
