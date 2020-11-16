@@ -32,9 +32,9 @@ jobs:
         with:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
+          mamba-version: "*"
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
-          #auto-activate-base: false
 
       - name: Install
         shell: bash -l {0}
