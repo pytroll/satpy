@@ -25,6 +25,7 @@ from unittest import mock
 import dask
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 
@@ -367,7 +368,7 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
         # Three shades of grey
         rgb_arr = np.array([1, 50, 100, 200, 1, 50, 100, 200, 1, 50, 100, 200])
         rgb = xr.DataArray(rgb_arr.reshape((3, 2, 2)),
-                           dims=['bands', 'y', 'x'])
+                           dims=['bands', 'y', 'x'], coords={'bands': ['R', 'G', 'B']})
         # 100 % luminance -> all result values ~1.0
         lum = xr.DataArray(np.array([[100., 100.], [100., 100.]]),
                            dims=['y', 'x'])
@@ -562,6 +563,12 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
                               [0., 0.498, np.nan]],
                              [[0., 0.498, 0.],
                               [0., 0.498, np.nan]]])
+        self.exp_all_valid = np.array([[[0., 0.498, 0.],
+                                        [0., 0.498, 0.]],
+                                       [[0., 0.498, 0.],
+                                        [0., 0.498, 0.]],
+                                       [[0., 0.498, 0.],
+                                        [0., 0.498, 0.]]])
 
     def test_call_numpy_with_invalid_value_in_status(self):
         """Test the CloudTopHeight composite generation."""
@@ -591,7 +598,25 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
                             dims=['y', 'x'],
                             attrs={'_FillValue': 99})
         res = self.colormap_composite([data, self.palette, status])
-        np.testing.assert_allclose(res, self.exp, atol=1e-4)
+
+        np.testing.assert_allclose(res, self.exp_all_valid, atol=1e-4)
+
+    def test_call_with_alternative_fill_value_color(self):
+        """Test the CloudTopHeight composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535})
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 99})
+        self.palette.attrs['fill_value_color'] = np.array([1, 1, 1])
+        res = self.colormap_composite([data, self.palette, status])
+        exp = np.array([[[1., 0.498, 1.],
+                         [1., 0.498, 1.]],
+                        [[1., 0.498, 1.],
+                         [1., 0.498, 1.]],
+                        [[1., 0.498, 1.],
+                         [1., 0.498, 1.]]])
+        np.testing.assert_allclose(res, exp, atol=1e-4)
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
@@ -778,12 +803,9 @@ class TestGenericCompositor(unittest.TestCase):
 class TestAddBands(unittest.TestCase):
     """Test case for the `add_bands` function."""
 
-    def test_add_bands(self):
+    def test_add_bands_l_rgb(self):
         """Test adding bands."""
         from satpy.composites import add_bands
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
 
         # L + RGB -> RGB
         data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
@@ -796,6 +818,10 @@ class TestAddBands(unittest.TestCase):
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
+    def test_add_bands_l_rgba(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
+
         # L + RGBA -> RGBA
         data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
                             coords={'bands': ['L']}, attrs={'mode': 'L'})
@@ -806,6 +832,10 @@ class TestAddBands(unittest.TestCase):
         self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+    def test_add_bands_la_rgb(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
 
         # LA + RGB -> RGBA
         data = xr.DataArray(da.ones((2, 3, 3)), dims=('bands', 'y', 'x'),
@@ -818,6 +848,10 @@ class TestAddBands(unittest.TestCase):
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
+    def test_add_bands_rgb_rbga(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
+
         # RGB + RGBA -> RGBA
         data = xr.DataArray(da.ones((3, 3, 3)), dims=('bands', 'y', 'x'),
                             coords={'bands': ['R', 'G', 'B']},
@@ -829,6 +863,19 @@ class TestAddBands(unittest.TestCase):
         self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+    def test_add_bands_p_l(self):
+        """Test adding bands."""
+        from satpy.composites import add_bands
+
+        # P(RGBA) + L -> RGBA
+        data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
+                            coords={'bands': ['P']},
+                            attrs={'mode': 'P'})
+        new_bands = xr.DataArray(da.array(['L']), dims=('bands'),
+                                 coords={'bands': ['L']})
+        with pytest.raises(NotImplementedError):
+            add_bands(data, new_bands)
 
 
 class TestStaticImageCompositor(unittest.TestCase):
@@ -896,7 +943,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertEqual(comp.filename, "/path/to/image/foo.tif")
 
 
-def _enhance2dataset(dataset):
+def _enhance2dataset(dataset, convert_p=False):
     """Mock the enhance2dataset to return the original data."""
     return dataset
 
@@ -1240,3 +1287,91 @@ class TestNaturalEnhCompositor(unittest.TestCase):
         self.assertEqual(res[0], correct)
         self.assertEqual(res[1], projectables[1])
         self.assertEqual(res[2], projectables[2])
+
+
+class TestEnhance2Dataset(unittest.TestCase):
+    """Test the enhance2dataset utility."""
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_p_to_rgb(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in RGB mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img.palette = ((0, 0, 0), (4, 4, 4), (8, 8, 8))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset, convert_p=True)
+        assert res.attrs['mode'] == 'RGB'
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_p_to_rgba(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in RGBA mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset, convert_p=True)
+        assert res.attrs['mode'] == 'RGBA'
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_p(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in P mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['P']}))
+        img.palette = ((0, 0, 0, 255), (4, 4, 4, 255), (8, 8, 8, 255))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset)
+        assert res.attrs['mode'] == 'P'
+        assert res.max().values == 2
+
+    @mock.patch('satpy.composites.get_enhanced_image')
+    def test_enhance_l(self, get_enhanced_image):
+        """Test enhancing a paletted dataset in P mode."""
+        from trollimage.xrimage import XRImage
+        img = XRImage(xr.DataArray(np.ones((1, 20, 20)) * 2, dims=('bands', 'y', 'x'), coords={'bands': ['L']}))
+        get_enhanced_image.return_value = img
+
+        from satpy.composites import enhance2dataset
+        dataset = xr.DataArray(np.ones((1, 20, 20)))
+        res = enhance2dataset(dataset)
+        assert res.attrs['mode'] == 'L'
+        assert res.max().values == 1
+
+
+class TestInferMode(unittest.TestCase):
+    """Test the infer_mode utility."""
+
+    def test_bands_coords_is_used(self):
+        """Test that the `bands` coord is used."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((1, 5, 5)), dims=('bands', 'x', 'y'), coords={'bands': ['P']})
+        assert GenericCompositor.infer_mode(arr) == 'P'
+
+        arr = xr.DataArray(np.ones((3, 5, 5)), dims=('bands', 'x', 'y'), coords={'bands': ['Y', 'Cb', 'Cr']})
+        assert GenericCompositor.infer_mode(arr) == 'YCbCr'
+
+    def test_mode_is_used(self):
+        """Test that the `mode` attribute is used."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((1, 5, 5)), dims=('bands', 'x', 'y'), attrs={'mode': 'P'})
+        assert GenericCompositor.infer_mode(arr) == 'P'
+
+    def test_band_size_is_used(self):
+        """Test that the band size is used."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((2, 5, 5)), dims=('bands', 'x', 'y'))
+        assert GenericCompositor.infer_mode(arr) == 'LA'
+
+    def test_no_bands_is_l(self):
+        """Test that default (no band) is L."""
+        from satpy.composites import GenericCompositor
+        arr = xr.DataArray(np.ones((5, 5)), dims=('x', 'y'))
+        assert GenericCompositor.infer_mode(arr) == 'L'

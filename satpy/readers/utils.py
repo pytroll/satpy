@@ -54,7 +54,7 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, (np.string_, np.object_)) \
+            issubclass(value.dtype.type, (np.str_, np.string_, np.object_)) \
             and value.size == 1:
         value = value.item()
         if not isinstance(value, str):
