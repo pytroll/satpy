@@ -80,6 +80,8 @@ def _create_two_res_gaasp_dataset(filename):
     swath_int_var = xr.DataArray(da.zeros((10, 10), dtype=np.uint16),
                                  dims=('Number_of_Scans', 'Number_of_low_rez_FOVs'),
                                  attrs={'_FillValue': 100, 'comment': 'Some comment'})
+    not_xy_dim_var = xr.DataArray(da.zeros((10, 5), dtype=np.float32),
+                                  dims=('Number_of_Scans', 'Time_Dimension'))
     time_var = xr.DataArray(da.zeros((5,), dtype=np.float32),
                             dims=('Time_Dimension',))
     ds_vars = {
@@ -90,6 +92,7 @@ def _create_two_res_gaasp_dataset(filename):
         'some_latitude_hi': lat_var_hi,
         'some_longitude_lo': lon_var_lo,
         'some_latitude_lo': lat_var_lo,
+        'not_xy_dim_var': not_xy_dim_var,
         'time_var': time_var,
     }
     attrs = _get_shared_global_attrs(filename)
@@ -226,6 +229,7 @@ class TestGAASPReader:
             avails = list(r.available_dataset_names)
             for var_name in expected_datasets:
                 assert var_name in avails
+            assert 'not_xy_dim_var' not in expected_datasets
 
     @staticmethod
     def _check_area(data_id, data_arr):
