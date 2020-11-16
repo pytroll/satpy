@@ -1,0 +1,45 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ["windows-latest", "ubuntu-latest", "macos-latest"]
+        python-version: ["3.7", "3.8", "3.9"]
+
+    env:
+      PYTHON_VERSION: ${{ matrix.python-version }}
+      OS: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: Setup Conda Environment
+        uses: conda-incubator/setup-miniconda@v1.7.0
+        with:
+          miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
+          environment-file: continuous_integration/environment.yaml
+          activate-environment: test-environment
+          auto-activate-base: false
+
+      - name: Install
+        shell: bash -l {0}
+        run:|
+          pip install trollsift trollimage pyspectral pyorbital
+          pip install --no-deps -e .
+
+      - name: Run tests
+        shell: bash -l {0}
+        run: pytest --cov=satpy satpy/tests
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          flags: unittests
+          env_vars: OS,PYTHON_VERSION
