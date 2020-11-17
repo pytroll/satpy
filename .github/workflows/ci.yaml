@@ -21,7 +21,6 @@ jobs:
       PYTHON_VERSION: ${{ matrix.python-version }}
       OS: ${{ matrix.os }}
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-      UNSTABLE_DEPS: ${{ matrix.experimental }}
 
     steps:
       - name: Checkout source
@@ -41,24 +40,22 @@ jobs:
         if: matrix.experimental == true
         shell: bash -l {0}
         run: |
-          if [ "$UNSTABLE_DEPS" == "true" ]; then \
-            python -m pip install \
-            -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com \
-            --no-deps --pre --upgrade \
-            matplotlib \
-            numpy \
-            pandas \
-            scipy; \
-            python -m pip install \
-            --no-deps --upgrade \
-            git+https://github.com/dask/dask \
-            git+https://github.com/dask/distributed \
-            git+https://github.com/zarr-developers/zarr \
-            git+https://github.com/Unidata/cftime \
-            git+https://github.com/mapbox/rasterio \
-            git+https://github.com/pydata/bottleneck \
-            git+https://github.com/pydata/xarray; \
-          fi
+          python -m pip install \
+          -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com \
+          --no-deps --pre --upgrade \
+          matplotlib \
+          numpy \
+          pandas \
+          scipy; \
+          python -m pip install \
+          --no-deps --upgrade \
+          git+https://github.com/dask/dask \
+          git+https://github.com/dask/distributed \
+          git+https://github.com/zarr-developers/zarr \
+          git+https://github.com/Unidata/cftime \
+          git+https://github.com/mapbox/rasterio \
+          git+https://github.com/pydata/bottleneck \
+          git+https://github.com/pydata/xarray;
 
       - name: Install satpy
         shell: bash -l {0}
