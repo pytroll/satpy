@@ -775,7 +775,7 @@ templates:
   glm_l2:
     single_variable: false
     # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
-    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_{tile_id}_{end_time:%Y%%m%d%H%M%S}.nc'
+    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_{tile_id}_{end_time:%Y%m%d%H%M%S}.nc'
     global_attributes:
       # FIXME: This should come from the reader's metadata
       dataset_name:
