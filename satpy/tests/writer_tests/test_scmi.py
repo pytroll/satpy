@@ -128,7 +128,9 @@ class TestSCMIWriter(unittest.TestCase):
     def test_basic_numbered_tiles(self):
         """Test creating a multiple numbered tiles."""
         import xarray as xr
+        import dask
         from satpy.writers.scmi import SCMIWriter
+        from satpy.tests.utils import CustomScheduler
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
@@ -155,7 +157,8 @@ class TestSCMIWriter(unittest.TestCase):
                 start_time=now,
                 end_time=now + timedelta(minutes=20))
         )
-        w.save_datasets([ds], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
+        with dask.config.set(scheduler=CustomScheduler(1)):
+            w.save_datasets([ds], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 9)
         for fn in all_files:
