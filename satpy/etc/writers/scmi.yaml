@@ -794,7 +794,7 @@ templates:
             value: '{standard_name}'
         encoding:
           dtype: "int16"
-          _Unsigned: "true"
+#          _Unsigned: "true"
       y:
         attributes:
           units: {}
@@ -802,7 +802,7 @@ templates:
             value: '{standard_name}'
         encoding:
           dtype: "int16"
-          _Unsigned: "true"
+#          _Unsigned: "true"
     variables:
       DQF:
         # Not currently viewable by AWIPS
