@@ -128,7 +128,8 @@ UNIT_CONV = {
 
 TileInfo = namedtuple('TileInfo', ['tile_count', 'image_shape', 'tile_shape',
                                    'tile_row_offset', 'tile_column_offset', 'tile_id',
-                                   'x', 'y', 'tile_slices', 'data_slices'])
+                                   'tile_number',
+                                   'x', 'y', 'xy_factors', 'tile_slices', 'data_slices'])
 XYFactors = namedtuple('XYFactors', ['mx', 'bx', 'my', 'by'])
 
 
@@ -273,10 +274,12 @@ class NumberedTileGenerator(object):
                 tmp_x = x[data_slices[1]]
                 tmp_y = y[data_slices[0]]
 
+                tile_number = self._tile_number(ty, tx)
                 tile_info = TileInfo(
                     tc, self.image_shape, ts,
                     tile_row_offset, tile_column_offset, tile_id,
-                    tmp_x, tmp_y, tile_slices, data_slices)
+                    tile_number,
+                    tmp_x, tmp_y, self.xy_factors, tile_slices, data_slices)
                 self._tile_cache.append(tile_info)
                 yield tile_info
 
@@ -461,9 +464,11 @@ class LetteredTileGenerator(NumberedTileGenerator):
                                slice(data_x_idx_min, data_x_idx_max + 1))
                 data_slices = (y_slice, x_slice)
 
+                tile_number = self._tile_number(gy, gx)
                 tile_info = TileInfo(
                     self.tile_count, self.image_shape, ts,
-                    gy * ts[0], gx * ts[1], tile_id, tmp_x, tmp_y, tile_slices, data_slices)
+                    gy * ts[0], gx * ts[1], tile_id, tile_number,
+                    tmp_x, tmp_y, self.xy_factors, tile_slices, data_slices)
                 self._tile_cache.append(tile_info)
                 yield tile_info
 
@@ -906,12 +911,12 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds.attrs['sector_id'] = sector_id
         return new_ds
 
-    def render(self, dataset_or_data_arrays, area_def, xy_factors,
+    def render(self, dataset_or_data_arrays, area_def,
                tile_info, sector_id, creator=None, creation_time=None):
         """Create a :class:`xarray.Dataset` from template using information provided."""
         new_ds = super().render(dataset_or_data_arrays)
         new_ds = self.apply_area_def(new_ds, area_def)
-        new_ds = self.apply_tile_coord_encoding(new_ds, xy_factors)
+        new_ds = self.apply_tile_coord_encoding(new_ds, tile_info.xy_factors)
         new_ds = self.apply_tile_info(new_ds, tile_info)
         new_ds = self.apply_misc_metadata(new_ds, sector_id, creator, creation_time)
         return new_ds
@@ -1185,6 +1190,18 @@ class SCMIWriter(Writer):
                 data_arrays_tile_set = list(self._slice_and_update_coords(tile_info, data_arrays_set))
                 yield tile_info, data_arrays_tile_set
 
+    def _iter_area_tile_info_and_datasets(self, area_datasets, template,
+                                          lettered_grid, sector_id,
+                                          num_subtiles, tile_size, tile_count,
+                                          use_sector_reference):
+        for area_def, data_arrays in area_datasets.values():
+            tile_gen = self._get_tile_generator(
+                area_def, lettered_grid, sector_id, num_subtiles, tile_size,
+                tile_count, use_sector_reference=use_sector_reference)
+            for tile_info, data_arrs in self._iter_tile_info_and_datasets(
+                    tile_gen, data_arrays, single_variable=template.is_single_variable):
+                yield area_def, tile_info, data_arrs
+
     def save_dataset(self, dataset, **kwargs):
         """Save a single DataArray to one or more NetCDF4 SCMI files."""
         LOG.warning("For best performance use `save_datasets`")
@@ -1210,6 +1227,7 @@ class SCMIWriter(Writer):
                 columns=area_def.width,
                 sector_id=sector_id,
                 tile_id=tile_info.tile_id,
+                tile_number=tile_info.tile_number,
                 **kwargs)
 
     def check_tile_exists(self, output_filename):
@@ -1300,33 +1318,30 @@ class SCMIWriter(Writer):
         datasets_to_save = []
         output_filenames = []
         creation_time = datetime.utcnow()
-        # TODO: Combine these for loops into one helper iterator.
-        #    Will require putting tile_gen.xy_factors into TileInfo
-        for area_def, data_arrays in area_datasets.values():
-            tile_gen = self._get_tile_generator(
-                area_def, lettered_grid, sector_id, num_subtiles, tile_size,
-                tile_count, use_sector_reference=use_sector_reference)
-            for tile_info, data_arrs in self._iter_tile_info_and_datasets(
-                    tile_gen, data_arrays, single_variable=template.is_single_variable):
-                # use the first data array as a "representative" for the group
-                ds_info = data_arrs[0].attrs.copy()
-                # TODO: Create Dataset object of all of the sliced-DataArrays (optional)
-                # we want to use our own creation_time
-                ds_info['creation_time'] = creation_time
-                ds_info['source_name'] = source_name
+        area_tile_data_gen = self._iter_area_tile_info_and_datasets(
+            area_datasets, template, lettered_grid, sector_id, num_subtiles,
+            tile_size, tile_count, use_sector_reference)
+        for area_def, tile_info, data_arrs in area_tile_data_gen:
+            # use the first data array as a "representative" for the group
+            ds_info = data_arrs[0].attrs.copy()
+            # TODO: Create Dataset object of all of the sliced-DataArrays (optional)
+            # we want to use our own creation_time
+            ds_info['creation_time'] = creation_time
+            ds_info['source_name'] = source_name
 
-                output_filename = self.get_filename(template, area_def,
-                                                    tile_info, sector_id,
-                                                    **ds_info)
-                self.check_tile_exists(output_filename)
-                # TODO: Provide attribute caching for things that likely won't change
-                new_ds = template.render(data_arrs, area_def, tile_gen.xy_factors,
-                                         tile_info, sector_id, creation_time=creation_time)
-                if self.compress:
-                    new_ds.encoding['zlib'] = True
+            output_filename = self.get_filename(template, area_def,
+                                                tile_info, sector_id,
+                                                **ds_info)
+            self.check_tile_exists(output_filename)
+            # TODO: Provide attribute caching for things that likely won't change
+            new_ds = template.render(data_arrs, area_def,
+                                     tile_info, sector_id,
+                                     creation_time=creation_time)
+            if self.compress:
+                new_ds.encoding['zlib'] = True
 
-                datasets_to_save.append(new_ds)
-                output_filenames.append(output_filename)
+            datasets_to_save.append(new_ds)
+            output_filenames.append(output_filename)
         if not datasets_to_save:
             # no tiles produced
             return delayeds
