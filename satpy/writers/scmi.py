@@ -626,10 +626,9 @@ class NetCDFTemplate:
         func = getattr(self, meth_name, None)
         if func is not None:
             value = func(input_metadata)
-        if value is not None:
-            return value
-        else:
+        if value is None:
             LOG.debug('no routine matching %s' % (meth_name,))
+        return value
 
     def _render_attrs(self, attr_configs, input_metadata, prefix="_"):
         attrs = {}
@@ -1448,7 +1447,6 @@ def draw_rectangle(draw, coordinates, outline=None, fill=None, width=1):
 
 def create_debug_lettered_tiles(init_args, create_args):
     """Create SCMI files with tile identifiers "burned" in to the image data for debugging."""
-    import xarray as xr
     create_args['lettered_grid'] = True
     create_args['num_subtiles'] = (2, 2)  # default, don't use command line argument
 
