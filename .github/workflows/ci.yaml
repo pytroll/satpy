@@ -37,7 +37,8 @@ jobs:
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
 
-      - name: Install
+      - name: Install unstable dependencies
+        if: ${{ matrix.experimental }} == "true"
         shell: bash -l {0}
         run: |
           if [ "$UNSTABLE_DEPS" == "true" ]; then \
@@ -58,15 +59,30 @@ jobs:
             git+https://github.com/pydata/bottleneck \
             git+https://github.com/pydata/xarray; \
           fi
+
+      - name: Install satpy
+        shell: bash -l {0}
+        run: |
           pip install --no-deps -e .
 
-      - name: Run tests
+      - name: Run unit tests
         shell: bash -l {0}
         run: |
           pytest --cov=satpy satpy/tests
           coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 
-      - name: Upload coverage
+      - name: Upload unittest coverage
+        uses: codecov/codecov-action@v1
+        with:
+          flags: unittests
+          env_vars: OS,PYTHON_VERSION
+
+      - name: Run behaviour tests
+        shell: bash -l {0}
+        run: |
+          coverage run --source=satpy -m behave satpy/tests/features --tags=-download
+
+      - name: Upload behaviour test coverage
         uses: codecov/codecov-action@v1
         with:
           flags: unittests
