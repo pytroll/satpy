@@ -1,8 +1,8 @@
 Satpy
 =====
 
-.. image:: https://travis-ci.com/pytroll/satpy.svg?branch=master
-    :target: https://travis-ci.com/pytroll/satpy
+.. image:: https://github.com/pytroll/satpy/workflows/CI/badge.svg?branch=master
+    :target: https://github.com/pytroll/satpy/actions?query=workflow%3A%22CI%22
 
 .. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=master
     :target: https://coveralls.io/github/pytroll/satpy?branch=master
