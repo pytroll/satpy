@@ -73,14 +73,7 @@ jobs:
         with:
           flags: unittests
           file: ./coverage.xml
-          env_vars: OS,PYTHON_VERSION
-
-      - name: Upload unittest coverage to Coveralls
-        uses: coverallsapp/github-action@v1.1.2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: run-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.experimental }}-unit
-          parallel: true
+          env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Run behaviour tests
         shell: bash -l {0}
@@ -88,26 +81,9 @@ jobs:
           coverage run --source=satpy -m behave satpy/tests/features --tags=-download
           coverage xml
 
-      - name: Upload behaviour test coverage
+      - name: Upload behaviour test coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           flags: behaviourtests
           file: ./coverage.xml
-          env_vars: OS,PYTHON_VERSION
-
-      - name: Upload unittest coverage to Coveralls
-        uses: coverallsapp/github-action@v1.1.2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: run-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.experimental }}-behave
-          parallel: true
-
-  finish:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - name: Coveralls Finished
-      uses: coverallsapp/github-action@v1.1.2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
+          env_vars: OS,PYTHON_VERSION,UNSTABLE
