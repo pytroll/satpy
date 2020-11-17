@@ -38,7 +38,7 @@ jobs:
           activate-environment: test-environment
 
       - name: Install unstable dependencies
-        if: ${{ matrix.experimental }} == "true"
+        if: matrix.experimental == "true"
         shell: bash -l {0}
         run: |
           if [ "$UNSTABLE_DEPS" == "true" ]; then \
@@ -69,12 +69,12 @@ jobs:
         shell: bash -l {0}
         run: |
           pytest --cov=satpy satpy/tests
-          coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 
       - name: Upload unittest coverage
         uses: codecov/codecov-action@v1
         with:
           flags: unittests
+          file: .coverage
           env_vars: OS,PYTHON_VERSION
 
       - name: Run behaviour tests
@@ -85,5 +85,6 @@ jobs:
       - name: Upload behaviour test coverage
         uses: codecov/codecov-action@v1
         with:
-          flags: unittests
+          flags: behaviourtests
+          file: .coverage
           env_vars: OS,PYTHON_VERSION
