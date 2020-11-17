@@ -1,7 +1,6 @@
 name: Deploy sdist
 
 on:
-  push:
   release:
     types:
       - published
@@ -17,13 +16,6 @@ jobs:
       - name: Create sdist
         shell: bash -l {0}
         run: python setup.py sdist
-
-      - name: Publish package to test-PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.1
-        with:
-          user: __token__
-          password: ${{ secrets.test_pypi_password }}
-          repository_url: https://test.pypi.org/legacy/
 
       - name: Publish package to PyPI
         if: github.event.action == 'published'
