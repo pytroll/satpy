@@ -1311,11 +1311,12 @@ class SCMIWriter(Writer):
                 # use the first data array as a "representative" for the group
                 ds_info = data_arrs[0].attrs.copy()
                 # TODO: Create Dataset object of all of the sliced-DataArrays (optional)
+                # we want to use our own creation_time
+                ds_info['creation_time'] = creation_time
+                ds_info['source_name'] = source_name
 
                 output_filename = self.get_filename(template, area_def,
                                                     tile_info, sector_id,
-                                                    source_name=source_name,
-                                                    creation_time=creation_time,
                                                     **ds_info)
                 self.check_tile_exists(output_filename)
                 # TODO: Provide attribute caching for things that likely won't change
