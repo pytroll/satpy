@@ -20,6 +20,7 @@ jobs:
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       OS: ${{ matrix.os }}
+      UNSTABLE: ${{ matrix.experimental }}
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
     steps:
@@ -67,12 +68,19 @@ jobs:
         run: |
           pytest --cov=satpy satpy/tests --cov-report=xml
 
-      - name: Upload unittest coverage
+      - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           flags: unittests
           file: ./coverage.xml
           env_vars: OS,PYTHON_VERSION
+
+      - name: Upload unittest coverage to Coveralls
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: run-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.experimental }}-unit
+          parallel: true
 
       - name: Run behaviour tests
         shell: bash -l {0}
@@ -86,3 +94,20 @@ jobs:
           flags: behaviourtests
           file: ./coverage.xml
           env_vars: OS,PYTHON_VERSION
+
+      - name: Upload unittest coverage to Coveralls
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: run-${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.experimental }}-behave
+          parallel: true
+
+  finish:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@v1.1.2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
