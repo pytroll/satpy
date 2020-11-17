@@ -284,7 +284,6 @@ class TestSCMIWriter(unittest.TestCase):
         self.assertEqual(len(all_files), 20)
 
         # these tiles should be the right-most edge of the first image
-        first_left_edge_files = [x for x in first_files if 'O01' in x or 'O03' in x or 'U01' in x or 'U01' in x]
         first_right_edge_files = [x for x in first_files if 'P02' in x or 'P04' in x or 'V02' in x or 'V04' in x]
         for new_file in first_right_edge_files:
             orig_file = new_file.replace(second_base_dir, first_base_dir)
@@ -547,4 +546,3 @@ class TestSCMIWriter(unittest.TestCase):
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
             assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-
