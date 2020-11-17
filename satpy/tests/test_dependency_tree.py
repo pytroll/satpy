@@ -105,7 +105,8 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
         from satpy.readers.yaml_reader import FileYAMLReader
 
         from satpy import DataQuery
-        from satpy.composites import SunZenithCorrector, GenericCompositor
+        from satpy.composites import GenericCompositor
+        from satpy.modifiers.geometry import SunZenithCorrector
         from satpy.dataset import DatasetDict
 
         config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
@@ -129,3 +130,83 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
         dep_tree.populate_with_keys({'overview'}, DataQuery(resolution=1000))
         for key in dep_tree._all_nodes.keys():
             assert key.get('resolution', 1000) == 1000
+
+
+class TestMultipleSensors(unittest.TestCase):
+    """Test cases where multiple sensors are available.
+
+    This is what we are working with::
+
+        None (No Data)
+         +DataID(name='comp19')
+         + +DataID(name='ds5', resolution=250, modifiers=('res_change',))
+         + + +DataID(name='ds5', resolution=250, modifiers=())
+         + + +__EMPTY_LEAF_SENTINEL__ (No Data)
+         + +DataID(name='comp13')
+         + + +DataID(name='ds5', resolution=250, modifiers=('res_change',))
+         + + + +DataID(name='ds5', resolution=250, modifiers=())
+         + + + +__EMPTY_LEAF_SENTINEL__ (No Data)
+         + +DataID(name='ds2', resolution=250, calibration=<calibration.reflectance>, modifiers=())
+
+    """
+
+    def setUp(self):
+        """Set up the test tree."""
+        from satpy.composites import CompositeBase
+        from satpy.modifiers import ModifierBase
+        from satpy.dataset.data_dict import DatasetDict
+
+        class _FakeCompositor(CompositeBase):
+            def __init__(self, ret_val, *args, **kwargs):
+                self.ret_val = ret_val
+                super().__init__(*args, **kwargs)
+
+            def __call__(self, *args, **kwargs):
+                return self.ret_val
+
+        class _FakeModifier(ModifierBase):
+            def __init__(self, ret_val, *args, **kwargs):
+                self.ret_val = ret_val
+                super().__init__(*args, **kwargs)
+
+            def __call__(self, *args, **kwargs):
+                return self.ret_val
+
+        comp1_sensor1 = _FakeCompositor(1, "comp1")
+        comp1_sensor2 = _FakeCompositor(2, "comp1")
+        # create the dictionary one element at a time to force "incorrect" order
+        # (sensor2 comes before sensor1, but results should be alphabetical order)
+        compositors = {}
+        compositors['sensor2'] = s2_comps = DatasetDict()
+        compositors['sensor1'] = s1_comps = DatasetDict()
+        c1_s2_id = make_cid(name='comp1', resolution=1000)
+        c1_s1_id = make_cid(name='comp1', resolution=500)
+        s2_comps[c1_s2_id] = comp1_sensor2
+        s1_comps[c1_s1_id] = comp1_sensor1
+
+        modifiers = {}
+        modifiers['sensor2'] = s2_mods = {}
+        modifiers['sensor1'] = s1_mods = {}
+        s2_mods['mod1'] = (_FakeModifier, {'ret_val': 2})
+        s1_mods['mod1'] = (_FakeModifier, {'ret_val': 1})
+
+        self.dependency_tree = DependencyTree({}, compositors, modifiers)
+        # manually add a leaf so we don't have to mock a reader
+        ds5 = make_dataid(name="ds5", resolution=250, modifiers=tuple())
+        self.dependency_tree.add_leaf(ds5)
+
+    def test_compositor_loaded_sensor_order(self):
+        """Test that a compositor is loaded from the first alphabetical sensor."""
+        self.dependency_tree.populate_with_keys({'comp1'})
+        comp_nodes = self.dependency_tree.trunk()
+        self.assertEqual(len(comp_nodes), 1)
+        self.assertEqual(comp_nodes[0].name.resolution, 500)
+
+    def test_modifier_loaded_sensor_order(self):
+        """Test that a modifier is loaded from the first alphabetical sensor."""
+        from satpy import DataQuery
+        dq = DataQuery(name='ds5', modifiers=('mod1',))
+        self.dependency_tree.populate_with_keys({dq})
+        comp_nodes = self.dependency_tree.trunk()
+        self.assertEqual(len(comp_nodes), 1)
+        self.assertEqual(comp_nodes[0].data[0].ret_val, 1)

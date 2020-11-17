@@ -7,23 +7,23 @@ composite_identification_keys:
 
 modifiers:
   sunz_corrected:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     optional_prerequisites:
     - solar_zenith_angle
 
   effective_solar_pathlength_corrected:
-    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+    modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
     optional_prerequisites:
       - solar_zenith_angle
 
   co2_corrected:
-    compositor: !!python/name:satpy.composites.CO2Corrector
+    modifier: !!python/name:satpy.modifiers.CO2Corrector
     prerequisites:
     - 10.8
     - 13.4
 
   nir_reflectance:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - 11
     optional_prerequisites:
@@ -32,7 +32,7 @@ modifiers:
     sunz_threshold: 85.0
 
   nir_emissive:
-    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    modifier: !!python/name:satpy.modifiers.NIREmissivePartFromReflectance
     prerequisites:
     - 11
     optional_prerequisites:
@@ -40,12 +40,12 @@ modifiers:
     - 13.4
     sunz_threshold: 85.0
   atm_correction:
-    compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
+    modifier: !!python/name:satpy.modifiers.PSPAtmosphericalCorrection
     optional_prerequisites:
     - satellite_zenith_angle
 
   rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -58,7 +58,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_marine_tropical:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: tropical
     aerosol_type: marine_tropical_aerosol
     prerequisites:
@@ -71,7 +71,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_desert:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: tropical
     aerosol_type: desert_aerosol
     prerequisites:
@@ -84,7 +84,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_land:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: continental_average_aerosol
     prerequisites:

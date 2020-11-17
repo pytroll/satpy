@@ -38,6 +38,7 @@ class HDF5FileHandler(BaseFileHandler):
         super(HDF5FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
+        self._attrs_cache = {}
 
         try:
             file_handle = h5py.File(self.filename, 'r')
@@ -51,20 +52,22 @@ class HDF5FileHandler(BaseFileHandler):
         file_handle.close()
 
     def _collect_attrs(self, name, attrs):
+        attrs_cache = self._attrs_cache.setdefault(name, {})
         for key, value in attrs.items():
             value = np.squeeze(value)
             fc_key = "{}/attr/{}".format(name, key)
             try:
-                self.file_content[fc_key] = np2str(value)
+                value = np2str(value)
             except ValueError:
-                self.file_content[fc_key] = value
+                # use the original value
+                pass
             except AttributeError:
                 # A HDF5 reference ?
                 value = self.get_reference(name, key)
                 if value is None:
                     LOG.warning("Value cannot be converted - skip setting attribute %s", fc_key)
-                else:
-                    self.file_content[fc_key] = value
+                    continue
+            self.file_content[fc_key] = attrs_cache[key] = value
 
     def get_reference(self, name, key):
         """Get reference."""
@@ -94,9 +97,10 @@ class HDF5FileHandler(BaseFileHandler):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             dset = h5py.File(self.filename, 'r')[key]
             dset_data = da.from_array(dset, chunks=CHUNK_SIZE)
+            attrs = self._attrs_cache.get(key, dset.attrs)
             if dset.ndim == 2:
-                return xr.DataArray(dset_data, dims=['y', 'x'], attrs=dset.attrs)
-            return xr.DataArray(dset_data, attrs=dset.attrs)
+                return xr.DataArray(dset_data, dims=['y', 'x'], attrs=attrs)
+            return xr.DataArray(dset_data, attrs=attrs)
 
         return val
 

@@ -745,10 +745,10 @@ class FileYAMLReader(AbstractYAMLReader):
         """Get the coordinate dataset keys for *dsid*."""
         ds_info = self.all_ids[dsid]
         cids = []
-
         for cinfo in ds_info.get('coordinates', []):
             if not isinstance(cinfo, dict):
                 cinfo = {'name': cinfo}
+
             for key in self._co_keys:
                 if key == 'name':
                     continue
@@ -756,6 +756,7 @@ class FileYAMLReader(AbstractYAMLReader):
                     if ds_info[key] is not None:
                         cinfo[key] = ds_info[key]
             cid = DataQuery.from_dict(cinfo)
+
             cids.append(self.get_dataset_key(cid))
 
         return cids
