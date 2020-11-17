@@ -1305,9 +1305,6 @@ class SCMIWriter(Writer):
             raise TypeError("Keyword 'sector_id' is required")
         if source_name is None:
             raise TypeError("Keyword 'source_name' is required")
-        if self.fix_awips and not compute:
-            LOG.debug("Can't 'fix_awips' with delayed computation, "
-                      "forcing immediate computation.")
 
         if not isinstance(template, dict):
             template = self.config['templates'][template]
@@ -1346,15 +1343,10 @@ class SCMIWriter(Writer):
             return delayeds
 
         for delayed_result in self._save_nonempty_mfdatasets(datasets_to_save, output_filenames):
-            if compute:
-                delayed_result.compute()
-                continue
             delayeds.append(delayed_result)
-
-        if self.fix_awips:
-            for fn in output_filenames:
-                fix_awips_file(fn)
-        return delayeds
+        if not compute:
+            return delayeds
+        return dask.compute(delayeds)
 
 
 def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
