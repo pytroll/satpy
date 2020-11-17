@@ -20,6 +20,7 @@ jobs:
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       OS: ${{ matrix.os }}
+      UNSTABLE: ${{ matrix.experimental }}
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
     steps:
@@ -65,23 +66,24 @@ jobs:
       - name: Run unit tests
         shell: bash -l {0}
         run: |
-          pytest --cov=satpy satpy/tests
+          pytest --cov=satpy satpy/tests --cov-report=xml
 
-      - name: Upload unittest coverage
+      - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           flags: unittests
-          file: .coverage
-          env_vars: OS,PYTHON_VERSION
+          file: ./coverage.xml
+          env_vars: OS,PYTHON_VERSION,UNSTABLE
 
       - name: Run behaviour tests
         shell: bash -l {0}
         run: |
           coverage run --source=satpy -m behave satpy/tests/features --tags=-download
+          coverage xml
 
-      - name: Upload behaviour test coverage
+      - name: Upload behaviour test coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           flags: behaviourtests
-          file: .coverage
-          env_vars: OS,PYTHON_VERSION
+          file: ./coverage.xml
+          env_vars: OS,PYTHON_VERSION,UNSTABLE
