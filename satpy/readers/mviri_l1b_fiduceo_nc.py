@@ -285,7 +285,7 @@ class FiduceoMviriBase(BaseFileHandler):
         """Update attributes of reflectance datasets."""
         refl.attrs['sun_earth_distance_correction_applied'] = True
         refl.attrs['sun_earth_distance_correction_factor'] = self.nc[
-            'distance_sun_earth'].values
+            'distance_sun_earth'].item()
         return refl
 
     def _calibrate_ir_wv(self, ds, channel, calibration):
