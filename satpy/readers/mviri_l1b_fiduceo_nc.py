@@ -390,18 +390,19 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def _get_orbital_parameters(self):
         """Get the orbital parameters."""
-        ssp_lon, ssp_lat = self._get_ssp_lonlat()
         orbital_parameters = {
             'projection_longitude': self.projection_longitude,
             'projection_latitude': 0.0,
             'projection_altitude': ALTITUDE
         }
+        ssp_lon, ssp_lat = self._get_ssp_lonlat()
         if not np.isnan(ssp_lon) and not np.isnan(ssp_lat):
             orbital_parameters.update({
                 'satellite_actual_longitude': ssp_lon,
                 'satellite_actual_latitude': ssp_lat,
                 # altitude not available
             })
+        return orbital_parameters
 
     def _get_ssp_lonlat(self):
         """Get longitude and latitude at the subsatellite point.
