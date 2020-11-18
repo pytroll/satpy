@@ -202,7 +202,7 @@ class FiduceoMviriBase(BaseFileHandler):
         """Initialize the file handler.
 
         Args:
-             mask_bad_quality: Mask pixels with bad quality, that means
+             mask_bad_quality: Mask VIS pixels with bad quality, that means
                  everything else than "ok" or "use with caution". If you need
                  more control, use the ``quality_pixel_bitmask`` and
                  ``data_quality_bitmask`` datasets.
@@ -229,8 +229,8 @@ class FiduceoMviriBase(BaseFileHandler):
         if dataset_id['name'] in CHANNELS:
             ds = self.calibrate(ds, channel=name,
                                 calibration=dataset_id['calibration'])
-            if self.mask_bad_quality:
-                ds = self._mask(ds)
+            if self.mask_bad_quality and name == 'VIS':
+                ds = self._mask_vis(ds)
             ds['acq_time'] = ('y', self._get_acq_time(ds))
         elif dataset_id['name'] in OTHER_REFLECTANCES:
             ds = ds * 100  # conversion to percent
@@ -349,29 +349,16 @@ class FiduceoMviriBase(BaseFileHandler):
         bt = b / (np.log(rad) - a)
         return bt.where(bt > 0)
 
-    def _mask(self, ds):
-        """Mask pixels with bad quality.
+    def _mask_vis(self, ds):
+        """Mask VIS pixels with bad quality.
 
         Pixels are considered bad quality if the "quality_pixel_bitmask" is
         everything else than 0 (no flag set) or 2 ("use_with_caution" and no
-        other flag set).
+        other flag set). According to [PUG] that bitmask is only applicable to
+        the VIS channel.
         """
-        mask = self._get_mask(ds)
-        return ds.where(np.logical_or(mask == 0, mask == 2))
-
-    @shape_cache
-    def _get_mask(self, ds):
-        """Get quality bitmask for the given dataset."""
         mask = self.nc['quality_pixel_bitmask']
-
-        # Mask has high (VIS) resolution. Downsample to low (IR/WV) resolution
-        # if required.
-        if mask.coords['y'].size > ds.coords['y'].size:
-            mask = mask.isel(y=slice(None, None, 2),
-                             x=slice(None, None, 2))
-            mask = mask.assign_coords(y=ds.coords['y'].values,
-                                      x=ds.coords['x'].values)
-        return mask
+        return ds.where(np.logical_or(mask == 0, mask == 2))
 
     @shape_cache
     def _get_acq_time(self, ds):
