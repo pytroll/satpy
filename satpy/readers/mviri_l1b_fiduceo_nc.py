@@ -173,6 +173,30 @@ class shape_cache:
 class FiduceoMviriBase(BaseFileHandler):
     """Baseclass for FIDUCEO MVIRI file handlers."""
 
+    nc_keys = {'WV': 'count_wv', 'IR': 'count_ir'}
+    nc_keys_coefs = {
+        'WV': {
+            'radiance': {
+                'a': 'a_wv',
+                'b': 'b_wv'
+            },
+            'brightness_temperature': {
+                'a': 'bt_a_wv',
+                'b': 'bt_b_wv'
+            }
+        },
+        'IR': {
+            'radiance': {
+                'a': 'a_ir',
+                'b': 'b_ir'
+            },
+            'brightness_temperature': {
+                'a': 'bt_a_ir',
+                'b': 'bt_b_ir'
+            }
+        },
+    }
+
     def __init__(self, filename, filename_info, filetype_info,
                  mask_bad_quality=False):
         """Initialize the file handler.
@@ -475,11 +499,8 @@ class FiduceoMviriBase(BaseFileHandler):
 class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
     """File handler for FIDUCEO MVIRI Easy FCDR."""
 
-    nc_keys = {
-        'VIS': 'toa_bidirectional_reflectance_vis',
-        'WV': 'count_wv',
-        'IR': 'count_ir'
-    }
+    nc_keys = FiduceoMviriBase.nc_keys.copy()
+    nc_keys['VIS'] = 'toa_bidirectional_reflectance_vis'
 
     def _calibrate_vis(self, ds, calibration):
         """Calibrate VIS channel.
@@ -500,11 +521,8 @@ class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
 class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
     """File handler for FIDUCEO MVIRI Full FCDR."""
 
-    nc_keys = {
-        'VIS': 'count_vis',
-        'WV': 'count_wv',
-        'IR': 'count_ir'
-    }
+    nc_keys = FiduceoMviriBase.nc_keys.copy()
+    nc_keys['VIS'] = 'count_vis'
 
     def _calibrate_vis(self, ds, calibration):
         """Calibrate VIS channel.
