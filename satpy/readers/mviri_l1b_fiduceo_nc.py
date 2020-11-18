@@ -196,12 +196,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
-        self.projection_longitude = filename_info['projection_longitude']
-
-    @abc.abstractproperty
-    def nc_keys(self):
-        """Map satpy dataset names to netCDF variables."""
-        raise NotImplementedError
+        self.projection_longitude = float(filename_info['projection_longitude'])
 
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
