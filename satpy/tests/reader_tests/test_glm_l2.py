@@ -44,6 +44,32 @@ def setup_fake_dataset():
             'long_name': 'Flash extent density',
         }
     )
+    dqf = xr.DataArray(
+        fed.data.copy().astype(np.uint8),
+        dims=('y', 'x'),
+        attrs={
+            '_FillValue': -1,
+            'units': '1',
+            'grid_mapping': 'goes_imager_projection',
+            'standard_name': 'status_flag',
+            'long_name': 'GLM data quality flags',
+            'flag_meanings': "valid invalid",
+        }
+    )
+    # create a variable that won't be configured to test available_datasets
+    not_configured = xr.DataArray(
+        fed.data.copy(),
+        dims=('y', 'x'),
+        attrs={
+            'scale_factor': 0.5,
+            'add_offset': -1.,
+            '_FillValue': 0,
+            'units': '1',
+            'grid_mapping': 'goes_imager_projection',
+            'standard_name': 'test',
+            'long_name': 'Test',
+        }
+    )
     x__ = xr.DataArray(
         range(5),
         attrs={'scale_factor': 2., 'add_offset': -1.},
@@ -68,6 +94,8 @@ def setup_fake_dataset():
     fake_dataset = xr.Dataset(
         data_vars={
             'flash_extent_density': fed,
+            'not_configured': not_configured,
+            'DQF': dqf,
             'x': x__,
             'y': y__,
             'goes_imager_projection': proj,
@@ -136,6 +164,39 @@ class TestGLML2FileHandler(unittest.TestCase):
 
         self.assertDictEqual(res.attrs, exp)
 
+    def test_get_dataset_dqf(self):
+        """Test the get_dataset method with special DQF var."""
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='DQF')
+        res = self.reader.get_dataset(key, {'info': 'info'})
+        exp = {'instrument_ID': None,
+               'modifiers': (),
+               'name': 'DQF',
+               'orbital_parameters': {'projection_altitude': 1.0,
+                                      'projection_latitude': 0.0,
+                                      'projection_longitude': -90.0,
+                                      # 'satellite_nominal_altitude': 35786.02,
+                                      'satellite_nominal_latitude': 0.0,
+                                      'satellite_nominal_longitude': -89.5},
+               'orbital_slot': None,
+               'platform_name': 'GOES-16',
+               'platform_shortname': 'G16',
+               'production_site': None,
+               'scan_mode': 'M3',
+               'scene_abbr': 'C',
+               'scene_id': None,
+               'sensor': 'glm',
+               'timeline_ID': None,
+               'grid_mapping': 'goes_imager_projection',
+               'units': '1',
+               '_FillValue': -1,
+               'standard_name': 'status_flag',
+               'long_name': 'GLM data quality flags',
+               'flag_meanings': "valid invalid"}
+
+        self.assertDictEqual(res.attrs, exp)
+        self.assertTrue(np.issubdtype(res.dtype, np.integer))
+
 
 class TestGLML2Reader(unittest.TestCase):
     """Test high-level reading functionality of GLM L2 reader."""
@@ -162,8 +223,11 @@ class TestGLML2Reader(unittest.TestCase):
         """Test that resolution is added to YAML configured variables."""
         # make sure we have some files
         self.assertTrue(self.reader.file_handlers)
-        available_datasets = self.reader.available_dataset_ids
-        # only flash_extent_density is available in our tests
-        self.assertEqual(len(available_datasets), 1)
+        available_datasets = list(self.reader.available_dataset_ids)
+        # flash_extent_density, DQF, and not_configured are available in our tests
+        self.assertEqual(len(available_datasets), 3)
         for ds_id in available_datasets:
             self.assertEqual(ds_id['resolution'], 2000)
+        # make sure not_configured was discovered
+        names = [dataid['name'] for dataid in available_datasets]
+        assert 'not_configured' in names

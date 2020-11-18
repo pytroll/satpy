@@ -23,6 +23,7 @@ file_types:
 # glm_l2_lcfa - add this with glmtools
 
 datasets:
+  # Additional datasets discovered dynamically in satpy/readers/glm_l2.py
   flash_extent_density:
     name: flash_extent_density
     file_type: glm_l2_imagery
