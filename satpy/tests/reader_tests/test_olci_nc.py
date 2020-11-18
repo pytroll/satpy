@@ -77,6 +77,21 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.reset_mock()
 
     @mock.patch('xarray.open_dataset')
+    def test_open_file_objects(self, mocked_open_dataset):
+        """Test initialization of file handlers."""
+        from satpy.readers.olci_nc import NCOLCIBase
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
+
+        open_file = mock.MagicMock()
+
+        file_handler = NCOLCIBase(open_file, filename_info, 'c')
+        file_handler.nc
+        mocked_open_dataset.assert_called()
+        open_file.open.assert_called()
+        assert (open_file.open.return_value in mocked_open_dataset.call_args[0] or
+                open_file.open.return_value == mocked_open_dataset.call_args[1].get('filename_or_obj'))
+
+    @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCI2
