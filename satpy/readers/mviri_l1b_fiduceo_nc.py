@@ -90,6 +90,14 @@ are small differences. The mean difference is < 1E3 degrees for all channels
 and projection longitudes.
 
 
+Huge VIS Reflectances
+---------------------
+You might encounter huge VIS reflectances (10^8 percent and greater) in
+situations where both radiance and solar zenith angle are small. The reader
+certainly needs some improvement in this regard. Maybe the corresponding
+uncertainties can be used to filter these cases before calculating reflectances.
+
+
 References
 ----------
     - `[Handbook]`_ MFG User Handbook
@@ -102,10 +110,10 @@ RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
 import abc
+import dask.array as da
 import functools
 import numpy as np
 import xarray as xr
-
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -534,9 +542,15 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
     def _vis_radiance_to_reflectance(self, rad):
         """Convert VIS radiance to reflectance factor.
 
+        Note: Produces huge reflectances in situations where both radiance and
+        solar zenith angle are small. Maybe the corresponding uncertainties
+        can be used to filter these cases before calculating reflectances.
+
         Reference: [PUG], equation (6).
         """
+
         sza = self._get_solar_zenith_angle(rad)
+        sza = sza.where(da.fabs(sza) < 90)  # direct illumination only
         cos_sza = np.cos(np.deg2rad(sza))
         refl = (
            (np.pi * self.nc['distance_sun_earth'] ** 2) /
@@ -544,4 +558,4 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
            rad
         )
         refl = refl * 100  # conversion to percent
-        return refl.where(refl > 0)
+        return refl
