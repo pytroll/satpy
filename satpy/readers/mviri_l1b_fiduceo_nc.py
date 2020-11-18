@@ -467,7 +467,8 @@ class FiduceoMviriBase(BaseFileHandler):
         ds = ds.assign_coords(x_tie=target_x.values[::sampling],
                               y_tie=target_y.values[::sampling])
 
-        ds_interp = ds.interp(x_tie=target_x, y_tie=target_y)
+        ds_interp = ds.interp(x_tie=target_x.values,
+                              y_tie=target_y.values)
         return ds_interp.rename({'x_tie': 'x', 'y_tie': 'y'})
 
 
