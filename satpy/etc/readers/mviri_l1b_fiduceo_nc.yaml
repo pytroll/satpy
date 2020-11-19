@@ -101,3 +101,59 @@ datasets:
     units: "%"
     resolution: 2250
     file_type: [nc_easy]
+
+  solar_zenith_angle_vis:
+    name: solar_zenith_angle_vis
+    long_name: "Solar zenith angle VIS channel"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  solar_azimuth_angle_vis:
+    name: solar_azimuth_angle_vis
+    long_name: "Solar azimuth angle VIS channel"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  satellite_zenith_angle_vis:
+    name: satellite_zenith_angle_vis
+    long_name: "Satellite zenith angle VIS channel"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  satellite_azimuth_angle_vis:
+    name: satellite_azimuth_angle_vis
+    long_name: "Satellite azimuth angle VIS channel"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  solar_zenith_angle_ir_wv:
+    name: solar_zenith_angle_ir_wv
+    long_name: "Solar zenith angle IR/WV channels"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  solar_azimuth_angle_ir_wv:
+    name: solar_azimuth_angle_ir_wv
+    long_name: "Solar azimuth angle IR/WV channels"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  satellite_zenith_angle_ir_wv:
+    name: satellite_zenith_angle_ir_wv
+    long_name: "Satellite zenith angle IR/WV channels"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  satellite_azimuth_angle_ir_wv:
+    name: satellite_azimuth_angle_ir_wv
+    long_name: "Satellite azimuth angle IR/WV channels"
+    units: "degrees"
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
