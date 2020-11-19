@@ -119,7 +119,7 @@ from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers._geos_area import (ang2fac, get_area_definition,
                                       get_area_extent)
-from satpy.tests.utils import make_dataid
+from satpy.dataset.dataid import DataQuery
 
 
 EQUATOR_RADIUS = 6378140.0
@@ -145,6 +145,7 @@ OTHER_REFLECTANCES = [
     'u_independent_toa_bidirectional_reflectance',
     'u_structured_toa_bidirectional_reflectance'
 ]
+HIGH_RESOL = 2250
 
 
 class InterpCache:
@@ -252,7 +253,7 @@ class FiduceoMviriBase(BaseFileHandler):
         # filename.
         self.projection_longitude = float(filename_info['projection_longitude'])
 
-    def get_dataset(self, dataset_id, info):
+    def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
         name = dataset_id['name']
         ds = self._read_dataset(name)
@@ -265,8 +266,8 @@ class FiduceoMviriBase(BaseFileHandler):
         elif dataset_id['name'] in OTHER_REFLECTANCES:
             ds = ds * 100  # conversion to percent
         elif dataset_id['name'] in ANGLES:
-            ds = self._interp_angles(ds, dataset_id['name'])
-        self._update_attrs(ds, info)
+            ds = self._interp_angles(ds, dataset_id)
+        self._update_attrs(ds, dataset_info)
         return ds
 
     def _get_nc_key(self, name):
@@ -303,6 +304,9 @@ class FiduceoMviriBase(BaseFileHandler):
         loff = coff = im_size / 2 + 0.5
         lfac = cfac = ang2fac(np.deg2rad(MVIRI_FIELD_OF_VIEW) / im_size)
 
+        area_name = 'geos_mviri_{}'.format(
+            'vis' if self._is_high_resol(dataset_id) else 'ir_wv'
+        )
         pdict = {
             'ssp_lon': self.projection_longitude,
             'a': EQUATOR_RADIUS,
@@ -316,8 +320,8 @@ class FiduceoMviriBase(BaseFileHandler):
             'nlines': im_size,
             'ncols': im_size,
             'scandir': 'S2N',  # Reference: [PUG] section 2.
-            'p_id': 'geos_mviri',
-            'a_name': 'geos_mviri',
+            'p_id': area_name,
+            'a_name': area_name,
             'a_desc': 'MVIRI Geostationary Projection'
         }
         extent = get_area_extent(pdict)
@@ -395,7 +399,11 @@ class FiduceoMviriBase(BaseFileHandler):
         return ds.where(np.logical_or(mask == 0, mask == 2))
 
     def _get_acq_time(self, ds):
-        """Get scanline acquisition time for the given dataset."""
+        """Get scanline acquisition time for the given dataset.
+
+        Note that the acquisition time does not increase monotonically
+        with the scanline number due to the scan pattern and rectification.
+        """
         # Variable is sometimes named "time" and sometimes "time_ir_wv".
         try:
             time2d = self.nc['time_ir_wv']
@@ -480,13 +488,13 @@ class FiduceoMviriBase(BaseFileHandler):
             sub_lonlat = np.nan
         return sub_lonlat
 
-    def _interp_angles(self, angles, name):
+    def _interp_angles(self, angles, dataset_id):
         """Get angle dataset.
 
         Files provide angles (solar/satellite zenith & azimuth) at a coarser
         resolution. Interpolate them to the desired resolution.
         """
-        if name.endswith('_vis'):
+        if self._is_high_resol(dataset_id):
             target_x = self.nc.coords['x']
             target_y = self.nc.coords['y']
         else:
@@ -494,7 +502,7 @@ class FiduceoMviriBase(BaseFileHandler):
             target_y = self.nc.coords['y_ir_wv']
         return self._interp_angles_cached(
             angles=angles,
-            nc_key=self.nc_keys[name],
+            nc_key=self.nc_keys[dataset_id['name']],
             target_x=target_x,
             target_y=target_y
         )
@@ -536,6 +544,9 @@ class FiduceoMviriBase(BaseFileHandler):
                               y=target_y.values[::sampling])
 
         return ds.interp(x=target_x.values, y=target_y.values)
+
+    def _is_high_resol(self, dataset_id):
+        return dataset_id['resolution'] == HIGH_RESOL
 
 
 class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
@@ -606,7 +617,9 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
         Reference: [PUG], equation (6).
         """
         sza = self.get_dataset(
-            make_dataid(name='solar_zenith_angle_vis'), info={}
+            DataQuery(name='solar_zenith_angle_vis',
+                      resolution=HIGH_RESOL),
+            dataset_info={}
         )
         sza = sza.where(da.fabs(sza) < 90)  # direct illumination only
         cos_sza = np.cos(np.deg2rad(sza))
