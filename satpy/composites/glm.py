@@ -27,7 +27,71 @@ LOG = logging.getLogger(__name__)
 
 
 class HighlightCompositor(GenericCompositor):
-    """Highlight pixels of a layer by an amount determined by a secondary layer."""
+    """Highlight pixels of a layer by an amount determined by a secondary layer.
+
+    The highlighting is applied per channel to either add or subtract an
+    intensity from the primary image. In the addition case, the code is
+    essentially doing::
+
+        highlight_factor = (highlight_data - min_highlight) / (max_highlight - min_highlight)
+        channel_result = primary_data + highlight_factor * max_factor
+
+    See the ``highlight_channel`` option to control if the effect is additive,
+    subtractive, or not applied at all.
+
+    """
+
+    def __init__(self, name, min_highlight=0.0, max_highlight=10.0, max_factor=0.8,
+                 highlight_channel=(True, True, False, None), **kwargs):
+        """Initialize composite with highlight factor options.
+
+        Args:
+            min_highlight (float): Minimum raw value of the "highlight" data
+                that will be used for linearly scaling the data along with
+                ``max_hightlight``.
+            max_highlight (float): Maximum raw value of the "highlight" data
+                that will be used for linearly scaling the data along with
+                ``min_hightlight``.
+            max_factor (float): Maximum effect that the highlight data can
+                have on the primary image data. This will be multiplied by
+                the linearly scaled highlight data and then added or
+                subtracted from the highlight channels. See class docstring
+                for more information.
+            highlight_channel (tuple): Series of booleans or None for every
+                channel in the RGBA image (4). True means apply the highlight
+                effect by adding, False means apply the highlight effect by
+                subtracting, and None means don't apply the highlight. By
+                default this will add to the Red and Green channels, subtract
+                from the Blue channel, and not effect the Alpha channel. This
+                results in yellow highlights in the resulting image.
+
+        """
+        self.min_highlight = min_highlight
+        self.max_highlight = max_highlight
+        self.max_factor = max_factor
+        self.highlight_channel = highlight_channel
+        super().__init__(name, **kwargs)
+
+    def _get_highlight_factor(self, highlight_data):
+        factor = (highlight_data - self.min_highlight) / (self.max_highlight - self.min_highlight)
+        factor = factor.where(factor.notnull(), 0) * self.max_factor
+        return factor
+
+    def _apply_highlight_effect(self, background_data, factor):
+        new_channels = []
+        for highlight_effect, band_name in zip(self.highlight_channel, "RGBA"):
+            if highlight_effect:
+                channel_factor = factor
+            elif highlight_effect is None:
+                channel_factor = None
+            else:
+                channel_factor = -factor
+
+            new_channel = background_data.sel(bands=[band_name])
+            if channel_factor is not None:
+                new_channel = new_channel + channel_factor
+            new_channels.append(new_channel)
+        return new_channels
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Create B/W image with highlighted pixels."""
@@ -43,20 +107,13 @@ class HighlightCompositor(GenericCompositor):
         background_data = img.data
 
         # Adjust the colors of background by highlight layer
-        min_hightlight = 0
-        max_hightlight = 10
-        max_highlight_change = 0.8  # maximum of a 5% difference in pixel value
-        factor = (highlight_product - min_hightlight) / (max_hightlight - min_hightlight)
-        factor = factor.where(factor.notnull(), 0)
-        new_r = background_data.sel(bands=['R']) + factor * max_highlight_change
-        new_g = background_data.sel(bands=['G']) + factor * max_highlight_change
-        new_b = background_data.sel(bands=['B']) - factor * max_highlight_change
-        new_a = background_data.sel(bands=['A'])
-        new_data = xr.concat((new_r, new_g, new_b, new_a), dim='bands')
+        factor = self._get_highlight_factor(highlight_product)
+        new_channels = self._apply_highlight_effect(background_data, factor)
+        new_data = xr.concat(new_channels, dim='bands')
         new_data.attrs = attrs
-        new_sensors = self._get_sensors((highlight_product, background_layer))
         new_data.attrs['units'] = 1
         new_data.attrs.update(attrs)
+        new_sensors = self._get_sensors((highlight_product, background_layer))
         new_data.attrs.update({
             'sensor': new_sensors,
         })
