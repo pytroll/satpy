@@ -793,9 +793,10 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if is_cat:
             # AWIPS doesn't like Identity conversion so we can't have
             # a factor of 1 and an offset of 0
-            new_encoding['scale_factor'] = 0.5
-            new_encoding['add_offset'] = 0
-            # no _FillValue
+            new_encoding['scale_factor'] = None
+            new_encoding['add_offset'] = None
+            if '_FillValue' in input_data_arr.attrs:
+                new_encoding['_FillValue'] = input_data_arr.attrs['_FillValue']
         elif vmin is not None and vmax is not None:
             # calculate scale_factor and add_offset
             sf, ao, fill = _get_factor_offset_fill(
@@ -927,6 +928,11 @@ def _assign_autoscale_encoding_parameters(dataset_to_save):
         sf_is_auto = data_var.encoding.get('scale_factor') == 'auto'
         ao_is_auto = data_var.encoding.get('add_offset') == 'auto'
         fv_is_auto = data_var.encoding.get('_FillValue') == 'auto'
+        # some fields don't need scale_factor/add_offset
+        if data_var.encoding.get('scale_factor', 0) is None:
+            data_var.encoding.pop('scale_factor')
+        if data_var.encoding.get('add_offset', 0) is None:
+            data_var.encoding.pop('add_offset')
         if not any((sf_is_auto, ao_is_auto, fv_is_auto)):
             continue
         if not all((sf_is_auto, ao_is_auto, fv_is_auto)):
@@ -943,16 +949,32 @@ def _assign_autoscale_encoding_parameters(dataset_to_save):
         data_var.encoding['_FillValue'] = fill
 
 
-def _is_empty_tile(dataset_to_save):
+def _notnull(data_arr, check_categories=True):
+    is_int = np.issubdtype(data_arr.dtype, np.integer)
+    fill_value = data_arr.encoding.get('_FillValue', data_arr.attrs.get('_FillValue'))
+    if is_int and fill_value is not None:
+        # some DQF datasets are always valid
+        if check_categories:
+            return data_arr != fill_value
+        else:
+            return False
+    return data_arr.notnull()
+
+
+def _any_notnull(data_arr, check_categories):
+    not_null = _notnull(data_arr, check_categories)
+    if not_null is False:
+        return False
+    return not_null.any()
+
+
+def _is_empty_tile(dataset_to_save, check_categories):
     # check if this tile is empty
     # if so, don't create it
     for data_var in dataset_to_save.data_vars.values():
-        # TODO: Does this work for category products?
-        if data_var.ndim and data_var.notnull().any():
-            break
-    else:
-        return True
-    return False
+        if data_var.ndim and _any_notnull(data_var, check_categories):
+            return False
+    return True
 
 
 def _copy_to_existing(dataset_to_save, output_filename):
@@ -969,14 +991,13 @@ def _copy_to_existing(dataset_to_save, output_filename):
         if var_name not in dataset_to_save:
             continue
         new_data_arr = dataset_to_save[var_name]
-        # TODO: Make sure category products work
-        valid_existing = new_data_arr.notnull()
+        valid_existing = _notnull(new_data_arr)
         var_data_arr.data[valid_existing] = new_data_arr.data[valid_existing]
     return existing_dataset
 
 
 def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
-                       fix_awips=False):
+                       check_categories=True, fix_awips=False):
     """Save :class:`xarray.Dataset` to a NetCDF file if not all fills.
 
     In addition to checking certain Dataset variables for fill values,
@@ -987,7 +1008,7 @@ def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
     creation by taking the minimum and maximum value of the variable.
 
     """
-    if _is_empty_tile(dataset_to_save):
+    if _is_empty_tile(dataset_to_save, check_categories):
         LOG.debug("Skipping tile creation for {} because it would be "
                   "empty.".format(output_filename))
         return
@@ -1240,12 +1261,21 @@ class SCMIWriter(Writer):
                 dataset_to_save, output_filename, **kwargs)
             yield delayed_res
 
+    def _get_tile_data_info(self, data_arrs, creation_time, source_name):
+        # use the first data array as a "representative" for the group
+        ds_info = data_arrs[0].attrs.copy()
+        # we want to use our own creation_time
+        ds_info['creation_time'] = creation_time
+        ds_info['source_name'] = source_name
+        return ds_info
+
     def save_datasets(self, datasets, sector_id=None,
                       source_name=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
                       use_end_time=False, use_sector_reference=False,
-                      template='polar', compute=True, **kwargs):
+                      template='polar', check_categories=True,
+                      compute=True, **kwargs):
         """Write a series of DataArray objects to multiple NetCDF4 SCMI files.
 
         Args:
@@ -1297,6 +1327,14 @@ class SCMIWriter(Writer):
                 template configuration. See the :mod:`satpy.writers.scmi`
                 documentation for more information on templates. Defaults to
                 the 'polar' builtin template.
+            check_categories (bool): Whether category and flag products should
+                be included in the checks for empty or not empty tiles. In
+                some cases (ex. data quality flags) category products may look
+                like all valid data (a non-empty tile) but shouldn't be used
+                to determine the emptiness of the overall tile (good quality
+                versus non-existent). Default is True. Set to False to ignore
+                category (integer dtype or "flag_meanings" defined) when
+                checking for valid data.
             compute (bool): Compute and write the output immediately using
                 dask. Default to ``False``.
 
@@ -1318,18 +1356,15 @@ class SCMIWriter(Writer):
             area_datasets, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)
         for area_def, tile_info, data_arrs in area_tile_data_gen:
-            # use the first data array as a "representative" for the group
-            ds_info = data_arrs[0].attrs.copy()
             # TODO: Create Dataset object of all of the sliced-DataArrays (optional)
-            # we want to use our own creation_time
-            ds_info['creation_time'] = creation_time
-            ds_info['source_name'] = source_name
-
+            ds_info = self._get_tile_data_info(data_arrs,
+                                               creation_time,
+                                               source_name)
             output_filename = self.get_filename(template, area_def,
                                                 tile_info, sector_id,
                                                 **ds_info)
             self.check_tile_exists(output_filename)
-            # TODO: Provide attribute caching for things that likely won't change
+            # TODO: Provide attribute caching for things that likely won't change (functools lrucache)
             new_ds = template.render(data_arrs, area_def,
                                      tile_info, sector_id,
                                      creation_time=creation_time)
@@ -1342,7 +1377,11 @@ class SCMIWriter(Writer):
             # no tiles produced
             return delayeds
 
-        for delayed_result in self._save_nonempty_mfdatasets(datasets_to_save, output_filenames):
+        delayed_gen = self._save_nonempty_mfdatasets(datasets_to_save, output_filenames,
+                                                     check_categories=check_categories,
+                                                     fix_awips=self.fix_awips,
+                                                     update_existing=True)
+        for delayed_result in delayed_gen:
             delayeds.append(delayed_result)
         if not compute:
             return delayeds
