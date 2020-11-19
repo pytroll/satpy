@@ -8,14 +8,15 @@ file_types:
   level2:
     file_reader: !!python/name:satpy.readers.geocat.GEOCATFileHandler
     file_patterns:
+     # GOES-16 ABI files (must be first to capture things correctly):
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.hdf'
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.nc'
+     # Generic file pattern
      - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.hdf'
      - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.nc'
      # Himawari 8 files:
      - 'geocatL2.{platform_shortname}.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.hdf'
      - 'geocatL2.{platform_shortname}.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.nc'
-     # GOES-16 ABI files:
-     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.hdf'
-     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.nc'
   ahi_level1:
     file_reader: !!python/name:satpy.readers.geocat.GEOCATFileHandler
     file_patterns:

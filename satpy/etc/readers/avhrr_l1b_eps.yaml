@@ -1,7 +1,7 @@
 reader:
     name: avhrr_l1b_eps
     description: EPS Reader for AVHRR
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3]
     default_channels: [1, 2, 3a, 3b, 4, 5]
 
@@ -12,9 +12,9 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -25,9 +25,9 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -38,9 +38,9 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -51,9 +51,9 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -64,9 +64,9 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -77,9 +77,9 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -129,7 +129,7 @@ datasets:
 
 file_types:
     avhrr_eps:
-        file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile ''
+        file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile
         file_patterns: [
                        'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}',
                        'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}.nat']

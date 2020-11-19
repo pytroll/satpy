@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unittests for generic image reader.
-"""
+"""Unittests for generic image reader."""
 
 import os
 import unittest
@@ -23,6 +22,7 @@ import unittest
 import xarray as xr
 import dask.array as da
 import numpy as np
+from satpy.tests.utils import make_dataid
 
 
 class TestGenericImage(unittest.TestCase):
@@ -101,7 +101,7 @@ class TestGenericImage(unittest.TestCase):
         self.scn = scn
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             import shutil
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -164,12 +164,7 @@ class TestGenericImage(unittest.TestCase):
         ftype_info = {}
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
 
-        class Foo(object):
-            """Mock class for dataset id"""
-            def __init__(self):
-                self.name = 'image'
-
-        foo = Foo()
+        foo = make_dataid(name='image')
         self.assertTrue(reader.file_content)
         self.assertEqual(reader.finfo['filename'], fname)
         self.assertEqual(reader.finfo['start_time'], self.date)
@@ -192,16 +187,3 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue(data.bands.size == 4)
         data = mask_image_data(data)
         self.assertTrue(data.bands.size == 3)
-
-
-def suite():
-    """The test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGenericImage))
-
-    return my_suite
-
-
-if __name__ == '__main__':
-    unittest.main()

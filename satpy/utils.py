@@ -20,16 +20,10 @@
 
 import logging
 import os
-import sys
 import re
 import warnings
-
 import numpy as np
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
+import configparser
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -60,6 +54,8 @@ class OrderedConfigParser(object):
             # Pass if file not found
             if e.errno != 2:
                 raise
+        finally:
+            conf_file.close()
 
         return self.config_parser.read(filename)
 
@@ -125,8 +121,6 @@ def get_logger(name):
         logging.Logger.trace = trace
 
     log = logging.getLogger(name)
-    if not log.handlers and sys.version_info[0] < 3:
-        log.addHandler(logging.NullHandler())
     return log
 
 

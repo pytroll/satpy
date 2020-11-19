@@ -15,24 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.nucaps module.
-"""
+"""Module for testing the satpy.readers.nucaps module."""
 
 import os
-import sys
+import unittest
+import datetime
+from unittest import mock
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 DEFAULT_FILE_DTYPE = np.float32
@@ -64,12 +55,13 @@ ALL_PRESSURE_LEVELS = np.repeat([ALL_PRESSURE_LEVELS], DEFAULT_PRES_FILE_SHAPE[0
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler"""
+    """Swap-in NetCDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
-            '/attr/time_coverage_start': filename_info['start_time'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            '/attr/time_coverage_end': filename_info['end_time'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            '/attr/time_coverage_start': "2020-10-20T12:00:00.5Z",
+            '/attr/time_coverage_end': "2020-10-20T12:00:36Z",
             '/attr/start_orbit_number': 1,
             '/attr/end_orbit_number': 2,
             '/attr/platform_name': 'NPP',
@@ -91,6 +83,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 file_content[k + '/attr/standard_name'] = standard_name
         for k, units, standard_name in [
             ('Temperature', 'Kelvin', 'air_temperature'),
+            ('Effective_Pressure', 'mb', ''),
             ('H2O', '1', ''),
             ('H2O_MR', 'g/g', ''),
             ('O3', '1', ''),
@@ -146,18 +139,24 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         file_content[k + '/attr/_FillValue'] = -9999.
 
         attrs = ('_FillValue', 'flag_meanings', 'flag_values', 'units')
+        cris_fors_dim_name = 'Number_of_CrIS_FORs'
+        pressure_levels_dim_name = 'Number_of_P_Levels'
+        if ('_v1' in filename):
+            cris_fors_dim_name = 'number_of_FORs'
+            pressure_levels_dim_name = 'number_of_p_levels'
         convert_file_content_to_data_array(
             file_content, attrs=attrs,
-            dims=('z', 'number_of_FORs', 'number_of_p_levels'))
+            dims=('z', cris_fors_dim_name, pressure_levels_dim_name))
         return file_content
 
 
 class TestNUCAPSReader(unittest.TestCase):
-    """Test NUCAPS Reader"""
+    """Test NUCAPS Reader."""
+
     yaml_file = "nucaps.yaml"
 
     def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler"""
+        """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.nucaps import NUCAPSFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -167,7 +166,7 @@ class TestNUCAPSReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -177,13 +176,25 @@ class TestNUCAPSReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
+    def test_init_with_kwargs(self):
+        """Test basic init with extra parameters."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs, mask_surface=False)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc',
+        ])
+        self.assertEqual(len(loadables), 1)
+        r.create_filehandlers(loadables, fh_kwargs={'mask_surface': False})
+        # make sure we have some files
+        self.assertTrue(r.file_handlers)
+
     def test_load_nonpressure_based(self):
-        """Test loading all channels that aren't based on pressure"""
+        """Test loading all channels that aren't based on pressure."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -203,9 +214,11 @@ class TestNUCAPSReader(unittest.TestCase):
             # self.assertEqual(v.info['units'], 'degrees')
             self.assertEqual(v.ndim, 1)
             self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
+            self.assertEqual(type(v.attrs['start_time']), datetime.datetime)
+            self.assertEqual(type(v.attrs['end_time']), datetime.datetime)
 
     def test_load_pressure_based(self):
-        """Test loading all channels based on pressure"""
+        """Test loading all channels based on pressure."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -213,6 +226,7 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['Temperature',
+                           'Effective_Pressure',
                            'H2O',
                            'H2O_MR',
                            'O3',
@@ -231,13 +245,13 @@ class TestNUCAPSReader(unittest.TestCase):
                            'SO2',
                            'SO2_MR',
                            ])
-        self.assertEqual(len(datasets), 18)
+        self.assertEqual(len(datasets), 19)
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             self.assertEqual(v.ndim, 2)
 
     def test_load_individual_pressure_levels_true(self):
-        """Test loading Temperature with individual pressure datasets"""
+        """Test loading Temperature with individual pressure datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -250,7 +264,7 @@ class TestNUCAPSReader(unittest.TestCase):
             self.assertEqual(v.ndim, 1)
 
     def test_load_individual_pressure_levels_min_max(self):
-        """Test loading individual Temperature with min/max level specified"""
+        """Test loading individual Temperature with min/max level specified."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -263,7 +277,7 @@ class TestNUCAPSReader(unittest.TestCase):
             self.assertEqual(v.ndim, 1)
 
     def test_load_individual_pressure_levels_single(self):
-        """Test loading individual Temperature with specific levels"""
+        """Test loading individual Temperature with specific levels."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -276,7 +290,7 @@ class TestNUCAPSReader(unittest.TestCase):
             self.assertEqual(v.ndim, 1)
 
     def test_load_pressure_levels_true(self):
-        """Test loading Temperature with all pressure levels"""
+        """Test loading Temperature with all pressure levels."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -290,7 +304,7 @@ class TestNUCAPSReader(unittest.TestCase):
             self.assertTupleEqual(v.shape, DEFAULT_PRES_FILE_SHAPE)
 
     def test_load_pressure_levels_min_max(self):
-        """Test loading Temperature with min/max level specified"""
+        """Test loading Temperature with min/max level specified."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -305,7 +319,7 @@ class TestNUCAPSReader(unittest.TestCase):
                                   (DEFAULT_PRES_FILE_SHAPE[0], 6))
 
     def test_load_pressure_levels_single(self):
-        """Test loading a specific Temperature level"""
+        """Test loading a specific Temperature level."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -320,7 +334,7 @@ class TestNUCAPSReader(unittest.TestCase):
                                   (DEFAULT_PRES_FILE_SHAPE[0], 1))
 
     def test_load_pressure_levels_single_and_pressure_levels(self):
-        """Test loading a specific Temperature level and pressure levels"""
+        """Test loading a specific Temperature level and pressure levels."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -337,11 +351,184 @@ class TestNUCAPSReader(unittest.TestCase):
         self.assertTupleEqual(pl_ds.shape, (1,))
 
 
-def suite():
-    """The test suite for test_nucaps.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNUCAPSReader))
+class TestNUCAPSScienceEDRReader(unittest.TestCase):
+    """Test NUCAPS Science EDR Reader."""
 
-    return mysuite
+    yaml_file = "nucaps.yaml"
+
+    def setUp(self):
+        """Wrap NetCDF4 file handler with our own fake handler."""
+        from satpy.config import config_search_paths
+        from satpy.readers.nucaps import NUCAPSFileHandler
+        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
+        self.p = mock.patch.object(NUCAPSFileHandler, '__bases__', (FakeNetCDF4FileHandler2,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+    def tearDown(self):
+        """Stop wrapping the NetCDF4 file handler."""
+        self.p.stop()
+
+    def test_init(self):
+        """Test basic init with no extra parameters."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        self.assertEqual(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        # make sure we have some files
+        self.assertTrue(r.file_handlers)
+
+    def test_load_nonpressure_based(self):
+        """Test loading all channels that aren't based on pressure."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['Topography',
+                           'Land_Fraction',
+                           'Surface_Pressure',
+                           'Skin_Temperature',
+                           'Quality_Flag',
+                           ])
+        self.assertEqual(len(datasets), 5)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 1)
+            self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
+            self.assertEqual(type(v.attrs['start_time']), datetime.datetime)
+            self.assertEqual(type(v.attrs['end_time']), datetime.datetime)
+
+    def test_load_pressure_based(self):
+        """Test loading all channels based on pressure."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['Temperature',
+                           'H2O',
+                           'H2O_MR',
+                           'O3',
+                           'O3_MR',
+                           'CO',
+                           'CO_MR',
+                           'CH4',
+                           'CH4_MR',
+                           'CO2',
+                           'HNO3',
+                           'HNO3_MR',
+                           'N2O',
+                           'N2O_MR',
+                           'SO2',
+                           'SO2_MR',
+                           ])
+        self.assertEqual(len(datasets), 16)
+        for v in datasets.values():
+            # self.assertNotEqual(v.info['resolution'], 0)
+            self.assertEqual(v.ndim, 2)
+
+    def test_load_individual_pressure_levels_true(self):
+        """Test loading Temperature with individual pressure datasets."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(r.pressure_dataset_names['Temperature'], pressure_levels=True)
+        self.assertEqual(len(datasets), 100)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 1)
+
+    def test_load_individual_pressure_levels_min_max(self):
+        """Test loading individual Temperature with min/max level specified."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(r.pressure_dataset_names['Temperature'], pressure_levels=(100., 150.))
+        self.assertEqual(len(datasets), 6)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 1)
+
+    def test_load_individual_pressure_levels_single(self):
+        """Test loading individual Temperature with specific levels."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(r.pressure_dataset_names['Temperature'], pressure_levels=(103.017,))
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 1)
+
+    def test_load_pressure_levels_true(self):
+        """Test loading Temperature with all pressure levels."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['Temperature'], pressure_levels=True)
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 2)
+            self.assertTupleEqual(v.shape, DEFAULT_PRES_FILE_SHAPE)
+
+    def test_load_pressure_levels_min_max(self):
+        """Test loading Temperature with min/max level specified."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['Temperature'], pressure_levels=(100., 150.))
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 2)
+            self.assertTupleEqual(v.shape,
+                                  (DEFAULT_PRES_FILE_SHAPE[0], 6))
+
+    def test_load_pressure_levels_single(self):
+        """Test loading a specific Temperature level."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['Temperature'], pressure_levels=(103.017,))
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 2)
+            self.assertTupleEqual(v.shape,
+                                  (DEFAULT_PRES_FILE_SHAPE[0], 1))
+
+    def test_load_pressure_levels_single_and_pressure_levels(self):
+        """Test loading a specific Temperature level and pressure levels."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['Temperature', 'Pressure_Levels'], pressure_levels=(103.017,))
+        self.assertEqual(len(datasets), 2)
+        t_ds = datasets['Temperature']
+        self.assertEqual(t_ds.ndim, 2)
+        self.assertTupleEqual(t_ds.shape,
+                              (DEFAULT_PRES_FILE_SHAPE[0], 1))
+        pl_ds = datasets['Pressure_Levels']
+        self.assertTupleEqual(pl_ds.shape, (1,))

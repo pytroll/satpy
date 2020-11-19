@@ -46,6 +46,10 @@ datasets:
         file_key: "{variable_prefix}FP_confidence"
         coordinates: [longitude, latitude]
         units: '%'
+        # this is not a category product but we should define a fill value
+        # since we aren't going to scale the data to a float data type in
+        # the python code
+        _FillValue: 255
     longitude:
         name: longitude
         standard_name: longitude

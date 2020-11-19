@@ -18,12 +18,7 @@
 """Testing of utils."""
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 from numpy import sqrt
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters, get_satpos
 
@@ -255,10 +250,38 @@ class TestUtils(unittest.TestCase):
         self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
 
 
-def suite():
-    """Test suite."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
+def test_make_fake_scene():
+    """Test the make_fake_scene utility.
 
-    return mysuite
+    Although the make_fake_scene utility is for internal testing
+    purposes, it has grown sufficiently complex that it needs its own
+    testing.
+    """
+    import numpy as np
+    import dask.array as da
+    import xarray as xr
+    from satpy.tests.utils import make_fake_scene
+
+    assert make_fake_scene({}).keys() == []
+    sc = make_fake_scene({
+        "six": np.arange(25).reshape(5, 5)})
+    assert len(sc.keys()) == 1
+    assert sc.keys().pop()['name'] == "six"
+    assert sc["six"].attrs["area"].shape == (5, 5)
+    sc = make_fake_scene({
+        "seven": np.arange(3*7).reshape(3, 7),
+        "eight": np.arange(3*8).reshape(3, 8)},
+        daskify=True,
+        area=False,
+        common_attrs={"repetency": "fourteen hundred per centimetre"})
+    assert "area" not in sc["seven"].attrs.keys()
+    assert (sc["seven"].attrs["repetency"] == sc["eight"].attrs["repetency"] ==
+            "fourteen hundred per centimetre")
+    assert isinstance(sc["seven"].data, da.Array)
+    sc = make_fake_scene({
+        "nine": xr.DataArray(
+            np.arange(2*9).reshape(2, 9),
+            dims=("y", "x"),
+            attrs={"please": "preserve", "answer": 42})},
+        common_attrs={"bad words": "semprini bahnhof veerooster winterbanden"})
+    assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}

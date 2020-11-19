@@ -682,16 +682,3 @@ class TestReadMDA(unittest.TestCase):
             HDFEOSGeoReader.read_mda(metadata_modisl2)
         )
         self.assertEqual(resolution_l2, 5000)
-
-
-def suite():
-    """The test suite."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestReadMDA))
-
-    return my_suite
-
-
-if __name__ == '__main__':
-    unittest.main()

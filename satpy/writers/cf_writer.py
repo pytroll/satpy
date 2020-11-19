@@ -99,6 +99,7 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 """
 
 from collections import OrderedDict, defaultdict
+import copy
 import logging
 from datetime import datetime
 import json
@@ -106,11 +107,14 @@ import warnings
 
 from dask.base import tokenize
 import xarray as xr
+from xarray.coding.times import CFDatetimeCoder
 import numpy as np
 
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
 from satpy.writers.utils import flatten_dict
+
+from distutils.version import LooseVersion
 
 
 logger = logging.getLogger(__name__)
@@ -138,68 +142,16 @@ CF_DTYPES = [np.dtype('int8'),
 CF_VERSION = 'CF-1.7'
 
 
-def omerc2cf(area):
-    """Return the cf grid mapping for the omerc projection."""
-    proj_dict = area.proj_dict
-
-    args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
-                latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lonc'),
-                grid_mapping_name='oblique_mercator',
-                reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
-                prime_meridian_name=proj_dict.get('pm', 'Greenwich'),
-                horizontal_datum_name=proj_dict.get('datum', 'unknown'),
-                geographic_crs_name='unknown',
-                false_easting=0.,
-                false_northing=0.
-                )
-    if "no_rot" in proj_dict:
-        args['no_rotation'] = 1
-    if "gamma" in proj_dict:
-        args['gamma'] = proj_dict['gamma']
-    return args
-
-
-def geos2cf(area):
-    """Return the cf grid mapping for the geos projection."""
-    proj_dict = area.proj_dict
-    args = dict(perspective_point_height=proj_dict.get('h'),
-                latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lon_0'),
-                grid_mapping_name='geostationary',
-                semi_major_axis=proj_dict.get('a'),
-                semi_minor_axis=proj_dict.get('b'),
-                sweep_axis=proj_dict.get('sweep'),
-                )
-    return args
-
-
-def laea2cf(area):
-    """Return the cf grid mapping for the laea projection."""
-    proj_dict = area.proj_dict
-    args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lon_0'),
-                grid_mapping_name='lambert_azimuthal_equal_area',
-                )
-    return args
-
-
-mappings = {'omerc': omerc2cf,
-            'laea': laea2cf,
-            'geos': geos2cf}
-
-
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
-    try:
-        grid_mapping = mappings[area.proj_dict['proj']](area)
-        grid_mapping['name'] = area.proj_dict['proj']
-    except KeyError:
-        warnings.warn('The projection "{}" is either not CF compliant or not implemented yet. '
-                      'Using the proj4 string instead.'.format(area.proj_str))
-        grid_mapping = {'name': 'proj4', 'proj4': area.proj_str}
-
-    return grid_mapping
+    import pyproj
+    if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
+        # technically 2.2, but important bug fixes in 2.4.1
+        raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
+    # let pyproj do the heavily lifting
+    # pyproj 2.0+ required
+    grid_mapping = area.crs.to_cf()
+    return area.area_id, grid_mapping
 
 
 def get_extra_ds(dataset):
@@ -214,67 +166,53 @@ def get_extra_ds(dataset):
 
 def area2lonlat(dataarray):
     """Convert an area to longitudes and latitudes."""
+    dataarray = dataarray.copy()
     area = dataarray.attrs['area']
-    lons, lats = area.get_lonlats_dask()
-    lons = xr.DataArray(lons, dims=['y', 'x'],
-                        attrs={'name': "longitude",
-                               'standard_name': "longitude",
-                               'units': 'degrees_east'},
-                        name='longitude')
-    lats = xr.DataArray(lats, dims=['y', 'x'],
-                        attrs={'name': "latitude",
-                               'standard_name': "latitude",
-                               'units': 'degrees_north'},
-                        name='latitude')
-    dataarray['longitude'] = lons
-    dataarray['latitude'] = lats
-    return [dataarray]
+    ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ['x', 'y']}
+    chunks = getattr(dataarray.isel(**ignore_dims), 'chunks', None)
+    lons, lats = area.get_lonlats(chunks=chunks)
+    dataarray['longitude'] = xr.DataArray(lons, dims=['y', 'x'],
+                                          attrs={'name': "longitude",
+                                                 'standard_name': "longitude",
+                                                 'units': 'degrees_east'},
+                                          name='longitude')
+    dataarray['latitude'] = xr.DataArray(lats, dims=['y', 'x'],
+                                         attrs={'name': "latitude",
+                                                'standard_name': "latitude",
+                                                'units': 'degrees_north'},
+                                         name='latitude')
+    return dataarray
 
 
 def area2gridmapping(dataarray):
     """Convert an area to at CF grid mapping."""
+    dataarray = dataarray.copy()
     area = dataarray.attrs['area']
-    attrs = create_grid_mapping(area)
-    if attrs is not None and 'name' in attrs.keys() and attrs['name'] != "proj4":
-        dataarray.attrs['grid_mapping'] = attrs['name']
-        name = attrs['name']
-    else:
-        # Handle the case when the projection cannot be converted to a standard CF representation or this has not
-        # been implemented yet.
-        dataarray.attrs['grid_proj4'] = area.proj4_string
-        name = "proj4"
-    return [dataarray, xr.DataArray(0, attrs=attrs, name=name)]
+    gmapping_var_name, attrs = create_grid_mapping(area)
+    dataarray.attrs['grid_mapping'] = gmapping_var_name
+    return dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
-def area2cf(dataarray, strict=False):
+def area2cf(dataarray, strict=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    dataarray = dataarray.copy(deep=True)
-    if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
-        res = area2lonlat(dataarray)
+    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or strict):
+        dataarray = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
-        res.extend(area2gridmapping(dataarray))
-
+        dataarray, gmapping = area2gridmapping(dataarray)
+        res.append(gmapping)
     res.append(dataarray)
     return res
 
 
-def make_time_bounds(dataarray, start_times, end_times):
+def make_time_bounds(start_times, end_times):
     """Create time bounds for the current *dataarray*."""
-    import numpy as np
     start_time = min(start_time for start_time in start_times
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    try:
-        dtnp64 = dataarray['time'].data[0]
-    except IndexError:
-        dtnp64 = dataarray['time'].data
-    time_bnds = [(np.datetime64(start_time) - dtnp64),
-                 (np.datetime64(end_time) - dtnp64)]
-    data = xr.DataArray(np.array(time_bnds)[None, :] / np.timedelta64(1, 's'),
+    data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]],
                         dims=['time', 'bnds_1d'])
-    data.encoding['_FillValue'] = None
     return data
 
 
@@ -320,6 +258,21 @@ def link_coords(datas):
         dataset.attrs.pop('coordinates', None)
 
 
+def dataset_is_projection_coords(dataset):
+    """Check if dataset is a projection coords."""
+    if 'standard_name' in dataset.attrs and dataset.attrs['standard_name'] in ['longitude', 'latitude']:
+        return True
+    return False
+
+
+def has_projection_coords(ds_collection):
+    """Check if collection has a projection coords among data arrays."""
+    for dataset in ds_collection.values():
+        if dataset_is_projection_coords(dataset):
+            return True
+    return False
+
+
 def make_alt_coords_unique(datas, pretty=False):
     """Make non-dimensional coordinates unique among all datasets.
 
@@ -344,7 +297,7 @@ def make_alt_coords_unique(datas, pretty=False):
     tokens = defaultdict(set)
     for dataset in datas.values():
         for coord_name in dataset.coords:
-            if coord_name.lower() not in ('latitude', 'longitude', 'lat', 'lon') and coord_name not in dataset.dims:
+            if not dataset_is_projection_coords(dataset[coord_name]) and coord_name not in dataset.dims:
                 tokens[coord_name].add(tokenize(dataset[coord_name].data))
     coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 
@@ -385,7 +338,7 @@ class AttributeEncoder(json.JSONEncoder):
         """Encode the given object as a json-serializable datatype."""
         if isinstance(obj, (bool, np.bool_)):
             # Bool has to be checked first, because it is a subclass of int
-            return str(obj)
+            return str(obj).lower()
         elif isinstance(obj, (int, float, str)):
             return obj
         elif isinstance(obj, np.integer):
@@ -407,7 +360,9 @@ def _encode_nc(obj):
         ValueError if no such datatype could be found
 
     """
-    if isinstance(obj, (int, float, str, np.integer, np.floating)):
+    if isinstance(obj, int) and not isinstance(obj, (bool, np.bool_)):
+        return obj
+    elif isinstance(obj, (float, str, np.integer, np.floating)):
         return obj
     elif isinstance(obj, np.ndarray):
         # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
@@ -417,7 +372,7 @@ def _encode_nc(obj):
                 return obj
             elif obj.dtype == np.bool_:
                 # Boolean arrays are not supported, convert to array of strings.
-                obj = obj.astype(str)
+                return [s.lower() for s in obj.astype(str)]
             return obj.tolist()
 
     raise ValueError('Unable to encode')
@@ -450,11 +405,80 @@ def encode_attrs_nc(attrs):
             Attributes to be encoded
     Returns:
         dict: Encoded (and sorted) attributes
+
     """
     encoded_attrs = []
     for key, val in sorted(attrs.items()):
-        encoded_attrs.append((key, encode_nc(val)))
+        if val is not None:
+            encoded_attrs.append((key, encode_nc(val)))
     return OrderedDict(encoded_attrs)
+
+
+def _set_default_chunks(encoding, dataset):
+    """Update encoding to preserve current dask chunks.
+
+    Existing user-defined chunks take precedence.
+    """
+    for var_name, variable in dataset.variables.items():
+        if variable.chunks:
+            chunks = tuple(
+                np.stack([variable.data.chunksize,
+                          variable.shape]).min(axis=0)
+            )  # Chunksize may not exceed shape
+            encoding.setdefault(var_name, {})
+            encoding[var_name].setdefault('chunksizes', chunks)
+
+
+def _set_default_fill_value(encoding, dataset):
+    """Set default fill values.
+
+    Avoid _FillValue attribute being added to coordinate variables
+    (https://github.com/pydata/xarray/issues/1865).
+    """
+    coord_vars = []
+    for data_array in dataset.values():
+        coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
+    for coord_var in coord_vars:
+        encoding.setdefault(coord_var, {})
+        encoding[coord_var].update({'_FillValue': None})
+
+
+def _set_default_time_encoding(encoding, dataset):
+    """Set default time encoding.
+
+    Make sure time coordinates and bounds have the same units. Default is xarray's CF datetime
+    encoding, which can be overridden by user-defined encoding.
+    """
+    if 'time' in dataset:
+        try:
+            dtnp64 = dataset['time'].data[0]
+        except IndexError:
+            dtnp64 = dataset['time'].data
+
+        default = CFDatetimeCoder().encode(xr.DataArray(dtnp64))
+        time_enc = {'units': default.attrs['units'], 'calendar': default.attrs['calendar']}
+        time_enc.update(encoding.get('time', {}))
+        bounds_enc = {'units': time_enc['units'],
+                      'calendar': time_enc['calendar'],
+                      '_FillValue': None}
+        encoding['time'] = time_enc
+        encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
+
+
+def update_encoding(dataset, to_netcdf_kwargs):
+    """Update encoding.
+
+    Preserve dask chunks, avoid fill values in coordinate variables and make sure that
+    time & time bounds have the same units.
+    """
+    other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
+    encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
+
+    _set_default_chunks(encoding, dataset)
+    _set_default_fill_value(encoding, dataset)
+    _set_default_time_encoding(encoding, dataset)
+
+    return encoding, other_to_netcdf_kwargs
 
 
 class CFWriter(Writer):
@@ -473,11 +497,20 @@ class CFWriter(Writer):
                 If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
+
         """
         if exclude_attrs is None:
             exclude_attrs = []
 
         new_data = dataarray.copy()
+        if 'name' in new_data.attrs:
+            name = new_data.attrs.pop('name')
+            new_data = new_data.rename(name)
+
+        # Remove _satpy* attributes
+        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+        for satpy_attr in satpy_attrs:
+            new_data.attrs.pop(satpy_attr)
 
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
@@ -514,9 +547,10 @@ class CFWriter(Writer):
             new_data['y'].attrs['units'] = 'm'
 
         if 'crs' in new_data.coords:
-            new_data = new_data.drop('crs')
+            new_data = new_data.drop_vars('crs')
 
-        new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
+        if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
+            new_data.attrs['long_name'] = new_data.name
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
 
@@ -529,6 +563,13 @@ class CFWriter(Writer):
 
         return new_data
 
+    @staticmethod
+    def update_encoding(dataset, to_netcdf_kwargs):
+        warnings.warn('CFWriter.update_encoding is deprecated. '
+                      'Use satpy.writers.cf_writer.update_encoding instead.',
+                      DeprecationWarning)
+        return update_encoding(dataset, to_netcdf_kwargs)
+
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
@@ -539,22 +580,27 @@ class CFWriter(Writer):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
-
+        got_lonlats = has_projection_coords(ds_collection)
         datas = {}
         start_times = []
         end_times = []
-        for ds in ds_collection.values():
+        # sort by name, but don't use the name
+        for _, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
                 warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
+            # we may be adding attributes, coordinates, or modifying the
+            # structure of attributes
+            ds = ds.copy(deep=True)
             try:
-                new_datasets = area2cf(ds, strict=include_lonlats)
+                new_datasets = area2cf(ds, strict=include_lonlats, got_lonlats=got_lonlats)
             except KeyError:
-                new_datasets = [ds.copy(deep=True)]
+                new_datasets = [ds]
             for new_ds in new_datasets:
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
-                datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                                         exclude_attrs=exclude_attrs, compression=compression)
+                new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
+                                     exclude_attrs=exclude_attrs, compression=compression)
+                datas[new_var.name] = new_var
 
         # Check and prepare coordinates
         assert_xy_unique(datas)
@@ -562,22 +608,6 @@ class CFWriter(Writer):
         datas = make_alt_coords_unique(datas, pretty=pretty)
 
         return datas, start_times, end_times
-
-    def update_encoding(self, datasets, to_netcdf_kwargs):
-        """Update encoding.
-
-        Avoid _FillValue attribute being added to coordinate variables (https://github.com/pydata/xarray/issues/1865).
-        """
-        other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
-        encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
-        coord_vars = []
-        for data_array in datasets:
-            coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
-        for coord_var in coord_vars:
-            encoding.setdefault(coord_var, {})
-            encoding[coord_var].update({'_FillValue': None})
-
-        return encoding, other_to_netcdf_kwargs
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
@@ -588,7 +618,7 @@ class CFWriter(Writer):
 
         Args:
             datasets (list):
-                Names of datasets to be saved
+                Datasets to be saved
             filename (str):
                 Output file
             groups (dict):
@@ -615,6 +645,7 @@ class CFWriter(Writer):
                 Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
                 This is in turn passed the xarray's `to_netcdf` method:
                 http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
+
         """
         logger.info('Saving datasets to NetCDF4/CF.')
 
@@ -636,20 +667,33 @@ class CFWriter(Writer):
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
 
-        root = xr.Dataset({}, attrs={'history': 'Created by pytroll/satpy on {}'.format(datetime.utcnow())})
+        root = xr.Dataset({}, attrs={})
         if header_attrs is not None:
-            root.attrs.update({k: v for k, v in header_attrs.items() if v})
+            if flatten_attrs:
+                header_attrs = flatten_dict(header_attrs)
+            root.attrs = encode_attrs_nc(header_attrs)
+        _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+        if 'history' in root.attrs:
+            if isinstance(root.attrs['history'], list):
+                root.attrs['history'] = ''.join(root.attrs['history'])
+            root.attrs['history'] += '\n' + _history_create
+        else:
+            root.attrs['history'] = _history_create
+
         if groups is None:
             # Groups are not CF-1.7 compliant
-            root.attrs['Conventions'] = CF_VERSION
+            if 'Conventions' not in root.attrs:
+                root.attrs['Conventions'] = CF_VERSION
 
         # Remove satpy-specific kwargs
+        to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
         for kwarg in satpy_kwargs:
             to_netcdf_kwargs.pop(kwarg, None)
 
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
+        init_nc_kwargs.pop('unlimited_dims', None)
         written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
         # Write datasets to groups (appending to the file; group=None means no group)
@@ -659,17 +703,16 @@ class CFWriter(Writer):
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
                 include_lonlats=include_lonlats, pretty=pretty, compression=compression)
             dataset = xr.Dataset(datas)
-            try:
-                dataset['time_bnds'] = make_time_bounds(dataset,
-                                                        start_times,
+            if 'time' in dataset:
+                dataset['time_bnds'] = make_time_bounds(start_times,
                                                         end_times)
                 dataset['time'].attrs['bounds'] = "time_bnds"
                 dataset['time'].attrs['standard_name'] = "time"
-            except KeyError:
+            else:
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            encoding, other_to_netcdf_kwargs = self.update_encoding(datasets, to_netcdf_kwargs)
+            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs)
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                     **other_to_netcdf_kwargs)
             written.append(res)

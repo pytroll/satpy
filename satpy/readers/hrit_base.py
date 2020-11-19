@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""HRIT/LRIT format reader
-***************************
+"""HRIT/LRIT format reader.
 
 This module is the base module for all HRIT-based formats. Here, you will find
 the common building blocks for hrit reading.
@@ -33,7 +32,7 @@ import logging
 from datetime import timedelta
 from tempfile import gettempdir
 import os
-from six import BytesIO
+from io import BytesIO
 from subprocess import Popen, PIPE
 
 import numpy as np
@@ -152,7 +151,6 @@ def decompress(infile, outdir='.'):
 
 
 class HRITFileHandler(BaseFileHandler):
-
     """HRIT standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
@@ -175,10 +173,7 @@ class HRITFileHandler(BaseFileHandler):
         self._end_time = self._start_time + timedelta(minutes=15)
 
     def _get_hd(self, hdr_info):
-        """Open the file, read and get the basic file header info and set the mda
-           dictionary
-        """
-
+        """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
 
         with open(self.filename) as fp:
@@ -227,14 +222,17 @@ class HRITFileHandler(BaseFileHandler):
         self.mda['orbital_parameters'] = {}
 
     def get_shape(self, dsid, ds_info):
+        """Get shape."""
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._end_time
 
     def get_dataset(self, key, info):
