@@ -19,6 +19,7 @@
 
 import dask.array as da
 import numpy as np
+import os
 import pytest
 from unittest import mock
 import xarray as xr
@@ -344,16 +345,6 @@ def file_handler(fake_dataset, request):
         )
 
 
-
-
-
-# TODO: Test file patterns
-
-
-
-
-
-
 class TestFiduceoMviriFileHandlers:
     """Unit tests for FIDUCEO MVIRI file handlers."""
 
@@ -484,3 +475,29 @@ class TestFiduceoMviriFileHandlers:
         for key in ['h', 'lon_0', 'proj', 'units']:
             assert area.proj_dict[key] == area_exp.proj_dict[key]
         np.testing.assert_allclose(area.area_extent, area_exp.area_extent)
+
+
+@pytest.fixture
+def reader():
+    """Return MVIRI FIDUCEO FCDR reader."""
+    from satpy.config import config_search_paths
+    from satpy.readers import load_reader
+
+    reader_configs = config_search_paths(
+        os.path.join("readers", "mviri_l1b_fiduceo_nc.yaml"))
+    reader = load_reader(reader_configs)
+    return reader
+
+
+def test_file_pattern(reader):
+    """Test file pattern matching."""
+    filenames = [
+        "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc",
+        "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
+        "FIDUCEO_FCDR_L15_MVIRI_MET7-00.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
+        "abcde",
+    ]
+
+    files = reader.select_files_from_pathnames(filenames)
+    # only 3 out of 4 above should match
+    assert len(files) == 3
