@@ -119,6 +119,7 @@ from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers._geos_area import (ang2fac, get_area_definition,
                                       get_area_extent)
+from satpy.tests.utils import make_dataid
 
 
 EQUATOR_RADIUS = 6378140.0
@@ -130,50 +131,79 @@ MVIRI_FIELD_OF_VIEW = 18.0
 """[Handbook] section 5.3.2.1."""
 
 CHANNELS = ['VIS', 'WV', 'IR']
+ANGLES = [
+    'solar_zenith_angle_vis',
+    'solar_azimuth_angle_vis',
+    'satellite_zenith_angle_vis',
+    'satellite_azimuth_angle_vis',
+    'solar_zenith_angle_ir_wv',
+    'solar_azimuth_angle_ir_wv',
+    'satellite_zenith_angle_ir_wv',
+    'satellite_azimuth_angle_ir_wv'
+]
 OTHER_REFLECTANCES = [
     'u_independent_toa_bidirectional_reflectance',
     'u_structured_toa_bidirectional_reflectance'
 ]
 
 
-class shape_cache:
-    """Cache function call based on image shape.
+class InterpCache:
+    """Interpolation cache."""
 
-    Shape can be used to maintain separate caches for low resolution
-    (WV/IR) and high resolution (VIS) channels.
-    """
-
-    def __init__(self, func):
+    def __init__(self, func, keys, hash_funcs):
         """Create the cache.
 
         Args:
             func:
-                Function to me cached.
+                Interpolation function to be cached.
+            keys:
+                Function arguments serving as cache key.
+            hash_funcs (dict):
+                For each key provides a method that extracts a hashable
+                value from the given keyword argument. For example, use
+                image shape to maintain separate caches for low
+                resolution (WV/IR) and high resolution (VIS) channels.
         """
         self.func = func
+        self.keys = keys
+        self.hash_funcs = hash_funcs
         self.cache = {}
 
-    def __call__(self, *args):
-        """Call the decorated function.
-
-        Dataset is expected to be the last argument. If an instance method is
-        decorated, it is preceded by a filehandler instance.
-        """
-        ds = args[-1]
-        shape = ds.coords['y'].shape
-        if shape not in self.cache:
-            self.cache[shape] = self.func(*args)
-        return self.cache[shape]
+    def __call__(self, *args, **kwargs):
+        """Call the interpolation function."""
+        key = tuple(
+            [self.hash_funcs[key](kwargs[key]) for key in self.keys]
+        )
+        if key not in self.cache:
+            self.cache[key] = self.func(*args, **kwargs)
+        return self.cache[key]
 
     def __get__(self, obj, objtype):
         """To support instance methods."""
         return functools.partial(self.__call__, obj)
 
 
+def interp_cache(keys, hash_funcs):
+    """Interpolation cache."""
+    def wrapper(func):
+        return InterpCache(func, keys, hash_funcs)
+    return wrapper
+
+
 class FiduceoMviriBase(BaseFileHandler):
     """Baseclass for FIDUCEO MVIRI file handlers."""
-
-    nc_keys = {'WV': 'count_wv', 'IR': 'count_ir'}
+    nc_keys = {
+        'WV': 'count_wv',
+        'IR': 'count_ir',
+        'solar_zenith_angle_vis': 'solar_zenith_angle',
+        'solar_azimuth_angle_vis': 'solar_azimuth_angle',
+        'satellite_zenith_angle_vis': 'satellite_zenith_angle',
+        'satellite_azimuth_angle_vis': 'satellite_azimuth_angle',
+        'solar_zenith_angle_ir_wv': 'solar_zenith_angle',
+        'solar_azimuth_angle_ir_wv': 'solar_azimuth_angle',
+        'satellite_zenith_angle_ir_wv': 'satellite_zenith_angle',
+        'satellite_azimuth_angle_ir_wv': 'satellite_azimuth_angle',
+    }
     nc_keys_coefs = {
         'WV': {
             'radiance': {
@@ -234,6 +264,8 @@ class FiduceoMviriBase(BaseFileHandler):
             ds['acq_time'] = ('y', self._get_acq_time(ds))
         elif dataset_id['name'] in OTHER_REFLECTANCES:
             ds = ds * 100  # conversion to percent
+        elif dataset_id['name'] in ANGLES:
+            ds = self._interp_angles(ds, dataset_id['name'])
         self._update_attrs(ds, info)
         return ds
 
@@ -247,6 +279,8 @@ class FiduceoMviriBase(BaseFileHandler):
         ds = self.nc[nc_key]
         if 'y_ir_wv' in ds.dims:
             ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
+        if 'y_tie' in ds.dims:
+            ds = ds.rename({'y_tie': 'y', 'x_tie': 'x'})
         return ds
 
     def _update_attrs(self, ds, info):
@@ -360,9 +394,21 @@ class FiduceoMviriBase(BaseFileHandler):
         mask = self.nc['quality_pixel_bitmask']
         return ds.where(np.logical_or(mask == 0, mask == 2))
 
-    @shape_cache
     def _get_acq_time(self, ds):
-        """Get scanline acquisition time.
+        """Get scanline acquisition time for the given dataset."""
+        # Variable is sometimes named "time" and sometimes "time_ir_wv".
+        try:
+            time2d = self.nc['time_ir_wv']
+        except KeyError:
+            time2d = self.nc['time']
+        return self._get_acq_time_cached(time2d, target_y=ds.coords['y'])
+
+    @interp_cache(
+        keys=('target_y',),
+        hash_funcs={'target_y': lambda y: y.size}
+    )
+    def _get_acq_time_cached(self, time2d, target_y):
+        """Get scanline acquisition time for the given image coordinates.
 
         The files provide timestamps per pixel for the low resolution
         channels (IR/WV) only.
@@ -377,27 +423,19 @@ class FiduceoMviriBase(BaseFileHandler):
         Returns:
             Mean scanline acquisition timestamps
         """
-        # Variable is sometimes named "time" and sometimes "time_ir_wv".
-        try:
-            time_lores = self.nc['time_ir_wv']
-        except KeyError:
-            time_lores = self.nc['time']
-
         # Compute mean timestamp per scanline
-        time_lores = time_lores.mean(dim='x_ir_wv').rename({'y_ir_wv': 'y'})
+        time = time2d.mean(dim='x_ir_wv').rename({'y_ir_wv': 'y'})
 
         # If required, repeat timestamps in y-direction to obtain higher
         # resolution
-        y_lores = time_lores.coords['y'].values
-        y_target = ds.coords['y'].values
-        if y_lores.size < y_target.size:
-            reps = y_target.size // y_lores.size
-            y_lores_rep = np.repeat(y_lores, reps)
-            time_hires = time_lores.reindex(y=y_lores_rep)
-            time_hires = time_hires.assign_coords(y=y_target)
+        y = time.coords['y'].values
+        if y.size < target_y.size:
+            reps = target_y.size // y.size
+            y_rep = np.repeat(y, reps)
+            time_hires = time.reindex(y=y_rep)
+            time_hires = time_hires.assign_coords(y=target_y)
             return time_hires
-
-        return time_lores
+        return time
 
     def _get_orbital_parameters(self):
         """Get the orbital parameters."""
@@ -442,16 +480,38 @@ class FiduceoMviriBase(BaseFileHandler):
             sub_lonlat = np.nan
         return sub_lonlat
 
-    @shape_cache
-    def _get_solar_zenith_angle(self, ds):
-        """Get solar zenith angle for the given dataset.
+    def _interp_angles(self, angles, name):
+        """Get angle dataset.
 
-        Files provide solar zenith angle, but at a coarser resolution.
-        Interpolate to the resolution of the given dataset.
+        Files provide angles (solar/satellite zenith & azimuth) at a coarser
+        resolution. Interpolate them to the desired resolution.
         """
-        return self._interp_tiepoints(self.nc['solar_zenith_angle'],
-                                      ds.coords['x'],
-                                      ds.coords['y'])
+        if name.endswith('_vis'):
+            target_x = self.nc.coords['x']
+            target_y = self.nc.coords['y']
+        else:
+            target_x = self.nc.coords['x_ir_wv']
+            target_y = self.nc.coords['y_ir_wv']
+        return self._interp_angles_cached(
+            angles=angles,
+            nc_key=self.nc_keys[name],
+            target_x=target_x,
+            target_y=target_y
+        )
+
+    @interp_cache(
+        keys=('nc_key', 'target_x', 'target_y'),
+        hash_funcs={
+            'nc_key': lambda nc_key: nc_key,
+            'target_x': lambda x: x.size,
+            'target_y': lambda y: y.size
+        }
+    )
+    def _interp_angles_cached(self, angles, nc_key, target_x, target_y):
+        """Interpolate angles to the given resolution."""
+        return self._interp_tiepoints(angles,
+                                      target_x,
+                                      target_y)
 
     def _interp_tiepoints(self, ds, target_x, target_y):
         """Interpolate dataset between tiepoints.
@@ -468,19 +528,14 @@ class FiduceoMviriBase(BaseFileHandler):
             target_y:
                 Target y coordinates
         """
-        if 'x_tie' not in ds.dims:
-            raise ValueError('Dataset has no tiepoints to be interpolated.')
-
         # No tiepoint coordinates specified in the files. Use dimensions
         # to calculate tiepoint sampling and assign tiepoint coordinates
         # accordingly.
-        sampling = target_x.size // ds.coords['x_tie'].size
-        ds = ds.assign_coords(x_tie=target_x.values[::sampling],
-                              y_tie=target_y.values[::sampling])
+        sampling = target_x.size // ds.coords['x'].size
+        ds = ds.assign_coords(x=target_x.values[::sampling],
+                              y=target_y.values[::sampling])
 
-        ds_interp = ds.interp(x_tie=target_x.values,
-                              y_tie=target_y.values)
-        return ds_interp.rename({'x_tie': 'x', 'y_tie': 'y'})
+        return ds.interp(x=target_x.values, y=target_y.values)
 
 
 class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
@@ -550,8 +605,9 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
 
         Reference: [PUG], equation (6).
         """
-
-        sza = self._get_solar_zenith_angle(rad)
+        sza = self.get_dataset(
+            make_dataid(name='solar_zenith_angle_vis'), info={}
+        )
         sza = sza.where(da.fabs(sza) < 90)  # direct illumination only
         cos_sza = np.cos(np.deg2rad(sza))
         refl = (
