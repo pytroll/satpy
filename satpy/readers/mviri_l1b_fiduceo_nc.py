@@ -368,12 +368,10 @@ class FiduceoMviriBase(BaseFileHandler):
 
         Reference: [PUG], equations (4.1) and (4.2).
         """
-        if channel == 'WV':
-            a, b = self.nc['a_wv'], self.nc['b_wv']
-        else:
-            a, b = self.nc['a_ir'], self.nc['b_ir']
-        a = np.float32(a)
-        b = np.float32(b)
+        nc_key_a = self.nc_keys_coefs[channel]['radiance']['a']
+        nc_key_b = self.nc_keys_coefs[channel]['radiance']['b']
+        a = np.float32(self.nc[nc_key_a])
+        b = np.float32(self.nc[nc_key_b])
         rad = a + b * counts
         return rad.where(rad > 0, np.float32(np.nan))
 
@@ -382,12 +380,10 @@ class FiduceoMviriBase(BaseFileHandler):
 
         Reference: [PUG], equations (5.1) and (5.2).
         """
-        if channel == 'WV':
-            a, b = self.nc['bt_a_wv'], self.nc['bt_b_wv']
-        else:
-            a, b = self.nc['bt_a_ir'], self.nc['bt_b_ir']
-        a = np.float32(a)
-        b = np.float32(b)
+        nc_key_a = self.nc_keys_coefs[channel]['brightness_temperature']['a']
+        nc_key_b = self.nc_keys_coefs[channel]['brightness_temperature']['b']
+        a = np.float32(self.nc[nc_key_a])
+        b = np.float32(self.nc[nc_key_b])
         bt = b / (np.log(rad) - a)
         return bt.where(bt > 0, np.float32(np.nan))
 
