@@ -58,10 +58,13 @@ acq_time_vis_exp = [np.datetime64('1970-01-01 00:30'),
                     np.datetime64('1970-01-01 02:30'),
                     np.datetime64('1970-01-01 02:30')]
 vis_counts_exp = xr.DataArray(
-    [[0., 17., 34., 51.],
-     [68., 85., 102., 119.],
-     [136., 153., np.nan, 187.],
-     [204., 221., 238., 255]],
+    np.array(
+        [[0., 17., 34., 51.],
+         [68., 85., 102., 119.],
+         [136., 153., np.nan, 187.],
+         [204., 221., 238., 255]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2, 3, 4],
@@ -71,10 +74,13 @@ vis_counts_exp = xr.DataArray(
     attrs=attrs_exp
 )
 vis_rad_exp = xr.DataArray(
-    [[np.nan, 18.56, 38.28, 58.],
-     [77.72, 97.44, 117.16, 136.88],
-     [156.6, 176.32, np.nan, 215.76],
-     [235.48, 255.2, 274.92, 294.64]],
+    np.array(
+        [[np.nan, 18.56, 38.28, 58.],
+         [77.72, 97.44, 117.16, 136.88],
+         [156.6, 176.32, np.nan, 215.76],
+         [235.48, 255.2, 274.92, 294.64]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2, 3, 4],
@@ -84,10 +90,13 @@ vis_rad_exp = xr.DataArray(
     attrs=attrs_exp
 )
 vis_refl_exp = xr.DataArray(
-    [[np.nan, 23.440929, np.nan, np.nan],
-     [40.658744, 66.602233, 147.970867, np.nan],
-     [75.688217, 92.240733, np.nan, np.nan],
-     [np.nan, np.nan, np.nan, np.nan]],
+    np.array(
+        [[np.nan, 23.440929, np.nan, np.nan],
+         [40.658744, 66.602233, 147.970867, np.nan],
+         [75.688217, 92.240733, np.nan, np.nan],
+         [np.nan, np.nan, np.nan, np.nan]],
+        dtype=np.float32
+    ),
     # (0, 0) and (2, 2) are NaN because radiance is NaN
     # (0, 2) is NaN because SZA >= 90 degrees
     # Last row/col is NaN due to SZA interpolation
@@ -102,8 +111,11 @@ vis_refl_exp = xr.DataArray(
 acq_time_ir_wv_exp = [np.datetime64('1970-01-01 00:30'),
                       np.datetime64('1970-01-01 02:30')]
 wv_counts_exp = xr.DataArray(
-    [[0, 85],
-     [170, 255]],
+    np.array(
+        [[0, 85],
+         [170, 255]],
+        dtype=np.uint8
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2],
@@ -113,8 +125,11 @@ wv_counts_exp = xr.DataArray(
     attrs=attrs_exp
 )
 wv_rad_exp = xr.DataArray(
-    [[np.nan, 3.75],
-     [8, 12.25]],
+    np.array(
+        [[np.nan, 3.75],
+         [8, 12.25]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2],
@@ -124,8 +139,11 @@ wv_rad_exp = xr.DataArray(
     attrs=attrs_exp
 )
 wv_bt_exp = xr.DataArray(
-    [[np.nan, 230.461366],
-     [252.507448, 266.863289]],
+    np.array(
+        [[np.nan, 230.461366],
+         [252.507448, 266.863289]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2],
@@ -135,8 +153,11 @@ wv_bt_exp = xr.DataArray(
     attrs=attrs_exp
 )
 ir_counts_exp = xr.DataArray(
-    [[0, 85],
-     [170, 255]],
+    np.array(
+        [[0, 85],
+         [170, 255]],
+        dtype=np.uint8
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2],
@@ -146,8 +167,11 @@ ir_counts_exp = xr.DataArray(
     attrs=attrs_exp
 )
 ir_rad_exp = xr.DataArray(
-    [[np.nan, 80],
-     [165, 250]],
+    np.array(
+        [[np.nan, 80],
+         [165, 250]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2],
@@ -157,8 +181,11 @@ ir_rad_exp = xr.DataArray(
     attrs=attrs_exp
 )
 ir_bt_exp = xr.DataArray(
-    [[np.nan, 178.00013189],
-     [204.32955838, 223.28709913]],
+    np.array(
+        [[np.nan, 178.00013189],
+         [204.32955838, 223.28709913]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2],
@@ -168,10 +195,13 @@ ir_bt_exp = xr.DataArray(
     attrs=attrs_exp
 )
 quality_pixel_bitmask_exp = xr.DataArray(
-    [[2, 0, 0, 0],
-     [0, 0, 0, 0],
-     [0, 0, 1, 0],
-     [0, 0, 0, 0]],
+    np.array(
+        [[2, 0, 0, 0],
+         [0, 0, 0, 0],
+         [0, 0, 1, 0],
+         [0, 0, 0, 0]],
+        dtype=np.uint8
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2, 3, 4],
@@ -180,10 +210,13 @@ quality_pixel_bitmask_exp = xr.DataArray(
     attrs=attrs_exp
 )
 sza_vis_exp = xr.DataArray(
-    [[45., 67.5, 90., np.nan],
-     [22.5, 45., 67.5, np.nan],
-     [0., 22.5, 45., np.nan],
-     [np.nan, np.nan, np.nan, np.nan]],
+    np.array(
+        [[45., 67.5, 90., np.nan],
+         [22.5, 45., 67.5, np.nan],
+         [0., 22.5, 45., np.nan],
+         [np.nan, np.nan, np.nan, np.nan]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2, 3, 4],
@@ -192,8 +225,11 @@ sza_vis_exp = xr.DataArray(
     attrs=attrs_exp
 )
 sza_ir_wv_exp = xr.DataArray(
-    [[45, 90],
-     [0, 45]],
+    np.array(
+        [[45, 90],
+         [0, 45]],
+        dtype=np.float32
+    ),
     dims=('y', 'x'),
     coords={
         'y': [1, 2],
@@ -227,18 +263,24 @@ area_ir_wv_exp = area_vis_exp.copy(
 @pytest.fixture()
 def fake_dataset():
     """Create fake dataset."""
-    count_ir = da.linspace(0, 255, 4, dtype=np.float32).reshape(2, 2)
-    count_wv = da.linspace(0, 255, 4, dtype=np.float32).reshape(2, 2)
-    count_vis = da.linspace(0, 255, 16, dtype=np.float32).reshape(4, 4)
+    count_ir = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
+    count_wv = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
+    count_vis = da.linspace(0, 255, 16, dtype=np.uint8).reshape(4, 4)
     sza = da.from_array(
-        [[45, 90],
-         [0, 45]]
-    ).astype(np.float32)
+        np.array(
+            [[45, 90],
+             [0, 45]],
+            dtype=np.float32
+        )
+    )
     mask = da.from_array(
-        [[2, 0, 0, 0],  # 2 = "use with caution"
-         [0, 0, 0, 0],
-         [0, 0, 1, 0],  # 1 = "invalid"
-         [0, 0, 0, 0]]
+        np.array(
+            [[2, 0, 0, 0],  # 2 = "use with caution"
+             [0, 0, 0, 0],
+             [0, 0, 1, 0],  # 1 = "invalid"
+             [0, 0, 0, 0]],
+            dtype=np.uint8
+        )
     )
     time = np.arange(4).astype('datetime64[h]').reshape(2, 2)
     ds = xr.Dataset(
@@ -356,6 +398,7 @@ class TestFiduceoMviriFileHandlers:
         else:
             ds = file_handler.get_dataset(dataset_id, dataset_info)
             xr.testing.assert_allclose(ds, expected)
+            assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
 
     def test_time_cache(self, file_handler):

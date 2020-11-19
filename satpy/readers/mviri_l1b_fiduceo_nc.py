@@ -372,8 +372,10 @@ class FiduceoMviriBase(BaseFileHandler):
             a, b = self.nc['a_wv'], self.nc['b_wv']
         else:
             a, b = self.nc['a_ir'], self.nc['b_ir']
+        a = np.float32(a)
+        b = np.float32(b)
         rad = a + b * counts
-        return rad.where(rad > 0)
+        return rad.where(rad > 0, np.float32(np.nan))
 
     def _ir_wv_radiance_to_brightness_temperature(self, rad, channel):
         """Convert IR/WV radiance to brightness temperature.
@@ -384,8 +386,10 @@ class FiduceoMviriBase(BaseFileHandler):
             a, b = self.nc['bt_a_wv'], self.nc['bt_b_wv']
         else:
             a, b = self.nc['bt_a_ir'], self.nc['bt_b_ir']
+        a = np.float32(a)
+        b = np.float32(b)
         bt = b / (np.log(rad) - a)
-        return bt.where(bt > 0)
+        return bt.where(bt > 0, np.float32(np.nan))
 
     def _mask_vis(self, ds):
         """Mask VIS pixels with bad quality.
@@ -396,7 +400,8 @@ class FiduceoMviriBase(BaseFileHandler):
         the VIS channel.
         """
         mask = self.nc['quality_pixel_bitmask']
-        return ds.where(np.logical_or(mask == 0, mask == 2))
+        return ds.where(np.logical_or(mask == 0, mask == 2),
+                        np.float32(np.nan))
 
     def _get_acq_time(self, ds):
         """Get scanline acquisition time for the given dataset.
@@ -603,9 +608,10 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
         a_cf = (self.nc['a0_vis'] +
                 self.nc['a1_vis'] * years_since_launch +
                 self.nc['a2_vis'] * years_since_launch ** 2)
-
-        rad = (counts - self.nc['mean_count_space_vis']) * a_cf
-        return rad.where(rad > 0)
+        mean_count_space_vis = np.float32(self.nc['mean_count_space_vis'])
+        a_cf = np.float32(a_cf)
+        rad = (counts - mean_count_space_vis) * a_cf
+        return rad.where(rad > 0, np.float32(np.nan))
 
     def _vis_radiance_to_reflectance(self, rad):
         """Convert VIS radiance to reflectance factor.
@@ -621,11 +627,14 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
                       resolution=HIGH_RESOL),
             dataset_info={}
         )
-        sza = sza.where(da.fabs(sza) < 90)  # direct illumination only
+        sza = sza.where(da.fabs(sza) < 90,
+                        np.float32(np.nan))  # direct illumination only
         cos_sza = np.cos(np.deg2rad(sza))
+        distance_sun_earth2 = np.float32(self.nc['distance_sun_earth'] ** 2)
+        solar_irradiance_vis = np.float32(self.nc['solar_irradiance_vis'])
         refl = (
-           (np.pi * self.nc['distance_sun_earth'] ** 2) /
-           (self.nc['solar_irradiance_vis'] * cos_sza) *
+           (np.pi * distance_sun_earth2) /
+           (solar_irradiance_vis * cos_sza) *
            rad
         )
         refl = refl * 100  # conversion to percent
