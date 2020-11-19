@@ -139,7 +139,7 @@ datasets:
     standard_name: solar_zenith_angle
     long_name: "Solar zenith angle IR/WV channels"
     units: degree
-    resolution: 2250
+    resolution: 4500
     file_type: [nc_easy, nc_full]
 
   solar_azimuth_angle_ir_wv:
@@ -147,7 +147,7 @@ datasets:
     standard_name: solar_azimuth_angle
     long_name: "Solar azimuth angle IR/WV channels"
     units: degree
-    resolution: 2250
+    resolution: 4500
     file_type: [nc_easy, nc_full]
 
   satellite_zenith_angle_ir_wv:
@@ -155,7 +155,7 @@ datasets:
     standard_name: sensor_zenith_angle
     long_name: "Satellite zenith angle IR/WV channels"
     units: degree
-    resolution: 2250
+    resolution: 4500
     file_type: [nc_easy, nc_full]
 
   satellite_azimuth_angle_ir_wv:
@@ -163,5 +163,5 @@ datasets:
     standard_name: sensor_azimuth_angle
     long_name: "Satellite azimuth angle IR/WV channels"
     units: degree
-    resolution: 2250
+    resolution: 4500
     file_type: [nc_easy, nc_full]
