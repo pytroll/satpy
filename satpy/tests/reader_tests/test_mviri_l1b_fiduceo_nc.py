@@ -23,10 +23,15 @@ import pytest
 from unittest import mock
 import xarray as xr
 
+from pyresample.geometry import AreaDefinition
+from pyresample.utils import proj4_radius_parameters
 from satpy.tests.utils import make_dataid
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     FiduceoMviriEasyFcdrFileHandler,
-    FiduceoMviriFullFcdrFileHandler
+    FiduceoMviriFullFcdrFileHandler,
+    POLE_RADIUS,
+    EQUATOR_RADIUS,
+    ALTITUDE
 )
 
 
@@ -48,10 +53,10 @@ attrs_refl_exp.update(
     {'sun_earth_distance_correction_applied': True,
      'sun_earth_distance_correction_factor': 1.}
 )
-acq_time_hires_exp = [np.datetime64('1970-01-01 00:30'),
-                      np.datetime64('1970-01-01 00:30'),
-                      np.datetime64('1970-01-01 02:30'),
-                      np.datetime64('1970-01-01 02:30')]
+acq_time_vis_exp = [np.datetime64('1970-01-01 00:30'),
+                    np.datetime64('1970-01-01 00:30'),
+                    np.datetime64('1970-01-01 02:30'),
+                    np.datetime64('1970-01-01 02:30')]
 vis_counts_exp = xr.DataArray(
     [[0., 17., 34., 51.],
      [68., 85., 102., 119.],
@@ -61,7 +66,7 @@ vis_counts_exp = xr.DataArray(
     coords={
         'y': [1, 2, 3, 4],
         'x': [1, 2, 3, 4],
-        'acq_time': ('y', acq_time_hires_exp),
+        'acq_time': ('y', acq_time_vis_exp),
     },
     attrs=attrs_exp
 )
@@ -74,7 +79,7 @@ vis_rad_exp = xr.DataArray(
     coords={
         'y': [1, 2, 3, 4],
         'x': [1, 2, 3, 4],
-        'acq_time': ('y', acq_time_hires_exp),
+        'acq_time': ('y', acq_time_vis_exp),
     },
     attrs=attrs_exp
 )
@@ -90,11 +95,11 @@ vis_refl_exp = xr.DataArray(
     coords={
         'y': [1, 2, 3, 4],
         'x': [1, 2, 3, 4],
-        'acq_time': ('y', acq_time_hires_exp),
+        'acq_time': ('y', acq_time_vis_exp),
     },
     attrs=attrs_refl_exp
 )
-acq_time_lores_exp = [np.datetime64('1970-01-01 00:30'),
+acq_time_ir_wv_exp = [np.datetime64('1970-01-01 00:30'),
                       np.datetime64('1970-01-01 02:30')]
 wv_counts_exp = xr.DataArray(
     [[0, 85],
@@ -103,7 +108,7 @@ wv_counts_exp = xr.DataArray(
     coords={
         'y': [1, 2],
         'x': [1, 2],
-        'acq_time': ('y', acq_time_lores_exp),
+        'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
 )
@@ -114,7 +119,7 @@ wv_rad_exp = xr.DataArray(
     coords={
         'y': [1, 2],
         'x': [1, 2],
-        'acq_time': ('y', acq_time_lores_exp),
+        'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
 )
@@ -125,7 +130,7 @@ wv_bt_exp = xr.DataArray(
     coords={
         'y': [1, 2],
         'x': [1, 2],
-        'acq_time': ('y', acq_time_lores_exp),
+        'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
 )
@@ -136,7 +141,7 @@ ir_counts_exp = xr.DataArray(
     coords={
         'y': [1, 2],
         'x': [1, 2],
-        'acq_time': ('y', acq_time_lores_exp),
+        'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
 )
@@ -147,7 +152,7 @@ ir_rad_exp = xr.DataArray(
     coords={
         'y': [1, 2],
         'x': [1, 2],
-        'acq_time': ('y', acq_time_lores_exp),
+        'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
 )
@@ -158,7 +163,7 @@ ir_bt_exp = xr.DataArray(
     coords={
         'y': [1, 2],
         'x': [1, 2],
-        'acq_time': ('y', acq_time_lores_exp),
+        'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
 )
@@ -195,6 +200,27 @@ sza_ir_wv_exp = xr.DataArray(
         'x': [1, 2],
     },
     attrs=attrs_exp
+)
+area_vis_exp = AreaDefinition(
+    area_id='geos_mviri_vis',
+    proj_id='geos_mviri_vis',
+    description='MVIRI Geostationary Projection',
+    projection={
+        'proj': 'geos',
+        'lon_0': 57.0,
+        'h': ALTITUDE,
+        'a': EQUATOR_RADIUS,
+        'b': POLE_RADIUS
+    },
+    width=5000,
+    height=5000,
+    area_extent=[5621229.74392, 5621229.74392, -5621229.74392, -5621229.74392]
+)
+area_ir_wv_exp = area_vis_exp.copy(
+    area_id='geos_mviri_ir_wv',
+    proj_id='geos_mviri_ir_wv',
+    width=2500,
+    height=2500
 )
 
 
@@ -295,29 +321,30 @@ class TestFiduceoMviriFileHandlers:
         assert file_handler.mask_bad_quality is True
 
     @pytest.mark.parametrize(
-        ('name', 'calibration', 'expected'),
+        ('name', 'calibration', 'resolution', 'expected'),
         [
-            ('VIS', 'counts', vis_counts_exp),
-            ('VIS', 'radiance', vis_rad_exp),
-            ('VIS', 'reflectance', vis_refl_exp),
-            ('WV', 'counts', wv_counts_exp),
-            ('WV', 'radiance', wv_rad_exp),
-            ('WV', 'brightness_temperature', wv_bt_exp),
-            ('IR', 'counts', ir_counts_exp),
-            ('IR', 'radiance', ir_rad_exp),
-            ('IR', 'brightness_temperature', ir_bt_exp),
-            ('quality_pixel_bitmask', None, quality_pixel_bitmask_exp),
-            ('solar_zenith_angle_vis', None, sza_vis_exp),
-            ('solar_zenith_angle_ir_wv', None, sza_ir_wv_exp)
+            ('VIS', 'counts', 2250, vis_counts_exp),
+            ('VIS', 'radiance', 2250, vis_rad_exp),
+            ('VIS', 'reflectance', 2250, vis_refl_exp),
+            ('WV', 'counts', 4500, wv_counts_exp),
+            ('WV', 'radiance', 4500, wv_rad_exp),
+            ('WV', 'brightness_temperature', 4500, wv_bt_exp),
+            ('IR', 'counts', 4500, ir_counts_exp),
+            ('IR', 'radiance', 4500, ir_rad_exp),
+            ('IR', 'brightness_temperature', 4500, ir_bt_exp),
+            ('quality_pixel_bitmask', None, 2250, quality_pixel_bitmask_exp),
+            ('solar_zenith_angle_vis', None, 2250, sza_vis_exp),
+            ('solar_zenith_angle_ir_wv', None, 4500, sza_ir_wv_exp)
         ]
     )
-    def test_get_dataset(self, file_handler, name, calibration, expected):
+    def test_get_dataset(self, file_handler, name, calibration, resolution,
+                         expected):
         """Test getting datasets."""
-        id_keys = {'name': name}
+        id_keys = {'name': name, 'resolution': resolution}
         if calibration:
             id_keys['calibration'] = calibration
-        data_id = make_dataid(**id_keys)
-        info = {'platform': 'MET7'}
+        dataset_id = make_dataid(**id_keys)
+        dataset_info = {'platform': 'MET7'}
 
         is_easy = isinstance(file_handler, FiduceoMviriEasyFcdrFileHandler)
         is_vis = name == 'VIS'
@@ -325,9 +352,9 @@ class TestFiduceoMviriFileHandlers:
         if is_easy and is_vis and not is_refl:
             # VIS counts/radiance not available in easy FCDR
             with pytest.raises(ValueError):
-                file_handler.get_dataset(data_id, info)
+                file_handler.get_dataset(dataset_id, dataset_info)
         else:
-            ds = file_handler.get_dataset(data_id, info)
+            ds = file_handler.get_dataset(dataset_id, dataset_info)
             xr.testing.assert_allclose(ds, expected)
             assert ds.attrs == expected.attrs
 
@@ -390,3 +417,27 @@ class TestFiduceoMviriFileHandlers:
         )
         with pytest.raises(AssertionError):
             xr.testing.assert_equal(sza3, sza1)
+
+    @pytest.mark.parametrize(
+        ('name', 'resolution', 'area_exp'),
+        [
+            ('VIS', 2250, area_vis_exp),
+            ('WV', 4500, area_ir_wv_exp),
+            ('IR', 4500, area_ir_wv_exp),
+            ('quality_pixel_bitmask', 4500, area_vis_exp),
+            ('solar_zenith_angle_vis', 4500, area_vis_exp),
+            ('solar_zenith_angle_ir_wv', 2250, area_ir_wv_exp)
+        ]
+    )
+    def test_get_area_definition(self, file_handler, name, resolution,
+                                 area_exp):
+        """Test getting area definitions."""
+        dataset_id = make_dataid(name=name, resolution=resolution)
+        area = file_handler.get_area_def(dataset_id)
+        a, b = proj4_radius_parameters(area.proj_dict)
+        a_exp, b_exp = proj4_radius_parameters(area_exp.proj_dict)
+        assert a == a_exp
+        assert b == b_exp
+        for key in ['h', 'lon_0', 'proj', 'units']:
+            assert area.proj_dict[key] == area_exp.proj_dict[key]
+        np.testing.assert_allclose(area.area_extent, area_exp.area_extent)
