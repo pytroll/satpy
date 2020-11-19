@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2018 Satpy developers
+# Copyright (c) 2010-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI HRIT format reader
-============================
+r"""SEVIRI HRIT format reader.
 
 Introduction
 ------------
@@ -42,15 +41,15 @@ Each image is decomposed into 24 segments (files) for the high-resolution-visibl
 visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
 which contain global metadata valid for all channels.
 
-Arguments
----------
+Reader Arguments
+----------------
 Some arguments can be provided to the reader to change it's behaviour. These are
 provided through the `Scene` instantiation, eg::
 
   Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
 
 To see the full list of arguments that can be provided, look into the documentation
-of `:class:HRITMSGFileHandler`.
+of :class:`HRITMSGFileHandler`.
 
 Example
 -------
@@ -120,16 +119,32 @@ Output:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
+Notes:
+    When loading solar channels, this reader applies a correction for the
+    Sun-Earth distance variation throughout the year - as recommended by
+    the EUMETSAT document:
+        'Conversion from radiances to reflectances for SEVIRI warm channels'
+    In the unlikely situation that this correction is not required, it can be
+    removed on a per-channel basis using the
+    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
+    function.
+
 
 References:
     - `MSG Level 1.5 Image Format Description`_
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
+    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
+
 
 .. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
     PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+.. _Conversion from radiances to reflectances for SEVIRI warm channels:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
     RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 """
@@ -157,6 +172,8 @@ from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
                                        chebyshev, get_cds_time)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
+from satpy.readers._geos_area import get_area_extent, get_area_definition
+
 
 logger = logging.getLogger('hrit_msg')
 
@@ -219,10 +236,10 @@ class NoValidOrbitParams(Exception):
 
 
 class HRITMSGPrologueEpilogueBase(HRITFileHandler):
-    """Base reader for *logue files."""
+    """Base reader for prologue and epilogue files."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
-        """Initialize the *logue readers."""
+        """Initialize the file handler for prologue and epilogue files."""
         super(HRITMSGPrologueEpilogueBase, self).__init__(filename, filename_info, filetype_info, hdr_info)
         self._reduced = None
 
@@ -308,7 +325,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         """
         orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
 
-        # Find Chebyshev coefficients for the given time
+        # Find Chebyshev coefficients for the start time of the scan
         coef_idx = self._find_orbit_coefs()
         tstart = orbit_polynomial['StartTime'][0, coef_idx]
         tend = orbit_polynomial['EndTime'][0, coef_idx]
@@ -326,11 +343,19 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         return x*1000, y*1000, z*1000  # km -> m
 
     def _find_orbit_coefs(self):
-        """Find orbit coefficients for the current time.
+        """Find orbit coefficients for the start time of the scan.
 
-        The orbital Chebyshev coefficients are only valid for a certain time interval. The header entry
-        SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
-        coefficients which are valid for the nominal timestamp of the scan.
+        The header entry SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients, each
+        of them valid for a certain time interval. Find the coefficients which are valid for the
+        start time of the scan.
+
+        A manoeuvre is a discontinuity in the orbit parameters. The flight dynamic algorithms are
+        not made to interpolate over the time-span of the manoeuvre; hence we have elements
+        describing the orbit before a manoeuvre and a new set of elements describing the orbit after
+        the manoeuvre. The flight dynamic products are created so that there is an intentional gap
+        at the time of the manoeuvre. Also the two pre-manoeuvre elements may overlap. But the
+        overlap is not of an issue as both sets of elements describe the same pre-manoeuvre orbit
+        (with negligible variations).
 
         Returns: Corresponding index in the coefficient list.
 
@@ -554,19 +579,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
 
-    def get_xy_from_linecol(self, line, col, offsets, factors):
-        """Get the intermediate coordinates from line & col.
-
-        Intermediate coordinates are actually the instruments scanning angles.
-        """
-        loff, coff = offsets
-        lfac, cfac = factors
-        x__ = (col - coff) / (cfac / 2**16)
-        y__ = - (line - loff) / (lfac / 2**16)
-
-        return x__, y__
-
-    def get_area_extent(self, size, offsets, factors, platform_height):
+    def _get_area_extent(self, pdict):
         """Get the area extent of the file.
 
         Until December 2017, the data is shifted by 1.5km SSP North and West against the nominal GEOS projection. Since
@@ -577,23 +590,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
         SEVIRI-georeferencing-offset-correction>`_.
         """
-        nlines, ncols = size
-        h = platform_height
-
-        loff, coff = offsets
-        loff -= nlines
-        offsets = loff, coff
-        # count starts at 1
-        cols = 1 - 0.5
-        lines = 0.5 - 1
-        ll_x, ll_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
-
-        cols += ncols
-        lines += nlines
-        ur_x, ur_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
-
-        aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-               np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+        aex = get_area_extent(pdict)
 
         if not self.mda['offset_corrected']:
             # Geo-referencing offset present. Adjust area extent to match the shifted data. Note that we have to adjust
@@ -611,76 +608,77 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-        if dsid.name != 'HRV':
-            return super(HRITMSGFileHandler, self).get_area_def(dsid)
-
-        cfac = np.int32(self.mda['cfac'])
-        lfac = np.int32(self.mda['lfac'])
-        loff = np.float32(self.mda['loff'])
-
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
+        # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
+        loff = np.float32(self.mda['loff'])
+        pdict = {}
+        pdict['cfac'] = np.int32(self.mda['cfac'])
+        pdict['lfac'] = np.int32(self.mda['lfac'])
+        pdict['coff'] = np.float32(self.mda['coff'])
+
+        pdict['a'] = self.mda['projection_parameters']['a']
+        pdict['b'] = self.mda['projection_parameters']['b']
+        pdict['h'] = self.mda['projection_parameters']['h']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['SSP_longitude']
+
+        pdict['nlines'] = nlines
+        pdict['ncols'] = int(self.mda['number_of_columns'])
+        if (self.prologue['ImageDescription']['Level15ImageProduction']
+                         ['ImageProcDirection'] == 0):
+            pdict['scandir'] = 'N2S'
+        else:
+            pdict['scandir'] = 'S2N'
+
+        # Compute area definition for non-HRV channels:
+        if dsid['name'] != 'HRV':
+            pdict['loff'] = loff - nlines
+            aex = self._get_area_extent(pdict)
+            pdict['a_name'] = 'geosmsg'
+            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
+            pdict['p_id'] = 'msg_lowres'
+            area = get_area_definition(pdict, aex)
+            self.area = area
+            return self.area
 
         segment_number = self.mda['segment_sequence_number']
 
-        current_first_line = (segment_number
-                              - self.mda['planned_start_segment_number']) * nlines
+        current_first_line = ((segment_number -
+                               self.mda['planned_start_segment_number'])
+                              * pdict['nlines'])
+
+        # Or, if we are processing HRV:
+        pdict['a_name'] = 'geosmsg_hrv'
+        pdict['p_id'] = 'msg_hires'
         bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
         if self.fill_hrv:
             bounds['UpperEastColumnActual'] = 1
             bounds['UpperWestColumnActual'] = 11136
             bounds['LowerEastColumnActual'] = 1
             bounds['LowerWestColumnActual'] = 11136
-            ncols = 11136
+            pdict['ncols'] = 11136
 
         upper_south_line = bounds[
             'LowerNorthLineActual'] - current_first_line - 1
-        upper_south_line = min(max(upper_south_line, 0), nlines)
-
+        upper_south_line = min(max(upper_south_line, 0), pdict['nlines'])
         lower_coff = (5566 - bounds['LowerEastColumnActual'] + 1)
         upper_coff = (5566 - bounds['UpperEastColumnActual'] + 1)
 
-        lower_area_extent = self.get_area_extent((upper_south_line, ncols),
-                                                 (loff, lower_coff),
-                                                 (lfac, cfac),
-                                                 h)
+        # First we look at the lower window
+        pdict['nlines'] = upper_south_line
+        pdict['loff'] = loff - upper_south_line
+        pdict['coff'] = lower_coff
+        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, lower window'
+        lower_area_extent = self._get_area_extent(pdict)
+        lower_area = get_area_definition(pdict, lower_area_extent)
 
-        upper_area_extent = self.get_area_extent((nlines - upper_south_line,
-                                                  ncols),
-                                                 (loff - upper_south_line,
-                                                  upper_coff),
-                                                 (lfac, cfac),
-                                                 h)
+        # Now the upper window
+        pdict['nlines'] = nlines - upper_south_line
+        pdict['loff'] = loff - pdict['nlines'] - upper_south_line
+        pdict['coff'] = upper_coff
+        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, upper window'
+        upper_area_extent = self._get_area_extent(pdict)
+        upper_area = get_area_definition(pdict, upper_area_extent)
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
-
-        lower_area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            upper_south_line,
-            lower_area_extent)
-
-        upper_area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines - upper_south_line,
-            upper_area_extent)
         area = geometry.StackedAreaDefinition(lower_area, upper_area)
 
         self.area = area.squeeze()
@@ -689,8 +687,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, key, info):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
-        res = self.calibrate(res, key.calibration)
-        if key.name == 'HRV' and self.fill_hrv:
+        res = self.calibrate(res, key['calibration'])
+        if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
 
         res.attrs['units'] = info['units']
@@ -712,8 +710,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['raw_metadata'] = self._get_raw_mda()
 
         # Add scanline timestamps as additional y-coordinate
-        res['acq_time'] = ('y', self._get_timestamps())
-        res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+        res.coords['acq_time'] = ('y', self._get_timestamps())
+        res.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
 
         return res
 
@@ -769,7 +767,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             else:
                 coefs = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
                 int_gain = coefs['GSICSCalCoeff'][band_idx]
-                int_offset = coefs['GSICSOffsetCount'][band_idx]
+                int_offset = coefs['GSICSOffsetCount'][band_idx] * int_gain
 
             # b) Internal or external? External takes precedence.
             gain = self.ext_calib_coefs.get(self.channel_name, {}).get('gain', int_gain)

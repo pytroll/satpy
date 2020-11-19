@@ -10,8 +10,9 @@ file_types:
     file_patterns: ['h03_{sensing_time:%Y%m%d_%H%M}_{region:3s}.grb',
                     'h05_{sensing_time:%Y%m%d_%H%M}_{accum_time:2s}_{region:3s}.grb',
                     'h03B_{sensing_time:%Y%m%d_%H%M}_{region:3s}.grb',
-                    'h05B_{sensing_time:%Y%m%d_%H%M}_{accum_time:2s}_{region:3s}.grb']
-
+                    'S-HSAF-h03B_{sensing_time:%Y%m%d_%H%M}_{region:3s}.grb',
+                    'h05B_{sensing_time:%Y%m%d_%H%M}_{accum_time:2s}_{region:3s}.grb',
+                    'S-HSAF-h05B_{sensing_time:%Y%m%d_%H%M}_{accum_time:2s}_{region:3s}.grb']
 datasets:
   h03:
     name: h03

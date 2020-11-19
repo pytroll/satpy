@@ -15,20 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the geotiff writer.
-"""
-import sys
+"""Tests for the geotiff writer."""
+
+import unittest
+from unittest import mock
 import numpy as np
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class TestGeoTIFFWriter(unittest.TestCase):
@@ -48,7 +39,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
             pass
 
     def _get_test_datasets(self):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -142,10 +133,14 @@ class TestGeoTIFFWriter(unittest.TestCase):
             called_tags = save_method.call_args[1]['tags']
             self.assertDictEqual(called_tags, {'test1': 1, 'test2': 2})
 
-
-def suite():
-    """The test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGeoTIFFWriter))
-    return mysuite
+    def test_scale_offset(self):
+        """Test tags being added."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
+            called_include = save_method.call_args[1]['include_scale_offset_tags']
+            self.assertTrue(called_include)

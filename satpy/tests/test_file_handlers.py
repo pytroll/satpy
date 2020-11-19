@@ -15,16 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""test file handler baseclass.
-"""
+"""test file handler baseclass."""
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import numpy as np
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -149,13 +143,3 @@ class TestBaseFileHandler(unittest.TestCase):
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
-
-
-def suite():
-    """The test suite for test_projector.
-    """
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseFileHandler))
-
-    return my_suite

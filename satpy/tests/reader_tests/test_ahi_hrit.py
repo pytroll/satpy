@@ -15,23 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit msg reader tests package.
-"""
+"""The hrit ahi reader tests package."""
 
-import sys
 import numpy as np
 import dask.array as da
 from xarray import DataArray
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class TestHRITJMAFileHandler(unittest.TestCase):
@@ -46,19 +36,40 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         HRITJMAFileHandler.mda = mda
         return HRITJMAFileHandler('filename', filename_info, {})
 
+    def _get_acq_time(self, nlines):
+        """Get sample header entry for scanline acquisition times.
+
+        Lines: 1, 21, 41, 61, ..., nlines
+        Times: 1970-01-01 00:00 + (1, 21, 41, 61, ..., nlines) seconds
+
+        So the interpolated times are expected to be 1970-01-01 +
+        (1, 2, 3, 4, ..., nlines) seconds. Note that there will be some
+        floating point inaccuracies, because timestamps are stored
+        with only 6 decimals precision.
+        """
+        mjd_1970 = 40587.0
+        lines_sparse = np.array(list(range(1, nlines, 20)) + [nlines])
+        times_sparse = mjd_1970 + lines_sparse / 24 / 3600
+        acq_time_s = ['LINE:={}\rTIME:={:.6f}\r'.format(l, t)
+                      for l, t in zip(lines_sparse, times_sparse)]
+        acq_time_b = ''.join(acq_time_s).encode()
+        return acq_time_b
+
     def _get_mda(self, loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
-                 segno=0, numseg=1, vis=True):
-        """Create metadata dict like HRITFileHandler would do it"""
+                 segno=0, numseg=1, vis=True, platform='Himawari-8'):
+        """Create metadata dict like HRITFileHandler would do it."""
         if vis:
             idf = b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r' \
                   b'0:=-0.10\r1023:=100.00\r65535:=100.00\r'
         else:
             idf = b'$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r' \
                   b'0:=329.98\r1023:=130.02\r65535:=130.02\r'
-
+        proj_h8 = b'GEOS(140.70)                    '
+        proj_mtsat2 = b'GEOS(145.00)                    '
+        proj_name = proj_h8 if platform == 'Himawari-8' else proj_mtsat2
         return {'image_segm_seq_no': segno,
                 'total_no_image_segm': numseg,
-                'projection_name': b'GEOS(140.70)                    ',
+                'projection_name': proj_name,
                 'projection_parameters': {
                     'a': 6378169.00,
                     'b': 6356583.80,
@@ -70,7 +81,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 'loff': loff,
                 'number_of_columns': ncols,
                 'number_of_lines': nlines,
-                'image_data_function': idf}
+                'image_data_function': idf,
+                'image_observation_time': self._get_acq_time(nlines)}
 
     def test_init(self):
         """Test creating the file handler."""
@@ -97,6 +109,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                  [65535,  100]])
         self.assertTrue(np.all(reader.calibration_table == cal_expected))
 
+        # Check if scanline timestamps are there (dedicated test below)
+        self.assertIsInstance(reader.acq_time, np.ndarray)
+
         # Check platform
         self.assertEqual(reader.platform, HIMAWARI8)
 
@@ -120,7 +135,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.hrit_jma.HRITJMAFileHandler.__init__')
     def test_get_platform(self, mocked_init):
-        """Test platform identification"""
+        """Test platform identification."""
         from satpy.readers.hrit_jma import HRITJMAFileHandler
         from satpy.readers.hrit_jma import PLATFORMS, UNKNOWN_PLATFORM
 
@@ -138,7 +153,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting an AreaDefinition."""
-        from satpy.readers.hrit_jma import FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS
+        from satpy.readers.hrit_jma import (FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS,
+                                            AREA_NAMES)
 
         cases = [
             # Non-segmented, full disk
@@ -183,27 +199,29 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                 segno=case['segno'], numseg=case['numseg'])
             reader = self._get_reader(mda=mda,
                                       filename_info={'area': case['area']})
-
-            self.assertTupleEqual(reader._get_area_def().area_extent,
-                                  case['extent'])
+            area = reader.get_area_def('some_id')
+            self.assertTupleEqual(area.area_extent, case['extent'])
+            self.assertEqual(area.description, AREA_NAMES[case['area']]['long'])
 
     def test_calibrate(self):
-        """Test calibration"""
+        """Test calibration."""
         # Generate test data
-        counts = DataArray(da.linspace(0, 1200, 25, chunks=5).reshape(5, 5))
+        counts = np.linspace(0, 1200, 25).reshape(5, 5)
+        counts[-1, -1] = 65535
+        counts = DataArray(da.from_array(counts, chunks=5))
         refl = np.array(
-            [[np.nan,        4.79247312,   9.68494624,  14.57741935,  19.46989247],
+            [[-0.1,            4.79247312,   9.68494624,  14.57741935,  19.46989247],
              [24.36236559,  29.25483871,  34.14731183,  39.03978495,  43.93225806],
              [48.82473118,  53.7172043,   58.60967742,  63.50215054,  68.39462366],
              [73.28709677,  78.17956989,  83.07204301,  87.96451613,  92.85698925],
-             [97.74946237,  100.,         100.,         100.,         100.]]
+             [97.74946237,  100.,         100.,         100.,         np.nan]]
         )
         bt = np.array(
-            [[np.nan,       320.20678397, 310.43356794, 300.66035191, 290.88713587],
+            [[329.98,            320.20678397, 310.43356794, 300.66035191, 290.88713587],
              [281.11391984, 271.34070381, 261.56748778, 251.79427175, 242.02105572],
              [232.24783969, 222.47462366, 212.70140762, 202.92819159, 193.15497556],
              [183.38175953, 173.6085435,  163.83532747, 154.06211144, 144.28889541],
-             [134.51567937, 130.02,       130.02,       130.02,       130.02]]
+             [134.51567937, 130.02,       130.02,       130.02,       np.nan]]
         )
 
         # Choose an area near the subsatellite point to avoid masking
@@ -229,7 +247,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         np.testing.assert_allclose(bt, res.values)  # also compares NaN
 
     def test_mask_space(self):
-        """Test masking of space pixels"""
+        """Test masking of space pixels."""
         mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
                             segno=1, numseg=10)
         reader = self._get_reader(mda=mda)
@@ -243,7 +261,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.hrit_jma.HRITFileHandler.get_dataset')
     def test_get_dataset(self, base_get_dataset):
-        """Test getting a dataset"""
+        """Test getting a dataset."""
         from satpy.readers.hrit_jma import HIMAWARI8
 
         mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
@@ -254,7 +272,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         key.calibration = 'reflectance'
 
         base_get_dataset.return_value = DataArray(da.ones((275, 1375),
-                                                          chunks=1024))
+                                                          chunks=1024),
+                                                  dims=('y', 'x'))
 
         # Check attributes
         res = reader.get_dataset(key, {'units': '%', 'sensor': 'ahi'})
@@ -268,6 +287,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                                                'projection_latitude': 0.,
                                                                'projection_altitude': 35785831.0})
 
+        # Check if acquisition time is a coordinate
+        self.assertIn('acq_time', res.coords)
+
         # Check called methods
         with mock.patch.object(reader, '_mask_space') as mask_space:
             with mock.patch.object(reader, 'calibrate') as calibrate:
@@ -279,15 +301,24 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             reader.get_dataset(key, {'units': '%', 'sensor': 'jami'})
             log_mock.assert_called()
 
+    def test_mjd2datetime64(self):
+        """Test conversion from modified julian day to datetime64."""
+        from satpy.readers.hrit_jma import mjd2datetime64
+        self.assertEqual(mjd2datetime64(np.array([0])),
+                         np.datetime64('1858-11-17', 'us'))
+        self.assertEqual(mjd2datetime64(np.array([40587.5])),
+                         np.datetime64('1970-01-01 12:00', 'us'))
 
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITJMAFileHandler))
-    return mysuite
+    def test_get_acq_time(self):
+        """Test computation of scanline acquisition times."""
+        dt_line = np.arange(1, 11000+1).astype('timedelta64[s]')
+        acq_time_exp = np.datetime64('1970-01-01', 'us') + dt_line
 
-
-if __name__ == '__main__':
-    unittest.main()
+        for platform in ['Himawari-8', 'MTSAT-2']:
+            # Results are not exactly identical because timestamps are stored in
+            # the header with only 6 decimals precision (max diff here: 45 msec).
+            mda = self._get_mda(platform=platform)
+            reader = self._get_reader(mda=mda)
+            np.testing.assert_allclose(reader.acq_time.astype(np.int64),
+                                       acq_time_exp.astype(np.int64),
+                                       atol=45000)

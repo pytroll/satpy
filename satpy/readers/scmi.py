@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SCMI NetCDF4 Reader
+"""SCMI NetCDF4 Reader.
 
 SCMI files are typically used for data for the ABI instrument onboard the
 GOES-16/17 satellites. It is the primary format used for providing ABI data
@@ -61,6 +61,7 @@ class SCMIFileHandler(BaseFileHandler):
     """Handle a single SCMI NetCDF4 file."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Set up the SCMI file handler."""
         super(SCMIFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
         # xarray's default netcdf4 engine
@@ -84,10 +85,11 @@ class SCMIFileHandler(BaseFileHandler):
 
     @property
     def sensor_names(self):
+        """Get the sensor names."""
         return [self.sensor]
 
     def __getitem__(self, item):
-        """Wrapper around `self.nc[item]`.
+        """Wrap around `self.nc[item]`.
 
         Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
         variables which causes inaccurate unscaled data values. This method
@@ -112,7 +114,7 @@ class SCMIFileHandler(BaseFileHandler):
         new_coords = {}
         # 'time' dimension causes issues in other processing
         if 'time' in data.coords:
-            del data.coords['time']
+            data = data.drop_vars('time')
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -128,7 +130,7 @@ class SCMIFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', key.name)
+        logger.debug('Reading in get_dataset %s.', key['name'])
         var_name = info.get('file_key', self.filetype_info.get('file_key'))
         if var_name:
             data = self[var_name]
@@ -145,7 +147,7 @@ class SCMIFileHandler(BaseFileHandler):
         offset = data.attrs.pop('add_offset', 0)
         units = data.attrs.get('units', 1)
         # the '*1' unit is some weird convention added/needed by AWIPS
-        if units in ['1', '*1'] and key.calibration == 'reflectance':
+        if units in ['1', '*1'] and key['calibration'] == 'reflectance':
             data *= 100
             factor *= 100  # used for valid_min/max
             data.attrs['units'] = '%'
@@ -174,7 +176,7 @@ class SCMIFileHandler(BaseFileHandler):
         return data
 
     def _get_cf_grid_mapping_var(self):
-        """Figure out which grid mapping should be used"""
+        """Figure out which grid mapping should be used."""
         gmaps = ['fixedgrid_projection', 'goes_imager_projection',
                  'lambert_projection', 'polar_projection',
                  'mercator_projection']
@@ -267,13 +269,16 @@ class SCMIFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime.strptime(self.nc.attrs['start_date_time'], '%Y%j%H%M%S')
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self.start_time
 
     def __del__(self):
+        """Delete the instance."""
         try:
             self.nc.close()
         except (IOError, OSError):

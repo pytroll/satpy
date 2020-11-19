@@ -21,7 +21,7 @@ The Satpy library acts as a high-level abstraction layer on top of other
 libraries maintained by the Pytroll group including:
 
 - `Pyresample <http://pyresample.readthedocs.io/en/latest/>`_
-- `PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_
+- `PySpectral <https://pyspectral.readthedocs.io/en/latest/>`_
 - `Trollimage <http://trollimage.readthedocs.io/en/latest/>`_
 - `Pycoast <https://pycoast.readthedocs.io/en/latest/>`_
 - `Pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
@@ -40,6 +40,10 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
+.. versionchanged:: 0.20.0
+
+    Dropped Python 2 support.
+
 .. _project: http://github.com/pytroll/satpy
 
 .. toctree::
@@ -48,7 +52,7 @@ the base Satpy installation.
     overview
     install
     data_download
-    examples
+    examples/index
     quickstart
     readers
     composites
@@ -83,11 +87,21 @@ the base Satpy installation.
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
         | in the files. EUMETSAT has been notified.
+    * - MSG (Meteosat 8 to 11) L2 products in BUFR format
+      - `seviri_l2_bufr`
+      - AMV BUFR products not supported yet.
+    * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
+      - `seviri_l2_grib`
+      - In development, CLM, OCA and FIR products supported
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
     * - Himawari 8 and 9 AHI data in HRIT format
       - `ahi_hrit`
+      - Nominal
+    * - Himawari 8 and 9 AHI data in Gridded binary format,
+        from http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
+      - `ahi_l1b_gridded_bin`
       - Nominal
     * - MTSAT-1R JAMI data in JMA HRIT format
       - `jami_hrit`
@@ -215,7 +229,42 @@ the base Satpy installation.
       - `hsaf_grib`
       - | Beta
         | Only the h03, h03b, h05 and h05B products are supported at-present
-
+    * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
+      - `ami_l1b`
+      - Beta
+    * - GOES-R GLM Grided Level 2 in NetCDF4 format
+      - `glm_l2`
+      - Beta
+    * - Sentinel-3 SLSTR SST data in NetCDF4 format
+      - `slstr_l2`
+      - Beta
+    * - IASI level 2 SO2 in BUFR format
+      - `iasi_l2_so2_bufr`
+      - Beta
+    * - HY-2B Scatterometer level 2b data in HDF5 format
+      - `hy2_scat_l2b_h5`
+      - Beta
+    * - OMPS EDR data in HDF5 format
+      - `omps_edr`
+      - Beta
+    * - VII Level 2 in NetCDF4 format
+      - `vii_l2_nc`
+      - Beta
+    * - VII Level 1b in NetCDF4 format
+      - `vii_l1b_nc`
+      - Beta
+    * - MTG FCI Level 2 in NetCDF4 format
+      - `fci_l2_nc`
+      - Beta
+    * - SMOS level 2 wind data in NetCDF4 format
+      - `smos_l2_wind`
+      - Beta
+    * - AMSR2 level 2 wind data in HDF5 format
+      - `amsr_l2`
+      - Beta
+    * - GPM IMERG level 3 precipitation data in HDF5 format
+      - `gpm_imerg`
+      - Nominal
 
 Indices and tables
 ==================

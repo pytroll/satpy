@@ -18,7 +18,7 @@
 """Module for testing the satpy.readers.hdf4_utils module."""
 
 import os
-import sys
+import unittest
 import numpy as np
 import xarray as xr
 
@@ -27,11 +27,6 @@ try:
 except ImportError:
     # fake the import so we can at least run the tests in this file
     HDF4FileHandler = object
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 class FakeHDF4FileHandler(HDF4FileHandler):
@@ -109,9 +104,12 @@ class TestHDF4FileHandler(unittest.TestCase):
             self.assertEqual(attrs.get('test_attr_int'), 0)
             self.assertEqual(attrs.get('test_attr_float'), 1.2)
 
+        self.assertIsInstance(file_handler['/attr/test_attr_str'], str)
         self.assertEqual(file_handler['/attr/test_attr_str'], 'test_string')
         # self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
+        self.assertIsInstance(file_handler['/attr/test_attr_int'], int)
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
+        self.assertIsInstance(file_handler['/attr/test_attr_float'], float)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
 
         self.assertIsInstance(file_handler.get('ds1_f'), xr.DataArray)
@@ -120,12 +118,3 @@ class TestHDF4FileHandler(unittest.TestCase):
 
         self.assertTrue('ds1_f' in file_handler)
         self.assertFalse('fake_ds' in file_handler)
-
-
-def suite():
-    """Create the test suite for test_hdf4_utils."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHDF4FileHandler))
-
-    return mysuite

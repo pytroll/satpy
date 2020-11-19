@@ -5,6 +5,6 @@ Module contents
 ---------------
 
 .. automodule:: satpy.demo
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

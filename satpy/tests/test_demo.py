@@ -18,16 +18,8 @@
 """Tests for the satpy.demo module."""
 
 import os
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class _GlobHelper(object):
@@ -48,7 +40,7 @@ class _GlobHelper(object):
         self.num_results = num_results
 
     def __call__(self, pattern):
-        """The side effect function to be called as glob."""
+        """Mimic glob by being used as the side effect function."""
         try:
             num_results = self.num_results[self.current_call]
         except IndexError:
@@ -59,6 +51,22 @@ class _GlobHelper(object):
 
 class TestDemo(unittest.TestCase):
     """Test demo data download functions."""
+
+    def setUp(self):
+        """Create temporary directory to save files to."""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+        self.prev_dir = os.getcwd()
+        os.chdir(self.base_dir)
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test."""
+        os.chdir(self.prev_dir)
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
 
     @mock.patch('satpy.demo._google_cloud_platform.gcsfs')
     def test_get_us_midlatitude_cyclone_abi(self, gcsfs_mod):
@@ -163,16 +171,3 @@ class TestGCPUtils(unittest.TestCase):
         """Test that 'gcsfs' is required."""
         from satpy.demo._google_cloud_platform import get_bucket_files
         self.assertRaises(RuntimeError, get_bucket_files, '*.nc', '.')
-
-
-def suite():
-    """The test suite for test_demo."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDemo))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGCPUtils))
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -1,0 +1,22 @@
+name: readthedocs
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7
+  - pip
+  - dask
+  - graphviz
+  - numpy
+  - pillow
+  - pyresample
+  - setuptools
+  - setuptools_scm
+  - setuptools_scm_git_archive
+  - sphinx
+  - sphinx_rtd_theme
+  - trollsift
+  - xarray
+  - zarr
+  - pip:
+    - graphviz
+    - ..  # relative path to the satpy project

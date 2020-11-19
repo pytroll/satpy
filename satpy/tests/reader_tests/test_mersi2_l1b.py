@@ -16,28 +16,22 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'mersi2_l1b' reader."""
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-import sys
+import os
+import unittest
+import pytest
+from unittest import mock
+
 import numpy as np
 import dask.array as da
 import xarray as xr
-import os
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
     def make_test_data(self, dims):
+        """Make test data."""
         return xr.DataArray(da.from_array(np.ones([dim for dim in dims], dtype=np.float32) * 10, [dim for dim in dims]))
 
     def _get_calibration(self, num_scans, rows_per_scan):
@@ -45,12 +39,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             'Calibration/VIS_Cal_Coeff':
                 xr.DataArray(
                     da.ones((19, 3), chunks=1024),
-                    attrs={'Slope': [1.] * 19, 'Intercept': [0.] * 19},
+                    attrs={'Slope': np.array([1.] * 19), 'Intercept': np.array([0.] * 19)},
                     dims=('_bands', '_coeffs')),
             'Calibration/IR_Cal_Coeff':
                 xr.DataArray(
                     da.ones((6, 4, num_scans), chunks=1024),
-                    attrs={'Slope': [1.] * 6, 'Intercept': [0.] * 6},
+                    attrs={'Slope': np.array([1.] * 6), 'Intercept': np.array([0.] * 6)},
                     dims=('_bands', '_coeffs', '_scans')),
         }
         return calibration
@@ -62,7 +56,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 15, 'Intercept': [0.] * 15,
+                        'Slope': np.array([1.] * 15), 'Intercept': np.array([0.] * 15),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -74,7 +68,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 4, 'Intercept': [0.] * 4,
+                        'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 25000],
@@ -87,7 +81,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 4, 'Intercept': [0.] * 4,
+                        'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -100,7 +94,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 2, 'Intercept': [0.] * 2,
+                        'Slope': np.array([1.] * 2), 'Intercept': np.array([0.] * 2),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
@@ -118,7 +112,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -129,7 +123,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -140,7 +134,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -151,7 +145,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -162,7 +156,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
@@ -173,7 +167,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
@@ -188,7 +182,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 xr.DataArray(
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'units': 'degree',
                         'valid_range': [-90, 90],
                     },
@@ -197,9 +191,18 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 xr.DataArray(
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'units': 'degree',
                         'valid_range': [-180, 180],
+                    },
+                    dims=('_rows', '_cols')),
+            prefix + 'SensorZenith':
+                xr.DataArray(
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    attrs={
+                        'Slope': np.array([.01] * 1), 'Intercept': np.array([0.] * 1),
+                        'units': 'degree',
+                        'valid_range': [0, 28000],
                     },
                     dims=('_rows', '_cols')),
         }
@@ -222,12 +225,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {}
         if self.filetype_info['file_type'] == 'mersi2_l1b_1000':
             data = self._get_1km_data(num_scans, rows_per_scan, num_cols)
-            global_attrs['/attr/TBB_Trans_Coefficient_A'] = [1.0] * 6
-            global_attrs['/attr/TBB_Trans_Coefficient_B'] = [0.0] * 6
+            global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([1.0] * 6)
+            global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
         elif self.filetype_info['file_type'] == 'mersi2_l1b_250':
             data = self._get_250m_data(num_scans, rows_per_scan, num_cols * 2)
-            global_attrs['/attr/TBB_Trans_Coefficient_A'] = [0.0] * 6
-            global_attrs['/attr/TBB_Trans_Coefficient_B'] = [0.0] * 6
+            global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([0.0] * 6)
+            global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
         elif self.filetype_info['file_type'] == 'mersi2_l1b_1000_geo':
             data = self._get_geo_data(num_scans, rows_per_scan, num_cols)
         elif self.filetype_info['file_type'] == 'mersi2_l1b_250_geo':
@@ -243,6 +246,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 class TestMERSI2L1BReader(unittest.TestCase):
     """Test MERSI2 L1B Reader."""
+
     yaml_file = "mersi2_l1b.yaml"
 
     def setUp(self):
@@ -261,8 +265,9 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_all_resolutions(self):
         """Test loading data when all resolutions are available."""
-        from satpy import DatasetID
-        from satpy.readers import load_reader, get_key
+        from satpy.tests.utils import make_dataid
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
@@ -271,7 +276,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -286,11 +291,11 @@ class TestMERSI2L1BReader(unittest.TestCase):
                 num_results = 2
             else:
                 num_results = 3
-            ds_id = DatasetID(name=band_name, resolution=250)
+            ds_id = make_dataid(name=band_name, resolution=250)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
+            ds_id = make_dataid(name=band_name, resolution=1000)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
@@ -324,7 +329,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_counts_calib(self):
         """Test loading data at counts calibration."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
@@ -334,16 +339,17 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
 
         ds_ids = []
         for band_name in ['1', '2', '3', '4', '5', '20', '24', '25']:
-            ds_ids.append(DatasetID(name=band_name, calibration='counts'))
+            ds_ids.append(make_dataid(name=band_name, calibration='counts'))
+        ds_ids.append(make_dataid(name='satellite_zenith_angle'))
         res = reader.load(ds_ids)
-        self.assertEqual(8, len(res))
+        self.assertEqual(9, len(res))
         self.assertEqual((2 * 40, 2048 * 2), res['1'].shape)
         self.assertEqual('counts', res['1'].attrs['calibration'])
         self.assertEqual(res['1'].dtype, np.uint16)
@@ -379,7 +385,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_rad_calib(self):
         """Test loading data at radiance calibration."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
@@ -389,14 +395,14 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
 
         ds_ids = []
         for band_name in ['1', '2', '3', '4', '5']:
-            ds_ids.append(DatasetID(name=band_name, calibration='radiance'))
+            ds_ids.append(make_dataid(name=band_name, calibration='radiance'))
         res = reader.load(ds_ids)
         self.assertEqual(5, len(res))
         self.assertEqual((2 * 40, 2048 * 2), res['1'].shape)
@@ -417,15 +423,16 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
-        from satpy import DatasetID
-        from satpy.readers import load_reader, get_key
+        from satpy.tests.utils import make_dataid
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF',
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(2, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -440,11 +447,11 @@ class TestMERSI2L1BReader(unittest.TestCase):
                 num_results = 2
             else:
                 num_results = 3
-            ds_id = DatasetID(name=band_name, resolution=250)
-            res = get_key(ds_id, available_datasets,
-                          num_results=num_results, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
+            ds_id = make_dataid(name=band_name, resolution=250)
+            with pytest.raises(KeyError):
+                res = get_key(ds_id, available_datasets,
+                              num_results=num_results, best=False)
+            ds_id = make_dataid(name=band_name, resolution=1000)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
@@ -478,15 +485,16 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_250_resolutions(self):
         """Test loading data when only 250m resolutions are available."""
-        from satpy import DatasetID
-        from satpy.readers import load_reader, get_key
+        from satpy.tests.utils import make_dataid
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF',
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(2, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -501,14 +509,14 @@ class TestMERSI2L1BReader(unittest.TestCase):
                 num_results = 2
             else:
                 num_results = 3
-            ds_id = DatasetID(name=band_name, resolution=250)
+            ds_id = make_dataid(name=band_name, resolution=250)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
-            res = get_key(ds_id, available_datasets,
-                          num_results=num_results, best=False)
-            self.assertEqual(0, len(res))
+            ds_id = make_dataid(name=band_name, resolution=1000)
+            with pytest.raises(KeyError):
+                res = get_key(ds_id, available_datasets,
+                              num_results=num_results, best=False)
 
         res = reader.load(['1', '2', '3', '4', '5', '20', '24', '25'])
         self.assertEqual(6, len(res))
@@ -532,11 +540,3 @@ class TestMERSI2L1BReader(unittest.TestCase):
         self.assertEqual((2 * 40, 2048 * 2), res['25'].shape)
         self.assertEqual('brightness_temperature', res['25'].attrs['calibration'])
         self.assertEqual('K', res['25'].attrs['units'])
-
-
-def suite():
-    """The test suite for test_virr_l1b."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMERSI2L1BReader))
-    return mysuite

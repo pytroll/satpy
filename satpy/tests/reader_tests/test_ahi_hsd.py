@@ -15,15 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l1b reader tests package.
-"""
+"""The ahi_hsd reader tests package."""
 
 import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import warnings
 import numpy as np
 import dask.array as da
@@ -40,10 +35,14 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
     def test_region(self, fromfile, np2str):
         """Test region navigation."""
+        from pyresample.utils import proj4_radius_parameters
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment_number': 1, 'total_segments': 1}, None)
+            fh = AHIHSDFileHandler('somefile',
+                                   {'segment': 1, 'total_segments': 1},
+                                   filetype_info={'file_type': 'hsd_b01'},
+                                   user_calibration=None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': -591.5,
                             'LFAC': 40932549,
@@ -72,23 +71,26 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
-            self.assertEqual(proj_dict['a'], 6378137.0)
-            self.assertEqual(proj_dict['b'], 6356752.3)
+            a, b = proj4_radius_parameters(proj_dict)
+            self.assertEqual(a, 6378137.0)
+            self.assertEqual(b, 6356752.3)
             self.assertEqual(proj_dict['h'], 35785863.0)
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
             self.assertEqual(proj_dict['units'], 'm')
-            self.assertEqual(area_def.area_extent, (592000.0038256244, 4132000.026701824,
-                                                    1592000.0102878278, 5132000.033164027))
+            np.testing.assert_allclose(area_def.area_extent, (592000.0038256242, 4132000.0267018233,
+                                                              1592000.0102878273, 5132000.033164027))
 
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
     def test_segment(self, fromfile, np2str):
         """Test segment navigation."""
+        from pyresample.utils import proj4_radius_parameters
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10},
+                                   filetype_info={'file_type': 'hsd_b01'})
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -117,19 +119,30 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
-            self.assertEqual(proj_dict['a'], 6378137.0)
-            self.assertEqual(proj_dict['b'], 6356752.3)
+            a, b = proj4_radius_parameters(proj_dict)
+            self.assertEqual(a, 6378137.0)
+            self.assertEqual(b, 6356752.3)
             self.assertEqual(proj_dict['h'], 35785863.0)
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
             self.assertEqual(proj_dict['units'], 'm')
-            self.assertEqual(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
-                                                    5500000.035542117, -2200000.0142168473))
+            np.testing.assert_allclose(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
+                                                              5500000.035542117, -2200000.0142168473))
 
 
 class TestAHIHSDFileHandler(unittest.TestCase):
+    """Test case for the file reading."""
+
+    def new_unzip(fname):
+        """Fake unzipping."""
+        if(fname[-3:] == 'bz2'):
+            return fname[:-4]
+        return fname
+
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
+    @mock.patch('satpy.readers.ahi_hsd.unzip_file',
+                mock.MagicMock(side_effect=new_unzip))
     def setUp(self, fromfile, np2str):
         """Create a test file handler."""
         np2str.side_effect = lambda x: x
@@ -137,9 +150,18 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+                fh = AHIHSDFileHandler('somefile',
+                                       {'segment': 8, 'total_segments': 10},
+                                       filetype_info={'file_type': 'hsd_b01'},
+                                       calib_mode='BAD_MODE')
+            in_fname = 'test_file.bz2'
+            fh = AHIHSDFileHandler(in_fname,
+                                   {'segment': 8, 'total_segments': 10},
+                                   filetype_info={'file_type': 'hsd_b01'})
 
-            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            # Check that the filename is altered for bz2 format files
+            self.assertNotEqual(in_fname, fh.filename)
+
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -170,10 +192,12 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'number_of_lines': 1100,
                             'spare': ''}
             fh.basic_info = {
+                'observation_area': np.array(['FLDK']),
                 'observation_start_time': np.array([58413.12523839]),
                 'observation_end_time': np.array([58413.12562439]),
                 'observation_timeline': np.array([300]),
             }
+            fh.observation_area = np2str(fh.basic_info['observation_area'])
 
             self.fh = fh
 
@@ -183,90 +207,25 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
         self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
-    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
-                return_value=None)
-    def test_calibrate(self, *mocks):
-        """Test calibration"""
-        def_cali = [-0.0037, 15.20]
-        upd_cali = [-0.0074, 30.40]
-        bad_cali = [0.0, 0.0]
-        fh = AHIHSDFileHandler()
-        fh.calib_mode = 'NOMINAL'
-        fh._header = {
-            'block5': {'band_number': [5],
-                       'gain_count2rad_conversion': [def_cali[0]],
-                       'offset_count2rad_conversion': [def_cali[1]],
-                       'central_wave_length': [10.4073], },
-            'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
-                            'speed_of_light': [299792458.0],
-                            'planck_constant': [6.62606957e-34],
-                            'boltzmann_constant': [1.3806488e-23],
-                            'c0_rad2tb_conversion': [-0.116127314574],
-                            'c1_rad2tb_conversion': [1.00099153832],
-                            'c2_rad2tb_conversion': [-1.76961091571e-06],
-                            'cali_gain_count2rad_conversion': [upd_cali[0]],
-                            'cali_offset_count2rad_conversion': [upd_cali[1]]},
-        }
-
-        # Counts
-        self.assertEqual(fh.calibrate(data=123, calibration='counts'),
-                         123)
-
-        # Radiance
-        counts = da.array(np.array([[0., 1000.],
-                                    [2000., 5000.]]))
-        rad_exp = np.array([[15.2, 11.5],
-                            [7.8, 0]])
-        rad = fh.calibrate(data=counts, calibration='radiance')
-        self.assertTrue(np.allclose(rad, rad_exp))
-
-        # Brightness Temperature
-        bt_exp = np.array([[330.978979, 310.524688],
-                           [285.845017, np.nan]])
-        bt = fh.calibrate(data=counts, calibration='brightness_temperature')
-        np.testing.assert_allclose(bt, bt_exp)
-
-        # Reflectance
-        refl_exp = np.array([[2.92676, 2.214325],
-                             [1.50189, 0.]])
-        refl = fh.calibrate(data=counts, calibration='reflectance')
-        self.assertTrue(np.allclose(refl, refl_exp))
-
-        # Updated calibration
-        # Standard operation
-        fh.calib_mode = 'UPDATE'
-        rad_exp = np.array([[30.4, 23.0],
-                            [15.6, 0.]])
-        rad = fh.calibrate(data=counts, calibration='radiance')
-        self.assertTrue(np.allclose(rad, rad_exp))
-
-        # Case for no updated calibration available (older data)
-        fh._header = {
-            'block5': {'band_number': [5],
-                       'gain_count2rad_conversion': [def_cali[0]],
-                       'offset_count2rad_conversion': [def_cali[1]],
-                       'central_wave_length': [10.4073], },
-            'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
-                            'speed_of_light': [299792458.0],
-                            'planck_constant': [6.62606957e-34],
-                            'boltzmann_constant': [1.3806488e-23],
-                            'c0_rad2tb_conversion': [-0.116127314574],
-                            'c1_rad2tb_conversion': [1.00099153832],
-                            'c2_rad2tb_conversion': [-1.76961091571e-06],
-                            'cali_gain_count2rad_conversion': [bad_cali[0]],
-                            'cali_offset_count2rad_conversion': [bad_cali[1]]},
-        }
-        rad = fh.calibrate(data=counts, calibration='radiance')
-        rad_exp = np.array([[15.2, 11.5],
-                            [7.8, 0]])
-        self.assertTrue(np.allclose(rad, rad_exp))
+    def test_scanning_frequencies(self):
+        """Test scanning frequencies."""
+        self.fh.observation_area = 'JP04'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R304'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R420'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'R520'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'FLDK'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
     def test_read_band(self, calibrate, *mocks):
-        # Test masking of space pixels
+        """Test masking of space pixels."""
         nrows = 25
         ncols = 100
         self.fh.area = AreaDefinition('test', 'test', 'test',
@@ -292,7 +251,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                               'satellite_actual_latitude': 0.03,
                               'nadir_longitude': 140.67,
                               'nadir_latitude': 0.04}
-            self.assertDictContainsSubset(orb_params_exp, im.attrs['orbital_parameters'])
+            self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
             self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
 
             # Test if masking space pixels disables with appropriate flag
@@ -302,6 +261,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                 mask_space.assert_not_called()
 
     def test_blocklen_error(self, *mocks):
+        """Test erraneous blocklength."""
         open_name = '%s.open' % __name__
         fpos = 50
         with mock.patch(open_name, create=True) as mock_open:
@@ -320,6 +280,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
     def test_read_header(self, *mocks):
+        """Test header reading."""
         nhdr = [
             {'blocklength': 0},
             {'blocklength': 0},
@@ -340,14 +301,115 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             self.fh._read_header(mock.MagicMock())
 
 
-def suite():
-    """The test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDNavigation))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDFileHandler))
-    return mysuite
+class TestAHICalibration(unittest.TestCase):
+    """Test case for various AHI calibration types."""
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
+                return_value=None)
+    def setUp(self, *mocks):
+        self.def_cali = [-0.0037, 15.20]
+        self.upd_cali = [-0.0074, 30.40]
+        self.bad_cali = [0.0, 0.0]
+        fh = AHIHSDFileHandler(filetype_info={'file_type': 'hsd_b01'})
+        fh.calib_mode = 'NOMINAL'
+        fh.user_calibration = None
+        fh.is_zipped = False
+        fh._header = {
+            'block5': {'band_number': [5],
+                       'gain_count2rad_conversion': [self.def_cali[0]],
+                       'offset_count2rad_conversion': [self.def_cali[1]],
+                       'central_wave_length': [10.4073], },
+            'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
+                            'speed_of_light': [299792458.0],
+                            'planck_constant': [6.62606957e-34],
+                            'boltzmann_constant': [1.3806488e-23],
+                            'c0_rad2tb_conversion': [-0.116127314574],
+                            'c1_rad2tb_conversion': [1.00099153832],
+                            'c2_rad2tb_conversion': [-1.76961091571e-06],
+                            'cali_gain_count2rad_conversion': [self.upd_cali[0]],
+                            'cali_offset_count2rad_conversion': [self.upd_cali[1]]},
+        }
 
+        self.counts = da.array(np.array([[0., 1000.],
+                                         [2000., 5000.]]))
+        self.fh = fh
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_default_calibrate(self, *mocks):
+        """Test default in-file calibration modes."""
+        self.setUp()
+        # Counts
+        self.assertEqual(self.fh.calibrate(data=123,
+                                           calibration='counts'),
+                         123)
+
+        # Radiance
+        rad_exp = np.array([[15.2, 11.5],
+                            [7.8, 0]])
+        rad = self.fh.calibrate(data=self.counts,
+                                calibration='radiance')
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+        # Brightness Temperature
+        bt_exp = np.array([[330.978979, 310.524688],
+                           [285.845017, np.nan]])
+        bt = self.fh.calibrate(data=self.counts,
+                               calibration='brightness_temperature')
+        np.testing.assert_allclose(bt, bt_exp)
+
+        # Reflectance
+        refl_exp = np.array([[2.92676, 2.214325],
+                             [1.50189, 0.]])
+        refl = self.fh.calibrate(data=self.counts,
+                                 calibration='reflectance')
+        self.assertTrue(np.allclose(refl, refl_exp))
+
+    def test_updated_calibrate(self):
+        """Test updated in-file calibration modes."""
+        # Standard operation
+        self.fh.calib_mode = 'UPDATE'
+        rad_exp = np.array([[30.4, 23.0],
+                            [15.6, 0.]])
+        rad = self.fh.calibrate(data=self.counts, calibration='radiance')
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+        # Case for no updated calibration available (older data)
+        self.fh._header = {
+            'block5': {'band_number': [5],
+                       'gain_count2rad_conversion': [self.def_cali[0]],
+                       'offset_count2rad_conversion': [self.def_cali[1]],
+                       'central_wave_length': [10.4073], },
+            'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
+                            'speed_of_light': [299792458.0],
+                            'planck_constant': [6.62606957e-34],
+                            'boltzmann_constant': [1.3806488e-23],
+                            'c0_rad2tb_conversion': [-0.116127314574],
+                            'c1_rad2tb_conversion': [1.00099153832],
+                            'c2_rad2tb_conversion': [-1.76961091571e-06],
+                            'cali_gain_count2rad_conversion': [self.bad_cali[0]],
+                            'cali_offset_count2rad_conversion': [self.bad_cali[1]]},
+        }
+        rad = self.fh.calibrate(data=self.counts, calibration='radiance')
+        rad_exp = np.array([[15.2, 11.5],
+                            [7.8, 0]])
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+    def test_user_calibration(self):
+        """Test user-defined calibration modes."""
+        # This is for radiance correction
+        self.fh.user_calibration = {'B13': {'slope': 0.95,
+                                            'offset': -0.1}}
+        self.fh.band_name = 'B13'
+        rad = self.fh.calibrate(data=self.counts, calibration='radiance').compute()
+        rad_exp = np.array([[16.10526316, 12.21052632],
+                            [8.31578947,  0.10526316]])
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+        # This is for DN calibration
+        self.fh.user_calibration = {'B13': {'slope': -0.0032,
+                                            'offset': 15.20},
+                                    'type': 'DN'}
+        self.fh.band_name = 'B13'
+        rad = self.fh.calibrate(data=self.counts, calibration='radiance').compute()
+        print(rad)
+        rad_exp = np.array([[15.2, 12.],
+                            [8.8, 0.]])
+        self.assertTrue(np.allclose(rad, rad_exp))

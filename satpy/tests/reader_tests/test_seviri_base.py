@@ -15,17 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test the MSG common (native and hrit format) functionionalities
-"""
+"""Test the MSG common (native and hrit format) functionionalities."""
 
-import sys
+import unittest
 import numpy as np
 from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 def chebyshev4(c, x, domain):
@@ -40,10 +34,10 @@ class SeviriBaseTest(unittest.TestCase):
         """Test the dec10216 function."""
         res = dec10216(np.array([255, 255, 255, 255, 255], dtype=np.uint8))
         exp = (np.ones((4, )) * 1023).astype(np.uint16)
-        self.assertTrue(np.all(res == exp))
+        np.testing.assert_equal(res, exp)
         res = dec10216(np.array([1, 1, 1, 1, 1], dtype=np.uint8))
         exp = np.array([4,  16,  64, 257], dtype=np.uint16)
-        self.assertTrue(np.all(res == exp))
+        np.testing.assert_equal(res, exp)
 
     def test_chebyshev(self):
         coefs = [1, 2, 3, 4]
@@ -51,7 +45,7 @@ class SeviriBaseTest(unittest.TestCase):
         domain = [120, 130]
         res = chebyshev(coefs=[1, 2, 3, 4], time=time, domain=domain)
         exp = chebyshev4(coefs, time, domain)
-        self.assertTrue(np.allclose(res, exp))
+        np.testing.assert_allclose(res, exp)
 
     def test_get_cds_time(self):
         # Scalar
@@ -64,12 +58,9 @@ class SeviriBaseTest(unittest.TestCase):
         expected = np.array([np.datetime64('2016-03-03 12:00:00.000'),
                              np.datetime64('2016-03-04 13:00:00.001'),
                              np.datetime64('2016-03-05 14:00:00.002')])
-        self.assertTrue(np.all(get_cds_time(days=days, msecs=msecs) == expected))
+        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
 
-
-def suite():
-    """The test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(SeviriBaseTest))
-    return mysuite
+        days = 21246
+        msecs = 12*3600*1000
+        expected = np.datetime64('2016-03-03 12:00:00.000')
+        np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)

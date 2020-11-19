@@ -15,23 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""EUMETSAT base reader tests package.
-"""
+"""EUMETSAT base reader tests package."""
 
-import sys
+import unittest
 from datetime import datetime
-
 import numpy as np
-
 from satpy.readers.eum_base import (timecds2datetime, time_cds_short,
                                     time_cds, time_cds_expanded,
                                     recarray2dict)
-
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 class TestMakeTimeCdsDictionary(unittest.TestCase):
@@ -99,18 +90,3 @@ class TestRecarray2Dict(unittest.TestCase):
         }
 
         self.assertEqual(recarray2dict(pat), expected)
-
-
-def suite():
-    """The test suite for EUMETSAT base reader.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeTimeCdsDictionary))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeTimeCdsRecarray))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestRecarray2Dict))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

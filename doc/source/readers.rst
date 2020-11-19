@@ -15,7 +15,9 @@ requested, or added to a Scene object.
 Available Readers
 =================
 
-To get a list of available readers use the `available_readers` function::
+To get a list of available readers use the `available_readers` function. By default,
+it returns the names of available readers. To return additional reader information 
+use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers
     >>> available_readers()
@@ -47,10 +49,10 @@ to them. By default Satpy will provide the version of the dataset with the
 highest resolution and the highest level of calibration (brightness
 temperature or reflectance over radiance). It is also possible to request one
 of these exact versions of a dataset by using the
-:class:`~satpy.dataset.DatasetID` class::
+:class:`~satpy.dataset.DataQuery` class::
 
-    >>> from satpy import DatasetID
-    >>> my_channel_id = DatasetID(name='IR_016', calibration='radiance')
+    >>> from satpy import DataQuery
+    >>> my_channel_id = DataQuery(name='IR_016', calibration='radiance')
     >>> scn.load([my_channel_id])
     >>> print(scn['IR_016'])
 
@@ -68,12 +70,32 @@ the specified parameters. So the above ``load`` call would load the ``0.6``
 (a visible/reflectance band) radiance data and ``10.8`` (an IR band)
 brightness temperature data.
 
+For geostationary satellites that have the individual channel data
+separated to several files (segments) the missing segments are padded
+by default to full disk area.  This is made to simplify caching of
+resampling look-up tables (see :doc:`resample` for more information).
+To disable this, the user can pass ``pad_data`` keyword argument when
+loading datasets::
+
+    >>> scn.load([0.6, 10.8], pad_data=False)
+
+For geostationary products, where the imagery is stored in the files in a flipped orientation
+(e.g. MSG SEVIRI L1.5 data which is flipped upside-down and left-right), the keyword argument
+``upper_right_corner`` can be passed into the load call to automatically flip the datasets to the
+wished orientation. Accepted argument values are ``'NE'``, ``'NW'``, ``'SE'``, ``'SW'``,
+and ``'native'``.
+By default, no flipping is applied (corresponding to ``upper_right_corner='native'``) and
+the data is delivered in the original format. To get the data in the common upright orientation,
+load the datasets using e.g.::
+
+    >>> scn.load(['VIS008'], upper_right_corner='NE')
+
 .. note::
 
     If a dataset could not be loaded there is no exception raised. You must
     check the
     :meth:`scn.missing_datasets <satpy.scene.Scene.missing_datasets>`
-    property for any ``DatasetID`` that could not be loaded.
+    property for any ``DataID`` that could not be loaded.
 
 To find out what datasets are available from a reader from the files that were
 provided to the ``Scene`` use
@@ -112,37 +134,45 @@ more information on the possible parameters.
 Metadata
 ========
 
-The datasets held by a scene also provide vital metadata such as dataset name, units, observation time etc. The
-following attributes are standardized across all readers:
+.. _dataset_metadata:
 
-* ``name``, ``wavelength``, ``resolution``, ``polarization``, ``calibration``, ``level``, ``modifiers``: See
-  :class:`satpy.dataset.DatasetID`.
+The datasets held by a scene also provide vital metadata such as dataset name, units, observation
+time etc. The following attributes are standardized across all readers:
+
+* ``name``, and other identifying metadata keys: See :doc:`dev_guide/satpy_internals`.
 * ``start_time``: Left boundary of the time interval covered by the dataset.
 * ``end_time``: Right boundary of the time interval covered by the dataset.
-* ``area``: :class:`~pyresample.geometry.AreaDefinition` or :class:`~pyresample.geometry.SwathDefinition` if
-  if data is geolocated. Areas are used for gridded projected data and Swaths when data must be
-  described by individual longitude/latitude coordinates. See the Coordinates section below.
+* ``area``: :class:`~pyresample.geometry.AreaDefinition` or
+  :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
+  projected data and Swaths when data must be described by individual longitude/latitude
+  coordinates. See the Coordinates section below.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
 
   * For *geostationary* satellites it is described using the following scalar attributes:
 
-    * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the time of observation in
-      geodetic coordinates (i.e. altitude is normal to the surface).
-    * ``satellite_nominal_longitude/latitude/altitude``: Centre of the station keeping box (a confined area in which
-      the satellite is actively maintained in using maneuvres). Inbetween major maneuvres, when the satellite
-      is permanently moved, the nominal position is constant.
-    * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the earth. May differ
-      from the actual satellite position, if the instrument is poiting slightly off the axis (satellite, earth-centre).
-      If available, this should be used to compute viewing angles etc. Otherwise, use the actual satellite position.
-    * ``projection_longitude/latitude/altitude``: Projection centre of the re-projected data. This should be used to
-      compute lat/lon coordinates. Note that the projection centre can differ considerably from the actual satellite
-      position. For example MSG-1 was at times positioned at 3.4 degrees west, while the image data was re-projected
-      to 0 degrees.
-    * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at the time of observation
-      in geodetic coordinates.
+    * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
+      time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
+      surface of the ellipsoid).
+    * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
+      confined area in which the satellite is actively maintained in using maneuvres). Inbetween
+      major maneuvres, when the satellite is permanently moved, the nominal position is constant.
+    * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
+      earth. May differ from the actual satellite position, if the instrument is pointing slightly
+      off the axis (satellite, earth-center). If available, this should be used to compute viewing
+      angles etc. Otherwise, use the actual satellite position.
+    * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
+      should be used to compute lat/lon coordinates. Note that the projection center can differ
+      considerably from the actual satellite position. For example MSG-1 was at times positioned
+      at 3.4 degrees west, while the image data was re-projected to 0 degrees.
+    * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at
+      the time of observation in geodetic coordinates.
 
-  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of the swath as
-    ancillary datasets. Additional metadata related to the satellite position include:
+    .. note:: Longitudes and latitudes are given in degrees, altitude in meters. For use in
+              pyorbital, the altitude has to be converted to kilometers, see for example
+              :func:`pyorbital.orbital.get_observer_look`.
+
+  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
+    the swath as ancillary datasets. Additional metadata related to the satellite position include:
 
       * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
 
@@ -181,22 +211,49 @@ This is described in the developer guide, see :doc:`dev_guide/custom_reader`.
 Implemented readers
 ===================
 
+
 xRIT-based readers
 ------------------
 
 .. automodule:: satpy.readers.hrit_base
+    :noindex:
+
+SEVIRI HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.seviri_l1b_hrit
+    :noindex:
+
+JMA HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^
+
 
 .. automodule:: satpy.readers.hrit_jma
+    :noindex:
+
+GOES HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.goes_imager_hrit
+    :noindex:
+
+Electro-L HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.electrol_hrit
+    :noindex:
 
 hdf-eos based readers
 ---------------------
 
 .. automodule:: satpy.readers.modis_l1b
+    :noindex:
 
 .. automodule:: satpy.readers.modis_l2
+    :noindex:
+
+satpy cf nc readers
+---------------------
+
+.. automodule:: satpy.readers.satpy_cf_nc
+    :noindex:

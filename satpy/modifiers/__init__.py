@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2019 Satpy developers
+# Copyright (c) 2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,18 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module to test the plugin interface.
-"""
+"""Modifier classes and other related utilities."""
 
-import numpy as np
+# file deepcode ignore W0611: Ignore unused imports in init module
 
-
-def get_lat_lon(*args, **kwargs):
-    """Dummy get_lat_lon function."""
-    del args, kwargs
-    return np.zeros((3, 3)), np.zeros((3, 3))
-
-
-def load(satscene):
-    """Dummy load function."""
-    pass
+from .base import ModifierBase  # noqa: F401
+from .spectral import NIREmissivePartFromReflectance, NIRReflectance  # noqa: F401
+from .geometry import SunZenithCorrector, EffectiveSolarPathLengthCorrector  # noqa: F401
+from .atmosphere import PSPRayleighReflectance, PSPAtmosphericalCorrection, CO2Corrector  # noqa: F401
