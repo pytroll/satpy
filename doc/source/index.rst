@@ -93,6 +93,9 @@ the base Satpy installation.
     * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
       - `seviri_l2_grib`
       - In development, CLM, OCA and FIR products supported
+    * - MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
+      - `mviri_l1b_fiduceo_nc`
+      - Beta
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
