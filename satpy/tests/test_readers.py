@@ -19,11 +19,12 @@
 
 import os
 import unittest
+from contextlib import suppress
 from unittest import mock
-from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
-from satpy.dataset.data_dict import get_key
 
 import pytest
+from satpy.dataset.data_dict import get_key
+from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -872,7 +873,8 @@ class TestFSFile(unittest.TestCase):
     def tearDown(self):
         """Destroy the instance."""
         os.remove(self.local_filename)
-        os.remove(self.zip_name)
+        with suppress(PermissionError):
+            os.remove(self.zip_name)
 
     def test_regular_filename_is_returned_with_str(self):
         """Test that str give the filename."""
