@@ -114,11 +114,11 @@ If you need the angles in both resolutions, use data queries:
 
     from satpy import DataQuery
 
-    q_vis = DataQuery(
+    query_vis = DataQuery(
         name='solar_zenith_angle',
         resolution=2250
     )
-    q_ir = DataQuery(
+    query_ir = DataQuery(
         name='solar_zenith_angle',
         resolution=4500
     )
