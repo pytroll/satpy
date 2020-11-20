@@ -363,15 +363,24 @@ class FiduceoMviriBase(BaseFileHandler):
         else:
             raise KeyError('Invalid calibration: {}'.format(calibration.name))
 
+    def _get_coefs_ir_wv(self, channel, calibration):
+        """Get calibration coefficients for IR/WV channels.
+
+        Returns:
+            Offset (a), Slope (b)
+        """
+        nc_key_a = self.nc_keys_coefs[channel][calibration]['a']
+        nc_key_b = self.nc_keys_coefs[channel][calibration]['b']
+        a = np.float32(self.nc[nc_key_a])
+        b = np.float32(self.nc[nc_key_b])
+        return a, b
+
     def _ir_wv_counts_to_radiance(self, counts, channel):
         """Convert IR/WV counts to radiance.
 
         Reference: [PUG], equations (4.1) and (4.2).
         """
-        nc_key_a = self.nc_keys_coefs[channel]['radiance']['a']
-        nc_key_b = self.nc_keys_coefs[channel]['radiance']['b']
-        a = np.float32(self.nc[nc_key_a])
-        b = np.float32(self.nc[nc_key_b])
+        a, b = self._get_coefs_ir_wv(channel, 'radiance')
         rad = a + b * counts
         return rad.where(rad > 0, np.float32(np.nan))
 
@@ -380,10 +389,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
         Reference: [PUG], equations (5.1) and (5.2).
         """
-        nc_key_a = self.nc_keys_coefs[channel]['brightness_temperature']['a']
-        nc_key_b = self.nc_keys_coefs[channel]['brightness_temperature']['b']
-        a = np.float32(self.nc[nc_key_a])
-        b = np.float32(self.nc[nc_key_b])
+        a, b = self._get_coefs_ir_wv(channel, 'brightness_temperature')
         bt = b / (np.log(rad) - a)
         return bt.where(bt > 0, np.float32(np.nan))
 
