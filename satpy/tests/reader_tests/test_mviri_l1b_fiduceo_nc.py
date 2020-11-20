@@ -260,15 +260,15 @@ area_vis_exp = AreaDefinition(
         'a': EQUATOR_RADIUS,
         'b': POLE_RADIUS
     },
-    width=5000,
-    height=5000,
+    width=4,
+    height=4,
     area_extent=[5621229.74392, 5621229.74392, -5621229.74392, -5621229.74392]
 )
 area_ir_wv_exp = area_vis_exp.copy(
     area_id='geos_mviri_ir_wv',
     proj_id='geos_mviri_ir_wv',
-    width=2500,
-    height=2500
+    width=2,
+    height=2
 )
 
 
@@ -379,8 +379,8 @@ class TestFiduceoMviriFileHandlers:
             ('IR', 'radiance', 4500, ir_rad_exp),
             ('IR', 'brightness_temperature', 4500, ir_bt_exp),
             ('quality_pixel_bitmask', None, 2250, quality_pixel_bitmask_exp),
-            ('solar_zenith_angle_vis', None, 2250, sza_vis_exp),
-            ('solar_zenith_angle_ir_wv', None, 4500, sza_ir_wv_exp),
+            ('solar_zenith_angle', None, 2250, sza_vis_exp),
+            ('solar_zenith_angle', None, 4500, sza_ir_wv_exp),
             ('u_independent_toa_bidirectional_reflectance', None, 4500, u_vis_refl_exp)
         ]
     )
@@ -472,9 +472,9 @@ class TestFiduceoMviriFileHandlers:
             ('VIS', 2250, area_vis_exp),
             ('WV', 4500, area_ir_wv_exp),
             ('IR', 4500, area_ir_wv_exp),
-            ('quality_pixel_bitmask', 4500, area_vis_exp),
-            ('solar_zenith_angle_vis', 4500, area_vis_exp),
-            ('solar_zenith_angle_ir_wv', 2250, area_ir_wv_exp)
+            ('quality_pixel_bitmask', 2250, area_vis_exp),
+            ('solar_zenith_angle', 2250, area_vis_exp),
+            ('solar_zenith_angle', 4500, area_ir_wv_exp)
         ]
     )
     def test_get_area_definition(self, file_handler, name, resolution,
@@ -486,6 +486,8 @@ class TestFiduceoMviriFileHandlers:
         a_exp, b_exp = proj4_radius_parameters(area_exp.proj_dict)
         assert a == a_exp
         assert b == b_exp
+        assert area.width == area_exp.width
+        assert area.height == area_exp.height
         for key in ['h', 'lon_0', 'proj', 'units']:
             assert area.proj_dict[key] == area_exp.proj_dict[key]
         np.testing.assert_allclose(area.area_extent, area_exp.area_extent)
