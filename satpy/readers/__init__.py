@@ -21,6 +21,7 @@ import logging
 import os
 import warnings
 from datetime import datetime, timedelta
+from functools import total_ordering
 
 import yaml
 
@@ -519,7 +520,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
 
 
 def _get_reader_kwargs(reader, reader_kwargs):
-    """Helper for load_readers to form reader_kwargs.
+    """Help load_readers to form reader_kwargs.
 
     Helper for load_readers to get reader_kwargs and
     reader_kwargs_without_filter in the desirable form.
@@ -538,3 +539,61 @@ def _get_reader_kwargs(reader, reader_kwargs):
         reader_kwargs_without_filter[k].pop('filter_parameters', None)
 
     return (reader_kwargs, reader_kwargs_without_filter)
+
+
+@total_ordering
+class FSFile(os.PathLike):
+    """Implementation of a PathLike file object, that can be opened.
+
+    This is made to be use in conjuction with fsspec or s3fs. For example::
+
+        zipfile = S3B_OL_2_WFR____20201103T100807_20201103T101107_20201103T121330_0179_045_179_1980_MAR_O_NR_002.zip
+        filename = "sentinel-s3-ol2wfr-zips/2020/11/03/" + filename
+        the_files = fsspec.open_files("simplecache::zip://**/*.nc::s3://" + filename, s3={'anon': False})
+
+        fs_files = [FSFile(open_file) for open_file in the_files]
+
+        scn = Scene(filenames=fs_files, reader='olci_l2')
+        scn.load(['chl_nn'])
+        scn.save_datasets()
+
+    """
+
+    def __init__(self, file, fs=None):
+        """Initialise the FSFile instance.
+
+        *file* can be string or an fsspec.OpenFile instance. In the latter case, the follow argument *fs* has no effect.
+        *fs* can be None or a fsspec filesystem instance.
+        """
+        try:
+            self._file = file.path
+            self._fs = file.fs
+        except AttributeError:
+            self._file = file
+            self._fs = fs
+
+    def __str__(self):
+        """Return the string version of the filename."""
+        return self._file
+
+    def __fspath__(self):
+        """Comply with PathLike."""
+        return self._file
+
+    def __repr__(self):
+        """Representation of the object."""
+        return '<FSFile "' + str(self._file) + '">'
+
+    def open(self):
+        """Open the file.
+
+        This is read-only.
+        """
+        try:
+            return self._fs.open(self._file)
+        except AttributeError:
+            return open(self._file)
+
+    def __lt__(self, other):
+        """Implement ordering."""
+        return os.fspath(self) < os.fspath(other)
