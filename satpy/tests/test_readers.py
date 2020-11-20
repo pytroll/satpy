@@ -839,6 +839,13 @@ def _generate_random_string():
     return str(uuid.uuid1())
 
 
+def _assert_is_open_file_and_close(opened):
+    try:
+        assert hasattr(opened, 'tell')
+    finally:
+        opened.close()
+
+
 class TestFSFile(unittest.TestCase):
     """Test the FSFile class."""
 
@@ -895,12 +902,12 @@ class TestFSFile(unittest.TestCase):
     def test_open_regular_file(self):
         """Test opening a regular file."""
         from satpy.readers import FSFile
-        assert hasattr(FSFile(self.local_filename).open(), 'tell')
+        _assert_is_open_file_and_close(FSFile(self.local_filename).open())
 
     def test_open_local_fs_file(self):
         """Test opening a localfs file."""
         from satpy.readers import FSFile
-        assert hasattr(FSFile(self.local_file).open(), 'tell')
+        _assert_is_open_file_and_close(FSFile(self.local_file).open())
 
     def test_open_zip_fs_regular_filename(self):
         """Test opening a zipfs with a regular filename provided."""
@@ -908,7 +915,7 @@ class TestFSFile(unittest.TestCase):
         from fsspec.implementations.zip import ZipFileSystem
         zip_fs = ZipFileSystem(self.zip_name)
         file = FSFile(self.local_filename2, zip_fs)
-        assert hasattr(file.open(), 'tell')
+        _assert_is_open_file_and_close(file.open())
 
     def test_open_zip_fs_openfile(self):
         """Test opening a zipfs openfile."""
@@ -916,7 +923,7 @@ class TestFSFile(unittest.TestCase):
         import fsspec
         open_file = fsspec.open("zip://" + self.local_filename2 + "::file://" + self.zip_name)
         file = FSFile(open_file)
-        assert hasattr(file.open(), 'tell')
+        _assert_is_open_file_and_close(file.open())
 
     def test_sorting_fsfiles(self):
         """Test sorting FSFiles."""
