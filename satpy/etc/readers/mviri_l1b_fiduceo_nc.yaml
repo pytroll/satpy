@@ -102,66 +102,34 @@ datasets:
     resolution: 2250
     file_type: [nc_easy]
 
-  solar_zenith_angle_vis:
-    name: solar_zenith_angle_vis
+  solar_zenith_angle:
+    name: solar_zenith_angle
     standard_name: solar_zenith_angle
-    long_name: "Solar zenith angle VIS channel"
+    long_name: "Solar zenith angle"
     units: degree
-    resolution: 2250
+    resolution: [2250, 4500]
     file_type: [nc_easy, nc_full]
 
-  solar_azimuth_angle_vis:
-    name: solar_azimuth_angle_vis
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
-    long_name: "Solar azimuth angle VIS channel"
+    long_name: "Solar azimuth angle"
     units: degree
-    resolution: 2250
+    resolution: [2250, 4500]
     file_type: [nc_easy, nc_full]
 
-  satellite_zenith_angle_vis:
-    name: satellite_zenith_angle_vis
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
-    long_name: "Satellite zenith angle VIS channel"
+    long_name: "Satellite zenith angle"
     units: degree
-    resolution: 2250
+    resolution: [2250, 4500]
     file_type: [nc_easy, nc_full]
 
-  satellite_azimuth_angle_vis:
-    name: satellite_azimuth_angle_vis
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
-    long_name: "Satellite azimuth angle VIS channel"
+    long_name: "Satellite azimuth angle"
     units: degree
-    resolution: 2250
-    file_type: [nc_easy, nc_full]
-
-  solar_zenith_angle_ir_wv:
-    name: solar_zenith_angle_ir_wv
-    standard_name: solar_zenith_angle
-    long_name: "Solar zenith angle IR/WV channels"
-    units: degree
-    resolution: 4500
-    file_type: [nc_easy, nc_full]
-
-  solar_azimuth_angle_ir_wv:
-    name: solar_azimuth_angle_ir_wv
-    standard_name: solar_azimuth_angle
-    long_name: "Solar azimuth angle IR/WV channels"
-    units: degree
-    resolution: 4500
-    file_type: [nc_easy, nc_full]
-
-  satellite_zenith_angle_ir_wv:
-    name: satellite_zenith_angle_ir_wv
-    standard_name: sensor_zenith_angle
-    long_name: "Satellite zenith angle IR/WV channels"
-    units: degree
-    resolution: 4500
-    file_type: [nc_easy, nc_full]
-
-  satellite_azimuth_angle_ir_wv:
-    name: satellite_azimuth_angle_ir_wv
-    standard_name: sensor_azimuth_angle
-    long_name: "Satellite azimuth angle IR/WV channels"
-    units: degree
-    resolution: 4500
+    resolution: [2250, 4500]
     file_type: [nc_easy, nc_full]

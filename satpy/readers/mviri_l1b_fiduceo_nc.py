@@ -98,6 +98,36 @@ certainly needs some improvement in this regard. Maybe the corresponding
 uncertainties can be used to filter these cases before calculating reflectances.
 
 
+Angles
+------
+The FIDUCEO MVIRI FCDR provides satellite and solar angles on a coarse tiepoint
+grid. By default these datasets will be interpolated to the higher VIS
+resolution. This can be changed as follows:
+
+.. code-block:: python
+
+    scn.load(['solar_zenith_angle'], resolution=4500)
+
+If you need the angles in both resolutions, use data queries:
+
+.. code-block:: python
+
+    from satpy import DataQuery
+
+    q_vis = DataQuery(
+        name='solar_zenith_angle',
+        resolution=2250
+    )
+    q_ir = DataQuery(
+        name='solar_zenith_angle',
+        resolution=4500
+    )
+    scn.load([query_vis, query_ir])
+
+    # Use the query objects to access the datasets as follows
+    sza_vis = scn[query_vis]
+
+
 References
 ----------
     - `[Handbook]`_ MFG User Handbook
@@ -132,14 +162,10 @@ MVIRI_FIELD_OF_VIEW = 18.0
 
 CHANNELS = ['VIS', 'WV', 'IR']
 ANGLES = [
-    'solar_zenith_angle_vis',
-    'solar_azimuth_angle_vis',
-    'satellite_zenith_angle_vis',
-    'satellite_azimuth_angle_vis',
-    'solar_zenith_angle_ir_wv',
-    'solar_azimuth_angle_ir_wv',
-    'satellite_zenith_angle_ir_wv',
-    'satellite_azimuth_angle_ir_wv'
+    'solar_zenith_angle',
+    'solar_azimuth_angle',
+    'satellite_zenith_angle',
+    'satellite_azimuth_angle'
 ]
 OTHER_REFLECTANCES = [
     'u_independent_toa_bidirectional_reflectance',
@@ -195,15 +221,7 @@ class FiduceoMviriBase(BaseFileHandler):
     """Baseclass for FIDUCEO MVIRI file handlers."""
     nc_keys = {
         'WV': 'count_wv',
-        'IR': 'count_ir',
-        'solar_zenith_angle_vis': 'solar_zenith_angle',
-        'solar_azimuth_angle_vis': 'solar_azimuth_angle',
-        'satellite_zenith_angle_vis': 'satellite_zenith_angle',
-        'satellite_azimuth_angle_vis': 'satellite_azimuth_angle',
-        'solar_zenith_angle_ir_wv': 'solar_zenith_angle',
-        'solar_azimuth_angle_ir_wv': 'solar_azimuth_angle',
-        'satellite_zenith_angle_ir_wv': 'satellite_zenith_angle',
-        'satellite_azimuth_angle_ir_wv': 'satellite_azimuth_angle',
+        'IR': 'count_ir'
     }
     nc_keys_coefs = {
         'WV': {
@@ -270,9 +288,13 @@ class FiduceoMviriBase(BaseFileHandler):
         self._update_attrs(ds, dataset_info)
         return ds
 
+    def _get_nc_key(self, ds_name):
+        """Get netCDF variable name for the given dataset."""
+        return self.nc_keys.get(ds_name, ds_name)
+
     def _read_dataset(self, name):
         """Read a dataset from the file."""
-        nc_key = self.nc_keys.get(name, name)
+        nc_key = self._get_nc_key(name)
         ds = self.nc[nc_key]
         if 'y_ir_wv' in ds.dims:
             ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
@@ -290,8 +312,12 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Get area definition of the given dataset."""
-        ds = self._read_dataset(dataset_id['name'])
-        im_size = ds.coords['y'].size
+        if self._is_high_resol(dataset_id):
+            im_size = self.nc.coords['y'].size
+            area_name = 'geos_mviri_vis'
+        else:
+            im_size = self.nc.coords['y_ir_wv'].size
+            area_name = 'geos_mviri_ir_wv'
 
         # Determine line/column offsets and scaling factors. For offsets
         # see variables "asamp" and "aline" of subroutine "refgeo" in
@@ -300,9 +326,6 @@ class FiduceoMviriBase(BaseFileHandler):
         loff = coff = im_size / 2 + 0.5
         lfac = cfac = ang2fac(np.deg2rad(MVIRI_FIELD_OF_VIEW) / im_size)
 
-        area_name = 'geos_mviri_{}'.format(
-            'vis' if self._is_high_resol(dataset_id) else 'ir_wv'
-        )
         pdict = {
             'ssp_lon': self.projection_longitude,
             'a': EQUATOR_RADIUS,
@@ -505,7 +528,7 @@ class FiduceoMviriBase(BaseFileHandler):
             target_y = self.nc.coords['y_ir_wv']
         return self._interp_angles_cached(
             angles=angles,
-            nc_key=self.nc_keys[dataset_id['name']],
+            nc_key=self._get_nc_key(dataset_id['name']),
             target_x=target_x,
             target_y=target_y
         )
@@ -621,7 +644,7 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
         Reference: [PUG], equation (6).
         """
         sza = self.get_dataset(
-            DataQuery(name='solar_zenith_angle_vis',
+            DataQuery(name='solar_zenith_angle',
                       resolution=HIGH_RESOL),
             dataset_info={}
         )
