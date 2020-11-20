@@ -832,3 +832,101 @@ class TestGroupFiles(unittest.TestCase):
                     reader=("abi_l1b", "viirs_sdr"),
                     group_keys=("start_time"),
                     time_threshold=10**9)
+
+
+def _generate_random_string():
+    import uuid
+    return str(uuid.uuid1())
+
+
+class TestFSFile(unittest.TestCase):
+    """Test the FSFile class."""
+
+    def setUp(self):
+        """Set up the instance."""
+        import fsspec
+        from pathlib import Path
+        import tempfile
+        import zipfile
+        self.random_string = _generate_random_string()
+        self.local_filename = os.path.join(tempfile.gettempdir(), self.random_string)
+        Path(self.local_filename).touch()
+        self.local_file = fsspec.open(self.local_filename)
+
+        self.random_string2 = _generate_random_string()
+        self.local_filename2 = os.path.join(tempfile.gettempdir(), self.random_string2)
+        Path(self.local_filename2).touch()
+        self.zip_name = os.path.join(tempfile.gettempdir(), self.random_string2 + ".zip")
+        zip_file = zipfile.ZipFile(self.zip_name, 'w', zipfile.ZIP_DEFLATED)
+        zip_file.write(self.local_filename2)
+        zip_file.close()
+        os.remove(self.local_filename2)
+
+    def tearDown(self):
+        """Destroy the instance."""
+        os.remove(self.local_filename)
+        os.remove(self.zip_name)
+
+    def test_regular_filename_is_returned_with_str(self):
+        """Test that str give the filename."""
+        from satpy.readers import FSFile
+        assert str(FSFile(self.random_string)) == self.random_string
+
+    def test_fsfile_with_regular_filename_abides_pathlike(self):
+        """Test that FSFile abides PathLike for regular filenames."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.random_string)) == self.random_string
+
+    def test_fsfile_with_regular_filename_and_fs_spec_abides_pathlike(self):
+        """Test that FSFile abides PathLike for filename+fs instances."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
+
+    def test_fsfile_with_fs_open_file_abides_pathlike(self):
+        """Test that FSFile abides PathLike for fsspec OpenFile instances."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.local_file)).endswith(self.random_string)
+
+    def test_repr_includes_filename(self):
+        """Test that repr includes the filename."""
+        from satpy.readers import FSFile
+        assert self.random_string in repr(FSFile(self.local_file))
+
+    def test_open_regular_file(self):
+        """Test opening a regular file."""
+        from satpy.readers import FSFile
+        assert hasattr(FSFile(self.local_filename).open(), 'tell')
+
+    def test_open_local_fs_file(self):
+        """Test opening a localfs file."""
+        from satpy.readers import FSFile
+        assert hasattr(FSFile(self.local_file).open(), 'tell')
+
+    def test_open_zip_fs_regular_filename(self):
+        """Test opening a zipfs with a regular filename provided."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        file = FSFile(self.local_filename2, zip_fs)
+        assert hasattr(file.open(), 'tell')
+
+    def test_open_zip_fs_openfile(self):
+        """Test opening a zipfs openfile."""
+        from satpy.readers import FSFile
+        import fsspec
+        open_file = fsspec.open("zip://" + self.local_filename2 + "::file://" + self.zip_name)
+        file = FSFile(open_file)
+        assert hasattr(file.open(), 'tell')
+
+    def test_sorting_fsfiles(self):
+        """Test sorting FSFiles."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        file1 = FSFile(self.local_filename2, zip_fs)
+
+        file2 = FSFile(self.local_filename)
+
+        sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, '/tmp/bla'])]
+        expected_filenames = sorted(['/tmp/bla', os.fspath(file1), os.fspath(file2)])
+        assert sorted_filenames == expected_filenames
