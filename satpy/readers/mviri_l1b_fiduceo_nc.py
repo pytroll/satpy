@@ -528,20 +528,20 @@ class FiduceoMviriBase(BaseFileHandler):
             target_y = self.nc.coords['y_ir_wv']
         return self._interp_angles_cached(
             angles=angles,
-            nc_key=self._get_nc_key(dataset_id['name']),
+            name=dataset_id['name'],
             target_x=target_x,
             target_y=target_y
         )
 
     @interp_cache(
-        keys=('nc_key', 'target_x', 'target_y'),
+        keys=('name', 'target_x', 'target_y'),
         hash_funcs={
-            'nc_key': lambda nc_key: nc_key,
+            'name': lambda name: name,
             'target_x': lambda x: x.size,
             'target_y': lambda y: y.size
         }
     )
-    def _interp_angles_cached(self, angles, nc_key, target_x, target_y):
+    def _interp_angles_cached(self, angles, name, target_x, target_y):
         """Interpolate angles to the given resolution."""
         return self._interp_tiepoints(angles,
                                       target_x,
