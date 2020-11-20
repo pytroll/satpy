@@ -431,7 +431,7 @@ class TestFiduceoMviriFileHandlers:
 
     def test_angle_cache(self, file_handler):
         """Test caching of angle datasets."""
-        nc_key = 'mykey'
+        name = 'my_angles'
         x1 = y1 = xr.DataArray([1, 2, 3, 4])
         sza_coarse = xr.DataArray(
             [[45, 90],
@@ -440,7 +440,7 @@ class TestFiduceoMviriFileHandlers:
         )
         sza1 = file_handler._interp_angles_cached(
             angles=sza_coarse,
-            nc_key=nc_key,
+            name=name,
             target_x=x1,
             target_y=y1
         )
@@ -449,7 +449,7 @@ class TestFiduceoMviriFileHandlers:
         # should not interpolate them again.
         sza2 = file_handler._interp_angles_cached(
             angles=sza_coarse - 10,
-            nc_key=nc_key,
+            name=name,
             target_x=x1,
             target_y=y1
         )
@@ -459,7 +459,7 @@ class TestFiduceoMviriFileHandlers:
         x2 = y2 = xr.DataArray([1, 2])
         sza3 = file_handler._interp_angles_cached(
             angles=sza_coarse,
-            nc_key=nc_key,
+            name=name,
             target_x=x2,
             target_y=y2
         )
