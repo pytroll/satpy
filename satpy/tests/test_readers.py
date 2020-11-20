@@ -847,6 +847,11 @@ def _assert_is_open_file_and_close(opened):
         opened.close()
 
 
+def _posixify_path(filename):
+    drive, driveless_name = os.path.splitdrive(filename)
+    return driveless_name.replace('\\', '/')
+
+
 class TestFSFile(unittest.TestCase):
     """Test the FSFile class."""
 
@@ -916,14 +921,14 @@ class TestFSFile(unittest.TestCase):
         from satpy.readers import FSFile
         from fsspec.implementations.zip import ZipFileSystem
         zip_fs = ZipFileSystem(self.zip_name)
-        file = FSFile(self.local_filename2, zip_fs)
+        file = FSFile(_posixify_path(self.local_filename2), zip_fs)
         _assert_is_open_file_and_close(file.open())
 
     def test_open_zip_fs_openfile(self):
         """Test opening a zipfs openfile."""
         from satpy.readers import FSFile
         import fsspec
-        open_file = fsspec.open("zip://" + self.local_filename2 + "::file://" + self.zip_name)
+        open_file = fsspec.open("zip:/" + _posixify_path(self.local_filename2) + "::file://" + self.zip_name)
         file = FSFile(open_file)
         _assert_is_open_file_and_close(file.open())
 
@@ -936,6 +941,7 @@ class TestFSFile(unittest.TestCase):
 
         file2 = FSFile(self.local_filename)
 
-        sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, '/tmp/bla'])]
-        expected_filenames = sorted(['/tmp/bla', os.fspath(file1), os.fspath(file2)])
+        extra_file = os.path.normpath('/tmp/bla')
+        sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
+        expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
         assert sorted_filenames == expected_filenames
