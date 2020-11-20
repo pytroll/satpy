@@ -17,24 +17,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for the FIDUCEO MVIRI FCDR Reader."""
 
+import os
+from unittest import mock
+
 import dask.array as da
 import numpy as np
-import os
 import pytest
-from unittest import mock
 import xarray as xr
-
 from pyresample.geometry import AreaDefinition
 from pyresample.utils import proj4_radius_parameters
-from satpy.tests.utils import make_dataid
-from satpy.readers.mviri_l1b_fiduceo_nc import (
-    FiduceoMviriEasyFcdrFileHandler,
-    FiduceoMviriFullFcdrFileHandler,
-    POLE_RADIUS,
-    EQUATOR_RADIUS,
-    ALTITUDE
-)
 
+from satpy.readers.mviri_l1b_fiduceo_nc import (
+    ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, FiduceoMviriEasyFcdrFileHandler,
+    FiduceoMviriFullFcdrFileHandler)
+from satpy.tests.utils import make_dataid
 
 attrs_exp = {
     'platform': 'MET7',
@@ -108,6 +104,21 @@ vis_refl_exp = xr.DataArray(
         'acq_time': ('y', acq_time_vis_exp),
     },
     attrs=attrs_refl_exp
+)
+u_vis_refl_exp = xr.DataArray(
+    np.array(
+        [[0.1, 0.2, 0.3, 0.4],
+         [0.5, 0.6, 0.7, 0.8],
+         [0.9, 1.0, 1.1, 1.2],
+         [1.3, 1.4, 1.5, 1.6]],
+        dtype=np.float32
+    ),
+    dims=('y', 'x'),
+    coords={
+        'y': [1, 2, 3, 4],
+        'x': [1, 2, 3, 4],
+    },
+    attrs=attrs_exp
 )
 acq_time_ir_wv_exp = [np.datetime64('1970-01-01 00:30'),
                       np.datetime64('1970-01-01 02:30')]
@@ -291,6 +302,8 @@ def fake_dataset():
             'count_ir': (('y_ir_wv', 'x_ir_wv'), count_ir),
             'toa_bidirectional_reflectance_vis': (
                 ('y', 'x'), vis_refl_exp / 100),
+            'u_independent_toa_bidirectional_reflectance': (
+                ('y', 'x'), u_vis_refl_exp / 100),
             'quality_pixel_bitmask': (('y', 'x'), mask),
             'solar_zenith_angle': (('y_tie', 'x_tie'), sza),
             'time_ir_wv': (('y_ir_wv', 'x_ir_wv'), time),
@@ -367,7 +380,8 @@ class TestFiduceoMviriFileHandlers:
             ('IR', 'brightness_temperature', 4500, ir_bt_exp),
             ('quality_pixel_bitmask', None, 2250, quality_pixel_bitmask_exp),
             ('solar_zenith_angle_vis', None, 2250, sza_vis_exp),
-            ('solar_zenith_angle_ir_wv', None, 4500, sza_ir_wv_exp)
+            ('solar_zenith_angle_ir_wv', None, 4500, sza_ir_wv_exp),
+            ('u_independent_toa_bidirectional_reflectance', None, 4500, u_vis_refl_exp)
         ]
     )
     def test_get_dataset(self, file_handler, name, calibration, resolution,
@@ -475,6 +489,18 @@ class TestFiduceoMviriFileHandlers:
         for key in ['h', 'lon_0', 'proj', 'units']:
             assert area.proj_dict[key] == area_exp.proj_dict[key]
         np.testing.assert_allclose(area.area_extent, area_exp.area_extent)
+
+    def test_calib_exceptions(self, file_handler):
+        """Test calibration exceptions."""
+        with pytest.raises(KeyError):
+            file_handler.calibrate(None, 'solar_zenith_angle', None)
+
+        calib = mock.MagicMock()
+        calib.configure_mock(name='invalid_calib')
+        with pytest.raises(KeyError):
+            file_handler.calibrate(None, 'VIS', calib)
+        with pytest.raises(KeyError):
+            file_handler.calibrate(None, 'IR', calib)
 
 
 @pytest.fixture

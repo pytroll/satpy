@@ -110,17 +110,17 @@ RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
 import abc
-import dask.array as da
 import functools
+
+import dask.array as da
 import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.dataset.dataid import DataQuery
 from satpy.readers._geos_area import (ang2fac, get_area_definition,
                                       get_area_extent)
-from satpy.dataset.dataid import DataQuery
-
+from satpy.readers.file_handlers import BaseFileHandler
 
 EQUATOR_RADIUS = 6378140.0
 POLE_RADIUS = 6356755.0
@@ -269,10 +269,6 @@ class FiduceoMviriBase(BaseFileHandler):
             ds = self._interp_angles(ds, dataset_id)
         self._update_attrs(ds, dataset_info)
         return ds
-
-    def _get_nc_key(self, name):
-        """Get netCDF key corresponding to the given dataset name."""
-        return
 
     def _read_dataset(self, name):
         """Read a dataset from the file."""
