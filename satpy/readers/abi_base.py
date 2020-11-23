@@ -22,6 +22,8 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
+import requests
+import io
 
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
@@ -42,13 +44,19 @@ class NC_ABI_BASE(BaseFileHandler):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
         # xarray's default netcdf4 engine
+        url = self.filename
+        if 'googleapis' in url or 'amazonaws' in url or 'core.windows' in url:
+            resp = requests.get(url)
+            store = io.BytesIO(resp.content)
+        else:
+            store = url
         try:
-            self.nc = xr.open_dataset(self.filename,
+            self.nc = xr.open_dataset(store,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
         except ValueError:
-            self.nc = xr.open_dataset(self.filename,
+            self.nc = xr.open_dataset(store,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
