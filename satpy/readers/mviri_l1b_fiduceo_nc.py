@@ -102,6 +102,7 @@ masking bad quality pixels is to set the ``mask_bad_quality`` keyword argument
 to ``True``:
 
 .. code-block:: python
+
     scn = Scene(filenames=['FIDUCEO_FCDR_L15_MVIRI_MET7-57.0...'],
                 reader='mviri_l1b_fiduceo_nc',
                 reader_kwargs={'mask_bad_quality': True})
