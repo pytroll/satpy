@@ -208,7 +208,7 @@ ir_bt_exp = xr.DataArray(
 )
 quality_pixel_bitmask_exp = xr.DataArray(
     np.array(
-        [[2, 0, 0, 0],
+        [[0, 0, 0, 0],
          [0, 0, 0, 0],
          [0, 0, 1, 0],
          [0, 0, 0, 0]],
@@ -287,7 +287,7 @@ def fake_dataset():
     )
     mask = da.from_array(
         np.array(
-            [[2, 0, 0, 0],  # 2 = "use with caution"
+            [[0, 0, 0, 0],
              [0, 0, 0, 0],
              [0, 0, 1, 0],  # 1 = "invalid"
              [0, 0, 0, 0]],
