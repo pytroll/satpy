@@ -941,7 +941,7 @@ class TestFSFile(unittest.TestCase):
 
         file2 = FSFile(self.local_filename)
 
-        extra_file = os.path.normpath('/tmp/bla')
+        extra_file = os.path.normpath('/somedir/bla')
         sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
         expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
         assert sorted_filenames == expected_filenames
