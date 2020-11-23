@@ -81,16 +81,26 @@ class NC_ABI_BASE(BaseFileHandler):
         variables which causes inaccurate unscaled data values. This method
         forces the scale factor to a 64-bit float first.
         """
-        def is_int(val):
-            return np.issubdtype(val.dtype, np.integer) if hasattr(val, 'dtype') else isinstance(val, int)
-
         data = self.nc[item]
         attrs = data.attrs
 
+        data = self._adjust_data(data, item)
+
+        data.attrs = attrs
+
+        data = self._adjust_coords(data, item)
+
+        return data
+
+    def _adjust_data(self, data, item):
+        """Adjust data with typing, scaling and filling."""
         factor = data.attrs.get('scale_factor', 1)
         offset = data.attrs.get('add_offset', 0)
         fill = data.attrs.get('_FillValue')
         unsigned = data.attrs.get('_Unsigned', None)
+
+        def is_int(val):
+            return np.issubdtype(val.dtype, np.integer) if hasattr(val, 'dtype') else isinstance(val, int)
 
         # Ref. GOESR PUG-L1B-vol3, section 5.0.2 Unsigned Integer Processing
         if unsigned is not None and unsigned.lower() == 'true':
@@ -99,7 +109,6 @@ class NC_ABI_BASE(BaseFileHandler):
 
             if fill is not None:
                 fill = fill.astype('u%s' % fill.dtype.itemsize)
-
         if fill is not None:
             # Some backends (h5netcdf) may return attributes as shape (1,)
             # arrays rather than shape () scalars, which according to the netcdf
@@ -113,7 +122,6 @@ class NC_ABI_BASE(BaseFileHandler):
             else:
                 new_fill = np.nan
             data = data.where(data != fill, new_fill)
-
         if factor != 1 and item in ('x', 'y'):
             # be more precise with x/y coordinates
             # see get_area_def for more information
@@ -125,10 +133,10 @@ class NC_ABI_BASE(BaseFileHandler):
             if not is_int(factor):
                 factor = float(factor)
             data = data * factor + offset
+        return data
 
-        data.attrs = attrs
-
-        # handle coordinates (and recursive fun)
+    def _adjust_coords(self, data, item):
+        """Handle coordinates (and recursive fun)."""
         new_coords = {}
         # 'time' dimension causes issues in other processing
         # 'x_image' and 'y_image' are confusing to some users and unnecessary
@@ -143,7 +151,6 @@ class NC_ABI_BASE(BaseFileHandler):
                 self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
         data.coords.update(new_coords)
-
         return data
 
     def get_dataset(self, key, info):
