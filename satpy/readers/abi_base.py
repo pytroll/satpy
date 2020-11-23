@@ -22,10 +22,11 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
-
 from pyresample import geometry
-from satpy.readers.file_handlers import BaseFileHandler
+
 from satpy import CHUNK_SIZE
+from satpy.readers import open_file_or_filename
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +42,14 @@ class NC_ABI_BASE(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
-        # xarray's default netcdf4 engine
+        f_obj = open_file_or_filename(self.filename)
         try:
-            self.nc = xr.open_dataset(self.filename,
+            self.nc = xr.open_dataset(f_obj,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
         except ValueError:
-            self.nc = xr.open_dataset(self.filename,
+            self.nc = xr.open_dataset(f_obj,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
@@ -100,6 +101,13 @@ class NC_ABI_BASE(BaseFileHandler):
                 fill = fill.astype('u%s' % fill.dtype.itemsize)
 
         if fill is not None:
+            # Some backends (h5netcdf) may return attributes as shape (1,)
+            # arrays rather than shape () scalars, which according to the netcdf
+            # documentation at <URL:https://www.unidata.ucar.edu
+            # /software/netcdf/docs/netcdf_data_set_components.html#attributes>
+            # is correct.
+            if np.ndim(fill) > 0:
+                fill = fill.item()
             if is_int(data) and is_int(factor) and is_int(offset):
                 new_fill = fill
             else:
