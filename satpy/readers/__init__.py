@@ -597,3 +597,12 @@ class FSFile(os.PathLike):
     def __lt__(self, other):
         """Implement ordering."""
         return os.fspath(self) < os.fspath(other)
+
+
+def open_file_or_filename(unknown_file_thing):
+    """Try to open the *unknown_file_thing*, otherwise return the filename."""
+    try:
+        f_obj = unknown_file_thing.open()
+    except AttributeError:
+        f_obj = unknown_file_thing
+    return f_obj
