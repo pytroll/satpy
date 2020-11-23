@@ -545,17 +545,20 @@ def _get_reader_kwargs(reader, reader_kwargs):
 class FSFile(os.PathLike):
     """Implementation of a PathLike file object, that can be opened.
 
-    This is made to be use in conjuction with fsspec or s3fs. For example::
+    This is made to be used in conjuction with fsspec or s3fs. For example::
 
-        zipfile = S3B_OL_2_WFR____20201103T100807_20201103T101107_20201103T121330_0179_045_179_1980_MAR_O_NR_002.zip
-        filename = "sentinel-s3-ol2wfr-zips/2020/11/03/" + filename
-        the_files = fsspec.open_files("simplecache::zip://**/*.nc::s3://" + filename, s3={'anon': False})
+        from satpy import Scene
 
+        import fsspec
+        filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
+
+        the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
+
+        from satpy.readers import FSFile
         fs_files = [FSFile(open_file) for open_file in the_files]
 
-        scn = Scene(filenames=fs_files, reader='olci_l2')
-        scn.load(['chl_nn'])
-        scn.save_datasets()
+        scn = Scene(filenames=fs_files, reader='abi_l1b')
+        scn.load(['true_color_raw'])
 
     """
 
