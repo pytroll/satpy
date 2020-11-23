@@ -300,7 +300,7 @@ class FiduceoMviriBase(BaseFileHandler):
             ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
         elif 'y_tie' in ds.dims:
             ds = ds.rename({'y_tie': 'y', 'x_tie': 'x'})
-        elif 'y' in ds.dims:
+        elif 'y' in ds.dims and 'y' not in ds.coords:
             # For some reason xarray doesn't assign coordinates to all
             # high resolution data variables.
             ds = ds.assign_coords({'y': self.nc.coords['y'],
