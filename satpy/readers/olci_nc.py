@@ -49,6 +49,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
+from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
 
@@ -113,11 +114,7 @@ class NCOLCIBase(BaseFileHandler):
     @lru_cache(maxsize=2)
     def nc(self):
         """Get the nc xr dataset."""
-        try:
-            f_obj = self.filename.open()
-            self.open_file = f_obj
-        except AttributeError:
-            f_obj = self.filename
+        f_obj = open_file_or_filename(self.filename)
         dataset = xr.open_dataset(f_obj,
                                   decode_cf=True,
                                   mask_and_scale=True,
@@ -147,8 +144,6 @@ class NCOLCIBase(BaseFileHandler):
         """Close the NetCDF file that may still be open."""
         with suppress(IOError, OSError, AttributeError):
             self.nc.close()
-        with suppress(AttributeError):
-            self.open_file.close()
 
 
 class NCOLCICal(NCOLCIBase):
