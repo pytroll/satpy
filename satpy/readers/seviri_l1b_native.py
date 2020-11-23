@@ -58,8 +58,8 @@ from satpy.readers.eum_base import recarray2dict
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
-                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS,
-                                       VIS_CHANNELS)
+                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
+                                       VIS_CHANNELS, pad_data_ew, pad_data_sn)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
@@ -278,47 +278,26 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
-        # check if data is in Rapid Scanning Service mode (RSS)
-        is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
-
         if dataset_id['name'] == 'HRV':
-            pdict['nlines'] = self.mda['hrv_number_of_lines']
-            pdict['ncols'] = self.mda['hrv_number_of_columns']
             pdict['a_name'] = 'geos_seviri_hrv'
-            pdict['a_desc'] = 'SEVIRI high resolution channel area'
             pdict['p_id'] = 'seviri_hrv'
 
-            if self.mda['is_full_disk']:
-                # handle full disk HRV data with two separated area definitions
-                [upper_area_extent, lower_area_extent,
-                 upper_nlines, upper_ncols, lower_nlines, lower_ncols] = self.get_area_extent(dataset_id)
+            area_extent, nlines, ncolumns, hrv_window = self.get_area_extent(dataset_id)
 
-                # upper HRV window
-                pdict['a_desc'] = 'SEVIRI high resolution channel, upper window'
-                pdict['nlines'] = upper_nlines
-                pdict['ncols'] = upper_ncols
-                upper_area = get_area_definition(pdict, upper_area_extent)
+            area = list()
+            for ae, nl, nc, win in zip(area_extent, nlines, ncolumns, hrv_window):
+                pdict['a_desc'] = 'SEVIRI high resolution channel, %s window' % win
+                pdict['nlines'] = nl
+                pdict['ncols'] = nc
+                area.append(get_area_definition(pdict, ae))
 
-                # lower HRV window
-                pdict['a_desc'] = 'SEVIRI high resolution channel, lower window'
-                pdict['nlines'] = lower_nlines
-                pdict['ncols'] = lower_ncols
-                lower_area = get_area_definition(pdict, lower_area_extent)
-
-                area = geometry.StackedAreaDefinition(lower_area, upper_area)
+            if len(area) == 1:
+                area = area[0]
+            elif len(area) == 2:
+                area = geometry.StackedAreaDefinition(area[0], area[1])
                 area = area.squeeze()
-
-            elif is_rapid_scan:
-                # handle RSS HRV data separately in case of padding to full disk (ncols -> 11136)
-                [lower_area_extent, lower_nlines, lower_ncols] = self.get_area_extent(dataset_id)
-                pdict['a_desc'] = 'SEVIRI high resolution channel, lower window (rss)'
-                pdict['nlines'] = lower_nlines
-                pdict['ncols'] = lower_ncols
-                area = get_area_definition(pdict, lower_area_extent)
-
             else:
-                # if the HRV data is in a ROI, the HRV channel is delivered in one area
-                area = get_area_definition(pdict, self.get_area_extent(dataset_id))
+                raise IndexError('Unexpected number of HRV windows')
 
         else:
             pdict['nlines'] = self.mda['number_of_lines']
@@ -389,63 +368,83 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # check if data is in Rapid Scanning Service mode (RSS)
         is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
 
-        # The HRV channel in full disk mode comes in two separate areas, and each area has its own area extent stored
-        # in the trailer.
-        # In Rapid Scanning mode, only the "Lower" area (typically over Europe) is acquired and included in the files.
-        if (dataset_id['name'] == 'HRV') and (self.mda['is_full_disk'] or is_rapid_scan):
+        # If we're dealing with HRV data, three different configurations of the data must be considered:
+        #   1. Full Earth Scanning (FES) mode: data from two separate windows with each window having its own area
+        #      extent stored in the trailer.
+        #   2. Rapid Scanning Service (RSS) mode: similar to FES but only with data from the the "lower" window
+        #      - typically over Europe.
+        #   3. Region Of Interest (ROI) mode: data for one area subset defined by the user with its area extent stored
+        #      in the secondary header.
+        if dataset_id['name'] == 'HRV':
+            area_extent = list()
+            nlines = list()
+            ncolumns = list()
+            window = list()
 
-            # get actual navigation parameters from trailer data
-            data15tr = self.trailer['15TRAILER']
-            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV'].copy()
-            if self.fill_hrv:
-                HRV_bounds['UpperEastColumnActual'] = 1
-                HRV_bounds['UpperWestColumnActual'] = 11136
-                HRV_bounds['LowerEastColumnActual'] = 1
-                HRV_bounds['LowerWestColumnActual'] = 11136
+            if not self.is_roi():
+                # If we're dealing with stadnard FES or RSS HRV data we use the actual navigation parameters
+                # from the trailer
+                hrv_bounds = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV'].copy()
 
-                if is_rapid_scan:
-                    HRV_bounds['LowerSouthLineActual'] = 1
-                    HRV_bounds['LowerNorthLineActual'] = 11136
+                for hrv_window in ['Lower', 'Upper']:
+                    window_south_line = hrv_bounds['%sSouthLineActual' % hrv_window]
+                    window_north_line = hrv_bounds['%sNorthLineActual' % hrv_window]
+                    window_east_column = hrv_bounds['%sEastColumnActual' % hrv_window]
+                    window_west_column = hrv_bounds['%sWestColumnActual' % hrv_window]
 
-            # lower HRV window
-            lower_north_line = HRV_bounds['LowerNorthLineActual']
-            lower_west_column = HRV_bounds['LowerWestColumnActual']
-            lower_south_line = HRV_bounds['LowerSouthLineActual']
-            lower_east_column = HRV_bounds['LowerEastColumnActual']
+                    if window_north_line > window_south_line:  # we have some of the HRV window
+                        if self.fill_hrv:
+                            window_east_column = 1
+                            window_west_column = HRV_NUM_COLUMNS
 
-            lower_area_extent = self._calculate_area_extent(
-                center_point, lower_north_line, lower_east_column,
-                lower_south_line, lower_west_column, we_offset,
-                ns_offset, column_step, line_step
-            )
+                            if is_rapid_scan:
+                                window_south_line = 1
+                                window_north_line = HRV_NUM_LINES
 
-            lower_nlines = lower_north_line - lower_south_line + 1
-            lower_ncols = lower_west_column - lower_east_column + 1
+                        window_nlines = window_north_line - window_south_line + 1
+                        window_ncolumns = window_west_column - window_east_column + 1
 
-            if is_rapid_scan:
-                return lower_area_extent, lower_nlines, lower_ncols
+                        area_extent.append(self._calculate_area_extent(
+                            center_point, window_north_line, window_east_column,
+                            window_south_line, window_west_column,
+                            we_offset, ns_offset, column_step, line_step))
+                        nlines.append(window_nlines)
+                        ncolumns.append(window_ncolumns)
+                        window.append(hrv_window.lower())
+            else:
+                # If we're dealing with HRV data for a selected region of interest (ROI) we use the selected navigation
+                # parameters from the secondary header information
+                roi_nlines = self.mda['hrv_number_of_lines']
+                roi_ncolumns = self.mda['hrv_number_of_columns']
+                sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+                roi_south_line = coeff * int(sec15hd['SouthLineSelectedRectangle']['Value']) - 2
+                roi_east_column = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value']) - 2
 
-            # upper HRV window
-            upper_north_line = HRV_bounds['UpperNorthLineActual']
-            upper_west_column = HRV_bounds['UpperWestColumnActual']
-            upper_south_line = HRV_bounds['UpperSouthLineActual']
-            upper_east_column = HRV_bounds['UpperEastColumnActual']
+                roi_west_column = roi_east_column + roi_ncolumns - 1
+                roi_north_line = roi_south_line + roi_nlines - 1
 
-            upper_area_extent = self._calculate_area_extent(
-                center_point, upper_north_line, upper_east_column,
-                upper_south_line, upper_west_column, we_offset,
-                ns_offset, column_step, line_step
-            )
+                if self.fill_hrv:
+                    roi_south_line = 1
+                    roi_north_line = HRV_NUM_LINES
+                    roi_east_column = 1
+                    roi_west_column = HRV_NUM_COLUMNS
 
-            upper_nlines = upper_north_line - upper_south_line + 1
-            upper_ncols = upper_west_column - upper_east_column + 1
+                    roi_nlines = HRV_NUM_LINES
+                    roi_ncolumns = HRV_NUM_COLUMNS
 
-            return [upper_area_extent, lower_area_extent, upper_nlines, upper_ncols, lower_nlines, lower_ncols]
+                area_extent.append(self._calculate_area_extent(
+                    center_point, roi_north_line, roi_east_column,
+                    roi_south_line, roi_west_column, we_offset,
+                    ns_offset, column_step, line_step))
+                nlines.append(roi_nlines)
+                ncolumns.append(roi_ncolumns)
+                window.append('roi')
 
-        # If the data was ordered in a defined ROI, the area extent is in one piece, the corner points are
-        # the same as for VISIR channels, and the HRV channel is having three times the amount of columns and rows.
+            return area_extent, nlines, ncolumns, window
+
+        # If we're dealing with VISIR data we use the selected navigation parameters from the
+        # secondary header information
         else:
-
             north = coeff * int(sec15hd['NorthLineSelectedRectangle']['Value'])
             east = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value'])
             west = coeff * int(sec15hd['WestColumnSelectedRectangle']['Value'])
@@ -516,45 +515,84 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         return dataset
 
+    def is_roi(self):
+        """Check if data covers a selected region of interest (ROI), rather than the default FES or RSS regions."""
+        is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
+
+        # Standard RSS data is assumed to cover the three northmost segements, thus consisting of all 3712 columns and
+        # the 1392 northmost lines
+        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+        north = int(sec15hd['NorthLineSelectedRectangle']['Value'])
+        east = int(sec15hd['EastColumnSelectedRectangle']['Value'])
+        south = int(sec15hd['SouthLineSelectedRectangle']['Value'])
+        west = int(sec15hd['WestColumnSelectedRectangle']['Value'])
+        ncolumns = west - east + 1
+
+        is_top3segments = (ncolumns == VISIR_NUM_COLUMNS) and \
+                          (north == VISIR_NUM_LINES) and \
+                          (south == 5 / 8 * VISIR_NUM_LINES + 1)
+
+        return not self.mda['is_full_disk'] and not (is_rapid_scan and is_top3segments)
+
     def pad_hrv_data(self, dataset):
         """Pad HRV data with empty pixels."""
         logger.debug('Padding HRV data to full disk')
+
         nlines = int(self.mda['hrv_number_of_lines'])
-        nlines_pad = 11136
-        ncols_pad = 11136
-        HRV_bounds = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
+        ncols = int(self.mda['hrv_number_of_columns'])
 
-        data_pad = np.zeros((nlines_pad, ncols_pad), dtype=dataset.dtype)
-        if np.issubdtype(data_pad.dtype, np.floating):
-            data_pad = data_pad * np.nan
+        if not self.is_roi():
+            # If we're dealing with standard FES or RSS data we use tha actual navigation parameters from the trailer
+            # data in order to pad the data correctly
+            hrv_bounds = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
+            data_list = list()
+            for hrv_window in ['Lower', 'Upper']:
+                window_south_line = hrv_bounds['%sSouthLineActual' % hrv_window]
+                window_north_line = hrv_bounds['%sNorthLineActual' % hrv_window]
+                window_east_column = hrv_bounds['%sEastColumnActual' % hrv_window]
+                window_west_column = hrv_bounds['%sWestColumnActual' % hrv_window]
 
-        # lower HRV window
-        lower_south_line = HRV_bounds['LowerSouthLineActual']
-        lower_north_line = HRV_bounds['LowerNorthLineActual']
-        lower_east_col = HRV_bounds['LowerEastColumnActual']
-        lower_west_col = HRV_bounds['LowerWestColumnActual']
+                if window_north_line > window_south_line:  # we have some of the HRV window
+                    window_nlines = window_north_line - window_south_line + 1
+                    window_ncols = window_west_column - window_east_column + 1
+                    line_start = window_south_line - HRV_NUM_LINES + nlines
+                    line_end = line_start + window_nlines - 1
 
-        if lower_north_line > lower_south_line:  # we have some of the lower HRV window
-            if lower_west_col - lower_east_col != dataset.data.shape[1] - 1:
-                raise IndexError('East and west bounds of lower HRV window do not match expected data shape')
+                    # Pad data in east-west direction
+                    data_window = pad_data_ew(dataset[line_start - 1:line_end, :].data,
+                                              (window_nlines, HRV_NUM_COLUMNS),
+                                              window_east_column,
+                                              window_east_column + window_ncols - 1)
 
-            data_pad[lower_south_line - 1:lower_north_line, lower_east_col - 1:lower_west_col] = \
-                dataset[lower_south_line - nlines_pad + nlines - 1: lower_north_line - nlines_pad + nlines, :].data
+                    data_list.append(data_window)
 
-        # upper HRV window
-        upper_north_line = HRV_bounds['UpperNorthLineActual']
-        upper_south_line = HRV_bounds['UpperSouthLineActual']
-        upper_east_col = HRV_bounds['UpperEastColumnActual']
-        upper_west_col = HRV_bounds['UpperWestColumnActual']
+            if not self.mda['is_full_disk']:
+                # If we are dealing with RSS data we need to pad data in north-south direction as well
+                data_list = [pad_data_sn(data_list[0],
+                                         (HRV_NUM_LINES, HRV_NUM_COLUMNS),
+                                         hrv_bounds['LowerSouthLineActual'],
+                                         hrv_bounds['LowerNorthLineActual'])]
 
-        if upper_north_line > upper_south_line:  # we have some of the upper HRV window
-            if upper_west_col - upper_east_col != dataset.data.shape[1] - 1:
-                raise IndexError('East and west bounds of upper HRV window do not match expected data shape')
+        else:
+            # If we're dealing with data for a selected region of interest we use the selected navigation parameters
+            # from the secondary header information in order to pad the data correctly
+            sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+            roi_south_line = 3 * int(sec15hd['SouthLineSelectedRectangle']['Value']) - 2
+            roi_east_column = 3 * int(sec15hd['EastColumnSelectedRectangle']['Value']) - 2
 
-            data_pad[upper_south_line - 1:upper_north_line, upper_east_col - 1:upper_west_col] = \
-                dataset[upper_south_line - nlines_pad + nlines - 1: upper_north_line - nlines_pad + nlines, :].data
+            # Pad data in east-west direction
+            data_roi = pad_data_ew(dataset.data,
+                                   (nlines, HRV_NUM_COLUMNS),
+                                   roi_east_column,
+                                   roi_east_column + ncols - 1)
 
-        return xr.DataArray(da.from_array(data_pad, chunks=CHUNK_SIZE), dims=('y', 'x'))
+            # Pad data in south-north direction
+            data_list = [pad_data_sn(data_roi,
+                                     (HRV_NUM_LINES, HRV_NUM_COLUMNS),
+                                     roi_south_line,
+                                     roi_south_line + nlines - 1)]
+
+        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
 
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
