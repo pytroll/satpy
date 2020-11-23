@@ -52,13 +52,10 @@ This is how to read FIDUCEO MVIRI FCDR data in satpy:
     from satpy import Scene
 
     scn = Scene(filenames=['FIDUCEO_FCDR_L15_MVIRI_MET7-57.0...'],
-                reader='mviri_l1b_fiduceo_nc',
-                reader_kwargs={'mask_bad_quality': True)
+                reader='mviri_l1b_fiduceo_nc')
     scn.load(['VIS', 'WV', 'IR'])
 
-In the above example pixels considered bad quality are masked, see
-:class:`FiduceoMviriBase` for a keyword argument description. Global
-netCDF attributes are available in the ``raw_metadata`` attribute of
+Global netCDF attributes are available in the ``raw_metadata`` attribute of
 each loaded dataset.
 
 
@@ -96,6 +93,23 @@ You might encounter huge VIS reflectances (10^8 percent and greater) in
 situations where both radiance and solar zenith angle are small. The reader
 certainly needs some improvement in this regard. Maybe the corresponding
 uncertainties can be used to filter these cases before calculating reflectances.
+
+
+VIS Channel Quality Flags
+-------------------------
+Quality flags are available for the VIS channel only. A simple approach for
+masking bad quality pixels is to set the ``mask_bad_quality`` keyword argument
+to ``True``:
+
+.. code-block:: python
+    scn = Scene(filenames=['FIDUCEO_FCDR_L15_MVIRI_MET7-57.0...'],
+                reader='mviri_l1b_fiduceo_nc',
+                reader_kwargs={'mask_bad_quality': True})
+
+See :class:`FiduceoMviriBase` for an argument description. In some situations
+however the entire image can be flagged (look out for warnings). In that case
+check out the ``quality_pixel_bitmask`` and ``data_quality_bitmask`` datasets
+to find out why.
 
 
 Angles
@@ -141,6 +155,7 @@ RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 import abc
 import functools
+import warnings
 
 import dask.array as da
 import numpy as np
@@ -252,9 +267,9 @@ class FiduceoMviriBase(BaseFileHandler):
 
         Args:
              mask_bad_quality: Mask VIS pixels with bad quality, that means
-                 everything else than "ok" or "use with caution". If you need
-                 more control, use the ``quality_pixel_bitmask`` and
-                 ``data_quality_bitmask`` datasets.
+                 any quality flag except "ok". If you need more control, use
+                 the ``quality_pixel_bitmask`` and ``data_quality_bitmask``
+                 datasets.
         """
         super(FiduceoMviriBase, self).__init__(
             filename, filename_info, filetype_info)
@@ -278,8 +293,11 @@ class FiduceoMviriBase(BaseFileHandler):
         if dataset_id['name'] in CHANNELS:
             ds = self.calibrate(ds, channel=name,
                                 calibration=dataset_id['calibration'])
-            if self.mask_bad_quality and name == 'VIS':
-                ds = self._mask_vis(ds)
+            if name == 'VIS':
+                if self.mask_bad_quality:
+                    ds = self._mask_vis(ds)
+                else:
+                    self._check_vis_quality(ds)
             ds['acq_time'] = ('y', self._get_acq_time(ds))
         elif dataset_id['name'] in OTHER_REFLECTANCES:
             ds = ds * 100  # conversion to percent
@@ -418,16 +436,25 @@ class FiduceoMviriBase(BaseFileHandler):
         bt = b / (np.log(rad) - a)
         return bt.where(bt > 0, np.float32(np.nan))
 
+    def _check_vis_quality(self, ds):
+        """Check VIS channel quality and issue a warning if it's bad."""
+        mask = self._read_dataset('quality_pixel_bitmask')
+        use_with_caution = da.bitwise_and(mask, 2)
+        if use_with_caution.all():
+            warnings.warn(
+                'All pixels of the VIS channel are flagged as "use with '
+                'caution". Use datasets "quality_pixel_bitmask" and '
+                '"data_quality_bitmask" to find out why.'
+            )
+
     def _mask_vis(self, ds):
         """Mask VIS pixels with bad quality.
 
         Pixels are considered bad quality if the "quality_pixel_bitmask" is
-        everything else than 0 (no flag set) or 2 ("use_with_caution" and no
-        other flag set). According to [PUG] that bitmask is only applicable to
-        the VIS channel.
+        everything else than 0 (no flag set).
         """
         mask = self._read_dataset('quality_pixel_bitmask')
-        return ds.where(da.logical_or(mask == 0, mask == 2),
+        return ds.where(mask == 0,
                         np.float32(np.nan))
 
     def _get_acq_time(self, ds):
