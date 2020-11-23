@@ -263,6 +263,7 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info = dict(val.attrs)
             ds_info['file_type'] = self.filetype_info['file_type']
             ds_info['name'] = var_name
+            self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
     def get_dataset(self, ds_id, ds_info):

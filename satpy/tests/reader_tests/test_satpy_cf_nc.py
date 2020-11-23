@@ -64,12 +64,14 @@ class TestCFReader(unittest.TestCase):
                            dims=('y', 'x'),
                            coords={'y': y_visir, 'x': x_visir},
                            attrs={'name': 'lat',
-                                  'standard_name': 'latitude'})
+                                  'standard_name': 'latitude',
+                                  'modifiers': np.array([])})
         lon = xr.DataArray(lon,
                            dims=('y', 'x'),
                            coords={'y': y_visir, 'x': x_visir},
                            attrs={'name': 'lon',
-                                  'standard_name': 'longitude'})
+                                  'standard_name': 'longitude',
+                                  'modifiers': np.array([])})
         self.scene = Scene()
         self.scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
         scene_dict = {'image0': vis006,
