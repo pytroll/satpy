@@ -347,6 +347,10 @@ def fake_dataset():
                         FiduceoMviriFullFcdrFileHandler])
 def file_handler(fake_dataset, request):
     """Create mocked file handler."""
+    marker = request.node.get_closest_marker("file_handler_data")
+    mask_bad_quality = True
+    if marker:
+        mask_bad_quality = marker.kwargs['mask_bad_quality']
     fh_class = request.param
     with mock.patch('satpy.readers.mviri_l1b_fiduceo_nc.xr.open_dataset') as open_dataset:
         open_dataset.return_value = fake_dataset
@@ -356,7 +360,7 @@ def file_handler(fake_dataset, request):
                            'sensor': 'MVIRI',
                            'projection_longitude': '57.0'},
             filetype_info={'foo': 'bar'},
-            mask_bad_quality=True
+            mask_bad_quality=mask_bad_quality
         )
 
 
@@ -506,6 +510,15 @@ class TestFiduceoMviriFileHandlers:
             file_handler.calibrate(ds, 'VIS', calib)
         with pytest.raises(KeyError):
             file_handler.calibrate(ds, 'IR', calib)
+
+    @pytest.mark.file_handler_data(mask_bad_quality=False)
+    def test_bad_quality_warning(self, file_handler):
+        """Test warning about bad VIS quality."""
+        file_handler.nc['quality_pixel_bitmask'] = 2
+        vis = make_dataid(name='VIS', resolution=2250,
+                          calibration='reflectance')
+        with pytest.warns(UserWarning):
+            file_handler.get_dataset(vis, {})
 
 
 @pytest.fixture
