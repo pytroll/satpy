@@ -30,6 +30,7 @@ import dask.array as da
 from satpy.readers.utils import apply_earthsun_distance_correction
 from satpy.readers.eum_base import (time_cds_short,
                                     issue_revision)
+from satpy import CHUNK_SIZE
 
 PLATFORM_DICT = {
     'MET08': 'Meteosat-8',
@@ -50,6 +51,7 @@ C2 = 1.43877523
 VISIR_NUM_COLUMNS = 3712
 VISIR_NUM_LINES = 3712
 HRV_NUM_COLUMNS = 11136
+HRV_NUM_LINES = 11136
 
 CHANNEL_NAMES = {1: "VIS006",
                  2: "VIS008",
@@ -428,3 +430,33 @@ def calculate_area_extent(area_dict):
     aex = np.array([ll_c, ll_r, ur_c, ur_r]) * area_dict['resolution']
 
     return tuple(aex)
+
+
+def pad_data_ew(data, final_size, east_bound, west_bound):
+    """Pad the data given east and west bounds and the desired size."""
+    nlines = final_size[0]
+    if west_bound - east_bound != data.shape[1] - 1:
+        raise IndexError('East and west bounds do not match data shape')
+    padding_east = da.zeros((nlines, east_bound - 1),
+                            dtype=data.dtype, chunks=CHUNK_SIZE)
+    padding_west = da.zeros((nlines, (final_size[1] - west_bound)),
+                            dtype=data.dtype, chunks=CHUNK_SIZE)
+    if np.issubdtype(data.dtype, np.floating):
+        padding_east = padding_east * np.nan
+        padding_west = padding_west * np.nan
+    return np.hstack((padding_east, data, padding_west))
+
+
+def pad_data_sn(data, final_size, south_bound, north_bound):
+    """Pad the data given south and north bounds and the desired size."""
+    ncols = final_size[1]
+    if north_bound - south_bound != data.shape[0] - 1:
+        raise IndexError('South and north bounds do not match data shape')
+    padding_south = da.zeros((south_bound - 1, ncols),
+                             dtype=data.dtype, chunks=CHUNK_SIZE)
+    padding_north = da.zeros(((final_size[0] - north_bound), ncols),
+                             dtype=data.dtype, chunks=CHUNK_SIZE)
+    if np.issubdtype(data.dtype, np.floating):
+        padding_south = padding_south * np.nan
+        padding_north = padding_north * np.nan
+    return np.vstack((padding_south, data, padding_north))
