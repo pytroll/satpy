@@ -421,7 +421,13 @@ class FiduceoMviriBase(BaseFileHandler):
         the VIS channel.
         """
         mask = self.nc['quality_pixel_bitmask']
-        return ds.where(np.logical_or(mask == 0, mask == 2),
+        if 'y' not in mask.coords:
+            # For some reason xarray doesn't assign coordinates to the
+            # masks. Maybe because of the 'coordinates' attribute which
+            # points to non-existent latitude and longitude.
+            mask = mask.assign_coords({'y': ds.coords['y'],
+                                       'x': ds.coords['x']})
+        return ds.where(da.logical_or(mask == 0, mask == 2),
                         np.float32(np.nan))
 
     def _get_acq_time(self, ds):
