@@ -338,6 +338,8 @@ def fake_dataset():
         },
         attrs={'foo': 'bar'}
     )
+    ds['count_ir'].attrs['ancillary_variables'] = 'a_ir b_ir'
+    ds['count_wv'].attrs['ancillary_variables'] = 'a_wv b_wv'
     return ds
 
 
@@ -494,15 +496,16 @@ class TestFiduceoMviriFileHandlers:
 
     def test_calib_exceptions(self, file_handler):
         """Test calibration exceptions."""
+        ds = xr.Dataset()
         with pytest.raises(KeyError):
-            file_handler.calibrate(None, 'solar_zenith_angle', None)
+            file_handler.calibrate(ds, 'solar_zenith_angle', None)
 
         calib = mock.MagicMock()
         calib.configure_mock(name='invalid_calib')
         with pytest.raises(KeyError):
-            file_handler.calibrate(None, 'VIS', calib)
+            file_handler.calibrate(ds, 'VIS', calib)
         with pytest.raises(KeyError):
-            file_handler.calibrate(None, 'IR', calib)
+            file_handler.calibrate(ds, 'IR', calib)
 
 
 @pytest.fixture

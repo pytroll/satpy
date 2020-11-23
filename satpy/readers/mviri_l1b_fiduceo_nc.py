@@ -349,6 +349,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def calibrate(self, ds, channel, calibration):
         """Calibrate the given dataset."""
+        ds.attrs.pop('ancillary_variables', None)  # to avoid satpy warnings
         if channel == 'VIS':
             return self._calibrate_vis(ds, calibration)
         elif channel in ['WV', 'IR']:
