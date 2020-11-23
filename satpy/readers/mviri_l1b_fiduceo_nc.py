@@ -298,8 +298,13 @@ class FiduceoMviriBase(BaseFileHandler):
         ds = self.nc[nc_key]
         if 'y_ir_wv' in ds.dims:
             ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
-        if 'y_tie' in ds.dims:
+        elif 'y_tie' in ds.dims:
             ds = ds.rename({'y_tie': 'y', 'x_tie': 'x'})
+        elif 'y' in ds.dims:
+            # For some reason xarray doesn't assign coordinates to all
+            # high resolution data variables.
+            ds = ds.assign_coords({'y': self.nc.coords['y'],
+                                   'x': self.nc.coords['x']})
         return ds
 
     def _update_attrs(self, ds, info):
@@ -421,13 +426,7 @@ class FiduceoMviriBase(BaseFileHandler):
         other flag set). According to [PUG] that bitmask is only applicable to
         the VIS channel.
         """
-        mask = self.nc['quality_pixel_bitmask']
-        if 'y' not in mask.coords:
-            # For some reason xarray doesn't assign coordinates to the
-            # masks. Maybe because of the 'coordinates' attribute which
-            # points to non-existent latitude and longitude.
-            mask = mask.assign_coords({'y': ds.coords['y'],
-                                       'x': ds.coords['x']})
+        mask = self._read_dataset('quality_pixel_bitmask')
         return ds.where(da.logical_or(mask == 0, mask == 2),
                         np.float32(np.nan))
 
