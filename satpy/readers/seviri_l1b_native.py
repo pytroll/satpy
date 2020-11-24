@@ -443,12 +443,18 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             return area_extent, nlines, ncolumns, window
 
         # If we're dealing with VISIR data we use the selected navigation parameters from the
-        # secondary header information
+        # secondary header information. If the number of columns in the file is not divisible by 4,
+        # UMARF will add extra columns to the file (towards west). This will not be captured by the
+        # selected navigation parameters from the secondary header information. Hence we use the
+        # south/north parameters in combination with the number of lines/columns to identify the area
+        # extent boundaries.
         else:
-            north = coeff * int(sec15hd['NorthLineSelectedRectangle']['Value'])
-            east = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value'])
-            west = coeff * int(sec15hd['WestColumnSelectedRectangle']['Value'])
+            nlines = self.mda['number_of_lines']
+            ncolumns = self.mda['number_of_columns']
             south = coeff * int(sec15hd['SouthLineSelectedRectangle']['Value'])
+            east = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value'])
+            west = east + ncolumns - 1
+            north = south + nlines - 1
 
             area_extent = self._calculate_area_extent(
                 center_point, north, east,
