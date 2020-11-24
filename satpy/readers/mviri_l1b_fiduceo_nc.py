@@ -252,48 +252,12 @@ class FiduceoMviriBase(BaseFileHandler):
         resolution = dataset_id['resolution']
         if name in ANGLES:
             ds = self._get_angles(name, resolution)
+        elif name in CHANNELS:
+            ds = self._get_channel(name, resolution, dataset_id['calibration'])
         else:
-            ds = self._read_dataset(name)
-            if name in CHANNELS:
-                ds = self.calibrate(ds, channel=name,
-                                    calibration=dataset_id['calibration'])
-                if name == 'VIS':
-                    if self.mask_bad_quality:
-                        ds = self._mask_vis(ds)
-                    else:
-                        self._check_vis_quality(ds)
-                ds['acq_time'] = ('y', self._get_acq_time(resolution))
-            elif name in OTHER_REFLECTANCES:
-                ds = ds * 100  # conversion to percent
+            ds = self._get_other_dataset(name)
         self._update_attrs(ds, dataset_info)
         return ds
-
-    def _get_nc_key(self, ds_name):
-        """Get netCDF variable name for the given dataset."""
-        return self.nc_keys.get(ds_name, ds_name)
-
-    def _read_dataset(self, name):
-        """Read a dataset from the file."""
-        nc_key = self._get_nc_key(name)
-        ds = self.nc[nc_key]
-        if 'y_ir_wv' in ds.dims:
-            ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
-        elif 'y_tie' in ds.dims:
-            ds = ds.rename({'y_tie': 'y', 'x_tie': 'x'})
-        elif 'y' in ds.dims and 'y' not in ds.coords:
-            # For some reason xarray doesn't assign coordinates to all
-            # high resolution data variables.
-            ds = ds.assign_coords({'y': self.nc.coords['y'],
-                                   'x': self.nc.coords['x']})
-        return ds
-
-    def _update_attrs(self, ds, info):
-        """Update dataset attributes."""
-        ds.attrs.update(info)
-        ds.attrs.update({'platform': self.filename_info['platform'],
-                         'sensor': self.filename_info['sensor']})
-        ds.attrs['raw_metadata'] = self.nc.attrs
-        ds.attrs['orbital_parameters'] = self._get_orbital_parameters()
 
     def get_area_def(self, dataset_id):
         """Get area definition of the given dataset."""
@@ -334,7 +298,77 @@ class FiduceoMviriBase(BaseFileHandler):
         area_def = get_area_definition(pdict, extent)
         return area_def
 
-    def calibrate(self, ds, channel, calibration):
+    def _get_channel(self, name, resolution, calibration):
+        """Get and calibrate channel data."""
+        ds = self._read_dataset(name)
+        ds = self._calibrate(
+            ds,
+            channel=name,
+            calibration=calibration
+        )
+        if name == 'VIS':
+            if self.mask_bad_quality:
+                ds = self._mask_vis(ds)
+            else:
+                self._check_vis_quality(ds)
+        ds['acq_time'] = ('y', self._get_acq_time(resolution))
+        return ds
+
+    @lru_cache(maxsize=8)  # 4 angle datasets with two resolutions each
+    def _get_angles(self, name, resolution):
+        """Get angle dataset.
+
+        Files provide angles (solar/satellite zenith & azimuth) at a coarser
+        resolution. Interpolate them to the desired resolution.
+        """
+        angles = self._read_dataset(name)
+        if self._is_high_resol(resolution):
+            target_x = self.nc.coords['x']
+            target_y = self.nc.coords['y']
+        else:
+            target_x = self.nc.coords['x_ir_wv']
+            target_y = self.nc.coords['y_ir_wv']
+        return self._interp_tiepoints(
+            angles,
+            target_x=target_x,
+            target_y=target_y
+        )
+
+    def _get_other_dataset(self, name):
+        """Get other datasets such as uncertainties."""
+        ds = self._read_dataset(name)
+        if name in OTHER_REFLECTANCES:
+            ds = ds * 100  # conversion to percent
+        return ds
+
+    def _get_nc_key(self, ds_name):
+        """Get netCDF variable name for the given dataset."""
+        return self.nc_keys.get(ds_name, ds_name)
+
+    def _read_dataset(self, name):
+        """Read a dataset from the file."""
+        nc_key = self._get_nc_key(name)
+        ds = self.nc[nc_key]
+        if 'y_ir_wv' in ds.dims:
+            ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
+        elif 'y_tie' in ds.dims:
+            ds = ds.rename({'y_tie': 'y', 'x_tie': 'x'})
+        elif 'y' in ds.dims and 'y' not in ds.coords:
+            # For some reason xarray doesn't assign coordinates to all
+            # high resolution data variables.
+            ds = ds.assign_coords({'y': self.nc.coords['y'],
+                                   'x': self.nc.coords['x']})
+        return ds
+
+    def _update_attrs(self, ds, info):
+        """Update dataset attributes."""
+        ds.attrs.update(info)
+        ds.attrs.update({'platform': self.filename_info['platform'],
+                         'sensor': self.filename_info['sensor']})
+        ds.attrs['raw_metadata'] = self.nc.attrs
+        ds.attrs['orbital_parameters'] = self._get_orbital_parameters()
+
+    def _calibrate(self, ds, channel, calibration):
         """Calibrate the given dataset."""
         ds.attrs.pop('ancillary_variables', None)  # to avoid satpy warnings
         if channel == 'VIS':
@@ -511,26 +545,6 @@ class FiduceoMviriBase(BaseFileHandler):
             # Variables seem to be missing in full FCDR
             sub_lonlat = np.nan
         return sub_lonlat
-
-    @lru_cache(maxsize=8)  # 4 angle datasets with two resolutions each
-    def _get_angles(self, name, resolution):
-        """Get angle dataset.
-
-        Files provide angles (solar/satellite zenith & azimuth) at a coarser
-        resolution. Interpolate them to the desired resolution.
-        """
-        angles = self._read_dataset(name)
-        if self._is_high_resol(resolution):
-            target_x = self.nc.coords['x']
-            target_y = self.nc.coords['y']
-        else:
-            target_x = self.nc.coords['x_ir_wv']
-            target_y = self.nc.coords['y_ir_wv']
-        return self._interp_tiepoints(
-            angles,
-            target_x=target_x,
-            target_y=target_y
-        )
 
     def _interp_tiepoints(self, ds, target_x, target_y):
         """Interpolate dataset between tiepoints.
