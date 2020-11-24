@@ -147,7 +147,7 @@ def get_area_definition(pdict, a_ext):
     return a_def
 
 
-def ang2fac(ang):
+def sampling_to_lfac_cfac(sampling):
     """Convert angular sampling to line/column scaling factor (aka LFAC/CFAC).
 
     Reference: `MSG Ground Segment LRIT HRIT Mission Specific Implementation`_,
@@ -159,10 +159,10 @@ website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05057_SPE_MSG_LRIT_H
 &RevisionSelectionMethod=LatestReleased&Rendition=Web
 
     Args:
-        ang: float
+        sampling: float
             Angular sampling (rad)
 
     Returns:
         Line/column scaling factor (deg-1)
     """
-    return 2.0 ** 16 / np.rad2deg(ang)
+    return 2.0 ** 16 / np.rad2deg(sampling)

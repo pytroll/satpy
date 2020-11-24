@@ -163,8 +163,11 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers._geos_area import (ang2fac, get_area_definition,
-                                      get_area_extent)
+from satpy.readers._geos_area import (
+    sampling_to_lfac_cfac,
+    get_area_definition,
+    get_area_extent
+)
 from satpy.readers.file_handlers import BaseFileHandler
 
 EQUATOR_RADIUS = 6378140.0
@@ -306,7 +309,9 @@ class FiduceoMviriBase(BaseFileHandler):
         # [Handbook] and in
         # https://github.com/FIDUCEO/FCDR_MVIRI/blob/master/lib/nrCrunch/cruncher.f
         loff = coff = im_size / 2 + 0.5
-        lfac = cfac = ang2fac(np.deg2rad(MVIRI_FIELD_OF_VIEW) / im_size)
+        lfac = cfac = sampling_to_lfac_cfac(
+            np.deg2rad(MVIRI_FIELD_OF_VIEW) / im_size
+        )
 
         pdict = {
             'ssp_lon': self.projection_longitude,
