@@ -272,8 +272,8 @@ area_ir_wv_exp = area_vis_exp.copy(
 )
 
 
-@pytest.fixture()
-def fake_dataset():
+@pytest.fixture(name='fake_dataset')
+def fixture_fake_dataset():
     """Create fake dataset."""
     count_ir = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
     count_wv = da.linspace(0, 255, 4, dtype=np.uint8).reshape(2, 2)
@@ -343,9 +343,12 @@ def fake_dataset():
     return ds
 
 
-@pytest.fixture(params=[FiduceoMviriEasyFcdrFileHandler,
-                        FiduceoMviriFullFcdrFileHandler])
-def file_handler(fake_dataset, request):
+@pytest.fixture(
+    name='file_handler',
+    params=[FiduceoMviriEasyFcdrFileHandler,
+            FiduceoMviriFullFcdrFileHandler]
+)
+def fixture_file_handler(fake_dataset, request):
     """Create mocked file handler."""
     marker = request.node.get_closest_marker("file_handler_data")
     mask_bad_quality = True
@@ -364,8 +367,8 @@ def file_handler(fake_dataset, request):
         )
 
 
-@pytest.fixture
-def reader():
+@pytest.fixture(name='reader')
+def fixture_reader():
     """Return MVIRI FIDUCEO FCDR reader."""
     from satpy.config import config_search_paths
     from satpy.readers import load_reader
