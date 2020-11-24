@@ -364,6 +364,18 @@ def file_handler(fake_dataset, request):
         )
 
 
+@pytest.fixture
+def reader():
+    """Return MVIRI FIDUCEO FCDR reader."""
+    from satpy.config import config_search_paths
+    from satpy.readers import load_reader
+
+    reader_configs = config_search_paths(
+        os.path.join("readers", "mviri_l1b_fiduceo_nc.yaml"))
+    reader = load_reader(reader_configs)
+    return reader
+
+
 class TestFiduceoMviriFileHandlers:
     """Unit tests for FIDUCEO MVIRI file handlers."""
 
@@ -412,65 +424,63 @@ class TestFiduceoMviriFileHandlers:
             assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
 
-    def test_time_cache(self, file_handler):
+    @mock.patch(
+        'satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriBase._interp_acq_time'
+    )
+    def test_time_cache(self, interp_acq_time, file_handler):
         """Test caching of acquisition times."""
-        time2d = xr.DataArray(
-            np.array([[1, 2],
-                      [3, 4]],
-                     dtype='datetime64[h]'),
-            dims=('y_ir_wv', 'x_ir_wv')
+        dataset_id = make_dataid(
+            name='VIS',
+            resolution=2250,
+            calibration='reflectance'
         )
-        y1 = xr.DataArray([1, 2, 3, 4])
-        t1 = file_handler._get_acq_time_cached(time2d, target_y=y1)
+        info = {}
+        interp_acq_time.return_value = xr.DataArray([1, 2, 3, 4], dims='y')
 
-        # Change 2d timestamps. If the cache works correctly, the second call
-        # should not average/interpolate them again.
-        t2 = file_handler._get_acq_time_cached(
-            time2d + np.timedelta64(1, 'h'), target_y=y1)
-        xr.testing.assert_equal(t2, t1)
+        # Cache init
+        file_handler.get_dataset(dataset_id, info)
+        interp_acq_time.assert_called()
 
-        # With new target coordinates we shouldn't hit the cache
-        y2 = xr.DataArray([1, 2])
-        t3 = file_handler._get_acq_time_cached(target_y=y2)
-        with pytest.raises(AssertionError):
-            xr.testing.assert_equal(t3, t1)
+        # Cache hit
+        interp_acq_time.reset_mock()
+        file_handler.get_dataset(dataset_id, info)
+        interp_acq_time.assert_not_called()
 
-    def test_angle_cache(self, file_handler):
+        # Cache miss
+        interp_acq_time.return_value = xr.DataArray([1, 2], dims='y')
+        another_id = make_dataid(
+            name='IR',
+            resolution=4500,
+            calibration='brightness_temperature'
+        )
+        interp_acq_time.reset_mock()
+        file_handler.get_dataset(another_id, info)
+        interp_acq_time.assert_called()
+
+    @mock.patch(
+        'satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriBase._interp_tiepoints'
+    )
+    def test_angle_cache(self, interp_tiepoints, file_handler):
         """Test caching of angle datasets."""
-        name = 'my_angles'
-        x1 = y1 = xr.DataArray([1, 2, 3, 4])
-        sza_coarse = xr.DataArray(
-            [[45, 90],
-             [0, 45]],
-            dims=('y', 'x')
-        )
-        sza1 = file_handler._interp_angles_cached(
-            angles=sza_coarse,
-            name=name,
-            target_x=x1,
-            target_y=y1
-        )
+        dataset_id = make_dataid(name='solar_zenith_angle',
+                                 resolution=2250)
+        info = {}
 
-        # Change coarse angles. If the cache works correctly, the second call
-        # should not interpolate them again.
-        sza2 = file_handler._interp_angles_cached(
-            angles=sza_coarse - 10,
-            name=name,
-            target_x=x1,
-            target_y=y1
-        )
-        xr.testing.assert_equal(sza2, sza1)
+        # Cache init
+        file_handler.get_dataset(dataset_id, info)
+        interp_tiepoints.assert_called()
 
-        # With new target coordinates we shouldn't hit the cache
-        x2 = y2 = xr.DataArray([1, 2])
-        sza3 = file_handler._interp_angles_cached(
-            angles=sza_coarse,
-            name=name,
-            target_x=x2,
-            target_y=y2
-        )
-        with pytest.raises(AssertionError):
-            xr.testing.assert_equal(sza3, sza1)
+        # Cache hit
+        interp_tiepoints.reset_mock()
+        file_handler.get_dataset(dataset_id, info)
+        interp_tiepoints.assert_not_called()
+
+        # Cache miss
+        another_id = make_dataid(name='solar_zenith_angle',
+                                 resolution=4500)
+        interp_tiepoints.reset_mock()
+        file_handler.get_dataset(another_id, info)
+        interp_tiepoints.assert_called()
 
     @pytest.mark.parametrize(
         ('name', 'resolution', 'area_exp'),
@@ -520,28 +530,15 @@ class TestFiduceoMviriFileHandlers:
         with pytest.warns(UserWarning):
             file_handler.get_dataset(vis, {})
 
+    def test_file_pattern(self, reader):
+        """Test file pattern matching."""
+        filenames = [
+            "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc",
+            "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
+            "FIDUCEO_FCDR_L15_MVIRI_MET7-00.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
+            "abcde",
+        ]
 
-@pytest.fixture
-def reader():
-    """Return MVIRI FIDUCEO FCDR reader."""
-    from satpy.config import config_search_paths
-    from satpy.readers import load_reader
-
-    reader_configs = config_search_paths(
-        os.path.join("readers", "mviri_l1b_fiduceo_nc.yaml"))
-    reader = load_reader(reader_configs)
-    return reader
-
-
-def test_file_pattern(reader):
-    """Test file pattern matching."""
-    filenames = [
-        "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc",
-        "FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
-        "FIDUCEO_FCDR_L15_MVIRI_MET7-00.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc",
-        "abcde",
-    ]
-
-    files = reader.select_files_from_pathnames(filenames)
-    # only 3 out of 4 above should match
-    assert len(files) == 3
+        files = reader.select_files_from_pathnames(filenames)
+        # only 3 out of 4 above should match
+        assert len(files) == 3
