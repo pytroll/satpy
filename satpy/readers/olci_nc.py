@@ -41,13 +41,12 @@ References:
 
 import logging
 from contextlib import suppress
-from functools import lru_cache
+from functools import cached_property
 from functools import reduce
 
 import dask.array as da
 import numpy as np
 import xarray as xr
-
 from satpy import CHUNK_SIZE
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
@@ -110,8 +109,7 @@ class NCOLCIBase(BaseFileHandler):
         self.sensor = 'olci'
         self.open_file = None
 
-    @property
-    @lru_cache(maxsize=2)
+    @cached_property
     def nc(self):
         """Get the nc xr dataset."""
         f_obj = open_file_or_filename(self.filename)
