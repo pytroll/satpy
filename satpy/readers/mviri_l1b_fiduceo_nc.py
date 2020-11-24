@@ -155,7 +155,7 @@ RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
 import abc
-import functools
+from functools import lru_cache
 import warnings
 
 import dask.array as da
@@ -163,7 +163,6 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.dataset.dataid import DataQuery
 from satpy.readers._geos_area import (ang2fac, get_area_definition,
                                       get_area_extent)
 from satpy.readers.file_handlers import BaseFileHandler
@@ -188,49 +187,6 @@ OTHER_REFLECTANCES = [
     'u_structured_toa_bidirectional_reflectance'
 ]
 HIGH_RESOL = 2250
-
-
-class InterpCache:
-    """Interpolation cache."""
-
-    def __init__(self, func, keys, hash_funcs):
-        """Create the cache.
-
-        Args:
-            func:
-                Interpolation function to be cached.
-            keys:
-                Function arguments serving as cache key.
-            hash_funcs (dict):
-                For each key provides a method that extracts a hashable
-                value from the given keyword argument. For example, use
-                image shape to maintain separate caches for low
-                resolution (WV/IR) and high resolution (VIS) channels.
-        """
-        self.func = func
-        self.keys = keys
-        self.hash_funcs = hash_funcs
-        self.cache = {}
-
-    def __call__(self, *args, **kwargs):
-        """Call the interpolation function."""
-        key = tuple(
-            [self.hash_funcs[key](kwargs[key]) for key in self.keys]
-        )
-        if key not in self.cache:
-            self.cache[key] = self.func(*args, **kwargs)
-        return self.cache[key]
-
-    def __get__(self, obj, objtype):
-        """To support instance methods."""
-        return functools.partial(self.__call__, obj)
-
-
-def interp_cache(keys, hash_funcs):
-    """Interpolation cache."""
-    def wrapper(func):
-        return InterpCache(func, keys, hash_funcs)
-    return wrapper
 
 
 class FiduceoMviriBase(BaseFileHandler):
@@ -290,20 +246,22 @@ class FiduceoMviriBase(BaseFileHandler):
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
         name = dataset_id['name']
-        ds = self._read_dataset(name)
-        if dataset_id['name'] in CHANNELS:
-            ds = self.calibrate(ds, channel=name,
-                                calibration=dataset_id['calibration'])
-            if name == 'VIS':
-                if self.mask_bad_quality:
-                    ds = self._mask_vis(ds)
-                else:
-                    self._check_vis_quality(ds)
-            ds['acq_time'] = ('y', self._get_acq_time(ds))
-        elif dataset_id['name'] in OTHER_REFLECTANCES:
-            ds = ds * 100  # conversion to percent
-        elif dataset_id['name'] in ANGLES:
-            ds = self._interp_angles(ds, dataset_id)
+        resolution = dataset_id['resolution']
+        if name in ANGLES:
+            ds = self._get_angles(name, resolution)
+        else:
+            ds = self._read_dataset(name)
+            if name in CHANNELS:
+                ds = self.calibrate(ds, channel=name,
+                                    calibration=dataset_id['calibration'])
+                if name == 'VIS':
+                    if self.mask_bad_quality:
+                        ds = self._mask_vis(ds)
+                    else:
+                        self._check_vis_quality(ds)
+                ds['acq_time'] = ('y', self._get_acq_time(resolution))
+            elif name in OTHER_REFLECTANCES:
+                ds = ds * 100  # conversion to percent
         self._update_attrs(ds, dataset_info)
         return ds
 
@@ -336,7 +294,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Get area definition of the given dataset."""
-        if self._is_high_resol(dataset_id):
+        if self._is_high_resol(dataset_id['resolution']):
             im_size = self.nc.coords['y'].size
             area_name = 'geos_mviri_vis'
         else:
@@ -458,8 +416,9 @@ class FiduceoMviriBase(BaseFileHandler):
         return ds.where(mask == 0,
                         np.float32(np.nan))
 
-    def _get_acq_time(self, ds):
-        """Get scanline acquisition time for the given dataset.
+    @lru_cache(maxsize=3)  # Three channels
+    def _get_acq_time(self, resolution):
+        """Get scanline acquisition time for the given resolution.
 
         Note that the acquisition time does not increase monotonically
         with the scanline number due to the scan pattern and rectification.
@@ -469,14 +428,14 @@ class FiduceoMviriBase(BaseFileHandler):
             time2d = self.nc['time_ir_wv']
         except KeyError:
             time2d = self.nc['time']
-        return self._get_acq_time_cached(time2d, target_y=ds.coords['y'])
+        if self._is_high_resol(resolution):
+            target_y = self.nc.coords['x']
+        else:
+            target_y = self.nc.coords['x_ir_wv']
+        return self._interp_acq_time(time2d, target_y=target_y.values)
 
-    @interp_cache(
-        keys=('target_y',),
-        hash_funcs={'target_y': lambda y: y.size}
-    )
-    def _get_acq_time_cached(self, time2d, target_y):
-        """Get scanline acquisition time for the given image coordinates.
+    def _interp_acq_time(self, time2d, target_y):
+        """Interpolate scanline acquisition time to the given coordinates.
 
         The files provide timestamps per pixel for the low resolution
         channels (IR/WV) only.
@@ -548,38 +507,25 @@ class FiduceoMviriBase(BaseFileHandler):
             sub_lonlat = np.nan
         return sub_lonlat
 
-    def _interp_angles(self, angles, dataset_id):
+    @lru_cache(maxsize=8)  # 4 angle datasets with two resolutions each
+    def _get_angles(self, name, resolution):
         """Get angle dataset.
 
         Files provide angles (solar/satellite zenith & azimuth) at a coarser
         resolution. Interpolate them to the desired resolution.
         """
-        if self._is_high_resol(dataset_id):
+        angles = self._read_dataset(name)
+        if self._is_high_resol(resolution):
             target_x = self.nc.coords['x']
             target_y = self.nc.coords['y']
         else:
             target_x = self.nc.coords['x_ir_wv']
             target_y = self.nc.coords['y_ir_wv']
-        return self._interp_angles_cached(
-            angles=angles,
-            name=dataset_id['name'],
+        return self._interp_tiepoints(
+            angles,
             target_x=target_x,
             target_y=target_y
         )
-
-    @interp_cache(
-        keys=('name', 'target_x', 'target_y'),
-        hash_funcs={
-            'name': lambda name: name,
-            'target_x': lambda x: x.size,
-            'target_y': lambda y: y.size
-        }
-    )
-    def _interp_angles_cached(self, angles, name, target_x, target_y):
-        """Interpolate angles to the given resolution."""
-        return self._interp_tiepoints(angles,
-                                      target_x,
-                                      target_y)
 
     def _interp_tiepoints(self, ds, target_x, target_y):
         """Interpolate dataset between tiepoints.
@@ -605,8 +551,8 @@ class FiduceoMviriBase(BaseFileHandler):
 
         return ds.interp(x=target_x.values, y=target_y.values)
 
-    def _is_high_resol(self, dataset_id):
-        return dataset_id['resolution'] == HIGH_RESOL
+    def _is_high_resol(self, resolution):
+        return resolution == HIGH_RESOL
 
 
 class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
@@ -677,11 +623,7 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
 
         Reference: [PUG], equation (6).
         """
-        sza = self.get_dataset(
-            DataQuery(name='solar_zenith_angle',
-                      resolution=HIGH_RESOL),
-            dataset_info={}
-        )
+        sza = self._get_angles('solar_zenith_angle', HIGH_RESOL)
         sza = sza.where(da.fabs(sza) < 90,
                         np.float32(np.nan))  # direct illumination only
         cos_sza = np.cos(np.deg2rad(sza))
