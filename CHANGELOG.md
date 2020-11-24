@@ -1,3 +1,68 @@
+## Version 0.24.0 (2020/11/16)
+
+### Issues Closed
+
+* [Issue 1412](https://github.com/pytroll/satpy/issues/1412) - Mimic reader fails when multiple times are provided to Scene object
+* [Issue 1409](https://github.com/pytroll/satpy/issues/1409) - "Unexpected number of scanlines!" when reading AVHRR GAC data
+* [Issue 1399](https://github.com/pytroll/satpy/issues/1399) - Customes Scene creation from MultiScene.from_files ([PR 1400](https://github.com/pytroll/satpy/pull/1400))
+* [Issue 1396](https://github.com/pytroll/satpy/issues/1396) - reader_kwargs should differentiate between different readers ([PR 1397](https://github.com/pytroll/satpy/pull/1397))
+* [Issue 1389](https://github.com/pytroll/satpy/issues/1389) - Can't load angle data from msi_safe in version 0.23 ([PR 1391](https://github.com/pytroll/satpy/pull/1391))
+* [Issue 1387](https://github.com/pytroll/satpy/issues/1387) - NUCAPS time format of data from CLASS ([PR 1388](https://github.com/pytroll/satpy/pull/1388))
+* [Issue 1371](https://github.com/pytroll/satpy/issues/1371) - MIMIC reader available_dataset_names returns 1d lat/lon fields ([PR 1392](https://github.com/pytroll/satpy/pull/1392))
+* [Issue 1343](https://github.com/pytroll/satpy/issues/1343) - Feature Request: available_readers to return alphabetical order
+* [Issue 1224](https://github.com/pytroll/satpy/issues/1224) - GRIB-2/ICON geolocation unknown or invalid for western hemisphere ([PR 1296](https://github.com/pytroll/satpy/pull/1296))
+
+In this release 9 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1435](https://github.com/pytroll/satpy/pull/1435) - Fix tests for GEOFlippableFileYAMLReader after AreaDefinition.area_extent being immutable
+* [PR 1433](https://github.com/pytroll/satpy/pull/1433) - Fix cloud-free pixels in cloudtop height composite
+* [PR 1432](https://github.com/pytroll/satpy/pull/1432) - Fix enhance2dataset to support P-mode datasets
+* [PR 1431](https://github.com/pytroll/satpy/pull/1431) - Fix crash when TLE files are missing
+* [PR 1430](https://github.com/pytroll/satpy/pull/1430) - Fix infer_mode not using the band coordinate
+* [PR 1428](https://github.com/pytroll/satpy/pull/1428) - Bugfix NWC SAF GEO v2016 area definition
+* [PR 1422](https://github.com/pytroll/satpy/pull/1422) - Fix HDF5 utility file handler not decoding byte arrays consistently
+* [PR 1413](https://github.com/pytroll/satpy/pull/1413) - Fix pyspectral link in the main doc page
+* [PR 1407](https://github.com/pytroll/satpy/pull/1407) - Fix mersi 2 angles reading
+* [PR 1392](https://github.com/pytroll/satpy/pull/1392) - Remove 1-D lat/lon variables from mimic reader's available datasets ([1371](https://github.com/pytroll/satpy/issues/1371))
+* [PR 1391](https://github.com/pytroll/satpy/pull/1391) - Fix the MSI / Sentinel-2 reader so it uses new DataID ([1389](https://github.com/pytroll/satpy/issues/1389))
+* [PR 1388](https://github.com/pytroll/satpy/pull/1388) - Fix handling of new date string formats in NUCAPS reader ([1387](https://github.com/pytroll/satpy/issues/1387))
+* [PR 1382](https://github.com/pytroll/satpy/pull/1382) - Fixed bug getting name to the calibration in mitiff writer
+* [PR 1296](https://github.com/pytroll/satpy/pull/1296) - Fix grib reader handling for data on 0-360 longitude ([1224](https://github.com/pytroll/satpy/issues/1224))
+
+#### Features added
+
+* [PR 1420](https://github.com/pytroll/satpy/pull/1420) - Add support for Near-realtime VIIRS L1b data.
+* [PR 1411](https://github.com/pytroll/satpy/pull/1411) - Added MERSI-2 file pattern for data from NMSC
+* [PR 1406](https://github.com/pytroll/satpy/pull/1406) - Handle bilinear caching in Pyresample
+* [PR 1405](https://github.com/pytroll/satpy/pull/1405) - Add FIR product to seviri_l2_grib reader
+* [PR 1401](https://github.com/pytroll/satpy/pull/1401) - Add function to the SLSTR L1 reader to enable correction of VIS radiances.
+* [PR 1400](https://github.com/pytroll/satpy/pull/1400) - Improve customisation in multiscene creation ([1399](https://github.com/pytroll/satpy/issues/1399))
+* [PR 1397](https://github.com/pytroll/satpy/pull/1397) - Allow different kwargs for different readers ([1396](https://github.com/pytroll/satpy/issues/1396))
+* [PR 1394](https://github.com/pytroll/satpy/pull/1394) - Add satpy cf-reader and eumetsat gac reader ([1205](https://github.com/pytroll/satpy/issues/1205))
+* [PR 1390](https://github.com/pytroll/satpy/pull/1390) - Add support to Pyspectral NIRReflectance masking limit
+* [PR 1378](https://github.com/pytroll/satpy/pull/1378) - Alphabetize available_readers method and update documentation
+
+#### Documentation changes
+
+* [PR 1415](https://github.com/pytroll/satpy/pull/1415) - Update Code of Conduct contact email to groups.io address
+* [PR 1413](https://github.com/pytroll/satpy/pull/1413) - Fix pyspectral link in the main doc page
+* [PR 1374](https://github.com/pytroll/satpy/pull/1374) - DOC: add conda-forge badge
+
+#### Backward incompatible changes
+
+* [PR 1360](https://github.com/pytroll/satpy/pull/1360) - Create new ModifierBase class and move existing modifiers to satpy.modifiers
+
+#### Refactoring
+
+* [PR 1360](https://github.com/pytroll/satpy/pull/1360) - Create new ModifierBase class and move existing modifiers to satpy.modifiers
+
+In this release 29 pull requests were closed.
+
+
 ## Version 0.23.0 (2020/09/18)
 
 ### Issues Closed

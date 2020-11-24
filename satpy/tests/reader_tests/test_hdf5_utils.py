@@ -91,18 +91,22 @@ class TestHDF5FileHandler(unittest.TestCase):
         # Add attributes
         # shows up as a scalar array of bytes (shape=(), size=1)
         h.attrs['test_attr_str'] = 'test_string'
+        h.attrs['test_attr_byte'] = b'test_byte'
         h.attrs['test_attr_int'] = 0
         h.attrs['test_attr_float'] = 1.2
         # shows up as a numpy bytes object
         h.attrs['test_attr_str_arr'] = np.array(b"test_string2")
         g1.attrs['test_attr_str'] = 'test_string'
+        g1.attrs['test_attr_byte'] = b'test_byte'
         g1.attrs['test_attr_int'] = 0
         g1.attrs['test_attr_float'] = 1.2
         for d in [ds1_f, ds1_i, ds2_f, ds2_i]:
             d.attrs['test_attr_str'] = 'test_string'
+            d.attrs['test_attr_byte'] = b'test_byte'
             d.attrs['test_attr_int'] = 0
             d.attrs['test_attr_float'] = 1.2
             d.attrs['test_ref'] = d.ref
+        self.var_attrs = list(d.attrs.keys())
 
         h.close()
 
@@ -116,14 +120,22 @@ class TestHDF5FileHandler(unittest.TestCase):
         import xarray as xr
         file_handler = HDF5FileHandler('test.h5', {}, {})
 
-        for ds in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
-            self.assertEqual(file_handler[ds].dtype, np.float32 if ds.endswith('f') else np.int32)
-            self.assertTupleEqual(file_handler[ds + '/shape'], (10, 100))
-            self.assertEqual(file_handler[ds + '/attr/test_attr_str'], 'test_string')
-            self.assertEqual(file_handler[ds + '/attr/test_attr_int'], 0)
-            self.assertEqual(file_handler[ds + '/attr/test_attr_float'], 1.2)
+        for ds_name in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
+            ds = file_handler[ds_name]
+            attrs = ds.attrs
+            self.assertEqual(ds.dtype, np.float32 if ds_name.endswith('f') else np.int32)
+            self.assertTupleEqual(file_handler[ds_name + '/shape'], (10, 100))
+            self.assertEqual(attrs['test_attr_str'], 'test_string')
+            self.assertEqual(attrs['test_attr_byte'], 'test_byte')
+            self.assertEqual(attrs['test_attr_int'], 0)
+            self.assertEqual(attrs['test_attr_float'], 1.2)
+            self.assertEqual(file_handler[ds_name + '/attr/test_attr_str'], 'test_string')
+            self.assertEqual(file_handler[ds_name + '/attr/test_attr_byte'], 'test_byte')
+            self.assertEqual(file_handler[ds_name + '/attr/test_attr_int'], 0)
+            self.assertEqual(file_handler[ds_name + '/attr/test_attr_float'], 1.2)
 
         self.assertEqual(file_handler['/attr/test_attr_str'], 'test_string')
+        self.assertEqual(file_handler['/attr/test_attr_byte'], 'test_byte')
         self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
