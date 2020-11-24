@@ -46,7 +46,7 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
-        from satpy.composites import CompositorLoader
+        from satpy.composites.config_loader import CompositorLoader
         cl = CompositorLoader()
         cl.load_sensor_composites('viirs')
 
