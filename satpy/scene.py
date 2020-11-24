@@ -656,8 +656,8 @@ class Scene:
             xarray.DataArray.coarsen
 
         Example:
-            `scn.aggregate(func='min', x=2, y=2)` will aggregate to half the pixel
-            size by applying the `min` function across a window of size 2.
+            `scn.aggregate(func='min', x=2, y=2)` will apply the `min` function
+            across a window of size 2 pixels.
 
         """
         new_scn = self.copy(datasets=dataset_ids)
