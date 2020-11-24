@@ -85,7 +85,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 2516,
         'Number of rows': 1829,
-        'Area extent': (5337717.232, 5154692.6389, -2205296.3269, -333044.7514)
+        'Area extent': (5343718.038, 5154692.6389, -2205296.3269, -333044.7514)
     }
 }
 
@@ -179,9 +179,28 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 7548,
+        'Number of rows': 5487,
+        'Area extent': (5342717.691659927, 5155692.568421364, -2206296.373605728, -332044.6038246155)
+    }
+}
+
+TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL = {
+    'earth_model': 1,
+    'dataset_id': make_dataid(name='HRV'),
+    'is_full_disk': False,
+    'is_rapid_scan': 0,
+    'fill_hrv': True,
+    'expected_area_def': {
+        'Area ID': 'geos_seviri_hrv',
+        'Description': 'SEVIRI high resolution channel area',
+        'Projection ID': 'seviri_hrv',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 11136,
         'Number of rows': 11136,
-        'Area extent': (5334716.616868973, 5155692.568421364, -2206296.373605728, -330044.33512687683)
+        'Area extent': (5567747.920155525, 5569748.188853264, -5569748.188853264, -5567747.920155525)
     }
 }
 
@@ -296,7 +315,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 2516,
         'Number of rows': 1829,
-        'Area extent': (5336217.0304, 5156192.8405, -2206796.5285, -331544.5498)
+        'Area extent': (5342217.8367, 5156192.8405, -2206796.5285, -331544.5498)
     }
 }
 
@@ -313,9 +332,29 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 7548,
+        'Number of rows': 5487,
+        'Area extent': (5341217.49013662, 5157192.76994467, -2207796.57512903, -330544.40230131)
+    }
+}
+
+TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL = {
+    'earth_model': 2,
+    'dataset_id': make_dataid(name='HRV'),
+    'is_full_disk': False,
+    'is_rapid_scan': 0,
+    'fill_hrv': True,
+    'expected_area_def': {
+        'Area ID': 'geos_seviri_hrv',
+        'Description': 'SEVIRI high resolution channel area',
+        'Projection ID': 'seviri_hrv',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 11136,
         'Number of rows': 11136,
-        'Area extent': (5333216.415345669, 5157192.769944668, -2207796.575129032, -328544.13360357285)
+        'Area extent': (5566247.718632221, 5571248.390376568, -5571248.390376568, -5566247.718632221)
+
     }
 }
 
@@ -399,6 +438,7 @@ class TestNativeMSGArea(unittest.TestCase):
             n_visir_cols = 3712
             n_visir_lines = 3712
             n_hrv_lines = 11136
+            n_hrv_cols = 11136
         elif is_rapid_scan:
             north = 3712
             east = 1
@@ -407,14 +447,16 @@ class TestNativeMSGArea(unittest.TestCase):
             n_visir_cols = 3712
             n_visir_lines = 1392
             n_hrv_lines = 4176
+            n_hrv_cols = 11136
         else:
             north = 3574
-            east = 78
+            east = 76
             west = 2591
             south = 1746
-            n_visir_cols = 2516
+            n_visir_cols = west - east + 1
             n_visir_lines = north - south + 1
-            n_hrv_lines = 11136
+            n_hrv_lines = n_visir_lines * 3
+            n_hrv_cols = n_visir_cols * 3
 
         header = {
             '15_DATA_HEADER': {
@@ -450,7 +492,7 @@ class TestNativeMSGArea(unittest.TestCase):
                 'SelectedBandIDs': {'Value': 'xxxxxxxxxxxx'},
                 'NumberColumnsVISIR': {'Value': n_visir_cols},
                 'NumberLinesVISIR': {'Value': n_visir_lines},
-                'NumberColumnsHRV': {'Value': 11136},
+                'NumberColumnsHRV': {'Value': n_hrv_cols},
                 'NumberLinesHRV': {'Value': n_hrv_lines},
             }
 
@@ -622,6 +664,17 @@ class TestNativeMSGArea(unittest.TestCase):
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
+    def test_earthmodel1_hrv_roi_fill(self):
+        """Test the HRV ROI with the EarthModel 1."""
+        calculated, expected = self.prepare_area_defs(
+            TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL
+        )
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+
     # Earth model 2 tests
     def test_earthmodel2_visir_fulldisk(self):
         """Test the VISIR Fulldisk with the EarthModel 2."""
@@ -704,6 +757,17 @@ class TestNativeMSGArea(unittest.TestCase):
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
+    def test_earthmodel2_hrv_roi_fill(self):
+        """Test the HRV ROI with the EarthModel 2."""
+        calculated, expected = self.prepare_area_defs(
+            TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL
+        )
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+
 
 class TestNativeMSGCalibrationMode(unittest.TestCase):
     """Test NativeMSGFileHandler.get_area_extent.
@@ -736,6 +800,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
             n_visir_cols = 3712
             n_visir_lines = 3712
             n_hrv_lines = 11136
+            n_hrv_cols = 11136
         elif is_rapid_scan:
             north = 3712
             east = 1
@@ -744,14 +809,16 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
             n_visir_cols = 3712
             n_visir_lines = 1392
             n_hrv_lines = 4176
+            n_hrv_cols = 11136
         else:
             north = 3574
-            east = 78
+            east = 76
             west = 2591
             south = 1746
-            n_visir_cols = 2516
+            n_visir_cols = west - east + 1
             n_visir_lines = north - south + 1
-            n_hrv_lines = 11136
+            n_hrv_lines = n_visir_lines * 3
+            n_hrv_cols = n_visir_cols * 3
 
         header = {
             '15_DATA_HEADER': {
@@ -800,7 +867,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
                 'SelectedBandIDs': {'Value': 'xxxxxxxxxxxx'},
                 'NumberColumnsVISIR': {'Value': n_visir_cols},
                 'NumberLinesVISIR': {'Value': n_visir_lines},
-                'NumberColumnsHRV': {'Value': 11136},
+                'NumberColumnsHRV': {'Value': n_hrv_cols},
                 'NumberLinesHRV': {'Value': n_hrv_lines},
             }
 
