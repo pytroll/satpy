@@ -499,8 +499,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset = None
         else:
             dataset = self.calibrate(xarr, dataset_id)
-            attrs = dataset.attrs
             if dataset_id['name'] == 'HRV' and self.fill_hrv:
+                attrs = dataset.attrs
                 dataset = self.pad_hrv_data(dataset)
                 dataset.attrs = attrs
             dataset.attrs['units'] = dataset_info['units']
