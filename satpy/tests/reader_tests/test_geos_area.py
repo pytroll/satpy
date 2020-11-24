@@ -21,7 +21,7 @@ import unittest
 from satpy.readers._geos_area import (get_xy_from_linecol,
                                       get_area_extent,
                                       get_area_definition,
-                                      ang2fac)
+                                      sampling_to_lfac_cfac)
 
 import numpy as np
 
@@ -147,8 +147,8 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         self.assertEqual(b, 6356583.8)
         self.assertEqual(a_def.proj_dict['h'], 35785831)
 
-    def test_ang2fac(self):
+    def test_sampling_to_lfac_cfac(self):
         """Test conversion from angular sampling to line/column offset."""
         lfac = 13642337  # SEVIRI LFAC
         sampling = np.deg2rad(2 ** 16 / lfac)
-        np.testing.assert_allclose(ang2fac(sampling), lfac)
+        np.testing.assert_allclose(sampling_to_lfac_cfac(sampling), lfac)
