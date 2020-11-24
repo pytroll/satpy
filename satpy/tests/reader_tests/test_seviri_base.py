@@ -17,19 +17,22 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the MSG common (native and hrit format) functionionalities."""
 
+import xarray as xr
 import unittest
 import numpy as np
-from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time
+from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, pad_data_ew, pad_data_sn
 
 
 def chebyshev4(c, x, domain):
-    """Evaluate 4th order Chebyshev polynomial"""
+    """Evaluate 4th order Chebyshev polynomial."""
     start_x, end_x = domain
     t = (x - 0.5 * (end_x + start_x)) / (0.5 * (end_x - start_x))
     return c[0] + c[1]*t + c[2]*(2*t**2 - 1) + c[3]*(4*t**3 - 3*t) - 0.5*c[0]
 
 
 class SeviriBaseTest(unittest.TestCase):
+    """Test SEVIRI base."""
+
     def test_dec10216(self):
         """Test the dec10216 function."""
         res = dec10216(np.array([255, 255, 255, 255, 255], dtype=np.uint8))
@@ -40,6 +43,7 @@ class SeviriBaseTest(unittest.TestCase):
         np.testing.assert_equal(res, exp)
 
     def test_chebyshev(self):
+        """Test the chebyshev function."""
         coefs = [1, 2, 3, 4]
         time = 123
         domain = [120, 130]
@@ -48,6 +52,7 @@ class SeviriBaseTest(unittest.TestCase):
         np.testing.assert_allclose(res, exp)
 
     def test_get_cds_time(self):
+        """Test the get_cds_time function."""
         # Scalar
         self.assertEqual(get_cds_time(days=21246, msecs=12*3600*1000),
                          np.datetime64('2016-03-03 12:00'))
@@ -64,3 +69,32 @@ class SeviriBaseTest(unittest.TestCase):
         msecs = 12*3600*1000
         expected = np.datetime64('2016-03-03 12:00:00.000')
         np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+
+    def test_pad_data_ew(self):
+        """Test the hrv padding in east-west direction."""
+        data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
+        east_bound = 4
+        west_bound = 13
+        final_size = (1, 20)
+        res = pad_data_ew(data, final_size, east_bound, west_bound)
+        expected = np.array([[np.nan, np.nan, np.nan,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
+                              np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
+        np.testing.assert_allclose(res, expected)
+
+        east_bound = 3
+        self.assertRaises(IndexError, pad_data_ew, data, final_size, east_bound, west_bound)
+
+    def test_pad_data_sn(self):
+        """Test the hrv padding in south-north direction."""
+        data = xr.DataArray(data=np.zeros((10, 1)), dims=('y', 'x'))
+        south_bound = 4
+        north_bound = 13
+        final_size = (20, 1)
+        res = pad_data_sn(data, final_size, south_bound, north_bound)
+        expected = np.zeros(final_size)
+        expected[:] = np.nan
+        expected[south_bound-1:north_bound] = 0.
+        np.testing.assert_allclose(res, expected)
+
+        south_bound = 3
+        self.assertRaises(IndexError, pad_data_sn, data, final_size, south_bound, north_bound)
