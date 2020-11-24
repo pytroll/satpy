@@ -513,16 +513,21 @@ class TestFiduceoMviriFileHandlers:
 
     def test_calib_exceptions(self, file_handler):
         """Test calibration exceptions."""
-        ds = xr.Dataset()
         with pytest.raises(KeyError):
-            file_handler.calibrate(ds, 'solar_zenith_angle', None)
-
-        calib = mock.MagicMock()
-        calib.configure_mock(name='invalid_calib')
+            file_handler.get_dataset(
+                make_dataid(name='solar_zenith_angle', calibration='counts'),
+                {}
+            )
         with pytest.raises(KeyError):
-            file_handler.calibrate(ds, 'VIS', calib)
+            file_handler.get_dataset(
+                {'name': 'VIS', 'calibration': 'invalid'},
+                {}
+            )
         with pytest.raises(KeyError):
-            file_handler.calibrate(ds, 'IR', calib)
+            file_handler.get_dataset(
+                {'name': 'IR', 'calibration': 'invalid'},
+                {}
+            )
 
     @pytest.mark.file_handler_data(mask_bad_quality=False)
     def test_bad_quality_warning(self, file_handler):
