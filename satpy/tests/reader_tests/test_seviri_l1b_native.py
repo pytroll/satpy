@@ -27,9 +27,7 @@ from satpy.readers.seviri_l1b_native import (
     get_available_channels,
 )
 
-
 from satpy.tests.utils import make_dataid
-
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -37,7 +35,6 @@ CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
 AVAILABLE_CHANNELS = {}
 for item in CHANNEL_INDEX_LIST:
     AVAILABLE_CHANNELS[item] = True
-
 
 SEC15HDR = '15_SECONDARY_PRODUCT_HEADER'
 IDS = 'SelectedBandIDs'
@@ -370,6 +367,7 @@ TEST_CALIBRATION_MODE = {
     'GSICSOffsetCount': [-51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0]
 }
 
+
 # This should preferably be put in a helper-module
 # Fixme!
 
@@ -568,7 +566,6 @@ class TestNativeMSGArea(unittest.TestCase):
                 with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap:
                     _get_memmap.return_value = np.arange(3)
                     with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
-
                         fh = NativeMSGFileHandler(None, {}, None)
                         fh.fill_hrv = fill_hrv
                         fh.header = header
@@ -587,7 +584,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
     def test_earthmodel1_hrv_fulldisk(self):
         """Test the HRV Fulldisk with the EarthModel 1."""
@@ -651,7 +648,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
     def test_earthmodel1_hrv_roi(self):
         """Test the HRV ROI with the EarthModel 1."""
@@ -662,7 +659,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
     def test_earthmodel1_hrv_roi_fill(self):
         """Test the HRV ROI with the EarthModel 1."""
@@ -673,7 +670,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
     # Earth model 2 tests
     def test_earthmodel2_visir_fulldisk(self):
@@ -685,7 +682,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
     def test_earthmodel2_hrv_fulldisk(self):
         """Test the HRV Fulldisk with the EarthModel 2."""
@@ -697,8 +694,8 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.defs[0].proj_id,  expected['Projection ID'])
-        self.assertEqual(calculated.defs[1].proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.defs[0].proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.defs[1].proj_id, expected['Projection ID'])
 
     def test_earthmodel2_hrv_fulldisk_fill(self):
         """Test the HRV Fulldisk with the EarthModel 1."""
@@ -744,7 +741,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
     def test_earthmodel2_hrv_roi(self):
         """Test the HRV ROI with the EarthModel 2."""
@@ -755,7 +752,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
     def test_earthmodel2_hrv_roi_fill(self):
         """Test the HRV ROI with the EarthModel 2."""
@@ -766,7 +763,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
+        self.assertEqual(calculated.proj_id, expected['Projection ID'])
 
 
 class TestNativeMSGCalibrationMode(unittest.TestCase):
