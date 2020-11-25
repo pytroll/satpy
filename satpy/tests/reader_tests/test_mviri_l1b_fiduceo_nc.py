@@ -427,6 +427,26 @@ class TestFiduceoMviriFileHandlers:
             assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
 
+    def test_get_dataset_corrupt(self, file_handler):
+        """Test getting datasets with known corruptions."""
+        # Time may have different names and satellite position might be missing
+        file_handler.nc = file_handler.nc.rename(
+            {'time_ir_wv': 'time'}
+        )
+        file_handler.nc = file_handler.nc.drop_vars(
+            ['sub_satellite_longitude_start']
+        )
+
+        dataset_id = make_dataid(
+            name='VIS',
+            calibration='reflectance',
+            resolution=2250
+        )
+        ds = file_handler.get_dataset(dataset_id, {'platform': 'MET7'})
+        assert 'actual_satellite_longitude' not in ds.attrs['orbital_parameters']
+        assert 'actual_satellite_latitude' not in ds.attrs['orbital_parameters']
+        xr.testing.assert_allclose(ds, vis_refl_exp)
+
     @mock.patch(
         'satpy.readers.mviri_l1b_fiduceo_nc.Interpolator.interp_acq_time'
     )
@@ -520,14 +540,26 @@ class TestFiduceoMviriFileHandlers:
             )
         with pytest.raises(KeyError):
             file_handler.get_dataset(
-                {'name': 'VIS', 'calibration': 'invalid'},
+                make_dataid(
+                    name='VIS',
+                    resolution=2250,
+                    calibration='brightness_temperature'),
                 {}
             )
         with pytest.raises(KeyError):
             file_handler.get_dataset(
-                {'name': 'IR', 'calibration': 'invalid'},
+                make_dataid(
+                    name='IR',
+                    resolution=4500,
+                    calibration='reflectance'),
                 {}
             )
+        if isinstance(file_handler, FiduceoMviriEasyFcdrFileHandler):
+            with pytest.raises(KeyError):
+                file_handler.get_dataset(
+                    {'name': 'VIS', 'calibration': 'counts'},
+                    {}
+                )  # not available in easy FCDR
 
     @pytest.mark.file_handler_data(mask_bad_quality=False)
     def test_bad_quality_warning(self, file_handler):

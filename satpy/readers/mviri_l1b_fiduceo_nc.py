@@ -210,7 +210,9 @@ class IRWVCalibrator:
         elif calibration in ('radiance', 'brightness_temperature'):
             return self._calibrate_rad_bt(counts, calibration)
         else:
-            raise KeyError('Invalid calibration: {}'.format(calibration.name))
+            raise KeyError(
+                'Invalid IR/WV calibration: {}'.format(calibration.name)
+            )
 
     def _calibrate_rad_bt(self, counts, calibration):
         """Calibrate counts to radiance or brightness temperature."""
@@ -260,7 +262,9 @@ class VISCalibrator:
         elif calibration in ('radiance', 'reflectance'):
             return self._calibrate_rad_refl(counts, calibration)
         else:
-            raise KeyError('Invalid calibration: {}'.format(calibration.name))
+            raise KeyError(
+                'Invalid VIS calibration: {}'.format(calibration.name)
+            )
 
     def _calibrate_rad_refl(self, counts, calibration):
         """Calibrate counts to radiance or reflectance."""
