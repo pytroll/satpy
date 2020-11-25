@@ -411,7 +411,7 @@ class Interpolator:
             Mean scanline acquisition timestamps
         """
         # Compute mean timestamp per scanline
-        time = time2d.mean(dim='x_ir_wv').rename({'y_ir_wv': 'y'})
+        time = time2d.mean(dim='x')
 
         # If required, repeat timestamps in y-direction to obtain higher
         # resolution
@@ -456,6 +456,86 @@ def is_high_resol(resolution):
     return resolution == HIGH_RESOL
 
 
+class DatasetWrapper:
+    """Helper class for accessing the dataset."""
+
+    def __init__(self, nc):
+        """Wrap the given dataset."""
+        self.nc = nc
+
+    @property
+    def attrs(self):
+        """Exposes dataset attributes."""
+        return self.nc.attrs
+
+    def __getitem__(self, item):
+        """Get a variable from the dataset."""
+        ds = self.nc[item]
+        if self._should_dims_be_renamed(ds):
+            ds = self._rename_dims(ds)
+        elif self._coordinates_not_assigned(ds):
+            ds = self._reassign_coords(ds)
+        self._cleanup_attrs(ds)
+        return ds
+
+    def _should_dims_be_renamed(self, ds):
+        """Determine whether dataset dimensions need to be renamed."""
+        return 'y_ir_wv' in ds.dims or 'y_tie' in ds.dims
+
+    def _rename_dims(self, ds):
+        """Rename dataset dimensions to match satpy's expectations."""
+        new_names = {
+            'y_ir_wv': 'y',
+            'x_ir_wv': 'x',
+            'y_tie': 'y',
+            'x_tie': 'x'
+        }
+        for old_name, new_name in new_names.items():
+            if old_name in ds.dims:
+                ds = ds.rename({old_name: new_name})
+        return ds
+
+    def _coordinates_not_assigned(self, ds):
+        return 'y' in ds.dims and 'y' not in ds.coords
+
+    def _reassign_coords(self, ds):
+        """Re-assign coordinates.
+
+        For some reason xarray doesn't assign coordinates to all high
+        resolution data variables.
+        """
+        return ds.assign_coords({'y': self.nc.coords['y'],
+                                 'x': self.nc.coords['x']})
+
+    def _cleanup_attrs(self, ds):
+        """Cleanup dataset attributes."""
+        # Remove ancillary_variables attribute to avoid downstream
+        # satpy warnings.
+        ds.attrs.pop('ancillary_variables', None)
+
+    def get_time(self):
+        """Get time coordinate.
+
+        Variable is sometimes named "time" and sometimes "time_ir_wv".
+        """
+        try:
+            return self['time_ir_wv']
+        except KeyError:
+            return self['time']
+
+    def get_xy_coords(self, resolution):
+        """Get x and y coordinates for the given resolution."""
+        if is_high_resol(resolution):
+            return self.nc.coords['x'], self.nc.coords['y']
+        return self.nc.coords['x_ir_wv'], self.nc.coords['x_ir_wv']
+
+    def get_image_size(self, resolution):
+        """Get image size for the given resolution."""
+        if is_high_resol(resolution):
+            return self.nc.coords['y'].size
+        return self.nc.coords['y_ir_wv'].size
+
+
 class FiduceoMviriBase(BaseFileHandler):
     """Baseclass for FIDUCEO MVIRI file handlers."""
 
@@ -477,13 +557,14 @@ class FiduceoMviriBase(BaseFileHandler):
         super(FiduceoMviriBase, self).__init__(
             filename, filename_info, filetype_info)
         self.mask_bad_quality = mask_bad_quality
-        self.nc = xr.open_dataset(
+        nc_raw = xr.open_dataset(
             filename,
             chunks={'x': CHUNK_SIZE,
                     'y': CHUNK_SIZE,
                     'x_ir_wv': CHUNK_SIZE,
                     'y_ir_wv': CHUNK_SIZE}
         )
+        self.nc = DatasetWrapper(nc_raw)
 
         # Projection longitude is not provided in the file, read it from the
         # filename.
@@ -505,10 +586,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Get area definition of the given dataset."""
-        if is_high_resol(dataset_id['resolution']):
-            im_size = self.nc.coords['y'].size
-        else:
-            im_size = self.nc.coords['y_ir_wv'].size
+        im_size = self.nc.get_image_size(dataset_id['resolution'])
         nav = Navigator()
         return nav.get_area_def(
             im_size=im_size,
@@ -517,14 +595,14 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def _get_channel(self, name, resolution, calibration):
         """Get and calibrate channel data."""
-        ds = self._read_dataset(name)
+        ds = self.nc[self.nc_keys[name]]
         ds = self._calibrate(
             ds,
             channel=name,
             calibration=calibration
         )
         if name == 'VIS':
-            qc = VisQualityControl(self._read_dataset('quality_pixel_bitmask'))
+            qc = VisQualityControl(self.nc['quality_pixel_bitmask'])
             if self.mask_bad_quality:
                 ds = qc.mask(ds)
             else:
@@ -539,13 +617,8 @@ class FiduceoMviriBase(BaseFileHandler):
         Files provide angles (solar/satellite zenith & azimuth) at a coarser
         resolution. Interpolate them to the desired resolution.
         """
-        angles = self._read_dataset(name)
-        if is_high_resol(resolution):
-            target_x = self.nc.coords['x']
-            target_y = self.nc.coords['y']
-        else:
-            target_x = self.nc.coords['x_ir_wv']
-            target_y = self.nc.coords['y_ir_wv']
+        angles = self.nc[name]
+        target_x, target_y = self.nc.get_xy_coords(resolution)
         return Interpolator.interp_tiepoints(
             angles,
             target_x=target_x,
@@ -554,25 +627,9 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def _get_other_dataset(self, name):
         """Get other datasets such as uncertainties."""
-        ds = self._read_dataset(name)
+        ds = self.nc[name]
         if name in OTHER_REFLECTANCES:
             ds = VISCalibrator.refl_factor_to_percent(ds)
-        return ds
-
-    def _read_dataset(self, name):
-        """Read a dataset from the file."""
-        nc_key = self.nc_keys.get(name, name)
-        ds = self.nc[nc_key]
-        if 'y_ir_wv' in ds.dims:
-            ds = ds.rename({'y_ir_wv': 'y', 'x_ir_wv': 'x'})
-        elif 'y_tie' in ds.dims:
-            ds = ds.rename({'y_tie': 'y', 'x_tie': 'x'})
-        elif 'y' in ds.dims and 'y' not in ds.coords:
-            # For some reason xarray doesn't assign coordinates to all
-            # high resolution data variables.
-            ds = ds.assign_coords({'y': self.nc.coords['y'],
-                                   'x': self.nc.coords['x']})
-        ds.attrs.pop('ancillary_variables', None)  # to avoid satpy warnings
         return ds
 
     def _update_attrs(self, ds, info):
@@ -634,15 +691,8 @@ class FiduceoMviriBase(BaseFileHandler):
         Note that the acquisition time does not increase monotonically
         with the scanline number due to the scan pattern and rectification.
         """
-        # Variable is sometimes named "time" and sometimes "time_ir_wv".
-        try:
-            time2d = self.nc['time_ir_wv']
-        except KeyError:
-            time2d = self.nc['time']
-        if is_high_resol(resolution):
-            target_y = self.nc.coords['x']
-        else:
-            target_y = self.nc.coords['x_ir_wv']
+        time2d = self.nc.get_time()
+        _, target_y = self.nc.get_xy_coords(resolution)
         return Interpolator.interp_acq_time(time2d, target_y=target_y.values)
 
     def _get_orbital_parameters(self):
