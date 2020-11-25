@@ -250,8 +250,8 @@ sza_ir_wv_exp = xr.DataArray(
     attrs=attrs_exp
 )
 area_vis_exp = AreaDefinition(
-    area_id='geos_mviri_vis',
-    proj_id='geos_mviri_vis',
+    area_id='geos_mviri_4x4',
+    proj_id='geos_mviri_4x4',
     description='MVIRI Geostationary Projection',
     projection={
         'proj': 'geos',
@@ -265,8 +265,8 @@ area_vis_exp = AreaDefinition(
     area_extent=[5621229.74392, 5621229.74392, -5621229.74392, -5621229.74392]
 )
 area_ir_wv_exp = area_vis_exp.copy(
-    area_id='geos_mviri_ir_wv',
-    proj_id='geos_mviri_ir_wv',
+    area_id='geos_mviri_2x2',
+    proj_id='geos_mviri_2x2',
     width=2,
     height=2
 )
@@ -427,7 +427,9 @@ class TestFiduceoMviriFileHandlers:
             assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
 
-    @mock.patch('satpy.readers.mviri_l1b_fiduceo_nc.interp_acq_time')
+    @mock.patch(
+        'satpy.readers.mviri_l1b_fiduceo_nc.Interpolator.interp_acq_time'
+    )
     def test_time_cache(self, interp_acq_time, file_handler):
         """Test caching of acquisition times."""
         dataset_id = make_dataid(
@@ -458,7 +460,9 @@ class TestFiduceoMviriFileHandlers:
         file_handler.get_dataset(another_id, info)
         interp_acq_time.assert_called()
 
-    @mock.patch('satpy.readers.mviri_l1b_fiduceo_nc.interp_tiepoints')
+    @mock.patch(
+        'satpy.readers.mviri_l1b_fiduceo_nc.Interpolator.interp_tiepoints'
+    )
     def test_angle_cache(self, interp_tiepoints, file_handler):
         """Test caching of angle datasets."""
         dataset_id = make_dataid(name='solar_zenith_angle',
