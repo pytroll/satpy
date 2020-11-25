@@ -430,10 +430,10 @@ class TestFiduceoMviriFileHandlers:
     def test_get_dataset_corrupt(self, file_handler):
         """Test getting datasets with known corruptions."""
         # Time may have different names and satellite position might be missing
-        file_handler.nc = file_handler.nc.rename(
+        file_handler.nc.nc = file_handler.nc.nc.rename(
             {'time_ir_wv': 'time'}
         )
-        file_handler.nc = file_handler.nc.drop_vars(
+        file_handler.nc.nc = file_handler.nc.nc.drop_vars(
             ['sub_satellite_longitude_start']
         )
 
@@ -564,7 +564,7 @@ class TestFiduceoMviriFileHandlers:
     @pytest.mark.file_handler_data(mask_bad_quality=False)
     def test_bad_quality_warning(self, file_handler):
         """Test warning about bad VIS quality."""
-        file_handler.nc['quality_pixel_bitmask'] = 2
+        file_handler.nc.nc['quality_pixel_bitmask'] = 2
         vis = make_dataid(name='VIS', resolution=2250,
                           calibration='reflectance')
         with pytest.warns(UserWarning):
