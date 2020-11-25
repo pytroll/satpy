@@ -427,9 +427,7 @@ class TestFiduceoMviriFileHandlers:
             assert ds.dtype == expected.dtype
             assert ds.attrs == expected.attrs
 
-    @mock.patch(
-        'satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriBase._interp_acq_time'
-    )
+    @mock.patch('satpy.readers.mviri_l1b_fiduceo_nc.interp_acq_time')
     def test_time_cache(self, interp_acq_time, file_handler):
         """Test caching of acquisition times."""
         dataset_id = make_dataid(
@@ -460,9 +458,7 @@ class TestFiduceoMviriFileHandlers:
         file_handler.get_dataset(another_id, info)
         interp_acq_time.assert_called()
 
-    @mock.patch(
-        'satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriBase._interp_tiepoints'
-    )
+    @mock.patch('satpy.readers.mviri_l1b_fiduceo_nc.interp_tiepoints')
     def test_angle_cache(self, interp_tiepoints, file_handler):
         """Test caching of angle datasets."""
         dataset_id = make_dataid(name='solar_zenith_angle',

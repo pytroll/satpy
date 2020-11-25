@@ -192,8 +192,193 @@ OTHER_REFLECTANCES = [
 HIGH_RESOL = 2250
 
 
+class IRWVCalibrator:
+    """Calibrate IR & WV channels."""
+
+    def __init__(self, coefs):
+        """Initialize the calibrator.
+
+        Args:
+            coefs: Calibration coefficients.
+        """
+        self.coefs = coefs
+
+    def calibrate(self, counts, calibration):
+        """Calibrate IR/WV counts to the given calibration."""
+        if calibration == 'counts':
+            return counts
+        elif calibration in ('radiance', 'brightness_temperature'):
+            rad = self._counts_to_radiance(counts)
+            if calibration == 'radiance':
+                return rad
+            bt = self._radiance_to_brightness_temperature(rad)
+            return bt
+        else:
+            raise KeyError('Invalid calibration: {}'.format(calibration.name))
+
+    def _counts_to_radiance(self, counts):
+        """Convert IR/WV counts to radiance.
+
+        Reference: [PUG], equations (4.1) and (4.2).
+        """
+        a, b = self.coefs['radiance']
+        rad = a + b * counts
+        return rad.where(rad > 0, np.float32(np.nan))
+
+    def _radiance_to_brightness_temperature(self, rad):
+        """Convert IR/WV radiance to brightness temperature.
+
+        Reference: [PUG], equations (5.1) and (5.2).
+        """
+        a, b = self.coefs['brightness_temperature']
+        bt = b / (np.log(rad) - a)
+        return bt.where(bt > 0, np.float32(np.nan))
+
+
+class VISCalibrator:
+    """Calibrate VIS channel."""
+
+    def __init__(self, coefs, solar_zenith_angle=None):
+        """Initialize the calibrator.
+
+        Args:
+            coefs:
+                Calibration coefficients.
+            solar_zenith_angle (optional):
+                Solar zenith angle. Only required for calibration to
+                reflectance.
+        """
+        self.coefs = coefs
+        self.solar_zenith_angle = solar_zenith_angle
+
+    def calibrate(self, counts, calibration):
+        """Calibrate VIS counts."""
+        if calibration == 'counts':
+            return counts
+        elif calibration in ('radiance', 'reflectance'):
+            rad = self._counts_to_radiance(counts)
+            if calibration == 'radiance':
+                return rad
+            refl = self._radiance_to_reflectance(rad)
+            refl = self.update_refl_attrs(refl)
+            return refl
+        else:
+            raise KeyError('Invalid calibration: {}'.format(calibration.name))
+
+    def _counts_to_radiance(self, counts):
+        """Convert VIS counts to radiance.
+
+        Reference: [PUG], equations (7) and (8).
+        """
+        coefs = self.coefs['radiance']
+        years_since_launch = coefs['years_since_launch']
+        a_cf = (coefs['a0_vis'] +
+                coefs['a1_vis'] * years_since_launch +
+                coefs['a2_vis'] * years_since_launch ** 2)
+        mean_count_space_vis = coefs['mean_count_space_vis']
+        rad = (counts - mean_count_space_vis) * a_cf
+        return rad.where(rad > 0, np.float32(np.nan))
+
+    def _radiance_to_reflectance(self, rad):
+        """Convert VIS radiance to reflectance factor.
+
+        Note: Produces huge reflectances in situations where both radiance and
+        solar zenith angle are small. Maybe the corresponding uncertainties
+        can be used to filter these cases before calculating reflectances.
+
+        Reference: [PUG], equation (6).
+        """
+        coefs = self.coefs['reflectance']
+        sza = self.solar_zenith_angle
+        sza = sza.where(da.fabs(sza) < 90,
+                        np.float32(np.nan))  # direct illumination only
+        cos_sza = np.cos(np.deg2rad(sza))
+        distance_sun_earth2 = coefs['distance_sun_earth'] ** 2
+        solar_irradiance_vis = coefs['solar_irradiance_vis']
+        refl = (
+           (np.pi * distance_sun_earth2) /
+           (solar_irradiance_vis * cos_sza) *
+           rad
+        )
+        return self.refl_factor_to_percent(refl)
+
+    def update_refl_attrs(self, refl):
+        """Update attributes of reflectance datasets."""
+        refl.attrs['sun_earth_distance_correction_applied'] = True
+        refl.attrs['sun_earth_distance_correction_factor'] = self.coefs[
+            'reflectance']['distance_sun_earth'].item()
+        return refl
+
+    @staticmethod
+    def refl_factor_to_percent(refl):
+        """Convert reflectance factor to percent."""
+        return refl * 100
+
+
+def interp_tiepoints(ds, target_x, target_y):
+    """Interpolate dataset between tiepoints.
+
+    Uses linear interpolation.
+
+    FUTURE: [PUG] recommends cubic spline interpolation.
+
+    Args:
+        ds:
+            Dataset to be interpolated
+        target_x:
+            Target x coordinates
+        target_y:
+            Target y coordinates
+    """
+    # No tiepoint coordinates specified in the files. Use dimensions
+    # to calculate tiepoint sampling and assign tiepoint coordinates
+    # accordingly.
+    sampling = target_x.size // ds.coords['x'].size
+    ds = ds.assign_coords(x=target_x.values[::sampling],
+                          y=target_y.values[::sampling])
+
+    return ds.interp(x=target_x.values, y=target_y.values)
+
+
+def interp_acq_time(time2d, target_y):
+    """Interpolate scanline acquisition time to the given coordinates.
+
+    The files provide timestamps per pixel for the low resolution
+    channels (IR/WV) only.
+
+    1) Average values in each line to obtain one timestamp per line.
+    2) For the VIS channel duplicate values in y-direction (as
+       advised by [PUG]).
+
+    Note that the timestamps do not increase monotonically with the
+    line number in some cases.
+
+    Returns:
+        Mean scanline acquisition timestamps
+    """
+    # Compute mean timestamp per scanline
+    time = time2d.mean(dim='x_ir_wv').rename({'y_ir_wv': 'y'})
+
+    # If required, repeat timestamps in y-direction to obtain higher
+    # resolution
+    y = time.coords['y'].values
+    if y.size < target_y.size:
+        reps = target_y.size // y.size
+        y_rep = np.repeat(y, reps)
+        time_hires = time.reindex(y=y_rep)
+        time_hires = time_hires.assign_coords(y=target_y)
+        return time_hires
+    return time
+
+
+def is_high_resol(resolution):
+    """Identify high resolution channel."""
+    return resolution == HIGH_RESOL
+
+
 class FiduceoMviriBase(BaseFileHandler):
     """Baseclass for FIDUCEO MVIRI file handlers."""
+
     nc_keys = {
         'WV': 'count_wv',
         'IR': 'count_ir'
@@ -261,7 +446,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Get area definition of the given dataset."""
-        if self._is_high_resol(dataset_id['resolution']):
+        if is_high_resol(dataset_id['resolution']):
             im_size = self.nc.coords['y'].size
             area_name = 'geos_mviri_vis'
         else:
@@ -310,7 +495,7 @@ class FiduceoMviriBase(BaseFileHandler):
             if self.mask_bad_quality:
                 ds = self._mask_vis(ds)
             else:
-                self._check_vis_quality(ds)
+                self._check_vis_quality()
         ds['acq_time'] = ('y', self._get_acq_time(resolution))
         return ds
 
@@ -322,13 +507,13 @@ class FiduceoMviriBase(BaseFileHandler):
         resolution. Interpolate them to the desired resolution.
         """
         angles = self._read_dataset(name)
-        if self._is_high_resol(resolution):
+        if is_high_resol(resolution):
             target_x = self.nc.coords['x']
             target_y = self.nc.coords['y']
         else:
             target_x = self.nc.coords['x_ir_wv']
             target_y = self.nc.coords['y_ir_wv']
-        return self._interp_tiepoints(
+        return interp_tiepoints(
             angles,
             target_x=target_x,
             target_y=target_y
@@ -338,7 +523,7 @@ class FiduceoMviriBase(BaseFileHandler):
         """Get other datasets such as uncertainties."""
         ds = self._read_dataset(name)
         if name in OTHER_REFLECTANCES:
-            ds = ds * 100  # conversion to percent
+            ds = VISCalibrator.refl_factor_to_percent(ds)
         return ds
 
     def _get_nc_key(self, ds_name):
@@ -384,57 +569,37 @@ class FiduceoMviriBase(BaseFileHandler):
         """Calibrate VIS channel. To be implemented by subclasses."""
         raise NotImplementedError
 
-    def _update_refl_attrs(self, refl):
-        """Update attributes of reflectance datasets."""
-        refl.attrs['sun_earth_distance_correction_applied'] = True
-        refl.attrs['sun_earth_distance_correction_factor'] = self.nc[
-            'distance_sun_earth'].item()
-        return refl
-
     def _calibrate_ir_wv(self, ds, channel, calibration):
         """Calibrate IR and WV channel."""
-        if calibration == 'counts':
-            return ds
-        elif calibration in ('radiance', 'brightness_temperature'):
-            rad = self._ir_wv_counts_to_radiance(ds, channel)
-            if calibration == 'radiance':
-                return rad
-            bt = self._ir_wv_radiance_to_brightness_temperature(rad, channel)
-            return bt
-        else:
-            raise KeyError('Invalid calibration: {}'.format(calibration.name))
+        coefs = self._get_coefs_ir_wv(channel)
+        cal = IRWVCalibrator(coefs)
+        return cal.calibrate(ds, calibration)
 
-    def _get_coefs_ir_wv(self, channel, calibration):
-        """Get calibration coefficients for IR/WV channels.
+    def _get_coefs_ir_wv(self, channel):
+        """Get calibration coefficients for IR/WV channels."""
+        coefs = {}
+        for calibration in ('radiance', 'brightness_temperature'):
+            nc_key_a = self.nc_keys_coefs[channel][calibration]['a']
+            nc_key_b = self.nc_keys_coefs[channel][calibration]['b']
+            a = np.float32(self.nc[nc_key_a])
+            b = np.float32(self.nc[nc_key_b])
+            coefs[calibration] = (a, b)
+        return coefs
 
-        Returns:
-            Offset (a), Slope (b)
-        """
-        nc_key_a = self.nc_keys_coefs[channel][calibration]['a']
-        nc_key_b = self.nc_keys_coefs[channel][calibration]['b']
-        a = np.float32(self.nc[nc_key_a])
-        b = np.float32(self.nc[nc_key_b])
-        return a, b
+    def _get_coefs_vis(self):
+        """Get VIS calibration coefs present in both file types."""
+        return {
+            'reflectance': {
+                'distance_sun_earth': np.float32(
+                    self.nc['distance_sun_earth']
+                ),
+                'solar_irradiance_vis': np.float32(
+                    self.nc['solar_irradiance_vis']
+                )
+            }
+        }
 
-    def _ir_wv_counts_to_radiance(self, counts, channel):
-        """Convert IR/WV counts to radiance.
-
-        Reference: [PUG], equations (4.1) and (4.2).
-        """
-        a, b = self._get_coefs_ir_wv(channel, 'radiance')
-        rad = a + b * counts
-        return rad.where(rad > 0, np.float32(np.nan))
-
-    def _ir_wv_radiance_to_brightness_temperature(self, rad, channel):
-        """Convert IR/WV radiance to brightness temperature.
-
-        Reference: [PUG], equations (5.1) and (5.2).
-        """
-        a, b = self._get_coefs_ir_wv(channel, 'brightness_temperature')
-        bt = b / (np.log(rad) - a)
-        return bt.where(bt > 0, np.float32(np.nan))
-
-    def _check_vis_quality(self, ds):
+    def _check_vis_quality(self):
         """Check VIS channel quality and issue a warning if it's bad."""
         mask = self._read_dataset('quality_pixel_bitmask')
         use_with_caution = da.bitwise_and(mask, 2)
@@ -467,41 +632,11 @@ class FiduceoMviriBase(BaseFileHandler):
             time2d = self.nc['time_ir_wv']
         except KeyError:
             time2d = self.nc['time']
-        if self._is_high_resol(resolution):
+        if is_high_resol(resolution):
             target_y = self.nc.coords['x']
         else:
             target_y = self.nc.coords['x_ir_wv']
-        return self._interp_acq_time(time2d, target_y=target_y.values)
-
-    def _interp_acq_time(self, time2d, target_y):
-        """Interpolate scanline acquisition time to the given coordinates.
-
-        The files provide timestamps per pixel for the low resolution
-        channels (IR/WV) only.
-
-        1) Average values in each line to obtain one timestamp per line.
-        2) For the VIS channel duplicate values in y-direction (as
-           advised by [PUG]).
-
-        Note that the timestamps do not increase monotonically with the
-        line number in some cases.
-
-        Returns:
-            Mean scanline acquisition timestamps
-        """
-        # Compute mean timestamp per scanline
-        time = time2d.mean(dim='x_ir_wv').rename({'y_ir_wv': 'y'})
-
-        # If required, repeat timestamps in y-direction to obtain higher
-        # resolution
-        y = time.coords['y'].values
-        if y.size < target_y.size:
-            reps = target_y.size // y.size
-            y_rep = np.repeat(y, reps)
-            time_hires = time.reindex(y=y_rep)
-            time_hires = time_hires.assign_coords(y=target_y)
-            return time_hires
-        return time
+        return interp_acq_time(time2d, target_y=target_y.values)
 
     def _get_orbital_parameters(self):
         """Get the orbital parameters."""
@@ -546,33 +681,6 @@ class FiduceoMviriBase(BaseFileHandler):
             sub_lonlat = np.nan
         return sub_lonlat
 
-    def _interp_tiepoints(self, ds, target_x, target_y):
-        """Interpolate dataset between tiepoints.
-
-        Uses linear interpolation.
-
-        FUTURE: [PUG] recommends cubic spline interpolation.
-
-        Args:
-            ds:
-                Dataset to be interpolated
-            target_x:
-                Target x coordinates
-            target_y:
-                Target y coordinates
-        """
-        # No tiepoint coordinates specified in the files. Use dimensions
-        # to calculate tiepoint sampling and assign tiepoint coordinates
-        # accordingly.
-        sampling = target_x.size // ds.coords['x'].size
-        ds = ds.assign_coords(x=target_x.values[::sampling],
-                              y=target_y.values[::sampling])
-
-        return ds.interp(x=target_x.values, y=target_y.values)
-
-    def _is_high_resol(self, resolution):
-        return resolution == HIGH_RESOL
-
 
 class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
     """File handler for FIDUCEO MVIRI Easy FCDR."""
@@ -586,8 +694,10 @@ class FiduceoMviriEasyFcdrFileHandler(FiduceoMviriBase):
         Easy FCDR provides reflectance only, no counts or radiance.
         """
         if calibration == 'reflectance':
-            refl = 100 * ds  # conversion to percent
-            refl = self._update_refl_attrs(refl)
+            coefs = self._get_coefs_vis()
+            cal = VISCalibrator(coefs)
+            refl = cal.refl_factor_to_percent(ds)
+            refl = cal.update_refl_attrs(refl)
             return refl
         elif calibration in ('counts', 'radiance'):
             raise ValueError('Cannot calibrate to {}. Easy FCDR provides '
@@ -602,56 +712,26 @@ class FiduceoMviriFullFcdrFileHandler(FiduceoMviriBase):
     nc_keys = FiduceoMviriBase.nc_keys.copy()
     nc_keys['VIS'] = 'count_vis'
 
+    def _get_coefs_vis(self):
+        """Get full set of calibration coefficients for VIS channel."""
+        coefs = super()._get_coefs_vis()
+        coefs.update({
+            'radiance': {
+                'years_since_launch': np.float32(self.nc['years_since_launch']),
+                'a0_vis': np.float32(self.nc['a0_vis']),
+                'a1_vis': np.float32(self.nc['a1_vis']),
+                'a2_vis': np.float32(self.nc['a2_vis']),
+                'mean_count_space_vis': np.float32(
+                    self.nc['mean_count_space_vis']
+                )
+            },
+        })
+        return coefs
+
     def _calibrate_vis(self, ds, calibration):
-        """Calibrate VIS channel.
-
-        All calibration levels are available here.
-        """
-        if calibration == 'counts':
-            return ds
-        elif calibration in ('radiance', 'reflectance'):
-            rad = self._vis_counts_to_radiance(ds)
-            if calibration == 'radiance':
-                return rad
-            refl = self._vis_radiance_to_reflectance(rad)
-            refl = self._update_refl_attrs(refl)
-            return refl
-        else:
-            raise KeyError('Invalid calibration: {}'.format(calibration.name))
-
-    def _vis_counts_to_radiance(self, counts):
-        """Convert VIS counts to radiance.
-
-        Reference: [PUG], equations (7) and (8).
-        """
-        years_since_launch = self.nc['years_since_launch']
-        a_cf = (self.nc['a0_vis'] +
-                self.nc['a1_vis'] * years_since_launch +
-                self.nc['a2_vis'] * years_since_launch ** 2)
-        mean_count_space_vis = np.float32(self.nc['mean_count_space_vis'])
-        a_cf = np.float32(a_cf)
-        rad = (counts - mean_count_space_vis) * a_cf
-        return rad.where(rad > 0, np.float32(np.nan))
-
-    def _vis_radiance_to_reflectance(self, rad):
-        """Convert VIS radiance to reflectance factor.
-
-        Note: Produces huge reflectances in situations where both radiance and
-        solar zenith angle are small. Maybe the corresponding uncertainties
-        can be used to filter these cases before calculating reflectances.
-
-        Reference: [PUG], equation (6).
-        """
-        sza = self._get_angles('solar_zenith_angle', HIGH_RESOL)
-        sza = sza.where(da.fabs(sza) < 90,
-                        np.float32(np.nan))  # direct illumination only
-        cos_sza = np.cos(np.deg2rad(sza))
-        distance_sun_earth2 = np.float32(self.nc['distance_sun_earth'] ** 2)
-        solar_irradiance_vis = np.float32(self.nc['solar_irradiance_vis'])
-        refl = (
-           (np.pi * distance_sun_earth2) /
-           (solar_irradiance_vis * cos_sza) *
-           rad
-        )
-        refl = refl * 100  # conversion to percent
-        return refl
+        coefs = self._get_coefs_vis()
+        sza = None
+        if calibration == 'reflectance':
+            sza = self._get_angles('solar_zenith_angle', HIGH_RESOL)
+        cal = VISCalibrator(coefs, sza)
+        return cal.calibrate(ds, calibration)
