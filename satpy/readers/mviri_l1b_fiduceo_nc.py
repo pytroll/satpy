@@ -583,9 +583,8 @@ class FiduceoMviriBase(BaseFileHandler):
         """Calibrate the given dataset."""
         if channel == 'VIS':
             return self._calibrate_vis(ds, channel, calibration)
-        else:
-            calib = IRWVCalibrator(self.calib_coefs[channel])
-            return calib.calibrate(ds, calibration)
+        calib = IRWVCalibrator(self.calib_coefs[channel])
+        return calib.calibrate(ds, calibration)
 
     @abc.abstractmethod
     def _calibrate_vis(self, ds, channel, calibration):
