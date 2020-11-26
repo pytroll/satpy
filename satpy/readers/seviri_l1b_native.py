@@ -78,21 +78,21 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     By default, the HRV channel is loaded padded with no-data, that is it is
     returned as a full-disk dataset. If you want the original, unpadded, data,
-    just provide the `fill_hrv` as False in the `reader_kwargs`::
+    just provide the `fill_disk` as False in the `reader_kwargs`::
 
         scene = satpy.Scene(filenames,
                             reader='seviri_l1b_native',
-                            reader_kwargs={'fill_hrv': False})
+                            reader_kwargs={'fill_disk': False})
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal', fill_hrv=True):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal', fill_disk=False):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
         self.platform_name = None
         self.calib_mode = calib_mode
-        self.fill_hrv = fill_hrv
+        self.fill_disk = fill_disk
 
         # Declare required variables.
         # Assume a full disk file, reset in _read_header if otherwise.
@@ -382,7 +382,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             window = list()
 
             if not self.is_roi():
-                # If we're dealing with stadnard FES or RSS HRV data we use the actual navigation parameters
+                # If we're dealing with standard FES or RSS HRV data we use the actual navigation parameters
                 # from the trailer
                 hrv_bounds = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV'].copy()
 
@@ -393,7 +393,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                     window_west_column = hrv_bounds['%sWestColumnActual' % hrv_window]
 
                     if window_north_line > window_south_line:  # we have some of the HRV window
-                        if self.fill_hrv:
+                        if self.fill_disk:
                             window_east_column = 1
                             window_west_column = HRV_NUM_COLUMNS
 
@@ -423,7 +423,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 roi_west_column = roi_east_column + roi_ncolumns - 1
                 roi_north_line = roi_south_line + roi_nlines - 1
 
-                if self.fill_hrv:
+                if self.fill_disk:
                     roi_south_line = 1
                     roi_north_line = HRV_NUM_LINES
                     roi_east_column = 1
@@ -505,10 +505,11 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset = None
         else:
             dataset = self.calibrate(xarr, dataset_id)
-            if dataset_id['name'] == 'HRV' and self.fill_hrv:
+            if self.fill_disk and not (dataset_id['name'] != 'HRV' and self.mda['is_full_disk']):
                 attrs = dataset.attrs
-                dataset = self.pad_hrv_data(dataset)
+                dataset = self._pad_data(dataset_id, dataset)
                 dataset.attrs = attrs
+
             dataset.attrs['units'] = dataset_info['units']
             dataset.attrs['wavelength'] = dataset_info['wavelength']
             dataset.attrs['standard_name'] = dataset_info['standard_name']
@@ -540,65 +541,101 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         return not self.mda['is_full_disk'] and not (is_rapid_scan and is_top3segments)
 
-    def pad_hrv_data(self, dataset):
-        """Pad HRV data with empty pixels."""
-        logger.debug('Padding HRV data to full disk')
+    def _get_hrv_actual_image_bounds(self, hrv_window):
+        """Get the actual HRV image line and column boundaries for a given HRV window."""
+        if hrv_window not in ['Lower', 'Upper']:
+            raise KeyError('Unknown HRV window %s' % hrv_window)
 
-        nlines = int(self.mda['hrv_number_of_lines'])
-        ncols = int(self.mda['hrv_number_of_columns'])
+        hrv_bounds = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
+        south_line = hrv_bounds['%sSouthLineActual' % hrv_window]
+        north_line = hrv_bounds['%sNorthLineActual' % hrv_window]
+        east_column = hrv_bounds['%sEastColumnActual' % hrv_window]
+        west_column = hrv_bounds['%sWestColumnActual' % hrv_window]
 
-        if not self.is_roi():
-            # If we're dealing with standard FES or RSS data we use tha actual navigation parameters from the trailer
-            # data in order to pad the data correctly
-            hrv_bounds = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
-            data_list = list()
-            for hrv_window in ['Lower', 'Upper']:
-                window_south_line = hrv_bounds['%sSouthLineActual' % hrv_window]
-                window_north_line = hrv_bounds['%sNorthLineActual' % hrv_window]
-                window_east_column = hrv_bounds['%sEastColumnActual' % hrv_window]
-                window_west_column = hrv_bounds['%sWestColumnActual' % hrv_window]
+        return south_line, north_line, east_column, west_column
 
-                if window_north_line > window_south_line:  # we have some of the HRV window
-                    window_nlines = window_north_line - window_south_line + 1
-                    window_ncols = window_west_column - window_east_column + 1
-                    line_start = window_south_line - HRV_NUM_LINES + nlines
-                    line_end = line_start + window_nlines - 1
-
-                    # Pad data in east-west direction
-                    data_window = pad_data_ew(dataset[line_start - 1:line_end, :].data,
-                                              (window_nlines, HRV_NUM_COLUMNS),
-                                              window_east_column,
-                                              window_east_column + window_ncols - 1)
-
-                    data_list.append(data_window)
-
-            if not self.mda['is_full_disk']:
-                # If we are dealing with RSS data we need to pad data in north-south direction as well
-                data_list = [pad_data_sn(data_list[0],
-                                         (HRV_NUM_LINES, HRV_NUM_COLUMNS),
-                                         hrv_bounds['LowerSouthLineActual'],
-                                         hrv_bounds['LowerNorthLineActual'])]
-
+    def _get_selected_image_bounds(self, dataset_id):
+        """Get the selected image line and column boundaries."""
+        if dataset_id['name'] == 'HRV':
+            nlines = int(self.mda['hrv_number_of_lines'])
+            ncolumns = int(self.mda['hrv_number_of_columns'])
+            coeff = 3
+            offset = 2
         else:
-            # If we're dealing with data for a selected region of interest we use the selected navigation parameters
-            # from the secondary header information in order to pad the data correctly
-            sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
-            roi_south_line = 3 * int(sec15hd['SouthLineSelectedRectangle']['Value']) - 2
-            roi_east_column = 3 * int(sec15hd['EastColumnSelectedRectangle']['Value']) - 2
+            nlines = int(self.mda['number_of_lines'])
+            ncolumns = int(self.mda['number_of_columns'])
+            coeff = 1
+            offset = 0
+
+        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+        south_line = coeff * int(sec15hd['SouthLineSelectedRectangle']['Value']) - offset
+        east_column = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value']) - offset
+
+        north_line = south_line + nlines - 1
+        west_column = east_column + ncolumns - 1
+
+        return south_line, north_line, east_column, west_column
+
+    def _pad_data(self, dataset_id, dataset):
+        """Pad data to full disk with empty pixels."""
+        logger.debug('Padding data to full disk')
+
+        if dataset_id['name'] == 'HRV' and self.mda['is_full_disk']:
+            padded_data = self._pad_fes_hrv_data(dataset)
+        else:
+            padded_data = self._pad_rss_roi_data(dataset_id, dataset)
+
+        return padded_data
+
+    def _pad_fes_hrv_data(self, dataset):
+        """Pad FES HRV data to full disk with empty pixels."""
+        data_shape = dataset.shape
+        final_shape = (HRV_NUM_LINES, HRV_NUM_COLUMNS)
+
+        # The HRV channel in FES mode consists of data from two windows ('Lower' and Upper'). Data
+        # from these two windows are read, padded and finally combined to form a full disk array.
+        data_list = list()
+        for hrv_window in ['Lower', 'Upper']:
+            south_line, north_line, east_column, west_column = self._get_hrv_actual_image_bounds(hrv_window)
+            nlines = north_line - south_line + 1
+            line_start = south_line - final_shape[0] + data_shape[0]
+            line_end = line_start + nlines - 1
 
             # Pad data in east-west direction
-            data_roi = pad_data_ew(dataset.data,
-                                   (nlines, HRV_NUM_COLUMNS),
-                                   roi_east_column,
-                                   roi_east_column + ncols - 1)
+            data_window = pad_data_ew(dataset[line_start - 1:line_end, :].data,
+                                      (nlines, final_shape[1]),
+                                      east_column, west_column)
 
-            # Pad data in south-north direction
-            data_list = [pad_data_sn(data_roi,
-                                     (HRV_NUM_LINES, HRV_NUM_COLUMNS),
-                                     roi_south_line,
-                                     roi_south_line + nlines - 1)]
+            data_list.append(data_window)
 
-        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
+        padded_data = da.vstack(data_list)
+
+        return xr.DataArray(padded_data, dims=('y', 'x'))
+
+    def _pad_rss_roi_data(self, dataset_id, dataset):
+        """Pad RSS and ROI data to full disk with empty pixels."""
+        data_shape = dataset.shape
+
+        if dataset_id['name'] == 'HRV':
+            final_shape = (HRV_NUM_LINES, HRV_NUM_COLUMNS)
+        else:
+            final_shape = (VISIR_NUM_LINES, VISIR_NUM_COLUMNS)
+
+        # The HRV channel in RSS mode consists of data from one window ('Lower'). If we're dealing with
+        # such data, we need to use the actual navigation parameters in order to pad the data correctly.
+        # Otherwise, we use the selected navigation parameters.
+        if dataset_id['name'] == 'HRV' and not self.is_roi():
+            south_line, north_line, east_column, west_column = self._get_hrv_actual_image_bounds('Lower')
+        else:
+            south_line, north_line, east_column, west_column = self._get_selected_image_bounds(dataset_id)
+
+        # Pad data in east-west direction
+        padded_data = pad_data_ew(dataset.data, (data_shape[0], final_shape[1]), east_column, west_column)
+
+        # Pad data in south-north direction
+        padded_data = pad_data_sn(padded_data, final_shape, south_line, north_line)
+
+        return xr.DataArray(padded_data, dims=('y', 'x'))
 
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
