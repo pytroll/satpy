@@ -53,7 +53,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
         'Description': 'SEVIRI low resolution channel area',
@@ -72,7 +72,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
         'Description': 'SEVIRI low resolution channel area',
@@ -91,7 +91,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -111,7 +111,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
-    'fill_hrv': True,
+    'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -130,7 +130,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -149,7 +149,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
-    'fill_hrv': True,
+    'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -168,7 +168,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -187,7 +187,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
-    'fill_hrv': True,
+    'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -206,7 +206,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
         'Description': 'SEVIRI low resolution channel area',
@@ -225,7 +225,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -245,7 +245,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK_FILL = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
-    'fill_hrv': True,
+    'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -264,7 +264,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -283,7 +283,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN_FILL = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
-    'fill_hrv': True,
+    'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -302,7 +302,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
         'Description': 'SEVIRI low resolution channel area',
@@ -321,7 +321,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
-    'fill_hrv': False,
+    'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -340,7 +340,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL = {
     'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
-    'fill_hrv': True,
+    'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
         'Description': 'SEVIRI high resolution channel area',
@@ -557,7 +557,7 @@ class TestNativeMSGArea(unittest.TestCase):
         header = self.create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan)
         trailer = self.create_test_trailer(is_rapid_scan)
         expected_area_def = test_dict['expected_area_def']
-        fill_hrv = test_dict['fill_hrv']
+        fill_disk = test_dict['fill_disk']
 
         with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
             fromfile.return_value = header
@@ -567,7 +567,7 @@ class TestNativeMSGArea(unittest.TestCase):
                     _get_memmap.return_value = np.arange(3)
                     with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
                         fh = NativeMSGFileHandler(None, {}, None)
-                        fh.fill_hrv = fill_hrv
+                        fh.fill_disk = fill_disk
                         fh.header = header
                         fh.trailer = trailer
                         calc_area_def = fh.get_area_def(dataset_id)
