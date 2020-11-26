@@ -29,7 +29,8 @@ from pyresample.utils import proj4_radius_parameters
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
     ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, FiduceoMviriEasyFcdrFileHandler,
-    FiduceoMviriFullFcdrFileHandler)
+    FiduceoMviriFullFcdrFileHandler, DatasetWrapper
+)
 from satpy.tests.utils import make_dataid
 
 attrs_exp = {
@@ -582,3 +583,41 @@ class TestFiduceoMviriFileHandlers:
         files = reader.select_files_from_pathnames(filenames)
         # only 3 out of 4 above should match
         assert len(files) == 3
+
+
+class TestDatasetWrapper:
+    """Unit tests for DatasetWrapper class."""
+
+    def test_reassign_coords(self):
+        """Test reassigning of coordinates.
+
+        For some reason xarray does not always assign (y, x) coordinates to
+        the high resolution datasets, although they have dimensions (y, x) and
+        coordinates y and x exist. A dataset with these properties seems
+        impossible to create (neither dropping, resetting or deleting
+        coordinates seems to work). Instead use mock as a workaround.
+        """
+        nc = mock.MagicMock(
+            coords={
+                'y': [.1, .2],
+                'x': [.3, .4]
+            },
+            dims=('y', 'x')
+        )
+        nc.__getitem__.return_value = xr.DataArray(
+            [[1, 2],
+             [3, 4]],
+            dims=('y', 'x')
+        )
+        foo_exp = xr.DataArray(
+            [[1, 2],
+             [3, 4]],
+            dims=('y', 'x'),
+            coords={
+                'y': [.1, .2],
+                'x': [.3, .4]
+            }
+        )
+        ds = DatasetWrapper(nc)
+        foo = ds['foo']
+        xr.testing.assert_equal(foo, foo_exp)
