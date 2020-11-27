@@ -335,6 +335,37 @@ mpef_product_header = MpefProductHeader().get()
 class SEVIRICalibrationHandler(object):
     """Calibration handler for SEVIRI HRIT- and native-formats."""
 
+    def _calibrate(self, data, coefs, calibration, platform, channel):
+        if calibration['type'] == 'counts':
+            res = data
+        elif calibration['type'] in ['radiance', 'reflectance',
+                                     'brightness_temperature']:
+            # Convert to radiance
+            gain, offset = self._choose_calib_coefs(
+                coefs=coefs,
+                calib_mode=calibration['mode'],
+                channel_name=channel['name'],
+                band_idx=channel['band_idx']
+            )
+            data = data.where(data > 0)
+            res = self._convert_to_radiance(data.astype(np.float32), gain, offset)
+        else:
+            raise ValueError(
+                'Invalid calibration {} for channel {}'.format(
+                    calibration['type'], channel['name']
+                )
+            )
+
+        if calibration['type'] == 'reflectance':
+            solar_irradiance = CALIB[platform['id']][channel['name']]["F"]
+            res = self._vis_calibrate(res, solar_irradiance)
+        elif calibration['type'] == 'brightness_temperature':
+            res = self._ir_calibrate(
+                res, channel['name'], calibration['radiance_type']
+            )
+
+        return res
+
     def _convert_to_radiance(self, data, gain, offset):
         """Calibrate to radiance."""
         return (data * gain + offset).clip(0.0, None)
@@ -380,6 +411,40 @@ class SEVIRICalibrationHandler(object):
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
         return apply_earthsun_distance_correction(reflectance, self.start_time)
+
+    def _choose_calib_coefs(self, coefs, calib_mode, channel_name, band_idx):
+        """Choose coefficients for calibration from counts to radiance.
+
+        Args:
+            coefs (dict): All available calibration coefficients
+            calib_mode (str): Desired calibration mode
+            channel_name (str): Specifies the channel name
+            band_idx (int): The corresponding band index
+        Returns:
+            Gain, Offset
+        """
+        calib_mode = calib_mode.upper()
+        valid_modes = ('NOMINAL', 'GSICS')
+        if calib_mode not in valid_modes:
+            raise ValueError(
+                'Invalid calibration mode: {}. Choose one of {}'.format(
+                    calib_mode, valid_modes)
+            )
+
+        # Select internal coefficients for the given calibration mode
+        if calib_mode != 'GSICS' or channel_name in VIS_CHANNELS:
+            internal_gain = coefs['NOMINAL']['gain'][band_idx]
+            internal_offset = coefs['NOMINAL']['offset'][band_idx]
+        else:
+            internal_gain = coefs['GSICS']['gain'][band_idx]
+            internal_offset = coefs['GSICS']['offset'][band_idx] * internal_gain
+
+        # Override with external coefficients, if any.
+        gain = coefs['EXTERNAL'].get(channel_name, {}).get(
+            'gain', internal_gain)
+        offset = coefs['EXTERNAL'].get(channel_name, {}).get(
+            'offset', internal_offset)
+        return gain, offset
 
 
 def chebyshev(coefs, time, domain):
