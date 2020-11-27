@@ -808,18 +808,32 @@ templates:
         # Not currently viewable by AWIPS
         name: DQF
         attributes:
-          physical_element:
-            raw_value: "GLM_DQF"
+#          physical_element:
+#            raw_value: "GLM_DQF"
+          units:
+            raw_value: "1"
+          long_name:
+            value: "{long_name}"
+          standard_name:
+            value: "{standard_name}"
+          flag_values:
+            raw_key: "flag_values"
+          flag_meanings:
+            raw_key: "flag_meanings"
         encoding:
-          dtype: int16
+          dtype: int8
           _Unsigned: "true"
 
       flash_extent_density:
         name: "flash_extent_density"
         var_name: "Flash_extent_density"
         attributes:
-          physical_element:
-            raw_value: "GLM_Flash_Extent_Density"
+#          physical_element:
+#            raw_value: "GLM_Flash_Extent_Density"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
         encoding:
           dtype: int16
           _Unsigned: "true"
@@ -827,8 +841,12 @@ templates:
         name: "flash_extent_density_window"
         var_name: "Flash_extent_density_window"
         attributes:
-          physical_element:
-            raw_value: "GLM_Flash_Extent_Density_Window"
+#          physical_element:
+#            raw_value: "GLM_Flash_Extent_Density_Window"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
         encoding:
           dtype: int16
           _Unsigned: "true"
@@ -836,8 +854,14 @@ templates:
         name: "average_flash_area"
         var_name: "Average_flash_area"
         attributes:
-          physical_element:
-            raw_value: "GLM_Average_Flash_Area"
+#          physical_element:
+#            raw_value: "GLM_Average_Flash_Area"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
         encoding:
           dtype: int16
           _Unsigned: "true"
@@ -845,26 +869,70 @@ templates:
         name: "average_flash_area_window"
         var_name: "Average_flash_area_window"
         attributes:
-          physical_element:
-            raw_value: "GLM_Average_Flash_Area_Window"
+#          physical_element:
+#            raw_value: "GLM_Average_Flash_Area_Window"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area:
+        name: "minimum_flash_area"
+        var_name: "Minimum_flash_area"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area_window:
+        name: "minimum_flash_area_window"
+        var_name: "Minimum_flash_area_window"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
         encoding:
           dtype: int16
           _Unsigned: "true"
       total_optical_energy:
-        name: "total_optical_energy"
+        name: "total_energy"
         var_name: "Total_Optical_energy"
         attributes:
-          physical_element:
-            raw_value: "GLM_Total_Optical_Energy"
+#          physical_element:
+#            raw_value: "GLM_Total_Optical_Energy"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
         encoding:
           dtype: int16
           _Unsigned: "true"
       total_optical_energy_window:
-        name: "total_optical_energy_window"
+        name: "total_energy_window"
         var_name: "Total_optical_energy_window"
         attributes:
-          physical_element:
-            raw_value: "GLM_Total_Optical_Energy_Window"
+#          physical_element:
+#            raw_value: "GLM_Total_Optical_Energy_Window"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
         encoding:
           dtype: int16
           _Unsigned: "true"
