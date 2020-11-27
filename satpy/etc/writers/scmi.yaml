@@ -782,10 +782,22 @@ templates:
         value: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_s{start_time:%Y%j%H%M%S0}_e{end_time:%Y%j%H%M%S0}_c{creation_time:%Y%j%H%M%S0}.nc'
       time_coverage_end:
         value: "{end_time:%Y-%m-%dT%H:%M:%S.%fZ}"
+#        value: "{end_time:%Y-%m-%dT%H:%M:%SZ}"
+      time_coverage_start:
+        value: "{start_time:%Y-%m-%dT%H:%M:%S.%fZ}"
+#        value: "{start_time:%Y-%m-%dT%H:%M:%SZ}"
       production_site: {}  # special handler in scmi.py
       platform_ID:
-        # hack to make GOES-16 -> G16
-        value: "{platform_name[0]}{platform_name[5]}{platform_name[6]}"
+        value: "{platform_shortname}"
+      cdm_data_type:
+        raw_value: "Image"
+      spatial_resolution:
+        value: "{spatial_resolution}"
+      orbital_slot:
+        value: "{orbital_slot}"
+      # This is used by AWIPS as sectorID
+      scene_id:
+        value: "{scene_id}"
     coordinates:
       x:
         attributes:
