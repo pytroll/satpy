@@ -66,7 +66,7 @@ from satpy.readers._geos_area import get_area_definition
 logger = logging.getLogger('native_msg')
 
 
-class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
+class NativeMSGFileHandler(BaseFileHandler):
     """SEVIRI native format reader.
 
     The Level1.5 Image data calibration method can be changed by adding the
@@ -484,50 +484,43 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         """Calibrate the data."""
         tic = datetime.now()
         channel_name = dataset_id['name']
+        calib = SEVIRICalibrationHandler(
+            platform_id=self.platform_id,
+            channel_name=channel_name,
+            coefs=self._get_calib_coefs(channel_name),
+            calib_mode=self.calib_mode,
+            scan_time=self.start_time
+        )
+        res = calib.calibrate(data, dataset_id['calibration'])
+        logger.debug("Calibration time " + str(datetime.now() - tic))
+        return res
 
+    def _get_calib_coefs(self, channel_name):
+        """Get coefficients for calibration from counts to radiance."""
         # even though all the channels may not be present in the file,
         # the header does have calibration coefficients for all the channels
         # hence, this channel index needs to refer to full channel list
         band_idx = list(CHANNEL_NAMES.values()).index(channel_name)
 
-        channel = {
-            'name': channel_name,
-            'band_idx': band_idx
-        }
-        platform = {'id': self.platform_id}
-        calibration = {
-            'type': dataset_id['calibration'],
-            'mode': self.calib_mode,
-            'radiance_type':  self.header['15_DATA_HEADER']['ImageDescription'][
-                'Level15ImageProduction']['PlannedChanProcessing'][band_idx]
-        }
-        res = self._calibrate(
-            data=data,
-            coefs=self.calib_coefs,
-            calibration=calibration,
-            platform=platform,
-            channel=channel
-        )
-        logger.debug("Calibration time " + str(datetime.now() - tic))
-        return res
-
-    @property
-    def calib_coefs(self):
-        """Get coefficients for calibration from counts to radiance."""
         coefs_nominal = self.header['15_DATA_HEADER'][
             'RadiometricProcessing']['Level15ImageCalibration']
         coefs_gsics = self.header['15_DATA_HEADER'][
             'RadiometricProcessing']['MPEFCalFeedback']
+        radiance_types = self.header['15_DATA_HEADER']['ImageDescription'][
+                'Level15ImageProduction']['PlannedChanProcessing']
         return {
-            'NOMINAL': {
-                'gain': coefs_nominal['CalSlope'],
-                'offset': coefs_nominal['CalOffset']
+            'coefs': {
+                'NOMINAL': {
+                    'gain': coefs_nominal['CalSlope'][band_idx],
+                    'offset': coefs_nominal['CalOffset'][band_idx]
+                },
+                'GSICS': {
+                    'gain': coefs_gsics['GSICSCalCoeff'][band_idx],
+                    'offset': coefs_gsics['GSICSOffsetCount'][band_idx]
+                },
+                'EXTERNAL': self.ext_calib_coefs.get(channel_name, {})
             },
-            'GSICS': {
-                'gain': coefs_gsics['GSICSCalCoeff'],
-                'offset': coefs_gsics['GSICSOffsetCount']
-            },
-            'EXTERNAL': self.ext_calib_coefs
+            'radiance_type': radiance_types[band_idx]
         }
 
 

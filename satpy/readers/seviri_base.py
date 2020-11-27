@@ -332,36 +332,49 @@ class MpefProductHeader(object):
 mpef_product_header = MpefProductHeader().get()
 
 
-class SEVIRICalibrationHandler(object):
-    """Calibration handler for SEVIRI HRIT- and native-formats."""
+class SEVIRICalibrationHandler:
+    """Calibration handler for SEVIRI HRIT-, native- and netCDF-formats."""
 
-    def _calibrate(self, data, coefs, calibration, platform, channel):
-        if calibration['type'] == 'counts':
-            res = data
-        elif calibration['type'] in ['radiance', 'reflectance',
-                                     'brightness_temperature']:
-            # Convert to radiance
-            gain, offset = self._choose_calib_coefs(
-                coefs=coefs,
-                calib_mode=calibration['mode'],
-                channel_name=channel['name'],
-                band_idx=channel['band_idx']
+    def __init__(self, platform_id, channel_name, coefs, calib_mode, scan_time):
+        """Initialize the calibration handler."""
+        self.platform_id = platform_id
+        self.channel_name = channel_name
+        self.coefs = coefs
+        self.calib_mode = calib_mode.upper()
+        self.scan_time = scan_time
+
+        valid_modes = ('NOMINAL', 'GSICS')
+        if self.calib_mode not in valid_modes:
+            raise ValueError(
+                'Invalid calibration mode: {}. Choose one of {}'.format(
+                    self.calib_mode, valid_modes)
             )
+
+    def calibrate(self, data, calibration):
+        """Calibrate the given data."""
+        if calibration == 'counts':
+            res = data
+        elif calibration in ['radiance', 'reflectance',
+                             'brightness_temperature']:
+            # Convert to radiance
+            gain, offset = self._get_gain_offset()
             data = data.where(data > 0)
-            res = self._convert_to_radiance(data.astype(np.float32), gain, offset)
+            res = self._convert_to_radiance(
+                data.astype(np.float32), gain, offset
+            )
         else:
             raise ValueError(
                 'Invalid calibration {} for channel {}'.format(
-                    calibration['type'], channel['name']
+                    calibration, self.channel_name
                 )
             )
 
-        if calibration['type'] == 'reflectance':
-            solar_irradiance = CALIB[platform['id']][channel['name']]["F"]
+        if calibration == 'reflectance':
+            solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
             res = self._vis_calibrate(res, solar_irradiance)
-        elif calibration['type'] == 'brightness_temperature':
+        elif calibration == 'brightness_temperature':
             res = self._ir_calibrate(
-                res, channel['name'], calibration['radiance_type']
+                res, self.channel_name, self.coefs['radiance_type']
             )
 
         return res
@@ -410,40 +423,24 @@ class SEVIRICalibrationHandler(object):
         reflectances for SEVIRI warm channels: https://tinyurl.com/y67zhphm
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
-        return apply_earthsun_distance_correction(reflectance, self.start_time)
+        return apply_earthsun_distance_correction(reflectance, self.scan_time)
 
-    def _choose_calib_coefs(self, coefs, calib_mode, channel_name, band_idx):
-        """Choose coefficients for calibration from counts to radiance.
-
-        Args:
-            coefs (dict): All available calibration coefficients
-            calib_mode (str): Desired calibration mode
-            channel_name (str): Specifies the channel name
-            band_idx (int): The corresponding band index
-        Returns:
-            Gain, Offset
-        """
-        calib_mode = calib_mode.upper()
-        valid_modes = ('NOMINAL', 'GSICS')
-        if calib_mode not in valid_modes:
-            raise ValueError(
-                'Invalid calibration mode: {}. Choose one of {}'.format(
-                    calib_mode, valid_modes)
-            )
+    def _get_gain_offset(self):
+        """Get gain & offset for calibration from counts to radiance."""
+        coefs = self.coefs['coefs']
 
         # Select internal coefficients for the given calibration mode
-        if calib_mode != 'GSICS' or channel_name in VIS_CHANNELS:
-            internal_gain = coefs['NOMINAL']['gain'][band_idx]
-            internal_offset = coefs['NOMINAL']['offset'][band_idx]
+        if self.calib_mode != 'GSICS' or self.channel_name in VIS_CHANNELS:
+            # GSICS doesn't have calibration coeffs for VIS channels
+            internal_gain = coefs['NOMINAL']['gain']
+            internal_offset = coefs['NOMINAL']['offset']
         else:
-            internal_gain = coefs['GSICS']['gain'][band_idx]
-            internal_offset = coefs['GSICS']['offset'][band_idx] * internal_gain
+            internal_gain = coefs['GSICS']['gain']
+            internal_offset = coefs['GSICS']['offset'] * internal_gain
 
         # Override with external coefficients, if any.
-        gain = coefs['EXTERNAL'].get(channel_name, {}).get(
-            'gain', internal_gain)
-        offset = coefs['EXTERNAL'].get(channel_name, {}).get(
-            'offset', internal_offset)
+        gain = coefs['EXTERNAL'].get('gain', internal_gain)
+        offset = coefs['EXTERNAL'].get('offset', internal_offset)
         return gain, offset
 
 

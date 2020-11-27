@@ -265,7 +265,6 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                                                          (msg_hdr_map,
                                                           msg_variable_length_headers,
                                                           msg_text_headers))
-        self.ext_calib_coefs = ext_calib_coefs or {}
         self.prologue = {}
         self.read_prologue()
         self.satpos = None
@@ -401,24 +400,6 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         """Reduce the prologue metadata."""
         return self._reduce(self.prologue, max_size=max_size)
 
-    @property
-    def calib_coefs(self):
-        """Get coefficients for calibration from counts to radiance."""
-        coefs_nominal = self.prologue["RadiometricProcessing"][
-            "Level15ImageCalibration"]
-        coefs_gsics = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
-        return {
-            'NOMINAL': {
-                'gain': coefs_nominal['CalSlope'],
-                'offset': coefs_nominal['CalOffset'],
-            },
-            'GSICS': {
-                'gain': coefs_gsics['GSICSCalCoeff'],
-                'offset': coefs_gsics['GSICSOffsetCount']
-            },
-            'EXTERNAL': self.ext_calib_coefs
-        }
-
 
 class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT epilogue reader."""
@@ -452,7 +433,7 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
         return self._reduce(self.epilogue, max_size=max_size)
 
 
-class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
+class HRITMSGFileHandler(HRITFileHandler):
     """SEVIRI HRIT format reader.
 
     **Calibration**
@@ -542,6 +523,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda_max_array_size = mda_max_array_size
         self.fill_hrv = fill_hrv
         self.calib_mode = calib_mode
+        self.ext_calib_coefs = ext_calib_coefs or {}
 
         self._get_header()
 
@@ -765,26 +747,15 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
-        channel = {
-            'name': self.channel_name,
-            'band_idx': self.mda['spectral_channel_id'] - 1,
-        }
-        platform = {'id': self.platform_id}
-        calibration = {
-            'type': calibration,
-            'mode': self.calib_mode,
-            'radiance_type': self.prologue['ImageDescription']['Level15ImageProduction'][
-                'PlannedChanProcessing'][self.mda['spectral_channel_id']]
-        }
-        res = self._calibrate(
-            data=data,
-            coefs=self.prologue_.calib_coefs,
-            calibration=calibration,
-            platform=platform,
-            channel=channel
+        calib = SEVIRICalibrationHandler(
+            platform_id=self.platform_id,
+            channel_name=self.channel_name,
+            coefs=self._get_calib_coefs(self.channel_name),
+            calib_mode=self.calib_mode,
+            scan_time=self.start_time
         )
-        if calibration['type'] in ['radiance', 'reflectance',
-                                   'brightness_temperature']:
+        res = calib.calibrate(data, calibration)
+        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             res = self._mask_bad_quality(res)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
@@ -815,6 +786,30 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         """Read scanline timestamps from the segment header."""
         tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
         return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+
+    def _get_calib_coefs(self, channel_name):
+        """Get coefficients for calibration from counts to radiance."""
+        band_idx = self.mda['spectral_channel_id'] - 1
+        radiance_type_idx = self.mda['spectral_channel_id']
+        coefs_nominal = self.prologue["RadiometricProcessing"][
+            "Level15ImageCalibration"]
+        coefs_gsics = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
+        radiance_types = self.prologue['ImageDescription'][
+                'Level15ImageProduction']['PlannedChanProcessing']
+        return {
+            'coefs': {
+                'NOMINAL': {
+                    'gain': coefs_nominal['CalSlope'][band_idx],
+                    'offset': coefs_nominal['CalOffset'][band_idx],
+                },
+                'GSICS': {
+                    'gain': coefs_gsics['GSICSCalCoeff'][band_idx],
+                    'offset': coefs_gsics['GSICSOffsetCount'][band_idx]
+                },
+                'EXTERNAL': self.ext_calib_coefs.get(channel_name, {})
+            },
+            'radiance_type': radiance_types[radiance_type_idx]
+        }
 
 
 def pad_data(data, final_size, east_bound, west_bound):
