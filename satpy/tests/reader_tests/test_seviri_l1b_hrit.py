@@ -22,6 +22,7 @@ from unittest import mock
 from datetime import datetime
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
@@ -30,6 +31,7 @@ from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.tests.utils import make_dataid
 
 from numpy import testing as npt
+
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
@@ -747,3 +749,142 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
         self.reader._reduced = 'red'
         self.assertEqual(self.reader.reduce(123), 'red')
         reduce_mda.assert_not_called()
+
+
+class TestCalibration:
+    """Unit tests for calibration."""
+
+    ext_coefs = {
+        'VIS006': {'gain': 10, 'offset': -10},
+        'IR_108': {'gain': 20, 'offset': -20}
+    }
+    counts_exp = xr.DataArray(
+        [[0, 10],
+         [100, 255]],
+        dims=('y', 'x')
+    )
+    vis_rad_exp = xr.DataArray(
+        [[np.nan, 9],
+         [99, 254]],
+        dims=('y', 'x')
+    )
+    vis_refl_exp = xr.DataArray(
+        [[np.nan, 40.47923],
+         [445.27155, 1142.414]],
+        dims=('y', 'x')
+    )
+    ir_rad_nominal_exp = xr.DataArray(
+        [[np.nan, 81],
+         [891, 2286]],
+        dims=('y', 'x')
+    )
+    ir_bt_nominal_exp = xr.DataArray(
+        [[np.nan, 279.82318],
+         [543.2585, 812.77167]],
+        dims=('y', 'x')
+    )
+    ir_rad_gsics_exp = xr.DataArray(
+        [[np.nan, 8.19],
+         [89.19, 228.69]],
+        dims=('y', 'x')
+    )
+    ir_bt_gsics_exp = xr.DataArray(
+        [[np.nan, 189.20985],
+         [285.53293, 356.06668]],
+        dims=('y', 'x')
+    )
+    vis_rad_ext_exp = xr.DataArray(
+        [[np.nan, 90],
+         [990, 2540]],
+        dims=('y', 'x')
+    )
+    ir_rad_ext_exp = xr.DataArray(
+        [[np.nan, 180],
+         [1980, 5080]],
+        dims=('y', 'x')
+    )
+
+    @pytest.fixture(name='file_handler')
+    def file_handler(self):
+        """Create a mocked file handler."""
+        prolog = {
+            'RadiometricProcessing': {
+                'Level15ImageCalibration': {
+                    'CalSlope': np.arange(1, 13),
+                    'CalOffset': np.arange(-1, -13, -1)
+                },
+                'MPEFCalFeedback': {
+                    'GSICSCalCoeff': np.arange(0.1, 1.3, 0.1),
+                    'GSICSOffsetCount': np.arange(-0.1, -1.3, -0.1),
+                }
+            },
+            'ImageDescription': {
+                'Level15ImageProduction': {
+                    'PlannedChanProcessing': 2 * np.ones(12)
+                }
+            }
+        }
+        epilog = {
+            'ImageProductionStats': {
+                'ActualScanningSummary': {
+                    'ForwardScanStart': datetime(2020, 1, 1)
+                }
+            }
+        }
+        mda = {
+            'image_segment_line_quality': {
+                'line_validity': np.zeros(2),
+                'line_radiometric_quality': np.zeros(2),
+                'line_geometric_quality': np.zeros(2)
+            },
+        }
+
+        with mock.patch(
+            'satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.__init__',
+            return_value=None
+        ):
+            fh = HRITMSGFileHandler()
+            fh.platform_id = 324
+            fh.mda = mda
+            fh.prologue = prolog
+            fh.epilogue = epilog
+            return fh
+
+    @pytest.mark.parametrize(
+        ('channel', 'calibration', 'calib_mode', 'ext_calib_coefs', 'expected'),
+        [
+            # VIS channel, nominal coefficiens
+            ('VIS006', 'counts', 'nominal', {}, counts_exp),
+            ('VIS006', 'radiance', 'nominal', {}, vis_rad_exp),
+            ('VIS006', 'reflectance', 'nominal', {}, vis_refl_exp),
+            # GSICS should not be used for VIS channel
+            ('VIS006', 'radiance', 'GSICS', {}, vis_rad_exp),
+            # IR channel, nominal coefficients
+            ('IR_108', 'counts', 'nominal', {}, counts_exp),
+            ('IR_108', 'radiance', 'nominal', {}, ir_rad_nominal_exp),
+            ('IR_108', 'brightness_temperature', 'nominal', {}, ir_bt_nominal_exp),
+            # IR channel, GISCS coefficients
+            ('IR_108', 'radiance', 'GSICS', {}, ir_rad_gsics_exp),
+            ('IR_108', 'brightness_temperature', 'GSICS', {}, ir_bt_gsics_exp),
+            # With external coefficients
+            ('VIS006', 'radiance', 'nominal', ext_coefs, vis_rad_ext_exp),
+            ('IR_108', 'radiance', 'nominal', ext_coefs, ir_rad_ext_exp),
+        ]
+    )
+    def test_calibrate(
+            self, file_handler, channel, calibration, calib_mode,
+            ext_calib_coefs, expected
+    ):
+        """Test the calibration."""
+        counts = xr.DataArray(
+            [[0, 10],
+             [100, 255]],
+            dims=('y', 'x')
+        )
+        fh = file_handler
+        fh.mda['spectral_channel_id'] = {'VIS006': 1, 'IR_108': 9}[channel]
+        fh.channel_name = channel
+        fh.calib_mode = calib_mode
+        fh.ext_calib_coefs = ext_calib_coefs
+        res = fh.calibrate(counts, calibration)
+        xr.testing.assert_allclose(res, expected)
