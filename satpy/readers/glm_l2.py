@@ -102,7 +102,8 @@ class NCGriddedGLML2(NC_ABI_BASE):
         for attr in ('scene_abbr', 'scan_mode', 'platform_shortname'):
             res.attrs[attr] = self.filename_info[attr]
         # copy global attributes to metadata
-        for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+        for attr in ('scene_id', 'orbital_slot', 'instrument_ID',
+                     'production_site', 'timeline_ID', 'spatial_resolution'):
             res.attrs[attr] = self.nc.attrs.get(attr)
         return res
 
