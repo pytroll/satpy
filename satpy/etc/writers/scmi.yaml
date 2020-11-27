@@ -779,7 +779,7 @@ templates:
     global_attributes:
       # FIXME: This should come from the reader's metadata
       dataset_name:
-        value: 'OR_GLM-L2-GLM{scene_abbr}_{scan_mode}_{platform_shortname}_{start_time:%Y%j%H%M%S0}_{end_time:%Y%j%H%M%S0}_{creation_time:%Y%j%H%M%S0}.nc'
+        value: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_s{start_time:%Y%j%H%M%S0}_e{end_time:%Y%j%H%M%S0}_c{creation_time:%Y%j%H%M%S0}.nc'
       time_coverage_end:
         value: "{end_time:%Y-%m-%dT%H:%M:%S.%fZ}"
       production_site: {}  # special handler in scmi.py
