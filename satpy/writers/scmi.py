@@ -715,7 +715,9 @@ class NetCDFTemplate:
         new_ds.coords.update(new_coords)
         # use first data array as "representative" for global attributes
         # XXX: Should we use global attributes if dataset_or_data_arrays is a Dataset
-        new_ds.attrs = self._render_global_attributes(data_arrays[0].attrs)
+        if shared_attrs is None:
+            shared_attrs = data_arrays[0].attrs
+        new_ds.attrs = self._render_global_attributes(shared_attrs)
         return new_ds
 
 
@@ -728,11 +730,6 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if swap_end_time:
             self._swap_attributes_end_time(template_dict)
         super().__init__(template_dict)
-
-    def get_filename(self, **kwargs):
-        """Produce a filename based on the format configured in this template."""
-        kwargs["start_time"] += timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
-        return super().get_filename(**kwargs)
 
     def _swap_attributes_end_time(self, template_dict):
         """Swap every use of 'start_time' to use 'end_time' instead."""
@@ -755,8 +752,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         start_time = input_metadata['start_time']
         if self._swap_end_time:
             start_time = input_metadata['end_time']
-        new_stime = start_time + timedelta(minutes=int(os.environ.get("DEBUG_TIME_SHIFT", 0)))
-        return new_stime.strftime("%Y-%m-%dT%H:%M:%S")
+        return start_time.strftime("%Y-%m-%dT%H:%M:%S")
 
     def _global_awips_id(self, input_metadata):
         return "AWIPS_" + input_metadata['name']
@@ -776,12 +772,12 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     def _get_data_vmin_vmax(self, input_data_arr):
         input_metadata = input_data_arr.attrs
-        valid_range = input_metadata.get("valid_range", input_metadata.get("valid_range"))
+        valid_range = input_metadata.get("valid_range")
         if valid_range:
             valid_min, valid_max = valid_range
         else:
-            valid_min = input_metadata.get("valid_min", input_metadata.get("valid_min"))
-            valid_max = input_metadata.get("valid_max", input_metadata.get("valid_max"))
+            valid_min = input_metadata.get("valid_min")
+            valid_max = input_metadata.get("valid_max")
         return valid_min, valid_max
 
     def _render_variable_encoding(self, var_config, input_data_arr):
@@ -839,6 +835,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
                 y_attrs['units'] = 'meters'
             if y_attrs.get('standard_name') is None:
                 y_attrs['standard_name'] = 'projection_y_coordinate'
+            y_attrs['axis'] = 'Y'
 
         x_attrs = new_ds.coords['x'].attrs
         if crs.is_geographic:
@@ -851,6 +848,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
                 x_attrs['units'] = 'meters'
             if x_attrs.get('standard_name') is None:
                 x_attrs['standard_name'] = 'projection_x_coordinate'
+            x_attrs['axis'] = 'X'
 
     def apply_area_def(self, new_ds, area_def):
         """Apply information we can gather from the AreaDefinition."""
@@ -912,9 +910,10 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         return new_ds
 
     def render(self, dataset_or_data_arrays, area_def,
-               tile_info, sector_id, creator=None, creation_time=None):
+               tile_info, sector_id, creator=None, creation_time=None,
+               shared_attrs=None):
         """Create a :class:`xarray.Dataset` from template using information provided."""
-        new_ds = super().render(dataset_or_data_arrays)
+        new_ds = super().render(dataset_or_data_arrays, shared_attrs=shared_attrs)
         new_ds = self.apply_area_def(new_ds, area_def)
         new_ds = self.apply_tile_coord_encoding(new_ds, tile_info.xy_factors)
         new_ds = self.apply_tile_info(new_ds, tile_info)
@@ -972,7 +971,7 @@ def _is_empty_tile(dataset_to_save, check_categories):
     # check if this tile is empty
     # if so, don't create it
     for data_var in dataset_to_save.data_vars.values():
-        if data_var.ndim and _any_notnull(data_var, check_categories):
+        if data_var.ndim == 2 and _any_notnull(data_var, check_categories):
             return False
     return True
 
@@ -1267,8 +1266,14 @@ class SCMIWriter(Writer):
         # we want to use our own creation_time
         ds_info['creation_time'] = creation_time
         ds_info['source_name'] = source_name
+        debug_shift_time = int(os.environ.get("DEBUG_TIME_SHIFT", 0))
+        if debug_shift_time:
+            ds_info["start_time"] += timedelta(minutes=debug_shift_time)
+            ds_info["end_time"] += timedelta(minutes=debug_shift_time)
         return ds_info
 
+    # TODO: Add global_attrs keyword arg
+    # TODO: Add additional untiled variable support
     def save_datasets(self, datasets, sector_id=None,
                       source_name=None,
                       tile_count=(1, 1), tile_size=None,
@@ -1367,7 +1372,8 @@ class SCMIWriter(Writer):
             # TODO: Provide attribute caching for things that likely won't change (functools lrucache)
             new_ds = template.render(data_arrs, area_def,
                                      tile_info, sector_id,
-                                     creation_time=creation_time)
+                                     creation_time=creation_time,
+                                     shared_attrs=ds_info)
             if self.compress:
                 new_ds.encoding['zlib'] = True
 
