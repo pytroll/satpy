@@ -28,7 +28,6 @@ Notes:
     function.
 
 References:
-
     - `MSG Level 1.5 Image Data Format Description`_
     - `Conversion from radiances to reflectances for SEVIRI warm channels`_
 
@@ -43,7 +42,7 @@ References:
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
-                                       CHANNEL_NAMES, CALIB, SATNUM)
+                                       CHANNEL_NAMES, SATNUM)
 import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition
@@ -52,12 +51,14 @@ from satpy import CHUNK_SIZE
 import datetime
 
 
-class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
+class NCSEVIRIFileHandler(BaseFileHandler):
     """File handler for NC seviri files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 ext_calib_coefs=None):
         """Init the file handler."""
         super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.ext_calib_coefs = ext_calib_coefs or {}
         self.nc = None
         self.mda = {}
         self.reference = datetime.datetime(1958, 1, 1)
@@ -113,7 +114,6 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
         channel = dataset_id['name']
-        i = list(CHANNEL_NAMES.values()).index(channel)
 
         if (channel == 'HRV'):
             self.nc = self.nc.rename({'num_columns_hrv': 'x', 'num_rows_hrv': 'y'})
@@ -127,33 +127,16 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 pass
 
         dataset = self.nc[dataset_info['nc_key']]
-
         dataset.attrs.update(dataset_info)
-
-        # Calibrate the data as needed
-        # MPEF MSG calibration coeffiencts (gain and count)
-        offset = dataset.attrs['add_offset'].astype('float32')
-        gain = dataset.attrs['scale_factor'].astype('float32')
         self.platform_id = int(self.nc.attrs['satellite_id'])
-        cal_type = self.nc['planned_chan_processing'].values[i]
 
         # Correct for the scan line order
         dataset = dataset.sel(y=slice(None, None, -1))
 
-        if dataset_id['calibration'] == 'counts':
-            dataset.attrs['_FillValue'] = 0
+        # Calibrate the data as needed
+        dataset = self.calibrate(dataset, dataset_id)
 
-        if dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']:
-            dataset = dataset.where(dataset != 0).astype('float32')
-            dataset = self._convert_to_radiance(dataset, gain, offset)
-
-        if dataset_id['calibration'] == 'reflectance':
-            solar_irradiance = CALIB[int(self.platform_id)][channel]["F"]
-            dataset = self._vis_calibrate(dataset, solar_irradiance)
-
-        elif dataset_id['calibration'] == 'brightness_temperature':
-            dataset = self._ir_calibrate(dataset, channel, cal_type)
-
+        # Update dataset attributes
         dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
         dataset.attrs.update(dataset_info)
         dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
@@ -169,6 +152,50 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset.attrs.pop(a)
 
         return dataset
+
+    def calibrate(self, dataset, dataset_id):
+        """Calibrate the data."""
+        channel = dataset_id['name']
+        calibration = dataset_id['calibration']
+
+        if dataset_id['calibration'] == 'counts':
+            dataset.attrs['_FillValue'] = 0
+        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+            dataset = dataset.where(dataset != 0).astype('float32')
+
+        calib = SEVIRICalibrationHandler(
+            platform_id=int(self.platform_id),
+            channel_name=channel,
+            coefs=self._get_calib_coefs(dataset, channel),
+            calib_mode='GSICS',
+            scan_time=self.start_time
+        )
+
+        return calib.calibrate(dataset, calibration)
+
+    def _get_calib_coefs(self, dataset, channel):
+        """Get coefficients for calibration from counts to radiance.
+
+        MPEF MSG calibration coefficients (gain and offset).
+        """
+        band_idx = list(CHANNEL_NAMES.values()).index(channel)
+        offset = dataset.attrs['add_offset'].astype('float32')
+        gain = dataset.attrs['scale_factor'].astype('float32')
+        # Only one calibration (GSICS) available
+        return {
+            'coefs': {
+                'GSICS': {
+                    'gain': gain,
+                    'offset': offset
+                },
+                'NOMINAL': {
+                    'gain': gain,
+                    'offset': offset
+                },
+                'EXTERNAL': self.ext_calib_coefs.get(channel, {})
+            },
+            'radiance_type': self.nc['planned_chan_processing'].values[band_idx]
+        }
 
     def get_area_def(self, dataset_id):
         """Get the area def."""
