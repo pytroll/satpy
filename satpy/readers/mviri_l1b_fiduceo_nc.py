@@ -648,7 +648,7 @@ class FiduceoMviriBase(BaseFileHandler):
         return calib.calibrate(ds, calibration)
 
     @abc.abstractmethod
-    def _calibrate_vis(self, ds, channel, calibration):
+    def _calibrate_vis(self, ds, channel, calibration):  # pragma: no cover
         """Calibrate VIS channel. To be implemented by subclasses."""
         raise NotImplementedError
 
