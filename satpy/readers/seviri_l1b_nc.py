@@ -167,27 +167,20 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             platform_id=int(self.platform_id),
             channel_name=channel,
             coefs=self._get_calib_coefs(dataset, channel),
-            calib_mode='GSICS',
+            calib_mode='NOMINAL',
             scan_time=self.start_time
         )
 
         return calib.calibrate(dataset, calibration)
 
     def _get_calib_coefs(self, dataset, channel):
-        """Get coefficients for calibration from counts to radiance.
-
-        MPEF MSG calibration coefficients (gain and offset).
-        """
+        """Get coefficients for calibration from counts to radiance."""
         band_idx = list(CHANNEL_NAMES.values()).index(channel)
         offset = dataset.attrs['add_offset'].astype('float32')
         gain = dataset.attrs['scale_factor'].astype('float32')
-        # Only one calibration (GSICS) available
+        # Only one calibration available here
         return {
             'coefs': {
-                'GSICS': {
-                    'gain': gain,
-                    'offset': offset
-                },
                 'NOMINAL': {
                     'gain': gain,
                     'offset': offset
