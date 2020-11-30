@@ -774,8 +774,8 @@ class TestCalibration(TestCalibrationBase):
             ('VIS006', 'radiance', 'GSICS', False),
             ('VIS006', 'reflectance', 'NOMINAL', False),
             # VIS channel, external coefficients (mode should have no effect)
-            # ('VIS006', 'radiance', 'GSICS', True),
-            # ('VIS006', 'reflectance', 'NOMINAL', True),
+            ('VIS006', 'radiance', 'GSICS', True),
+            ('VIS006', 'reflectance', 'NOMINAL', True),
             # IR channel, internal coefficients
             ('IR_108', 'counts', 'NOMINAL', False),
             ('IR_108', 'radiance', 'NOMINAL', False),
@@ -783,8 +783,8 @@ class TestCalibration(TestCalibrationBase):
             ('IR_108', 'brightness_temperature', 'NOMINAL', False),
             ('IR_108', 'brightness_temperature', 'GSICS', False),
             # IR channel, external coefficients (mode should have no effect)
-            # ('IR_108', 'radiance', 'NOMINAL', True),
-            # ('IR_108', 'brightness_temperature', 'GSICS', True),
+            ('IR_108', 'radiance', 'NOMINAL', True),
+            ('IR_108', 'brightness_temperature', 'GSICS', True),
         ]
     )
     def test_calibrate(
@@ -802,10 +802,8 @@ class TestCalibration(TestCalibrationBase):
 
         fh = file_handler
         fh.calib_mode = calib_mode
-        fh.ext_calib_coefs = external_coefs  # no effect ATM
+        fh.ext_calib_coefs = external_coefs
 
         dataset_id = make_dataid(name=channel, calibration=calibration)
         res = fh.calibrate(counts, dataset_id)
-        if calibration != 'counts':
-            res = res.where(res > 0)  # compatibility with other readers
         xr.testing.assert_allclose(res, expected)
