@@ -17,8 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the MSG common (native and hrit format) functionionalities."""
 
+from datetime import datetime
 import unittest
+
 import numpy as np
+import xarray as xr
+import pytest
+
 from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time
 
 
@@ -64,3 +69,119 @@ class SeviriBaseTest(unittest.TestCase):
         msecs = 12*3600*1000
         expected = np.datetime64('2016-03-03 12:00:00.000')
         np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
+
+
+class TestCalibrationBase:
+    """Base class for calibration tests."""
+
+    platform_id = 324
+    gains_nominal = np.arange(1, 13)
+    offsets_nominal = np.arange(-1, -13, -1)
+    gains_gsics = np.arange(0.1, 1.3, 0.1)
+    offsets_gsics = np.arange(-0.1, -1.3, -0.1)
+    radiance_types = 2 * np.ones(12)
+    scan_time = datetime(2020, 1, 1)
+    external_coefs = {
+        'VIS006': {'gain': 10, 'offset': -10},
+        'IR_108': {'gain': 20, 'offset': -20}
+    }
+    spectral_channel_ids = {'VIS006': 1, 'IR_108': 9}
+    expected = {
+        'VIS006': {
+            'counts': {
+                'NOMINAL': xr.DataArray(
+                    [[0, 10],
+                     [100, 255]],
+                    dims=('y', 'x')
+                )
+            },
+            'radiance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 9],
+                     [99, 254]],
+                    dims=('y', 'x')
+                ),
+                'GSICS': xr.DataArray(
+                    [[np.nan, 9],
+                     [99, 254]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 90],
+                     [990, 2540]],
+                    dims=('y', 'x')
+                )
+            },
+            'reflectance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 40.47923],
+                     [445.27155, 1142.414]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 404.7923],
+                     [4452.7153, 11424.14]],
+                    dims=('y', 'x')
+                )
+            }
+        },
+        'IR_108': {
+            'counts': {
+                'NOMINAL': xr.DataArray(
+                    [[0, 10],
+                     [100, 255]],
+                    dims=('y', 'x')
+                )
+            },
+            'radiance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 81],
+                     [891, 2286]],
+                    dims=('y', 'x')
+                ),
+                'GSICS': xr.DataArray(
+                    [[np.nan, 8.19],
+                     [89.19, 228.69]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 180],
+                     [1980, 5080]],
+                    dims=('y', 'x')
+                )
+            },
+            'brightness_temperature': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 279.82318],
+                     [543.2585, 812.77167]],
+                    dims=('y', 'x')
+                ),
+                'GSICS': xr.DataArray(
+                    [[np.nan, 189.20985],
+                     [285.53293, 356.06668]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 335.14236],
+                     [758.6249, 1262.7567]],
+                    dims=('y', 'x')
+                ),
+            }
+        }
+    }
+
+    @pytest.fixture(name='counts')
+    def counts(self):
+        """Provide fake image counts."""
+        return xr.DataArray(
+            [[0, 10],
+             [100, 255]],
+            dims=('y', 'x')
+        )
+
+    def _get_expected(
+            self, channel, calibration, calib_mode, use_ext_coefs
+    ):
+        if use_ext_coefs:
+            return self.expected[channel][calibration]['EXTERNAL']
+        return self.expected[channel][calibration][calib_mode]
