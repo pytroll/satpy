@@ -19,7 +19,9 @@
 
 import unittest
 from unittest import mock
+
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.readers.seviri_l1b_native import (
@@ -28,6 +30,7 @@ from satpy.readers.seviri_l1b_native import (
 )
 
 
+from satpy.tests.reader_tests.test_seviri_base import TestCalibrationBase
 from satpy.tests.utils import make_dataid
 
 
@@ -722,3 +725,87 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
                           TEST_CALIBRATION_MODE,
                           'dummy',
                           )
+
+
+class TestCalibration(TestCalibrationBase):
+    """Unit tests for calibration."""
+
+    @pytest.fixture(name='file_handler')
+    def file_handler(self):
+        """Create a mocked file handler."""
+        header = {
+            '15_DATA_HEADER': {
+                'RadiometricProcessing': {
+                    'Level15ImageCalibration': {
+                        'CalSlope': self.gains_nominal,
+                        'CalOffset': self.offsets_nominal,
+
+                    },
+                    'MPEFCalFeedback': {
+                        'GSICSCalCoeff': self.gains_gsics,
+                        'GSICSOffsetCount': self.offsets_gsics
+                    }
+                },
+                'ImageDescription': {
+                    'Level15ImageProduction': {
+                        'PlannedChanProcessing': self.radiance_types
+                    }
+                },
+                'ImageAcquisition': {
+                    'PlannedAcquisitionTime': {
+                        'TrueRepeatCycleStart': self.scan_time
+                    }
+                }
+            }
+        }
+        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
+                        return_value=None):
+            fh = NativeMSGFileHandler()
+            fh.header = header
+            fh.platform_id = self.platform_id
+            return fh
+
+    @pytest.mark.parametrize(
+        ('channel', 'calibration', 'calib_mode', 'use_ext_coefs'),
+        [
+            # VIS channel, internal coefficients
+            ('VIS006', 'counts', 'NOMINAL', False),
+            ('VIS006', 'radiance', 'NOMINAL', False),
+            ('VIS006', 'radiance', 'GSICS', False),
+            ('VIS006', 'reflectance', 'NOMINAL', False),
+            # VIS channel, external coefficients (mode should have no effect)
+            # ('VIS006', 'radiance', 'GSICS', True),
+            # ('VIS006', 'reflectance', 'NOMINAL', True),
+            # IR channel, internal coefficients
+            ('IR_108', 'counts', 'NOMINAL', False),
+            ('IR_108', 'radiance', 'NOMINAL', False),
+            ('IR_108', 'radiance', 'GSICS', False),
+            ('IR_108', 'brightness_temperature', 'NOMINAL', False),
+            ('IR_108', 'brightness_temperature', 'GSICS', False),
+            # IR channel, external coefficients (mode should have no effect)
+            # ('IR_108', 'radiance', 'NOMINAL', True),
+            # ('IR_108', 'brightness_temperature', 'GSICS', True),
+        ]
+    )
+    def test_calibrate(
+            self, file_handler, counts, channel, calibration, calib_mode,
+            use_ext_coefs
+    ):
+        """Test the calibration."""
+        external_coefs = self.external_coefs if use_ext_coefs else {}
+        expected = self._get_expected(
+            channel=channel,
+            calibration=calibration,
+            calib_mode=calib_mode,
+            use_ext_coefs=use_ext_coefs
+        )
+
+        fh = file_handler
+        fh.calib_mode = calib_mode
+        fh.ext_calib_coefs = external_coefs  # no effect ATM
+
+        dataset_id = make_dataid(name=channel, calibration=calibration)
+        res = fh.calibrate(counts, dataset_id)
+        if calibration != 'counts':
+            res = res.where(res > 0)  # compatibility with other readers
+        xr.testing.assert_allclose(res, expected)
