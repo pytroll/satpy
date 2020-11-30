@@ -17,9 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the MSG common (native and hrit format) functionionalities."""
 
-import xarray as xr
 import unittest
 import numpy as np
+import xarray as xr
 from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, pad_data_ew, pad_data_sn
 
 
