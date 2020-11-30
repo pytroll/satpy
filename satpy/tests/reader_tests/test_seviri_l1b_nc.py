@@ -135,15 +135,15 @@ class TestCalibration(TestCalibrationBase):
             ('VIS006', 'radiance', False),
             ('VIS006', 'reflectance', False),
             # VIS channel, external coefficients
-            # ('VIS006', 'radiance', True),
-            # ('VIS006', 'reflectance', True),
+            ('VIS006', 'radiance', True),
+            ('VIS006', 'reflectance', True),
             # IR channel, internal coefficients
             ('IR_108', 'counts', False),
             ('IR_108', 'radiance', False),
             ('IR_108', 'brightness_temperature', False),
             # IR channel, external coefficients
-            # ('IR_108', 'radiance', True),
-            # ('IR_108', 'brightness_temperature', True),
+            ('IR_108', 'radiance', True),
+            ('IR_108', 'brightness_temperature', True),
         ]
     )
     def test_calibrate(
@@ -158,7 +158,7 @@ class TestCalibration(TestCalibrationBase):
             use_ext_coefs=use_ext_coefs
         )
         fh = file_handler
-        fh.ext_calib_coefs = external_coefs  # no effect ATM
+        fh.ext_calib_coefs = external_coefs
 
         dataset_info = {
             'nc_key': channel
