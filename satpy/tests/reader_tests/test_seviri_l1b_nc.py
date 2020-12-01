@@ -56,13 +56,15 @@ class TestNCSEVIRIFileHandler(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
+        start_time = datetime(2016, 3, 3, 0, 0)
         with mock.patch.object(NCSEVIRIFileHandler, '_read_file', new=new_read_file):
             self.reader = NCSEVIRIFileHandler(
                 'filename',
                 {'platform_shortname': 'MSG3',
-                 'start_time': datetime(2016, 3, 3, 0, 0),
+                 'start_time': start_time,
                  'service': 'MSG'},
                 {'filetype': 'info'})
+            self.reader.deltaSt = start_time
 
     def test_get_dataset_remove_attrs(self):
         """Test getting the hrv dataset."""
