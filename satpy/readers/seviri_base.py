@@ -432,31 +432,37 @@ def calculate_area_extent(area_dict):
     return tuple(aex)
 
 
-def pad_data_ew(data, final_size, east_bound, west_bound):
+def get_padding_area(shape, dtype):
+    """Create a padding area filled with no data."""
+    if np.issubdtype(dtype, np.floating):
+        init_value = np.nan
+    else:
+        init_value = 0
+
+    padding_area = da.full(shape, init_value, dtype=dtype, chunks=CHUNK_SIZE)
+
+    return padding_area
+
+
+def pad_data_horizontally(data, final_size, east_bound, west_bound):
     """Pad the data given east and west bounds and the desired size."""
     nlines = final_size[0]
     if west_bound - east_bound != data.shape[1] - 1:
         raise IndexError('East and west bounds do not match data shape')
-    padding_east = da.zeros((nlines, east_bound - 1),
-                            dtype=data.dtype, chunks=CHUNK_SIZE)
-    padding_west = da.zeros((nlines, (final_size[1] - west_bound)),
-                            dtype=data.dtype, chunks=CHUNK_SIZE)
-    if np.issubdtype(data.dtype, np.floating):
-        padding_east = padding_east * np.nan
-        padding_west = padding_west * np.nan
+
+    padding_east = get_padding_area((nlines, east_bound - 1), data.dtype)
+    padding_west = get_padding_area((nlines, (final_size[1] - west_bound)), data.dtype)
+
     return np.hstack((padding_east, data, padding_west))
 
 
-def pad_data_sn(data, final_size, south_bound, north_bound):
+def pad_data_vertically(data, final_size, south_bound, north_bound):
     """Pad the data given south and north bounds and the desired size."""
     ncols = final_size[1]
     if north_bound - south_bound != data.shape[0] - 1:
         raise IndexError('South and north bounds do not match data shape')
-    padding_south = da.zeros((south_bound - 1, ncols),
-                             dtype=data.dtype, chunks=CHUNK_SIZE)
-    padding_north = da.zeros(((final_size[0] - north_bound), ncols),
-                             dtype=data.dtype, chunks=CHUNK_SIZE)
-    if np.issubdtype(data.dtype, np.floating):
-        padding_south = padding_south * np.nan
-        padding_north = padding_north * np.nan
+
+    padding_south = get_padding_area((south_bound - 1, ncols), data.dtype)
+    padding_north = get_padding_area(((final_size[0] - north_bound), ncols), data.dtype)
+
     return np.vstack((padding_south, data, padding_north))

@@ -20,7 +20,7 @@
 import unittest
 import numpy as np
 import xarray as xr
-from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, pad_data_ew, pad_data_sn
+from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, pad_data_horizontally, pad_data_vertically
 
 
 def chebyshev4(c, x, domain):
@@ -70,31 +70,31 @@ class SeviriBaseTest(unittest.TestCase):
         expected = np.datetime64('2016-03-03 12:00:00.000')
         np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
 
-    def test_pad_data_ew(self):
+    def test_pad_data_horizontally(self):
         """Test the hrv padding in east-west direction."""
         data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
         east_bound = 4
         west_bound = 13
         final_size = (1, 20)
-        res = pad_data_ew(data, final_size, east_bound, west_bound)
+        res = pad_data_horizontally(data, final_size, east_bound, west_bound)
         expected = np.array([[np.nan, np.nan, np.nan,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                               np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
         np.testing.assert_allclose(res, expected)
 
         east_bound = 3
-        self.assertRaises(IndexError, pad_data_ew, data, final_size, east_bound, west_bound)
+        self.assertRaises(IndexError, pad_data_horizontally, data, final_size, east_bound, west_bound)
 
-    def test_pad_data_sn(self):
+    def test_pad_data_vertically(self):
         """Test the hrv padding in south-north direction."""
         data = xr.DataArray(data=np.zeros((10, 1)), dims=('y', 'x'))
         south_bound = 4
         north_bound = 13
         final_size = (20, 1)
-        res = pad_data_sn(data, final_size, south_bound, north_bound)
+        res = pad_data_vertically(data, final_size, south_bound, north_bound)
         expected = np.zeros(final_size)
         expected[:] = np.nan
         expected[south_bound-1:north_bound] = 0.
         np.testing.assert_allclose(res, expected)
 
         south_bound = 3
-        self.assertRaises(IndexError, pad_data_sn, data, final_size, south_bound, north_bound)
+        self.assertRaises(IndexError, pad_data_vertically, data, final_size, south_bound, north_bound)
