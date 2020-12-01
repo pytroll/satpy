@@ -246,16 +246,6 @@ class TestSeviriCalibrationHandler:
             calib.coefs['radiance_type'] = 999
             calib.calibrate(counts, 'brightness_temperature')
 
-    def test_spectral_radiance_to_bt(self, counts, calib):
-        """Test IR calibration via spectral radiance."""
-        rad = calib.calibrate(counts, 'brightness_temperature')
-        exp = xr.DataArray(
-            [[192.36722, 215.44153],
-             [231.06471, 243.39635]],
-            dims=('y', 'x')
-        )
-        xr.testing.assert_allclose(rad, exp)
-
     @pytest.mark.parametrize(
         ('calib_mode', 'ext_coefs', 'expected'),
         [
