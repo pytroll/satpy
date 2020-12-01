@@ -168,8 +168,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function)
 from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
                                        VIS_CHANNELS, SEVIRICalibrationHandler,
-                                       chebyshev, get_cds_time,  HRV_NUM_COLUMNS,
-                                       pad_data_ew)
+                                       chebyshev, get_cds_time, HRV_NUM_COLUMNS,
+                                       pad_data_horizontally)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
 from satpy.readers._geos_area import get_area_extent, get_area_definition
@@ -735,18 +735,18 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         data_list = list()
         if upper_south_line > 0:
             # we have some of the lower window
-            data_lower = pad_data_ew(res[:upper_south_line, :].data,
-                                     (upper_south_line, HRV_NUM_COLUMNS),
-                                     bounds['LowerEastColumnActual'],
-                                     bounds['LowerWestColumnActual'])
+            data_lower = pad_data_horizontally(res[:upper_south_line, :].data,
+                                               (upper_south_line, HRV_NUM_COLUMNS),
+                                               bounds['LowerEastColumnActual'],
+                                               bounds['LowerWestColumnActual'])
             data_list.append(data_lower)
 
         if upper_south_line < nlines:
             # we have some of the upper window
-            data_upper = pad_data_ew(res[upper_south_line:, :].data,
-                                     (nlines - upper_south_line, HRV_NUM_COLUMNS),
-                                     bounds['UpperEastColumnActual'],
-                                     bounds['UpperWestColumnActual'])
+            data_upper = pad_data_horizontally(res[upper_south_line:, :].data,
+                                               (nlines - upper_south_line, HRV_NUM_COLUMNS),
+                                               bounds['UpperEastColumnActual'],
+                                               bounds['UpperWestColumnActual'])
             data_list.append(data_upper)
         return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
 
