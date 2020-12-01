@@ -17,11 +17,17 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the native msg reader."""
 
-import unittest
-import numpy as np
-import xarray as xr
 from datetime import datetime
-from satpy.readers.seviri_base import SEVIRICalibrationHandler
+import unittest
+
+import numpy as np
+import pytest
+import xarray as xr
+
+from satpy.readers.seviri_base import (
+    SEVIRICalibrationHandler, SEVIRICalibrationAlgorithm
+)
+
 
 COUNTS_INPUT = np.array([[377.,  377.,  377.,  376.,  375.],
                          [376.,  375.,  376.,  374.,  374.],
@@ -60,7 +66,6 @@ TBS_OUTPUT1 = np.array([[269.29684448,  269.29684448,  269.29684448,  269.132965
                         [256.77682495,  256.77682495,  256.96743774,  256.96743774,
                          257.15756226]], dtype=np.float32)
 
-
 TBS_OUTPUT2 = np.array([[268.94519043,  268.94519043,  268.94519043,  268.77984619,
                          268.61422729],
                         [268.77984619,  268.61422729,  268.77984619,  268.44830322,
@@ -72,7 +77,6 @@ TBS_OUTPUT2 = np.array([[268.94519043,  268.94519043,  268.94519043,  268.779846
                         [256.32858276,  256.32858276,  256.52044678,  256.52044678,
                          256.71188354]], dtype=np.float32)
 
-
 VIS008_SOLAR_IRRADIANCE = 73.1807
 
 VIS008_RADIANCE = np.array([[0.62234485,  0.59405649,  0.59405649,  0.59405649,  0.59405649],
@@ -80,6 +84,7 @@ VIS008_RADIANCE = np.array([[0.62234485,  0.59405649,  0.59405649,  0.59405649, 
                             [0.76378691,  0.79207528,  0.79207528,  0.76378691,  0.79207528],
                             [3.30974245,  3.33803129,  3.33803129,  3.25316572,  3.47947311],
                             [7.52471399,  7.83588648,  8.2602129,  8.57138538,  8.99571133]], dtype=np.float32)
+
 VIS008_RADIANCE = xr.DataArray(VIS008_RADIANCE)
 
 VIS008_REFLECTANCE = np.array([[2.8066392, 2.6790648, 2.6790648, 2.6790648,
@@ -93,125 +98,214 @@ VIS008_REFLECTANCE = np.array([[2.8066392, 2.6790648, 2.6790648, 2.6790648,
                                [33.934814, 35.33813,  37.251755, 38.655075,
                                 40.56869]], dtype=np.float32)
 
-# --
 
-CAL_DTYPE = np.array([[(0.0208876,  -1.06526761), (0.0278805,  -1.42190546),
-                       (0.0235881,  -1.20299312), (0.00365867,  -0.18659201),
-                       (0.00831811,  -0.42422367), (0.03862197,  -1.96972038),
-                       (0.12674432,  -6.46396025), (0.10396091,  -5.30200645),
-                       (0.20503568, -10.45681949), (0.22231115, -11.33786848),
-                       (0.1576069,  -8.03795174), (0.0373969,  -1.90724192)]],
-                     dtype=[('CalSlope', '>f8'), ('CalOffset', '>f8')])
-
-IR_108_RADIANCES = np.ma.array([[133.06815651,  133.68326355,  134.29837059,  134.91347763,
-                                 135.52858467],
-                                [136.14369171,  136.75879875,  137.37390579,  137.98901283,
-                                 138.60411987],
-                                [139.21922691,  139.83433395,  140.44944099,  141.06454803,
-                                 141.67965507]],
-                               mask=False, dtype=np.float64)
-
-VIS006_RADIANCES = np.ma.array([[13.55605239,  13.61871519,  13.68137799,  13.74404079,
-                                 13.80670359],
-                                [13.86936639,  13.93202919,  13.99469199,  14.05735479,
-                                 14.12001759],
-                                [14.18268039,  14.24534319,  14.30800599,  14.37066879,
-                                 14.43333159]], mask=False, dtype=np.float64)
-
-VIS006_REFLECTANCES = np.array([[65.00454035,  65.30502359,  65.60550682,  65.90599006,
-                                 66.2064733],
-                                [66.50695654,  66.80743977,  67.10792301,  67.40840625,
-                                 67.70888949],
-                                [68.00937272,  68.30985596,  68.6103392,  68.91082244,
-                                 69.21130567]], dtype=np.float64)
-
-IR_108_TBS = np.array([[311.77913132,  312.11070275,  312.44143083,  312.77132215,
-                        313.10038322],
-                       [313.42862046,  313.75604023,  314.0826488,  314.40845236,
-                        314.73345704],
-                       [315.05766888,  315.38109386,  315.70373788,  316.02560677,
-                        316.34670629]], dtype=np.float64)
-
-
-# Calibration type = Effective radiances
-CALIBRATION_TYPE = np.array(
-    [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]], dtype=np.uint8)
-
-
-# This should preferably be put in a helper-module
-# Fixme!
-def assertNumpyArraysEqual(self, other):
-    if self.shape != other.shape:
-        raise AssertionError("Shapes don't match")
-    if not np.allclose(self, other):
-        raise AssertionError("Elements don't match!")
-
-
-class TestSEVIRICalibrationHandler(unittest.TestCase):
-
-    """Test the SEVIRICalibrationHandler class in the msg_base module"""
+class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
+    """Unit Tests for SEVIRI calibration algorithm."""
 
     def setUp(self):
-        """Setup the SEVIRI Calibration handler for testing."""
-
-        hdr = {}
-        hdr['15_DATA_HEADER'] = {}
-        hdr['15_DATA_HEADER']['RadiometricProcessing'] = {
-            'Level15ImageCalibration': CAL_DTYPE}
-
-        hdr['15_DATA_HEADER']['ImageDescription'] = {}
-        hdr['15_DATA_HEADER']['ImageDescription']['Level15ImageProduction'] = {
-            'PlannedChanProcessing': CALIBRATION_TYPE}
-
-        self.handler = SEVIRICalibrationHandler(
+        """Set up the SEVIRI Calibration algorithm for testing."""
+        self.algo = SEVIRICalibrationAlgorithm(
             platform_id=PLATFORM_ID,
-            channel_name=CHANNEL_NAME,
-            coefs={
-                'coefs': {
-                    'NOMINAL': {
-                        'gain': GAIN,
-                        'offset': OFFSET
-                    },
-                    'GSICS': {
-                        'gain': None,
-                        'offset': None
-                    },
-                    'EXTERNAL': {}
-                },
-                'radiance_type': CAL_DTYPE
-            },
-            calib_mode='NOMINAL',
             scan_time=datetime(2020, 8, 15, 13, 0, 40)
         )
 
     def test_convert_to_radiance(self):
-        """Test the conversion from counts to radiance method"""
-
-        data = COUNTS_INPUT
-        gain = GAIN
-        offset = OFFSET
-        result = self.handler._convert_to_radiance(data, gain, offset)
-        assertNumpyArraysEqual(result, RADIANCES_OUTPUT)
+        """Test the conversion from counts to radiances."""
+        result = self.algo.convert_to_radiance(COUNTS_INPUT, GAIN, OFFSET)
+        np.testing.assert_allclose(result, RADIANCES_OUTPUT)
 
     def test_ir_calibrate(self):
+        """Test conversion from radiance to brightness temperature."""
+        result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
+                                        CHANNEL_NAME, CAL_TYPE1)
+        np.testing.assert_allclose(result, TBS_OUTPUT1, rtol=1E-5)
 
-        result = self.handler._ir_calibrate(RADIANCES_OUTPUT,
-                                            CHANNEL_NAME, CAL_TYPE1)
-        assertNumpyArraysEqual(result, TBS_OUTPUT1)
-
-        result = self.handler._ir_calibrate(RADIANCES_OUTPUT,
-                                            CHANNEL_NAME, CAL_TYPE2)
-        assertNumpyArraysEqual(result, TBS_OUTPUT2)
+        result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
+                                        CHANNEL_NAME, CAL_TYPE2)
+        np.testing.assert_allclose(result, TBS_OUTPUT2, rtol=1E-5)
 
         with self.assertRaises(NotImplementedError):
-            self.handler._ir_calibrate(RADIANCES_OUTPUT,
-                                       CHANNEL_NAME, CAL_TYPEBAD)
+            self.algo.ir_calibrate(RADIANCES_OUTPUT, CHANNEL_NAME, CAL_TYPEBAD)
 
     def test_vis_calibrate(self):
-        result = self.handler._vis_calibrate(VIS008_RADIANCE,
-                                             VIS008_SOLAR_IRRADIANCE)
-        assertNumpyArraysEqual(result, VIS008_REFLECTANCE)
+        """Test conversion from radiance to reflectance."""
+        result = self.algo.vis_calibrate(VIS008_RADIANCE,
+                                         VIS008_SOLAR_IRRADIANCE)
+        np.testing.assert_allclose(result, VIS008_REFLECTANCE)
         self.assertTrue(result.sun_earth_distance_correction_applied)
 
-    def tearDown(self):
-        pass
+
+class TestSeviriCalibrationHandler:
+    """Unit tests for SEVIRI calibration handler."""
+
+    def test_init(self):
+        """Test initialization of the calibration handler."""
+        with pytest.raises(ValueError):
+            SEVIRICalibrationHandler(
+                platform_id=None,
+                channel_name=None,
+                coefs=None,
+                calib_mode='invalid',
+                scan_time=None
+            )
+
+    @pytest.fixture(name='calib')
+    def calib(self):
+        """Provide a calibration handler."""
+        return SEVIRICalibrationHandler(
+            platform_id=324,
+            channel_name='IR_108',
+            coefs={
+                'coefs': {
+                    'NOMINAL': {
+                        'gain': 10,
+                        'offset': -1
+                    },
+                    'GSICS': {
+                        'gain': 20,
+                        'offset': -2
+                    },
+                    'EXTERNAL': {}
+                },
+                'radiance_type': 1
+            },
+            calib_mode='NOMINAL',
+            scan_time=None
+        )
+
+    def test_calibrate_exceptions(self, calib):
+        """Test exceptions raised by the calibration handler."""
+        with pytest.raises(ValueError):
+            calib.calibrate(None, 'invalid')
+
+    @pytest.mark.parametrize(
+        ('calib_mode', 'ext_coefs', 'expected'),
+        [
+            ('NOMINAL', {}, (10, -1)),
+            ('GSICS', {}, (20, -40)),
+            ('GSICS', {'gain': 30, 'offset': -3}, (30, -3)),
+            ('NOMINAL', {'gain': 30, 'offset': -3}, (30, -3))
+        ]
+    )
+    def test_get_gain_offset(self, calib, calib_mode, ext_coefs, expected):
+        """Test selection of gain and offset."""
+        calib.calib_mode = calib_mode
+        calib.coefs['coefs']['EXTERNAL'] = ext_coefs
+        coefs = calib.get_gain_offset()
+        assert coefs == expected
+
+
+class TestFileHandlerCalibrationBase:
+    """Base class for file handler calibration tests."""
+
+    platform_id = 324
+    gains_nominal = np.arange(1, 13)
+    offsets_nominal = np.arange(-1, -13, -1)
+    gains_gsics = np.arange(0.1, 1.3, 0.1)
+    offsets_gsics = np.arange(-0.1, -1.3, -0.1)
+    radiance_types = 2 * np.ones(12)
+    scan_time = datetime(2020, 1, 1)
+    external_coefs = {
+        'VIS006': {'gain': 10, 'offset': -10},
+        'IR_108': {'gain': 20, 'offset': -20}
+    }
+    spectral_channel_ids = {'VIS006': 1, 'IR_108': 9}
+    expected = {
+        'VIS006': {
+            'counts': {
+                'NOMINAL': xr.DataArray(
+                    [[0, 10],
+                     [100, 255]],
+                    dims=('y', 'x')
+                )
+            },
+            'radiance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 9],
+                     [99, 254]],
+                    dims=('y', 'x')
+                ),
+                'GSICS': xr.DataArray(
+                    [[np.nan, 9],
+                     [99, 254]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 90],
+                     [990, 2540]],
+                    dims=('y', 'x')
+                )
+            },
+            'reflectance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 40.47923],
+                     [445.27155, 1142.414]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 404.7923],
+                     [4452.7153, 11424.14]],
+                    dims=('y', 'x')
+                )
+            }
+        },
+        'IR_108': {
+            'counts': {
+                'NOMINAL': xr.DataArray(
+                    [[0, 10],
+                     [100, 255]],
+                    dims=('y', 'x')
+                )
+            },
+            'radiance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 81],
+                     [891, 2286]],
+                    dims=('y', 'x')
+                ),
+                'GSICS': xr.DataArray(
+                    [[np.nan, 8.19],
+                     [89.19, 228.69]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 180],
+                     [1980, 5080]],
+                    dims=('y', 'x')
+                )
+            },
+            'brightness_temperature': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 279.82318],
+                     [543.2585, 812.77167]],
+                    dims=('y', 'x')
+                ),
+                'GSICS': xr.DataArray(
+                    [[np.nan, 189.20985],
+                     [285.53293, 356.06668]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 335.14236],
+                     [758.6249, 1262.7567]],
+                    dims=('y', 'x')
+                ),
+            }
+        }
+    }
+
+    @pytest.fixture(name='counts')
+    def counts(self):
+        """Provide fake image counts."""
+        return xr.DataArray(
+            [[0, 10],
+             [100, 255]],
+            dims=('y', 'x')
+        )
+
+    def _get_expected(
+            self, channel, calibration, calib_mode, use_ext_coefs
+    ):
+        if use_ext_coefs:
+            return self.expected[channel][calibration]['EXTERNAL']
+        return self.expected[channel][calibration][calib_mode]

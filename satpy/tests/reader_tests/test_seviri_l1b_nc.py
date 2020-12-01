@@ -26,7 +26,9 @@ import pytest
 import xarray as xr
 
 from satpy.readers.seviri_l1b_nc import NCSEVIRIFileHandler
-from satpy.tests.reader_tests.test_seviri_base import TestCalibrationBase
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
+    TestFileHandlerCalibrationBase
+)
 from satpy.tests.utils import make_dataid
 
 
@@ -77,7 +79,7 @@ class TestNCSEVIRIFileHandler(unittest.TestCase):
         self.assertFalse(any([k in res.attrs.keys() for k in strip_attrs]))
 
 
-class TestCalibration(TestCalibrationBase):
+class TestCalibration(TestFileHandlerCalibrationBase):
     """Unit tests for calibration."""
 
     @pytest.fixture(name='file_handler')
