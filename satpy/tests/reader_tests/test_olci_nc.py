@@ -85,7 +85,7 @@ class TestOLCIReader(unittest.TestCase):
         open_file = mock.MagicMock()
 
         file_handler = NCOLCIBase(open_file, filename_info, 'c')
-        file_handler.nc
+        file_handler.nc  # noqa
         mocked_open_dataset.assert_called()
         open_file.open.assert_called()
         assert (open_file.open.return_value in mocked_open_dataset.call_args[0] or
