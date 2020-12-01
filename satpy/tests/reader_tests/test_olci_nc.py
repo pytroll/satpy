@@ -85,6 +85,7 @@ class TestOLCIReader(unittest.TestCase):
         open_file = mock.MagicMock()
 
         file_handler = NCOLCIBase(open_file, filename_info, 'c')
+        #  deepcode ignore W0104: This is a property that is actually a function call.
         file_handler.nc  # noqa
         mocked_open_dataset.assert_called()
         open_file.open.assert_called()
