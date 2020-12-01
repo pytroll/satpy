@@ -140,7 +140,7 @@ class TestBaseFileHandler(unittest.TestCase):
         # Empty
         self.fh.combine_info([{}])
 
-    def testt_file_is_kept_intact(self):
+    def test_file_is_kept_intact(self):
         """Test that the file object passed (string, path, or other) is kept intact."""
         open_file = mock.MagicMock()
         bfh = BaseFileHandler(open_file, {'filename_info': 'bla'}, 'filetype_info')
