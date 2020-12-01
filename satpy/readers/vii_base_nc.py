@@ -84,7 +84,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
                 variable = self._perform_interpolation(variable)
 
             # Perform the calibration if required
-            if dataset_info['calibration'] is not None:
+            if dataset_info.get('calibration', None) is not None:
                 variable = self._perform_calibration(variable, dataset_info)
 
         # Perform the orthorectification if required
