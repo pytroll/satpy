@@ -1,0 +1,22 @@
+file_types:
+    mimicTPW2_comp:
+        file_reader:  !!python/name:satpy.readers.lma_l2.LMAflashextent2dFileHandler
+        file_patterns: ['LMA_{start_time:%Y%m%d_%H%M%S}_60_10src_1.0761deg-dx_flash_extent.nc']
+        sensor: ['lma_l2']
+        platform_name: ['lma']
+
+datasets:
+    latArr:
+        name:  'latitude'
+        units:  degrees_north
+        file_key:  latitude
+        standard_name:  latitude
+        coordinates: [ latitude ]
+        file_type: lma_l2
+    lonArr:
+        name: 'longitude'
+        units: degrees_east
+        file_key:  longitude
+        standard_name:  longitude
+        coordinates: [ longitude ]
+        file_type: lma_l2
