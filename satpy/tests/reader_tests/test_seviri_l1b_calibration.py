@@ -163,9 +163,26 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
         hdr['15_DATA_HEADER']['ImageDescription']['Level15ImageProduction'] = {
             'PlannedChanProcessing': CALIBRATION_TYPE}
 
-        self.handler = SEVIRICalibrationHandler()
-        self.handler.platform_id = PLATFORM_ID
-        self.handler.start_time = datetime(2020, 8, 15, 13, 0, 40)
+        self.handler = SEVIRICalibrationHandler(
+            platform_id=PLATFORM_ID,
+            channel_name=CHANNEL_NAME,
+            coefs={
+                'coefs': {
+                    'NOMINAL': {
+                        'gain': GAIN,
+                        'offset': OFFSET
+                    },
+                    'GSICS': {
+                        'gain': None,
+                        'offset': None
+                    },
+                    'EXTERNAL': {}
+                },
+                'radiance_type': CAL_DTYPE
+            },
+            calib_mode='NOMINAL',
+            scan_time=datetime(2020, 8, 15, 13, 0, 40)
+        )
 
     def test_convert_to_radiance(self):
         """Test the conversion from counts to radiance method"""
