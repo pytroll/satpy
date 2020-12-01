@@ -24,7 +24,9 @@ import numpy as np
 import xarray as xr
 import pytest
 
-from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time
+from satpy.readers.seviri_base import (
+    dec10216, chebyshev, get_cds_time, SEVIRICalibrationHandler
+)
 
 
 def chebyshev4(c, x, domain):
@@ -185,3 +187,87 @@ class TestCalibrationBase:
         if use_ext_coefs:
             return self.expected[channel][calibration]['EXTERNAL']
         return self.expected[channel][calibration][calib_mode]
+
+
+class TestSeviriCalibrationHandler:
+    """Unit tests for calibration handler."""
+
+    def test_init(self):
+        """Test initialization of the calibration handler."""
+        with pytest.raises(ValueError):
+            SEVIRICalibrationHandler(
+                platform_id=None,
+                channel_name=None,
+                coefs=None,
+                calib_mode='invalid',
+                scan_time=None
+            )
+
+    @pytest.fixture(name='counts')
+    def counts(self):
+        """Provide fake counts."""
+        return xr.DataArray(
+            [[1, 2],
+             [3, 4]],
+            dims=('y', 'x')
+        )
+
+    @pytest.fixture(name='calib')
+    def calib(self):
+        """Provide a calibration handler."""
+        return SEVIRICalibrationHandler(
+            platform_id=324,
+            channel_name='IR_108',
+            coefs={
+                'coefs': {
+                    'NOMINAL': {
+                        'gain': 10,
+                        'offset': -1
+                    },
+                    'GSICS': {
+                        'gain': 20,
+                        'offset': -2
+                    },
+                    'EXTERNAL': {}
+                },
+                'radiance_type': 1
+            },
+            calib_mode='NOMINAL',
+            scan_time=None
+        )
+
+    def test_calibrate_exceptions(self, counts, calib):
+        """Test exception raised by the calibration handler."""
+        with pytest.raises(ValueError):
+            # Invalid calibration
+            calib.calibrate(counts, 'invalid')
+        with pytest.raises(NotImplementedError):
+            # Invalid radiance type
+            calib.coefs['radiance_type'] = 999
+            calib.calibrate(counts, 'brightness_temperature')
+
+    def test_spectral_radiance_to_bt(self, counts, calib):
+        """Test IR calibration via spectral radiance."""
+        rad = calib.calibrate(counts, 'brightness_temperature')
+        exp = xr.DataArray(
+            [[192.36722, 215.44153],
+             [231.06471, 243.39635]],
+            dims=('y', 'x')
+        )
+        xr.testing.assert_allclose(rad, exp)
+
+    @pytest.mark.parametrize(
+        ('calib_mode', 'ext_coefs', 'expected'),
+        [
+            ('NOMINAL', {}, (10, -1)),
+            ('GSICS', {}, (20, -40)),
+            ('GSICS', {'gain': 30, 'offset': -3}, (30, -3)),
+            ('NOMINAL', {'gain': 30, 'offset': -3}, (30, -3))
+        ]
+    )
+    def test_get_gain_offset(self, calib, calib_mode, ext_coefs, expected):
+        """Test selection of gain and offset."""
+        calib.calib_mode = calib_mode
+        calib.coefs['coefs']['EXTERNAL'] = ext_coefs
+        coefs = calib._get_gain_offset()
+        assert coefs == expected
