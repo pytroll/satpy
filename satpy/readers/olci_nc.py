@@ -41,7 +41,7 @@ References:
 
 import logging
 from contextlib import suppress
-from functools import cached_property
+from functools import lru_cache
 from functools import reduce
 
 import dask.array as da
@@ -109,7 +109,8 @@ class NCOLCIBase(BaseFileHandler):
         self.sensor = 'olci'
         self.open_file = None
 
-    @cached_property
+    @property
+    @lru_cache
     def nc(self):
         """Get the nc xr dataset."""
         f_obj = open_file_or_filename(self.filename)
