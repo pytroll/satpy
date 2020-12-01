@@ -110,7 +110,7 @@ class NCOLCIBase(BaseFileHandler):
         self.open_file = None
 
     @property
-    @lru_cache(max_size=2)
+    @lru_cache(maxsize=2)
     def nc(self):
         """Get the nc xr dataset."""
         f_obj = open_file_or_filename(self.filename)
