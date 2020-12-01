@@ -28,7 +28,9 @@ import xarray as xr
 from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
                                            NoValidOrbitParams, pad_data)
 from satpy.tests.utils import make_dataid
-from satpy.tests.reader_tests.test_seviri_base import TestCalibrationBase
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
+    TestFileHandlerCalibrationBase
+)
 
 from numpy import testing as npt
 
@@ -668,7 +670,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
         reduce_mda.assert_not_called()
 
 
-class TestCalibration(TestCalibrationBase):
+class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
     """Unit tests for calibration."""
 
     @pytest.fixture(name='file_handler')

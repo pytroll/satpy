@@ -30,7 +30,9 @@ from satpy.readers.seviri_l1b_native import (
 )
 
 
-from satpy.tests.reader_tests.test_seviri_base import TestCalibrationBase
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
+    TestFileHandlerCalibrationBase
+)
 from satpy.tests.utils import make_dataid
 
 
@@ -551,7 +553,7 @@ class TestNativeMSGArea(unittest.TestCase):
         self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
 
-class TestCalibration(TestCalibrationBase):
+class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
     """Unit tests for calibration."""
 
     @pytest.fixture(name='file_handler')
