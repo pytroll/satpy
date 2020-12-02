@@ -213,6 +213,7 @@ class TestSCMIWriter(unittest.TestCase):
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
+        import dask
         first_base_dir = os.path.join(self.base_dir, 'first')
         w = SCMIWriter(base_dir=first_base_dir, compress=True)
         area_def = AreaDefinition(
@@ -281,7 +282,11 @@ class TestSCMIWriter(unittest.TestCase):
                 end_time=now + timedelta(minutes=20))
         )
         w = SCMIWriter(base_dir=second_base_dir, compress=True)
-        w.save_datasets([ds2], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        # HACK: The _copy_to_existing function hangs when opening the output
+        #   file multiple times...sometimes. If we limit dask to one worker
+        #   it seems to work fine.
+        with dask.config.set(num_workers=1):
+            w.save_datasets([ds2], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(second_base_dir, 'TESTS_AII*.nc'))
         # 16 original tiles + 4 new tiles
         self.assertEqual(len(all_files), 20)
