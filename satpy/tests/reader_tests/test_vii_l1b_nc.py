@@ -158,7 +158,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         # reflectance calibration: checks that the return value is correct
         calibrated_variable = self.reader._perform_calibration(variable,
                                                                {'calibration': 'reflectance',
-                                                                'wavelength': [11, 11.5, 12],
+                                                                'wavelength': [0.658, 0.668, 0.678],
                                                                 'chan_solar_index': 2})
-        expected_values = np.ones((72, 600)) * 1.733181982
+        expected_values = np.ones((72, 600)) * 1.733181982 * (0.678 - 0.658)
         self.assertTrue(np.allclose(calibrated_variable.values, expected_values))
