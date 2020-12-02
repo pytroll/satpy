@@ -107,18 +107,11 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         return data
 
     def get_area_def(self, dsid):
-        """Flip data up/down and define equirectangular AreaDefintion."""
-        flip_lat = np.flipud(self['latArr'])
-        latlon = np.meshgrid(self['lonArr'], flip_lat)
-
-        width = self['lonArr/shape'][0]
-        height = self['latArr/shape'][0]
-
-        lower_left_x = latlon[0][height-1][0]
-        lower_left_y = latlon[1][height-1][0]
-
-        upper_right_y = latlon[1][0][width-1]
-        upper_right_x = latlon[0][0][width-1]
+        """ Define equirectangular AreaDefintion."""
+        lower_left_x = self['longitude'].data[0]
+        lower_left_y = self['latitude'].data[0]
+        upper_right_y = self['latitude'].data[-1]
+        upper_right_x = self['longitude'].data[-1]
 
         area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
         description = "Trail data Projection"
@@ -134,7 +127,7 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         metadata.update(data.attrs)
         metadata.update(info)
         metadata.update({
-            'platform_shortname': 'aggregated microwave',
+            'platform_shortname': 'GroundLMA',
             'sensor': 'lma_l2',
             'start_time': self.start_time,
             'end_time': self.end_time,
