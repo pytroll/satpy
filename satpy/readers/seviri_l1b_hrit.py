@@ -763,8 +763,10 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""
+        # Based on missing (2) or corrupted (3) data
         line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
         line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
+        # Do not use (4)
         line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
         line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
         data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
