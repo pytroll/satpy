@@ -41,16 +41,27 @@ References:
 
 import logging
 from contextlib import suppress
-from functools import lru_cache
 from functools import reduce
 
 import dask.array as da
 import numpy as np
 import xarray as xr
+
 from satpy import CHUNK_SIZE
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
+
+try:
+    from functools import cached_property
+except ImportError:
+    # for python < 3.8
+    from functools import lru_cache
+
+    def cached_property(func):
+        """Port back functools.cached_property."""
+        return property(lru_cache(maxsize=None)(func))
+
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +120,7 @@ class NCOLCIBase(BaseFileHandler):
         self.sensor = 'olci'
         self.open_file = None
 
-    @property
-    @lru_cache(maxsize=2)
+    @cached_property
     def nc(self):
         """Get the nc xr dataset."""
         f_obj = open_file_or_filename(self.filename)
