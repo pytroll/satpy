@@ -159,8 +159,7 @@ class TestSeviriCalibrationHandler:
                 scan_time=None
             )
 
-    @pytest.fixture(name='calib')
-    def calib(self):
+    def _get_calibration_handler(self, calib_mode='NOMINAL', ext_coefs=None):
         """Provide a calibration handler."""
         return SEVIRICalibrationHandler(
             platform_id=324,
@@ -175,16 +174,17 @@ class TestSeviriCalibrationHandler:
                         'gain': 20,
                         'offset': -2
                     },
-                    'EXTERNAL': {}
+                    'EXTERNAL': ext_coefs or {}
                 },
                 'radiance_type': 1
             },
-            calib_mode='NOMINAL',
+            calib_mode=calib_mode,
             scan_time=None
         )
 
-    def test_calibrate_exceptions(self, calib):
+    def test_calibrate_exceptions(self):
         """Test exceptions raised by the calibration handler."""
+        calib = self._get_calibration_handler()
         with pytest.raises(ValueError):
             calib.calibrate(None, 'invalid')
 
@@ -197,10 +197,10 @@ class TestSeviriCalibrationHandler:
             ('NOMINAL', {'gain': 30, 'offset': -3}, (30, -3))
         ]
     )
-    def test_get_gain_offset(self, calib, calib_mode, ext_coefs, expected):
+    def test_get_gain_offset(self, calib_mode, ext_coefs, expected):
         """Test selection of gain and offset."""
-        calib.calib_mode = calib_mode
-        calib.coefs['coefs']['EXTERNAL'] = ext_coefs
+        calib = self._get_calibration_handler(calib_mode=calib_mode,
+                                              ext_coefs=ext_coefs)
         coefs = calib.get_gain_offset()
         assert coefs == expected
 

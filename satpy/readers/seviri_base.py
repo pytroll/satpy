@@ -337,8 +337,8 @@ class SEVIRICalibrationAlgorithm:
 
     def __init__(self, platform_id, scan_time):
         """Initialize the calibration algorithm."""
-        self.platform_id = platform_id
-        self.scan_time = scan_time
+        self._platform_id = platform_id
+        self._scan_time = scan_time
 
     def convert_to_radiance(self, data, gain, offset):
         """Calibrate to radiance."""
@@ -347,10 +347,10 @@ class SEVIRICalibrationAlgorithm:
 
     def _erads2bt(self, data, channel_name):
         """Convert effective radiance to brightness temperature."""
-        cal_info = CALIB[self.platform_id][channel_name]
+        cal_info = CALIB[self._platform_id][channel_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
-        wavenumber = CALIB[self.platform_id][channel_name]["VC"]
+        wavenumber = CALIB[self._platform_id][channel_name]["VC"]
 
         return (self._tl15(data, wavenumber) - beta) / alpha
 
@@ -368,7 +368,7 @@ class SEVIRICalibrationAlgorithm:
     def _srads2bt(self, data, channel_name):
         """Convert spectral radiance to brightness temperature."""
         a__, b__, c__ = BTFIT[channel_name]
-        wavenumber = CALIB[self.platform_id][channel_name]["VC"]
+        wavenumber = CALIB[self._platform_id][channel_name]["VC"]
         temp = self._tl15(data, wavenumber)
 
         return a__ * temp * temp + b__ * temp + c__
@@ -385,7 +385,7 @@ class SEVIRICalibrationAlgorithm:
         reflectances for SEVIRI warm channels: https://tinyurl.com/y67zhphm
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
-        return apply_earthsun_distance_correction(reflectance, self.scan_time)
+        return apply_earthsun_distance_correction(reflectance, self._scan_time)
 
 
 class SEVIRICalibrationHandler:
@@ -397,21 +397,21 @@ class SEVIRICalibrationHandler:
 
     def __init__(self, platform_id, channel_name, coefs, calib_mode, scan_time):
         """Initialize the calibration handler."""
-        self.platform_id = platform_id
-        self.channel_name = channel_name
-        self.coefs = coefs
-        self.calib_mode = calib_mode.upper()
-        self.scan_time = scan_time
-        self.algo = SEVIRICalibrationAlgorithm(
-            platform_id=self.platform_id,
-            scan_time=self.scan_time
+        self._platform_id = platform_id
+        self._channel_name = channel_name
+        self._coefs = coefs
+        self._calib_mode = calib_mode.upper()
+        self._scan_time = scan_time
+        self._algo = SEVIRICalibrationAlgorithm(
+            platform_id=self._platform_id,
+            scan_time=self._scan_time
         )
 
         valid_modes = ('NOMINAL', 'GSICS')
-        if self.calib_mode not in valid_modes:
+        if self._calib_mode not in valid_modes:
             raise ValueError(
                 'Invalid calibration mode: {}. Choose one of {}'.format(
-                    self.calib_mode, valid_modes)
+                    self._calib_mode, valid_modes)
             )
 
     def calibrate(self, data, calibration):
@@ -421,22 +421,22 @@ class SEVIRICalibrationHandler:
         elif calibration in ['radiance', 'reflectance',
                              'brightness_temperature']:
             gain, offset = self.get_gain_offset()
-            res = self.algo.convert_to_radiance(
+            res = self._algo.convert_to_radiance(
                 data.astype(np.float32), gain, offset
             )
         else:
             raise ValueError(
                 'Invalid calibration {} for channel {}'.format(
-                    calibration, self.channel_name
+                    calibration, self._channel_name
                 )
             )
 
         if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.platform_id][self.channel_name]["F"]
-            res = self.algo.vis_calibrate(res, solar_irradiance)
+            solar_irradiance = CALIB[self._platform_id][self._channel_name]["F"]
+            res = self._algo.vis_calibrate(res, solar_irradiance)
         elif calibration == 'brightness_temperature':
-            res = self.algo.ir_calibrate(
-                res, self.channel_name, self.coefs['radiance_type']
+            res = self._algo.ir_calibrate(
+                res, self._channel_name, self._coefs['radiance_type']
             )
 
         return res
@@ -447,10 +447,10 @@ class SEVIRICalibrationHandler:
         Choices for internal coefficients are nominal or GSICS. External
         coefficients take precedence.
         """
-        coefs = self.coefs['coefs']
+        coefs = self._coefs['coefs']
 
         # Select internal coefficients for the given calibration mode
-        if self.calib_mode != 'GSICS' or self.channel_name in VIS_CHANNELS:
+        if self._calib_mode != 'GSICS' or self._channel_name in VIS_CHANNELS:
             # GSICS doesn't have calibration coeffs for VIS channels
             internal_gain = coefs['NOMINAL']['gain']
             internal_offset = coefs['NOMINAL']['offset']
