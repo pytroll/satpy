@@ -33,11 +33,7 @@ try:
     from functools import cached_property
 except ImportError:
     # for python < 3.8
-    from functools import lru_cache
-
-    def cached_property(func):
-        """Port back functools.cached_property."""
-        return property(lru_cache(maxsize=None)(func))
+    from satpy._compat import cached_property
 
 logger = logging.getLogger(__name__)
 
