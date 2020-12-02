@@ -342,6 +342,7 @@ class SEVIRICalibrationAlgorithm:
 
     def convert_to_radiance(self, data, gain, offset):
         """Calibrate to radiance."""
+        data = data.where(data > 0)
         return (data * gain + offset).clip(0.0, None)
 
     def _erads2bt(self, data, channel_name):
@@ -419,9 +420,7 @@ class SEVIRICalibrationHandler:
             res = data
         elif calibration in ['radiance', 'reflectance',
                              'brightness_temperature']:
-            # Convert to radiance
             gain, offset = self.get_gain_offset()
-            data = data.where(data > 0)
             res = self.algo.convert_to_radiance(
                 data.astype(np.float32), gain, offset
             )
