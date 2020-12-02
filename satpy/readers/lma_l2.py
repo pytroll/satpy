@@ -97,7 +97,7 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         logger.debug("Getting data for: %s", ds_id['name'])
         file_key = info.get('file_key', ds_id['name'])
         data = np.flipud(self[file_key])
-        data = xr.DataArray(data, dims=['y', 'x'])
+        data = xr.DataArray(data, dims=[1, 'y', 'x'])
         data.attrs = self.get_metadata(data, info)
 
         if 'lon' in data.dims:
