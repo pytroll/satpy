@@ -26,14 +26,9 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
-
-try:
-    from functools import cached_property
-except ImportError:
-    # for python < 3.8
-    from satpy._compat import cached_property
 
 logger = logging.getLogger(__name__)
 

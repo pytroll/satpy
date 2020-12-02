@@ -17,9 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Backports and compatibility fixes for satpy."""
 
-from functools import lru_cache
+try:
+    from functools import cached_property
+except ImportError:
+    # for python < 3.8
+    from functools import lru_cache
 
-
-def cached_property(func):
-    """Port back functools.cached_property."""
-    return property(lru_cache(maxsize=None)(func))
+    def cached_property(func):
+        """Port back functools.cached_property."""
+        return property(lru_cache(maxsize=None)(func))
