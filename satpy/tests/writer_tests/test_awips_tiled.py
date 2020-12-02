@@ -22,8 +22,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import dask.array as da
-
-import unittest
+import pytest
 
 
 def check_required_common_attributes(ds):
@@ -61,15 +60,15 @@ def check_required_common_attributes(ds):
         assert data_arr.attrs['grid_mapping'] in ds
 
 
-class TestAWIPSTiledWriter(unittest.TestCase):
+class TestAWIPSTiledWriter:
     """Test basic functionality of AWIPS Tiled writer."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create temporary directory to save files to."""
         import tempfile
         self.base_dir = tempfile.mkdtemp()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Remove the temporary directory created for a test."""
         try:
             import shutil
@@ -82,14 +81,10 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         AWIPSTiledWriter(base_dir=self.base_dir)
 
-    def test_basic_numbered_1_tile(self):
-        """Test creating a single numbered tile."""
-        from satpy.writers.awips_tiled import AWIPSTiledWriter
-        import xarray as xr
+    def _get_test_lcc_data(self):
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -113,16 +108,30 @@ class TestAWIPSTiledWriter(unittest.TestCase):
                 start_time=now,
                 end_time=now + timedelta(minutes=20))
         )
-        w.save_datasets([ds], sector_id='TEST', source_name='TESTS')
+        return ds
+
+    @pytest.mark.parametrize('use_save_dataset',
+                             [(False,), (True,)])
+    def test_basic_numbered_1_tile(self, use_save_dataset):
+        """Test creating a single numbered tile."""
+        import xarray as xr
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
+        input_data_arr = self._get_test_lcc_data()
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        if use_save_dataset:
+            w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
+        else:
+            w.save_datasets([input_data_arr], sector_id='TEST', source_name='TESTS')
+
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        self.assertEqual(len(all_files), 1)
-        self.assertEqual(os.path.basename(all_files[0]), 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc')
+        assert len(all_files) == 1
+        assert os.path.basename(all_files[0]) == 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc'
         for fn in all_files:
-            ds = xr.open_dataset(fn, mask_and_scale=False)
-            check_required_common_attributes(ds)
-            ds = xr.open_dataset(fn, mask_and_scale=True)
-            scale_factor = ds['data'].encoding['scale_factor']
-            np.testing.assert_allclose(data, ds['data'].data,
+            output_ds = xr.open_dataset(fn, mask_and_scale=False)
+            check_required_common_attributes(output_ds)
+            output_ds = xr.open_dataset(fn, mask_and_scale=True)
+            scale_factor = output_ds['data'].encoding['scale_factor']
+            np.testing.assert_allclose(input_data_arr.values, output_ds['data'].data,
                                        atol=scale_factor / 2)
 
     def test_basic_numbered_tiles(self):
@@ -131,40 +140,17 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         import dask
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         from satpy.tests.utils import CustomScheduler
-        from xarray import DataArray
-        from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
+        input_data_arr = self._get_test_lcc_data()
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
-        area_def = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
-                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
-            100,
-            200,
-            (-1000., -1500., 1000., 1500.),
-        )
-        now = datetime(2018, 1, 1, 12, 0, 0)
-        ds = DataArray(
-            da.from_array(np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)), chunks=50),
-            attrs=dict(
-                name='test_ds',
-                platform_name='PLAT',
-                sensor='SENSOR',
-                units='1',
-                area=area_def,
-                start_time=now,
-                end_time=now + timedelta(minutes=20))
-        )
         with dask.config.set(scheduler=CustomScheduler(1)):
-            w.save_datasets([ds], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
+            w.save_datasets([input_data_arr], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        self.assertEqual(len(all_files), 9)
+        assert len(all_files) == 9
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
-            assert ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
+            stime = input_data_arr.attrs['start_time']
+            assert ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid."""
@@ -199,7 +185,7 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         # tile_count should be ignored since we specified lettered_grid
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        self.assertEqual(len(all_files), 16)
+        assert len(all_files) == 16
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
@@ -244,7 +230,7 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         # tile_count should be ignored since we specified lettered_grid
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = sorted(glob(os.path.join(first_base_dir, 'TESTS_AII*.nc')))
-        self.assertEqual(len(all_files), 16)
+        assert len(all_files) == 16
         first_files = []
         second_base_dir = os.path.join(self.base_dir, 'second')
         os.makedirs(second_base_dir)
@@ -289,7 +275,7 @@ class TestAWIPSTiledWriter(unittest.TestCase):
             w.save_datasets([ds2], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(second_base_dir, 'TESTS_AII*.nc'))
         # 16 original tiles + 4 new tiles
-        self.assertEqual(len(all_files), 20)
+        assert len(all_files) == 20
 
         # these tiles should be the right-most edge of the first image
         first_right_edge_files = [x for x in first_files if 'P02' in x or 'P04' in x or 'V02' in x or 'V04' in x]
@@ -346,7 +332,7 @@ class TestAWIPSTiledWriter(unittest.TestCase):
                         lettered_grid=True, use_sector_reference=True,
                         use_end_time=True)
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        self.assertEqual(len(all_files), 16)
+        assert len(all_files) == 16
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
@@ -384,7 +370,7 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        self.assertEqual(len(all_files), 0)
+        assert len(all_files) == 0
 
     def test_lettered_tiles_no_valid_data(self):
         """Test creating a lettered grid with no valid data."""
@@ -418,7 +404,7 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created - all NaNs should result in no tiles being created
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        self.assertEqual(len(all_files), 0)
+        assert len(all_files) == 0
 
     def test_lettered_tiles_bad_filename(self):
         """Test creating a lettered grid with a bad filename."""
@@ -449,12 +435,12 @@ class TestAWIPSTiledWriter(unittest.TestCase):
                 start_time=now,
                 end_time=now + timedelta(minutes=20))
         )
-        self.assertRaises(KeyError, w.save_datasets,
-                          [ds],
-                          sector_id='LCC',
-                          source_name='TESTS',
-                          tile_count=(3, 3),
-                          lettered_grid=True)
+        with pytest.raises(KeyError):
+            w.save_datasets([ds],
+                            sector_id='LCC',
+                            source_name='TESTS',
+                            tile_count=(3, 3),
+                            lettered_grid=True)
 
     def test_basic_numbered_tiles_rgb(self):
         """Test creating a multiple numbered tiles with RGB."""
@@ -491,12 +477,12 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         w.save_datasets([ds], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
         chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_R*.nc'))
         all_files = chan_files[:]
-        self.assertEqual(len(chan_files), 9)
+        assert len(chan_files) == 9
         chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_G*.nc'))
         all_files.extend(chan_files)
-        self.assertEqual(len(chan_files), 9)
+        assert len(chan_files) == 9
         chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_B*.nc'))
-        self.assertEqual(len(chan_files), 9)
+        assert len(chan_files) == 9
         all_files.extend(chan_files)
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
@@ -549,7 +535,7 @@ class TestAWIPSTiledWriter(unittest.TestCase):
         w.save_datasets([ds1, ds2, ds3], sector_id='TEST', source_name="TESTS",
                         tile_count=(3, 3), template='glm_l2')
         all_files = glob(os.path.join(self.base_dir, '*_GLM*.nc'))
-        self.assertEqual(len(all_files), 9)
+        assert len(all_files) == 9
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)

@@ -94,7 +94,9 @@ Additionally, you can specify whether a template should produce files with
 one variable per file by specifying ``single_variable: true`` or multiple
 variables per file by specifying ``single_variable: false``. You can also
 specify the output filename for a template using a Python format string.
-See ``awips_tiled.yaml`` for examples.
+See ``awips_tiled.yaml`` for examples. Lastly, a ``add_sector_id_global``
+boolean parameter can be specified to add the user-provided ``sector_id``
+keyword argument as a global attribute to the file.
 
 The ``global_attributes`` section takes names of global attributes and
 then a series of options to "render" that attribute from the metadata
@@ -694,6 +696,7 @@ class NetCDFTemplate:
         self._coord_tree = AWIPSTiledVariableDecisionTree([self.coordinates])
         self._filename_format_str = template_dict.get('filename')
         self._str_formatter = StringFormatter()
+        self._template_dict = template_dict
 
     def get_filename(self, base_dir='', **kwargs):
         """Generate output NetCDF file from metadata."""
@@ -1038,17 +1041,26 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds.attrs['product_columns'] = total_pixels[1]
         return new_ds
 
-    def apply_misc_metadata(self, new_ds, sector_id, creator=None, creation_time=None):
+    def _add_sector_id_global(self, new_ds, sector_id):
+        if not self._template_dict.get('apply_sector_id_global'):
+            return
+
+        if sector_id is None:
+            raise ValueError("Keyword 'sector_id' is required for this "
+                             "template.")
+        new_ds.attrs['sector_id'] = sector_id
+
+    def apply_misc_metadata(self, new_ds, sector_id=None, creator=None, creation_time=None):
         """Add attributes that don't fit into any other category."""
         if creator is None:
             creator = "Satpy Version {} - AWIPS Tiled Writer".format(__version__)
         if creation_time is None:
             creation_time = datetime.utcnow()
 
+        self._add_sector_id_global(new_ds, sector_id)
         new_ds.attrs['Conventions'] = "CF-1.7"
         new_ds.attrs['creator'] = creator
         new_ds.attrs['creation_time'] = creation_time.strftime('%Y-%m-%dT%H:%M:%S')
-        new_ds.attrs['sector_id'] = sector_id
         return new_ds
 
     def render(self, dataset_or_data_arrays, area_def,
@@ -1235,7 +1247,7 @@ class AWIPSTiledWriter(Writer):
             else:
                 sector_info['upper_right_xy'] = p(*sector_info['upper_right_lonlat'])
 
-    def _get_sector_info(self, sector_id, lettered_grid):
+    def _get_lettered_sector_info(self, sector_id):
         """Get metadata for the current sector if configured.
 
         This is not necessary for numbered grids. If found, the sector info
@@ -1244,22 +1256,20 @@ class AWIPSTiledWriter(Writer):
         converted actually is.
 
         """
+        if sector_id is None:
+            raise TypeError("Keyword 'sector_id' is required for lettered grids.")
         try:
-            sector_info = self.awips_sectors[sector_id]
+            return self.awips_sectors[sector_id]
         except KeyError:
-            if lettered_grid:
-                raise ValueError("Unknown sector '{}'".format(sector_id))
-            else:
-                sector_info = None
-        return sector_info
+            raise ValueError("Unknown sector '{}'".format(sector_id))
 
     def _get_tile_generator(self, area_def, lettered_grid, sector_id,
                             num_subtiles, tile_size, tile_count,
                             use_sector_reference=False):
         """Get the appropriate tile generator class for lettered or numbered tiles."""
-        sector_info = self._get_sector_info(sector_id, lettered_grid)
         # Create a tile generator for this grid definition
         if lettered_grid:
+            sector_info = self._get_lettered_sector_info(sector_id)
             tile_gen = LetteredTileGenerator(
                 area_def,
                 sector_info['lower_left_xy'] + sector_info['upper_right_xy'],
@@ -1407,16 +1417,20 @@ class AWIPSTiledWriter(Writer):
                 dataset_to_save, factors, output_filename, **kwargs)
             yield delayed_res
 
+    def _adjust_metadata_times(self, ds_info):
+        debug_shift_time = int(os.environ.get("DEBUG_TIME_SHIFT", 0))
+        if debug_shift_time:
+            ds_info["start_time"] += timedelta(minutes=debug_shift_time)
+            ds_info["end_time"] += timedelta(minutes=debug_shift_time)
+
     def _get_tile_data_info(self, data_arrs, creation_time, source_name):
         # use the first data array as a "representative" for the group
         ds_info = data_arrs[0].attrs.copy()
         # we want to use our own creation_time
         ds_info['creation_time'] = creation_time
-        ds_info['source_name'] = source_name
-        debug_shift_time = int(os.environ.get("DEBUG_TIME_SHIFT", 0))
-        if debug_shift_time:
-            ds_info["start_time"] += timedelta(minutes=debug_shift_time)
-            ds_info["end_time"] += timedelta(minutes=debug_shift_time)
+        if source_name is not None:
+            ds_info['source_name'] = source_name
+        self._adjust_metadata_times(ds_info)
         return ds_info
 
     # TODO: Add global_attrs keyword arg
@@ -1436,12 +1450,15 @@ class AWIPSTiledWriter(Writer):
                 tile product file.
             sector_id (str): Name of the region or sector that the provided
                 data is on. This name will be written to the NetCDF file and
-                will be used as the sector in the AWIPS client. For lettered
+                will be used as the sector in the AWIPS client for the 'polar'
+                template. For lettered
                 grids this name should match the name configured in the writer
-                YAML. This is required but is defined as a keyword argument
+                YAML. This is required for some templates (ex. default 'polar'
+                template) but is defined as a keyword argument
                 for better error handling in Satpy.
             source_name (str): Name of producer of these files (ex. "SSEC").
-                This name is used to create the output filename.
+                This name is used to create the output filename for some
+                templates.
             tile_count (tuple): For numbered tiles only, how many tile rows
                 and tile columns to produce. Default to ``(1, 1)``, a single
                 giant tile. Either ``tile_count``, ``tile_size``, or
@@ -1491,11 +1508,6 @@ class AWIPSTiledWriter(Writer):
                 dask. Default to ``False``.
 
         """
-        if sector_id is None:
-            raise TypeError("Keyword 'sector_id' is required")
-        if source_name is None:
-            raise TypeError("Keyword 'source_name' is required")
-
         if not isinstance(template, dict):
             template = self.config['templates'][template]
         template = AWIPSNetCDFTemplate(template, swap_end_time=use_end_time)
