@@ -520,7 +520,7 @@ class TestSCMIWriter(unittest.TestCase):
         ds1 = DataArray(
             da.from_array(np.linspace(0., 1., 20000, dtype=np.float32).reshape((200, 100)), chunks=50),
             attrs=dict(
-                name='total_optical_energy',
+                name='total_energy',
                 platform_name='GOES-17',
                 sensor='SENSOR',
                 units='1',
