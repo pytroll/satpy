@@ -268,6 +268,7 @@ class FciL2NCFileHandler(BaseFileHandler):
         except AttributeError:
             pass
 
+
 class FciL2NCSegmentFileHandler(BaseFileHandler):
     """Reader class for FCI L2 Segmented products in NetCDF4 format."""
 
