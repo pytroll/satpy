@@ -112,6 +112,8 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         lower_left_y = self['latitude'].data[0]
         upper_right_y = self['latitude'].data[-1]
         upper_right_x = self['longitude'].data[-1]
+        width = self['longitude'].shape[0]
+        height = self['latitude'].shape[0]
 
         area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
         description = "Trail data Projection"
