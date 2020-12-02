@@ -241,3 +241,36 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
                          'toa_bidirectional_reflectance')
         self.assertEqual(res.attrs['long_name'],
                          'Bidirectional Reflectance')
+
+
+class Test_NC_ABI_File(unittest.TestCase):
+    """Test file opening."""
+
+    @mock.patch('satpy.readers.abi_base.xr')
+    def test_open_dataset(self, _):
+        """Test openning a dataset."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
+
+        openable_thing = mock.MagicMock()
+
+        NC_ABI_L1B(openable_thing, {'platform_shortname': 'g16'}, None)
+        openable_thing.open.assert_called()
+
+
+class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
+    """Allow h5netcdf peculiarities."""
+
+    def setUp(self):
+        """Create fake data for the tests."""
+        rad_data = np.int16(50)
+        rad = xr.DataArray(
+            rad_data,
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': np.array([1002]),
+                'units': 'W m-2 um-1 sr-1',
+                'valid_range': (0, 4095),
+            }
+        )
+        super(Test_NC_ABI_L1B_H5netcdf, self).setUp(rad=rad)
