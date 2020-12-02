@@ -1065,13 +1065,15 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     def render(self, dataset_or_data_arrays, area_def,
                tile_info, sector_id, creator=None, creation_time=None,
-               shared_attrs=None):
+               shared_attrs=None, extra_global_attrs=None):
         """Create a :class:`xarray.Dataset` from template using information provided."""
         new_ds = super().render(dataset_or_data_arrays, shared_attrs=shared_attrs)
         new_ds = self.apply_area_def(new_ds, area_def)
         new_ds = self.apply_tile_coord_encoding(new_ds, tile_info.xy_factors)
         new_ds = self.apply_tile_info(new_ds, tile_info)
         new_ds = self.apply_misc_metadata(new_ds, sector_id, creator, creation_time)
+        if extra_global_attrs:
+            new_ds.attrs.update(extra_global_attrs)
         return new_ds
 
 
@@ -1433,7 +1435,6 @@ class AWIPSTiledWriter(Writer):
         self._adjust_metadata_times(ds_info)
         return ds_info
 
-    # TODO: Add global_attrs keyword arg
     # TODO: Add additional untiled variable support
     def save_datasets(self, datasets, sector_id=None,
                       source_name=None,
@@ -1441,6 +1442,7 @@ class AWIPSTiledWriter(Writer):
                       lettered_grid=False, num_subtiles=None,
                       use_end_time=False, use_sector_reference=False,
                       template='polar', check_categories=True,
+                      extra_global_attrs=None,
                       compute=True, **kwargs):
         """Write a series of DataArray objects to multiple NetCDF4 Tile files.
 
@@ -1504,6 +1506,10 @@ class AWIPSTiledWriter(Writer):
                 versus non-existent). Default is True. Set to False to ignore
                 category (integer dtype or "flag_meanings" defined) when
                 checking for valid data.
+            extra_global_attrs (dict): Additional global attributes to be
+                added to every produced file. These attributes are applied
+                at the end of template rendering and will therefore overwrite
+                template generated values with the same global attribute name.
             compute (bool): Compute and write the output immediately using
                 dask. Default to ``False``.
 
@@ -1532,7 +1538,8 @@ class AWIPSTiledWriter(Writer):
             new_ds = template.render(data_arrs, area_def,
                                      tile_info, sector_id,
                                      creation_time=creation_time,
-                                     shared_attrs=ds_info)
+                                     shared_attrs=ds_info,
+                                     extra_global_attrs=extra_global_attrs)
             if self.compress:
                 new_ds.encoding['zlib'] = True
 

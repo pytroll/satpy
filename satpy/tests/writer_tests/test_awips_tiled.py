@@ -143,12 +143,16 @@ class TestAWIPSTiledWriter:
         input_data_arr = self._get_test_lcc_data()
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         with dask.config.set(scheduler=CustomScheduler(1)):
-            w.save_datasets([input_data_arr], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
+            w.save_datasets([input_data_arr], sector_id='TEST',
+                            source_name="TESTS",
+                            tile_count=(3, 3),
+                            extra_global_attrs={'my_global': 'TEST'})
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         assert len(all_files) == 9
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
+            assert ds.attrs['my_global'] == 'TEST'
             stime = input_data_arr.attrs['start_time']
             assert ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
 
