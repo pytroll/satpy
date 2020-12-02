@@ -18,6 +18,7 @@
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
 import logging
+from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
@@ -27,6 +28,16 @@ from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
+
+try:
+    from functools import cached_property
+except ImportError:
+    # for python < 3.8
+    from functools import lru_cache
+
+    def cached_property(func):
+        """Port back functools.cached_property."""
+        return property(lru_cache(maxsize=None)(func))
 
 logger = logging.getLogger(__name__)
 
@@ -42,32 +53,39 @@ class NC_ABI_BASE(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
-        f_obj = open_file_or_filename(self.filename)
-        try:
-            self.nc = xr.open_dataset(f_obj,
-                                      decode_cf=True,
-                                      mask_and_scale=False,
-                                      chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
-        except ValueError:
-            self.nc = xr.open_dataset(f_obj,
-                                      decode_cf=True,
-                                      mask_and_scale=False,
-                                      chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
 
-        if 't' in self.nc.dims or 't' in self.nc.coords:
-            self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
 
-        if 'goes_imager_projection' in self.nc:
-            self.nlines = self.nc['y'].size
-            self.ncols = self.nc['x'].size
-        elif 'goes_lat_lon_projection' in self.nc:
-            self.nlines = self.nc['lat'].size
-            self.ncols = self.nc['lon'].size
-            self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
+        self.nlines = self.nc['y'].size
+        self.ncols = self.nc['x'].size
 
         self.coords = {}
+
+    @cached_property
+    def nc(self):
+        """Get the xarray dataset for this file."""
+        f_obj = open_file_or_filename(self.filename)
+        try:
+            nc = xr.open_dataset(f_obj,
+                                 decode_cf=True,
+                                 mask_and_scale=False,
+                                 chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
+        except ValueError:
+            nc = xr.open_dataset(f_obj,
+                                 decode_cf=True,
+                                 mask_and_scale=False,
+                                 chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
+        nc = self._rename_dims(nc)
+        return nc
+
+    @staticmethod
+    def _rename_dims(nc):
+        if 't' in nc.dims or 't' in nc.coords:
+            nc = nc.rename({'t': 'time'})
+        if 'goes_lat_lon_projection' in nc:
+            nc = nc.rename({'lon': 'x', 'lat': 'y'})
+        return nc
 
     @property
     def sensor(self):
@@ -278,7 +296,5 @@ class NC_ABI_BASE(BaseFileHandler):
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
-        try:
+        with suppress(IOError, OSError, AttributeError):
             self.nc.close()
-        except (IOError, OSError, AttributeError):
-            pass
