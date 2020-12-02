@@ -169,7 +169,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function)
 from satpy.readers.seviri_base import (CHANNEL_NAMES, SATNUM,
                                        SEVIRICalibrationHandler,
-                                       chebyshev, get_cds_time)
+                                       chebyshev, get_cds_time,
+                                       create_coef_dict)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
 from satpy.readers._geos_area import get_area_extent, get_area_definition
@@ -796,20 +797,18 @@ class HRITMSGFileHandler(HRITFileHandler):
         coefs_gsics = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
         radiance_types = self.prologue['ImageDescription'][
                 'Level15ImageProduction']['PlannedChanProcessing']
-        return {
-            'coefs': {
-                'NOMINAL': {
-                    'gain': coefs_nominal['CalSlope'][band_idx],
-                    'offset': coefs_nominal['CalOffset'][band_idx],
-                },
-                'GSICS': {
-                    'gain': coefs_gsics['GSICSCalCoeff'][band_idx],
-                    'offset': coefs_gsics['GSICSOffsetCount'][band_idx]
-                },
-                'EXTERNAL': self.ext_calib_coefs.get(channel_name, {})
-            },
-            'radiance_type': radiance_types[radiance_type_idx]
-        }
+        return create_coef_dict(
+            coefs_nominal=(
+                coefs_nominal['CalSlope'][band_idx],
+                coefs_nominal['CalOffset'][band_idx]
+            ),
+            coefs_gsics=(
+                coefs_gsics['GSICSCalCoeff'][band_idx],
+                coefs_gsics['GSICSOffsetCount'][band_idx]
+            ),
+            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
+            radiance_type=radiance_types[radiance_type_idx]
+        )
 
 
 def pad_data(data, final_size, east_bound, west_bound):

@@ -58,7 +58,8 @@ from satpy.readers.eum_base import recarray2dict
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
-                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS)
+                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS,
+                                       create_coef_dict)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
@@ -508,20 +509,18 @@ class NativeMSGFileHandler(BaseFileHandler):
             'RadiometricProcessing']['MPEFCalFeedback']
         radiance_types = self.header['15_DATA_HEADER']['ImageDescription'][
                 'Level15ImageProduction']['PlannedChanProcessing']
-        return {
-            'coefs': {
-                'NOMINAL': {
-                    'gain': coefs_nominal['CalSlope'][band_idx],
-                    'offset': coefs_nominal['CalOffset'][band_idx]
-                },
-                'GSICS': {
-                    'gain': coefs_gsics['GSICSCalCoeff'][band_idx],
-                    'offset': coefs_gsics['GSICSOffsetCount'][band_idx]
-                },
-                'EXTERNAL': self.ext_calib_coefs.get(channel_name, {})
-            },
-            'radiance_type': radiance_types[band_idx]
-        }
+        return create_coef_dict(
+            coefs_nominal=(
+                coefs_nominal['CalSlope'][band_idx],
+                coefs_nominal['CalOffset'][band_idx]
+            ),
+            coefs_gsics=(
+                coefs_gsics['GSICSCalCoeff'][band_idx],
+                coefs_gsics['GSICSOffsetCount'][band_idx]
+            ),
+            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
+            radiance_type=radiance_types[band_idx]
+        )
 
 
 def get_available_channels(header):
