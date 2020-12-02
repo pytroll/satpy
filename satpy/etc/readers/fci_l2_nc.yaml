@@ -8,16 +8,38 @@ reader:
 
 file_types:
   # EUMETSAT MTG FCI L2 Optimal Cloud Analysis files in NetCDF4 format
+  # Filename examples
+  # FCI_SIM_OCA_2L_2KM_{creation_time:%Y%m%d}_1700.nc
+  # W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-ASR--FD------NC4E_C_EUMT_20201105031219_L2PF_DEV_20170410171000_20170410172000_N__T_0104_0000.nc
+
   nc_fci_oca:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    # TODO: Pattern based on the available test files, not compatible with MTG GFS definitions
-    file_patterns: ['FCI_SIM_OCA_2L_2KM_{creation_time:%Y%m%d}_1700.nc']
+    file_patterns: ['FCI_SIM_OCA_2L_2KM_{creation_time:%Y%m%d}_1700.nc',
+                   'W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-OCA--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
 
-  # EUMETSAT MTG FCI L2 Cloud Mask files in NetCDF4 format
   nc_fci_clm:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: ['FCI_SIM_CLM_2KM_{creation_time:%Y%m%d}_1700.nc',
+                    'W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CLM--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+
+  nc_fci_ct:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CT--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+
+  nc_fci_cloud:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CTTH--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
+
+  nc_fci_asr:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-ASR--{temp_str}_C_EUMT_{processing_time:%Y%m%d%H%M%S}_L2PF_{platform_id}_{start_time:%Y%m%d%H%M%S}Z_{end_time:%Y%m%d%H%M%S}Z_N__T_0104_0000.nc"]
+
+
+  # W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-GII--FD------NC4E_C_EUMT_20201105030947_L2PF_DEV_20170410171000_20170410172000_N__T_0104_0000.nc
+  nc_fci_gii:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
     # TODO: Pattern based on the available test files, not compatible with MTG GFS definitions
-    file_patterns: ['FCI_SIM_CLM_2KM_{creation_time:%Y%m%d}_1700.nc']
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-GII--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
 
 datasets:
 
@@ -165,4 +187,157 @@ datasets:
     file_key: quality_overall_processing
     standard_name: quality_index
     fill_value: -999
+    mask_value: 0
+
+  latitude:
+    name: latitude
+    file_key: 'latitude'
+#    resolution:
+    file_type: [nc_fci_gii]
+    standard_name: latitude
+    fill_value: -32767
+    mask_value: -32767
+    units: degree_north
+
+
+  longitude:
+    name: longitude
+    file_key: 'longitude'
+#    resolution:
+    file_type: [nc_fci_gii]
+    standard_name: longitude
+    fill_value: -32767
+    mask_value: -32767
+    units: degree_east
+
+
+  # GII
+  k_index:
+    name: k_index
+    file_type: nc_fci_gii
+    file_key: k_index
+    standard_name: k_index
+    fill_value:  -32767
+    mask_value:  -32767
+    coordinates:
+      - longitude
+      - latitude
+
+  lifted_index:
+    name: lifted_index
+    file_type: nc_fci_gii
+    file_key: lifted_index
+    standard_name: lifted_index
+    fill_value: -32767
+    mask_value: -32767
+    coordinates:
+      - longitude
+      - latitude
+
+  percent_cloud_free:
+    name: percent_cloud_free
+    file_type: nc_fci_gii
+    file_key: percent_cloud_free
+    standard_name: percent_cloud_free
+    fill_value: -127
+    mask_value: -127
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_high:
+    name: prec_water_high
+    file_type: nc_fci_gii
+    file_key: prec_water_high
+    standard_name: prec_water_high
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_low:
+    name: prec_water_low
+    file_type: nc_fci_gii
+    file_key: prec_water_low
+    standard_name: prec_water_low
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_mid:
+    name: prec_water_mid
+    file_type: nc_fci_gii
+    file_key: prec_water_mid
+    standard_name: prec_water_mid
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_total:
+    name: prec_water_total
+    file_type: nc_fci_gii
+    file_key: prec_water_total
+    standard_name: prec_water_total
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+# FCI CT L2
+  cloud_phase:
+    name: cloud_phase
+    file_type: nc_fci_ct
+    file_key: cloud_phase
+#    standard_name: cloud_phase
+    fill_value: 0
+    mask_value: 0
+
+  cloud_type:
+    name: cloud_type
+    file_type: nc_fci_ct
+    file_key: cloud_type
+#    standard_name: cloud_type
+    fill_value: 0
+    mask_value: 0
+
+# FCI CTTH Product
+  cloud_top_aviation_height:
+    name: cloud_top_aviation_height
+    file_type: nc_fci_cloud
+    file_key: cloud_top_aviation_height
+    fill_value: 0
+    mask_value: 0
+
+  cloud_top_height:
+    name: cloud_top_height
+    file_type: nc_fci_cloud
+    file_key: cloud_top_height
+    fill_value: 0
+    mask_value: 0
+
+  cloud_top_pressure:
+    name: cloud_top_pressure
+    file_type: nc_fci_th
+    file_key: cloud_top_pressure
+    fill_value: 0
+    mask_value: 0
+
+  cloud_top_temperature:
+    name: cloud_top_temperature
+    file_type: nc_fci_cloud
+    file_key: cloud_top_temperature
+    fill_value: 0
+    mask_value: 0
+
+  effective_cloudiness:
+    name: effective_cloudiness
+    file_type: nc_fci_cloud
+    file_key: effective_cloudiness
+    fill_value: 0
     mask_value: 0
