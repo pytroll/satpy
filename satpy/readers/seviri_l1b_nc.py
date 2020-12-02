@@ -160,8 +160,6 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
         if dataset_id['calibration'] == 'counts':
             dataset.attrs['_FillValue'] = 0
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            dataset = dataset.where(dataset != 0).astype('float32')
 
         calib = SEVIRICalibrationHandler(
             platform_id=int(self.platform_id),
