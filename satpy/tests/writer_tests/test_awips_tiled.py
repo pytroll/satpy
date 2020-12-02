@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the SCMI writer."""
+"""Tests for the AWIPS Tiled writer."""
 import os
 from glob import glob
 from datetime import datetime, timedelta
@@ -61,8 +61,8 @@ def check_required_common_attributes(ds):
         assert data_arr.attrs['grid_mapping'] in ds
 
 
-class TestSCMIWriter(unittest.TestCase):
-    """Test basic functionality of SCMI writer."""
+class TestAWIPSTiledWriter(unittest.TestCase):
+    """Test basic functionality of AWIPS Tiled writer."""
 
     def setUp(self):
         """Create temporary directory to save files to."""
@@ -79,17 +79,17 @@ class TestSCMIWriter(unittest.TestCase):
 
     def test_init(self):
         """Test basic init method of writer."""
-        from satpy.writers.scmi import SCMIWriter
-        SCMIWriter(base_dir=self.base_dir)
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
+        AWIPSTiledWriter(base_dir=self.base_dir)
 
     def test_basic_numbered_1_tile(self):
         """Test creating a single numbered tile."""
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         import xarray as xr
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -129,12 +129,12 @@ class TestSCMIWriter(unittest.TestCase):
         """Test creating a multiple numbered tiles."""
         import xarray as xr
         import dask
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from satpy.tests.utils import CustomScheduler
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -169,11 +169,11 @@ class TestSCMIWriter(unittest.TestCase):
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid."""
         import xarray as xr
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -209,13 +209,13 @@ class TestSCMIWriter(unittest.TestCase):
         """Test updating lettered tiles with additional data."""
         import shutil
         import xarray as xr
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         import dask
         first_base_dir = os.path.join(self.base_dir, 'first')
-        w = SCMIWriter(base_dir=first_base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=first_base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -281,7 +281,7 @@ class TestSCMIWriter(unittest.TestCase):
                 start_time=now,
                 end_time=now + timedelta(minutes=20))
         )
-        w = SCMIWriter(base_dir=second_base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=second_base_dir, compress=True)
         # HACK: The _copy_to_existing function hangs when opening the output
         #   file multiple times...sometimes. If we limit dask to one worker
         #   it seems to work fine.
@@ -315,11 +315,11 @@ class TestSCMIWriter(unittest.TestCase):
     def test_lettered_tiles_sector_ref(self):
         """Test creating a lettered grid using the sector as reference."""
         import xarray as xr
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -354,11 +354,11 @@ class TestSCMIWriter(unittest.TestCase):
 
     def test_lettered_tiles_no_fit(self):
         """Test creating a lettered grid with no data overlapping the grid."""
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -388,11 +388,11 @@ class TestSCMIWriter(unittest.TestCase):
 
     def test_lettered_tiles_no_valid_data(self):
         """Test creating a lettered grid with no valid data."""
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -422,11 +422,11 @@ class TestSCMIWriter(unittest.TestCase):
 
     def test_lettered_tiles_bad_filename(self):
         """Test creating a lettered grid with a bad filename."""
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True, filename="{Bad Key}.nc")
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True, filename="{Bad Key}.nc")
         area_def = AreaDefinition(
             'test',
             'test',
@@ -458,12 +458,12 @@ class TestSCMIWriter(unittest.TestCase):
 
     def test_basic_numbered_tiles_rgb(self):
         """Test creating a multiple numbered tiles with RGB."""
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         import xarray as xr
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
@@ -505,11 +505,11 @@ class TestSCMIWriter(unittest.TestCase):
     def test_multivar_numbered_tiles_glm(self):
         """Test creating a tiles with multiple variables."""
         import xarray as xr
-        from satpy.writers.scmi import SCMIWriter
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',

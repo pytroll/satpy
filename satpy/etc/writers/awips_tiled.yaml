@@ -2,9 +2,9 @@
 # Some datasets are named differently and have not been converted to
 # Satpy-style naming yet. These config entries are commented out.
 writer:
-  name: scmi
+  name: awips_tiled
   description: AWIPS-compatible Tiled NetCDF4 Writer
-  writer: !!python/name:satpy.writers.scmi.SCMIWriter
+  writer: !!python/name:satpy.writers.awips_tiled.AWIPSTiledWriter
   compress: True
 sectors:
   LCC:
@@ -57,14 +57,14 @@ templates:
     single_variable: true
     filename: '{source_name}_AII_{platform_name}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
     global_attributes:
-      start_date_time: {}  # special handler for debugging in scmi.py
+      start_date_time: {}  # special handler for debugging in awips_tiled.py
 #        value: "{start_time:%Y-%m-%dT%H:%M:%S}"
       product_name:
         value: "{name}"
       production_location: {}
 #        value: "${ORGANIZATION}"
       awips_id: {}
-#        value: "{awips_id}"  # special variable created by scmi.py
+#        value: "{awips_id}"  # special variable created by awips_tiled.py
       creating_entity:
         value: "{platform_name!u}-{sensor!u}"
     coordinates:
@@ -786,7 +786,7 @@ templates:
       time_coverage_start:
         value: "{start_time:%Y-%m-%dT%H:%M:%S.%fZ}"
 #        value: "{start_time:%Y-%m-%dT%H:%M:%SZ}"
-      production_site: {}  # special handler in scmi.py
+      production_site: {}  # special handler in awips_tiled.py
       platform_ID:
         value: "{platform_shortname}"
       cdm_data_type:

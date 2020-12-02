@@ -15,22 +15,24 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The SCMI AWIPS writer is used to create AWIPS-compatible tiled NetCDF4 files.
+"""The AWIPS Tiled writer is used to create AWIPS-compatible tiled NetCDF4 files.
 
 The Advanced Weather Interactive Processing System (AWIPS) is a
 program used by the United States National Weather Service (NWS) and others
 to view
-different forms of weather imagery. Sectorized Cloud and Moisture Imagery
-(SCMI) is a netcdf format accepted by AWIPS to store one image broken up
-in to one or more "tiles". Once AWIPS is configured for specific products
-the SCMI NetCDF backend can be used to provide compatible products to the
-system. The files created by this backend are compatible with AWIPS II (AWIPS I is no
-longer supported).
+different forms of weather imagery. The original Sectorized Cloud and Moisture
+Imagery (SCMI) functionality in AWIPS was a NetCDF4 format supported by AWIPS
+to store one image broken up in to one or more "tiles". This format has since
+been expanded to support many other products and so the writer for this format
+in Satpy is generically called the "AWIPS Tiled" writer. You may still see
+SCMI referenced in this documentation or in the source code for the writer.
+Once AWIPS is configured for specific products this writer can be used to
+provide compatible products to the system.
 
-The SCMI writer takes remapped binary image data and creates an
-AWIPS-compatible NetCDF4 file. The SCMI writer and the AWIPS client may
+The AWIPS Tiled writer takes 2D (y, x) geolocated data and creates one or more
+AWIPS-compatible NetCDF4 files. The writer and the AWIPS client may
 need to be configured to make things appear the way the user wants in
-the AWIPS client. The SCMI writer can only produce files for datasets mapped
+the AWIPS client. The writer can only produce files for datasets mapped
 to areas with specific projections:
 
  - lcc
@@ -38,20 +40,129 @@ to areas with specific projections:
  - merc
  - stere
 
-This is a limitation of the AWIPS client and not of the SCMI writer.
+This is a limitation of the AWIPS client and not of the writer. In the case
+where AWIPS has been updated to support additional projections, this writer
+may also need to be updated to support those projections.
+
+AWIPS Configuration
+-------------------
+
+Depending on how this writer is used and the data it is provided, AWIPS may
+need additional configuration on the server side to properly ingest the files
+produced. This will require administrator privileges to the ingest server(s)
+and is not something that can be configured on the client. Note that any
+changes required must be done on all servers that you wish to ingest your data
+files. The generic "polar" template this writer defaults to should limit the
+number of modifications needed for any new data fields that AWIPS previously
+was unaware of. Once the data is ingested, the client can be used to customize
+how the data looks on screen.
+
+AWIPS requires files to follow a specific naming scheme so they can be routed
+to specific "decoders". For the files produced by this writer, this typically
+means editing the "goesr" decoder configuration in a directory like::
+
+/awips2/edex/data/utility/common_static/site/<site>/distribution/goesr.xml
+
+The "goesr" decoder is a subclass of the "satellite" decoder. You may see
+either name show up in the AWIPS ingest logs. With the correct
+regular expression in the above file, your files should be passed to the
+right decoder, opened, and parsed for data.
+
+To tell AWIPS exactly what attributes and variables mean in your file, you'll
+need to create or configure an XML file in::
+
+/awips2/edex/data/utility/common_static/site/<site>/satellite/goesr/descriptions/
+
+See the existing files in this directory for examples. The "polar" template
+(see below) that this writer uses by default is already configured in the
+"Polar" subdirectory assuming that the TOWR-S RPM package has been installed
+on your AWIPS ingest server.
+
+Templates
+---------
+
+This writer allows for a "template" to be specified to control how the output
+files are structured and created. Templates can be configured in the writer
+YAML file (``awips_tiled.yaml``) or passed as a dictionary to the ``template``
+keyword argument. Templates have three main sections:
+
+1. global_attributes
+2. coordinates
+3. variables
+
+Additionally, you can specify whether a template should produce files with
+one variable per file by specifying ``single_variable: true`` or multiple
+variables per file by specifying ``single_variable: false``. You can also
+specify the output filename for a template using a Python format string.
+See ``awips_tiled.yaml`` for examples.
+
+The ``global_attributes`` section takes names of global attributes and
+then a series of options to "render" that attribute from the metadata
+provided when creating files. For example::
+
+product_name:
+    value: "{name}"
+
+For more information see the
+:meth:`satpy.writers.awips_tiled.NetCDFTemplate.get_attr_value` method.
+
+The ``coordinates`` and ``variables`` are similar to each other in that they
+define how a variable should be created, the attributes it should have, and
+the encoding to write to the file. Coordinates typically don't need to be
+modified as tiled files usually have only ``x`` and ``y`` dimension variables.
+The Variables on the other hand use a decision tree to determine what section
+applies for a particular DataArray being saved. The basic structure is::
+
+variables:
+  arbitrary_section_name:
+    <decision tree matching parameters>
+    var_name: "output_netcdf_variable_name"
+    attributes:
+      <attributes similar to global attributes>
+    encoding:
+      <xarray encoding parameters>
+
+The "decision tree matching parameters" can be one or more of "name",
+"standard_name', "satellite", "sensor", "area_id', "units", or "reader".
+The writer will choose the best section for the DataArray being saved
+(the most matches). If none of these parameters are specified in a section
+then it will be used when no other matches are found (the "default" section).
+
+The "encoding" parameters can be anything accepted by xarray's ``to_netcdf``
+method. See :meth:`xarray.Dataset.to_netcdf` for more information on the
+`encoding`` keyword argument.
+
+For more examples see the existing builtin templates defined in
+``awips_tiled.yaml``.
+
+Builtin Templates
+^^^^^^^^^^^^^^^^^
+
+There are only a few templates provided in Sapty currently.
+
+* **polar**: A custom format developed for the CSPP Polar2Grid project at the
+  University of Wisconsin - Madison Space Science and Engineering Center
+  (SSEC). This format is made available through the TOWR-S package that can be
+  installed for GOES-R support in AWIPS. This format is meant to be very
+  generic and should theoretically allow any variable to get ingested into
+  AWIPS.
+* **glm_l2**: This format is used to produce standard files for the gridded
+  GLM productes produced by the CSPP Geo Gridded GLM package. Support for this
+  format is also available in the TOWR-S package on an AWIPS ingest server.
+  This format is specific to gridded GLM and will not work for other data.
 
 Numbered versus Lettered Grids
 ------------------------------
 
-By default the SCMI writer will save tiles by number starting with '1'
+By default this writer will save tiles by number starting with '1'
 representing the upper-left image tile. Tile numbers then increase
 along the column and then on to the next row.
 
 By specifying `lettered_grid` as `True` tiles can be designated with a
-letter. Lettered grids or sectors are preconfigured in the `scmi.yaml`
+letter. Lettered grids or sectors are preconfigured in the `awips_tiled.yaml`
 configuration file. The lettered tile locations are static and will not
 change with the data being written to them. Each lettered tile is split
-in to a certain number of subtiles (`num_subtiles`), default 2 rows by
+into a certain number of subtiles (`num_subtiles`), default 2 rows by
 2 columns. Lettered tiles are meant to make it easier for receiving
 AWIPS clients/stations to filter what tiles they receive; saving time,
 bandwidth, and space.
@@ -65,11 +176,11 @@ Updating tiles
 There are some input data cases where we want to put new data in a tile
 file written by a previous execution. An example is a pre-tiled input dataset
 that is processed one tile at a time. One input tile may map to one or more
-output SCMI tiles, but may not perfectly align with the SCMI tile, leaving
-empty/unused space in the SCMI tile. The next input tile may be able to fill
+output AWIPS tiles, but may not perfectly aligned, leaving
+empty/unused space in the output tile. The next input tile may be able to fill
 in that empty space and should be allowed to write the "new" data to the file.
-This is the default behavior of the SCMI writer. In cases where data overlaps
-the existing data in the tile, the newer data has priority.
+This is the default behavior of the AWIPS tiled writer. In cases where data
+overlaps the existing data in the tile, the newer data has priority.
 
 Shifting Lettered Grids
 -----------------------
@@ -89,7 +200,7 @@ more accurate. By default, the lettered tile locations are changed to match
 the location of the data. This works well when output tiles will not be
 updated (see above) in future processing. In cases where output tiles will be
 filled in or updated with more data the ``use_sector_reference`` keyword
-argument can be set to ``True`` to tell the SCMI writer to shift the data's
+argument can be set to ``True`` to tell the writer to shift the data's
 geolocation by up to 0.5 pixels in each dimension instead of shifting the
 lettered tile locations.
 
@@ -142,7 +253,7 @@ def fix_awips_file(fn):
     # hack to get files created by new NetCDF library
     # versions to be read by AWIPS buggy java version
     # of NetCDF
-    LOG.info("Modifying SCMI NetCDF file to work with AWIPS")
+    LOG.info("Modifying output NetCDF file to work with AWIPS")
     import h5py
     h = h5py.File(fn, 'a')
     if '_NCProperties' in h.attrs:
@@ -539,7 +650,7 @@ def _add_valid_ranges(data_arrs):
         yield data_arr
 
 
-class SCMIDatasetDecisionTree(DecisionTree):
+class AWIPSTiledVariableDecisionTree(DecisionTree):
     """Load AWIPS-specific metadata from YAML configuration."""
 
     def __init__(self, decision_dicts, **kwargs):
@@ -549,12 +660,12 @@ class SCMIDatasetDecisionTree(DecisionTree):
                            ["name",
                             "standard_name",
                             "satellite",
-                            "instrument",
+                            "sensor",
                             "area_id",
                             "units",
                             "reader"]
                            )
-        super(SCMIDatasetDecisionTree, self).__init__(decision_dicts, attrs, **kwargs)
+        super(AWIPSTiledVariableDecisionTree, self).__init__(decision_dicts, attrs, **kwargs)
 
 
 class NetCDFTemplate:
@@ -579,8 +690,8 @@ class NetCDFTemplate:
         }
         self.coordinates = template_dict.get('coordinates', default_coord_config)
 
-        self._var_tree = SCMIDatasetDecisionTree([self.variables])
-        self._coord_tree = SCMIDatasetDecisionTree([self.coordinates])
+        self._var_tree = AWIPSTiledVariableDecisionTree([self.variables])
+        self._coord_tree = AWIPSTiledVariableDecisionTree([self.coordinates])
         self._filename_format_str = template_dict.get('filename')
         self._str_formatter = StringFormatter()
 
@@ -599,7 +710,7 @@ class NetCDFTemplate:
             os.makedirs(dirname)
         return output_filename
 
-    def _get_attr_value(self, attr_name, input_metadata, value=None, raw_key=None, raw_value=None, prefix="_"):
+    def get_attr_value(self, attr_name, input_metadata, value=None, raw_key=None, raw_value=None, prefix="_"):
         """Determine attribute value using the provided configuration information.
 
         If `value` and `raw_key` are not provided, this method will search
@@ -668,8 +779,8 @@ class NetCDFTemplate:
     def _render_attrs(self, attr_configs, input_metadata, prefix="_"):
         attrs = {}
         for attr_name, attr_config_dict in attr_configs.items():
-            val = self._get_attr_value(attr_name, input_metadata,
-                                       prefix=prefix, **attr_config_dict)
+            val = self.get_attr_value(attr_name, input_metadata,
+                                      prefix=prefix, **attr_config_dict)
             if val is None:
                 # NetCDF attributes can't have a None value
                 continue
@@ -930,7 +1041,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
     def apply_misc_metadata(self, new_ds, sector_id, creator=None, creation_time=None):
         """Add attributes that don't fit into any other category."""
         if creator is None:
-            creator = "Satpy Version {} - SCMI Writer".format(__version__)
+            creator = "Satpy Version {} - AWIPS Tiled Writer".format(__version__)
         if creation_time is None:
             creation_time = datetime.utcnow()
 
@@ -1073,23 +1184,19 @@ def tile_filler(data_arr_data, tile_shape, tile_slices, fill_value):
     return empty_tile
 
 
-class SCMIWriter(Writer):
-    """Writer for AWIPS NetCDF4 SCMI files.
+class AWIPSTiledWriter(Writer):
+    """Writer for AWIPS NetCDF4 Tile files.
 
-    These files are **not** the official GOES-R style files, but rather a
-    custom "Polar SCMI" file scheme originally developed at the University
-    of Wisconsin - Madison, Space Science and Engineering Center (SSEC) for
-    use by the CSPP Polar2Grid project. Despite the name these files should
-    support data from polar-orbitting satellites (after resampling) and
-    geostationary satellites in single band (luminance) or RGB image format.
+    See :mod:`satpy.writers.awips_tiled` documentation for more information
+    on templates and produced file format.
 
     """
 
     def __init__(self, compress=False, fix_awips=False, **kwargs):
         """Initialize writer and decision trees."""
-        super(SCMIWriter, self).__init__(default_config_filename="writers/scmi.yaml", **kwargs)
+        super(AWIPSTiledWriter, self).__init__(default_config_filename="writers/awips_tiled.yaml", **kwargs)
         self.base_dir = kwargs.get('base_dir', '')
-        self.scmi_sectors = self.config['sectors']
+        self.awips_sectors = self.config['sectors']
         self.templates = self.config['templates']
         self.compress = compress
         self.fix_awips = fix_awips
@@ -1107,7 +1214,7 @@ class SCMIWriter(Writer):
     def separate_init_kwargs(cls, kwargs):
         """Separate keyword arguments by initialization and saving keyword arguments."""
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
-        init_kwargs, kwargs = super(SCMIWriter, cls).separate_init_kwargs(
+        init_kwargs, kwargs = super(AWIPSTiledWriter, cls).separate_init_kwargs(
             kwargs)
         for kw in ['compress', 'fix_awips']:
             if kw in kwargs:
@@ -1117,7 +1224,7 @@ class SCMIWriter(Writer):
 
     def _fill_sector_info(self):
         """Convert sector extents if needed."""
-        for sector_info in self.scmi_sectors.values():
+        for sector_info in self.awips_sectors.values():
             p = Proj(sector_info['projection'])
             if 'lower_left_xy' in sector_info:
                 sector_info['lower_left_lonlat'] = p(*sector_info['lower_left_xy'], inverse=True)
@@ -1138,7 +1245,7 @@ class SCMIWriter(Writer):
 
         """
         try:
-            sector_info = self.scmi_sectors[sector_id]
+            sector_info = self.awips_sectors[sector_id]
         except KeyError:
             if lettered_grid:
                 raise ValueError("Unknown sector '{}'".format(sector_id))
@@ -1199,7 +1306,7 @@ class SCMIWriter(Writer):
                 continue
             elif ds.ndim > 3 or ds.ndim < 1 or (ds.ndim == 3 and 'bands' not in ds.coords):
                 LOG.error("Can't save datasets with more or less than 2 dimensions "
-                          "that aren't RGBs to SCMI format: {}".format(ds.name))
+                          "that aren't RGBs to AWIPS Tiled format: {}".format(ds.name))
             else:
                 # this is an RGB
                 img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
@@ -1261,7 +1368,7 @@ class SCMIWriter(Writer):
                 yield area_def, tile_info, data_arrs
 
     def save_dataset(self, dataset, **kwargs):
-        """Save a single DataArray to one or more NetCDF4 SCMI files."""
+        """Save a single DataArray to one or more NetCDF4 Tile files."""
         LOG.warning("For best performance use `save_datasets`")
         return self.save_datasets([dataset], **kwargs)
 
@@ -1269,7 +1376,7 @@ class SCMIWriter(Writer):
         """Generate output NetCDF file from metadata."""
         # format the filename
         try:
-            return super(SCMIWriter, self).get_filename(
+            return super(AWIPSTiledWriter, self).get_filename(
                 area_id=area_def.area_id,
                 rows=area_def.height,
                 columns=area_def.width,
@@ -1321,12 +1428,12 @@ class SCMIWriter(Writer):
                       use_end_time=False, use_sector_reference=False,
                       template='polar', check_categories=True,
                       compute=True, **kwargs):
-        """Write a series of DataArray objects to multiple NetCDF4 SCMI files.
+        """Write a series of DataArray objects to multiple NetCDF4 Tile files.
 
         Args:
             datasets (iterable): Series of gridded :class:`~xarray.DataArray`
                 objects with the necessary metadata to be converted to a valid
-                SCMI product file.
+                tile product file.
             sector_id (str): Name of the region or sector that the provided
                 data is on. This name will be written to the NetCDF file and
                 will be used as the sector in the AWIPS client. For lettered
@@ -1523,14 +1630,14 @@ def draw_rectangle(draw, coordinates, outline=None, fill=None, width=1):
 
 
 def create_debug_lettered_tiles(init_args, create_args):
-    """Create SCMI files with tile identifiers "burned" in to the image data for debugging."""
+    """Create tile files with tile identifiers "burned" in to the image data for debugging."""
     create_args['lettered_grid'] = True
     create_args['num_subtiles'] = (2, 2)  # default, don't use command line argument
 
-    writer = SCMIWriter(**init_args)
+    writer = AWIPSTiledWriter(**init_args)
 
     sector_id = create_args['sector_id']
-    sector_info = writer.scmi_sectors[sector_id]
+    sector_info = writer.awips_sectors[sector_id]
     area_def, arr = _create_debug_array(sector_info, create_args['num_subtiles'])
 
     now = datetime.utcnow()
@@ -1585,7 +1692,7 @@ def add_backend_argument_groups(parser):
 def main():
     """Command line interface mimicing CSPP Polar2Grid."""
     import argparse
-    parser = argparse.ArgumentParser(description="Create SCMI AWIPS compatible NetCDF files")
+    parser = argparse.ArgumentParser(description="Create AWIPS compatible NetCDF tile files")
     subgroups = add_backend_argument_groups(parser)
     parser.add_argument("--create-debug", action='store_true',
                         help='Create debug NetCDF files to show tile locations in AWIPS')
@@ -1607,7 +1714,7 @@ def main():
         create_debug_lettered_tiles(init_args, create_args)
         return
     else:
-        raise NotImplementedError("Command line interface not implemented yet for SCMI writer")
+        raise NotImplementedError("Command line interface not implemented yet for AWIPS tiled writer")
 
 
 if __name__ == '__main__':
