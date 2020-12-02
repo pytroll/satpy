@@ -510,3 +510,21 @@ def calculate_area_extent(area_dict):
     aex = np.array([ll_c, ll_r, ur_c, ur_r]) * area_dict['resolution']
 
     return tuple(aex)
+
+
+def create_coef_dict(coefs_nominal, coefs_gsics, radiance_type, ext_coefs):
+    """Create coefficient dictionary expected by calibration class."""
+    return {
+        'coefs': {
+            'NOMINAL': {
+                'gain': coefs_nominal[0],
+                'offset': coefs_nominal[1],
+            },
+            'GSICS': {
+                'gain': coefs_gsics[0],
+                'offset': coefs_gsics[1]
+            },
+            'EXTERNAL': ext_coefs
+        },
+        'radiance_type': radiance_type
+    }
