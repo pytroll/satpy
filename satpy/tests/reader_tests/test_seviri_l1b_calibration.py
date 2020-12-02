@@ -120,12 +120,14 @@ class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
         """Test the conversion from counts to radiances."""
         result = self.algo.convert_to_radiance(COUNTS_INPUT, GAIN, OFFSET)
         xr.testing.assert_allclose(result, RADIANCES_OUTPUT)
+        self.assertEqual(result.dtype, np.float32)
 
     def test_ir_calibrate(self):
         """Test conversion from radiance to brightness temperature."""
         result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
                                         CHANNEL_NAME, CAL_TYPE1)
         xr.testing.assert_allclose(result, TBS_OUTPUT1, rtol=1E-5)
+        self.assertEqual(result.dtype, np.float32)
 
         result = self.algo.ir_calibrate(RADIANCES_OUTPUT,
                                         CHANNEL_NAME, CAL_TYPE2)
@@ -140,6 +142,7 @@ class TestSEVIRICalibrationAlgorithm(unittest.TestCase):
                                          VIS008_SOLAR_IRRADIANCE)
         xr.testing.assert_allclose(result, VIS008_REFLECTANCE)
         self.assertTrue(result.sun_earth_distance_correction_applied)
+        self.assertEqual(result.dtype, np.float32)
 
 
 class TestSeviriCalibrationHandler:
