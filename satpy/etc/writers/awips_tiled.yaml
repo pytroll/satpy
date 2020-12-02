@@ -55,6 +55,7 @@ sectors:
 templates:
   polar:
     single_variable: true
+    add_sector_id_global: true
     filename: '{source_name}_AII_{platform_name}_{sensor}_{name}_{sector_id}_{tile_id}_{start_time:%Y%m%d_%H%M}.nc'
     global_attributes:
       start_date_time: {}  # special handler for debugging in awips_tiled.py
@@ -67,6 +68,7 @@ templates:
 #        value: "{awips_id}"  # special variable created by awips_tiled.py
       creating_entity:
         value: "{platform_name!u}-{sensor!u}"
+      sector_id: {}  # special handler in awips_tiled.py
     coordinates:
       x:
         attributes:
