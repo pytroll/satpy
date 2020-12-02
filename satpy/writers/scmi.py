@@ -497,11 +497,46 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
 
-    mx = float(vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
+    mx = vmax - vmin / (2 ** bit_depth - 1 - num_fills)
     bx = vmin
     if not is_unsigned and not unsigned_in_signed:
         bx += 2 ** (bit_depth - 1) * mx
     return mx, bx, fills[0]
+
+
+def _get_data_vmin_vmax(input_data_arr):
+    input_metadata = input_data_arr.attrs
+    valid_range = input_metadata.get("valid_range")
+    if valid_range:
+        valid_min, valid_max = valid_range
+    else:
+        valid_min = input_metadata.get("valid_min")
+        valid_max = input_metadata.get("valid_max")
+    return valid_min, valid_max
+
+
+def _add_valid_ranges(data_arrs):
+    """Add 'valid_range' metadata if not present.
+
+    If valid_range or valid_min/valid_max are not present in a DataArrays
+    metadata (``.attrs``), then lazily compute it with dask so it can be
+    computed later when we write tiles out.
+
+    AWIPS requires that scale_factor/add_offset/_FillValue be the **same**
+    for all tiles. We must do this calculation before splitting the data into
+    tiles otherwise the values will be different.
+
+    """
+    for data_arr in data_arrs:
+        vmin, vmax = _get_data_vmin_vmax(data_arr)
+        if vmin is None:
+            vmin = data_arr.min(skipna=True).data
+            vmax = data_arr.max(skipna=True).data
+            # we don't want to effect the original attrs
+            data_arr = data_arr.copy(deep=False)
+            # these are dask arrays, they need to get computed later
+            data_arr.attrs['valid_range'] = (vmin, vmax)
+        yield data_arr
 
 
 class SCMIDatasetDecisionTree(DecisionTree):
@@ -662,10 +697,6 @@ class NetCDFTemplate:
         if 'encoding' in var_config:
             new_encoding.update(var_config['encoding'])
         new_encoding.setdefault('dtype', 'uint16')
-        # handled during delayed 'to_netcdf' by taking min/max of data
-        new_encoding.setdefault('scale_factor', 'auto')
-        new_encoding.setdefault('add_offset', 'auto')
-        new_encoding.setdefault('_FillValue', 'auto')
         return new_encoding
 
     def _render_variable(self, data_arr):
@@ -770,34 +801,34 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     _global_production_site = _global_production_location
 
-    def _get_data_vmin_vmax(self, input_data_arr):
-        input_metadata = input_data_arr.attrs
-        valid_range = input_metadata.get("valid_range")
-        if valid_range:
-            valid_min, valid_max = valid_range
-        else:
-            valid_min = input_metadata.get("valid_min")
-            valid_max = input_metadata.get("valid_max")
-        return valid_min, valid_max
+    @staticmethod
+    def _get_vmin_vmax(var_config, input_data_arr):
+        if 'valid_range' in var_config:
+            return var_config['valid_range']
+        data_vmin, data_vmax = _get_data_vmin_vmax(input_data_arr)
+        return data_vmin, data_vmax
 
     def _render_variable_encoding(self, var_config, input_data_arr):
         new_encoding = super()._render_variable_encoding(var_config, input_data_arr)
-        vmin, vmax = self._get_data_vmin_vmax(input_data_arr)
+        vmin, vmax = self._get_vmin_vmax(var_config, input_data_arr)
         has_flag_meanings = 'flag_meanings' in input_data_arr.attrs
         is_int = np.issubdtype(input_data_arr.dtype, np.integer)
         is_cat = has_flag_meanings or is_int
-        if is_cat:
+        has_sf = new_encoding.get('scale_factor') is not None
+        if not has_sf and is_cat:
             # AWIPS doesn't like Identity conversion so we can't have
             # a factor of 1 and an offset of 0
-            new_encoding['scale_factor'] = None
-            new_encoding['add_offset'] = None
+            # new_encoding['scale_factor'] = None
+            # new_encoding['add_offset'] = None
             if '_FillValue' in input_data_arr.attrs:
                 new_encoding['_FillValue'] = input_data_arr.attrs['_FillValue']
-        elif vmin is not None and vmax is not None:
+        elif not has_sf and vmin is not None and vmax is not None:
             # calculate scale_factor and add_offset
             sf, ao, fill = _get_factor_offset_fill(
                 input_data_arr, vmin, vmax, new_encoding
             )
+            # NOTE: These could be dask arrays that will be computed later
+            #   when we go to write the files.
             new_encoding['scale_factor'] = sf
             new_encoding['add_offset'] = ao
             new_encoding['_FillValue'] = fill
@@ -921,33 +952,6 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         return new_ds
 
 
-def _assign_autoscale_encoding_parameters(dataset_to_save):
-    for data_var in dataset_to_save.data_vars.values():
-        # assume add_offset and scale_factor are both auto
-        sf_is_auto = data_var.encoding.get('scale_factor') == 'auto'
-        ao_is_auto = data_var.encoding.get('add_offset') == 'auto'
-        fv_is_auto = data_var.encoding.get('_FillValue') == 'auto'
-        # some fields don't need scale_factor/add_offset
-        if data_var.encoding.get('scale_factor', 0) is None:
-            data_var.encoding.pop('scale_factor')
-        if data_var.encoding.get('add_offset', 0) is None:
-            data_var.encoding.pop('add_offset')
-        if not any((sf_is_auto, ao_is_auto, fv_is_auto)):
-            continue
-        if not all((sf_is_auto, ao_is_auto, fv_is_auto)):
-            raise ValueError("Auto-scaling must be requested for all or none "
-                             "of the associated attributes (scale_factor, "
-                             "add_offset, _FillValue).")
-        vmin = data_var.min(skipna=True).data.item()
-        vmax = data_var.max(skipna=True).data.item()
-        sf, ao, fill = _get_factor_offset_fill(
-            data_var, vmin, vmax, data_var.encoding
-        )
-        data_var.encoding['scale_factor'] = sf
-        data_var.encoding['add_offset'] = ao
-        data_var.encoding['_FillValue'] = fill
-
-
 def _notnull(data_arr, check_categories=True):
     is_int = np.issubdtype(data_arr.dtype, np.integer)
     fill_value = data_arr.encoding.get('_FillValue', data_arr.attrs.get('_FillValue'))
@@ -977,25 +981,60 @@ def _is_empty_tile(dataset_to_save, check_categories):
 
 
 def _copy_to_existing(dataset_to_save, output_filename):
-    # if we leave the dataset open NetCDF will fail because the same
-    # file will be opened for reading and writing
-    # somehow though, copying makes it work and also closing it doesn't
-    # fail. The copy itself makes things work, but explicit closing seemed
-    # like a good idea too.
+    # Experimental: This function doesn't seem to behave well with xarray file
+    #   caching and/or multiple dask workers. It causes tests to hang, but
+    #   only sometimes. Limiting dask to 1 worker seems to fix this.
+    #   I (David Hoese) was unable to make a script that reproduces this
+    #   without using this writer (makes it difficult to file a bug report).
     existing_dataset = xr.open_dataset(output_filename)
-    existing_dataset = existing_dataset.copy(deep=True)
-    existing_dataset.close()
+    # the below used to trick xarray into working, but this doesn't work
+    # in newer versions. This was a hack in the first place so I'm keeping it
+    # here for reference.
+    # existing_dataset = existing_dataset.copy(deep=True)
+    # existing_dataset.close()
+
     # update existing data with new valid data
-    for var_name, var_data_arr in existing_dataset.data_vars.items():
-        if var_name not in dataset_to_save:
+    for var_name, var_data_arr in dataset_to_save.data_vars.items():
+        if var_name not in existing_dataset:
             continue
-        new_data_arr = dataset_to_save[var_name]
-        valid_existing = _notnull(new_data_arr)
-        var_data_arr.data[valid_existing] = new_data_arr.data[valid_existing]
-    return existing_dataset
+        if var_data_arr.ndim != 2:
+            continue
+        existing_data_arr = existing_dataset[var_name]
+        valid_current = _notnull(var_data_arr)
+        new_data = existing_data_arr.data[:]
+        new_data[valid_current] = var_data_arr.data[valid_current]
+        var_data_arr.data[:] = new_data
+        var_data_arr.encoding.update(existing_data_arr.encoding)
+        var_data_arr.encoding.pop('source', None)
+
+    return dataset_to_save
 
 
-def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
+def _extract_factors(dataset_to_save):
+    factors = {}
+    for data_var in dataset_to_save.data_vars.values():
+        enc = data_var.encoding
+        data_var.attrs.pop('valid_range', None)
+        factor_set = (enc.pop('scale_factor', None),
+                      enc.pop('add_offset', None),
+                      enc.pop('_FillValue', None))
+        factors[data_var.name] = factor_set
+    return factors
+
+
+def _reapply_factors(dataset_to_save, factors):
+    for var_name, factor_set in factors.items():
+        data_arr = dataset_to_save[var_name]
+        if factor_set[0] is not None:
+            data_arr.encoding['scale_factor'] = factor_set[0]
+        if factor_set[1] is not None:
+            data_arr.encoding['add_offset'] = factor_set[1]
+        if factor_set[2] is not None:
+            data_arr.encoding['_FillValue'] = factor_set[2]
+    return dataset_to_save
+
+
+def to_nonempty_netcdf(dataset_to_save, factors, output_filename, update_existing=True,
                        check_categories=True, fix_awips=False):
     """Save :class:`xarray.Dataset` to a NetCDF file if not all fills.
 
@@ -1012,9 +1051,8 @@ def to_nonempty_netcdf(dataset_to_save, output_filename, update_existing=True,
                   "empty.".format(output_filename))
         return
 
-    _assign_autoscale_encoding_parameters(dataset_to_save)
-
     # TODO: Allow for new variables to be created
+    dataset_to_save = _reapply_factors(dataset_to_save, factors)
     if update_existing and os.path.isfile(output_filename):
         dataset_to_save = _copy_to_existing(dataset_to_save, output_filename)
         mode = 'a'
@@ -1214,6 +1252,7 @@ class SCMIWriter(Writer):
                                           num_subtiles, tile_size, tile_count,
                                           use_sector_reference):
         for area_def, data_arrays in area_datasets.values():
+            data_arrays = list(_add_valid_ranges(data_arrays))
             tile_gen = self._get_tile_generator(
                 area_def, lettered_grid, sector_id, num_subtiles, tile_size,
                 tile_count, use_sector_reference=use_sector_reference)
@@ -1256,8 +1295,9 @@ class SCMIWriter(Writer):
 
     def _save_nonempty_mfdatasets(self, datasets_to_save, output_filenames, **kwargs):
         for dataset_to_save, output_filename in zip(datasets_to_save, output_filenames):
+            factors = _extract_factors(dataset_to_save)
             delayed_res = delayed_to_notempty_netcdf(
-                dataset_to_save, output_filename, **kwargs)
+                dataset_to_save, factors, output_filename, **kwargs)
             yield delayed_res
 
     def _get_tile_data_info(self, data_arrs, creation_time, source_name):
@@ -1353,12 +1393,12 @@ class SCMIWriter(Writer):
             template = self.config['templates'][template]
         template = AWIPSNetCDFTemplate(template, swap_end_time=use_end_time)
         delayeds = []
-        area_datasets = self._group_by_area(datasets)
+        area_data_arrs = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
         creation_time = datetime.utcnow()
         area_tile_data_gen = self._iter_area_tile_info_and_datasets(
-            area_datasets, template, lettered_grid, sector_id, num_subtiles,
+            area_data_arrs, template, lettered_grid, sector_id, num_subtiles,
             tile_size, tile_count, use_sector_reference)
         for area_def, tile_info, data_arrs in area_tile_data_gen:
             # TODO: Create Dataset object of all of the sliced-DataArrays (optional)
