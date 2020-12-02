@@ -100,10 +100,10 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         data = xr.DataArray(data, dims=[1, 'y', 'x'])
         data.attrs = self.get_metadata(data, info)
 
-        if 'lon' in data.dims:
-            data.rename({'lon': 'x'})
-        if 'lat' in data.dims:
-            data.rename({'lat': 'y'})
+        if 'longitude' in data.dims:
+            data.rename({'longitude': 'x'})
+        if 'latitude' in data.dims:
+            data.rename({'latitude': 'y'})
         return data
 
     def get_area_def(self, dsid):
