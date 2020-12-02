@@ -328,7 +328,7 @@ class NumberedTileGenerator(object):
             gd.area_id,
             gd.description,
             gd.proj_id,
-            gd.proj_dict,
+            gd.crs,
             imaginary_data_size[1],
             imaginary_data_size[0],
             new_extents,
