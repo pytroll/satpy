@@ -30,8 +30,6 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-
-
 def get_keys_from_config(common_id_keys, config):
     """Gather keys for a new DataID from the ones available in configured dataset."""
     id_keys = {}
@@ -75,7 +73,7 @@ class ValueList(IntEnum):
 
 try:
     wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
-except NameError:  # python 3.6
+except TypeError:  # python 3.6
     wlklass = namedtuple("WavelengthRange", "min central max unit")
     wlklass.__new__.__defaults__ = ('µm',)
 

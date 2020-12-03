@@ -35,6 +35,7 @@ onboard Joint Polar Satellite System spacecraft.
 
 from datetime import datetime
 import xarray as xr
+import pandas as pd
 import numpy as np
 import logging
 from collections import defaultdict
@@ -68,6 +69,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def __init__(self, *args, **kwargs):
         """Initialize file handler."""
+        # remove kwargs that reader instance used that file handler does not
+        kwargs.pop('mask_surface', None)
+        kwargs.pop('mask_quality', None)
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'decode_times', False)
         super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
@@ -78,7 +82,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def _parse_datetime(self, datestr):
         """Parse NUCAPS datetime string."""
-        return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return pd.to_datetime(datestr).to_pydatetime()
 
     @property
     def start_time(self):

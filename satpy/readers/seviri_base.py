@@ -27,6 +27,7 @@ import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
 
+from satpy.readers.utils import apply_earthsun_distance_correction
 from satpy.readers.eum_base import (time_cds_short,
                                     issue_revision)
 
@@ -85,10 +86,10 @@ SATNUM = {321: "8",
 CALIB = {}
 
 # Meteosat 8
-CALIB[321] = {'HRV': {'F': 78.7599 / np.pi},
-              'VIS006': {'F': 65.2296 / np.pi},
-              'VIS008': {'F': 73.0127 / np.pi},
-              'IR_016': {'F': 62.3715 / np.pi},
+CALIB[321] = {'HRV': {'F': 78.7599},
+              'VIS006': {'F': 65.2296},
+              'VIS008': {'F': 73.0127},
+              'IR_016': {'F': 62.3715},
               'IR_039': {'VC': 2567.33,
                          'ALPHA': 0.9956,
                          'BETA': 3.41},
@@ -115,10 +116,10 @@ CALIB[321] = {'HRV': {'F': 78.7599 / np.pi},
                          'BETA': 0.578}}
 
 # Meteosat 9
-CALIB[322] = {'HRV': {'F': 79.0113 / np.pi},
-              'VIS006': {'F': 65.2065 / np.pi},
-              'VIS008': {'F': 73.1869 / np.pi},
-              'IR_016': {'F': 61.9923 / np.pi},
+CALIB[322] = {'HRV': {'F': 79.0113},
+              'VIS006': {'F': 65.2065},
+              'VIS008': {'F': 73.1869},
+              'IR_016': {'F': 61.9923},
               'IR_039': {'VC': 2568.832,
                          'ALPHA': 0.9954,
                          'BETA': 3.438},
@@ -145,10 +146,10 @@ CALIB[322] = {'HRV': {'F': 79.0113 / np.pi},
                          'BETA': 0.561}}
 
 # Meteosat 10
-CALIB[323] = {'HRV': {'F': 78.9416 / np.pi},
-              'VIS006': {'F': 65.5148 / np.pi},
-              'VIS008': {'F': 73.1807 / np.pi},
-              'IR_016': {'F': 62.0208 / np.pi},
+CALIB[323] = {'HRV': {'F': 78.9416},
+              'VIS006': {'F': 65.5148},
+              'VIS008': {'F': 73.1807},
+              'IR_016': {'F': 62.0208},
               'IR_039': {'VC': 2547.771,
                          'ALPHA': 0.9915,
                          'BETA': 2.9002},
@@ -175,10 +176,10 @@ CALIB[323] = {'HRV': {'F': 78.9416 / np.pi},
                          'BETA': 0.5390}}
 
 # Meteosat 11
-CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
-              'VIS006': {'F': 65.2656 / np.pi},
-              'VIS008': {'F': 73.1692 / np.pi},
-              'IR_016': {'F': 61.9416 / np.pi},
+CALIB[324] = {'HRV': {'F': 79.0035},
+              'VIS006': {'F': 65.2656},
+              'VIS008': {'F': 73.1692},
+              'IR_016': {'F': 61.9416},
               'IR_039': {'VC': 2555.280,
                          'ALPHA': 0.9916,
                          'BETA': 2.9438},
@@ -372,8 +373,13 @@ class SEVIRICalibrationHandler(object):
                 np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
-        """Calibrate to reflectance."""
-        return data * 100.0 / solar_irradiance
+        """Calibrate to reflectance.
+
+        This uses the method described in Conversion from radiances to
+        reflectances for SEVIRI warm channels: https://tinyurl.com/y67zhphm
+        """
+        reflectance = np.pi * data * 100.0 / solar_irradiance
+        return apply_earthsun_distance_correction(reflectance, self.start_time)
 
 
 def chebyshev(coefs, time, domain):

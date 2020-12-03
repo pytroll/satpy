@@ -19,7 +19,7 @@ reader:
       transitive: true
     modifiers:
       default: []
-      type: !!python/name:satpy.dataset.ModifierTuple
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
 
   coord_identification_keys:
     name:
