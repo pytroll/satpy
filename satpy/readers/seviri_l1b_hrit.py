@@ -169,7 +169,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function)
 from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
                                        VIS_CHANNELS, SEVIRICalibrationHandler,
-                                       chebyshev, get_cds_time)
+                                       chebyshev, get_cds_time,
+                                       add_scanline_acq_time)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
 from satpy.readers._geos_area import get_area_extent, get_area_definition
@@ -690,29 +691,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res = self.calibrate(res, key['calibration'])
         if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
-
-        res.attrs['units'] = info['units']
-        res.attrs['wavelength'] = info['wavelength']
-        res.attrs['standard_name'] = info['standard_name']
-        res.attrs['platform_name'] = self.platform_name
-        res.attrs['sensor'] = 'seviri'
-        res.attrs['satellite_longitude'] = self.mda[
-            'projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = self.mda[
-            'projection_parameters']['SSP_latitude']
-        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
-        res.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
-            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
-            'projection_altitude': self.mda['projection_parameters']['h']}
-        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
-        res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
-        res.attrs['raw_metadata'] = self._get_raw_mda()
-
-        # Add scanline timestamps as additional y-coordinate
-        res.coords['acq_time'] = ('y', self._get_timestamps())
-        res.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
-
+        self._update_attrs(res, info)
+        self._add_scanline_acq_time(res)
         return res
 
     def pad_hrv_data(self, res):
@@ -807,10 +787,31 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         return raw_mda
 
-    def _get_timestamps(self):
-        """Read scanline timestamps from the segment header."""
+    def _add_scanline_acq_time(self, dataset):
+        """Add scanline acquisition time to the given dataset."""
         tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
-        return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+        acq_time = get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+        add_scanline_acq_time(dataset, acq_time)
+
+    def _update_attrs(self, res, info):
+        """Update dataset attributes."""
+        res.attrs['units'] = info['units']
+        res.attrs['wavelength'] = info['wavelength']
+        res.attrs['standard_name'] = info['standard_name']
+        res.attrs['platform_name'] = self.platform_name
+        res.attrs['sensor'] = 'seviri'
+        res.attrs['satellite_longitude'] = self.mda[
+            'projection_parameters']['SSP_longitude']
+        res.attrs['satellite_latitude'] = self.mda[
+            'projection_parameters']['SSP_latitude']
+        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
+            'projection_altitude': self.mda['projection_parameters']['h']}
+        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
+        res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
+        res.attrs['raw_metadata'] = self._get_raw_mda()
 
 
 def pad_data(data, final_size, east_bound, west_bound):

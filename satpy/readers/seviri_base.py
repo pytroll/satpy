@@ -234,6 +234,13 @@ def get_cds_time(days, msecs):
     return time
 
 
+def add_scanline_acq_time(dataset, acq_time):
+    """Add scanline acquisition time to the given dataset."""
+    dataset.coords['acq_time'] = ('y', acq_time)
+    dataset.coords['acq_time'].attrs[
+        'long_name'] = 'Mean scanline acquisition time'
+
+
 def dec10216(inbuf):
     """Decode 10 bits data into 16 bits words.
 
