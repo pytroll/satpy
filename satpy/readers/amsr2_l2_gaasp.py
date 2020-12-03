@@ -70,10 +70,6 @@ class GAASPFileHandler(BaseFileHandler):
         'Number_of_low_rez_FOVs': 10000,
     }
 
-    def __init__(self, filename, filename_info, filetype_info):
-        """Open the NetCDF file with xarray and prepare the Dataset for reading."""
-        super().__init__(filename, filename_info, filetype_info)
-
     @cached_property
     def nc(self):
         """Get the xarray dataset for this file."""
