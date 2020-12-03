@@ -27,6 +27,7 @@ import numpy as np
 import xarray as xr
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 from pyresample.geometry import AreaDefinition
+import pyproj
 import logging
 
 logger = logging.getLogger(__name__)
@@ -41,21 +42,21 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Get datasets in file matching gelocation shape (lat/lon)."""
-        lat_shape = self.file_content.get('latitude')
-        lon_shape = self.file_content.get('longitude')
+        #lat_shape = self.file_content.get('latitude')
+        lat_shape = self['latitude'].shape[0]
+        #lon_shape = self.file_content.get('longitude')
+        lon_shape = self['longitude'].shape[0]
 
         # Read the lat/lon variables?
         handled_variables = set()
-
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
         for is_avail, ds_info in (configured_datasets or []):
             # some other file handler knows how to load this
             if is_avail is not None:
                 yield is_avail, ds_info
-
             var_name = ds_info.get('file_key', ds_info['name'])
-            # logger.debug("Evaluating previously configured variable: %s", var_name)
+            logger.debug("Evaluating previously configured variable: %s", var_name)
             matches = self.file_type_matches(ds_info['file_type'])
             # we can confidently say that we can provide this dataset and can
             # provide more info
@@ -76,7 +77,7 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
                 logger.debug("Evaluating new variable: %s", var_name)
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))
-                if var_shape == (lat_shape, lon_shape):
+                if var_shape == (1, lat_shape, lon_shape):
                     logger.debug("Found valid additional dataset: %s", var_name)
                     # Skip anything we have already configured
                     if var_name in handled_variables:
@@ -97,9 +98,9 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         logger.debug("Getting data for: %s", ds_id['name'])
         file_key = info.get('file_key', ds_id['name'])
         data = np.flipud(self[file_key])
-        data = xr.DataArray(data, dims=[1, 'y', 'x'])
+        data = xr.DataArray(data[0,::-1,:], dims=['y', 'x'])
+        #data = self.flash_extent.data[0,:,:]
         data.attrs = self.get_metadata(data, info)
-
         if 'longitude' in data.dims:
             data.rename({'longitude': 'x'})
         if 'latitude' in data.dims:
@@ -149,7 +150,7 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
 
     @property
     def end_time(self):
-        """End timestamp of the dataset same as start_time."""
+        """End timestamp of the dataset same as start_time. Need to add the extra time """
         return self.filename_info.get('end_time', self.start_time)
 
     @property
