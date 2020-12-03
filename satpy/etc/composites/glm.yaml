@@ -11,4 +11,4 @@ composites:
     standard_name: c14_yellow_lightning
     prerequisites:
       - flash_extent_density
-      - C14
+      - highlight_C14
