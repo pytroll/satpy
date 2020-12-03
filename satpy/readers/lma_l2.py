@@ -115,11 +115,16 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         width = self['longitude'].shape[0]
         height = self['latitude'].shape[0]
 
-        area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
+        a = 6378137.0
+        b = 6378137.0
+        geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
+        latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
+        # https://github.com/pytroll/satpy/blob/c0e21e62dd40c4faaff52072058b5796ccc8de29/satpy/readers/utils.py#L277
+        area_extent = (pyproj.transform(latlong, geocent, lower_left_x, lower_left_y)[0],pyproj.transform(latlong, geocent, lower_left_x, lower_left_y)[1],pyproj.transform(latlong, geocent, upper_right_x, upper_right_y)[0],pyproj.transform(latlong, geocent, upper_right_x, upper_right_y)[1])
         description = "Trail data Projection"
-        area_id = 'lma'
-        proj_id = 'equirectangular'
-        proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84', }
+        area_id = 'merc'
+        proj_id = 'merc'
+        proj_dict = {'proj': 'merc', 'datum': 'WGS84', 'ellps': 'WGS84', }
         area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
         return area_def
 
