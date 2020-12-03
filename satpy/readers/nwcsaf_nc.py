@@ -267,15 +267,32 @@ class NcNWCSAF(BaseFileHandler):
 
         nlines, ncols = self.nc[dsid['name']].shape
 
-        area = get_area_def('some_area_name',
-                            "On-the-fly area",
-                            'geosmsg',
-                            proj_str,
-                            ncols,
-                            nlines,
-                            area_extent)
+        area = self._ensure_area_def_is_in_meters(
+            get_area_def('some_area_name',
+                         "On-the-fly area",
+                         'geosmsg',
+                         proj_str,
+                         ncols,
+                         nlines,
+                         area_extent))
 
         return area
+
+    @staticmethod
+    def _ensure_area_def_is_in_meters(area_definition):
+        """Fix units in Earth shape, satellite altitude and 'units' attribute."""
+        if area_definition.proj_dict["units"] == "km":
+            proj_dict = area_definition.proj_dict.copy()
+            from pyresample.geometry import AreaDefinition
+
+            proj_dict["units"] = "m"
+            proj_dict["a"] *= 1000.
+            proj_dict["h"] *= 1000.
+            area_extent = tuple([val * 1000. for val in area_definition.area_extent])
+            return AreaDefinition(area_definition.area_id, area_definition.description,
+                                  area_definition.proj_id, proj_dict,
+                                  area_definition.width, area_definition.height, area_extent)
+        return area_definition
 
     def __del__(self):
         """Delete the instance."""
