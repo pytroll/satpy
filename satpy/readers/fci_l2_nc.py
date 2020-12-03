@@ -35,51 +35,79 @@ PRODUCT_DATA_DURATION_MINUTES = 20
 SSP_DEFAULT = 0.0
 
 
-class CommonFunctions(object):
-    @staticmethod
-    def get_start_time(start_time_string):
-        """Get observation start time."""
+class FciL2BaseClass(object):
+    def _start_time(self):
         try:
-            start_time = datetime.strptime(start_time_string, '%Y%m%d%H%M%S')
+            start_time = datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
         except (ValueError, KeyError):
             # TODO if the sensing_start_time_utc attribute is not valid, uses a hardcoded value
             logger.warning("Start time cannot be obtained from file content, using default value instead")
             start_time = datetime.strptime('20200101120000', '%Y%m%d%H%M%S')
-
         return start_time
 
-    @staticmethod
-    def get_end_time(end_time_string, start_time):
+    def _end_time(self):
         """Get observation end time."""
         try:
-            end_time = datetime.strptime(end_time_string, '%Y%m%d%H%M%S')
+            end_time = datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%d%H%M%S')
         except (ValueError, KeyError):
             # TODO if the sensing_end_time_utc attribute is not valid, adds 20 minutes to the start time
-            end_time = start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
+            end_time = self.start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
         return end_time
 
-    @staticmethod
-    def get_spacecraft_name(attributes):
+    def _spacecraft_name(self):
         """Return spacecraft name."""
         try:
-            return attributes['platform']
+            return self.nc.attrs['platform']
         except KeyError:
             # TODO if the platform attribute is not valid, return a default value
             logger.warning("Spacecraft name cannot be obtained from file content, using default value instead")
             return 'DEFAULT_MTG'
 
-    @staticmethod
-    def get_sensor_name(attributes):
+    def _sensor_name(self):
         """Return instrument."""
         try:
-            return attributes['data_source']
+            return self.nc.attrs['data_source']
         except KeyError:
             # TODO if the data_source attribute is not valid, return a default value
             logger.warning("Sensor cannot be obtained from file content, using default value instead")
             return 'fci'
 
+    def _get_global_attributes(self):
+        """Create a dictionary of global attributes to be added to all datasets.
 
-class FciL2NCFileHandler(BaseFileHandler):
+        Returns:
+            dict: A dictionary of global attributes.
+                filename: name of the product file
+                start_time: sensing start time from best available source
+                end_time: sensing end time from best available source
+                spacecraft_name: name of the spacecraft
+                ssp_lon: longitude of subsatellite point
+                sensor: name of sensor
+                creation_time: creation time of the product
+                platform_name: name of the platform
+
+        """
+        attributes = {
+            'filename': self.filename,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'spacecraft_name': self.spacecraft_name,
+            'ssp_lon': self.ssp_lon,
+            'sensor': self.sensor,
+            'creation_time': self.filename_info['creation_time'],
+            'platform_name': self.spacecraft_name,
+        }
+        return attributes
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        try:
+            self.nc.close()
+        except AttributeError:
+            pass
+
+
+class FciL2NCFileHandler(BaseFileHandler, FciL2BaseClass):
     """Reader class for FCI L2 products in NetCDF4 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -107,19 +135,19 @@ class FciL2NCFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
-        return CommonFunctions.get_start_time(self.nc.attrs['time_coverage_start'])
+        return self._start_time()
 
     @property
     def end_time(self):
-        return CommonFunctions.get_end_time(self.nc.attrs['time_coverage_end'], self.start_time)
+        return self._end_time()
 
     @property
     def spacecraft_name(self):
-        return CommonFunctions.get_spacecraft_name(self.nc.attrs)
+        return self._spacecraft_name()
 
     @property
     def sensor(self):
-        return CommonFunctions.get_sensor_name(self.nc.attrs)
+        return self._sensor_name()
 
     @property
     def ssp_lon(self):
@@ -164,8 +192,6 @@ class FciL2NCFileHandler(BaseFileHandler):
             variable = variable.sel(maximum_number_of_layers=layer)
 
         # Rename the dimensions as required by Satpy
-#        self.col_str = "number_of_columns"
-#        self.row_str = "number_of_rows"
         variable = variable.rename({"number_of_rows": 'y', "number_of_columns": 'x'})
 
         # Manage the attributes of the dataset
@@ -174,35 +200,7 @@ class FciL2NCFileHandler(BaseFileHandler):
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
 
-        print('dataset', variable)
         return variable
-
-    def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets.
-
-        Returns:
-            dict: A dictionary of global attributes.
-                filename: name of the product file
-                start_time: sensing start time from best available source
-                end_time: sensing end time from best available source
-                spacecraft_name: name of the spacecraft
-                ssp_lon: longitude of subsatellite point
-                sensor: name of sensor
-                creation_time: creation time of the product
-                platform_name: name of the platform
-
-        """
-        attributes = {
-            'filename': self.filename,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'spacecraft_name': self.spacecraft_name,
-            'ssp_lon': self.ssp_lon,
-            'sensor': self.sensor,
-            'creation_time': self.filename_info['creation_time'],
-            'platform_name': self.spacecraft_name,
-        }
-        return attributes
 
     def get_area_def(self, key):
         """Return the area definition (common to all data in product)."""
@@ -261,21 +259,13 @@ class FciL2NCFileHandler(BaseFileHandler):
 
         return area_def
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except AttributeError:
-            pass
 
-
-class FciL2NCSegmentFileHandler(BaseFileHandler):
+class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2BaseClass):
     """Reader class for FCI L2 Segmented products in NetCDF4 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
-
         # Use xarray's default netcdf4 engine to open the file
         self.nc = xr.open_dataset(
             self.filename,
@@ -291,21 +281,23 @@ class FciL2NCSegmentFileHandler(BaseFileHandler):
         self.nlines = self.nc['number_of_FoR_rows'].size
         self.ncols = self.nc['number_of_FoR_cols'].size
 
+        self.ssp_lon = SSP_DEFAULT
+
     @property
     def start_time(self):
-        return CommonFunctions.get_start_time(self.nc.attrs['time_coverage_start'])
+        return self._start_time()
 
     @property
     def end_time(self):
-        return CommonFunctions.get_end_time(self.nc.attrs['time_coverage_end'], self.start_time)
+        return self._end_time()
 
     @property
     def spacecraft_name(self):
-        return CommonFunctions.get_spacecraft_name(self.nc.attrs)
+        return self._spacecraft_name()
 
     @property
     def sensor(self):
-        return CommonFunctions.get_sensor_name(self.nc.attrs)
+        return self._sensor_name()
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
@@ -335,52 +327,18 @@ class FciL2NCSegmentFileHandler(BaseFileHandler):
         variable = float_variable
 
         # If the variable has 3 dimensions, select the required layer
-        if variable.ndim == 3:
+        # ASR parameters are to be ignored
+        if variable.ndim == 3 and dataset_info['file_type'] != 'nc_fci_asr':
             layer = dataset_info.get('layer', 0)
             logger.debug('Selecting the layer %d.', layer)
             variable = variable.sel(maximum_number_of_layers=layer)
 
         # Rename the dimensions as required by Satpy
         variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
-
-        # Manage the attributes of the dataset
+#       # Manage the attributes of the dataset
         variable.attrs.setdefault('units', None)
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
 
         return variable
-
-    def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets.
-
-        Returns:
-            dict: A dictionary of global attributes.
-                filename: name of the product file
-                start_time: sensing start time from best available source
-                end_time: sensing end time from best available source
-                spacecraft_name: name of the spacecraft
-                ssp_lon: longitude of subsatellite point
-                sensor: name of sensor
-                creation_time: creation time of the product
-                platform_name: name of the platform
-
-        """
-        attributes = {
-            'filename': self.filename,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'spacecraft_name': self.spacecraft_name,
-            'ssp_lon': SSP_DEFAULT,
-            'sensor': self.sensor,
-            'creation_time': self.filename_info['creation_time'],
-            'platform_name': self.spacecraft_name,
-        }
-        return attributes
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except AttributeError:
-            pass

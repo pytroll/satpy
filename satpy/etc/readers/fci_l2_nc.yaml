@@ -7,7 +7,6 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-  # EUMETSAT MTG FCI L2 Optimal Cloud Analysis files in NetCDF4 format
   # Filename examples
   # FCI_SIM_OCA_2L_2KM_{creation_time:%Y%m%d}_1700.nc
   # W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-ASR--FD------NC4E_C_EUMT_20201105031219_L2PF_DEV_20170410171000_20170410172000_N__T_0104_0000.nc
@@ -31,8 +30,8 @@ file_types:
     file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CTTH--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
 
   nc_fci_asr:
-    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-ASR--{temp_str}_C_EUMT_{processing_time:%Y%m%d%H%M%S}_L2PF_{platform_id}_{start_time:%Y%m%d%H%M%S}Z_{end_time:%Y%m%d%H%M%S}Z_N__T_0104_0000.nc"]
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-ASR--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
 
 
   # W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-GII--FD------NC4E_C_EUMT_20201105030947_L2PF_DEV_20170410171000_20170410172000_N__T_0104_0000.nc
@@ -193,7 +192,7 @@ datasets:
     name: latitude
     file_key: 'latitude'
 #    resolution:
-    file_type: [nc_fci_gii]
+    file_type: [nc_fci_gii, nc_fci_asr]
     standard_name: latitude
     fill_value: -32767
     mask_value: -32767
@@ -204,7 +203,7 @@ datasets:
     name: longitude
     file_key: 'longitude'
 #    resolution:
-    file_type: [nc_fci_gii]
+    file_type: [nc_fci_gii, nc_fci_asr]
     standard_name: longitude
     fill_value: -32767
     mask_value: -32767
@@ -341,3 +340,202 @@ datasets:
     file_key: effective_cloudiness
     fill_value: 0
     mask_value: 0
+
+# ASR
+  bt_max:
+    name: bt_max
+    file_type: nc_fci_asr
+    file_key: bt_max
+    standard_name: bt_max
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean:
+    name: bt_mean
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    standard_name: bt_mean
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_min:
+    name: bt_min
+    file_type: nc_fci_asr
+    file_key: bt_min
+    standard_name: bt_min
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_std:
+    name: bt_std
+    file_type: nc_fci_asr
+    file_key: bt_std
+    standard_name: bt_std
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_max:
+    name: radiance_max
+    file_type: nc_fci_asr
+    file_key: radiance_max
+    standard_name: radiance_max
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_mean:
+    name: radiance_mean
+    file_type: nc_fci_asr
+    file_key: radiance_mean
+    standard_name: radiance_mean
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_min:
+    name: radiance_min
+    file_type: nc_fci_asr
+    file_key: radiance_min
+    standard_name: radiance_min
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_std:
+    name: radiance_std
+    file_type: nc_fci_asr
+    file_key: radiance_std
+    standard_name: radiance_std
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_max:
+    name: reflectance_max
+    file_type: nc_fci_asr
+    file_key: reflectance_max
+    standard_name: reflectance_max
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_mean:
+    name: reflectance_mean
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    standard_name: reflectance_mean
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_min:
+    name: reflectance_min
+    file_type: nc_fci_asr
+    file_key: reflectance_min
+    standard_name: reflectance_min
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_std:
+    name: reflectance_std
+    file_type: nc_fci_asr
+    file_key: reflectance_std
+    standard_name: reflectance_std
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt:
+    name: quality_bt
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    standard_name: quality_bt
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_reflectance:
+    name: quality_reflectance
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    standard_name: quality_reflectance
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_radiance:
+    name: quality_radiance
+    file_type: nc_fci_asr
+    file_key: quality_radiance
+    standard_name: quality_radiance
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  land_pixel_percent:
+    name: land_pixel_percent
+    file_type: nc_fci_asr
+    file_key: land_pixel_percent
+    standard_name: land_pixel_percent
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  water_pixel_percent:
+    name: water_pixel_percent
+    file_type: nc_fci_asr
+    file_key: water_pixel_percent
+    standard_name: water_pixel_percent
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  pixel_percentage:
+    name: pixel_percentage
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    standard_name: pixel_percentage
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
