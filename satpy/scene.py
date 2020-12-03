@@ -1180,7 +1180,11 @@ class Scene:
             raise TypeError("'load' expects a list of datasets, got a string.")
         dataset_keys = set(wishlist)
         needed_datasets = (self._wishlist | dataset_keys) - set(self._datasets.keys())
-        self._update_dependency_tree(needed_datasets, calibration, polarization, resolution, level)
+        query = DataQuery(calibration=calibration,
+                          polarization=polarization,
+                          resolution=resolution,
+                          level=level)
+        self._update_dependency_tree(needed_datasets, query)
 
         self._wishlist |= needed_datasets
 
@@ -1201,11 +1205,7 @@ class Scene:
         if unload:
             self.unload(keepables=keepables)
 
-    def _update_dependency_tree(self, needed_datasets, calibration, polarization, resolution, level):
-        query = DataQuery(calibration=calibration,
-                          polarization=polarization,
-                          resolution=resolution,
-                          level=level)
+    def _update_dependency_tree(self, needed_datasets, query):
         try:
             self._dependency_tree.populate_with_keys(needed_datasets, query)
         except MissingDependencies as err:
