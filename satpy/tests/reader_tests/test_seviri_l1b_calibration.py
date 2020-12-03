@@ -19,6 +19,8 @@
 
 import unittest
 import numpy as np
+import xarray as xr
+from datetime import datetime
 from satpy.readers.seviri_base import SEVIRICalibrationHandler
 
 COUNTS_INPUT = np.array([[377.,  377.,  377.,  376.,  375.],
@@ -43,6 +45,7 @@ OFFSET = -10.456819486590666
 
 CAL_TYPE1 = 1
 CAL_TYPE2 = 2
+CAL_TYPEBAD = -1
 CHANNEL_NAME = 'IR_108'
 PLATFORM_ID = 323  # Met-10
 
@@ -70,25 +73,25 @@ TBS_OUTPUT2 = np.array([[268.94519043,  268.94519043,  268.94519043,  268.779846
                          256.71188354]], dtype=np.float32)
 
 
-VIS008_SOLAR_IRRADIANCE = 23.29414028785013
+VIS008_SOLAR_IRRADIANCE = 73.1807
 
 VIS008_RADIANCE = np.array([[0.62234485,  0.59405649,  0.59405649,  0.59405649,  0.59405649],
                             [0.59405649,  0.62234485,  0.62234485,  0.59405649,  0.62234485],
                             [0.76378691,  0.79207528,  0.79207528,  0.76378691,  0.79207528],
                             [3.30974245,  3.33803129,  3.33803129,  3.25316572,  3.47947311],
                             [7.52471399,  7.83588648,  8.2602129,  8.57138538,  8.99571133]], dtype=np.float32)
+VIS008_RADIANCE = xr.DataArray(VIS008_RADIANCE)
 
-VIS008_REFLECTANCE = np.array([[2.67167997,   2.55024004,   2.55024004,   2.55024004,
-                                2.55024004],
-                               [2.55024004,   2.67167997,   2.67167997,   2.55024004,
-                                2.67167997],
-                               [3.27888012,   3.40032005,   3.40032005,   3.27888012,
-                                3.40032005],
-                               [14.20847702,  14.32991886,  14.32991886,  13.96559715,
-                                14.93711853],
-                               [32.30303574,  33.63887405,  35.46047592,  36.79631805,
-                                38.61791611]], dtype=np.float32)
-
+VIS008_REFLECTANCE = np.array([[2.8066392, 2.6790648, 2.6790648, 2.6790648,
+                                2.6790648],
+                               [2.6790648, 2.8066392, 2.8066392, 2.6790648,
+                                2.8066392],
+                               [3.444512,  3.572086,  3.572086,  3.444512,
+                                3.572086],
+                               [14.926213, 15.053792, 15.053792, 14.671064,
+                                15.691662],
+                               [33.934814, 35.33813,  37.251755, 38.655075,
+                                40.56869]], dtype=np.float32)
 
 # --
 
@@ -162,6 +165,7 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
 
         self.handler = SEVIRICalibrationHandler()
         self.handler.platform_id = PLATFORM_ID
+        self.handler.start_time = datetime(2020, 8, 15, 13, 0, 40)
 
     def test_convert_to_radiance(self):
         """Test the conversion from counts to radiance method"""
@@ -182,10 +186,15 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
                                             CHANNEL_NAME, CAL_TYPE2)
         assertNumpyArraysEqual(result, TBS_OUTPUT2)
 
-    def test_vis_calibrate(self):
+        with self.assertRaises(NotImplementedError):
+            self.handler._ir_calibrate(RADIANCES_OUTPUT,
+                                       CHANNEL_NAME, CAL_TYPEBAD)
 
-        result = self.handler._vis_calibrate(VIS008_RADIANCE, VIS008_SOLAR_IRRADIANCE)
+    def test_vis_calibrate(self):
+        result = self.handler._vis_calibrate(VIS008_RADIANCE,
+                                             VIS008_SOLAR_IRRADIANCE)
         assertNumpyArraysEqual(result, VIS008_REFLECTANCE)
+        self.assertTrue(result.sun_earth_distance_correction_applied)
 
     def tearDown(self):
         pass

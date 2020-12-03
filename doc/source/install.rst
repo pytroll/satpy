@@ -22,14 +22,14 @@ They can be installed individually:
 
 .. code-block:: bash
 
-    $ pip install satpy[viirs_sdr]
+    $ pip install "satpy[viirs_sdr]"
 
 Or all at once, although this isn't recommended due to the large number of
 dependencies:
 
 .. code-block:: bash
 
-    $ pip install satpy[all]
+    $ pip install "satpy[all]"
 
 Conda-based Installation
 ========================

@@ -184,12 +184,12 @@ class SAFEMSIMDXML(BaseFileHandler):
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""
         angles = self.root.find('.//Tile_Angles')
-        if key in ['solar_zenith_angle', 'solar_azimuth_angle']:
+        if key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle']:
             elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
             return np.array([[val for val in elt.text.split()] for elt in elts],
                             dtype=np.float)
 
-        elif key in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
+        elif key['name'] in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             arrays = []
             elts = angles.findall(info['xml_tag'] + '[@bandId="1"]')
             for elt in elts:
@@ -197,14 +197,13 @@ class SAFEMSIMDXML(BaseFileHandler):
                 arrays.append(np.array([[val for val in item.text.split()] for item in items],
                                        dtype=np.float))
             return np.nanmean(np.dstack(arrays), -1)
-        else:
-            return
+        return None
 
     def get_dataset(self, key, info):
-        """Get the dataset refered to by `key`."""
+        """Get the dataset referred to by `key`."""
         angles = self._get_coarse_dataset(key, info)
         if angles is None:
-            return
+            return None
 
         # Fill gaps at edges of swath
         darr = DataArray(angles, dims=['y', 'x'])

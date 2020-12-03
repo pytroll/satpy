@@ -22,6 +22,15 @@ file_types:
         - 'OCAEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
         - '{spacecraft:4s}-SEVI-MSGOCAE-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
         - '{spacecraft:4s}-SEVI-MSGOCAE-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+
+  # EUMETSAT MSG SEVIRI L2 Active Fire Monitoring files in GRIB format
+  grib_seviri_fir:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+      - 'FIREncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+      - '{spacecraft:4s}-SEVI-MSGFIRG-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+      - '{spacecraft:4s}-SEVI-MSGFIRG-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+
 datasets:
 
   cloud_mask:
@@ -127,3 +136,19 @@ datasets:
     parameter_number: 40
     units: Pa
     standard_name: air_pressure_at_cloud_top_standard_error
+
+  fire_probability:
+    name: fire_probability
+    resolution: 3000
+    file_type: grib_seviri_fir
+    parameter_number: 192
+    units: "%"
+    long_name: fire_probability
+
+  active_fires:
+    name: active_fires
+    resolution: 3000
+    file_type: grib_seviri_fir
+    parameter_number: 9
+    units: ""
+    long_name: active_fire_classification

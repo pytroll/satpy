@@ -21,6 +21,7 @@ import logging
 import os
 import warnings
 from datetime import datetime, timedelta
+from functools import total_ordering
 
 import yaml
 
@@ -85,7 +86,6 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
         a `Scene` object.
 
     """
-
     if reader is not None and not isinstance(reader, (list, tuple)):
         reader = [reader]
 
@@ -124,7 +124,6 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
         Mapping where the keys are reader names and the values are tuples of
         (reader_configs, filenames).
     """
-
     files_to_sort = set(files_to_sort)
     reader_dict = {}
     for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
@@ -164,7 +163,6 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
     Returns:
         Mapping[str, List[Tuple[Tuple, str]]], as described.
     """
-
     file_keys = {}
     for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
         if group_keys is None:
@@ -315,10 +313,14 @@ def available_readers(as_dict=False):
         try:
             reader_info = read_reader_config(reader_configs)
         except (KeyError, IOError, yaml.YAMLError):
-            LOG.warning("Could not import reader config from: %s", reader_configs)
+            LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
             continue
         readers.append(reader_info if as_dict else reader_info['name'])
+    if as_dict:
+        readers = sorted(readers, key=lambda reader_info: reader_info['name'])
+    else:
+        readers = sorted(readers)
     return readers
 
 
@@ -440,15 +442,17 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
+            This can either be a single dictionary that will be passed to all
+            reader instances, or a mapping of reader names to dictionaries.  If
+            the keys of ``reader_kwargs`` match exactly the list of strings in
+            ``reader`` or the keys of filenames, each reader instance will get its
+            own keyword arguments accordingly.
         ppp_config_dir (str): The directory containing the configuration files for satpy.
 
     Returns: Dictionary mapping reader name to reader instance
 
     """
     reader_instances = {}
-    reader_kwargs = reader_kwargs or {}
-    reader_kwargs_without_filter = reader_kwargs.copy()
-    reader_kwargs_without_filter.pop('filter_parameters', None)
 
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
@@ -474,6 +478,8 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     else:
         remaining_filenames = set(filenames or [])
 
+    (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
+
     for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
         if isinstance(filenames, dict):
             readers_files = set(filenames[reader[idx]])
@@ -481,7 +487,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             readers_files = remaining_filenames
 
         try:
-            reader_instance = load_reader(reader_configs, **reader_kwargs)
+            reader_instance = load_reader(
+                    reader_configs,
+                    **reader_kwargs[None if reader is None else reader[idx]])
         except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
@@ -492,7 +500,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
+            reader_instance.create_filehandlers(
+                    loadables,
+                    fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:
@@ -507,3 +517,95 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
     return reader_instances
+
+
+def _get_reader_kwargs(reader, reader_kwargs):
+    """Help load_readers to form reader_kwargs.
+
+    Helper for load_readers to get reader_kwargs and
+    reader_kwargs_without_filter in the desirable form.
+    """
+    reader_kwargs = reader_kwargs or {}
+
+    # ensure one reader_kwargs per reader, None if not provided
+    if reader is None:
+        reader_kwargs = {None: reader_kwargs}
+    elif reader_kwargs.keys() != set(reader):
+        reader_kwargs = dict.fromkeys(reader, reader_kwargs)
+
+    reader_kwargs_without_filter = {}
+    for (k, v) in reader_kwargs.items():
+        reader_kwargs_without_filter[k] = v.copy()
+        reader_kwargs_without_filter[k].pop('filter_parameters', None)
+
+    return (reader_kwargs, reader_kwargs_without_filter)
+
+
+@total_ordering
+class FSFile(os.PathLike):
+    """Implementation of a PathLike file object, that can be opened.
+
+    This is made to be used in conjuction with fsspec or s3fs. For example::
+
+        from satpy import Scene
+
+        import fsspec
+        filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
+
+        the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
+
+        from satpy.readers import FSFile
+        fs_files = [FSFile(open_file) for open_file in the_files]
+
+        scn = Scene(filenames=fs_files, reader='abi_l1b')
+        scn.load(['true_color_raw'])
+
+    """
+
+    def __init__(self, file, fs=None):
+        """Initialise the FSFile instance.
+
+        *file* can be string or an fsspec.OpenFile instance. In the latter case, the follow argument *fs* has no effect.
+        *fs* can be None or a fsspec filesystem instance.
+        """
+        try:
+            self._file = file.path
+            self._fs = file.fs
+        except AttributeError:
+            self._file = file
+            self._fs = fs
+
+    def __str__(self):
+        """Return the string version of the filename."""
+        return self._file
+
+    def __fspath__(self):
+        """Comply with PathLike."""
+        return self._file
+
+    def __repr__(self):
+        """Representation of the object."""
+        return '<FSFile "' + str(self._file) + '">'
+
+    def open(self):
+        """Open the file.
+
+        This is read-only.
+        """
+        try:
+            return self._fs.open(self._file)
+        except AttributeError:
+            return open(self._file)
+
+    def __lt__(self, other):
+        """Implement ordering."""
+        return os.fspath(self) < os.fspath(other)
+
+
+def open_file_or_filename(unknown_file_thing):
+    """Try to open the *unknown_file_thing*, otherwise return the filename."""
+    try:
+        f_obj = unknown_file_thing.open()
+    except AttributeError:
+        f_obj = unknown_file_thing
+    return f_obj
