@@ -472,6 +472,24 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL = {
     }
 }
 
+TEST_IS_ROI_FULLDISK = {
+    'is_full_disk': True,
+    'is_rapid_scan': 0,
+    'is_roi': False
+}
+
+TEST_IS_ROI_RAPIDSCAN = {
+    'is_full_disk': False,
+    'is_rapid_scan': 1,
+    'is_roi': False
+}
+
+TEST_IS_ROI_ROI = {
+    'is_full_disk': False,
+    'is_rapid_scan': 0,
+    'is_roi': True
+}
+
 TEST_CALIBRATION_MODE = {
     'earth_model': 1,
     'dataset_id': make_dataid(name='IR_108', calibration='radiance'),
@@ -932,6 +950,46 @@ class TestNativeMSGArea(unittest.TestCase):
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.proj_id, expected['Projection ID'])
+
+    # Test check for Region Of Interest (ROI) data
+    def prepare_is_roi(self, test_dict):
+        """Prepare calculated and expected check for region of interest data for equal checking."""
+        earth_model = 2
+        dataset_id = make_dataid(name='VIS006')
+        is_full_disk = test_dict['is_full_disk']
+        is_rapid_scan = test_dict['is_rapid_scan']
+        header = self.create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan)
+        trailer = self.create_test_trailer(is_rapid_scan)
+        expected_is_roi = test_dict['is_roi']
+
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+            fromfile.return_value = header
+            with mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict:
+                recarray2dict.side_effect = (lambda x: x)
+                with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap:
+                    _get_memmap.return_value = np.arange(3)
+                    with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
+                        fh = NativeMSGFileHandler(None, {}, None)
+                        fh.header = header
+                        fh.trailer = trailer
+                        calc_is_roi = fh.is_roi()
+
+        return (calc_is_roi, expected_is_roi)
+
+    def test_is_roi_fulldisk(self):
+        """Test check for region of interest with FES data."""
+        calculated, expected = self.prepare_is_roi(TEST_IS_ROI_FULLDISK)
+        self.assertEqual(calculated, expected)
+
+    def test_is_roi_rapidscan(self):
+        """Test check for region of interest with RSS data."""
+        calculated, expected = self.prepare_is_roi(TEST_IS_ROI_RAPIDSCAN)
+        self.assertEqual(calculated, expected)
+
+    def test_is_roi_roi(self):
+        """Test check for region of interest with ROI data."""
+        calculated, expected = self.prepare_is_roi(TEST_IS_ROI_ROI)
+        self.assertEqual(calculated, expected)
 
 
 class TestNativeMSGCalibrationMode(unittest.TestCase):
