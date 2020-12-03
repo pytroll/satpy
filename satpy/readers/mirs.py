@@ -53,19 +53,33 @@ class MIRSHandler(NetCDF4FileHandler):
     def start_time(self):
         """Get start time."""
         # old file format
-        if self.filename_info.get('date', False):
+        if self.filename_info.get("date", False):
             return datetime.datetime.combine(
-                self.filename_info['date'], self.filename_info['start_time'])
-        return self.filename_info['start_time']
+                self.force_date("date"), self.force_time("start_time"))
+        return self.filename_info["start_time"]
 
     @property
     def end_time(self):
         """Get end time."""
         # old file format
-        if self.filename_info.get('date', False):
+        if self.filename_info.get("date", False):
             return datetime.datetime.combine(
-                self.filename_info['date'], self.filename_info['end_time'])
-        return self.filename_info['end_time']
+                self.force_date("date"), self.force_time("end_time"))
+        return self.filename_info["end_time"]
+
+    def force_date(self, key):
+        """Force datetime.date for combine."""
+        if isinstance(self.filename_info[key], datetime.datetime):
+            return self.filename_info[key].date()
+        else:
+            return self.filename_info[key]
+
+    def force_time(self, key):
+        """Force datetime.time for combine."""
+        if isinstance(self.filename_info.get(key), datetime.datetime):
+            return self.filename_info.get(key).time()
+        else:
+            return self.filename_info.get(key)
 
     def _read_atms_limb_correction_coefficients(self, fn):
         if os.path.isfile(fn):
@@ -107,7 +121,7 @@ class MIRSHandler(NetCDF4FileHandler):
                 coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
                 coeffs = [float(x) for x in coeff_line_parts[:nchx]]
                 ameans = [float(x) for x in coeff_line_parts[nchx:-1]]
-                error_val = float(coeff_line_parts[-1])
+                # error_val = float(coeff_line_parts[-1])
                 for x in range(nchx):
                     all_coeffs[chan_idx, fov_idx, all_nchanx[chan_idx, x]] = coeffs[x]
                     all_amean[all_nchanx[chan_idx, x], fov_idx, chan_idx] = ameans[x]
@@ -155,7 +169,6 @@ class MIRSHandler(NetCDF4FileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Update information for or add datasets provided by this file."""
-
         handled_variables = set()
         # update previously configured datasets
         for is_avail, ds_info in (configured_datasets or []):
@@ -196,7 +209,7 @@ class MIRSHandler(NetCDF4FileHandler):
 
                     c2 = Counter()
                     new_names = []
-                    for idx, f, p, normal_f, normal_p in normals:
+                    for _idx, _f, _p, normal_f, normal_p in normals:
                         c2[normal_f + normal_p] += 1
                         new_name = "btemp_{}{}{}".format(normal_f, normal_p, str(
                             c2[normal_f + normal_p] if c[normal_f + normal_p] > 1 else ''))
@@ -209,7 +222,8 @@ class MIRSHandler(NetCDF4FileHandler):
                         #                           var_name,
                         #                           description="Channel Brightness Temperature at {}GHz".format(f),
                         #                           units="K", frequency=f,
-                        #                           dependencies=(PRODUCT_BT_CHANS, PRODUCT_SURF_TYPE), channel_index=idx)
+                        #                           dependencies=(PRODUCT_BT_CHANS, PRODUCT_SURF_TYPE),
+                        #                                         channel_index=idx)
                         # self.all_bt_channels.append(new_name)
 
                         ds_info = {
