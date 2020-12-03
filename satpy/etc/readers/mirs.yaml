@@ -2,7 +2,7 @@ reader:
   description: MIRS reader
   name: mirs
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  sensors: [amsua-mhs, atms]
+  sensors: [amsu-a, mhs, ssmis, gmi, atms]
 
 file_types:
   mirs_atms:

@@ -33,6 +33,11 @@ except ImportError:
 POLO_V = 2
 POLO_H = 3
 
+# number of channels
+# n_channels = 22
+# number of fields of view
+n_fov = 96
+
 
 class MIRSHandler(NetCDF4FileHandler):
     """MIRS handler for NetCDF4 files."""
@@ -45,9 +50,23 @@ class MIRSHandler(NetCDF4FileHandler):
         return self.filename_info['platform_name'].lower()
 
     @property
-    def sensor_name(self):
-        """Get sensor name."""
-        return self['/attr/instrument_name'].lower()
+    def sensor(self):
+        """Get sensor."""
+        return self.sensor_names
+
+    @property
+    def sensor_names(self):
+        """Return standard sensor or instrument name for the file's data."""
+        try:
+            res = self['/attr/instrument_name']
+            if isinstance(res, np.ndarray):
+                res = str(res.astype(str))
+            res = [x.strip() for x in res.split(',')]
+            if len(res) == 1:
+                return res[0]
+            return res
+        except KeyError:
+            return ["amsu-a", "mhs", "ssmis", "gmi", "atms"]
 
     @property
     def start_time(self):
@@ -92,8 +111,8 @@ class MIRSHandler(NetCDF4FileHandler):
         # make it a generator
         coeff_str = (line.strip() for line in coeff_str)
 
-        all_coeffs = np.zeros((22, 96, 22), dtype=np.float32)
-        all_amean = np.zeros((22, 96, 22), dtype=np.float32)
+        all_coeffs = np.zeros((22, n_fov, 22), dtype=np.float32)
+        all_amean = np.zeros((22, n_fov, 22), dtype=np.float32)
         all_dmean = np.zeros(22, dtype=np.float32)
         all_nchx = np.zeros(22, dtype=np.int32)
         all_nchanx = np.zeros((22, 22), dtype=np.int32)
@@ -115,8 +134,8 @@ class MIRSHandler(NetCDF4FileHandler):
             for x in range(nchx):
                 all_nchanx[chan_idx, x] = locations[x] - 1
 
-            # Read 'nchx' coefficients for each of 96 FOV
-            for fov_idx in range(96):
+            # Read 'nchx' coefficients for each of 96 FOV (n_fov).
+            for fov_idx in range(n_fov):
                 # chan_num, fov_num, *coefficients, error
                 coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
                 coeffs = [float(x) for x in coeff_line_parts[:nchx]]
@@ -135,7 +154,7 @@ class MIRSHandler(NetCDF4FileHandler):
             ds = datasets[channel_idx]
             new_ds = ds.copy()
             all_new_ds.append(new_ds)
-            for fov_idx in range(96):
+            for fov_idx in range(n_fov):
                 coeff_sum[:] = 0
                 for k in range(nchx[channel_idx]):
                     coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
@@ -152,7 +171,7 @@ class MIRSHandler(NetCDF4FileHandler):
         metadata.update(data.attrs)
         metadata.update(ds_info)
         metadata.update({
-            'sensor': self.sensor_name,
+            'sensor': self.sensor_names,
             'platform_name': self.platform_name,
             'start_time': self.start_time,
             'end_time': self.end_time,
@@ -160,11 +179,20 @@ class MIRSHandler(NetCDF4FileHandler):
 
         return metadata
 
+    def _rename_dims(self, data_arr):
+        """Normalize dimension names with the rest of Satpy."""
+        dims_dict = {}
+        if 'Field_of_view' in data_arr.dims:
+            dims_dict['Field_of_view'] = 'x'
+        if 'Scanline' in data_arr.dims:
+            dims_dict['Scanline'] = 'y'
+        return data_arr.rename(dims_dict)
+
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
         data = self[ds_info.get('file_key', ds_info['name'])]
         data.attrs = self.get_metadata(data, ds_info)
-
+        data = self._rename_dims(data)
         return data
 
     def available_datasets(self, configured_datasets=None):
