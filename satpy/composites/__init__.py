@@ -25,11 +25,6 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
-
 from satpy.config import get_environ_ancpath
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
@@ -275,7 +270,7 @@ class GenericCompositor(CompositeBase):
             return data_arr.attrs['mode']
         if 'bands' not in data_arr.dims:
             return cls.modes[1]
-        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0], str):
+        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0].item(), str):
             return ''.join(data_arr.coords['bands'].values)
         return cls.modes[data_arr.sizes['bands']]
 
@@ -564,12 +559,13 @@ class DayNightCompositor(GenericCompositor):
         return super(DayNightCompositor, self).__call__(data, **kwargs)
 
 
-def enhance2dataset(dset):
-    """Return the enhancemened to dataset *dset* as an array."""
+def enhance2dataset(dset, convert_p=False):
+    """Return the enhancement dataset *dset* as an array.
+
+    If `convert_p` is True, enhancements generating a P mode will be converted to RGB or RGBA.
+    """
     attrs = dset.attrs
-    img = get_enhanced_image(dset)
-    # Clip image data to interval [0.0, 1.0]
-    data = img.data.clip(0.0, 1.0)
+    data = _get_data_from_enhanced_image(dset, convert_p)
     data.attrs = attrs
     # remove 'mode' if it is specified since it may have been updated
     data.attrs.pop('mode', None)
@@ -578,10 +574,31 @@ def enhance2dataset(dset):
     return data
 
 
+def _get_data_from_enhanced_image(dset, convert_p):
+    img = get_enhanced_image(dset)
+    if convert_p and img.mode == 'P':
+        img = _apply_palette_to_image(img)
+    if img.mode != 'P':
+        data = img.data.clip(0.0, 1.0)
+    else:
+        data = img.data
+    return data
+
+
+def _apply_palette_to_image(img):
+    if len(img.palette[0]) == 3:
+        img = img.convert('RGB')
+    elif len(img.palette[0]) == 4:
+        img = img.convert('RGBA')
+    return img
+
+
 def add_bands(data, bands):
     """Add bands so that they match *bands*."""
     # Add R, G and B bands, remove L band
     bands = bands.compute()
+    if 'P' in data['bands'].data or 'P' in bands.data:
+        raise NotImplementedError('Cannot mix datasets of mode P with other datasets at the moment.')
     if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
         # Keep 'A' if it was present
@@ -1025,11 +1042,9 @@ class BackgroundCompositor(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
         projectables = self.match_data_arrays(projectables)
-
         # Get enhanced datasets
-        foreground = enhance2dataset(projectables[0])
-        background = enhance2dataset(projectables[1])
-
+        foreground = enhance2dataset(projectables[0], convert_p=True)
+        background = enhance2dataset(projectables[1], convert_p=True)
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
         # LA/RGB -> RGBA/RGBA

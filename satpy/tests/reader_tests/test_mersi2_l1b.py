@@ -39,12 +39,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             'Calibration/VIS_Cal_Coeff':
                 xr.DataArray(
                     da.ones((19, 3), chunks=1024),
-                    attrs={'Slope': [1.] * 19, 'Intercept': [0.] * 19},
+                    attrs={'Slope': np.array([1.] * 19), 'Intercept': np.array([0.] * 19)},
                     dims=('_bands', '_coeffs')),
             'Calibration/IR_Cal_Coeff':
                 xr.DataArray(
                     da.ones((6, 4, num_scans), chunks=1024),
-                    attrs={'Slope': [1.] * 6, 'Intercept': [0.] * 6},
+                    attrs={'Slope': np.array([1.] * 6), 'Intercept': np.array([0.] * 6)},
                     dims=('_bands', '_coeffs', '_scans')),
         }
         return calibration
@@ -56,7 +56,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 15, 'Intercept': [0.] * 15,
+                        'Slope': np.array([1.] * 15), 'Intercept': np.array([0.] * 15),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -68,7 +68,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 4, 'Intercept': [0.] * 4,
+                        'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 25000],
@@ -81,7 +81,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 4, 'Intercept': [0.] * 4,
+                        'Slope': np.array([1.] * 4), 'Intercept': np.array([0.] * 4),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -94,7 +94,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 2, 'Intercept': [0.] * 2,
+                        'Slope': np.array([1.] * 2), 'Intercept': np.array([0.] * 2),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
@@ -112,7 +112,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -123,7 +123,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -134,7 +134,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -145,7 +145,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
@@ -156,7 +156,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
@@ -167,7 +167,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
                             dtype=np.uint16),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
@@ -182,7 +182,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 xr.DataArray(
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'units': 'degree',
                         'valid_range': [-90, 90],
                     },
@@ -191,7 +191,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 xr.DataArray(
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
                     attrs={
-                        'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([1.] * 1), 'Intercept': np.array([0.] * 1),
                         'units': 'degree',
                         'valid_range': [-180, 180],
                     },
@@ -200,7 +200,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 xr.DataArray(
                     da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
                     attrs={
-                        'Slope': [.01] * 1, 'Intercept': [0.] * 1,
+                        'Slope': np.array([.01] * 1), 'Intercept': np.array([0.] * 1),
                         'units': 'degree',
                         'valid_range': [0, 28000],
                     },
@@ -225,12 +225,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {}
         if self.filetype_info['file_type'] == 'mersi2_l1b_1000':
             data = self._get_1km_data(num_scans, rows_per_scan, num_cols)
-            global_attrs['/attr/TBB_Trans_Coefficient_A'] = [1.0] * 6
-            global_attrs['/attr/TBB_Trans_Coefficient_B'] = [0.0] * 6
+            global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([1.0] * 6)
+            global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
         elif self.filetype_info['file_type'] == 'mersi2_l1b_250':
             data = self._get_250m_data(num_scans, rows_per_scan, num_cols * 2)
-            global_attrs['/attr/TBB_Trans_Coefficient_A'] = [0.0] * 6
-            global_attrs['/attr/TBB_Trans_Coefficient_B'] = [0.0] * 6
+            global_attrs['/attr/TBB_Trans_Coefficient_A'] = np.array([0.0] * 6)
+            global_attrs['/attr/TBB_Trans_Coefficient_B'] = np.array([0.0] * 6)
         elif self.filetype_info['file_type'] == 'mersi2_l1b_1000_geo':
             data = self._get_geo_data(num_scans, rows_per_scan, num_cols)
         elif self.filetype_info['file_type'] == 'mersi2_l1b_250_geo':

@@ -301,7 +301,7 @@ class GACLACFile(BaseFileHandler):
         res.attrs['sensor'] = self.sensor
         try:
             res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
-        except IndexError:
+        except (IndexError, RuntimeError):
             pass
 
     @property
