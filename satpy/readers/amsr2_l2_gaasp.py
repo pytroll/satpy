@@ -45,6 +45,7 @@ from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy._compat import cached_property
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
@@ -72,15 +73,20 @@ class GAASPFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super().__init__(filename, filename_info, filetype_info)
+
+    @cached_property
+    def nc(self):
+        """Get the xarray dataset for this file."""
         chunks = {dim_name: CHUNK_SIZE for dim_name in
                   self.y_dims + self.x_dims + self.time_dims}
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=False,
-                                  chunks=chunks)
+        nc = xr.open_dataset(self.filename,
+                             decode_cf=True,
+                             mask_and_scale=False,
+                             chunks=chunks)
 
         if len(self.time_dims) == 1:
-            self.nc = self.nc.rename({self.time_dims[0]: 'time'})
+            nc = nc.rename({self.time_dims[0]: 'time'})
+        return nc
 
     @property
     def start_time(self):
