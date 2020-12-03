@@ -79,10 +79,7 @@ class SeviriBaseTest(unittest.TestCase):
         res = pad_data_horizontally(data, final_size, east_bound, west_bound)
         expected = np.array([[np.nan, np.nan, np.nan,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                               np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
-        np.testing.assert_allclose(res, expected)
-
-        east_bound = 3
-        self.assertRaises(IndexError, pad_data_horizontally, data, final_size, east_bound, west_bound)
+        np.testing.assert_equal(res, expected)
 
     def test_pad_data_vertically(self):
         """Test the hrv padding in south-north direction."""
@@ -94,7 +91,4 @@ class SeviriBaseTest(unittest.TestCase):
         expected = np.zeros(final_size)
         expected[:] = np.nan
         expected[south_bound-1:north_bound] = 0.
-        np.testing.assert_allclose(res, expected)
-
-        south_bound = 3
-        self.assertRaises(IndexError, pad_data_vertically, data, final_size, south_bound, north_bound)
+        np.testing.assert_equal(res, expected)
