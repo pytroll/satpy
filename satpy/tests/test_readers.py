@@ -995,12 +995,3 @@ class TestFSFile(unittest.TestCase):
         sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
         expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
         assert sorted_filenames == expected_filenames
-
-    def test_pass_open_file(self):
-        from satpy.readers import FSFile
-        from fsspec.implementations.local import LocalFileSystem
-        lfs = LocalFileSystem()
-        of = lfs.open(self.local_filename, mode="rt", encoding="ascii")
-        fsf = FSFile(of)
-        assert str(fsf) == str(of)
-        _assert_is_open_file_and_close(fsf.open())
