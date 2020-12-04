@@ -157,20 +157,25 @@ datasets:
 
     overlap_free_end:
         name: overlap_free_end
+        file_type: eumetsat_gac_fdr
         nc_key: 'overlap_free_end'
 
     overlap_free_start:
         name: overlap_free_start
+        file_type: eumetsat_gac_fdr
         nc_key: 'overlap_free_start'
 
     midnight_line:
         name: midnight_line
+        file_type: eumetsat_gac_fdr
         nc_key: 'midnight_line'
 
     equator_crossing_longitude:
         name: equator_crossing_longitude
+        file_type: eumetsat_gac_fdr
         nc_key: 'equator_crossing_longitude'
 
     equator_crossing_time:
         name: equator_crossing_time
+        file_type: eumetsat_gac_fdr
         nc_key: 'equator_crossing_time'
