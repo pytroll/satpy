@@ -59,8 +59,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
                                        VISIR_NUM_LINES, HRV_NUM_COLUMNS,
-                                       VIS_CHANNELS, get_cds_time,
-                                       add_scanline_acq_time)
+                                       VIS_CHANNELS)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
@@ -434,9 +433,18 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             raise KeyError('Channel % s not available in the file' % dataset_id['name'])
         elif dataset_id['name'] not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
-            raw = self._get_visir_data('line_data', dataset_id['name'])
+
+            # Check if there is only 1 channel in the list as a change
+            # is needed in the arrray assignment ie channl id is not present
+            if len(self.mda['channel_list']) == 1:
+                raw = self.dask_array['visir']['line_data']
+            else:
+                i = self.mda['channel_list'].index(dataset_id['name'])
+                raw = self.dask_array['visir']['line_data'][:, i, :]
+
             data = dec10216(raw.flatten())
             data = data.reshape(shape)
+
         else:
             shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
 
@@ -460,8 +468,15 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset = None
         else:
             dataset = self.calibrate(xarr, dataset_id)
-            self._update_attrs(dataset, dataset_info)
-            self._add_scanline_acq_time(dataset, dataset_id)
+            dataset.attrs['units'] = dataset_info['units']
+            dataset.attrs['wavelength'] = dataset_info['wavelength']
+            dataset.attrs['standard_name'] = dataset_info['standard_name']
+            dataset.attrs['platform_name'] = self.mda['platform_name']
+            dataset.attrs['sensor'] = 'seviri'
+            dataset.attrs['orbital_parameters'] = {
+                'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+                'projection_latitude': 0.,
+                'projection_altitude': self.mda['projection_parameters']['h']}
 
         return dataset
 
@@ -513,36 +528,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
-
-    def _get_visir_data(self, data_field_name, channel_name):
-        """Get a certain data field for the given VIS/IR channels."""
-        # Check if there is only 1 channel in the list as a change
-        # is needed in the arrray assignment ie channl id is not present
-        if len(self.mda['channel_list']) == 1:
-            return self.dask_array['visir'][data_field_name]
-        i = self.mda['channel_list'].index(channel_name)
-        return self.dask_array['visir'][data_field_name][:, i, :]
-
-    def _add_scanline_acq_time(self, dataset, dataset_id):
-        """Add scanline acquisition time to the given dataset."""
-        if dataset_id['name'] == 'HRV':
-            tline = self.dask_array['hrv']['acq_time']
-        else:
-            tline = self._get_visir_data('acq_time', dataset_id['name'])
-        acq_time = get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
-        add_scanline_acq_time(dataset, acq_time)
-
-    def _update_attrs(self, dataset, dataset_info):
-        dataset.attrs['units'] = dataset_info['units']
-        dataset.attrs['wavelength'] = dataset_info['wavelength']
-        dataset.attrs['standard_name'] = dataset_info['standard_name']
-        dataset.attrs['platform_name'] = self.mda['platform_name']
-        dataset.attrs['sensor'] = 'seviri'
-        dataset.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters'][
-                'ssp_longitude'],
-            'projection_latitude': 0.,
-            'projection_altitude': self.mda['projection_parameters']['h']}
 
 
 def get_available_channels(header):
