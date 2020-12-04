@@ -43,7 +43,8 @@ References:
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
-                                       CHANNEL_NAMES, CALIB, SATNUM)
+                                       CHANNEL_NAMES, CALIB, SATNUM,
+                                       get_cds_time, add_scanline_acq_time)
 import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition
@@ -138,6 +139,9 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         cal_type = self.nc['planned_chan_processing'].values[i]
 
         # Correct for the scan line order
+        # TODO: Move _add_scanline_acq_time() call to the end of the method
+        #       once flipping is removed.
+        self._add_scanline_acq_time(dataset, dataset_id)
         dataset = dataset.sel(y=slice(None, None, -1))
 
         if dataset_id['calibration'] == 'counts':
@@ -236,6 +240,31 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         area_extent = (ll_c, ll_l, ur_c, ur_l)
 
         return area_extent
+
+    def _add_scanline_acq_time(self, dataset, dataset_id):
+        if dataset_id['name'] == 'HRV':
+            # TODO: Enable once HRV reading has been fixed.
+            return
+            # days, msecs = self._get_acq_time_hrv()
+        else:
+            days, msecs = self._get_acq_time_visir(dataset_id)
+        acq_time = get_cds_time(days.values, msecs.values)
+        add_scanline_acq_time(dataset, acq_time)
+
+    def _get_acq_time_hrv(self):
+        day_key = 'channel_data_hrv_data_l10_line_mean_acquisition_time_day'
+        msec_key = 'channel_data_hrv_data_l10_line_mean_acquisition_msec'
+        days = self.nc[day_key].isel(channels_hrv_dim=0)
+        msecs = self.nc[msec_key].isel(channels_hrv_dim=0)
+        return days, msecs
+
+    def _get_acq_time_visir(self, dataset_id):
+        band_idx = list(CHANNEL_NAMES.values()).index(dataset_id['name'])
+        day_key = 'channel_data_visir_data_l10_line_mean_acquisition_time_day'
+        msec_key = 'channel_data_visir_data_l10_line_mean_acquisition_msec'
+        days = self.nc[day_key].isel(channels_vis_ir_dim=band_idx)
+        msecs = self.nc[msec_key].isel(channels_vis_ir_dim=band_idx)
+        return days, msecs
 
 
 class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
