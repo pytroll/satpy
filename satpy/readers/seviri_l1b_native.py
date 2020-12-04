@@ -545,7 +545,7 @@ class ImageBoundaries:
                 'east_bound': east_bound, 'west_bound': west_bound}
 
     def _get_hrv_actual_img_bounds(self):
-        """Get HRV (if not ROI) image boundaries from the ActualL15CoverageHRV infroamtion stored in the trailer."""
+        """Get HRV (if not ROI) image boundaries from the ActualL15CoverageHRV information stored in the trailer."""
         hrv_bounds = self._trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
 
         south_bound, north_bound, east_bound, west_bound = [], [], [], []
@@ -584,7 +584,7 @@ class ImageBoundaries:
         ncolumns = int(self._mda['hrv_number_of_columns'])
         return nlines, ncolumns
 
-    def _get_visir_img_shape(self, ):
+    def _get_visir_img_shape(self):
         nlines = int(self._mda['number_of_lines'])
         ncolumns = int(self._mda['number_of_columns'])
         return nlines, ncolumns
@@ -601,9 +601,8 @@ class Padder:
         """Initialize the padder."""
         self._img_bounds = img_bounds
         self._is_full_disk = is_full_disk
-        self._dataset_id = dataset_id
 
-        if self._dataset_id['name'] == 'HRV':
+        if dataset_id['name'] == 'HRV':
             self._final_shape = (HRV_NUM_LINES, HRV_NUM_COLUMNS)
         else:
             self._final_shape = (VISIR_NUM_LINES, VISIR_NUM_COLUMNS)
@@ -612,42 +611,33 @@ class Padder:
         """Pad data to full disk with empty pixels."""
         logger.debug('Padding data to full disk')
 
-        if self._dataset_id['name'] == 'HRV' and self._is_full_disk:
-            padded_data = self._pad_fes_hrv_data(dataset)
-        else:
-            padded_data = self._pad_rss_roi_data(dataset)
-
-        return padded_data
-
-    def _pad_fes_hrv_data(self, dataset):
-        """Pad FES HRV data to full disk with empty pixels.
-
-        The HRV channel in FES mode consists of data from two windows, covering all 11136 lines. Data from these
-        two windows are read, padded horizontally and finally stacked vertically to form a full disk array.
-        """
         data_list = []
         for south_bound, north_bound, east_bound, west_bound in zip(*self._img_bounds.values()):
             nlines = north_bound - south_bound + 1
-            padded_data = pad_data_horizontally(dataset[south_bound - 1:north_bound, :].data,
-                                                (nlines, self._final_shape[1]), east_bound, west_bound)
+            data = self._extract_data_to_pad(dataset, south_bound, north_bound)
+            padded_data = pad_data_horizontally(data, (nlines, self._final_shape[1]), east_bound, west_bound)
             data_list.append(padded_data)
 
-        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
+        padded_data = da.vstack(data_list)
 
-    def _pad_rss_roi_data(self, dataset):
-        """Pad RSS and ROI data to full disk with empty pixels.
-
-        The VISIR and HRV channels in RSS and ROI mode consists of data from one single window/area. Hence,
-        we start by extracting the first (only) elements of the image boundary lists. We then pad the data
-        both horizontally and vertically to form a full disk array.
-        """
-        south_bound, north_bound, east_bound, west_bound = [v[0] for v in self._img_bounds.values()]
-        nlines = north_bound - south_bound + 1
-
-        padded_data = pad_data_horizontally(dataset.data, (nlines, self._final_shape[1]), east_bound, west_bound)
-        padded_data = pad_data_vertically(padded_data, self._final_shape, south_bound, north_bound)
+        # If we're dealing with RSS or ROI data, we also need to pad vertically in order to form a full disk array
+        if not self._is_full_disk:
+            padded_data = pad_data_vertically(padded_data, self._final_shape, south_bound, north_bound)
 
         return xr.DataArray(padded_data, dims=('y', 'x'))
+
+    def _extract_data_to_pad(self, dataset, south_bound, north_bound):
+        """Extract the data that shall be padded.
+
+        In case of FES (HRV) data, 'dataset' contains data from twoseparate windows that
+        are padded separately. Hence, we extract a subset of data.
+        """
+        if self._is_full_disk:
+            data = dataset[south_bound - 1:north_bound, :].data
+        else:
+            data = dataset.data
+
+        return data
 
 
 def get_available_channels(header):
