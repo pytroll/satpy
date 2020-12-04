@@ -293,7 +293,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         """Test the execution of the get_dataset function."""
         # Checks the correct execution of the get_dataset function with a valid file_key
         dataset = self.segment_reader.get_dataset(None,
-                                                  {'file_key': 'test_asr_values',
+                                                  {'file_key': 'test_values',
                                                    'fill_value': -999, 'mask_value': 0})
         self.assertTrue(np.allclose(dataset.values, np.ones((100, 10, 8, 6))))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
