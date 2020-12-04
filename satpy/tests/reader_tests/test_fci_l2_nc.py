@@ -35,6 +35,7 @@ except ImportError:
 
 TEST_FILE = 'test_file_fci_l2_nc.nc'
 SEG_TEST_FILE = 'test_seg_file_fci_l2_nc.nc'
+TEST_ERROR_FILE = 'test_error_file_fci_l2_nc.nc'
 
 
 class TestFciL2NCFileHandler(unittest.TestCase):
@@ -274,6 +275,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         self.assertEqual(self.segment_reader.ssp_lon, 0.0)
 
         global_attributes = self.segment_reader._get_global_attributes()
+
         expected_global_attributes = {
             'filename': SEG_TEST_FILE,
             'start_time': datetime.datetime(year=2017, month=9, day=20,
@@ -306,3 +308,79 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                                            'fill_value': -999, 'mask_value': 0})
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
+
+
+class TestFciL2NCErrorFileHandler(unittest.TestCase):
+    """Test the FciL2NCFileHandler reader."""
+
+    def setUp(self):
+        """Set up the test by creating a test file and opening it with the reader."""
+        # Easiest way to test the reader is to create a test netCDF file on the fly
+
+        with Dataset(TEST_ERROR_FILE, 'w') as nc_err:
+            # Create dimensions
+            nc_err.createDimension('number_of_FoR_cols', 10)
+            nc_err.createDimension('number_of_FoR_rows', 100)
+            nc_err.createDimension('number_of_channels', 8)
+            nc_err.createDimension('number_of_categories', 6)
+            # add erroneous global attributes
+            nc_err.data_source = 'test_fci_data_source'  # Error in key name
+            nc_err.platform_err = 'test_fci_platform'  # Error in key name
+            nc_err.time_coverage_start = '2017092017304000'  # Error in time format
+            nc_err.time_coverage_end_err = '20170920174117'  # Error in key name
+
+            # Add datasets
+            x = nc_err.createVariable('x', np.float32, dimensions=('number_of_FoR_cols',))
+            x.standard_name = 'projection_x_coordinate'
+            x[:] = np.arange(10)
+
+            y = nc_err.createVariable('y', np.float32, dimensions=('number_of_FoR_rows',))
+            x.standard_name = 'projection_y_coordinate'
+            y[:] = np.arange(100)
+
+            chans = nc_err.createVariable('channels', np.float32, dimensions=('number_of_channels',))
+            chans.standard_name = 'fci_channels'
+            chans[:] = np.arange(8)
+
+            cats = nc_err.createVariable('categories', np.float32, dimensions=('number_of_categories',))
+            cats.standard_name = 'product_categories'
+            cats[:] = np.arange(6)
+
+            test_dataset = nc_err.createVariable('test_values', np.float32,
+                                                 dimensions=('number_of_FoR_rows', 'number_of_FoR_cols',
+                                                             'number_of_channels', 'number_of_categories'))
+            test_dataset[:] = np.ones((100, 10, 8, 6))
+            test_dataset.test_attr = 'attr'
+            test_dataset.units = 'test_units'
+
+        self.error_reader = FciL2NCSegmentFileHandler(
+            filename=TEST_ERROR_FILE,
+            filename_info={
+                'creation_time': datetime.datetime(year=2017, month=9, day=20,
+                                                   hour=12, minute=30, second=30)
+            },
+            filetype_info={}
+        )
+
+    def tearDown(self):
+        """Remove the previously created test file."""
+        # First delete the reader, forcing the file to be closed if still open
+        del self.error_reader
+        # Then can safely remove it from the system
+        try:
+            os.remove(TEST_ERROR_FILE)
+        except OSError:
+            pass
+
+    def test_errors(self):
+        self.assertRaises(TypeError, self.error_reader.start_time,
+                          datetime.datetime(year=2017, month=9, day=20,
+                                            hour=17, minute=30, second=40))
+
+        self.assertRaises(TypeError, self.error_reader.end_time,
+                          datetime.datetime(year=2017, month=9, day=20,
+                                            hour=17, minute=41, second=17))
+
+        self.assertRaises(TypeError, self.error_reader.spacecraft_name)
+
+        self.assertRaises(TypeError, self.error_reader.sensor)
