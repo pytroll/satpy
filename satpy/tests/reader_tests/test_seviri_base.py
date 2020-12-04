@@ -20,7 +20,11 @@
 import unittest
 import numpy as np
 import xarray as xr
-from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, pad_data_horizontally, pad_data_vertically
+import dask.array as da
+
+from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time,\
+    get_padding_area, pad_data_horizontally, pad_data_vertically
+from satpy import CHUNK_SIZE
 
 
 def chebyshev4(c, x, domain):
@@ -70,8 +74,27 @@ class SeviriBaseTest(unittest.TestCase):
         expected = np.datetime64('2016-03-03 12:00:00.000')
         np.testing.assert_equal(get_cds_time(days=days, msecs=msecs), expected)
 
-    def test_pad_data_horizontally(self):
-        """Test the hrv padding in east-west direction."""
+    def test_pad_data_horizontally_bad_shape(self):
+        """Test the error handling for the horizontal hrv padding."""
+        data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
+        east_bound = 5
+        west_bound = 10
+        final_size = (1, 20)
+        with self.assertRaises(IndexError):
+            pad_data_horizontally(data, final_size, east_bound, west_bound)
+
+    def test_pad_data_vertically_bad_shape(self):
+        """Test the error handling for the vertical hrv padding."""
+        data = xr.DataArray(data=np.zeros((10, 1)), dims=('y', 'x'))
+        south_bound = 5
+        north_bound = 10
+        final_size = (20, 1)
+        with self.assertRaises(IndexError):
+            pad_data_vertically(data, final_size, south_bound, north_bound)
+
+    @staticmethod
+    def test_pad_data_horizontally():
+        """Test the horizontal hrv padding."""
         data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
         east_bound = 4
         west_bound = 13
@@ -81,8 +104,9 @@ class SeviriBaseTest(unittest.TestCase):
                               np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
         np.testing.assert_equal(res, expected)
 
-    def test_pad_data_vertically(self):
-        """Test the hrv padding in south-north direction."""
+    @staticmethod
+    def test_pad_data_vertically():
+        """Test the vertical hrv padding."""
         data = xr.DataArray(data=np.zeros((10, 1)), dims=('y', 'x'))
         south_bound = 4
         north_bound = 13
@@ -92,3 +116,21 @@ class SeviriBaseTest(unittest.TestCase):
         expected[:] = np.nan
         expected[south_bound-1:north_bound] = 0.
         np.testing.assert_equal(res, expected)
+
+    @staticmethod
+    def test_get_padding_area_float():
+        """Test padding area generator for floats."""
+        shape = (10, 10)
+        dtype = np.float
+        res = get_padding_area(shape, dtype)
+        expected = da.full(shape, np.nan, dtype=dtype, chunks=CHUNK_SIZE)
+        np.testing.assert_array_equal(res, expected)
+
+    @staticmethod
+    def test_get_padding_area_int():
+        """Test padding area generator for integers."""
+        shape = (10, 10)
+        dtype = np.int
+        res = get_padding_area(shape, dtype)
+        expected = da.full(shape, 0, dtype=dtype, chunks=CHUNK_SIZE)
+        np.testing.assert_array_equal(res, expected)
