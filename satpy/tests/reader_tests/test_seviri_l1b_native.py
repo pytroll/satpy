@@ -505,7 +505,7 @@ TEST_CALIBRATION_MODE = {
 TEST_PADDER_RSS_ROI = {
     'img_bounds': {'south': [2], 'north': [4], 'east': [2], 'west': [3]},
     'is_full_disk': False,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='VIS006'),
     'dataset': xr.DataArray(np.ones((3, 2)), dims=['y', 'x']).astype(np.float32),
     'final_shape': (5, 5),
     'expected_padded_data': xr.DataArray(np.array([[np.nan, np.nan, np.nan, np.nan, np.nan],
