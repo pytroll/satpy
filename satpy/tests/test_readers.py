@@ -611,10 +611,13 @@ def test_fsspec_fsfile(tmp_path):
          "_c20152950029000.nc")
     p.touch()
     from satpy.readers import find_files_and_readers, FSFile
+    lfs = fsspec.implementations.local.LocalFileSystem()
     ri = find_files_and_readers(
             base_dir=p.parent,
             fs=fsspec.implementations.local.LocalFileSystem(),
-            reader="abi_l1b")
+            reader="abi_l1b",
+            use_fsfile=True)
+
     assert ri.keys() == {"abi_l1b"}
     assert len(ri["abi_l1b"]) == 1
     assert isinstance(ri["abi_l1b"][0], FSFile)
@@ -622,9 +625,24 @@ def test_fsspec_fsfile(tmp_path):
 
     ri = find_files_and_readers(
             base_dir=tmp_path,
-            fs=None,
-            reader="abi_l1b")
+            fs=lfs,
+            reader="abi_l1b",
+            use_fsfile=False)
     assert not isinstance(ri["abi_l1b"][0], FSFile)
+
+    ri = find_files_and_readers(
+            base_dir=p.parent,
+            fs=fsspec.implementations.local.LocalFileSystem(),
+            reader="abi_l1b",
+            use_fsfile=True,
+            fs_open_args={"mode": "rt", "encoding": "ascii"})
+    assert ri["abi_l1b"][0]._file.encoding == "ascii"
+
+    with pytest.raises(ValueError, match="no file system passed"):
+        find_files_and_readers(
+                base_dir=tmp_path,
+                reader="abi_l1b",
+                use_fsfile=True)
 
 
 class TestYAMLFiles(unittest.TestCase):

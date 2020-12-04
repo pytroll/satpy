@@ -327,7 +327,8 @@ def available_readers(as_dict=False):
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None, ppp_config_dir=None,
                            filter_parameters=None, reader_kwargs=None,
-                           missing_ok=False, fs=None):
+                           missing_ok=False, fs=None, use_fsfile=False,
+                           fs_open_args=None):
     """Find files matching the provided parameters.
 
     Use `start_time` and/or `end_time` to limit found filenames by the times
@@ -340,13 +341,12 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     files are searched for locally.  Users can search on remote filesystems by
     passing an instance of an implementation of
     `fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class
-    implementing a ``glob`` method works).
+    implementing ``glob`` and ``open`` methods works).
 
-    If locating files on a local file system, the returned dictionary
-    can be passed directly to the `Scene` object through the `filenames`
-    keyword argument.  If it points to a remote file system, it is the
-    responsibility of the user to download the files first (directly
-    reading from cloud storage is not currently available in Satpy).
+    If ``use_fsfile`` evaluates as false (the default), values in the returned
+    dictionary are lists of strings.  If it is true, they will be lists of
+    :class:`FSFile` instances.  Strings can be passed to any reader, but
+    :class:`FSFile` instances are supported only by a subset of readers.
 
     The behaviour of time-based filtering depends on whether or not the filename
     contains information about the end time of the data or not:
@@ -362,7 +362,8 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     ...     base_dir="s3://noaa-goes16/ABI-L1b-RadF/2019/321/14/",
     ...     fs=s3fs.S3FileSystem(anon=True),
     ...     reader="abi_l1b",
-    ...     start_time=datetime.datetime(2019, 11, 17, 14, 40))
+    ...     start_time=datetime.datetime(2019, 11, 17, 14, 40),
+    ...     use_fsfile=True)
     {'abi_l1b': [...]}
 
     Args:
@@ -386,6 +387,12 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                          fsspec.spec.AbstractFileSystem (strictly speaking,
                          any object of a class implementing ``.glob`` is
                          enough).  Defaults to searching the local filesystem.
+        use_fsfile (bool): If False, return strings.  If True, open each file
+                           using the filesystem object passed and return
+                           :class:`FSFile` objects.
+        fs_open_args (Mapping): Optional, only used if ``use_fsfile`` evaluates to
+                                true.  Additional arguments to pass to
+                                ``fs.open``.
 
     Returns: Dictionary mapping reader name string to list of filenames
 
@@ -396,6 +403,8 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
     sensor_supported = False
+    if fs_open_args is None:
+        fs_open_args = {}
 
     if start_time or end_time:
         filter_parameters['start_time'] = start_time
@@ -423,7 +432,15 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
             loadables = list(
                 reader_instance.filter_selected_filenames(loadables))
         if loadables:
-            reader_files[reader_instance.name] = list(loadables)
+            if use_fsfile:
+                if not fs:
+                    raise ValueError(
+                            "FSFile objects requested, but no file system "
+                            "passed")
+                reader_files[reader_instance.name] = [
+                    FSFile(fs.open(fn, **fs_open_args)) for fn in loadables]
+            else:
+                reader_files[reader_instance.name] = list(loadables)
 
     if sensor and not sensor_supported:
         raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
