@@ -54,12 +54,13 @@ from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import recarray2dict
+from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
                                        VISIR_NUM_LINES, HRV_NUM_COLUMNS,
-                                       VIS_CHANNELS)
+                                       VIS_CHANNELS, add_scanline_acq_time,
+                                       get_cds_time)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
@@ -137,7 +138,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 ("time", (np.uint16, 5)),
                 ("lineno", np.uint32),
                 ("chan_id", np.uint8),
-                ("acq_time", (np.uint16, 3)),
+                ("acq_time", time_cds_short),
                 ("line_validity", np.uint8),
                 ("line_rquality", np.uint8),
                 ("line_gquality", np.uint8),
@@ -468,6 +469,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset = None
         else:
             dataset = self.calibrate(xarr, dataset_id)
+            self._add_scanline_acq_time(dataset, dataset_id)
             dataset.attrs['units'] = dataset_info['units']
             dataset.attrs['wavelength'] = dataset_info['wavelength']
             dataset.attrs['standard_name'] = dataset_info['standard_name']
@@ -528,6 +530,41 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    def _add_scanline_acq_time(self, dataset, dataset_id):
+        """Add scanline acquisition time to the given dataset."""
+        if dataset_id['name'] == 'HRV':
+            tline = self._get_acq_time_hrv()
+        else:
+            tline = self._get_acq_time_visir(dataset_id)
+        acq_time = get_cds_time(days=tline['Days'], msecs=tline['Milliseconds'])
+        add_scanline_acq_time(dataset, acq_time)
+
+    def _get_acq_time_hrv(self):
+        """Get raw acquisition time for HRV channel.
+
+        TODO: Duplicates code from get_dataset in order to avoid conflicts
+              with #1438. Should be refactored once that is merged.
+        """
+        tline = self.dask_array['hrv']['acq_time']
+        tline0 = tline[:, 0]
+        tline1 = tline[:, 1]
+        tline2 = tline[:, 2]
+        return np.stack((tline0, tline1, tline2), axis=1).reshape(
+            self.mda['hrv_number_of_lines'])
+
+    def _get_acq_time_visir(self, dataset_id):
+        """Get raw acquisition time for VIS/IR channels.
+
+        TODO: Duplicates code from get_dataset in order to avoid conflicts
+              with #1438. Should be refactored once that is merged.
+        """
+        # Check if there is only 1 channel in the list as a change
+        # is needed in the arrray assignment ie channl id is not present
+        if len(self.mda['channel_list']) == 1:
+            return self.dask_array['visir']['acq_time']
+        i = self.mda['channel_list'].index(dataset_id['name'])
+        return self.dask_array['visir']['acq_time'][:, i]
 
 
 def get_available_channels(header):
