@@ -222,7 +222,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         nrows = north - south + 1
 
         # check if the file has less rows or columns than
-        # the maximum, if so it is an area of interest file
+        # the maximum, if so it is a rapid scanning service
+        # or region of interest file
         if (nrows < VISIR_NUM_LINES) or (ncolumns < VISIR_NUM_COLUMNS):
             self.mda['is_full_disk'] = False
         else:
@@ -308,12 +309,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         else:
             area = areas[0]
 
-        # try:
-        #     print('AEX1:  ', area.defs[0].area_extent)
-        #     print('AEX2:  ', area.defs[1].area_extent)
-        # except:
-        #     print('AEX:   ', area.area_extent)
-
         return area
 
     def get_area_extent(self, dataset_id):
@@ -372,7 +367,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             )
             raise NotImplementedError(msg)
 
-        area_extent = {'area_extent': [], 'nlines': [], 'ncolumns': []}
+        aex_data = {'area_extent': [], 'nlines': [], 'ncolumns': []}
 
         img_bounds = self.image_boundaries.get_img_bounds(dataset_id, self.is_roi())
         for south_bound, north_bound, east_bound, west_bound in zip(*img_bounds.values()):
@@ -387,20 +382,19 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             aex = self._calculate_area_extent(center_point, north_bound, east_bound, south_bound, west_bound,
                                               we_offset, ns_offset, column_step, line_step)
 
-            area_extent['area_extent'].append(aex)
-            area_extent['nlines'].append(nlines)
-            area_extent['ncolumns'].append(ncolumns)
+            aex_data['area_extent'].append(aex)
+            aex_data['nlines'].append(nlines)
+            aex_data['ncolumns'].append(ncolumns)
 
-        # print('\n\nCH:    ', dataset_id['name'])
-        # print('RSS:   ', self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan'])
-        # print('ROI:   ', self.is_roi())
-        # print('FILL:  ', self.fill_disk)
-        # print('EM:    ', earth_model)
-
-        return area_extent
+        return aex_data
 
     def is_roi(self):
-        """Check if data covers a selected region of interest (ROI), rather than the default FES or RSS regions."""
+        """Check if data covers a selected region of interest (ROI).
+
+        Standard RSS data consists of 3712 columns and 1392 lines, covering the three northmost segements
+        of the SEVIRI disk. Hence, if the data does not cover the full disk, nor the standard RSS region
+        in RSS mode, it's assumed to be ROI data.
+        """
         is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
 
         # Standard RSS data is assumed to cover the three northmost segements, thus consisting of all 3712 columns and
@@ -539,6 +533,8 @@ class ImageBoundaries:
         returns:
             Dictionary with the four keys 'south_bound', 'north_bound', 'east_bound' and 'west_bound',
             each containing a list of the respective line/column numbers of the image boundaries.
+
+        Lists (rather than scalars) are returned since the HRV data in FES mode contain data from two windows/areas.
         """
         if dataset_id['name'] == 'HRV' and not is_roi:
             south_bound, north_bound, east_bound, west_bound = self._get_hrv_actual_img_bounds()
@@ -549,7 +545,7 @@ class ImageBoundaries:
                 'east_bound': east_bound, 'west_bound': west_bound}
 
     def _get_hrv_actual_img_bounds(self):
-        """Get the actual HRV image line and column boundaries for a given HRV window."""
+        """Get HRV (if not ROI) image boundaries from the ActualL15CoverageHRV infroamtion stored in the trailer."""
         hrv_bounds = self._trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
 
         south_bound, north_bound, east_bound, west_bound = [], [], [], []
@@ -566,6 +562,7 @@ class ImageBoundaries:
         return south_bound, north_bound, east_bound, west_bound
 
     def _get_selected_img_bounds(self, dataset_id):
+        """Get VISIR and HRV (if ROI) image boundaries from the SelectedRectangle information stored in the header."""
         sec15hd = self._header['15_SECONDARY_PRODUCT_HEADER']
         south_bound = int(sec15hd['SouthLineSelectedRectangle']['Value'])
         east_bound = int(sec15hd['EastColumnSelectedRectangle']['Value'])
@@ -623,10 +620,11 @@ class Padder:
         return padded_data
 
     def _pad_fes_hrv_data(self, dataset):
-        """Pad FES HRV data to full disk with empty pixels."""
-        # The HRV channel in FES mode consists of data from two windows ('Lower' and 'Upper') covering
-        # all 11136 lines. Data from these two windows are read, padded (in east-west) and finally
-        # staked to form a full disk array.
+        """Pad FES HRV data to full disk with empty pixels.
+
+        The HRV channel in FES mode consists of data from two windows, covering all 11136 lines. Data from these
+        two windows are read, padded horizontally and finally stacked vertically to form a full disk array.
+        """
         data_list = []
         for south_bound, north_bound, east_bound, west_bound in zip(*self._img_bounds.values()):
             nlines = north_bound - south_bound + 1
@@ -637,12 +635,12 @@ class Padder:
         return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
 
     def _pad_rss_roi_data(self, dataset):
-        """Pad RSS and ROI data to full disk with empty pixels."""
-        # The HRV channel in RSS mode consists of data from one window ('Lower'). If we're dealing with
-        # such data, we need to use the actual navigation parameters in order to pad the data correctly.
-        # Otherwise, we use the selected navigation parameters.
+        """Pad RSS and ROI data to full disk with empty pixels.
 
-        # Since we only have one image area, we extract the 0th element of the respective lists
+        The VISIR and HRV channels in RSS and ROI mode consists of data from one single window/area. Hence,
+        we start by extracting the first (only) elements of the image boundary lists. We then pad the data
+        both horizontally and vertically to form a full disk array.
+        """
         south_bound, north_bound, east_bound, west_bound = [v[0] for v in self._img_bounds.values()]
         nlines = north_bound - south_bound + 1
 
