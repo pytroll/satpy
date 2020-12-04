@@ -36,6 +36,7 @@ SSP_DEFAULT = 0.0
 
 
 class FciL2CommonFunctions(object):
+    @property
     def _start_time(self):
         try:
             start_time = datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
@@ -45,15 +46,17 @@ class FciL2CommonFunctions(object):
             start_time = datetime.strptime('20200101120000', '%Y%m%d%H%M%S')
         return start_time
 
+    @property
     def _end_time(self):
         """Get observation end time."""
         try:
             end_time = datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%d%H%M%S')
         except (ValueError, KeyError):
             # TODO if the sensing_end_time_utc attribute is not valid, adds 20 minutes to the start time
-            end_time = self.start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
+            end_time = self._start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
         return end_time
 
+    @property
     def _spacecraft_name(self):
         """Return spacecraft name."""
         try:
@@ -63,6 +66,7 @@ class FciL2CommonFunctions(object):
             logger.warning("Spacecraft name cannot be obtained from file content, using default value instead")
             return 'DEFAULT_MTG'
 
+    @property
     def _sensor_name(self):
         """Return instrument."""
         try:
@@ -89,13 +93,13 @@ class FciL2CommonFunctions(object):
         """
         attributes = {
             'filename': self.filename,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'spacecraft_name': self.spacecraft_name,
+            'start_time': self._start_time,
+            'end_time': self._end_time,
+            'spacecraft_name': self._spacecraft_name,
             'ssp_lon': self.ssp_lon,
-            'sensor': self.sensor,
+            'sensor': self._sensor_name,
             'creation_time': self.filename_info['creation_time'],
-            'platform_name': self.spacecraft_name,
+            'platform_name': self._spacecraft_name,
         }
         return attributes
 
@@ -132,22 +136,6 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
 
         # Compute the area definition
         self._area_def = self._compute_area_def()
-
-    @property
-    def start_time(self):
-        return self._start_time()
-
-    @property
-    def end_time(self):
-        return self._end_time()
-
-    @property
-    def spacecraft_name(self):
-        return self._spacecraft_name()
-
-    @property
-    def sensor(self):
-        return self._sensor_name()
 
     @property
     def ssp_lon(self):
@@ -282,22 +270,6 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         self.ncols = self.nc['number_of_FoR_cols'].size
 
         self.ssp_lon = SSP_DEFAULT
-
-    @property
-    def start_time(self):
-        return self._start_time()
-
-    @property
-    def end_time(self):
-        return self._end_time()
-
-    @property
-    def spacecraft_name(self):
-        return self._spacecraft_name()
-
-    @property
-    def sensor(self):
-        return self._sensor_name()
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""

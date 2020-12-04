@@ -95,7 +95,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
     def tearDown(self):
         """Remove the previously created test file."""
-        # First delets the reader, forcing the file to be closed if still open
+        # First delete the reader, forcing the file to be closed if still open
         del self.reader
         # Then can safely remove it from the system
         try:
@@ -106,17 +106,18 @@ class TestFciL2NCFileHandler(unittest.TestCase):
     def test_all_basic(self):
         """Test all basic functionalities."""
         self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 20)
+        print('reader', self.reader)
 
-        self.assertEqual(self.reader.start_time,
+        self.assertEqual(self.reader._start_time,
                          datetime.datetime(year=2017, month=9, day=20,
                                            hour=17, minute=30, second=40))
 
-        self.assertEqual(self.reader.end_time,
+        self.assertEqual(self.reader._end_time,
                          datetime.datetime(year=2017, month=9, day=20,
                                            hour=17, minute=41, second=17))
 
-        self.assertEqual(self.reader.spacecraft_name, 'test_platform')
-        self.assertEqual(self.reader.sensor, 'test_data_source')
+        self.assertEqual(self.reader._spacecraft_name, 'test_platform')
+        self.assertEqual(self.reader._sensor_name, 'test_data_source')
         self.assertEqual(self.reader.ssp_lon, 10.0)
 
         global_attributes = self.reader._get_global_attributes()
@@ -262,16 +263,16 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         """Test all basic functionalities."""
         self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 20)
 
-        self.assertEqual(self.segment_reader.start_time,
+        self.assertEqual(self.segment_reader._start_time,
                          datetime.datetime(year=2017, month=9, day=20,
                                            hour=17, minute=30, second=40))
 
-        self.assertEqual(self.segment_reader.end_time,
+        self.assertEqual(self.segment_reader._end_time,
                          datetime.datetime(year=2017, month=9, day=20,
                                            hour=17, minute=41, second=17))
 
-        self.assertEqual(self.segment_reader.spacecraft_name, 'test_fci_platform')
-        self.assertEqual(self.segment_reader.sensor, 'test_fci_data_source')
+        self.assertEqual(self.segment_reader._spacecraft_name, 'test_fci_platform')
+        self.assertEqual(self.segment_reader._sensor_name, 'test_fci_data_source')
         self.assertEqual(self.segment_reader.ssp_lon, 0.0)
 
         global_attributes = self.segment_reader._get_global_attributes()
@@ -373,14 +374,14 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
             pass
 
     def test_errors(self):
-        self.assertRaises(TypeError, self.error_reader.start_time,
+        self.assertRaises(TypeError, self.error_reader._start_time,
                           datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=30, second=40))
 
-        self.assertRaises(TypeError, self.error_reader.end_time,
+        self.assertRaises(TypeError, self.error_reader._end_time,
                           datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=41, second=17))
 
-        self.assertRaises(TypeError, self.error_reader.spacecraft_name)
+        self.assertRaises(TypeError, self.error_reader._spacecraft_name)
 
-        self.assertRaises(TypeError, self.error_reader.sensor)
+        self.assertRaises(TypeError, self.error_reader._sensor_name)
