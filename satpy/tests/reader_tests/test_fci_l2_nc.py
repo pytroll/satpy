@@ -23,7 +23,7 @@ import numpy as np
 import datetime
 from netCDF4 import Dataset
 
-from satpy.readers.fci_l2_nc import FciL2NCFileHandler, PRODUCT_DATA_DURATION_MINUTES
+from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandler, PRODUCT_DATA_DURATION_MINUTES
 
 import unittest
 
@@ -34,6 +34,7 @@ except ImportError:
 
 
 TEST_FILE = 'test_file_fci_l2_nc.nc'
+SEG_TEST_FILE = 'test_seg_file_fci_l2_nc.nc'
 
 
 class TestFciL2NCFileHandler(unittest.TestCase):
@@ -190,5 +191,118 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         invalid_dataset = self.reader.get_dataset(None,
                                                   {'file_key': 'test_invalid',
                                                    'fill_value': -999, 'mask_value': 0})
+        # Checks that the function returns None
+        self.assertEqual(invalid_dataset, None)
+
+
+class TestFciL2NCSegmentFileHandler(unittest.TestCase):
+    """Test the FciL2NCFileHandler reader."""
+
+    def setUp(self):
+        """Set up the test by creating a test file and opening it with the reader."""
+        # Easiest way to test the reader is to create a test netCDF file on the fly
+        with Dataset(SEG_TEST_FILE, 'w') as nc:
+            # Create dimensions
+            nc.createDimension('number_of_FoR_cols', 10)
+            nc.createDimension('number_of_FoR_rows', 100)
+            nc.createDimension('number_of_channels', 8)
+            nc.createDimension('number_of_categories', 6)
+
+            # add global attributes
+            nc.data_source = 'test_fci_data_source'
+            nc.platform = 'test_fci_platform'
+            nc.time_coverage_start = '20170920173040'
+            nc.time_coverage_end = '20170920174117'
+
+            # Add datasets
+            x = nc.createVariable('x', np.float32, dimensions=('number_of_FoR_cols',))
+            x.standard_name = 'projection_x_coordinate'
+            x[:] = np.arange(10)
+
+            y = nc.createVariable('y', np.float32, dimensions=('number_of_FoR_rows',))
+            x.standard_name = 'projection_y_coordinate'
+            y[:] = np.arange(100)
+
+            chans = nc.createVariable('channels', np.float32, dimensions=('number_of_channels',))
+            chans.standard_name = 'fci_channels'
+            chans[:] = np.arange(8)
+
+            cats = nc.createVariable('categories', np.float32, dimensions=('number_of_categories',))
+            cats.standard_name = 'product_categories'
+            cats[:] = np.arange(6)
+
+            test_dataset = nc.createVariable('test_values', np.float32,
+                                             dimensions=('number_of_FoR_rows', 'number_of_FoR_cols',
+                                                         'number_of_channels', 'number_of_categories'))
+            test_dataset[:] = np.ones((100, 10, 8, 6))
+            test_dataset.test_attr = 'attr'
+            test_dataset.units = 'test_units'
+
+        self.segment_reader = FciL2NCSegmentFileHandler(
+            filename=SEG_TEST_FILE,
+            filename_info={
+                'creation_time':  datetime.datetime(year=2017, month=9, day=20,
+                                                    hour=12, minute=30, second=30)
+            },
+            filetype_info={}
+        )
+
+    def tearDown(self):
+        """Remove the previously created test file."""
+        # First delete the reader, forcing the file to be closed if still open
+        del self.segment_reader
+        # Then can safely remove it from the system
+        try:
+            os.remove(SEG_TEST_FILE)
+        except OSError:
+            pass
+
+    def test_all_basic(self):
+        """Test all basic functionalities."""
+        self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 20)
+
+        self.assertEqual(self.segment_reader.start_time,
+                         datetime.datetime(year=2017, month=9, day=20,
+                                           hour=17, minute=30, second=40))
+
+        self.assertEqual(self.segment_reader.end_time,
+                         datetime.datetime(year=2017, month=9, day=20,
+                                           hour=17, minute=41, second=17))
+
+        self.assertEqual(self.segment_reader.spacecraft_name, 'test_fci_platform')
+        self.assertEqual(self.segment_reader.sensor, 'test_fci_data_source')
+        self.assertEqual(self.segment_reader.ssp_lon, 0.0)
+
+        global_attributes = self.segment_reader._get_global_attributes()
+        expected_global_attributes = {
+            'filename': SEG_TEST_FILE,
+            'start_time': datetime.datetime(year=2017, month=9, day=20,
+                                            hour=17, minute=30, second=40),
+            'end_time': datetime.datetime(year=2017, month=9, day=20,
+                                          hour=17, minute=41, second=17),
+            'spacecraft_name': 'test_fci_platform',
+            'ssp_lon': 0.0,
+            'sensor': 'test_fci_data_source',
+            'creation_time': datetime.datetime(year=2017, month=9, day=20,
+                                               hour=12, minute=30, second=30),
+            'platform_name': 'test_fci_platform'
+        }
+        self.assertEqual(global_attributes, expected_global_attributes)
+
+    def test_dataset(self):
+        """Test the execution of the get_dataset function."""
+        # Checks the correct execution of the get_dataset function with a valid file_key
+        dataset = self.segment_reader.get_dataset(None,
+                                                  {'file_key': 'test_asr_values',
+                                                   'fill_value': -999, 'mask_value': 0})
+        self.assertTrue(np.allclose(dataset.values, np.ones((100, 10, 8, 6))))
+        self.assertEqual(dataset.attrs['test_attr'], 'attr')
+        self.assertEqual(dataset.attrs['units'], 'test_units')
+        self.assertEqual(dataset.attrs['fill_value'], -999)
+
+        # Checks the correct execution of the get_dataset function with an invalid file_key
+        invalid_dataset = self.segment_reader.get_dataset(None,
+                                                          {'file_key': 'test_invalid',
+                                                           'fill_value': -999, 'mask_value': 0})
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
