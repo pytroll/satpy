@@ -23,7 +23,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.seviri_l1b_native import (
-    NativeMSGFileHandler, ImageBoundaries,
+    NativeMSGFileHandler, ImageBoundaries, Padder,
     get_available_channels,
 )
 
@@ -502,6 +502,34 @@ TEST_CALIBRATION_MODE = {
     'GSICSOffsetCount': [-51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0]
 }
 
+TEST_PADDER_RSS_ROI = {
+    'img_bounds': {'south': [2], 'north': [4], 'east': [2], 'west': [3]},
+    'is_full_disk': False,
+    'dataset_id': make_dataid(name='HRV'),
+    'dataset': xr.DataArray(np.ones((3, 2)), dims=['y', 'x']).astype(np.float32),
+    'final_shape': (5, 5),
+    'expected_padded_data': xr.DataArray(np.array([[np.nan, np.nan, np.nan, np.nan, np.nan],
+                                                   [np.nan, 1.0, 1.0, np.nan, np.nan],
+                                                   [np.nan, 1.0, 1.0, np.nan, np.nan],
+                                                   [np.nan, 1.0, 1.0, np.nan, np.nan],
+                                                   [np.nan, np.nan, np.nan, np.nan, np.nan]]),
+                                         dims=['y', 'x']).astype(np.float32)
+}
+
+TEST_PADDER_FES_HRV = {
+    'img_bounds': {'south': [1, 4], 'north': [3, 5], 'east': [2, 3], 'west': [3, 4]},
+    'is_full_disk': True,
+    'dataset_id': make_dataid(name='HRV'),
+    'dataset': xr.DataArray(np.ones((5, 2)), dims=['y', 'x']).astype(np.float32),
+    'final_shape': (5, 5),
+    'expected_padded_data': xr.DataArray(np.array([[np.nan, 1.0, 1.0, np.nan, np.nan],
+                                                   [np.nan, 1.0, 1.0, np.nan, np.nan],
+                                                   [np.nan, 1.0, 1.0, np.nan, np.nan],
+                                                   [np.nan, np.nan, 1.0, 1.0, np.nan],
+                                                   [np.nan, np.nan, 1.0, 1.0, np.nan]]),
+                                         dims=['y', 'x']).astype(np.float32)
+
+}
 
 # This should preferably be put in a helper-module
 # Fixme!
@@ -1166,3 +1194,33 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
                           TEST_CALIBRATION_MODE,
                           'dummy',
                           )
+
+
+class TestNativeMSGPadder(unittest.TestCase):
+    """Test Padder of the native l1b seviri reader."""
+
+    @staticmethod
+    def prepare_padder(test_dict):
+        """Initialize Padder and pad test data."""
+        dataset_id = test_dict['dataset_id']
+        img_bounds = test_dict['img_bounds']
+        is_full_disk = test_dict['is_full_disk']
+        dataset = test_dict['dataset']
+        final_shape = test_dict['final_shape']
+        expected_padded_data = test_dict['expected_padded_data']
+
+        padder = Padder(dataset_id, img_bounds, is_full_disk)
+        padder._final_shape = final_shape
+        calc_padded_data = padder.pad_data(dataset)
+
+        return (calc_padded_data, expected_padded_data)
+
+    def test_padder_rss_roi(self):
+        """Test padder for RSS and ROI data (applies to both VISIR and HRV)."""
+        calculated, expected = self.prepare_padder(TEST_PADDER_RSS_ROI)
+        np.testing.assert_array_equal(calculated, expected)
+
+    def test_padder_fes_hrv(self):
+        """Test padder for FES HRV data."""
+        calculated, expected = self.prepare_padder(TEST_PADDER_FES_HRV)
+        np.testing.assert_array_equal(calculated, expected)
