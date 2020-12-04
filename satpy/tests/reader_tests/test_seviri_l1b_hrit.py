@@ -28,164 +28,16 @@ from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFi
                                            NoValidOrbitParams, pad_data)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.tests.utils import make_dataid
+import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
 
 from numpy import testing as npt
 
 
-def new_get_hd(instance, hdr_info):
-    """Generate some metadata."""
-    instance.mda = {'spectral_channel_id': 1}
-    instance.mda.setdefault('number_of_bits_per_pixel', 10)
-
-    instance.mda['projection_parameters'] = {'a': 6378169.00,
-                                             'b': 6356583.80,
-                                             'h': 35785831.00,
-                                             'SSP_longitude': 0.0}
-    instance.mda['orbital_parameters'] = {}
-    instance.mda['total_header_length'] = 12
-
-
 class TestHRITMSGBase(unittest.TestCase):
-    maxDiff = None
+    """Baseclass for SEVIRI HRIT reader tests."""
 
-    def _get_fake_file_handler(self, filename_info, mda, prologue, epilogue):
-        m = mock.mock_open()
-        with mock.patch('satpy.readers.seviri_l1b_hrit.np.fromfile') as fromfile:
-            fromfile.return_value = np.array(
-                [(1, 2)],
-                dtype=[('total_header_length', int),
-                       ('hdr_id', int)]
-            )
-            with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen:
-                with mock.patch('satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES'):
-                    with mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd):
-                        newopen.return_value.__enter__.return_value.tell.return_value = 1
-                        prologue = mock.MagicMock(prologue=prologue)
-                        epilogue = mock.MagicMock(epilogue=epilogue)
-                        prologue.get_satpos.return_value = None, None, None
-                        prologue.get_earth_radii.return_value = None, None
-
-                        reader = HRITMSGFileHandler(
-                            'filename',
-                            filename_info,
-                            {'filetype': 'info'},
-                            prologue,
-                            epilogue
-                        )
-                        reader.mda.update(mda)
-                        return reader
-
-    def _get_fake_prologue(self):
-        return {
-             "SatelliteStatus": {
-                 "SatelliteDefinition": {
-                     "SatelliteId": 324,
-                     "NominalLongitude": 47
-                 }
-             },
-             'GeometricProcessing': {
-                 'EarthModel': {
-                     'TypeOfEarthModel': 2,
-                     'NorthPolarRadius': 10,
-                     'SouthPolarRadius': 10,
-                     'EquatorialRadius': 10}
-             },
-             'ImageDescription': {
-                 'ProjectionDescription': {
-                     'LongitudeOfSSP': 0.0
-                 },
-                 'Level15ImageProduction': {
-                     'ImageProcDirection': 1
-                 }
-             }
-        }
-
-    def _get_fake_mda(self, nlines, ncols, start_time):
-        nbits = 10
-        tline = self._get_acq_time_cds(start_time, nlines)
-        return {
-            'number_of_bits_per_pixel': nbits,
-            'number_of_lines': nlines,
-            'number_of_columns': ncols,
-            'data_field_length': nlines * ncols * nbits,
-            'cfac': 5,
-            'lfac': 5,
-            'coff': 10,
-            'loff': 10,
-            'projection_parameters': {
-                'a': 6378169.0,
-                'b': 6356583.8,
-                'h': 35785831.0,
-                'SSP_longitude': 44,
-                'SSP_latitude': 0.0
-            },
-            'orbital_parameters': {
-                'satellite_nominal_longitude': 47,
-                'satellite_nominal_latitude': 0.0,
-                'satellite_actual_longitude': 47.5,
-                'satellite_actual_latitude': -0.5,
-                'satellite_actual_altitude': 35783328
-            },
-            'image_segment_line_quality': {
-                'line_mean_acquisition': tline
-            }
-        }
-
-    def _get_fake_filename_info(self, start_time):
-        return {
-            'platform_shortname': 'MSG3',
-            'start_time': start_time,
-            'service': 'MSG'
-        }
-
-    def _get_fake_dataset_info(self):
-        return {
-            'units': 'units',
-            'wavelength': 'wavelength',
-            'standard_name': 'standard_name'
-        }
-
-    def _get_acq_time_cds(self, start_time, nlines):
-        days_since_1958 = (start_time - datetime(1958, 1, 1)).days
-        tline = np.zeros(
-            nlines,
-            dtype=[('days', '>u2'), ('milliseconds', '>u4')]
-        )
-        tline['days'][1:-1] = days_since_1958 * np.ones(nlines - 2)
-        tline['milliseconds'][1:-1] = np.arange(nlines - 2)
-        return tline
-
-    def _get_acq_time_exp(self, start_time, nlines):
-        """Get expected scanline acquisition times."""
-        tline_exp = np.zeros(464, dtype='datetime64[ms]')
-        tline_exp[0] = np.datetime64('NaT')
-        tline_exp[-1] = np.datetime64('NaT')
-        tline_exp[1:-1] = np.datetime64(start_time)
-        tline_exp[1:-1] += np.arange(nlines - 2).astype('timedelta64[ms]')
-        return tline_exp
-
-    def _get_attrs_exp(self):
-        return {
-            'units': 'units',
-            'wavelength': 'wavelength',
-            'standard_name': 'standard_name',
-            'platform_name': 'Meteosat-11',
-            'sensor': 'seviri',
-            'satellite_longitude': 44,
-            'satellite_latitude': 0.0,
-            'satellite_altitude': 35785831.0,
-            'orbital_parameters': {'projection_longitude': 44,
-                                   'projection_latitude': 0.,
-                                   'projection_altitude': 35785831.0,
-                                   'satellite_nominal_longitude': 47,
-                                   'satellite_nominal_latitude': 0.0,
-                                   'satellite_actual_longitude': 47.5,
-                                   'satellite_actual_latitude': -0.5,
-                                   'satellite_actual_altitude': 35783328},
-            'georef_offset_corrected': True
-        }
-
-    def _assert_attrs_equal(self, attrs, attrs_exp):
+    def assert_attrs_equal(self, attrs, attrs_exp):
+        """Assert equality of dataset attributes."""
         # Test attributes (just check if raw metadata is there and then remove
         # it before checking the remaining attributes)
         self.assertIn('raw_metadata', attrs)
@@ -198,7 +50,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing HRV."""
-        prologue = self._get_fake_prologue()
+        prologue = setup.get_fake_prologue()
         epilogue = {
             'ImageProductionStats': {
                 'ActualL15CoverageHRV': {
@@ -215,28 +67,18 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         }
         self.start_time = datetime(2016, 3, 3, 0, 0)
         self.nlines = 464
-        mda = self._get_fake_mda(
+        mda = setup.get_fake_mda(
             nlines=self.nlines, ncols=5568, start_time=self.start_time
         )
-        filename_info = self._get_fake_filename_info(self.start_time)
-        self.reader = self._get_fake_file_handler(
-            filename_info, mda, prologue, epilogue
-        )
-
-    def _get_fake_mda(self, nlines, ncols, start_time):
-        mda = super()._get_fake_mda(nlines, ncols, start_time)
         mda.update({
             'segment_sequence_number': 18,
             'planned_start_segment_number': 1
         })
-        return mda
-
-    def _get_fake_file_handler(self, filename_info, mda, prologue, epilogue):
-        reader = super()._get_fake_file_handler(
+        filename_info = setup.get_fake_filename_info(self.start_time)
+        self.reader = setup.get_fake_file_handler(
             filename_info, mda, prologue, epilogue
         )
-        reader.fill_hrv = True
-        return reader
+        self.reader.fill_hrv = True
 
     @mock.patch('satpy.readers.hrit_base.np.memmap')
     def test_read_hrv_band(self, memmap):
@@ -253,7 +95,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
     def test_get_dataset(self, calibrate, parent_get_dataset):
         """Test getting the hrv dataset."""
         key = make_dataid(name='HRV', calibration='reflectance')
-        info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
+        info = setup.get_fake_dataset_info()
 
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = xr.DataArray(data=np.zeros((464, 5568)), dims=('y', 'x'))
@@ -264,10 +106,10 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         parent_get_dataset.assert_called_with(key, info)
         calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
-        self._assert_attrs_equal(res.attrs, self._get_attrs_exp())
+        self.assert_attrs_equal(res.attrs, setup.get_attrs_exp())
         np.testing.assert_equal(
             res['acq_time'],
-            self._get_acq_time_exp(self.start_time, self.nlines)
+            setup.get_acq_time_exp(self.start_time, self.nlines)
         )
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
@@ -276,7 +118,7 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         """Test getting a non-filled hrv dataset."""
         key = make_dataid(name='HRV', calibration='reflectance')
         key.name = 'HRV'
-        info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
+        info = setup.get_fake_dataset_info()
         self.reader.fill_hrv = False
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = xr.DataArray(data=np.zeros((464, 5568)), dims=('y', 'x'))
@@ -287,10 +129,10 @@ class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
         parent_get_dataset.assert_called_with(key, info)
         calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
-        self._assert_attrs_equal(res.attrs, self._get_attrs_exp())
+        self.assert_attrs_equal(res.attrs, setup.get_attrs_exp())
         np.testing.assert_equal(
             res['acq_time'],
-            self._get_acq_time_exp(self.start_time, self.nlines)
+            setup.get_acq_time_exp(self.start_time, self.nlines)
         )
 
     def test_pad_data(self):
@@ -334,14 +176,14 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
     def setUp(self):
         """Set up the hrit file handler for testing."""
-        prologue = self._get_fake_prologue()
+        prologue = setup.get_fake_prologue()
         epilogue = {}
         self.start_time = datetime(2016, 3, 3, 0, 0)
         self.nlines = 464
-        mda = self._get_fake_mda(
+        mda = setup.get_fake_mda(
             nlines=self.nlines, ncols=3712, start_time=self.start_time)
-        filename_info = self._get_fake_filename_info(self.start_time)
-        self.reader = self._get_fake_file_handler(
+        filename_info = setup.get_fake_filename_info(self.start_time)
+        self.reader = setup.get_fake_file_handler(
             filename_info, mda, prologue, epilogue
         )
 
@@ -466,7 +308,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     def test_get_dataset(self, calibrate, parent_get_dataset):
         """Test getting the dataset."""
         key = make_dataid(name='VIS006', calibration='reflectance')
-        info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
+        info = setup.get_fake_dataset_info()
 
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = xr.DataArray(
@@ -480,10 +322,10 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         parent_get_dataset.assert_called_with(key, info)
         calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
-        self._assert_attrs_equal(res.attrs, self._get_attrs_exp())
+        self.assert_attrs_equal(res.attrs, setup.get_attrs_exp())
         np.testing.assert_equal(
             res['acq_time'],
-            self._get_acq_time_exp(self.start_time, self.nlines)
+            setup.get_acq_time_exp(self.start_time, self.nlines)
         )
 
     def test_get_raw_mda(self):
