@@ -23,9 +23,12 @@ References:
 
 """
 
+import warnings
+
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
+import pyproj
 
 from satpy.readers.utils import apply_earthsun_distance_correction
 from satpy.readers.eum_base import (time_cds_short,
@@ -400,6 +403,161 @@ def chebyshev(coefs, time, domain):
 
     """
     return Chebyshev(coefs, domain=domain)(time) - 0.5 * coefs[0]
+
+
+class NoValidOrbitParams(Exception):
+    """Exception when validOrbitParameters are missing."""
+
+    pass
+
+
+class SatelliteLocator:
+    """Compute the satellite position."""
+
+    def __init__(self, orbit_polynomial):
+        """Initialize the satellite locator.
+
+        Args:
+            orbit_polynomial: Satellite coordinates as a function of time
+                encoded in the coefficients of an 8th-order Chebyshev
+                polynomial.
+                {'X': x_coefs,
+                'Y': y_coefs,
+                'Z': z_coefs,
+                'StartTime': coefs_valid_from,
+                'EndTime': coefs_valid_to}
+        """
+        self.orbit_polynomial = orbit_polynomial
+
+    def get_satpos_cart(self, time):
+        """Get satellite position in earth-centered cartesion coordinates.
+
+        The coordinates are obtained by evalutaing the orbit polynomials at the
+        given timestamp.
+        """
+        tstart = self.orbit_polynomial['StartTime']
+        tend = self.orbit_polynomial['EndTime']
+        domain = [np.datetime64(tstart).astype('int64'),
+                  np.datetime64(tend).astype('int64')]
+        time = np.datetime64(time).astype('int64')
+        x = chebyshev(coefs=self.orbit_polynomial['X'], time=time,
+                      domain=domain)
+        y = chebyshev(coefs=self.orbit_polynomial['Y'], time=time,
+                      domain=domain)
+        z = chebyshev(coefs=self.orbit_polynomial['Z'], time=time,
+                      domain=domain)
+        return x * 1000, y * 1000, z * 1000  # km -> m
+
+    def get_satpos_geodetic(self, time, a, b):
+        """Get satellite position in geodetic coordinates.
+
+        Returns:
+            Longitude [deg east], Latitude [deg north] and Altitude [m]
+        """
+        x, y, z = self.get_satpos_cart(time)
+        geocent = pyproj.Proj(proj='geocent')
+        latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
+        lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
+        return lon, lat, alt
+
+
+class SatelliteLocatorFactory:
+    """Factory for the SatelliteLocator class.
+
+    Finds the matching orbit polynomial from a list of polynomials and creates
+    a SatelliteLocator instance.
+    """
+
+    def __init__(self, orbit_polynomials):
+        """Initialize the factory.
+
+        Args:
+            orbit_polynomials: Dictionary of orbit polynomials
+                {'X': x_polynomials,
+                'Y': y_polynomials,
+                'Z': z_polynomials,
+                'StartTime': polynomials_valid_from,
+                'EndTime': polynomials_valid_to}
+        """
+        self.orbit_polynomials = orbit_polynomials
+        # Left/right boundaries of time intervals for which the polynomials are
+        # valid.
+        self.valid_from = orbit_polynomials['StartTime'][0, :].astype(
+            'datetime64[us]')
+        self.valid_to = orbit_polynomials['EndTime'][0, :].astype(
+            'datetime64[us]')
+
+    def get_satellite_locator(self, time, max_delta=6):
+        """Get satellite locator for the given time."""
+        orbit_polynomial = self._get_orbit_polynomial(time, max_delta)
+        return SatelliteLocator(orbit_polynomial)
+
+    def _get_orbit_polynomial(self, time, max_delta):
+        """Get orbit polynomial valid for the given time.
+
+        Orbit polynomials are only valid for certain time intervals. Find the
+        polynomial, whose corresponding interval encloses the given timestamp.
+        If there are multiple enclosing intervals, use the most recent one.
+        If there is no enclosing interval, find the interval whose centre is
+        closest to the given timestamp (but not more than max_delta hours
+        apart).
+
+        Why are there gaps between those intervals? Response from EUM:
+
+        A manoeuvre is a discontinuity in the orbit parameters. The flight
+        dynamic algorithms are not made to interpolate over the time-span of
+        the manoeuvre; hence we have elements describing the orbit before a
+        manoeuvre and a new set of elements describing the orbit after the
+        manoeuvre. The flight dynamic products are created so that there is
+        an intentional gap at the time of the manoeuvre. Also the two
+        pre-manoeuvre elements may overlap. But the overlap is not of an
+        issue as both sets of elements describe the same pre-manoeuvre orbit
+        (with negligible variations).
+        """
+        time = np.datetime64(time)
+        try:
+            match = self._get_enclosing_interval(time)
+        except ValueError:
+            warnings.warn(
+                'No orbit polynomial valid for {}. Using closest '
+                'match.'.format(time)
+            )
+            match = self._get_closest_interval(time, max_delta)
+        orbit_polynomial = {
+            'X': self.orbit_polynomials['X'][match],
+            'Y': self.orbit_polynomials['Y'][match],
+            'Z': self.orbit_polynomials['Z'][match],
+            'StartTime': self.valid_from[match],
+            'EndTime': self.valid_to[match],
+        }
+        return orbit_polynomial
+
+    def _get_enclosing_interval(self, time):
+        """Find interval enclosing the given timestamp."""
+        enclosing = np.where(
+            np.logical_and(
+                time >= self.valid_from,
+                time < self.valid_to
+            )
+        )[0]
+        most_recent = np.argmax(self.valid_from[enclosing])
+        return enclosing[most_recent]
+
+    def _get_closest_interval(self, time, threshold):
+        """Find interval closest to the given timestamp."""
+        intervals_centre = self.valid_from + 0.5 * (
+                self.valid_to - self.valid_from
+        )
+        diffs_us = (time - intervals_centre).astype('i8')
+        closest_match = np.argmin(np.fabs(diffs_us))
+        threshold_diff = np.timedelta64(threshold, 'h')
+        if abs(intervals_centre[closest_match] - time) < threshold_diff:
+            return closest_match
+        else:
+            raise NoValidOrbitParams(
+                'Unable to find orbit coefficients valid for {} +/- {}'
+                'hours'.format(time, threshold)
+            )
 
 
 def calculate_area_extent(area_dict):

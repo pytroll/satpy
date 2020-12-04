@@ -157,7 +157,6 @@ from datetime import datetime
 
 import dask.array as da
 import numpy as np
-import pyproj
 import xarray as xr
 
 import satpy.readers.utils as utils
@@ -169,8 +168,9 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function)
 from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
                                        VIS_CHANNELS, SEVIRICalibrationHandler,
-                                       chebyshev, get_cds_time,
-                                       add_scanline_acq_time)
+                                       get_cds_time, add_scanline_acq_time,
+                                       SatelliteLocatorFactory,
+                                       NoValidOrbitParams)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
 from satpy.readers._geos_area import get_area_extent, get_area_definition
@@ -230,12 +230,6 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
 
-class NoValidOrbitParams(Exception):
-    """Exception when validOrbitParameters are missing."""
-
-    pass
-
-
 class HRITMSGPrologueEpilogueBase(HRITFileHandler):
     """Base reader for prologue and epilogue files."""
 
@@ -292,97 +286,27 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
     def get_satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
 
+        Evaluate orbit polynomials at the start time of the scan.
+
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         if self.satpos is None:
-            logger.debug("Computing actual satellite position")
-
+            a, b = self.get_earth_radii()
+            time = self.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
+                'TrueRepeatCycleStart']
+            factory = SatelliteLocatorFactory(
+                self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
+            )
+            sat_locator = factory.get_satellite_locator(time)
             try:
-                # Get satellite position in cartesian coordinates
-                x, y, z = self._get_satpos_cart()
-
-                # Transform to geodetic coordinates
-                geocent = pyproj.Proj(proj='geocent')
-                a, b = self.get_earth_radii()
-                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-                lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
+                lon, lat, alt = sat_locator.get_satpos_geodetic(time, a, b)
             except NoValidOrbitParams as err:
                 logger.warning(err)
                 lon = lat = alt = None
 
             # Cache results
             self.satpos = lon, lat, alt
-
         return self.satpos
-
-    def _get_satpos_cart(self):
-        """Determine satellite position in earth-centered cartesion coordinates.
-
-        The coordinates as a function of time are encoded in the coefficients of an 8th-order Chebyshev polynomial.
-        In the prologue there is one set of coefficients for each coordinate (x, y, z). The coordinates are obtained by
-        evalutaing the polynomials at the start time of the scan.
-
-        Returns: x, y, z [m]
-        """
-        orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
-
-        # Find Chebyshev coefficients for the start time of the scan
-        coef_idx = self._find_orbit_coefs()
-        tstart = orbit_polynomial['StartTime'][0, coef_idx]
-        tend = orbit_polynomial['EndTime'][0, coef_idx]
-
-        # Obtain cartesian coordinates (x, y, z) of the satellite by evaluating the Chebyshev polynomial at the
-        # start time of the scan. Express timestamps in microseconds since 1970-01-01 00:00.
-        time = self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        time64 = np.datetime64(time).astype('int64')
-        domain = [np.datetime64(tstart).astype('int64'),
-                  np.datetime64(tend).astype('int64')]
-        x = chebyshev(coefs=orbit_polynomial['X'][coef_idx], time=time64, domain=domain)
-        y = chebyshev(coefs=orbit_polynomial['Y'][coef_idx], time=time64, domain=domain)
-        z = chebyshev(coefs=orbit_polynomial['Z'][coef_idx], time=time64, domain=domain)
-
-        return x*1000, y*1000, z*1000  # km -> m
-
-    def _find_orbit_coefs(self):
-        """Find orbit coefficients for the start time of the scan.
-
-        The header entry SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients, each
-        of them valid for a certain time interval. Find the coefficients which are valid for the
-        start time of the scan.
-
-        A manoeuvre is a discontinuity in the orbit parameters. The flight dynamic algorithms are
-        not made to interpolate over the time-span of the manoeuvre; hence we have elements
-        describing the orbit before a manoeuvre and a new set of elements describing the orbit after
-        the manoeuvre. The flight dynamic products are created so that there is an intentional gap
-        at the time of the manoeuvre. Also the two pre-manoeuvre elements may overlap. But the
-        overlap is not of an issue as both sets of elements describe the same pre-manoeuvre orbit
-        (with negligible variations).
-
-        Returns: Corresponding index in the coefficient list.
-
-        """
-        time = np.datetime64(self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart'])
-        intervals_tstart = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['StartTime'][0].astype(
-            'datetime64[us]')
-        intervals_tend = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['EndTime'][0].astype(
-            'datetime64[us]')
-        try:
-            # Find index of interval enclosing the nominal timestamp of the scan. If there are
-            # multiple enclosing intervals, use the most recent one.
-            enclosing = np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0]
-            most_recent = np.argmax(intervals_tstart[enclosing])
-            return enclosing[most_recent]
-        except ValueError:
-            # No enclosing interval. Instead, find the interval whose centre is closest to the scan's timestamp
-            # (but not more than 6 hours apart)
-            intervals_centre = intervals_tstart + 0.5 * (intervals_tend - intervals_tstart)
-            diffs_us = (time - intervals_centre).astype('i8')
-            closest_match = np.argmin(np.fabs(diffs_us))
-            if abs(intervals_centre[closest_match] - time) < np.timedelta64(6, 'h'):
-                logger.warning('No orbit coefficients valid for {}. Using closest match.'.format(time))
-                return closest_match
-            else:
-                raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
 
     def get_earth_radii(self):
         """Get earth radii from prologue.
