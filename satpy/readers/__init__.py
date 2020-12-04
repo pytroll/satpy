@@ -385,8 +385,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                             files are found.
         fs (FileSystem): Optional, instance of implementation of
                          fsspec.spec.AbstractFileSystem (strictly speaking,
-                         any object of a class implementing ``.glob`` is
-                         enough).  Defaults to searching the local filesystem.
+                         any object of a class implementing ``.glob`` and
+                         ``.open`` is enough).  Defaults to searching the local
+                         filesystem.
         use_fsfile (bool): If False, return strings.  If True, open each file
                            using the filesystem object passed and return
                            :class:`FSFile` objects.
@@ -582,8 +583,13 @@ class FSFile(os.PathLike):
     def __init__(self, file, fs=None):
         """Initialise the FSFile instance.
 
-        *file* can be string or an fsspec.OpenFile instance. In the latter case, the follow argument *fs* has no effect.
-        *fs* can be None or a fsspec filesystem instance.
+        *file* can be string, a path-like object, a file object,
+        or a file-like object.
+        If passed a file-like object with ``path`` and  ``fs`` attribute (such
+        as :class:~`fsspec.core.OpenFile`, :class:~`s3fs.core.S3File`, or
+        :class:~`fsspec.implementations.local.LocalFileOpener`),
+        the following argument *fs* has no effect.
+        *fs* can be None or an fsspec filesystem instance.
         """
         try:
             self._file = file.path
@@ -594,7 +600,7 @@ class FSFile(os.PathLike):
 
     def __str__(self):
         """Return the string version of the filename."""
-        return self._file
+        return str(self._file)
 
     def __fspath__(self):
         """Comply with PathLike."""
@@ -612,7 +618,10 @@ class FSFile(os.PathLike):
         try:
             return self._fs.open(self._file)
         except AttributeError:
-            return open(self._file)
+            try:
+                return open(self._file)
+            except TypeError:  # probably it's already an open file
+                return self._file
 
     def __lt__(self, other):
         """Implement ordering."""
