@@ -2,11 +2,11 @@ sensor_name: visir/ahi
 
 modifiers:
   rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: marine_clean_aerosol
     prerequisites:
-    - wavelength: 0.65
+    - wavelength: 0.64
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle

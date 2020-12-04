@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE SAR-C reader
-*********************
+"""SAFE SAR-C reader.
 
 This module implements a reader for Sentinel 1 SAR-C GRD (level1) SAFE format as
 provided by ESA. The format is comprised of a directory containing multiple
@@ -24,15 +23,14 @@ files, most notably two measurement files in geotiff and a few xml files for
 calibration, noise and metadata.
 
 References:
+  - *Level 1 Product Formatting*
+    https://sentinel.esa.int/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1-product-formatting
 
-      - *Level 1 Product Formatting*
-        https://sentinel.esa.int/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1-product-formatting
-
-      - J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
-        *"Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"*
-        in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
-        pp. 1555-1565, March 2018.
-        doi: `10.1109/TGRS.2017.2765248 <https://doi.org/10.1109/TGRS.2017.2765248>`_
+  - J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
+    *"Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"*
+    in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
+    pp. 1555-1565, March 2018.
+    doi: `10.1109/TGRS.2017.2765248 <https://doi.org/10.1109/TGRS.2017.2765248>`_
 
 """
 
@@ -80,6 +78,7 @@ class SAFEXML(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  header_file=None):
+        """Init the xml filehandler."""
         super(SAFEXML, self).__init__(filename, filename_info, filetype_info)
 
         self._start_time = filename_info['start_time']
@@ -173,7 +172,7 @@ class SAFEXML(BaseFileHandler):
                 continue
             data, low_res_coords = self.read_xml_array(data_items, xml_tag)
 
-        if key.name.endswith('squared'):
+        if key['name'].endswith('squared'):
             data **= 2
 
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
@@ -194,10 +193,10 @@ class SAFEXML(BaseFileHandler):
             noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
-    def get_calibration(self, name, shape, chunks=None):
+    def get_calibration(self, calibration_name, shape, chunks=None):
         """Get the calibration array."""
         data_items = self.root.findall(".//calibrationVector")
-        data, low_res_coords = self.read_xml_array(data_items, name)
+        data, low_res_coords = self.read_xml_array(data_items, calibration_name)
         return self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
 
     def get_calibration_constant(self):
@@ -206,10 +205,12 @@ class SAFEXML(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._end_time
 
 
@@ -247,6 +248,7 @@ def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
 
 
 def intp(grid_x, grid_y, interpolator):
+    """Interpolate."""
     return interpolator((grid_y, grid_x))
 
 
@@ -284,6 +286,7 @@ class SAFEGRD(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info, calfh, noisefh):
+        """Init the grd filehandler."""
         super(SAFEGRD, self).__init__(filename, filename_info,
                                       filetype_info)
 
@@ -309,26 +312,26 @@ class SAFEGRD(BaseFileHandler):
         if self._polarization != key.polarization:
             return
 
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
 
-        if key.name in ['longitude', 'latitude']:
+        if key['name'] in ['longitude', 'latitude']:
             logger.debug('Constructing coordinate arrays.')
 
             if self.lons is None or self.lats is None:
                 self.lons, self.lats, self.alts = self.get_lonlatalts()
 
-            if key.name == 'latitude':
+            if key['name'] == 'latitude':
                 data = self.lats
             else:
                 data = self.lons
             data.attrs.update(info)
 
         else:
-            calibration = key.calibration or 'gamma'
-            if calibration == 'sigma_nought':
-                calibration = 'sigmaNought'
-            elif calibration == 'beta_nought':
-                calibration = 'betaNought'
+            calibration_name = key['calibration'].name or 'gamma'
+            if calibration_name == 'sigma_nought':
+                calibration_name = 'sigmaNought'
+            elif calibration_name == 'beta_nought':
+                calibration_name = 'betaNought'
 
             data = self.read_band()
             # chunks = data.chunks  # This seems to be slower for some reason
@@ -338,7 +341,7 @@ class SAFEGRD(BaseFileHandler):
 
             logger.debug('Reading calibration data.')
 
-            cal = self.calibration.get_calibration(calibration, data.shape, chunks=chunks)
+            cal = self.calibration.get_calibration(calibration_name, data.shape, chunks=chunks)
             cal_constant = self.calibration.get_calibration_constant()
 
             logger.debug('Calibrating.')
@@ -354,7 +357,7 @@ class SAFEGRD(BaseFileHandler):
 
             data.attrs.update({'platform_name': self._mission_id})
 
-            data.attrs['units'] = calibration
+            data.attrs['units'] = '1'
 
         return data
 
@@ -481,8 +484,10 @@ class SAFEGRD(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._end_time

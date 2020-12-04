@@ -156,7 +156,7 @@ def check_yaml_configs(configs, key):
     diagnostic = {}
     for i in configs:
         for fname in i:
-            with open(fname) as stream:
+            with open(fname, 'r', encoding='utf-8') as stream:
                 try:
                     res = yaml.load(stream, Loader=UnsafeLoader)
                     msg = 'ok'

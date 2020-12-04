@@ -27,8 +27,9 @@ import xarray as xr
 from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
                                            NoValidOrbitParams, pad_data)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
-from satpy.dataset import DatasetID
+from satpy.tests.utils import make_dataid
 
+from numpy import testing as npt
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
@@ -135,8 +136,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset(self, calibrate, parent_get_dataset, _get_timestamps):
         """Test getting the hrv dataset."""
-        key = mock.MagicMock(calibration='calibration')
-        key.name = 'HRV'
+        key = make_dataid(name='HRV', calibration='reflectance')
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
         timestamps = np.arange(0, 464, dtype='datetime64[ns]')
 
@@ -148,7 +148,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
-        calibrate.assert_called_with(parent_get_dataset(), key.calibration)
+        calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
         # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
         # attributes)
@@ -182,7 +182,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset_non_fill(self, calibrate, parent_get_dataset, _get_timestamps):
         """Test getting a non-filled hrv dataset."""
-        key = mock.MagicMock(calibration='calibration')
+        key = make_dataid(name='HRV', calibration='reflectance')
         key.name = 'HRV'
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
         timestamps = np.arange(0, 464, dtype='datetime64[ns]')
@@ -195,7 +195,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
-        calibrate.assert_called_with(parent_get_dataset(), key.calibration)
+        calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
         # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
         # attributes)
@@ -241,7 +241,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
     def test_get_area_def(self):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
-        area = self.reader.get_area_def(DatasetID('HRV'))
+        area = self.reader.get_area_def(make_dataid(name='HRV'))
         self.assertEqual(area.area_extent,
                          (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
         proj_dict = area.proj_dict
@@ -253,11 +253,11 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         self.assertEqual(proj_dict['proj'], 'geos')
         self.assertEqual(proj_dict['units'], 'm')
         self.reader.fill_hrv = False
-        area = self.reader.get_area_def(DatasetID('HRV'))
-        self.assertEqual(area.defs[0].area_extent,
-                         (-22017598561055.01, -2926674655354.9604, 23564847539690.22, 77771774058.38356))
-        self.assertEqual(area.defs[1].area_extent,
-                         (-30793529275853.656, -3720765401003.719, 14788916824891.568, -2926674655354.9604))
+        area = self.reader.get_area_def(make_dataid(name='HRV'))
+        npt.assert_allclose(area.defs[0].area_extent,
+                            (-22017598561055.01, -2926674655354.9604, 23564847539690.22, 77771774058.38356))
+        npt.assert_allclose(area.defs[1].area_extent,
+                            (-30793529275853.656, -3720765401003.719, 14788916824891.568, -2926674655354.9604))
 
 
 class TestHRITMSGFileHandler(unittest.TestCase):
@@ -326,7 +326,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
     def test_get_area_def(self):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
-        area = self.reader.get_area_def(DatasetID('VIS006'))
+        area = self.reader.get_area_def(make_dataid(name='VIS006'))
         proj_dict = area.proj_dict
         a, b = proj4_radius_parameters(proj_dict)
         self.assertEqual(a, 6378169.0)
@@ -341,7 +341,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
 
         # Data shifted by 1.5km to N-W
         self.reader.mda['offset_corrected'] = False
-        area = self.reader.get_area_def(DatasetID('VIS006'))
+        area = self.reader.get_area_def(make_dataid(name='VIS006'))
         self.assertEqual(area.area_extent,
                          (-77771772558.38356, -3720765402503.719,
                           30310525627938.438, 77771772558.38356))
@@ -407,6 +407,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                 gain, offset = nominal_gain[ch_id - 1], nominal_offset[ch_id - 1]
             else:
                 gain, offset = gsics_gain[ch_id - 1], gsics_offset[ch_id - 1]
+                offset = offset * gain
 
             reader.channel_name = ch_name
             reader.mda['spectral_channel_id'] = ch_id
@@ -421,10 +422,11 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                     prologue=pro, epilogue=epi, ext_calib_coefs=coefs,
                                     calib_mode='GSICS')
         for ch_id, ch_name in CHANNEL_NAMES.items():
-            if ch_name in coefs.keys():
+            if ch_name in coefs:
                 gain, offset = coefs[ch_name]['gain'], coefs[ch_name]['offset']
             elif ch_name not in VIS_CHANNELS:
                 gain, offset = gsics_gain[ch_id - 1], gsics_offset[ch_id - 1]
+                offset = offset * gain
             else:
                 gain, offset = nominal_gain[ch_id - 1], nominal_offset[ch_id - 1]
 
@@ -442,7 +444,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset(self, calibrate, parent_get_dataset, _get_timestamps):
         """Test getting the dataset."""
-        key = mock.MagicMock(calibration='calibration')
+        key = make_dataid(name='VIS006', calibration='reflectance')
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
         timestamps = np.array([1, 2, 3], dtype='datetime64[ns]')
 
@@ -454,7 +456,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
-        calibrate.assert_called_with(parent_get_dataset(), key.calibration)
+        calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
         # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
         # attributes)
@@ -513,6 +515,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         self.assertTrue(np.all(msec[1:-1] == np.arange(len(tline) - 2)))
 
     def test_get_header(self):
+        """Test getting the header."""
         # Make sure that the actual satellite position is only included if available
         self.reader.mda['orbital_parameters'] = {}
         self.reader.prologue_.get_satpos.return_value = 1, 2, 3

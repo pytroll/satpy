@@ -26,7 +26,9 @@ from satpy.readers.seviri_l1b_native import (
     NativeMSGFileHandler,
     get_available_channels,
 )
-from satpy.dataset import DatasetID
+
+
+from satpy.tests.utils import make_dataid
 
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
@@ -51,7 +53,7 @@ TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'earth_model': 1,
-    'dataset_id': DatasetID(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -69,7 +71,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'earth_model': 1,
-    'dataset_id': DatasetID(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -87,7 +89,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
     'earth_model': 1,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -106,7 +108,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN = {
     'earth_model': 1,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'expected_area_def': {
@@ -124,7 +126,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'earth_model': 1,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -142,7 +144,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'earth_model': 2,
-    'dataset_id': DatasetID(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -160,7 +162,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
     'earth_model': 2,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -179,7 +181,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN = {
     'earth_model': 2,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'expected_area_def': {
@@ -197,7 +199,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'earth_model': 2,
-    'dataset_id': DatasetID(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -215,7 +217,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'earth_model': 2,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'expected_area_def': {
@@ -233,7 +235,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
 
 TEST_CALIBRATION_MODE = {
     'earth_model': 1,
-    'dataset_id': DatasetID(name='IR_108', calibration='radiance'),
+    'dataset_id': make_dataid(name='IR_108', calibration='radiance'),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'calibration': 'radiance',
@@ -294,7 +296,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
         """
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             reference_grid = 'ReferenceGridHRV'
             column_dir_grid_step = 1.0001343488693237
             line_dir_grid_step = 1.0001343488693237
@@ -456,7 +458,7 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN
         )
-        print(calculated.area_extent)
+
         assertNumpyArraysEqual(np.array(calculated.area_extent),
                                np.array(expected['Area extent']))
 
@@ -560,7 +562,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
         Mocked NativeMSGFileHandler with sufficient attributes for
         NativeMSGFileHandler._convert_to_radiance and NativeMSGFileHandler.calibrate to be able to execute.
         """
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             # reference_grid = 'ReferenceGridHRV'
             column_dir_grid_step = 1.0001343488693237
             line_dir_grid_step = 1.0001343488693237
@@ -656,7 +658,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
 
         earth_model = test_dict['earth_model']
         dataset_id = test_dict['dataset_id']
-        index = CHANNEL_INDEX_LIST.index(dataset_id.name)
+        index = CHANNEL_INDEX_LIST.index(dataset_id['name'])
 
         # determine the cal coeffs needed for the expected data calculation
         if cal_mode == 'nominal':

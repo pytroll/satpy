@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Composite classes for the VIIRS instrument.
-"""
+"""Composite classes for the VIIRS instrument."""
 
 import logging
 
@@ -62,7 +61,6 @@ class SARIceLegacy(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR RGB composite."""
-
         (mhh, mhv) = projectables
         green = overlay(mhh, mhv)
         green.attrs = combine_metadata(mhh, mhv)
@@ -75,7 +73,6 @@ class SARRGB(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR RGB composite."""
-
         (mhh, mhv) = projectables
         green = overlay(mhh, mhv)
         green.attrs = combine_metadata(mhh, mhv)

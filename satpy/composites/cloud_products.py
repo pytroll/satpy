@@ -18,7 +18,6 @@
 """Compositors for cloud products."""
 
 import numpy as np
-import xarray as xr
 
 from satpy.composites import GenericCompositor, ColormapCompositor
 
@@ -35,16 +34,16 @@ class CloudTopHeightCompositor(ColormapCompositor):
         else:
             palette_indices = range(len(palette))
 
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         tups = [(val, tuple(tup))
-                for (val, tup) in zip(palette_indices, sqpalette)]
+                for (val, tup) in zip(palette_indices, squeezed_palette)]
         colormap = Colormap(*tups)
         if 'palette_meanings' not in palette.attrs:
             sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
                 *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
 
-        return colormap, sqpalette
+        return colormap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Create the composite."""
@@ -52,20 +51,21 @@ class CloudTopHeightCompositor(ColormapCompositor):
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
         data, palette, status = projectables
+        fill_value_color = palette.attrs.get("fill_value_color", [0, 0, 0])
         colormap, palette = self.build_colormap(palette, data.attrs)
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
-        mask_nan = data.notnull()
-        mask_cloud_free = (status + 1) % 2
-        chans = []
-        for idx in range(channels.shape[-1]):
-            chan = xr.DataArray(channels[:, :, idx].reshape(data.shape),
-                                dims=data.dims, coords=data.coords,
-                                attrs=data.attrs).where(mask_nan)
-            # Set cloud-free pixels as black
-            chans.append(chan.where(mask_cloud_free, 0).where(status != status.attrs['_FillValue']))
+        mapped_channels = colormap.colorize(data.data)
+        valid = status != status.attrs['_FillValue']
+        # cloud-free pixels are marked invalid (fill_value in ctth_alti) but have status set to 1.
+        status_not_cloud_free = status % 2 == 0
+        not_cloud_free = np.logical_or(status_not_cloud_free, np.logical_not(valid))
 
-        res = super(CloudTopHeightCompositor, self).__call__(chans, **data.attrs)
+        channels = []
+        for (channel, cloud_free_color) in zip(mapped_channels, fill_value_color):
+            channel_data = self._create_masked_dataarray_like(channel, data, valid)
+            # Set cloud-free pixels as fill_value_color
+            channels.append(channel_data.where(not_cloud_free, cloud_free_color))
+
+        res = GenericCompositor.__call__(self, channels, **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
 

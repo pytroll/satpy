@@ -54,6 +54,8 @@ class OrderedConfigParser(object):
             # Pass if file not found
             if e.errno != 2:
                 raise
+        finally:
+            conf_file.close()
 
         return self.config_parser.read(filename)
 

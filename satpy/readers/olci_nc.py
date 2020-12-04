@@ -40,16 +40,19 @@ References:
 
 
 import logging
-from datetime import datetime
+from contextlib import suppress
+from functools import reduce
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
+from satpy import CHUNK_SIZE
+from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
-from satpy import CHUNK_SIZE
-from functools import reduce
+
+from satpy._compat import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -100,44 +103,47 @@ class NCOLCIBase(BaseFileHandler):
         """Init the olci reader base."""
         super(NCOLCIBase, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  engine=engine,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
-
+        self._engine = engine
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
+        self.open_file = None
+
+    @cached_property
+    def nc(self):
+        """Get the nc xr dataset."""
+        f_obj = open_file_or_filename(self.filename)
+        dataset = xr.open_dataset(f_obj,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  engine=self._engine,
+                                  chunks={'columns': CHUNK_SIZE,
+                                          'rows': CHUNK_SIZE})
+        return dataset.rename({'columns': 'x', 'rows': 'y'})
 
     @property
     def start_time(self):
         """Start time property."""
-        return datetime.strptime(self.nc.attrs['start_time'],
-                                 '%Y-%m-%dT%H:%M:%S.%fZ')
+        return self._start_time
 
     @property
     def end_time(self):
         """End time property."""
-        return datetime.strptime(self.nc.attrs['stop_time'],
-                                 '%Y-%m-%dT%H:%M:%S.%fZ')
+        return self._end_time
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key.name)
-        variable = self.nc[key.name]
+        logger.debug('Reading %s.', key['name'])
+        variable = self.nc[key['name']]
 
         return variable
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
-        try:
+        with suppress(IOError, OSError, AttributeError):
             self.nc.close()
-        except (IOError, OSError, AttributeError):
-            pass
 
 
 class NCOLCICal(NCOLCIBase):
@@ -189,14 +195,14 @@ class NCOLCI1B(NCOLCIChannelBase):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel != key.name:
+        if self.channel != key['name']:
             return
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
 
         radiances = self.nc[self.channel + '_radiance']
 
-        if key.calibration == 'reflectance':
-            idx = int(key.name[2:]) - 1
+        if key['calibration'] == 'reflectance':
+            idx = int(key['name'][2:]) - 1
             sflux = self._get_solar_flux(idx)
             radiances = radiances / sflux * np.pi * 100
             radiances.attrs['units'] = '%'
@@ -212,17 +218,17 @@ class NCOLCI2(NCOLCIChannelBase):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel is not None and self.channel != key.name:
+        if self.channel is not None and self.channel != key['name']:
             return
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
         if self.channel is not None and self.channel.startswith('Oa'):
             dataset = self.nc[self.channel + '_reflectance']
         else:
             dataset = self.nc[info['nc_key']]
 
-        if key.name == 'wqsf':
+        if key['name'] == 'wqsf':
             dataset.attrs['_FillValue'] = 1
-        elif key.name == 'mask':
+        elif key['name'] == 'mask':
             dataset = self.getbitmask(dataset)
 
         dataset.attrs['platform_name'] = self.platform_name
@@ -313,27 +319,27 @@ class NCOLCIAngles(NCOLCILowResData):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key.name not in self.datasets:
+        if key['name'] not in self.datasets:
             return
 
         self._open_dataset()
 
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
 
-        if self._need_interpolation() and self.cache.get(key.name) is None:
+        if self._need_interpolation() and self.cache.get(key['name']) is None:
 
-            if key.name.startswith('satellite'):
+            if key['name'].startswith('satellite'):
                 zen = self.nc[self.datasets['satellite_zenith_angle']]
                 zattrs = zen.attrs
                 azi = self.nc[self.datasets['satellite_azimuth_angle']]
                 aattrs = azi.attrs
-            elif key.name.startswith('solar'):
+            elif key['name'].startswith('solar'):
                 zen = self.nc[self.datasets['solar_zenith_angle']]
                 zattrs = zen.attrs
                 azi = self.nc[self.datasets['solar_azimuth_angle']]
                 aattrs = azi.attrs
             else:
-                raise NotImplementedError("Don't know how to read " + key.name)
+                raise NotImplementedError("Don't know how to read " + key['name'])
 
             x, y, z = angle2xyz(azi, zen)
 
@@ -343,24 +349,24 @@ class NCOLCIAngles(NCOLCILowResData):
             azi.attrs = aattrs
             zen.attrs = zattrs
 
-            if 'zenith' in key.name:
+            if 'zenith' in key['name']:
                 values = zen
-            elif 'azimuth' in key.name:
+            elif 'azimuth' in key['name']:
                 values = azi
             else:
-                raise NotImplementedError("Don't know how to read " + key.name)
+                raise NotImplementedError("Don't know how to read " + key['name'])
 
-            if key.name.startswith('satellite'):
+            if key['name'].startswith('satellite'):
                 self.cache['satellite_zenith_angle'] = zen
                 self.cache['satellite_azimuth_angle'] = azi
-            elif key.name.startswith('solar'):
+            elif key['name'].startswith('solar'):
                 self.cache['solar_zenith_angle'] = zen
                 self.cache['solar_azimuth_angle'] = azi
 
-        elif key.name in self.cache:
-            values = self.cache[key.name]
+        elif key['name'] in self.cache:
+            values = self.cache[key['name']]
         else:
-            values = self.nc[self.datasets[key.name]]
+            values = self.nc[self.datasets[key['name']]]
 
         values.attrs['platform_name'] = self.platform_name
         values.attrs['sensor'] = self.sensor
@@ -388,26 +394,26 @@ class NCOLCIMeteo(NCOLCILowResData):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key.name not in self.datasets:
+        if key['name'] not in self.datasets:
             return
 
         self._open_dataset()
 
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
 
-        if self._need_interpolation() and self.cache.get(key.name) is None:
+        if self._need_interpolation() and self.cache.get(key['name']) is None:
 
-            data = self.nc[key.name]
+            data = self.nc[key['name']]
 
             values, = self._do_interpolate(data)
             values.attrs = data.attrs
 
-            self.cache[key.name] = values
+            self.cache[key['name']] = values
 
-        elif key.name in self.cache:
-            values = self.cache[key.name]
+        elif key['name'] in self.cache:
+            values = self.cache[key['name']]
         else:
-            values = self.nc[key.name]
+            values = self.nc[key['name']]
 
         values.attrs['platform_name'] = self.platform_name
         values.attrs['sensor'] = self.sensor

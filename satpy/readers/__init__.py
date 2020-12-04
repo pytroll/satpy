@@ -18,10 +18,10 @@
 """Shared objects of the various reader classes."""
 
 import logging
-import numbers
 import os
 import warnings
 from datetime import datetime, timedelta
+from functools import total_ordering
 
 import yaml
 
@@ -32,8 +32,8 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DATASET_KEYS, DatasetID
-from satpy import CALIBRATION_ORDER
+from .yaml_reader import (AbstractYAMLReader,
+                          load_yaml_configs as load_yaml_reader_configs)
 
 LOG = logging.getLogger(__name__)
 
@@ -41,343 +41,6 @@ LOG = logging.getLogger(__name__)
 # Old Name -> New Name
 OLD_READER_NAMES = {
 }
-
-
-class TooManyResults(KeyError):
-    """Special exception when one key maps to multiple items in the container."""
-
-    pass
-
-
-def _wl_dist(wl_a, wl_b):
-    """Return the distance between two requested wavelengths."""
-    if isinstance(wl_a, tuple):
-        # central wavelength
-        wl_a = wl_a[1]
-    if isinstance(wl_b, tuple):
-        wl_b = wl_b[1]
-    if wl_a is None or wl_b is None:
-        return 1000.
-    return abs(wl_a - wl_b)
-
-
-def get_best_dataset_key(key, choices):
-    """Choose the "best" `DatasetID` from `choices` based on `key`.
-
-    The best key is chosen based on the follow criteria:
-
-        1. Central wavelength is nearest to the `key` wavelength if
-           specified.
-        2. Least modified dataset if `modifiers` is `None` in `key`.
-           Otherwise, the modifiers are ignored.
-        3. Highest calibration if `calibration` is `None` in `key`.
-           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
-        4. Best resolution (smallest number) if `resolution` is `None`
-           in `key`. Otherwise, the resolution is ignored.
-
-    This function assumes `choices` has already been filtered to only
-    include datasets that match the provided `key`.
-
-    Args:
-        key (DatasetID): Query parameters to sort `choices` by.
-        choices (iterable): `DatasetID` objects to sort through to determine
-                            the best dataset.
-
-    Returns: List of best `DatasetID`s from `choices`. If there is more
-             than one element this function could not choose between the
-             available datasets.
-
-    """
-    # Choose the wavelength closest to the choice
-    if key.wavelength is not None and choices:
-        # find the dataset with a central wavelength nearest to the
-        # requested wavelength
-        nearest_wl = min([_wl_dist(key.wavelength, x.wavelength)
-                          for x in choices if x.wavelength is not None])
-        choices = [c for c in choices
-                   if _wl_dist(key.wavelength, c.wavelength) == nearest_wl]
-    if key.modifiers is None and choices:
-        num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
-        choices = [c for c in choices if len(
-            c.modifiers or tuple()) == num_modifiers]
-    if key.calibration is None and choices:
-        best_cal = [x.calibration for x in choices if x.calibration]
-        if best_cal:
-            best_cal = min(best_cal, key=lambda x: CALIBRATION_ORDER[x])
-            choices = [c for c in choices if c.calibration == best_cal]
-    if key.resolution is None and choices:
-        low_res = [x.resolution for x in choices if x.resolution]
-        if low_res:
-            low_res = min(low_res)
-            choices = [c for c in choices if c.resolution == low_res]
-    if key.level is None and choices:
-        low_level = [x.level for x in choices if x.level]
-        if low_level:
-            low_level = max(low_level)
-            choices = [c for c in choices if c.level == low_level]
-
-    return choices
-
-
-def filter_keys_by_dataset_id(did, key_container):
-    """Filer provided key iterable by the provided `DatasetID`.
-
-    Note: The `modifiers` attribute of `did` should be `None` to allow for
-          **any** modifier in the results.
-
-    Args:
-        did (DatasetID): Query parameters to match in the `key_container`.
-        key_container (iterable): Set, list, tuple, or dict of `DatasetID`
-                                  keys.
-
-    Returns (list): List of keys matching the provided parameters in no
-                    specific order.
-
-    """
-    keys = iter(key_container)
-
-    for key in DATASET_KEYS:
-        if getattr(did, key) is not None:
-            if key == "wavelength":
-                keys = [k for k in keys
-                        if (getattr(k, key) is not None and
-                            DatasetID.wavelength_match(getattr(k, key),
-                                                       getattr(did, key)))]
-            else:
-                keys = [k for k in keys
-                        if getattr(k, key) is not None and getattr(k, key)
-                        == getattr(did, key)]
-
-    return keys
-
-
-def get_key(key, key_container, num_results=1, best=True,
-            resolution=None, calibration=None, polarization=None,
-            level=None, modifiers=None):
-    """Get the fully-specified key best matching the provided key.
-
-    Only the best match is returned if `best` is `True` (default). See
-    `get_best_dataset_key` for more information on how this is determined.
-
-    The `resolution` and other identifier keywords are provided as a
-    convenience to filter by multiple parameters at once without having
-    to filter by multiple `key` inputs.
-
-    Args:
-        key (DatasetID): DatasetID of query parameters to use for
-                         searching. Any parameter that is `None`
-                         is considered a wild card and any match is
-                         accepted.
-        key_container (dict or set): Container of DatasetID objects that
-                                     uses hashing to quickly access items.
-        num_results (int): Number of results to return. Use `0` for all
-                           matching results. If `1` then the single matching
-                           key is returned instead of a list of length 1.
-                           (default: 1)
-        best (bool): Sort results to get "best" result first
-                     (default: True). See `get_best_dataset_key` for details.
-        resolution (float, int, or list): Resolution of the dataset in
-                                          dataset units (typically
-                                          meters). This can also be a
-                                          list of these numbers.
-        calibration (str or list): Dataset calibration
-                                   (ex.'reflectance'). This can also be a
-                                   list of these strings.
-        polarization (str or list): Dataset polarization
-                                    (ex.'V'). This can also be a
-                                    list of these strings.
-        level (number or list): Dataset level (ex. 100). This can also be a
-                                list of these numbers.
-        modifiers (list): Modifiers applied to the dataset. Unlike
-                          resolution and calibration this is the exact
-                          desired list of modifiers for one dataset, not
-                          a list of possible modifiers.
-
-
-    Returns (list or DatasetID): Matching key(s)
-
-    Raises: KeyError if no matching results or if more than one result is
-            found when `num_results` is `1`.
-
-    """
-    if isinstance(key, numbers.Number):
-        # we want this ID to act as a query so we set modifiers to None
-        # meaning "we don't care how many modifiers it has".
-        key = DatasetID(wavelength=key, modifiers=None)
-    elif isinstance(key, str):
-        # ID should act as a query (see wl comment above)
-        key = DatasetID(name=key, modifiers=None)
-    elif not isinstance(key, DatasetID):
-        raise ValueError("Expected 'DatasetID', str, or number dict key, "
-                         "not {}".format(str(type(key))))
-
-    res = filter_keys_by_dataset_id(key, key_container)
-
-    # further filter by other parameters
-    if resolution is not None:
-        if not isinstance(resolution, (list, tuple)):
-            resolution = (resolution, )
-        res = [k for k in res
-               if k.resolution is not None and k.resolution in resolution]
-    if polarization is not None:
-        if not isinstance(polarization, (list, tuple)):
-            polarization = (polarization, )
-        res = [k for k in res
-               if k.polarization is not None and k.polarization in
-               polarization]
-    if calibration is not None:
-        if not isinstance(calibration, (list, tuple)):
-            calibration = (calibration, )
-        res = [k for k in res
-               if k.calibration is not None and k.calibration in calibration]
-    if level is not None:
-        if not isinstance(level, (list, tuple)):
-            level = (level, )
-        res = [k for k in res
-               if k.level is not None and k.level in level]
-    if modifiers is not None:
-        res = [k for k in res
-               if k.modifiers is not None and k.modifiers == modifiers]
-
-    if best:
-        res = get_best_dataset_key(key, res)
-
-    if num_results == 1 and not res:
-        raise KeyError("No dataset matching '{}' found".format(str(key)))
-    elif num_results == 1 and len(res) != 1:
-        raise TooManyResults("No unique dataset matching {}".format(str(key)))
-    elif num_results == 1:
-        return res[0]
-    elif num_results == 0:
-        return res
-    else:
-        return res[:num_results]
-
-
-class DatasetDict(dict):
-    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DatasetID.
-
-    Note: Internal dictionary keys are `DatasetID` objects.
-
-    """
-
-    def keys(self, names=False, wavelengths=False):
-        """Give currently contained keys."""
-        # sort keys so things are a little more deterministic (.keys() is not)
-        keys = sorted(super(DatasetDict, self).keys())
-        if names:
-            return (k.name for k in keys)
-        elif wavelengths:
-            return (k.wavelength for k in keys)
-        else:
-            return keys
-
-    def get_key(self, match_key, num_results=1, best=True, **dfilter):
-        """Get multiple fully-specified keys that match the provided query.
-
-        Args:
-            key (DatasetID): DatasetID of query parameters to use for
-                             searching. Any parameter that is `None`
-                             is considered a wild card and any match is
-                             accepted. Can also be a string representing the
-                             dataset name or a number representing the dataset
-                             wavelength.
-            num_results (int): Number of results to return. If `0` return all,
-                               if `1` return only that element, otherwise
-                               return a list of matching keys.
-            **dfilter (dict): See `get_key` function for more information.
-
-        """
-        return get_key(match_key, self.keys(), num_results=num_results,
-                       best=best, **dfilter)
-
-    def getitem(self, item):
-        """Get Node when we know the *exact* DatasetID."""
-        return super(DatasetDict, self).__getitem__(item)
-
-    def __getitem__(self, item):
-        """Get item from container."""
-        try:
-            # short circuit - try to get the object without more work
-            return super(DatasetDict, self).__getitem__(item)
-        except KeyError:
-            key = self.get_key(item)
-            return super(DatasetDict, self).__getitem__(key)
-
-    def get(self, key, default=None):
-        """Get value with optional default."""
-        try:
-            key = self.get_key(key)
-        except KeyError:
-            return default
-        return super(DatasetDict, self).get(key, default)
-
-    def __setitem__(self, key, value):
-        """Support assigning 'Dataset' objects or dictionaries of metadata."""
-        d = value
-        if hasattr(value, 'attrs'):
-            # xarray.DataArray objects
-            d = value.attrs
-        # use value information to make a more complete DatasetID
-        if not isinstance(key, DatasetID):
-            if not isinstance(d, dict):
-                raise ValueError("Key must be a DatasetID when value is not an xarray DataArray or dict")
-            old_key = key
-            try:
-                key = self.get_key(key)
-            except KeyError:
-                if isinstance(old_key, str):
-                    new_name = old_key
-                else:
-                    new_name = d.get("name")
-                # this is a new key and it's not a full DatasetID tuple
-                key = DatasetID(name=new_name,
-                                resolution=d.get("resolution"),
-                                wavelength=d.get("wavelength"),
-                                polarization=d.get("polarization"),
-                                calibration=d.get("calibration"),
-                                level=d.get("level"),
-                                modifiers=d.get("modifiers", tuple()))
-                if key.name is None and key.wavelength is None:
-                    raise ValueError("One of 'name' or 'wavelength' attrs "
-                                     "values should be set.")
-
-        # update the 'value' with the information contained in the key
-        if isinstance(d, dict):
-            d["name"] = key.name
-            # XXX: What should users be allowed to modify?
-            d["resolution"] = key.resolution
-            d["calibration"] = key.calibration
-            d["polarization"] = key.polarization
-            d["level"] = key.level
-            d["modifiers"] = key.modifiers
-            # you can't change the wavelength of a dataset, that doesn't make
-            # sense
-            if "wavelength" in d and d["wavelength"] != key.wavelength:
-                raise TypeError("Can't change the wavelength of a dataset")
-
-        return super(DatasetDict, self).__setitem__(key, value)
-
-    def contains(self, item):
-        """Check contains when we know the *exact* DatasetID."""
-        return super(DatasetDict, self).__contains__(item)
-
-    def __contains__(self, item):
-        """Check if item exists in container."""
-        try:
-            key = self.get_key(item)
-        except KeyError:
-            return False
-        return super(DatasetDict, self).__contains__(key)
-
-    def __delitem__(self, key):
-        """Delete item from container."""
-        try:
-            # short circuit - try to get the object without more work
-            return super(DatasetDict, self).__delitem__(key)
-        except KeyError:
-            key = self.get_key(key)
-            return super(DatasetDict, self).__delitem__(key)
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
@@ -423,7 +86,6 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
         a `Scene` object.
 
     """
-
     if reader is not None and not isinstance(reader, (list, tuple)):
         reader = [reader]
 
@@ -462,7 +124,6 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
         Mapping where the keys are reader names and the values are tuples of
         (reader_configs, filenames).
     """
-
     files_to_sort = set(files_to_sort)
     reader_dict = {}
     for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
@@ -502,7 +163,6 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
     Returns:
         Mapping[str, List[Tuple[Tuple, str]]], as described.
     """
-
     file_keys = {}
     for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
         if group_keys is None:
@@ -576,28 +236,14 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):
 
 
 def read_reader_config(config_files, loader=UnsafeLoader):
-    """Read the reader `config_files` and return the info extracted."""
-    conf = {}
-    LOG.debug('Reading %s', str(config_files))
-    for config_file in config_files:
-        with open(config_file) as fd:
-            conf.update(yaml.load(fd.read(), Loader=loader))
-
-    try:
-        reader_info = conf['reader']
-    except KeyError:
-        raise KeyError(
-            "Malformed config file {}: missing reader 'reader'".format(
-                config_files))
-    reader_info['config_files'] = config_files
-    return reader_info
+    """Read the reader `config_files` and return the extracted reader metadata."""
+    reader_config = load_yaml_reader_configs(*config_files, loader=loader)
+    return reader_config['reader']
 
 
 def load_reader(reader_configs, **reader_kwargs):
     """Import and setup the reader from *reader_info*."""
-    reader_info = read_reader_config(reader_configs)
-    reader_instance = reader_info['reader'](config_files=reader_configs, **reader_kwargs)
-    return reader_instance
+    return AbstractYAMLReader.from_config_files(*reader_configs, **reader_kwargs)
 
 
 def configs_for_reader(reader=None, ppp_config_dir=None):
@@ -667,10 +313,14 @@ def available_readers(as_dict=False):
         try:
             reader_info = read_reader_config(reader_configs)
         except (KeyError, IOError, yaml.YAMLError):
-            LOG.warning("Could not import reader config from: %s", reader_configs)
+            LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
             continue
         readers.append(reader_info if as_dict else reader_info['name'])
+    if as_dict:
+        readers = sorted(readers, key=lambda reader_info: reader_info['name'])
+    else:
+        readers = sorted(readers)
     return readers
 
 
@@ -679,6 +329,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            filter_parameters=None, reader_kwargs=None,
                            missing_ok=False, fs=None):
     """Find files matching the provided parameters.
+
     Use `start_time` and/or `end_time` to limit found filenames by the times
     in the filenames (not the internal file metadata). Files are matched if
     they fall anywhere within the range specified by these parameters.
@@ -791,15 +442,17 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
+            This can either be a single dictionary that will be passed to all
+            reader instances, or a mapping of reader names to dictionaries.  If
+            the keys of ``reader_kwargs`` match exactly the list of strings in
+            ``reader`` or the keys of filenames, each reader instance will get its
+            own keyword arguments accordingly.
         ppp_config_dir (str): The directory containing the configuration files for satpy.
 
     Returns: Dictionary mapping reader name to reader instance
 
     """
     reader_instances = {}
-    reader_kwargs = reader_kwargs or {}
-    reader_kwargs_without_filter = reader_kwargs.copy()
-    reader_kwargs_without_filter.pop('filter_parameters', None)
 
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
@@ -825,6 +478,8 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     else:
         remaining_filenames = set(filenames or [])
 
+    (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
+
     for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
         if isinstance(filenames, dict):
             readers_files = set(filenames[reader[idx]])
@@ -832,7 +487,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             readers_files = remaining_filenames
 
         try:
-            reader_instance = load_reader(reader_configs, **reader_kwargs)
+            reader_instance = load_reader(
+                    reader_configs,
+                    **reader_kwargs[None if reader is None else reader[idx]])
         except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
@@ -843,7 +500,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
+            reader_instance.create_filehandlers(
+                    loadables,
+                    fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:
@@ -858,3 +517,95 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
     return reader_instances
+
+
+def _get_reader_kwargs(reader, reader_kwargs):
+    """Help load_readers to form reader_kwargs.
+
+    Helper for load_readers to get reader_kwargs and
+    reader_kwargs_without_filter in the desirable form.
+    """
+    reader_kwargs = reader_kwargs or {}
+
+    # ensure one reader_kwargs per reader, None if not provided
+    if reader is None:
+        reader_kwargs = {None: reader_kwargs}
+    elif reader_kwargs.keys() != set(reader):
+        reader_kwargs = dict.fromkeys(reader, reader_kwargs)
+
+    reader_kwargs_without_filter = {}
+    for (k, v) in reader_kwargs.items():
+        reader_kwargs_without_filter[k] = v.copy()
+        reader_kwargs_without_filter[k].pop('filter_parameters', None)
+
+    return (reader_kwargs, reader_kwargs_without_filter)
+
+
+@total_ordering
+class FSFile(os.PathLike):
+    """Implementation of a PathLike file object, that can be opened.
+
+    This is made to be used in conjuction with fsspec or s3fs. For example::
+
+        from satpy import Scene
+
+        import fsspec
+        filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
+
+        the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
+
+        from satpy.readers import FSFile
+        fs_files = [FSFile(open_file) for open_file in the_files]
+
+        scn = Scene(filenames=fs_files, reader='abi_l1b')
+        scn.load(['true_color_raw'])
+
+    """
+
+    def __init__(self, file, fs=None):
+        """Initialise the FSFile instance.
+
+        *file* can be string or an fsspec.OpenFile instance. In the latter case, the follow argument *fs* has no effect.
+        *fs* can be None or a fsspec filesystem instance.
+        """
+        try:
+            self._file = file.path
+            self._fs = file.fs
+        except AttributeError:
+            self._file = file
+            self._fs = fs
+
+    def __str__(self):
+        """Return the string version of the filename."""
+        return self._file
+
+    def __fspath__(self):
+        """Comply with PathLike."""
+        return self._file
+
+    def __repr__(self):
+        """Representation of the object."""
+        return '<FSFile "' + str(self._file) + '">'
+
+    def open(self):
+        """Open the file.
+
+        This is read-only.
+        """
+        try:
+            return self._fs.open(self._file)
+        except AttributeError:
+            return open(self._file)
+
+    def __lt__(self, other):
+        """Implement ordering."""
+        return os.fspath(self) < os.fspath(other)
+
+
+def open_file_or_filename(unknown_file_thing):
+    """Try to open the *unknown_file_thing*, otherwise return the filename."""
+    try:
+        f_obj = unknown_file_thing.open()
+    except AttributeError:
+        f_obj = unknown_file_thing
+    return f_obj

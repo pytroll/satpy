@@ -266,7 +266,7 @@ def test_make_fake_scene():
     sc = make_fake_scene({
         "six": np.arange(25).reshape(5, 5)})
     assert len(sc.keys()) == 1
-    assert sc.keys().pop().name == "six"
+    assert sc.keys().pop()['name'] == "six"
     assert sc["six"].attrs["area"].shape == (5, 5)
     sc = make_fake_scene({
         "seven": np.arange(3*7).reshape(3, 7),

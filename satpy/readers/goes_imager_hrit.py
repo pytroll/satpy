@@ -379,7 +379,7 @@ class HRITGOESFileHandler(HRITFileHandler):
 
         self.mda['calibration_parameters'] = self._get_calibration_params()
 
-        res = self.calibrate(res, key.calibration)
+        res = self.calibrate(res, key['calibration'])
         new_attrs = info.copy()
         new_attrs.update(res.attrs)
         res.attrs = new_attrs
