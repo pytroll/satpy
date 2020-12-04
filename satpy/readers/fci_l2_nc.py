@@ -326,13 +326,6 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2BaseClass):
         float_variable.attrs = variable.attrs
         variable = float_variable
 
-        # If the variable has 3 dimensions, select the required layer
-        # ASR parameters are to be ignored
-        if variable.ndim == 3 and dataset_info['file_type'] != 'nc_fci_asr':
-            layer = dataset_info.get('layer', 0)
-            logger.debug('Selecting the layer %d.', layer)
-            variable = variable.sel(maximum_number_of_layers=layer)
-
         # Rename the dimensions as required by Satpy
         variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
 #       # Manage the attributes of the dataset
