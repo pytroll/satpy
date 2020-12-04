@@ -19,12 +19,44 @@
 
 import os
 import unittest
+from contextlib import suppress
 from unittest import mock
 
 import pytest
+from satpy.dataset.data_dict import get_key
+from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
+
+local_id_keys_config = {'name': {
+    'required': True,
+},
+    'wavelength': {
+    'type': WavelengthRange,
+},
+    'resolution': None,
+    'calibration': {
+    'enum': [
+        'reflectance',
+        'brightness_temperature',
+        'radiance',
+        'counts'
+    ]
+},
+    'polarization': None,
+    'level': None,
+    'modifiers': {
+    'required': True,
+    'default': ModifierTuple(),
+    'type': ModifierTuple,
+},
+}
+
+
+def make_dataid(**items):
+    """Make a data id."""
+    return DataID(local_id_keys_config, **items)
 
 
 class TestDatasetDict(unittest.TestCase):
@@ -32,53 +64,51 @@ class TestDatasetDict(unittest.TestCase):
 
     def setUp(self):
         """Create a test DatasetDict."""
-        from satpy.dataset import DatasetID
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         self.regular_dict = regular_dict = {
-            DatasetID(name="test",
-                      wavelength=(0, 0.5, 1),
-                      resolution=1000): "1",
-            DatasetID(name="testh",
-                      wavelength=(0, 0.5, 1),
-                      resolution=500): "1h",
-            DatasetID(name="test2",
-                      wavelength=(1, 1.5, 2),
-                      resolution=1000): "2",
-            DatasetID(name="test3",
-                      wavelength=(1.2, 1.7, 2.2),
-                      resolution=1000): "3",
-            DatasetID(name="test4",
-                      calibration="radiance",
-                      polarization="V"): "4rad",
-            DatasetID(name="test4",
-                      calibration="reflectance",
-                      polarization="H"): "4refl",
-            DatasetID(name="test5",
-                      modifiers=('mod1', 'mod2')): "5_2mod",
-            DatasetID(name="test5",
-                      modifiers=('mod2',)): "5_1mod",
-            DatasetID(name='test6', level=100): '6_100',
-            DatasetID(name='test6', level=200): '6_200',
+            make_dataid(name="test",
+                        wavelength=(0, 0.5, 1),
+                        resolution=1000): "1",
+            make_dataid(name="testh",
+                        wavelength=(0, 0.5, 1),
+                        resolution=500): "1h",
+            make_dataid(name="test2",
+                        wavelength=(1, 1.5, 2),
+                        resolution=1000): "2",
+            make_dataid(name="test3",
+                        wavelength=(1.2, 1.7, 2.2),
+                        resolution=1000): "3",
+            make_dataid(name="test4",
+                        calibration="radiance",
+                        polarization="V"): "4rad",
+            make_dataid(name="test4",
+                        calibration="reflectance",
+                        polarization="H"): "4refl",
+            make_dataid(name="test5",
+                        modifiers=('mod1', 'mod2')): "5_2mod",
+            make_dataid(name="test5",
+                        modifiers=('mod2',)): "5_1mod",
+            make_dataid(name='test6', level=100): '6_100',
+            make_dataid(name='test6', level=200): '6_200',
         }
         self.test_dict = DatasetDict(regular_dict)
 
     def test_init_noargs(self):
         """Test DatasetDict init with no arguments."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         d = DatasetDict()
         self.assertIsInstance(d, dict)
 
     def test_init_dict(self):
         """Test DatasetDict init with a regular dict argument."""
-        from satpy.dataset import DatasetID
-        from satpy.readers import DatasetDict
-        regular_dict = {DatasetID(name="test", wavelength=(0, 0.5, 1)): "1", }
+        from satpy import DatasetDict
+        regular_dict = {make_dataid(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
 
     def test_getitem(self):
         """Test DatasetDict getitem with different arguments."""
-        from satpy.dataset import DatasetID
+        from satpy.tests.utils import make_dsq
         d = self.test_dict
         # access by name
         self.assertEqual(d["test"], "1")
@@ -89,29 +119,31 @@ class TestDatasetDict(unittest.TestCase):
         # access by near wavelength of another dataset
         self.assertEqual(d[1.65], "3")
         # access by name with multiple levels
-        self.assertEqual(d['test6'], '6_200')
+        self.assertEqual(d['test6'], '6_100')
 
-        self.assertEqual(d[DatasetID(wavelength=1.5)], "2")
-        self.assertEqual(d[DatasetID(wavelength=0.5, resolution=1000)], "1")
-        self.assertEqual(d[DatasetID(wavelength=0.5, resolution=500)], "1h")
-        self.assertEqual(d[DatasetID(name='test6', level=100)], '6_100')
-        self.assertEqual(d[DatasetID(name='test6', level=200)], '6_200')
+        self.assertEqual(d[make_dsq(wavelength=1.5)], "2")
+        self.assertEqual(d[make_dsq(wavelength=0.5, resolution=1000)], "1")
+        self.assertEqual(d[make_dsq(wavelength=0.5, resolution=500)], "1h")
+        self.assertEqual(d[make_dsq(name='test6', level=100)], '6_100')
+        self.assertEqual(d[make_dsq(name='test6', level=200)], '6_200')
 
         # higher resolution is returned
         self.assertEqual(d[0.5], "1h")
         self.assertEqual(d['test4'], '4refl')
-        self.assertEqual(d[DatasetID(name='test4', calibration='radiance')], '4rad')
+        self.assertEqual(d[make_dataid(name='test4', calibration='radiance')], '4rad')
         self.assertRaises(KeyError, d.getitem, '1h')
+
+        # test with full tuple
+        self.assertEqual(d[make_dsq(name='test', wavelength=(0, 0.5, 1), resolution=1000)], "1")
 
     def test_get_key(self):
         """Test 'get_key' special functions."""
-        from satpy import DatasetID
-        from satpy.readers import get_key
+        from satpy.dataset import DataQuery
         d = self.test_dict
-        res1 = get_key(DatasetID(name='test4'), d, calibration='radiance')
-        res2 = get_key(DatasetID(name='test4'), d, calibration='radiance',
+        res1 = get_key(make_dataid(name='test4'), d, calibration='radiance')
+        res2 = get_key(make_dataid(name='test4'), d, calibration='radiance',
                        num_results=0)
-        res3 = get_key(DatasetID(name='test4'), d, calibration='radiance',
+        res3 = get_key(make_dataid(name='test4'), d, calibration='radiance',
                        num_results=3)
         self.assertEqual(len(res2), 1)
         self.assertEqual(len(res3), 1)
@@ -119,25 +151,24 @@ class TestDatasetDict(unittest.TestCase):
         res3 = res3[0]
         self.assertEqual(res1, res2)
         self.assertEqual(res1, res3)
+        res1 = get_key('test4', d, query=DataQuery(polarization='V'))
+        self.assertEqual(res1, make_dataid(name='test4', calibration='radiance',
+                                           polarization='V'))
 
-        res1 = get_key('test4', d, polarization='V')
-        self.assertEqual(res1, DatasetID(name='test4', calibration='radiance',
-                                         polarization='V'))
+        res1 = get_key(0.5, d, query=DataQuery(resolution=500))
+        self.assertEqual(res1, make_dataid(name='testh',
+                                           wavelength=(0, 0.5, 1),
+                                           resolution=500))
 
-        res1 = get_key(0.5, d, resolution=500)
-        self.assertEqual(res1, DatasetID(name='testh',
-                                         wavelength=(0, 0.5, 1),
-                                         resolution=500))
-
-        res1 = get_key('test6', d, level=100)
-        self.assertEqual(res1, DatasetID(name='test6',
-                                         level=100))
+        res1 = get_key('test6', d, query=DataQuery(level=100))
+        self.assertEqual(res1, make_dataid(name='test6',
+                                           level=100))
 
         res1 = get_key('test5', d)
-        res2 = get_key('test5', d, modifiers=('mod2',))
-        res3 = get_key('test5', d, modifiers=('mod1', 'mod2',))
-        self.assertEqual(res1, DatasetID(name='test5',
-                                         modifiers=('mod2',)))
+        res2 = get_key('test5', d, query=DataQuery(modifiers=('mod2',)))
+        res3 = get_key('test5', d, query=DataQuery(modifiers=('mod1', 'mod2',)))
+        self.assertEqual(res1, make_dataid(name='test5',
+                                           modifiers=('mod2',)))
         self.assertEqual(res1, res2)
         self.assertNotEqual(res1, res3)
 
@@ -146,7 +177,6 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_contains(self):
         """Test DatasetDict contains method."""
-        from satpy.dataset import DatasetID
         d = self.test_dict
         self.assertIn('test', d)
         self.assertFalse(d.contains('test'))
@@ -156,22 +186,22 @@ class TestDatasetDict(unittest.TestCase):
         self.assertIn(1.5, d)
         self.assertIn(1.55, d)
         self.assertIn(1.65, d)
-        self.assertIn(DatasetID(name='test4', calibration='radiance'), d)
+        self.assertIn(make_dataid(name='test4', calibration='radiance'), d)
         self.assertIn('test4', d)
 
     def test_keys(self):
         """Test keys method of DatasetDict."""
-        from satpy import DatasetID
+        from satpy.tests.utils import DataID
         d = self.test_dict
         self.assertEqual(len(d.keys()), len(self.regular_dict.keys()))
-        self.assertTrue(all(isinstance(x, DatasetID) for x in d.keys()))
+        self.assertTrue(all(isinstance(x, DataID) for x in d.keys()))
         name_keys = d.keys(names=True)
         self.assertListEqual(sorted(set(name_keys))[:4], [
             'test', 'test2', 'test3', 'test4'])
         wl_keys = tuple(d.keys(wavelengths=True))
         self.assertIn((0, 0.5, 1), wl_keys)
-        self.assertIn((1, 1.5, 2), wl_keys)
-        self.assertIn((1.2, 1.7, 2.2), wl_keys)
+        self.assertIn((1, 1.5, 2, 'µm'), wl_keys)
+        self.assertIn((1.2, 1.7, 2.2, 'µm'), wl_keys)
         self.assertIn(None, wl_keys)
 
     def test_setitem(self):
@@ -596,12 +626,14 @@ class TestYAMLFiles(unittest.TestCase):
         self.assertIsInstance(reader_names[0], str)
         self.assertIn('viirs_sdr', reader_names)  # needs h5py
         self.assertIn('abi_l1b', reader_names)  # needs netcdf4
+        self.assertEqual(reader_names, sorted(reader_names))
 
         reader_infos = available_readers(as_dict=True)
         self.assertEqual(len(reader_names), len(reader_infos))
         self.assertIsInstance(reader_infos[0], dict)
         for reader_info in reader_infos:
             self.assertIn('name', reader_info)
+        self.assertEqual(reader_infos, sorted(reader_infos, key=lambda reader_info: reader_info['name']))
 
 
 class TestGroupFiles(unittest.TestCase):
@@ -801,3 +833,115 @@ class TestGroupFiles(unittest.TestCase):
                     reader=("abi_l1b", "viirs_sdr"),
                     group_keys=("start_time"),
                     time_threshold=10**9)
+
+
+def _generate_random_string():
+    import uuid
+    return str(uuid.uuid1())
+
+
+def _assert_is_open_file_and_close(opened):
+    try:
+        assert hasattr(opened, 'tell')
+    finally:
+        opened.close()
+
+
+def _posixify_path(filename):
+    drive, driveless_name = os.path.splitdrive(filename)
+    return driveless_name.replace('\\', '/')
+
+
+class TestFSFile(unittest.TestCase):
+    """Test the FSFile class."""
+
+    def setUp(self):
+        """Set up the instance."""
+        import fsspec
+        from pathlib import Path
+        import tempfile
+        import zipfile
+        self.random_string = _generate_random_string()
+        self.local_filename = os.path.join(tempfile.gettempdir(), self.random_string)
+        Path(self.local_filename).touch()
+        self.local_file = fsspec.open(self.local_filename)
+
+        self.random_string2 = _generate_random_string()
+        self.local_filename2 = os.path.join(tempfile.gettempdir(), self.random_string2)
+        Path(self.local_filename2).touch()
+        self.zip_name = os.path.join(tempfile.gettempdir(), self.random_string2 + ".zip")
+        zip_file = zipfile.ZipFile(self.zip_name, 'w', zipfile.ZIP_DEFLATED)
+        zip_file.write(self.local_filename2)
+        zip_file.close()
+        os.remove(self.local_filename2)
+
+    def tearDown(self):
+        """Destroy the instance."""
+        os.remove(self.local_filename)
+        with suppress(PermissionError):
+            os.remove(self.zip_name)
+
+    def test_regular_filename_is_returned_with_str(self):
+        """Test that str give the filename."""
+        from satpy.readers import FSFile
+        assert str(FSFile(self.random_string)) == self.random_string
+
+    def test_fsfile_with_regular_filename_abides_pathlike(self):
+        """Test that FSFile abides PathLike for regular filenames."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.random_string)) == self.random_string
+
+    def test_fsfile_with_regular_filename_and_fs_spec_abides_pathlike(self):
+        """Test that FSFile abides PathLike for filename+fs instances."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
+
+    def test_fsfile_with_fs_open_file_abides_pathlike(self):
+        """Test that FSFile abides PathLike for fsspec OpenFile instances."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.local_file)).endswith(self.random_string)
+
+    def test_repr_includes_filename(self):
+        """Test that repr includes the filename."""
+        from satpy.readers import FSFile
+        assert self.random_string in repr(FSFile(self.local_file))
+
+    def test_open_regular_file(self):
+        """Test opening a regular file."""
+        from satpy.readers import FSFile
+        _assert_is_open_file_and_close(FSFile(self.local_filename).open())
+
+    def test_open_local_fs_file(self):
+        """Test opening a localfs file."""
+        from satpy.readers import FSFile
+        _assert_is_open_file_and_close(FSFile(self.local_file).open())
+
+    def test_open_zip_fs_regular_filename(self):
+        """Test opening a zipfs with a regular filename provided."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        file = FSFile(_posixify_path(self.local_filename2), zip_fs)
+        _assert_is_open_file_and_close(file.open())
+
+    def test_open_zip_fs_openfile(self):
+        """Test opening a zipfs openfile."""
+        from satpy.readers import FSFile
+        import fsspec
+        open_file = fsspec.open("zip:/" + _posixify_path(self.local_filename2) + "::file://" + self.zip_name)
+        file = FSFile(open_file)
+        _assert_is_open_file_and_close(file.open())
+
+    def test_sorting_fsfiles(self):
+        """Test sorting FSFiles."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        file1 = FSFile(self.local_filename2, zip_fs)
+
+        file2 = FSFile(self.local_filename)
+
+        extra_file = os.path.normpath('/somedir/bla')
+        sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
+        expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
+        assert sorted_filenames == expected_filenames

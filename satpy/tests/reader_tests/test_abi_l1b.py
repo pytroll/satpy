@@ -17,10 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l1b reader tests package."""
 
-import numpy as np
-import xarray as xr
 import unittest
 from unittest import mock
+
+import numpy as np
+import xarray as xr
+
+from satpy.tests.utils import make_dataid
 
 
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
@@ -124,8 +127,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
-        from satpy import DatasetID
-        key = DatasetID(name='Rad', calibration='radiance')
+        key = make_dataid(name='Rad', calibration='radiance')
         res = self.reader.get_dataset(key, {'info': 'info'})
         exp = {'calibration': 'radiance',
                'instrument_ID': None,
@@ -156,12 +158,6 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
         self.assertNotIn('t', res.dims)
         self.assertNotIn('time', res.coords)
         self.assertNotIn('time', res.dims)
-
-    def test_bad_calibration(self):
-        """Test that asking for a bad calibration fails."""
-        from satpy import DatasetID
-        self.assertRaises(ValueError, self.reader.get_dataset,
-                          DatasetID(name='C05', calibration='_bad_'), {})
 
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def(self, adef):
@@ -198,9 +194,8 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
 
     def test_ir_calibrate(self):
         """Test IR calibration."""
-        from satpy import DatasetID
         res = self.reader.get_dataset(
-            DatasetID(name='C05', calibration='brightness_temperature'), {})
+            make_dataid(name='C05', calibration='brightness_temperature'), {})
 
         expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
                              [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
@@ -234,9 +229,8 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
 
     def test_vis_calibrate(self):
         """Test VIS calibration."""
-        from satpy import DatasetID
         res = self.reader.get_dataset(
-            DatasetID(name='C05', calibration='reflectance'), {})
+            make_dataid(name='C05', calibration='reflectance'), {})
 
         expected = np.array([[0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085],
                              [0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171]])
@@ -247,3 +241,36 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
                          'toa_bidirectional_reflectance')
         self.assertEqual(res.attrs['long_name'],
                          'Bidirectional Reflectance')
+
+
+class Test_NC_ABI_File(unittest.TestCase):
+    """Test file opening."""
+
+    @mock.patch('satpy.readers.abi_base.xr')
+    def test_open_dataset(self, _):
+        """Test openning a dataset."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
+
+        openable_thing = mock.MagicMock()
+
+        NC_ABI_L1B(openable_thing, {'platform_shortname': 'g16'}, None)
+        openable_thing.open.assert_called()
+
+
+class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
+    """Allow h5netcdf peculiarities."""
+
+    def setUp(self):
+        """Create fake data for the tests."""
+        rad_data = np.int16(50)
+        rad = xr.DataArray(
+            rad_data,
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': np.array([1002]),
+                'units': 'W m-2 um-1 sr-1',
+                'valid_range': (0, 4095),
+            }
+        )
+        super(Test_NC_ABI_L1B_H5netcdf, self).setUp(rad=rad)

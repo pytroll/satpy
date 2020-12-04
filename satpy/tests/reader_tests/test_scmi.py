@@ -24,7 +24,10 @@ import xarray as xr
 
 
 class FakeDataset(object):
+    """Fake dataset."""
+
     def __init__(self, info, attrs, dims=None):
+        """Init the dataset."""
         for var_name, var_data in list(info.items()):
             if isinstance(var_data, np.ndarray):
                 info[var_name] = xr.DataArray(var_data)
@@ -33,15 +36,19 @@ class FakeDataset(object):
         self.dims = dims or {}
 
     def __getitem__(self, key):
+        """Get item."""
         return self.info.get(key, self.dims.get(key))
 
     def __contains__(self, key):
+        """Check contains."""
         return key in self.info or key in self.dims
 
     def rename(self, *args, **kwargs):
+        """Rename the dataset."""
         return self
 
     def close(self):
+        """Close the dataset."""
         return
 
 
@@ -50,7 +57,7 @@ class TestSCMIFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.scmi.xr')
     def setUp(self, xr_):
-        """Setup for test."""
+        """Set up for test."""
         from satpy.readers.scmi import SCMIFileHandler
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.)
         rad_data = (rad_data + 1.) / 0.5
@@ -95,19 +102,19 @@ class TestSCMIFileHandler(unittest.TestCase):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         self.assertEqual(self.reader.start_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))
         self.assertEqual(self.reader.end_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))
-        self.assertEqual(self.reader.get_shape(DatasetID(name='C05'), {}),
+        self.assertEqual(self.reader.get_shape(make_dataid(name='C05'), {}),
                          (2, 5))
 
     def test_data_load(self):
         """Test data loading."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         res = self.reader.get_dataset(
-            DatasetID(name='C05', calibration='reflectance'), {})
+            make_dataid(name='C05', calibration='reflectance'), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
         self.assertNotIn('scale_factor', res.attrs)

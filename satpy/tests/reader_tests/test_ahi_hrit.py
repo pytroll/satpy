@@ -302,7 +302,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             log_mock.assert_called()
 
     def test_mjd2datetime64(self):
-        """Test conversion from modified julian day to datetime64"""
+        """Test conversion from modified julian day to datetime64."""
         from satpy.readers.hrit_jma import mjd2datetime64
         self.assertEqual(mjd2datetime64(np.array([0])),
                          np.datetime64('1858-11-17', 'us'))

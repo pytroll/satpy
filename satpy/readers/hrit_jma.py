@@ -19,7 +19,6 @@
 
 Introduction
 ------------
-
 The JMA HRIT format is described in the `JMA HRIT - Mission Specific
 Implementation`_. There are three readers for this format in Satpy:
 
@@ -37,7 +36,6 @@ Sample data is available here:
 
 Example
 -------
-
 Here is an example how to read Himwari-8 HRIT data with Satpy:
 
 .. code-block:: python
@@ -179,7 +177,6 @@ SENSORS = {
 
 def mjd2datetime64(mjd):
     """Convert Modified Julian Day (MJD) to datetime64."""
-
     epoch = np.datetime64('1858-11-17 00:00')
     day2usec = 24 * 3600 * 1E6
     mjd_usec = (mjd * day2usec).astype(np.int64).astype('timedelta64[us]')
@@ -368,7 +365,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         return data.where(geomask)
 
     def _get_acq_time(self):
-        """
+        r"""Get the acquisition times from the file.
+
         Acquisition times for a subset of scanlines are stored in the header
         as follows:
 

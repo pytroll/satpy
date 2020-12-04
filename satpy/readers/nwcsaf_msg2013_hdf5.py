@@ -54,21 +54,21 @@ class Hdf5NWCSAF(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
-        file_key = ds_info.get('file_key', dataset_id.name)
+        file_key = ds_info.get('file_key', dataset_id['name'])
         data = self[file_key]
 
         nodata = None
         if 'SCALING_FACTOR' in data.attrs and 'OFFSET' in data.attrs:
             dtype = np.dtype(data.data)
-            if dataset_id.name in ['ctth_alti']:
+            if dataset_id['name'] in ['ctth_alti']:
                 data.attrs['valid_range'] = (0, 27000)
                 data.attrs['_FillValue'] = np.nan
 
-            if dataset_id.name in ['ctth_alti', 'ctth_pres', 'ctth_tempe', 'ctth_effective_cloudiness']:
+            if dataset_id['name'] in ['ctth_alti', 'ctth_pres', 'ctth_tempe', 'ctth_effective_cloudiness']:
                 dtype = np.dtype('float32')
                 nodata = 255
 
-            if dataset_id.name in ['ct']:
+            if dataset_id['name'] in ['ct']:
                 data.attrs['valid_range'] = (0, 20)
                 data.attrs['_FillValue'] = 255
                 # data.attrs['palette_meanings'] = list(range(21))
@@ -90,7 +90,7 @@ class Hdf5NWCSAF(HDF5FileHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file."""
-        if dsid.name.endswith('_pal'):
+        if dsid['name'].endswith('_pal'):
             raise NotImplementedError
 
         cfac = self.file_content['/attr/CFAC']

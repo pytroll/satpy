@@ -6,12 +6,12 @@ reader:
     NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
   sensors: [seviri]
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
-  group_keys: ["processing_time", "satid"]
+  group_keys: ["start_time", "satid"]
 
 file_types:
     seviri_l1b_nc:
         file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIFileHandler
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
+        file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{start_time:%Y%m%d%H%M%S}.nc']
 
 datasets:
   HRV:

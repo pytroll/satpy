@@ -37,9 +37,10 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler"""
+    """Swap-in NetCDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         file_type = filename[:5].lower()
         # num_lines = {
@@ -131,11 +132,12 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
 
 class TestVIIRSL1BReader(unittest.TestCase):
-    """Test VIIRS L1B Reader"""
+    """Test VIIRS L1B Reader."""
+
     yaml_file = "viirs_l1b.yaml"
 
     def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler"""
+        """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_l1b import VIIRSL1BFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -145,7 +147,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -161,7 +163,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_every_m_band_bt(self):
-        """Test loading all M band brightness temperatures"""
+        """Test loading all M band brightness temperatures."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -183,7 +185,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_every_m_band_refl(self):
-        """Test loading all M band reflectances"""
+        """Test loading all M band reflectances."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -211,31 +213,31 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_every_m_band_rad(self):
-        """Test loading all M bands as radiances"""
+        """Test loading all M bands as radiances."""
         from satpy.readers import load_reader
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'VL1BM_snpp_d20161130_t012400_c20161130054822.nc',
             'VGEOM_snpp_d20161130_t012400_c20161130054822.nc',
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load([DatasetID('M01', calibration='radiance'),
-                           DatasetID('M02', calibration='radiance'),
-                           DatasetID('M03', calibration='radiance'),
-                           DatasetID('M04', calibration='radiance'),
-                           DatasetID('M05', calibration='radiance'),
-                           DatasetID('M06', calibration='radiance'),
-                           DatasetID('M07', calibration='radiance'),
-                           DatasetID('M08', calibration='radiance'),
-                           DatasetID('M09', calibration='radiance'),
-                           DatasetID('M10', calibration='radiance'),
-                           DatasetID('M11', calibration='radiance'),
-                           DatasetID('M12', calibration='radiance'),
-                           DatasetID('M13', calibration='radiance'),
-                           DatasetID('M14', calibration='radiance'),
-                           DatasetID('M15', calibration='radiance'),
-                           DatasetID('M16', calibration='radiance')])
+        datasets = r.load([make_dataid(name='M01', calibration='radiance'),
+                           make_dataid(name='M02', calibration='radiance'),
+                           make_dataid(name='M03', calibration='radiance'),
+                           make_dataid(name='M04', calibration='radiance'),
+                           make_dataid(name='M05', calibration='radiance'),
+                           make_dataid(name='M06', calibration='radiance'),
+                           make_dataid(name='M07', calibration='radiance'),
+                           make_dataid(name='M08', calibration='radiance'),
+                           make_dataid(name='M09', calibration='radiance'),
+                           make_dataid(name='M10', calibration='radiance'),
+                           make_dataid(name='M11', calibration='radiance'),
+                           make_dataid(name='M12', calibration='radiance'),
+                           make_dataid(name='M13', calibration='radiance'),
+                           make_dataid(name='M14', calibration='radiance'),
+                           make_dataid(name='M15', calibration='radiance'),
+                           make_dataid(name='M16', calibration='radiance')])
         self.assertEqual(len(datasets), 16)
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
@@ -245,7 +247,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_dnb_radiance(self):
-        """Test loading the main DNB dataset"""
+        """Test loading the main DNB dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([

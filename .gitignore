@@ -33,6 +33,9 @@ htmlcov
 #Translations
 *.mo
 
+#Sphinx
+doc/source/_build/*
+
 #Mr Developer
 .mr.developer.cfg
 

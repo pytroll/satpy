@@ -161,7 +161,7 @@ class TestModisL2(unittest.TestCase):
 
     def test_load_longitude_latitude(self):
         """Test that longitude and latitude datasets are loaded correctly."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
 
         def test_func(dname, x, y):
             if dname == 'longitude':
@@ -176,46 +176,46 @@ class TestModisL2(unittest.TestCase):
         for dataset_name in ['longitude', 'latitude']:
             # Default resolution should be the interpolated 1km
             scene.load([dataset_name])
-            longitude_1km_id = DatasetID(name=dataset_name, resolution=1000)
+            longitude_1km_id = make_dataid(name=dataset_name, resolution=1000)
             longitude_1km = scene[longitude_1km_id]
             self.assertEqual(longitude_1km.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
             test_func(dataset_name, longitude_1km.values, 0)
             # Specify original 5km scale
             scene.load([dataset_name], resolution=5000)
-            longitude_5km_id = DatasetID(name=dataset_name, resolution=5000)
+            longitude_5km_id = make_dataid(name=dataset_name, resolution=5000)
             longitude_5km = scene[longitude_5km_id]
             self.assertEqual(longitude_5km.shape, TEST_DATA[dataset_name.capitalize()]['data'].shape)
             test_func(dataset_name, longitude_5km.values, 0)
 
     def test_load_quality_assurance(self):
         """Test loading quality assurance."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         scene = Scene(reader='modis_l2', filenames=[self.file_name])
         dataset_name = 'quality_assurance'
         scene.load([dataset_name])
-        quality_assurance_id = DatasetID(name=dataset_name, resolution=1000)
-        self.assertIn(quality_assurance_id, scene.datasets)
+        quality_assurance_id = make_dataid(name=dataset_name, resolution=1000)
+        self.assertIn(quality_assurance_id, scene)
         quality_assurance = scene[quality_assurance_id]
         self.assertEqual(quality_assurance.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
 
     def test_load_1000m_cloud_mask_dataset(self):
         """Test loading 1000m cloud mask."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         scene = Scene(reader='modis_l2', filenames=[self.file_name])
         dataset_name = 'cloud_mask'
         scene.load([dataset_name], resolution=1000)
-        cloud_mask_id = DatasetID(name=dataset_name, resolution=1000)
-        self.assertIn(cloud_mask_id, scene.datasets)
+        cloud_mask_id = make_dataid(name=dataset_name, resolution=1000)
+        self.assertIn(cloud_mask_id, scene)
         cloud_mask = scene[cloud_mask_id]
         self.assertEqual(cloud_mask.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
 
     def test_load_250m_cloud_mask_dataset(self):
         """Test loading 250m cloud mask."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         scene = Scene(reader='modis_l2', filenames=[self.file_name])
         dataset_name = 'cloud_mask'
         scene.load([dataset_name], resolution=250)
-        cloud_mask_id = DatasetID(name=dataset_name, resolution=250)
-        self.assertIn(cloud_mask_id, scene.datasets)
+        cloud_mask_id = make_dataid(name=dataset_name, resolution=250)
+        self.assertIn(cloud_mask_id, scene)
         cloud_mask = scene[cloud_mask_id]
         self.assertEqual(cloud_mask.shape, (4*5*SCAN_WIDTH, 4*(5*SCAN_LEN+4)))

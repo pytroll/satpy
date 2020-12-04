@@ -6,7 +6,7 @@
 4. run `loghub` and update the `CHANGELOG.md` file:
 
    ```
-   loghub pytroll/satpy --token $LOGHUB_GITHUB_TOKEN -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes"
+   loghub pytroll/satpy --token $LOGHUB_GITHUB_TOKEN -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes" -plg refactor "Refactoring"
    ```
 
    This uses a `LOGHUB_GITHUB_TOKEN` environment variable. This must be created

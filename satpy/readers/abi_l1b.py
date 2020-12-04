@@ -37,17 +37,17 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', key.name)
+        logger.debug('Reading in get_dataset %s.', key['name'])
         radiances = self['Rad']
 
-        if key.calibration == 'reflectance':
+        if key['calibration'] == 'reflectance':
             logger.debug("Calibrating to reflectances")
             res = self._vis_calibrate(radiances)
-        elif key.calibration == 'brightness_temperature':
+        elif key['calibration'] == 'brightness_temperature':
             logger.debug("Calibrating to brightness temperatures")
             res = self._ir_calibrate(radiances)
-        elif key.calibration != 'radiance':
-            raise ValueError("Unknown calibration '{}'".format(key.calibration))
+        elif key['calibration'] != 'radiance':
+            raise ValueError("Unknown calibration '{}'".format(key['calibration']))
         else:
             res = radiances
 

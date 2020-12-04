@@ -117,7 +117,7 @@ class TestEnhancer(unittest.TestCase):
     standard_name: toa_bidirectional_reflectance
     operations:
     - name: stretch
-      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
+      method: !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: linear}
 """])
         self.assertIsNotNone(e.enhancement_tree)

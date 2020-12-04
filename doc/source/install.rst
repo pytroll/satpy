@@ -22,19 +22,19 @@ They can be installed individually:
 
 .. code-block:: bash
 
-    $ pip install satpy[viirs_sdr]
+    $ pip install "satpy[viirs_sdr]"
 
 Or all at once, although this isn't recommended due to the large number of
 dependencies:
 
 .. code-block:: bash
 
-    $ pip install satpy[all]
+    $ pip install "satpy[all]"
 
 Conda-based Installation
 ========================
 
-Starting with version 0.9, Satpy is available from the conda-forge channel. If
+Satpy is available from the conda-forge channel. If
 you have not configured your conda environment to search conda-forge already
 then do:
 
@@ -42,7 +42,20 @@ then do:
 
     $ conda config --add channels conda-forge
 
-Then to install Satpy in to your current environment run:
+We recommend creating a separate environment for your work with Satpy. If
+you haven't created and activated one already, you can by running:
+
+.. code-block:: bash
+
+    $ conda create -n my_satpy_env python
+    $ conda activate my_satpy_env
+
+The above will create a new environment with the latest version of Python
+installed along with Satpy and all of its dependencies. The second command
+will activate the environment so all future conda or python commands will
+use this new environment.
+
+Next to install Satpy into an existing activated environment run:
 
 .. code-block:: bash
 

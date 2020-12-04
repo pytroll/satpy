@@ -1,7 +1,7 @@
 reader:
   description: Generic Eumetsat Compact VIIRS Reader
   name: viirs_compact
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs]
   default_datasets:
 
@@ -383,8 +383,8 @@ datasets:
 
 file_types:
   compact_m:
-    file_reader: !!python/name:satpy.readers.viirs_compact.VIIRSCompactFileHandler ''
+    file_reader: !!python/name:satpy.readers.viirs_compact.VIIRSCompactFileHandler
     file_patterns: ['SVMC_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_eum_ops.h5']
   compact_dnb:
-    file_reader: !!python/name:satpy.readers.viirs_compact.VIIRSCompactFileHandler ''
+    file_reader: !!python/name:satpy.readers.viirs_compact.VIIRSCompactFileHandler
     file_patterns: ['SVDNBC_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_eum_ops.h5']

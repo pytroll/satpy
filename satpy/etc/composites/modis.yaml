@@ -1,7 +1,7 @@
 sensor_name: visir/modis
 modifiers:
   rayleigh_corrected_crefl:
-    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     optional_prerequisites:
     - name: satellite_azimuth_angle

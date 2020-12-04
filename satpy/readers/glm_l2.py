@@ -58,8 +58,8 @@ class NCGriddedGLML2(NC_ABI_BASE):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', key.name)
-        res = self[key.name]
+        logger.debug('Reading in get_dataset %s.', key['name'])
+        res = self[key['name']]
         res.attrs.update({'platform_name': self.platform_name,
                           'sensor': self.sensor})
         res.attrs.update(self.filename_info)

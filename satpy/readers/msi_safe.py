@@ -55,10 +55,10 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._channel != key.name:
+        if self._channel != key['name']:
             return
 
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
         # FIXME: get this from MTD_MSIL1C.xml
         quantification_value = 10000.
         jp2 = glymur.Jp2k(self.filename)
@@ -96,7 +96,7 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area def."""
-        if self._channel != dsid.name:
+        if self._channel != dsid['name']:
             return
         return self._mda.get_area_def(dsid)
 
@@ -132,9 +132,9 @@ class SAFEMSIMDXML(BaseFileHandler):
             CRS = None
         geocoding = self.root.find('.//Tile_Geocoding')
         epsg = geocoding.find('HORIZONTAL_CS_CODE').text
-        rows = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NROWS').text)
-        cols = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NCOLS').text)
-        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid.resolution) + '"]')
+        rows = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NROWS').text)
+        cols = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NCOLS').text)
+        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid['resolution']) + '"]')
         ulx = float(geoposition.find('ULX').text)
         uly = float(geoposition.find('ULY').text)
         xdim = float(geoposition.find('XDIM').text)
@@ -184,12 +184,12 @@ class SAFEMSIMDXML(BaseFileHandler):
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""
         angles = self.root.find('.//Tile_Angles')
-        if key in ['solar_zenith_angle', 'solar_azimuth_angle']:
+        if key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle']:
             elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
             return np.array([[val for val in elt.text.split()] for elt in elts],
                             dtype=np.float)
 
-        elif key in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
+        elif key['name'] in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             arrays = []
             elts = angles.findall(info['xml_tag'] + '[@bandId="1"]')
             for elt in elts:
@@ -197,14 +197,13 @@ class SAFEMSIMDXML(BaseFileHandler):
                 arrays.append(np.array([[val for val in item.text.split()] for item in items],
                                        dtype=np.float))
             return np.nanmean(np.dstack(arrays), -1)
-        else:
-            return
+        return None
 
     def get_dataset(self, key, info):
-        """Get the dataset refered to by `key`."""
+        """Get the dataset referred to by `key`."""
         angles = self._get_coarse_dataset(key, info)
         if angles is None:
-            return
+            return None
 
         # Fill gaps at edges of swath
         darr = DataArray(angles, dims=['y', 'x'])
@@ -212,7 +211,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         darr = darr.ffill('x')
         angles = darr.data
 
-        res = self.interpolate_angles(angles, key.resolution)
+        res = self.interpolate_angles(angles, key['resolution'])
 
         proj = DataArray(res, dims=['y', 'x'])
         proj.attrs = info.copy()
