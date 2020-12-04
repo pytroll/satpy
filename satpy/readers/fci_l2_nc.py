@@ -35,7 +35,7 @@ PRODUCT_DATA_DURATION_MINUTES = 20
 SSP_DEFAULT = 0.0
 
 
-class FciL2BaseClass(object):
+class FciL2CommonFunctions(object):
     def _start_time(self):
         try:
             start_time = datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
@@ -107,7 +107,7 @@ class FciL2BaseClass(object):
             pass
 
 
-class FciL2NCFileHandler(BaseFileHandler, FciL2BaseClass):
+class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
     """Reader class for FCI L2 products in NetCDF4 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -260,7 +260,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2BaseClass):
         return area_def
 
 
-class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2BaseClass):
+class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
     """Reader class for FCI L2 Segmented products in NetCDF4 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
