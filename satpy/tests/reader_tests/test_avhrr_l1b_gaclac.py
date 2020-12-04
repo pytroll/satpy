@@ -160,8 +160,8 @@ class TestGACLACFile(ModulePatcher):
         import satpy
         from satpy.readers import FSFile
 
-        coords = np.arange(4).reshape((2,2))
-        channels = np.arange(4*6).reshape((2,2,6))
+        coords = np.arange(4).reshape((2, 2))
+        channels = np.arange(4*6).reshape((2, 2, 6))
         utcs = np.array(['2000-01-01', '2020-01-01'], dtype='datetime64')
         reader_mock = mock.MagicMock()
         reader_mock.get_lonlat.return_value = coords, coords
