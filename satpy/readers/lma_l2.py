@@ -26,8 +26,7 @@
 import numpy as np
 import xarray as xr
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
-from pyresample.geometry import AreaDefinition
-import pyproj
+from pyresample.utils import load_cf_area
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,9 +41,7 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Get datasets in file matching gelocation shape (lat/lon)."""
-        #lat_shape = self.file_content.get('latitude')
         lat_shape = self['latitude'].shape[0]
-        #lon_shape = self.file_content.get('longitude')
         lon_shape = self['longitude'].shape[0]
 
         # Read the lat/lon variables?
@@ -98,8 +95,7 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         logger.debug("Getting data for: %s", ds_id['name'])
         file_key = info.get('file_key', ds_id['name'])
         data = np.flipud(self[file_key])
-        data = xr.DataArray(data[0,::-1,:], dims=['y', 'x'])
-        #data = self.flash_extent.data[0,:,:]
+        data = xr.DataArray(data[0,:,:], dims=['y', 'x'])
         data.attrs = self.get_metadata(data, info)
         if 'longitude' in data.dims:
             data.rename({'longitude': 'x'})
@@ -108,25 +104,9 @@ class LMAflashextent2dFileHandler(NetCDF4FileHandler):
         return data
 
     def get_area_def(self, dsid):
-        """ Define equirectangular AreaDefintion."""
-        lower_left_x = self['longitude'].data[0]
-        lower_left_y = self['latitude'].data[0]
-        upper_right_y = self['latitude'].data[-1]
-        upper_right_x = self['longitude'].data[-1]
-        width = self['longitude'].shape[0]
-        height = self['latitude'].shape[0]
-
-        a = 6378137.0
-        b = 6378137.0
-        geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
-        latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-        # https://github.com/pytroll/satpy/blob/c0e21e62dd40c4faaff52072058b5796ccc8de29/satpy/readers/utils.py#L277
-        area_extent = (pyproj.transform(latlong, geocent, lower_left_x, lower_left_y)[0],pyproj.transform(latlong, geocent, lower_left_x, lower_left_y)[1],pyproj.transform(latlong, geocent, upper_right_x, upper_right_y)[0],pyproj.transform(latlong, geocent, upper_right_x, upper_right_y)[1])
-        description = "Trail data Projection"
-        area_id = 'merc'
-        proj_id = 'merc'
-        proj_dict = {'proj': 'merc', 'datum': 'WGS84', 'ellps': 'WGS84', }
-        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
+        """ Define AreaDefintion."""
+        logger.debug("Looking for Area_def in filename : %s", self.filename)
+        area_def, cf_info = load_cf_area(self.filename, variable='flash_extent', x='longitude', y='latitude')
         return area_def
 
     def get_metadata(self, data, info):
