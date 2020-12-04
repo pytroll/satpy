@@ -26,6 +26,13 @@ import pytest
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
 
+try:
+    import fsspec.implementations.local
+except ImportError:
+    has_fsspec = False
+else:
+    has_fsspec = True
+
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
 
@@ -593,6 +600,31 @@ class TestFindFilesAndReaders(unittest.TestCase):
                                  "no deprecated readers.")
         test_reader = sorted(OLD_READER_NAMES.keys())[0]
         self.assertRaises(ValueError, list, configs_for_reader(test_reader))
+
+
+@pytest.mark.skipif(not has_fsspec, reason="fsspec not available")
+def test_fsspec_fsfile(tmp_path):
+    """Test that iff an fsspec instance is passed, fsfile is returned.
+    """
+    p = (tmp_path /
+         "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
+         "_c20152950029000.nc")
+    p.touch()
+    from satpy.readers import find_files_and_readers, FSFile
+    ri = find_files_and_readers(
+            base_dir=p.parent,
+            fs=fsspec.implementations.local.LocalFileSystem(),
+            reader="abi_l1b")
+    assert ri.keys() == {"abi_l1b"}
+    assert len(ri["abi_l1b"]) == 1
+    assert isinstance(ri["abi_l1b"][0], FSFile)
+    assert str(ri["abi_l1b"][0]) == str(p)
+
+    ri = find_files_and_readers(
+            base_dir=tmp_path,
+            fs=None,
+            reader="abi_l1b")
+    assert not isinstance(ri["abi_l1b"][0], FSFile)
 
 
 class TestYAMLFiles(unittest.TestCase):
