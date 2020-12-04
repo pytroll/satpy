@@ -621,7 +621,7 @@ def test_fsspec_fsfile(tmp_path):
     assert ri.keys() == {"abi_l1b"}
     assert len(ri["abi_l1b"]) == 1
     assert isinstance(ri["abi_l1b"][0], FSFile)
-    assert str(ri["abi_l1b"][0]) == str(p)
+    assert os.path.normpath(str(ri["abi_l1b"][0])) == os.path.normpath(str(p))
 
     ri = find_files_and_readers(
             base_dir=tmp_path,
