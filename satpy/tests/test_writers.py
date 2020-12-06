@@ -17,7 +17,6 @@
 """Test generic writer functions."""
 
 import os
-import errno
 import shutil
 import unittest
 import warnings
@@ -26,23 +25,6 @@ import numpy as np
 import xarray as xr
 from trollimage.colormap import greys
 from unittest import mock
-
-
-def mkdir_p(path):
-    """Make directories."""
-    if not path or path == '.':
-        return
-
-    # Use for python 2.7 compatibility
-    # When python 2.7 support is dropped just use
-    # `os._makedirs(path, exist_ok=True)`
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
 
 
 class TestWritersModule(unittest.TestCase):
@@ -179,7 +161,8 @@ sensor_name: visir/test_sensor2
         """Create fake user configurations."""
         for fn, content in cls.TEST_CONFIGS.items():
             base_dir = os.path.dirname(fn)
-            mkdir_p(base_dir)
+            if base_dir:
+                os.makedirs(base_dir, exist_ok=True)
             with open(fn, 'w') as f:
                 f.write(content)
 
