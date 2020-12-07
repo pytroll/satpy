@@ -588,6 +588,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         Evaluate orbit polynomials at the start time of the scan.
 
+        TODO: Factorize once #1457 is merged.
+
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         if self.satpos is None:
