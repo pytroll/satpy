@@ -217,7 +217,6 @@ class Scene:
         """Return the end time of the file."""
         return self.attrs['end_time']
 
-    @property
     def missing_datasets(self):
         """Set of DataIDs that have not been successfully loaded."""
         return set(self._wishlist) - set(self._datasets.keys())
@@ -840,24 +839,7 @@ class Scene:
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        if generate:
-            keepables = new_scn._generate_composites_from_loaded_datasets()
-        else:
-            # don't lose datasets that we may need later for generating
-            # composites
-            keepables = set(new_scn._datasets.keys()) | new_scn._wishlist
-
-        if new_scn.missing_datasets:
-            # copy the set of missing datasets because they won't be valid
-            # after they are removed in the next line
-            missing = new_scn.missing_datasets.copy()
-            new_scn.remove_failed_datasets(keepables)
-            missing_str = ", ".join(str(x) for x in missing)
-            LOG.warning(
-                "The following datasets "
-                "were not created: {}".format(missing_str))
-        if unload:
-            new_scn.unload(keepables)
+        new_scn.generate_possible_composites(generate, unload)
 
         return new_scn
 
@@ -1112,7 +1094,7 @@ class Scene:
         keepables = keepables or set()
         # remove reader datasets that couldn't be loaded so they aren't
         # attempted again later
-        for n in self.missing_datasets:
+        for n in self.missing_datasets():
             if n not in keepables:
                 self._wishlist.discard(n)
 
@@ -1189,21 +1171,7 @@ class Scene:
         self._wishlist |= needed_datasets
 
         self._read_datasets_from_storage(**kwargs)
-        if generate:
-            keepables = self._generate_composites_from_loaded_datasets()
-        else:
-            # don't lose datasets we loaded to try to generate composites
-            keepables = set(self._datasets.keys()) | self._wishlist
-        if self.missing_datasets:
-            # copy the set of missing datasets because they won't be valid
-            # after they are removed in the next line
-            missing = self.missing_datasets.copy()
-            self.remove_failed_datasets(keepables)
-            missing_str = ", ".join(str(x) for x in missing)
-            LOG.warning("The following datasets were not created and may require "
-                        "resampling to be generated: {}".format(missing_str))
-        if unload:
-            self.unload(keepables=keepables)
+        self.generate_possible_composites(generate, unload)
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
@@ -1221,7 +1189,7 @@ class Scene:
             DatasetDict of loaded datasets
 
         """
-        nodes = self._dependency_tree.leaves(nodes=self.missing_datasets)
+        nodes = self._dependency_tree.leaves(nodes=self.missing_datasets())
         return self._read_dataset_nodes_from_storage(nodes, **kwargs)
 
     def _read_dataset_nodes_from_storage(self, reader_nodes, **kwargs):
@@ -1257,9 +1225,27 @@ class Scene:
             loaded_datasets.update(new_datasets)
         return loaded_datasets
 
+    def generate_possible_composites(self, generate, unload):
+        """See what we can generate and do it."""
+        if generate:
+            keepables = self._generate_composites_from_loaded_datasets()
+        else:
+            # don't lose datasets we loaded to try to generate composites
+            keepables = set(self._datasets.keys()) | self._wishlist
+        if self.missing_datasets():
+            # copy the set of missing datasets because they won't be valid
+            # after they are removed in the next line
+            missing = self.missing_datasets().copy()
+            self.remove_failed_datasets(keepables)
+            missing_str = ", ".join(str(x) for x in missing)
+            LOG.warning("The following datasets were not created and may require "
+                        "resampling to be generated: {}".format(missing_str))
+        if unload:
+            self.unload(keepables=keepables)
+
     def _generate_composites_from_loaded_datasets(self):
         """Compute all the composites contained in `requirements`."""
-        nodes = set(self._dependency_tree.trunk(nodes=self.missing_datasets)) - set(self._datasets.keys())
+        nodes = set(self._dependency_tree.trunk(nodes=self.missing_datasets())) - set(self._datasets.keys())
         return self._generate_composites_nodes_from_loaded_datasets(nodes)
 
     def _generate_composites_nodes_from_loaded_datasets(self, compositor_nodes):

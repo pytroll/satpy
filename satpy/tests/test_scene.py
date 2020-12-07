@@ -227,7 +227,7 @@ class TestScene(unittest.TestCase):
         from satpy.scene import Scene
         from satpy.tests.utils import FakeReader
         with mock.patch('satpy.readers.configs_for_reader') as src, \
-             mock.patch("satpy.readers.load_reader") as srl:
+                mock.patch("satpy.readers.load_reader") as srl:
             r1 = FakeReader('strona')
             r1.select_files_from_pathnames = mock.MagicMock()
             r1.select_files_from_pathnames.return_value = ["campello monti"]
@@ -1787,12 +1787,12 @@ class TestSceneLoading(unittest.TestCase):
         self.assertNotIn('comp10', scene._datasets)
         # two dependencies should have been loaded
         self.assertEqual(len(scene._datasets), 2)
-        self.assertEqual(len(scene.missing_datasets), 1)
+        self.assertEqual(len(scene.missing_datasets()), 1)
 
         scene._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist))
         self.assertIn('comp10', scene._datasets)
-        self.assertEqual(len(scene.missing_datasets), 0)
+        self.assertEqual(len(scene.missing_datasets()), 0)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -2169,24 +2169,24 @@ class TestSceneResampling(unittest.TestCase):
         self.assertNotIn('comp10', scene)
         # two dependencies should have been loaded
         self.assertEqual(len(scene._datasets), 2)
-        self.assertEqual(len(scene.missing_datasets), 1)
+        self.assertEqual(len(scene.missing_datasets()), 1)
 
         new_scn = scene.resample(area_def, generate=False)
         self.assertNotIn('comp10', scene)
         # two dependencies should have been loaded
         self.assertEqual(len(scene._datasets), 2)
-        self.assertEqual(len(scene.missing_datasets), 1)
+        self.assertEqual(len(scene.missing_datasets()), 1)
 
         new_scn._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist))
         self.assertIn('comp10', new_scn)
-        self.assertEqual(len(new_scn.missing_datasets), 0)
+        self.assertEqual(len(new_scn.missing_datasets()), 0)
 
         # try generating them right away
         new_scn = scene.resample(area_def)
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist))
         self.assertIn('comp10', new_scn)
-        self.assertEqual(len(new_scn.missing_datasets), 0)
+        self.assertEqual(len(new_scn.missing_datasets()), 0)
 
 
 class TestSceneSaving(unittest.TestCase):
