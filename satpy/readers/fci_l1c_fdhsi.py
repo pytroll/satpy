@@ -323,7 +323,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
-        # Channel dependent swath resolution
+
         area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
@@ -337,10 +337,14 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                      'units': 'm',
                      "sweep": sweep}
 
+        area_id_name = 'mtg_fci_fdss_{:.0f}km'.format(key['resolution']/1000)
+        area_id_description = 'FCI Full-Disk Scanning Service area definition with {:.0f} km resolution' \
+                              ''.format(key['resolution']/1000)
+
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosfci',
+            area_id_name,
+            area_id_description,
+            "FCI Full-Disk Scanning Service geostationary projection",
             proj_dict,
             ncols,
             nlines,
