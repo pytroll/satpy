@@ -903,9 +903,31 @@ class DecisionTree(object):
 
     any_key = None
 
-    def __init__(self, decision_dicts, match_keys):
-        """Init the decision tree."""
+    def __init__(self, decision_dicts, match_keys, multival_keys=None):
+        """Init the decision tree.
+
+        Args:
+            decision_dicts (dict): Dictionary of dictionaries. Each
+                sub-dictionary contains key/value pairs that can be
+                matched from the `find_match` method. Sub-dictionaries
+                can include additional keys outside of the ``match_keys``
+                provided to act as the "result" of a query. The keys of
+                the root dict are arbitrary.
+            match_keys (list): Keys of the provided dictionary to use for
+                matching.
+            multival_keys (list): Keys of `match_keys` that can be provided
+                as multiple values.
+                A multi-value key can be specified as a single value
+                (typically a string) or a set. If a set, it will be sorted
+                and converted to a tuple and then used for matching.
+                When querying the tree, these keys will
+                be searched for exact multi-value results (the sorted tuple)
+                and if not found then each of the values will be searched
+                individually in alphabetical order.
+
+        """
         self._match_keys = match_keys
+        self._multival_keys = multival_keys or []
         self._tree = {}
         if not isinstance(decision_dicts, (list, tuple)):
             decision_dicts = [decision_dicts]
@@ -936,6 +958,8 @@ class DecisionTree(object):
             for match_key in self._match_keys:
                 # or None is necessary if they have empty strings
                 this_attr_val = sect_attrs.get(match_key, self.any_key) or None
+                if match_key in self._multival_keys and isinstance(this_attr_val, list):
+                    this_attr_val = tuple(sorted(this_attr_val))
                 is_last_key = match_key == self._match_keys[-1]
                 level_needs_init = this_attr_val not in curr_level
                 if is_last_key:
@@ -947,20 +971,36 @@ class DecisionTree(object):
                     curr_level[this_attr_val] = {}
                 curr_level = curr_level[this_attr_val]
 
+    @staticmethod
+    def _convert_query_val_to_hashable(query_val):
+        _sorted_query_val = sorted(query_val)
+        query_vals = [tuple(_sorted_query_val)] + _sorted_query_val
+        query_vals += query_val
+        return query_vals
+
+    def _get_query_values(self, query_dict, curr_match_key):
+        query_val = query_dict[curr_match_key]
+        if curr_match_key in self._multival_keys and isinstance(query_val, set):
+            query_vals = self._convert_query_val_to_hashable(query_val)
+        else:
+            query_vals = [query_val]
+        return query_vals
+
     def _find_match_if_known(self, curr_level, remaining_match_keys, query_dict):
         match = None
         curr_match_key = remaining_match_keys[0]
-        try:
-            if curr_match_key in query_dict and query_dict[curr_match_key] in curr_level:
-                # query has this parameter, let's search down that path
-                query_val = query_dict[curr_match_key]
-                match = self._find_match(curr_level[query_val],
-                                         remaining_match_keys[1:],
-                                         query_dict)
-        except TypeError:
-            # we don't handle multiple values (for example sensor) atm.
-            LOG.debug("Strange stuff happening in decision tree for %s: %s",
-                      curr_match_key, query_dict[remaining_match_keys[0]])
+        if curr_match_key not in query_dict:
+            return match
+
+        query_vals = self._get_query_values(query_dict, curr_match_key)
+        for query_val in query_vals:
+            if query_val not in curr_level:
+                continue
+            match = self._find_match(curr_level[query_val],
+                                     remaining_match_keys[1:],
+                                     query_dict)
+            if match is not None:
+                break
         return match
 
     def _find_match(self, curr_level, remaining_match_keys, query_dict):
@@ -1013,8 +1053,9 @@ class EnhancementDecisionTree(DecisionTree):
                                  "standard_name",
                                  "units",))
         self.prefix = kwargs.pop("config_section", "enhancements")
+        multival_keys = kwargs.pop("multival_keys", ["sensor"])
         super(EnhancementDecisionTree, self).__init__(
-            decision_dicts, match_keys, **kwargs)
+            decision_dicts, match_keys, multival_keys)
 
     def add_config_to_tree(self, *decision_dict):
         """Add configuration to tree."""
