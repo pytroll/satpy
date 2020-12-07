@@ -240,7 +240,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'mask_space':: False})
+                            reader_kwargs={'mask_space': False})
         scene.load([0.6])
 
     The AHI HSD data files contain multiple VIS channel calibration
@@ -254,7 +254,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'calib_mode':: 'update'})
+                            reader_kwargs={'calib_mode': 'update'})
         scene.load([0.6])
 
     Alternative AHI calibrations are also available, such as GSICS
@@ -276,7 +276,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'user_calibration':: calib_dict)
+                            reader_kwargs={'user_calibration': calib_dict)
         # B15 will not have custom radiance correction applied.
         scene.load(['B07', 'B14', 'B15'])
 
