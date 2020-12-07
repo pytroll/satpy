@@ -269,15 +269,20 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             coord_radian = self["data/{:s}/measured/{:s}".format(lab, coord)]
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
 
-            # FCI defines pixels by centroids (see PUG)
-            #
-            # pyresample defines corners as lower left corner of lower left pixel,
-            # upper right corner of upper right pixel (Martin Raspaud, personal
-            # communication). Therefore, half a pixel needs to be added in each direction.
+            # FCI defines pixels by centroids (see PUG), while pyresample
+            # defines corners as lower left corner of lower left pixel, upper right corner of upper right pixel
+            # (see https://pyresample.readthedocs.io/en/latest/geo_def.html).
+            # Therefore, half a pixel (i.e. half scale factor) needs to be added in each direction.
 
-            # SW corner
+            # The grid origin is in the SW corner.
+            # Note that the azimuth angle (x) is defined as positive towards West (see PUG - Level 1c Reference Grid)
+            # The elevation angle (y) is defined as positive towards North as per usual convention. Therefore:
+            # The values of x go from positive (West) to negative (East) and the scale factor of x is negative.
+            # The values of y go from negative (South) to positive (North) and the scale factor of y is positive.
+
+            # South-West corner (x positive, y negative)
             first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor/2
-            # NE corner
+            # North-East corner (x negative, y positive)
             last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor/2
 
             # convert to arc length in m
@@ -292,10 +297,18 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                 last_coord = last_coord.compute()
             except AttributeError:  # not a dask.array
                 pass
+
             extents[coord] = (first_coord.item(), last_coord.item())
 
-        area_extent = (extents["x"][1], extents["y"][1], extents["x"][0], extents["y"][0])
-        # area_extent = (-ext["x"][0], ext["y"][1], -ext["x"][1], ext["y"][0])
+        # For the final extents, take into account that the image is upside down (lower line is North), and that
+        # East is defined as positive azimuth in Proj so we need to multiply by -1 the azimuth extents.
+
+        # lower left column: west-ward extent: first coord of x, multiplied by -1 to account for azimuth orientation
+        # lower left line: north-ward extent: last coord of y
+        # upper right column: east-ward extent: last coord of x, multiplied by -1 to account for azimuth orientation
+        # upper right line: south-ward extent: first coord of y
+        area_extent = (-extents["x"][0], extents["y"][1], -extents["x"][1], extents["y"][0])
+
         return area_extent, nlines, ncols
 
     def get_area_def(self, key, info=None):
@@ -306,9 +319,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             return self._cache[key['resolution']]
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
-        b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
-        if_ = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
+        rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
         # Channel dependent swath resolution
@@ -316,11 +328,11 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
+        # use a (semi-major axis) and rf (reverse flattening) to define ellipsoid as recommended by EUM (see PUG)
         proj_dict = {'a': a,
-                     'b': b,
                      'lon_0': lon_0,
                      'h': h,
-                     "fi": float(if_),
+                     "rf": rf,
                      'proj': 'geos',
                      'units': 'm',
                      "sweep": sweep}
