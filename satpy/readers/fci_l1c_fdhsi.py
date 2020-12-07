@@ -274,7 +274,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             # (see https://pyresample.readthedocs.io/en/latest/geo_def.html).
             # Therefore, half a pixel (i.e. half scale factor) needs to be added in each direction.
 
-            # The grid origin is in the SW corner.
+            # The grid origin is in the South-West corner.
             # Note that the azimuth angle (x) is defined as positive towards West (see PUG - Level 1c Reference Grid)
             # The elevation angle (y) is defined as positive towards North as per usual convention. Therefore:
             # The values of x go from positive (West) to negative (East) and the scale factor of x is negative.
@@ -301,12 +301,12 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             extents[coord] = (first_coord.item(), last_coord.item())
 
         # For the final extents, take into account that the image is upside down (lower line is North), and that
-        # East is defined as positive azimuth in Proj so we need to multiply by -1 the azimuth extents.
+        # East is defined as positive azimuth in Proj, so we need to multiply by -1 the azimuth extents.
 
-        # lower left column: west-ward extent: first coord of x, multiplied by -1 to account for azimuth orientation
-        # lower left line: north-ward extent: last coord of y
-        # upper right column: east-ward extent: last coord of x, multiplied by -1 to account for azimuth orientation
-        # upper right line: south-ward extent: first coord of y
+        # lower left x: west-ward extent: first coord of x, multiplied by -1 to account for azimuth orientation
+        # lower left y: north-ward extent: last coord of y
+        # upper right x: east-ward extent: last coord of x, multiplied by -1 to account for azimuth orientation
+        # upper right y: south-ward extent: first coord of y
         area_extent = (-extents["x"][0], extents["y"][1], -extents["x"][1], extents["y"][0])
 
         return area_extent, nlines, ncols
