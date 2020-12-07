@@ -29,7 +29,7 @@ try:
 except ImportError:
     from pkgutil import get_data as get_resource_string
 
-# 'Polo' variable in MIRS files use these values for H/V polarization
+# 'Polo' variable in MiRS files use these values for H/V polarization
 POLO_V = 2
 POLO_H = 3
 
@@ -38,35 +38,68 @@ POLO_H = 3
 # number of fields of view
 n_fov = 96
 
+amsu = "amsu-mhs"
+PLATFORMS = {"n18": "NOAA-18",
+             "n19": "NOAA-19",
+             "m01": "MetOp-A",
+             "m02": "MetOp-B",
+             "npp": "NPP",
+             "f17": "DMSP-F17",
+             "f18": "DMSP-F18",
+             "gpm": "GPM",
+             "n20": "NOAA-20",
+             "m2": "MIRS",
+             }
+SENSOR = {"n18": amsu,
+          "n19": amsu,
+          "m01": amsu,
+          "m02": amsu,
+          "npp": "atms",
+          "jpss": "atms",
+          "f17": "ssmis",
+          "f18": "ssmis",
+          "gpm": "GPI",
+          "n20": amsu,
+          }
+
 
 class MIRSHandler(NetCDF4FileHandler):
     """MIRS handler for NetCDF4 files."""
 
+    def __init__(self, filename, filename_info, filetype_info,
+                 auto_maskandscale=False, xarray_kwargs=None,
+                 cache_var_size=0, cache_handle=False):
+        """Init method."""
+        super().__init__(filename, filename_info, filetype_info, auto_maskandscale, xarray_kwargs, cache_var_size,
+                         cache_handle)
+
+    @property
+    def platform_shortname(self):
+        """Get platform shortname."""
+        return self.filename_info['platform_shortname']
+
     @property
     def platform_name(self):
         """Get platform name."""
-        if self.get('/attr/satellite_name', False):
-            return self['/attr/satellite_name'].lower()
-        return self.filename_info['platform_name'].lower()
+        try:
+            res = PLATFORMS.get(self.platform_shortname.lower())
+        except KeyError:
+            res = "mirs"
+        return res.lower()
 
     @property
     def sensor(self):
         """Get sensor."""
-        return self.sensor_names
+        try:
+            res = SENSOR.get(self.platform_shortname).lower()
+        except KeyError:
+            res = self.sensor_names
+        return res
 
     @property
     def sensor_names(self):
-        """Return standard sensor or instrument name for the file's data."""
-        try:
-            res = self['/attr/instrument_name']
-            if isinstance(res, np.ndarray):
-                res = str(res.astype(str))
-            res = [x.strip() for x in res.split(',')]
-            if len(res) == 1:
-                return res[0]
-            return res
-        except KeyError:
-            return ["amsu-a", "mhs", "ssmis", "gmi", "atms"]
+        """Return standard sensor names for the file's data."""
+        return list(set(SENSOR.values()))
 
     @property
     def start_time(self):
@@ -171,7 +204,7 @@ class MIRSHandler(NetCDF4FileHandler):
         metadata.update(data.attrs)
         metadata.update(ds_info)
         metadata.update({
-            'sensor': self.sensor_names,
+            'sensor': self.sensor,
             'platform_name': self.platform_name,
             'start_time': self.start_time,
             'end_time': self.end_time,
