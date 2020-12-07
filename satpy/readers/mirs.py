@@ -22,6 +22,12 @@ import numpy as np
 import datetime
 import netCDF4
 import os
+import logging
+from satpy.utils import debug_on
+
+debug_on()
+log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 try:
     # try getting setuptools/distribute's version of resource retrieval first
@@ -70,8 +76,9 @@ class MIRSHandler(NetCDF4FileHandler):
                  auto_maskandscale=False, xarray_kwargs=None,
                  cache_var_size=0, cache_handle=False):
         """Init method."""
-        super().__init__(filename, filename_info, filetype_info, auto_maskandscale, xarray_kwargs, cache_var_size,
-                         cache_handle)
+        super().__init__(filename, filename_info, filetype_info,
+                         auto_maskandscale, xarray_kwargs,
+                         cache_var_size, cache_handle)
 
     @property
     def platform_shortname(self):
@@ -81,19 +88,20 @@ class MIRSHandler(NetCDF4FileHandler):
     @property
     def platform_name(self):
         """Get platform name."""
+        log.debug(self.filename_info["platform_shortname"])
         try:
-            res = PLATFORMS.get(self.platform_shortname.lower())
+            res = PLATFORMS[self.filename_info['platform_shortname']]
         except KeyError:
-            res = "mirs"
+            return "mirs"
         return res.lower()
 
     @property
     def sensor(self):
         """Get sensor."""
         try:
-            res = SENSOR.get(self.platform_shortname).lower()
+            res = SENSOR[self.filename_info["platform_shortname"]]
         except KeyError:
-            res = self.sensor_names
+            return self.sensor_names
         return res
 
     @property
