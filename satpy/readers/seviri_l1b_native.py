@@ -539,29 +539,30 @@ class ImageBoundaries:
         Lists (rather than scalars) are returned since the HRV data in FES mode contain data from two windows/areas.
         """
         if dataset_id['name'] == 'HRV' and not is_roi:
-            south_bound, north_bound, east_bound, west_bound = self._get_hrv_actual_img_bounds()
+            img_bounds = self._get_hrv_actual_img_bounds()
         else:
-            south_bound, north_bound, east_bound, west_bound = self._get_selected_img_bounds(dataset_id)
+            img_bounds = self._get_selected_img_bounds(dataset_id)
 
-        return {'south_bound': south_bound, 'north_bound': north_bound,
-                'east_bound': east_bound, 'west_bound': west_bound}
+        self._check_for_valid_bounds(img_bounds)
+
+        return img_bounds
 
     def _get_hrv_actual_img_bounds(self):
         """Get HRV (if not ROI) image boundaries from the ActualL15CoverageHRV information stored in the trailer."""
         hrv_bounds = self._trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
 
-        south_bound, north_bound, east_bound, west_bound = [], [], [], []
+        img_bounds = {'south_bound': [], 'north_bound': [], 'east_bound': [], 'west_bound': []}
         for hrv_window in ['Lower', 'Upper']:
-            south_bound.append(hrv_bounds['%sSouthLineActual' % hrv_window])
-            north_bound.append(hrv_bounds['%sNorthLineActual' % hrv_window])
-            east_bound.append(hrv_bounds['%sEastColumnActual' % hrv_window])
-            west_bound.append(hrv_bounds['%sWestColumnActual' % hrv_window])
+            img_bounds['south_bound'].append(hrv_bounds['%sSouthLineActual' % hrv_window])
+            img_bounds['north_bound'].append(hrv_bounds['%sNorthLineActual' % hrv_window])
+            img_bounds['east_bound'].append(hrv_bounds['%sEastColumnActual' % hrv_window])
+            img_bounds['west_bound'].append(hrv_bounds['%sWestColumnActual' % hrv_window])
 
             # Data from the upper hrv window are only available in FES mode
             if not self._mda['is_full_disk']:
                 break
 
-        return south_bound, north_bound, east_bound, west_bound
+        return img_bounds
 
     def _get_selected_img_bounds(self, dataset_id):
         """Get VISIR and HRV (if ROI) image boundaries from the SelectedRectangle information stored in the header."""
@@ -579,7 +580,10 @@ class ImageBoundaries:
         north_bound = south_bound + nlines - 1
         west_bound = east_bound + ncolumns - 1
 
-        return [south_bound], [north_bound], [east_bound], [west_bound]
+        img_bounds = {'south_bound': [south_bound], 'north_bound': [north_bound],
+                      'east_bound': [east_bound], 'west_bound': [west_bound]}
+
+        return img_bounds
 
     def _get_hrv_img_shape(self):
         nlines = int(self._mda['hrv_number_of_lines'])
@@ -594,6 +598,18 @@ class ImageBoundaries:
     @staticmethod
     def _convert_visir_bound_to_hrv(bound):
         return 3 * bound - 2
+
+    @staticmethod
+    def _check_for_valid_bounds(img_bounds):
+        len_img_bounds = [len(bound) for bound in img_bounds.values()]
+
+        same_lengths = (len(set(len_img_bounds)) == 1)
+        no_empty = (min(len_img_bounds) > 0)
+
+        if not (same_lengths and no_empty):
+            raise ValueError('Invalid image boundaries')
+
+        return
 
 
 class Padder:
@@ -613,11 +629,8 @@ class Padder:
         """Pad data to full disk with empty pixels."""
         logger.debug('Padding data to full disk')
 
-        south_bounds, north_bounds, east_bouds, west_bounds = self._img_bounds.values()
-
         data_list = []
-        for south_bound, north_bound, east_bound, west_bound in zip(south_bounds, north_bounds,
-                                                                    east_bouds, west_bounds):
+        for south_bound, north_bound, east_bound, west_bound in zip(*self._img_bounds.values()):
             nlines = north_bound - south_bound + 1
             data = self._extract_data_to_pad(dataset, south_bound, north_bound)
             padded_data = pad_data_horizontally(data, (nlines, self._final_shape[1]), east_bound, west_bound)
