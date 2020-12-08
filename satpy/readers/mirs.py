@@ -23,9 +23,7 @@ import datetime
 import netCDF4
 import os
 import logging
-from satpy.utils import debug_on
 
-debug_on()
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -47,8 +45,8 @@ n_fov = 96
 amsu = "amsu-mhs"
 PLATFORMS = {"n18": "NOAA-18",
              "n19": "NOAA-19",
-             "m01": "MetOp-A",
-             "m02": "MetOp-B",
+             "m02": "MetOp-A",
+             "m01": "MetOp-B",
              "npp": "NPP",
              "f17": "DMSP-F17",
              "f18": "DMSP-F18",
@@ -88,7 +86,6 @@ class MIRSHandler(NetCDF4FileHandler):
     @property
     def platform_name(self):
         """Get platform name."""
-        log.debug(self.filename_info["platform_shortname"])
         try:
             res = PLATFORMS[self.filename_info['platform_shortname']]
         except KeyError:
@@ -221,7 +218,7 @@ class MIRSHandler(NetCDF4FileHandler):
         return metadata
 
     def _rename_dims(self, data_arr):
-        """Normalize dimension names with the rest of Satpy."""
+        """Normalize dimension to x (pixel),y (lines) for Satpy."""
         dims_dict = {}
         if 'Field_of_view' in data_arr.dims:
             dims_dict['Field_of_view'] = 'x'
@@ -264,7 +261,9 @@ class MIRSHandler(NetCDF4FileHandler):
                 continue
             if isinstance(val, netCDF4.Variable):
                 # get specific brightness temperature band products
-                if var_name == 'BT' and self.filetype_info['file_type'] == 'mirs_atms':
+                if (var_name == 'BT' and
+                        self.filetype_info['file_type']
+                        in ['mirs_atms', 'mirs_l2']):
                     freq = self['Freq']
                     polo = self['Polo']
                     from collections import Counter
@@ -294,17 +293,20 @@ class MIRSHandler(NetCDF4FileHandler):
                         #                           dependencies=(PRODUCT_BT_CHANS, PRODUCT_SURF_TYPE),
                         #                                         channel_index=idx)
                         # self.all_bt_channels.append(new_name)
+                        coordinates = ['latitude', 'longitude']
 
                         ds_info = {
                             'file_type': self.filetype_info['file_type'],
-                            'name': new_name
+                            'name': new_name,
+                            'coordinates': coordinates
                         }
                         yield True, ds_info
 
                 else:
-
+                    coordinates = ['latitude', 'longitude']
                     ds_info = {
                         'file_type': self.filetype_info['file_type'],
                         'name': var_name,
+                        'coordinates': coordinates
                     }
                     yield True, ds_info
