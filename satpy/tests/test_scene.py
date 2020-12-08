@@ -2002,6 +2002,46 @@ class TestSceneResampling(unittest.TestCase):
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
+    def test_resample_scene_preserves_requested_dependencies(self, cri, cl, rs):
+        """Test that the Scene is properly copied during resampling.
+
+        The Scene that is created as a copy of the original Scene should not
+        be able to affect the original Scene object.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        rs.side_effect = self._fake_resample_dataset
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def.get_area_slices = mock.MagicMock()
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # Set PYTHONHASHSEED to 0 in the interpreter to test as intended (comp26 comes before comp14)
+
+        scene.load(['comp26', 'comp14'], generate=False)
+        # print('base deptree', str(scene._dependency_tree))
+        scene.resample(area_def, unload=True)
+        # print('base deptree', str(scene._dependency_tree))
+
+        new_scene_2 = scene.resample(area_def, unload=True)
+        # print('base deptree', str(scene._dependency_tree))
+        assert 'comp14' in new_scene_2
+
+    @mock.patch('satpy.scene.resample_dataset')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_resample_reduce_data_toggle(self, cri, cl, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
         import satpy.scene
