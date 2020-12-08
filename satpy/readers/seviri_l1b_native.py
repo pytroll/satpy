@@ -571,8 +571,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         tline0 = tline[:, 0]
         tline1 = tline[:, 1]
         tline2 = tline[:, 2]
-        return np.stack((tline0, tline1, tline2), axis=1).reshape(
-            self.mda['hrv_number_of_lines'])
+        return da.stack((tline0, tline1, tline2), axis=1).reshape(
+            self.mda['hrv_number_of_lines']).compute()
 
     def _get_acq_time_visir(self, dataset_id):
         """Get raw acquisition time for VIS/IR channels.
@@ -585,7 +585,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         if len(self.mda['channel_list']) == 1:
             return self.dask_array['visir']['acq_time']
         i = self.mda['channel_list'].index(dataset_id['name'])
-        return self.dask_array['visir']['acq_time'][:, i]
+        return self.dask_array['visir']['acq_time'][:, i].compute()
 
     def _get_satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
