@@ -88,7 +88,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             filename=TEST_FILE,
             filename_info={
                 'creation_time':  datetime.datetime(year=2017, month=9, day=20,
-                                                    hour=12, minute=30, second=30)
+                                                    hour=12, minute=30, second=30),
             },
             filetype_info={}
         )
@@ -175,7 +175,9 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with a valid file_key
         dataset = self.reader.get_dataset(None,
                                           {'file_key': 'test_one_layer',
-                                           'fill_value': -999, 'mask_value': 0})
+                                           'fill_value': -999, 'mask_value': 0.,
+                                           'file_type': 'test_file_type'})
+
         self.assertTrue(np.allclose(dataset.values, np.ones((100, 10))))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
@@ -184,7 +186,8 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with a valid file_key & layer
         dataset = self.reader.get_dataset(None,
                                           {'file_key': 'test_two_layers', 'layer': 1,
-                                           'fill_value': -999, 'mask_value': 0})
+                                           'fill_value': -999, 'mask_value': 0,
+                                           'file_type': 'test_file_type'})
         self.assertTrue(np.allclose(dataset.values, 2 * np.ones((100, 10))))
         self.assertEqual(dataset.attrs['units'], None)
         self.assertEqual(dataset.attrs['spacecraft_name'], 'test_platform')
@@ -192,7 +195,8 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with an invalid file_key
         invalid_dataset = self.reader.get_dataset(None,
                                                   {'file_key': 'test_invalid',
-                                                   'fill_value': -999, 'mask_value': 0})
+                                                   'fill_value': -999, 'mask_value': 0,
+                                                   'file_type': 'test_file_type'})
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
 
@@ -244,7 +248,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             filename=SEG_TEST_FILE,
             filename_info={
                 'creation_time':  datetime.datetime(year=2017, month=9, day=20,
-                                                    hour=12, minute=30, second=30)
+                                                    hour=12, minute=30, second=30),
             },
             filetype_info={}
         )
@@ -297,7 +301,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         # Checks the correct execution of the get_dataset function with a valid file_key
         dataset = self.segment_reader.get_dataset(None,
                                                   {'file_key': 'test_values',
-                                                   'fill_value': -999, 'mask_value': 0})
+                                                   'fill_value': -999, 'mask_value': 0, })
         self.assertTrue(np.allclose(dataset.values, np.ones((100, 10, 8, 6))))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
@@ -358,7 +362,7 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
             filename=TEST_ERROR_FILE,
             filename_info={
                 'creation_time': datetime.datetime(year=2017, month=9, day=20,
-                                                   hour=12, minute=30, second=30)
+                                                   hour=12, minute=30, second=30),
             },
             filetype_info={}
         )

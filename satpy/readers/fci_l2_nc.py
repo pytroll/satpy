@@ -169,15 +169,23 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
             fill_value = dataset_info['fill_value']
         except KeyError:
             fill_value = np.NaN
-        float_variable = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
-        float_variable.attrs = variable.attrs
-        variable = float_variable
+
+        if dataset_info['file_type'] == 'nc_fci_test_clm':
+            data_values = variable.where(variable != fill_value, mask_value).astype('uint32', copy=False)
+        else:
+            data_values = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
+
+        data_values.attrs = variable.attrs
+        variable = data_values
 
         # If the variable has 3 dimensions, select the required layer
         if variable.ndim == 3:
             layer = dataset_info.get('layer', 0)
             logger.debug('Selecting the layer %d.', layer)
             variable = variable.sel(maximum_number_of_layers=layer)
+
+        if dataset_info['file_type'] == 'nc_fci_test_clm' and var_key != 'cloud_mask_cmrt6_test_result':
+            variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
 
         # Rename the dimensions as required by Satpy
         variable = variable.rename({"number_of_rows": 'y', "number_of_columns": 'x'})
