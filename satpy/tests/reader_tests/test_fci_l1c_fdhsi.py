@@ -492,14 +492,19 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         assert res['vis_06'].attrs['area'].area_id == 'mtg_fci_fdss_1km'
         assert res['ir_105'].attrs['area'].area_id == 'mtg_fci_fdss_2km'
 
+        area_def = res['ir_105'].attrs['area']
         # test area extents computation
-        np.testing.assert_array_almost_equal(np.array(res['ir_105'].attrs['area'].area_extent),
+        np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
                                              np.array([-5568062.23065902, 5168057.7600648,
                                                        16704186.692027, 5568062.23065902]))
 
-        # check the projection string
-        expected_proj_str = '+ellps=WGS84 +h=35786400 +lon_0=0 +no_defs +proj=geos +type=crs +units=m +x_0=0 +y_0=0'
-        assert res['ir_105'].attrs['area'].proj_str == expected_proj_str
+        # check that the projection is read in properly
+        assert area_def.crs.coordinate_operation.method_name == 'Geostationary Satellite (Sweep Y)'
+        assert area_def.crs.coordinate_operation.params[0].value == 0.0  # projection origin longitude
+        assert area_def.crs.coordinate_operation.params[1].value == 35786400.0  # projection height
+        assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0
+        assert area_def.crs.ellipsoid.inverse_flattening == 298.257223563
+        assert area_def.crs.ellipsoid.is_semi_minor_computed
 
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
