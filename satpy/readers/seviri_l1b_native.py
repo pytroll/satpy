@@ -58,7 +58,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
                                        VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
-                                       VIS_CHANNELS, pad_data_horizontally, pad_data_vertically)
+                                       VIS_CHANNELS, get_service_mode, pad_data_horizontally, pad_data_vertically)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
@@ -288,13 +288,15 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
         if dataset_id['name'] == 'HRV':
-            pdict['a_name'] = 'geos_seviri_hrv'
-            pdict['a_desc'] = 'SEVIRI high resolution channel area'
+            res = 1.0
             pdict['p_id'] = 'seviri_hrv'
         else:
-            pdict['a_name'] = 'geos_seviri_visir'
-            pdict['a_desc'] = 'SEVIRI low resolution channel area'
+            res = 3.0
             pdict['p_id'] = 'seviri_visir'
+
+        service_mode = get_service_mode(pdict['ssp_lon'])
+        pdict['a_name'] = 'msg_seviri_%s_%.0fkm' % (service_mode['name'], res)
+        pdict['a_desc'] = 'SEVIRI %s area definition with %.0f km resolution' % (service_mode['desc'], res)
 
         area_extent = self.get_area_extent(dataset_id)
         areas = list()
