@@ -493,9 +493,9 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         assert res['ir_105'].attrs['area'].area_id == 'mtg_fci_fdss_2km'
 
         # test area extents computation
-        np.testing.assert_array_equal(np.array(res['ir_105'].attrs['area'].area_extent),
-                                      np.array([-5568062.23065902, 5168057.7600648,
-                                                16704186.692027, 5568062.23065902]))
+        np.testing.assert_array_almost_equal(np.array(res['ir_105'].attrs['area'].area_extent),
+                                             np.array([-5568062.23065902, 5168057.7600648,
+                                                       16704186.692027, 5568062.23065902]))
 
         # check the projection string
         expected_proj_str = '+ellps=WGS84 +h=35786400 +lon_0=0 +no_defs +proj=geos +type=crs +units=m +x_0=0 +y_0=0'
