@@ -611,8 +611,11 @@ class Padder:
         """Pad data to full disk with empty pixels."""
         logger.debug('Padding data to full disk')
 
+        south_bounds, north_bounds, east_bouds, west_bounds = self._img_bounds.values()
+
         data_list = []
-        for south_bound, north_bound, east_bound, west_bound in zip(*self._img_bounds.values()):
+        for south_bound, north_bound, east_bound, west_bound in zip(south_bounds, north_bounds,
+                                                                    east_bouds, west_bounds):
             nlines = north_bound - south_bound + 1
             data = self._extract_data_to_pad(dataset, south_bound, north_bound)
             padded_data = pad_data_horizontally(data, (nlines, self._final_shape[1]), east_bound, west_bound)
