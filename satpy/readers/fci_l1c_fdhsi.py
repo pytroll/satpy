@@ -337,6 +337,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                      'units': 'm',
                      "sweep": sweep}
 
+        # follow the format <platform>_<instrument>_<service>_<resolution>
         area_id_name = 'mtg_fci_fdss_{:.0f}km'.format(key['resolution']/1000)
         area_id_description = 'FCI Full-Disk Scanning Service area definition with {:.0f} km resolution' \
                               ''.format(key['resolution']/1000)
