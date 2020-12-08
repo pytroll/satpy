@@ -1,18 +1,41 @@
 reader:
-  description: MIRS reader
+  description: NetCDF Reader for the Microwave Integrated Retrieval System Level 2 swath products
   name: mirs
+  short_name: MiRS Level 2 NetCDF4
+  long_name: MiRS Level 2 Swath Product Reader (NetCDF4)
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  sensors: [amsu-a, mhs, ssmis, gmi, atms]
+  sensors: [amsu-mhs, atms, ssmis, gmi]
 
 file_types:
+  mirs_l2:
+    file_reader: !!python/name:satpy.readers.mirs.MIRSHandler
+    file_patterns:
+      - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
+      - 'NPR-MIRS-SND_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
   mirs_atms:
     file_reader: !!python/name:satpy.readers.mirs.MIRSHandler
     file_patterns:
-      - 'NPR-MIRS-IMG_v{version}_{platform_name}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
-      - 'NPR-MIRS-SND_v{version}_{platform_name}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
-      - 'IMG_SX.{platform_name}.D{date:%y%j}.S{start_time:%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
+      - 'IMG_SX.{platform_shortname}.D{date:%y%j}.S{start_time:%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
 
 datasets:
+  latitude:
+    name: 'latitude'
+    file_key: 'Latitude'
+    file_type:
+      - mirs_atms
+      - mirs_l2
+    units: 'degrees'
+    standard_name: 'latitude'
+    coordinates: [latitude, longitude]
+  longitude:
+    name: 'longitude'
+    file_key: 'Longitude'
+    file_type:
+      - mirs_atms
+      - mirs_l2
+    units: 'degrees'
+    standard_name: 'longitude'
+    coordinates: [latitude, longitude]
   rain_rate:
     name: 'rain_rate'
     file_key: 'RR'
@@ -22,16 +45,21 @@ datasets:
     name: 'snow_fall_rate'
     file_key: 'SFR'
     file_type: mirs_atms
-  latitude:
-    name: 'latitude'
-    file_key: 'Latitude'
-    file_type: mirs_atms
+  chi_squared:
+    name: "ChiSqr"
+    file_key: "ChiSqr"
+    file_type:
+      - mirs_atms
+    units: '1'
+    description: "Convergence rate: <3-good>10-bad"
+  lz_angle:
+    name: 'LZ_angle'
+    file_key: 'LA_angle'
     units: 'degrees'
-  longitude:
-    name: 'longitude'
-    file_key: 'Longitude'
-    file_type: mirs_atms
-    units: 'degrees'
+    file_type:
+      - mirs_atms
+      - mirs_l2
+    long_name: 'Local Zenith Angle degree'
   sea_ice:
     name: 'sea_ice'
     file_key: 'SIce'
@@ -46,6 +74,7 @@ datasets:
     name: 'surface_type'
     file_key: 'Sfc_type'
     file_type: mirs_atms
+    units: '1'
   tpw:
     name: 'total_precipitable_water'
     file_key: 'TPW'
