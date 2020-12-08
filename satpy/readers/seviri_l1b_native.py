@@ -609,8 +609,6 @@ class ImageBoundaries:
         if not (same_lengths and no_empty):
             raise ValueError('Invalid image boundaries')
 
-        return
-
 
 class Padder:
     """Padding of HRV, RSS and ROI data to full disk."""
