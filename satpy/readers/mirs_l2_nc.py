@@ -293,20 +293,16 @@ class MIRSHandler(NetCDF4FileHandler):
                         #                           dependencies=(PRODUCT_BT_CHANS, PRODUCT_SURF_TYPE),
                         #                                         channel_index=idx)
                         # self.all_bt_channels.append(new_name)
-                        coordinates = ['latitude', 'longitude']
 
                         ds_info = {
                             'file_type': self.filetype_info['file_type'],
                             'name': new_name,
-                            'coordinates': coordinates
                         }
                         yield True, ds_info
 
                 else:
-                    coordinates = ['latitude', 'longitude']
                     ds_info = {
                         'file_type': self.filetype_info['file_type'],
                         'name': var_name,
-                        'coordinates': coordinates
                     }
                     yield True, ds_info
