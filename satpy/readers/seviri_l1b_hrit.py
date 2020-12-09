@@ -689,9 +689,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key['calibration'])
         if key['name'] == 'HRV' and self.fill_hrv:
-            attrs = res.attrs
             res = self.pad_hrv_data(res)
-            res.attrs = attrs
 
         res.attrs['units'] = info['units']
         res.attrs['wavelength'] = info['wavelength']
@@ -748,7 +746,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                                bounds['UpperEastColumnActual'],
                                                bounds['UpperWestColumnActual'])
             data_list.append(data_upper)
-        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
+        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'), attrs=res.attrs.copy())
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
