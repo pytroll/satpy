@@ -65,8 +65,6 @@ vis_counts_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2, 3, 4],
-        'x': [1, 2, 3, 4],
         'acq_time': ('y', acq_time_vis_exp),
     },
     attrs=attrs_exp
@@ -81,8 +79,6 @@ vis_rad_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2, 3, 4],
-        'x': [1, 2, 3, 4],
         'acq_time': ('y', acq_time_vis_exp),
     },
     attrs=attrs_exp
@@ -100,8 +96,6 @@ vis_refl_exp = xr.DataArray(
     # Last row/col is NaN due to SZA interpolation
     dims=('y', 'x'),
     coords={
-        'y': [1, 2, 3, 4],
-        'x': [1, 2, 3, 4],
         'acq_time': ('y', acq_time_vis_exp),
     },
     attrs=attrs_refl_exp
@@ -115,10 +109,6 @@ u_vis_refl_exp = xr.DataArray(
         dtype=np.float32
     ),
     dims=('y', 'x'),
-    coords={
-        'y': [1, 2, 3, 4],
-        'x': [1, 2, 3, 4],
-    },
     attrs=attrs_exp
 )
 acq_time_ir_wv_exp = [np.datetime64('1970-01-01 00:30'),
@@ -131,8 +121,6 @@ wv_counts_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2],
-        'x': [1, 2],
         'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
@@ -145,8 +133,6 @@ wv_rad_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2],
-        'x': [1, 2],
         'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
@@ -159,8 +145,6 @@ wv_bt_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2],
-        'x': [1, 2],
         'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
@@ -173,8 +157,6 @@ ir_counts_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2],
-        'x': [1, 2],
         'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
@@ -187,8 +169,6 @@ ir_rad_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2],
-        'x': [1, 2],
         'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
@@ -201,8 +181,6 @@ ir_bt_exp = xr.DataArray(
     ),
     dims=('y', 'x'),
     coords={
-        'y': [1, 2],
-        'x': [1, 2],
         'acq_time': ('y', acq_time_ir_wv_exp),
     },
     attrs=attrs_exp
@@ -216,10 +194,6 @@ quality_pixel_bitmask_exp = xr.DataArray(
         dtype=np.uint8
     ),
     dims=('y', 'x'),
-    coords={
-        'y': [1, 2, 3, 4],
-        'x': [1, 2, 3, 4],
-    },
     attrs=attrs_exp
 )
 sza_vis_exp = xr.DataArray(
@@ -231,10 +205,6 @@ sza_vis_exp = xr.DataArray(
         dtype=np.float32
     ),
     dims=('y', 'x'),
-    coords={
-        'y': [1, 2, 3, 4],
-        'x': [1, 2, 3, 4],
-    },
     attrs=attrs_exp
 )
 sza_ir_wv_exp = xr.DataArray(
@@ -244,10 +214,6 @@ sza_ir_wv_exp = xr.DataArray(
         dtype=np.float32
     ),
     dims=('y', 'x'),
-    coords={
-        'y': [1, 2],
-        'x': [1, 2],
-    },
     attrs=attrs_exp
 )
 area_vis_exp = AreaDefinition(
