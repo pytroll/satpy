@@ -581,6 +581,7 @@ class FiduceoMviriBase(BaseFileHandler):
             ds = self._get_channel(name, resolution, dataset_id['calibration'])
         else:
             ds = self._get_other_dataset(name)
+        ds = self._cleanup_coords(ds)
         self._update_attrs(ds, dataset_info)
         return ds
 
@@ -639,6 +640,16 @@ class FiduceoMviriBase(BaseFileHandler):
                          'sensor': self.filename_info['sensor']})
         ds.attrs['raw_metadata'] = self.nc.attrs
         ds.attrs['orbital_parameters'] = self._get_orbital_parameters()
+
+    def _cleanup_coords(self, ds):
+        """Cleanup dataset coordinates.
+
+        Y/x coordinates have been useful for interpolation so far, but they
+        only contain row/column numbers. Drop these coordinates so that Satpy
+        can assign projection coordinates upstream (based on the area
+        definition).
+        """
+        return ds.drop_vars(['y', 'x'])
 
     def _calibrate(self, ds, channel, calibration):
         """Calibrate the given dataset."""
