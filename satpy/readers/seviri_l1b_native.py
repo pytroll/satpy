@@ -435,12 +435,10 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             'projection_altitude': self.mda['projection_parameters']['h']}
 
         if self.fill_disk and not (dataset_id['name'] != 'HRV' and self.mda['is_full_disk']):
-            attrs = dataset.attrs
             padder = Padder(dataset_id,
                             self.image_boundaries.get_img_bounds(dataset_id, self.is_roi()),
                             self.mda['is_full_disk'])
             dataset = padder.pad_data(dataset)
-            dataset.attrs = attrs
 
         return dataset
 
@@ -640,7 +638,7 @@ class Padder:
         if not self._is_full_disk:
             padded_data = pad_data_vertically(padded_data, self._final_shape, south_bound, north_bound)
 
-        return xr.DataArray(padded_data, dims=('y', 'x'))
+        return xr.DataArray(padded_data, dims=('y', 'x'), attrs=dataset.attrs.copy())
 
     def _extract_data_to_pad(self, dataset, south_bound, north_bound):
         """Extract the data that shall be padded.
