@@ -7,91 +7,93 @@ reader:
   sensors: [amsu-mhs, atms, ssmis, gmi]
 
 file_types:
-  mirs_l2:
-    file_reader: !!python/name:satpy.readers.mirs_l2_nc.MIRSHandler
-    file_patterns:
-      - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
-      - 'NPR-MIRS-SND_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
   mirs_atms:
     file_reader: !!python/name:satpy.readers.mirs_l2_nc.MIRSHandler
     file_patterns:
+      - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
       - 'IMG_SX.{platform_shortname}.D{date:%y%j}.S{start_time:%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
+  
 
 datasets:
   latitude:
-    name: 'latitude'
-    file_key: 'Latitude'
-    file_type:
-      - mirs_atms
-      - mirs_l2
-    units: 'degrees'
-    standard_name: 'latitude'
-    coordinates: [latitude, longitude]
-  longitude:
-    name: 'longitude'
-    file_key: 'Longitude'
-    file_type:
-      - mirs_atms
-      - mirs_l2
-    units: 'degrees'
-    standard_name: 'longitude'
-    coordinates: [latitude, longitude]
-  rain_rate:
-    name: 'rain_rate'
-    file_key: 'RR'
+    name: latitude
+    file_key: Latitude
     file_type: mirs_atms
-    units: 'mm/hr'
+    units: degrees_north
+    standard_name: latitude
+    coordinates: [longitude, latitude]
+  longitude:
+    name: longitude
+    file_key: Longitude
+    file_type: mirs_atms
+    units: degrees_east
+    standard_name: longitude
+    coordinates: [longitude, latitude]
+  rain_rate:
+    name: rain_rate
+    file_key: RR
+    file_type: mirs_atms
+    units: mm/hr
+    coordinates: [longitude, latitude]
   sfr:
-    name: 'snow_fall_rate'
-    file_key: 'SFR'
+    name: snow_fall_rate
+    file_key: SFR
+    file_type: mirs_atms
+    coordinates: [longitude, latitude]
     file_type: mirs_atms
   chi_squared:
     name: "ChiSqr"
     file_key: "ChiSqr"
-    file_type:
-      - mirs_atms
+    file_type: mirs_atms
+    coordinates: [longitude, latitude]
     units: '1'
     description: "Convergence rate: <3-good>10-bad"
   lz_angle:
-    name: 'LZ_angle'
-    file_key: 'LA_angle'
-    units: 'degrees'
-    file_type:
-      - mirs_atms
-      - mirs_l2
-    long_name: 'Local Zenith Angle degree'
+    name: LZ_angle
+    file_key: LA_angle
+    units: degrees
+    file_type: mirs_atms
+    coordinates: [longitude, latitude]
+    long_name: Local Zenith Angle degree
   sea_ice:
-    name: 'sea_ice'
-    file_key: 'SIce'
+    name: sea_ice
+    file_key: SIce
     file_type: mirs_atms
-    units: '%'
+    coordinates: [longitude, latitude]
+    units: "%"
   snow_cover:
-    name: 'snow_cover'
-    file_key: 'Snow'
+    name: snow_cover
+    file_key: Snow
     file_type: mirs_atms
+    coordinates: [longitude, latitude]
     units: '1'
   surface_type:
-    name: 'surface_type'
-    file_key: 'Sfc_type'
+    name: surface_type
+    file_key: Sfc_type
     file_type: mirs_atms
+    coordinates: [longitude, latitude]
     units: '1'
   tpw:
-    name: 'total_precipitable_water'
-    file_key: 'TPW'
+    name: total_precipitable_water
+    file_key: TPW
     file_type: mirs_atms
-    units: 'mm'
+    coordinates: [longitude, latitude]
+    units: mm
   swe:
-    name: 'snow_water_equivalence'
-    file_key: 'SWE'
+    name: snow_water_equivalence
+    file_key: SWE
     file_type: mirs_atms
-    units: 'cm'
+    coordinates: [longitude, latitude]
+    units: cm
   clw:
-    name: 'cloud_liquid_water'
-    file_key: 'CLW'
+    name: cloud_liquid_water
+    file_key: CLW
     file_type: mirs_atms
-    units: 'mm'
+    coordinates: [longitude, latitude]
+    units: mm
   tskin:
-    name: 'skin_temperature'
-    file_key: 'TSkin'
+    name: skin_temperature
+    file_key: TSkin
     file_type: mirs_atms
-    units: 'K'
+    coordinates: [longitude, latitude]
+    units: K
