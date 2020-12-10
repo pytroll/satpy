@@ -1,0 +1,187 @@
+reader:
+    description: VIIRS Land Surface Reflectance Reader
+    name: viirs_l2_lsr
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [viirs]
+
+file_types:
+    lsr_netcdf:
+        file_reader: !!python/name:satpy.readers.viirs_l2_lsr.VIIRSLandSurfaceReflectanceFileHandler
+        variable_prefix: ""
+        file_patterns: 
+            - 'SurfRefl_v1r1_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+
+navigations:
+    vgeoi:
+        description: VIIRS L1B I-band Navigation
+        file_type: vgeoi
+        latitude_key: Latitude_at_375m_resolution
+        longitude_key: Longitude_at_375m_resolution
+        nadir_resolution: [371]
+        rows_per_scan: 32
+    vgeom:
+        description: VIIRS L1B M-band Navigation
+        file_type: vgeom
+        latitude_key: Latitude_at_750m_resolution
+        longitude_key: Longitude_at_750m_resolution
+        nadir_resolution: [742]
+        rows_per_scan: 16
+
+datasets:
+    i1:
+        name: i1
+        standard_name: i1
+        file_type: [lsr_netcdf]
+        file_key: "375m Surface Reflectance Band I1"
+        coordinates: [i_lon, i_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_i1:
+        name: srf_i1
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "375m Surface Reflectance Band I1"
+        coordinates: [i_lon, i_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_i2:
+        name: srf_i2
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "375m Surface Reflectance Band I2"
+        coordinates: [i_lon, i_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_i3:
+        name: srf_i3
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "375m Surface Reflectance Band I3"
+        coordinates: [i_lon, i_lat]
+        units: '1'
+        _FillValue: -9999
+
+
+    srf_m1:
+        name: srf_m1
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M1"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_m2:
+        name: srf_m2
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M2"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_m3:
+        name: srf_m3
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M3"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_m4:
+        name: srf_m4
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M4"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_m5:
+        name: srf_m5
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M5"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+# m6 is not valid
+    srf_m7:
+        name: srf_m7
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M7"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_m8:
+        name: srf_m8
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M8"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+# m9 is not valid
+    srf_m10:
+        name: srf_m10
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M10"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+    srf_m11:
+        name: srf_m11
+        standard_name: surface_reflectance
+        file_type: [lsr_netcdf]
+        file_key: "750m Surface Reflectance Band M11"
+        coordinates: [m_lon, m_lat]
+        units: '1'
+        _FillValue: -9999
+
+    m_lon:
+        name: m_lon
+        resolution: 742
+        standard_name: longitude
+        file_type: [lsr_netcdf]
+        file_key: "Longitude_at_750m_resolution"
+        units: 'degrees_east'
+        _FillValue: -999.9
+    m_lat:
+        name: m_lat
+        resolution: 742
+        standard_name: latitude
+        file_type: [lsr_netcdf]
+        file_key: "Latitude_at_750m_resolution"
+        units: 'degrees_north'
+        _FillValue: -999.9
+    i_lon:
+        name: i_lon
+        resolution: 371
+        standard_name: longitude
+        file_type: [lsr_netcdf]
+        file_key: "Longitude_at_375m_resolution"
+        units: 'degrees_east'
+        _FillValue: -999.9
+    i_lat:
+        name: i_lat
+        resolution: 371
+        standard_name: latitude
+        file_type: [lsr_netcdf]
+        file_key: "Latitude_at_375m_resolution"
+        units: 'degrees_north'
+        _FillValue: -999.9
+
+
+    ndvi: # only in the CSPP product
+        name: ndvi
+        standard_name: ndvi
+        file_type: [lsr_netcdf]
+        file_key: "NDVI"
+        coordinates: [i_lon, i_lat]
+        units: '1'
+    evi: # only in the CSPP product
+        name: evi
+        standard_name: evi
+        file_type: [lsr_netcdf]
+        file_key: "EVI"
+        coordinates: [i_lon, i_lat]
+        units: '1'
