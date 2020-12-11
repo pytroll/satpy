@@ -82,3 +82,65 @@ def recarray2dict(arr):
                 res[key] = data.squeeze()
 
     return res
+
+
+def get_geos_area_naming(instrument_name, ssp_lon, resolution):
+    """Get a dictionary containing formatted AreaDefinition naming (area_id, description, proj_id)."""
+    area_naming_dict = {}
+
+    platform_name = get_platform_name(instrument_name)
+    service_mode = get_service_mode(instrument_name, ssp_lon)
+    resolution_strings = get_resolution_and_unit_strings(resolution)
+
+    area_naming_dict['area_id'] = '{}_{}_{}_{}{}'.format(platform_name,
+                                                         instrument_name,
+                                                         service_mode['name'],
+                                                         resolution_strings['value'],
+                                                         resolution_strings['unit'])
+
+    area_naming_dict['description'] = '{} {} {} area definition ' \
+                                      'with {} {} resolution'.format(platform_name.upper(),
+                                                                     instrument_name.upper(),
+                                                                     service_mode['desc'],
+                                                                     resolution_strings['value'],
+                                                                     resolution_strings['unit']
+                                                                     )
+
+    # same as area_id but without resolution. Parameter on the way to be deprecated
+    area_naming_dict['proj_id'] = '{}_{}_{}'.format(platform_name,
+                                                    instrument_name,
+                                                    service_mode['name'])
+
+    return area_naming_dict
+
+
+def get_resolution_and_unit_strings(resolution):
+    """Get the resolution value and unit as strings. Expects a resolution in m."""
+    if resolution >= 1000:
+        return {'value': '{:.0f}'.format(resolution*1e-3),
+                'unit': 'km'}
+    else:
+        return {'value': '{:.0f}'.format(resolution),
+                'unit': 'm'}
+
+
+def get_platform_name(instrument_name):
+    """Get the platform name for a given instrument."""
+    platform_names = {'seviri': 'msg',
+                      'fci': 'mtg',
+                      }
+    return platform_names[instrument_name]
+
+
+def get_service_mode(instrument_name, ssp_lon):
+    """Get information about service mode for a given instrument and subsatellite longitude."""
+    service_modes = {'seviri': {'0.0':  {'name': 'fes', 'desc': 'Full Earth Scanning service'},
+                                '9.5':  {'name': 'rss', 'desc': 'Rapid Scanning Service'},
+                                '41.5': {'name': 'iodc', 'desc': 'Indian Ocean Data Coverage service'}
+                                },
+                     'fci':    {'0.0':  {'name': 'fdss', 'desc': 'Full Disk Scanning Service'},
+                                '9.5':  {'name': 'rss', 'desc': 'Rapid scanning service'},
+                                },
+                     }
+
+    return service_modes[instrument_name]['{:.1f}'.format(ssp_lon)]
