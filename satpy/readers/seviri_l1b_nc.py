@@ -28,20 +28,19 @@ Notes:
     function.
 
 References:
-
     - `MSG Level 1.5 Image Data Format Description`_
     - `Conversion from radiances to reflectances for SEVIRI warm channels`_
 
 .. _MSG Level 1.5 Image Data Format Description:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
+    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
 
 .. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
+    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+
 """
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.eum_base import get_geos_area_naming
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
@@ -178,18 +177,20 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
+        area_naming = get_geos_area_naming('seviri', pdict['ssp_lon'], int(dataset_id['resolution']))
+
         if dataset_id['name'] == 'HRV':
             pdict['nlines'] = self.mda['hrv_number_of_lines']
             pdict['ncols'] = self.mda['hrv_number_of_columns']
-            pdict['a_name'] = 'geosmsg_hrv'
-            pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
-            pdict['p_id'] = 'msg_hires'
+            pdict['a_name'] = area_naming['area_id']
+            pdict['a_desc'] = area_naming['description']
+            pdict['p_id'] = area_naming['proj_id']
         else:
             pdict['nlines'] = self.mda['number_of_lines']
             pdict['ncols'] = self.mda['number_of_columns']
-            pdict['a_name'] = 'geosmsg'
-            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
-            pdict['p_id'] = 'msg_lowres'
+            pdict['a_name'] = area_naming['area_id']
+            pdict['a_desc'] = area_naming['description']
+            pdict['p_id'] = area_naming['proj_id']
 
         area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 
