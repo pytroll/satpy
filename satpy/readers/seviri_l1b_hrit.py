@@ -162,7 +162,7 @@ import xarray as xr
 
 import satpy.readers.utils as utils
 from pyresample import geometry
-from satpy.readers.eum_base import recarray2dict, time_cds_short
+from satpy.readers.eum_base import recarray2dict, time_cds_short, get_geos_area_naming
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
@@ -629,13 +629,15 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         else:
             pdict['scandir'] = 'S2N'
 
+        area_naming = get_geos_area_naming('seviri', pdict['ssp_lon'], int(dsid['resolution']))
+
         # Compute area definition for non-HRV channels:
         if dsid['name'] != 'HRV':
             pdict['loff'] = loff - nlines
             aex = self._get_area_extent(pdict)
-            pdict['a_name'] = 'geosmsg'
-            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
-            pdict['p_id'] = 'msg_lowres'
+            pdict['a_name'] = area_naming['area_id']
+            pdict['a_desc'] = area_naming['description']
+            pdict['p_id'] = area_naming['proj_id']
             area = get_area_definition(pdict, aex)
             self.area = area
             return self.area
@@ -647,8 +649,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                               * pdict['nlines'])
 
         # Or, if we are processing HRV:
-        pdict['a_name'] = 'geosmsg_hrv'
-        pdict['p_id'] = 'msg_hires'
+        pdict['a_name'] = area_naming['area_id']
+        pdict['p_id'] = area_naming['proj_id']
         bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
         if self.fill_hrv:
             bounds['UpperEastColumnActual'] = 1
@@ -667,7 +669,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         pdict['nlines'] = upper_south_line
         pdict['loff'] = loff - upper_south_line
         pdict['coff'] = lower_coff
-        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, lower window'
+        pdict['a_desc'] = area_naming['description']
         lower_area_extent = self._get_area_extent(pdict)
         lower_area = get_area_definition(pdict, lower_area_extent)
 
@@ -675,7 +677,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         pdict['nlines'] = nlines - upper_south_line
         pdict['loff'] = loff - pdict['nlines'] - upper_south_line
         pdict['coff'] = upper_coff
-        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, upper window'
+        pdict['a_desc'] = area_naming['description']
         upper_area_extent = self._get_area_extent(pdict)
         upper_area = get_area_definition(pdict, upper_area_extent)
 
