@@ -42,6 +42,7 @@ References:
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
+from satpy.readers.eum_base import get_service_mode
 import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
@@ -176,7 +177,13 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
-        area_naming = get_geos_area_naming('seviri', pdict['ssp_lon'], int(dataset_id['resolution']))
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': int(dataset_id['resolution'])
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', pdict['ssp_lon'])})
 
         if dataset_id['name'] == 'HRV':
             pdict['nlines'] = self.mda['hrv_number_of_lines']

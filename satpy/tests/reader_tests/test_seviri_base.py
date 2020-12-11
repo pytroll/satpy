@@ -22,8 +22,9 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time,\
-    get_service_mode, get_padding_area, pad_data_horizontally, pad_data_vertically
+from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, \
+    get_padding_area, pad_data_horizontally, pad_data_vertically
+from satpy.readers.eum_base import get_service_mode
 from satpy import CHUNK_SIZE
 
 

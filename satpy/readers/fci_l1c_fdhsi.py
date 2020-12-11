@@ -85,6 +85,8 @@ import xarray as xr
 from pyresample import geometry
 from netCDF4 import default_fillvals
 from satpy.readers._geos_area import get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode
+
 from .netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
@@ -337,7 +339,13 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                      'units': 'm',
                      "sweep": sweep}
 
-        area_naming = get_geos_area_naming('fci', lon_0, key['resolution'])
+        area_naming_input_dict = {'platform_name': 'mtg',
+                                  'instrument_name': 'fci',
+                                  'resolution': int(key['resolution'])
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('fci', lon_0)})
 
         area = geometry.AreaDefinition(
             area_naming['area_id'],
