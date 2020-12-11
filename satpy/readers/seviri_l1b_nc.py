@@ -40,12 +40,11 @@ References:
 """
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import get_geos_area_naming
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition
+from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy import CHUNK_SIZE
 
 import datetime
