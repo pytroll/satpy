@@ -84,7 +84,7 @@ import xarray as xr
 
 from pyresample import geometry
 from netCDF4 import default_fillvals
-from satpy.readers.eum_base import get_geos_area_naming
+from satpy.readers._geos_area import get_geos_area_naming
 from .netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)

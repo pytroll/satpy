@@ -159,7 +159,7 @@ import xarray as xr
 
 import satpy.readers.utils as utils
 from pyresample import geometry
-from satpy.readers.eum_base import recarray2dict, time_cds_short, get_geos_area_naming
+from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
@@ -169,8 +169,7 @@ from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
                                        pad_data_horizontally)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
-from satpy.readers._geos_area import get_area_extent, get_area_definition
-
+from satpy.readers._geos_area import get_area_extent, get_area_definition, get_geos_area_naming
 
 logger = logging.getLogger('hrit_msg')
 

@@ -53,7 +53,7 @@ from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import recarray2dict, get_geos_area_naming
+from satpy.readers.eum_base import recarray2dict
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
@@ -61,7 +61,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        VIS_CHANNELS, pad_data_horizontally, pad_data_vertically)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
-from satpy.readers._geos_area import get_area_definition
+from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 
 logger = logging.getLogger('native_msg')
 
