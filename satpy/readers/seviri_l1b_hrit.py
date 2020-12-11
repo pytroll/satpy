@@ -159,7 +159,7 @@ import xarray as xr
 
 import satpy.readers.utils as utils
 from pyresample import geometry
-from satpy.readers.eum_base import recarray2dict, time_cds_short
+from satpy.readers.eum_base import recarray2dict, time_cds_short, get_service_mode
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
@@ -625,7 +625,13 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         else:
             pdict['scandir'] = 'S2N'
 
-        area_naming = get_geos_area_naming('seviri', pdict['ssp_lon'], int(dsid['resolution']))
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': int(dsid['resolution'])
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', pdict['ssp_lon'])})
 
         # Compute area definition for non-HRV channels:
         if dsid['name'] != 'HRV':

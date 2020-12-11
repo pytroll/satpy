@@ -53,7 +53,7 @@ from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import recarray2dict
+from satpy.readers.eum_base import recarray2dict, get_service_mode
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
@@ -287,7 +287,14 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
-        area_naming = get_geos_area_naming('seviri', pdict['ssp_lon'], int(dataset_id['resolution']))
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': int(dataset_id['resolution'])
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', pdict['ssp_lon'])})
+
         pdict['a_name'] = area_naming['area_id']
         pdict['a_desc'] = area_naming['description']
         pdict['p_id'] = area_naming['proj_id']
