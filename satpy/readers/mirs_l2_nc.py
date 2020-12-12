@@ -45,25 +45,34 @@ n_fov = 96
 amsu = "amsu-mhs"
 PLATFORMS = {"n18": "NOAA-18",
              "n19": "NOAA-19",
-             "m02": "MetOp-A",
-             "m01": "MetOp-B",
+             "np": "NOAA-19",
+             "m2": "MetOp-A",
+             "m1": "MetOp-B",
+             "m3": "MetOp-C",
+             "ma2": "MetOp-A",
+             "ma1": "MetOp-B",
+             "ma3": "MetOp-C",
              "npp": "NPP",
              "f17": "DMSP-F17",
              "f18": "DMSP-F18",
              "gpm": "GPM",
              "n20": "NOAA-20",
-             "m2": "MIRS",
              }
 SENSOR = {"n18": amsu,
           "n19": amsu,
-          "m01": amsu,
-          "m02": amsu,
+          "n20": amsu,
+          "np": amsu,
+          "m1": amsu,
+          "m2": amsu,
+          "m3": amsu,
+          "ma1": amsu,
+          "ma2": amsu,
+          "ma3": amsu,
           "npp": "atms",
           "jpss": "atms",
           "f17": "ssmis",
           "f18": "ssmis",
           "gpm": "GPI",
-          "n20": amsu,
           }
 
 
@@ -217,6 +226,17 @@ class MIRSHandler(NetCDF4FileHandler):
 
         return metadata
 
+    def _check_coordinates(self, current_var_name):
+        """Add coordinates if needed when dims have Scanline, Field_of_view."""
+        var_dims = self.file_content["{}/dimensions".format(current_var_name)]
+        coord_key = "{}/coordinates".format(current_var_name)
+        if 'Scanline' in var_dims and 'Field_of_view' in var_dims:
+            try:
+                return self.file_content[coord_key]
+            except KeyError:
+                return ["longitude", "latitude"]
+        return []
+
     def _rename_dims(self, data_arr):
         """Normalize dimension to x (pixel),y (lines) for Satpy."""
         dims_dict = {}
@@ -224,6 +244,8 @@ class MIRSHandler(NetCDF4FileHandler):
             dims_dict['Field_of_view'] = 'x'
         if 'Scanline' in data_arr.dims:
             dims_dict['Scanline'] = 'y'
+        data_arr.rename(dims_dict)
+
         return data_arr.rename(dims_dict)
 
     def get_dataset(self, ds_id, ds_info):
@@ -231,6 +253,7 @@ class MIRSHandler(NetCDF4FileHandler):
         data = self[ds_info.get('file_key', ds_info['name'])]
         data.attrs = self.get_metadata(data, ds_info)
         data = self._rename_dims(data)
+
         return data
 
     def available_datasets(self, configured_datasets=None):
@@ -262,8 +285,7 @@ class MIRSHandler(NetCDF4FileHandler):
             if isinstance(val, netCDF4.Variable):
                 # get specific brightness temperature band products
                 if (var_name == 'BT' and
-                        self.filetype_info['file_type']
-                        in ['mirs_atms', 'mirs_l2']):
+                        self.filetype_info['file_type'] in 'mirs_atms'):
                     freq = self['Freq']
                     polo = self['Polo']
                     from collections import Counter
@@ -287,8 +309,8 @@ class MIRSHandler(NetCDF4FileHandler):
                         # FIXME below is old p2g code
                         # FILE_STRUCTURE[var_name] = ("BT", ("scale", "scale_factor"), None, idx)
                         # self.PRODUCTS.add_product(new_name, PAIR_MIRS_NAV, "toa_brightness_temperature", FT_IMG,
-                        #                           var_name,
-                        #                           description="Channel Brightness Temperature at {}GHz".format(f),
+                        #                           var_name, description=
+                        #                           "Channel Brightness Temperature at {}GHz".format(normal_f),
                         #                           units="K", frequency=f,
                         #                           dependencies=(PRODUCT_BT_CHANS, PRODUCT_SURF_TYPE),
                         #                                         channel_index=idx)
@@ -304,5 +326,6 @@ class MIRSHandler(NetCDF4FileHandler):
                     ds_info = {
                         'file_type': self.filetype_info['file_type'],
                         'name': var_name,
+                        'coordinates': self._check_coordinates(var_name)
                     }
                     yield True, ds_info
