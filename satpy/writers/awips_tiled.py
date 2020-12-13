@@ -148,10 +148,16 @@ There are only a few templates provided in Sapty currently.
   installed for GOES-R support in AWIPS. This format is meant to be very
   generic and should theoretically allow any variable to get ingested into
   AWIPS.
-* **glm_l2**: This format is used to produce standard files for the gridded
+* **glm_l2_radc**: This format is used to produce standard files for the gridded
+  GLM products produced by the CSPP Geo Gridded GLM package. Support for this
+  format is also available in the TOWR-S package on an AWIPS ingest server.
+  This format is specific to gridded GLM on the CONUS sector and is not meant
+  to work for other data.
+* **glm_l2_radf**: This format is used to produce standard files for the gridded
   GLM productes produced by the CSPP Geo Gridded GLM package. Support for this
   format is also available in the TOWR-S package on an AWIPS ingest server.
-  This format is specific to gridded GLM and will not work for other data.
+  This format is specific to gridded GLM on the Full Disk sector and is not
+  meant to work for other data.
 
 Numbered versus Lettered Grids
 ------------------------------
@@ -610,7 +616,7 @@ def _get_factor_offset_fill(input_data_arr, vmin, vmax, encoding):
         # max value
         fills = [2 ** (file_bit_depth - 1) - 1]
 
-    mx = vmax - vmin / (2 ** bit_depth - 1 - num_fills)
+    mx = (vmax - vmin) / (2 ** bit_depth - 1 - num_fills)
     bx = vmin
     if not is_unsigned and not unsigned_in_signed:
         bx += 2 ** (bit_depth - 1) * mx
@@ -643,6 +649,7 @@ def _add_valid_ranges(data_arrs):
     for data_arr in data_arrs:
         vmin, vmax = _get_data_vmin_vmax(data_arr)
         if vmin is None:
+            # XXX: Do we need to handle category products here?
             vmin = data_arr.min(skipna=True).data
             vmax = data_arr.max(skipna=True).data
             # we don't want to effect the original attrs
@@ -1167,17 +1174,14 @@ def to_nonempty_netcdf(dataset_to_save, factors, output_filename, update_existin
     this function can also "update" an existing NetCDF file with the
     new valid data provided.
 
-    This function will also allow for 'auto' scale_factor and add_offset
-    creation by taking the minimum and maximum value of the variable.
-
     """
+    dataset_to_save = _reapply_factors(dataset_to_save, factors)
     if _is_empty_tile(dataset_to_save, check_categories):
         LOG.debug("Skipping tile creation for {} because it would be "
                   "empty.".format(output_filename))
         return
 
     # TODO: Allow for new variables to be created
-    dataset_to_save = _reapply_factors(dataset_to_save, factors)
     if update_existing and os.path.isfile(output_filename):
         dataset_to_save = _copy_to_existing(dataset_to_save, output_filename)
         mode = 'a'

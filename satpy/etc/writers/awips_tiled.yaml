@@ -774,7 +774,7 @@ templates:
           physical_element:
             raw_value: Surface Type
       # GEOCAT Level 2 Products
-  glm_l2:
+  glm_l2_radc:
     single_variable: false
     # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
     filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
@@ -784,10 +784,8 @@ templates:
         value: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_s{start_time:%Y%j%H%M%S0}_e{end_time:%Y%j%H%M%S0}_c{creation_time:%Y%j%H%M%S0}.nc'
       time_coverage_end:
         value: "{end_time:%Y-%m-%dT%H:%M:%S.%fZ}"
-#        value: "{end_time:%Y-%m-%dT%H:%M:%SZ}"
       time_coverage_start:
         value: "{start_time:%Y-%m-%dT%H:%M:%S.%fZ}"
-#        value: "{start_time:%Y-%m-%dT%H:%M:%SZ}"
       production_site: {}  # special handler in awips_tiled.py
       platform_ID:
         value: "{platform_shortname}"
@@ -941,6 +939,181 @@ templates:
         attributes:
 #          physical_element:
 #            raw_value: "GLM_Total_Optical_Energy_Window"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+  glm_l2_radf:
+    single_variable: false
+    # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
+    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
+    global_attributes:
+      # FIXME: This should come from the reader's metadata
+      dataset_name:
+        # XXX: global attributes don't currently know things about tiles so we hardcode this to T00
+        value: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T00_e{end_time:%Y%m%d%H%M%S}.nc'
+      time_coverage_end:
+        value: "{end_time:%Y-%m-%dT%H:%M:%SZ}"
+      time_coverage_start:
+        value: "{start_time:%Y-%m-%dT%H:%M:%SZ}"
+      production_site: {}  # special handler in awips_tiled.py
+      platform_ID:
+        value: "{platform_shortname}"
+      cdm_data_type:
+        raw_value: "Image"
+      spatial_resolution:
+        value: "{spatial_resolution}"
+      orbital_slot:
+        value: "{orbital_slot}"
+      # This is used by AWIPS as sectorID
+      scene_id:
+        value: "{scene_id}"
+    coordinates:
+      x:
+        attributes:
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: "int16"
+      #          _Unsigned: "true"
+      y:
+        attributes:
+          units: {}
+          standard_name:
+            value: '{standard_name}'
+        encoding:
+          dtype: "int16"
+    #          _Unsigned: "true"
+    variables:
+      DQF:
+        # Not currently viewable by AWIPS
+        name: DQF
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_DQF"
+          units:
+            raw_value: "1"
+          long_name:
+            value: "{long_name}"
+          standard_name:
+            value: "{standard_name}"
+          flag_values:
+            raw_key: "flag_values"
+          flag_meanings:
+            raw_key: "flag_meanings"
+        encoding:
+          dtype: int8
+          _Unsigned: "true"
+
+      flash_extent_density:
+        name: "flash_extent_density"
+        var_name: "Flash_extent_density"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Flash_Extent_Density"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      flash_extent_density_window:
+        name: "flash_extent_density_window"
+        var_name: "Flash_extent_density_w5u1"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Flash_Extent_Density_Window"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      average_flash_area:
+        name: "average_flash_area"
+        var_name: "Average_flash_area"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Average_Flash_Area"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      average_flash_area_window:
+        name: "average_flash_area_window"
+        var_name: "Average_flash_area_w5u1"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Average_Flash_Area_Window"
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area:
+        name: "minimum_flash_area"
+        var_name: "Minimum_flash_area"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      minimum_flash_area_window:
+        name: "minimum_flash_area_window"
+        var_name: "Minimum_flash_area_w5u1"
+        attributes:
+          units:
+            raw_value: "km^2"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      total_optical_energy:
+        name: "total_energy"
+        var_name: "Total_Optical_energy"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Total_Optical_Energy"
+          units:
+            value: "{units}"
+          standard_name:
+            value: "{standard_name}"
+          long_name:
+            value: "{long_name}"
+        encoding:
+          dtype: int16
+          _Unsigned: "true"
+      total_optical_energy_window:
+        name: "total_energy_window"
+        var_name: "Total_optical_energy_w5u1"
+        attributes:
+          #          physical_element:
+          #            raw_value: "GLM_Total_Optical_Energy_Window"
           units:
             value: "{units}"
           standard_name:
