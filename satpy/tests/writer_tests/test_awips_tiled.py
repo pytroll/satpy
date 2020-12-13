@@ -492,7 +492,12 @@ class TestAWIPSTiledWriter:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
 
-    def test_multivar_numbered_tiles_glm(self):
+    @pytest.mark.parametrize(
+        "sector",
+        ['C',
+         'F']
+    )
+    def test_multivar_numbered_tiles_glm(self, sector):
         """Test creating a tiles with multiple variables."""
         import xarray as xr
         from satpy.writers.awips_tiled import AWIPSTiledWriter
@@ -523,7 +528,7 @@ class TestAWIPSTiledWriter:
                 start_time=now,
                 end_time=end_time,
                 scan_mode='M3',
-                scene_abbr='C',
+                scene_abbr=sector,
                 platform_shortname="G17"
             )
         )
@@ -535,12 +540,22 @@ class TestAWIPSTiledWriter:
         ds3.attrs.update({
             'name': 'average_flash_area',
         })
+        dqf = ds1.copy()
+        dqf = (dqf * 255).astype(np.uint8)
+        dqf.attrs = ds1.attrs.copy()
+        dqf.attrs.update({
+            'name': 'DQF',
+            '_FillValue': 1,
+        })
 
-        w.save_datasets([ds1, ds2, ds3], sector_id='TEST', source_name="TESTS",
-                        tile_count=(3, 3), template='glm_l2')
+        w.save_datasets([ds1, ds2, ds3, dqf], sector_id='TEST', source_name="TESTS",
+                        tile_count=(3, 3), template='glm_l2_rad{}'.format(sector.lower()))
         all_files = glob(os.path.join(self.base_dir, '*_GLM*.nc'))
         assert len(all_files) == 9
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
-            assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+            if sector == 'C':
+                assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+            else:  # 'F'
+                assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%SZ')
