@@ -51,7 +51,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'calib_mode':: 'gsics'})
+                            reader_kwargs={'calib_mode': 'gsics'})
         scene.load(['B13'])
 
     In addition, the GSICS website (and other sources) also supply radiance
@@ -74,8 +74,8 @@ class AMIL1bNetCDF(BaseFileHandler):
         filenames = glob.glob('*.nc')
         scene = satpy.Scene(filenames,
                             reader='ami_l1b',
-                            reader_kwargs={'user_calibration':: calib_dict,
-                                           'calib_mode':: 'file')
+                            reader_kwargs={'user_calibration': calib_dict,
+                                           'calib_mode': 'file')
         # IR133 will not have radiance correction applied.
         scene.load(['WV063', 'IR087', 'IR133'])
 
