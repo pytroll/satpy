@@ -168,7 +168,15 @@ def sampling_to_lfac_cfac(sampling):
 
 
 def get_geos_area_naming(input_dict):
-    """Get a dictionary containing formatted AreaDefinition naming (area_id, description, proj_id)."""
+    """Get a dictionary containing formatted AreaDefinition naming (`area_id`, `description`, `proj_id`).
+
+    Args:
+        input_dict: dict
+            Dictionary with keys `platform_name`, `instrument_name`, `service_name`, `resolution` .
+            The resolution is expected in meters.
+    Returns:
+        area_naming_dict with `area_id`, `description`, `proj_id` keys, values are strings.
+    """
     area_naming_dict = {}
 
     resolution_strings = get_resolution_and_unit_strings(input_dict['resolution'])
@@ -198,7 +206,15 @@ def get_geos_area_naming(input_dict):
 
 
 def get_resolution_and_unit_strings(resolution):
-    """Get the resolution value and unit as strings. Expects a resolution in m."""
+    """Get the resolution value and unit as strings.
+
+    Args:
+        resolution: scalar
+            Resolution in meters.
+
+    Returns:
+        Dictionary with `value` and `unit` keys, values are strings.
+    """
     if resolution >= 1000:
         return {'value': '{:.0f}'.format(resolution*1e-3),
                 'unit': 'km'}
