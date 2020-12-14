@@ -433,8 +433,8 @@ met07globe:
   area_extent:
     lower_left_xy: [-5621225.237846375, -5621225.237846375]
     upper_right_xy: [5621225.237846375, 5621225.237846375]
-fci_0deg_1km:
-  description: Full disk FCI view, 1 km (based on pre-launch test data)
+mtg_fci_fdss_1km:
+  description: FCI Full-Disk Scanning Service area definition with 1 km resolution
   projection:
     proj: geos
     lon_0: 0
@@ -447,11 +447,11 @@ fci_0deg_1km:
     height: 11136
     width: 11136
   area_extent:
-    lower_left_xy: [-5567999.998527619, -5567999.998577303]
-    upper_right_xy: [5567999.998577303,  5567999.998527619]
+    lower_left_xy: [-5567999.998577303, -5567999.998577303]
+    upper_right_xy: [5567999.998527619,  5567999.998527619]
     units: m
-fci_0deg_2km:
-  description: Full disk FCI view, 2 km (based on pre-launch test data)
+mtg_fci_fdss_2km:
+  description: FCI Full-Disk Scanning Service area definition with 2 km resolution
   projection:
     proj: geos
     lon_0: 0
@@ -464,8 +464,8 @@ fci_0deg_2km:
     height: 5568
     width: 5568
   area_extent:
-    lower_left_xy: [-5567999.994206558, -5567999.994200589]
-    upper_right_xy: [5567999.994200589,  5567999.994206558]
+    lower_left_xy: [-5567999.994200589, -5567999.994200589]
+    upper_right_xy: [5567999.994206558,  5567999.994206558]
     units: m
 spain:
   description: Spain
