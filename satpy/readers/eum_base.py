@@ -94,4 +94,6 @@ def get_service_mode(instrument_name, ssp_lon):
                                 '9.5':  {'service_name': 'rss', 'service_desc': 'Rapid Scanning Service'},
                                 },
                      }
-    return service_modes[instrument_name]['{:.1f}'.format(ssp_lon)]
+    unknown_modes = {'service_name': 'unknown', 'service_desc': 'unknown'}
+
+    return service_modes.get(instrument_name, unknown_modes).get('{:.1f}'.format(ssp_lon), unknown_modes)
