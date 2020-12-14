@@ -64,7 +64,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
             bt_b[:] = np.arange(9)
             cw = g1_1.createVariable('channel_cw_thermal', np.float32, dimensions=('num_chan_thermal',))
             cw[:] = np.arange(9)
-            isi = g1_1.createVariable('integrated_solar_irradiance', np.float32, dimensions=('num_chan_solar',))
+            isi = g1_1.createVariable('Band_averaged_solar_irradiance', np.float32, dimensions=('num_chan_solar',))
             isi[:] = np.arange(11)
 
             # Create measurement_data group
@@ -152,11 +152,13 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         calibrated_variable = self.reader._perform_calibration(variable,
                                                                {'calibration': 'brightness_temperature',
                                                                 'chan_thermal_index': 3})
-        expected_values = np.ones((72, 600)) * 1101.103383
+        expected_values = np.ones((72, 600)) * 302007.42728603
         self.assertTrue(np.allclose(calibrated_variable.values, expected_values))
 
         # reflectance calibration: checks that the return value is correct
         calibrated_variable = self.reader._perform_calibration(variable,
-                                                               {'calibration': 'reflectance', 'chan_solar_index': 2})
-        expected_values = np.ones((72, 600)) * 1.733181982
+                                                               {'calibration': 'reflectance',
+                                                                'wavelength': [0.658, 0.668, 0.678],
+                                                                'chan_solar_index': 2})
+        expected_values = np.ones((72, 600)) * 1.733181982 * (0.678 - 0.658)
         self.assertTrue(np.allclose(calibrated_variable.values, expected_values))
