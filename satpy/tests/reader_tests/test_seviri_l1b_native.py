@@ -50,12 +50,12 @@ TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_fes_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -67,14 +67,14 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_rss_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
-                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'lon_0': '9.5', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 3712,
         'Number of rows': 1392,
@@ -84,14 +84,14 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_rss_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
-                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'lon_0': '9.5', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 3712,
         'Number of rows': 3712,
@@ -101,12 +101,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_fes_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -119,12 +119,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI_FILL = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_fes_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -137,12 +137,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -155,12 +155,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -172,14 +172,14 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_rss_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
-                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'lon_0': '9.5', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 5568,
         'Number of rows': 8192,
@@ -189,14 +189,14 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_rss_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
-                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'lon_0': '9.5', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 11136,
         'Number of rows': 11136,
@@ -206,12 +206,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -223,12 +223,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL = {
     'earth_model': 1,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -240,12 +240,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_fes_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -257,12 +257,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -275,12 +275,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK_FILL = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': True,
     'is_rapid_scan': 0,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -292,14 +292,14 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_rss_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
-                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'lon_0': '9.5', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 3712,
         'Number of rows': 1392,
@@ -310,14 +310,14 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN_FILL = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_rss_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
-                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'lon_0': '9.5', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 3712,
         'Number of rows': 3712,
@@ -328,12 +328,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_rss_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -345,12 +345,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN_FILL = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_rss_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -362,12 +362,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_fes_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -379,12 +379,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006', resolution=3000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_visir',
+        'Area ID': 'msg_seviri_fes_3km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -396,12 +396,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': False,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -413,12 +413,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL = {
     'earth_model': 2,
-    'dataset_id': make_dataid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV', resolution=1000),
     'is_full_disk': False,
     'is_rapid_scan': 0,
     'fill_disk': True,
     'expected_area_def': {
-        'Area ID': 'geos_seviri_hrv',
+        'Area ID': 'msg_seviri_fes_1km',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -556,6 +556,7 @@ class TestNativeMSGArea(unittest.TestCase):
             n_visir_lines = 3712
             n_hrv_cols = 11136
             n_hrv_lines = 11136
+            ssp_lon = 0
         elif is_rapid_scan:
             north = 3712
             east = 1
@@ -565,6 +566,7 @@ class TestNativeMSGArea(unittest.TestCase):
             n_visir_lines = 1392
             n_hrv_cols = 11136
             n_hrv_lines = 4176
+            ssp_lon = 9.5
         else:
             north = 3574
             east = 78
@@ -574,6 +576,7 @@ class TestNativeMSGArea(unittest.TestCase):
             n_visir_lines = north - south + 1
             n_hrv_cols = n_visir_cols * 3
             n_hrv_lines = n_visir_lines * 3
+            ssp_lon = 0
 
         header = {
             '15_DATA_HEADER': {
@@ -584,7 +587,7 @@ class TestNativeMSGArea(unittest.TestCase):
                         'GridOrigin': 2,  # south-east corner
                     },
                     'ProjectionDescription': {
-                        'LongitudeOfSSP': 0.0
+                        'LongitudeOfSSP': ssp_lon
                     }
                 },
                 'GeometricProcessing': {
