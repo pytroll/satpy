@@ -86,13 +86,12 @@ def recarray2dict(arr):
 
 def get_service_mode(instrument_name, ssp_lon):
     """Get information about service mode for a given instrument and subsatellite longitude."""
-    service_modes = {'seviri': {'0.0':  {'name': 'fes', 'desc': 'Full Earth Scanning service'},
-                                '9.5':  {'name': 'rss', 'desc': 'Rapid Scanning Service'},
-                                '41.5': {'name': 'iodc', 'desc': 'Indian Ocean Data Coverage service'}
+    service_modes = {'seviri': {'0.0':  {'service_name': 'fes', 'service_desc': 'Full Earth Scanning service'},
+                                '9.5':  {'service_name': 'rss', 'service_desc': 'Rapid Scanning Service'},
+                                '41.5': {'service_name': 'iodc', 'service_desc': 'Indian Ocean Data Coverage service'}
                                 },
-                     'fci':    {'0.0':  {'name': 'fdss', 'desc': 'Full Disk Scanning Service'},
-                                '9.5':  {'name': 'rss', 'desc': 'Rapid Scanning Service'},
+                     'fci':    {'0.0':  {'service_name': 'fdss', 'service_desc': 'Full Disk Scanning Service'},
+                                '9.5':  {'service_name': 'rss', 'service_desc': 'Rapid Scanning Service'},
                                 },
                      }
-
     return service_modes[instrument_name]['{:.1f}'.format(ssp_lon)]
