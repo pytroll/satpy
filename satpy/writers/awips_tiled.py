@@ -916,10 +916,9 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         org = os.environ.get('ORGANIZATION', None)
         if org is not None:
             return org
-        else:
-            LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
-            import socket
-            return socket.gethostname()  # FUTURE: something more correct but this will do for now
+        LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
+        import socket
+        return socket.gethostname()  # FUTURE: something more correct but this will do for now
 
     _global_production_site = _global_production_location
 
@@ -1092,8 +1091,7 @@ def _notnull(data_arr, check_categories=True):
         # some DQF datasets are always valid
         if check_categories:
             return data_arr != fill_value
-        else:
-            return False
+        return False
     return data_arr.notnull()
 
 
@@ -1610,9 +1608,7 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
             t_size = font.getsize(t)
             cell_x = (idx * num_subtiles[1] + st_x) % total_cells_x
             cell_y = int(idx / (total_cells_x / num_subtiles[1])) * num_subtiles[0] + st_y
-            if cell_x > total_cells_x:
-                continue
-            elif cell_y > total_cells_y:
+            if (cell_x > total_cells_x) or (cell_y > total_cells_y):
                 continue
             x = ppt_x * cell_x + half_ppt_x
             y = ppt_y * cell_y + half_ppt_y
