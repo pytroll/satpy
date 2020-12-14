@@ -142,3 +142,21 @@ class TestGetServiceMode(unittest.TestCase):
         res = get_service_mode('fci', ssp_lon)
         self.assertEqual(res['service_name'], name)
         self.assertEqual(res['service_desc'], desc)
+
+    def test_get_unknown_lon_service_mode(self):
+        """Test fetching of service mode information for unknown input longitude."""
+        ssp_lon = 13
+        name = 'unknown'
+        desc = 'unknown'
+        res = get_service_mode('fci', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_unknown_instrument_service_mode(self):
+        """Test fetching of service mode information for unknown input instrument."""
+        ssp_lon = 0
+        name = 'unknown'
+        desc = 'unknown'
+        res = get_service_mode('test', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
