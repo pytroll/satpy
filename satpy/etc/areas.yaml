@@ -103,7 +103,7 @@ msg_seviri_iodc_1km:
 # Regional
 
 EuropeCanary:
-  description: Northern globe MSG image 0 degrees
+  description: Northern disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
@@ -118,7 +118,7 @@ EuropeCanary:
     upper_right_xy: [4178061.408400173, 5570248.477339261]
 
 EastEurope:
-  description: Easten part of Northern globe MSG image 0 degrees
+  description: Easten part of Northern disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
@@ -133,7 +133,7 @@ EastEurope:
     upper_right_xy: [4553111.804127298, 5390224.287390241]
 
 AfHorn:
-  description: Eastern globe MSG image 0 degrees
+  description: Eastern disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
@@ -1429,7 +1429,7 @@ robinson:
 # This section contains areas that are obsolete.
 
 met07globe:
-  description: Full globe IODC image 57 degrees  # obsolete platform number
+  description: Full disk IODC image 57 degrees  # obsolete platform number
   projection:
     proj: geos
     lon_0: 57.0
@@ -1443,7 +1443,7 @@ met07globe:
     lower_left_xy: [-5621225.237846375, -5621225.237846375]
     upper_right_xy: [5621225.237846375, 5621225.237846375]
 met09globe:
-  description: Cropped globe MSG image 0 degrees  # obsolete platform number
+  description: Cropped disk MSG image 0 degrees  # obsolete platform number
   projection:
     proj: geos
     lon_0: 0.0
@@ -1457,7 +1457,7 @@ met09globe:
     lower_left_xy: [-5432229.931711678, -5429229.528545862]
     upper_right_xy: [5429229.528545862, 5432229.931711678]
 met09globeFull:
-  description: Full globe MSG image 0 degrees  # superseded by msg_seviri_fes_3km
+  description: Full disk MSG image 0 degrees  # superseded by msg_seviri_fes_3km
   projection:
     proj: geos
     lon_0: 0.0
@@ -1471,7 +1471,7 @@ met09globeFull:
     lower_left_xy: [-5570248.477339261, -5567248.074173444]
     upper_right_xy: [5567248.074173444, 5570248.477339261]
 seviri_0deg:
-  description: Full globe MSG image 0 degrees  # superseded by msg_seviri_fes_3km
+  description: Full disk MSG image 0 degrees  # superseded by msg_seviri_fes_3km
   projection:
     proj: geos
     lon_0: 0.0
@@ -1485,7 +1485,7 @@ seviri_0deg:
     lower_left_xy: [-5570248.686685662, -5567248.28340708]
     upper_right_xy: [5567248.28340708, 5570248.686685662]
 seviri_iodc:
-  description: Full globe MSG image 41.5 degrees  # superseded by msg_seviri_iodc_3km
+  description: Full disk MSG image 41.5 degrees  # superseded by msg_seviri_iodc_3km
   projection:
     proj: geos
     lon_0: 41.5
@@ -1499,7 +1499,7 @@ seviri_iodc:
     lower_left_xy: [-5570248.686685662, -5567248.28340708]
     upper_right_xy: [5567248.28340708, 5570248.686685662]
 msg_resample_area:
-  description: Full globe MSG image 20.75 degrees
+  description: Full disk MSG image 20.75 degrees
   projection:
     proj: geos
     lon_0: 20.75
