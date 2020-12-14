@@ -374,7 +374,7 @@ class TestAWIPSTiledWriter:
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        assert len(all_files) == 0
+        assert not all_files
 
     def test_lettered_tiles_no_valid_data(self):
         """Test creating a lettered grid with no valid data."""
@@ -408,7 +408,7 @@ class TestAWIPSTiledWriter:
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created - all NaNs should result in no tiles being created
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        assert len(all_files) == 0
+        assert not all_files
 
     def test_lettered_tiles_bad_filename(self):
         """Test creating a lettered grid with a bad filename."""
