@@ -148,7 +148,7 @@ AfHorn:
     upper_right_xy: [5564247.671007627, 3472966.6644331776]
 
 SouthAmerica:
-  description: South America
+  description: Lower West part of Southern disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
