@@ -876,7 +876,8 @@ class DecisionTree(object):
 
     Examples:
         Decision sections are provided as a dictionary of dictionaries.
-        Matches are returned
+        The returned match will be the first result found by searching
+        provided `match_keys` in order.
 
         decisions = {
             'first_section': {
