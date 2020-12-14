@@ -247,6 +247,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                             (-30793529275853.656, -3720765401003.719, 14788916824891.568, -2926674655354.9604))
 
         self.assertEqual(area.defs[0].area_id, 'msg_seviri_fes_1km')
+        self.assertEqual(area.defs[1].area_id, 'msg_seviri_fes_1km')
 
 
 class TestHRITMSGFileHandler(unittest.TestCase):
