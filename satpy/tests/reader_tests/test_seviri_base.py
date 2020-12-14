@@ -24,7 +24,6 @@ import dask.array as da
 
 from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, \
     get_padding_area, pad_data_horizontally, pad_data_vertically
-from satpy.readers.eum_base import get_service_mode
 from satpy import CHUNK_SIZE
 
 
@@ -135,33 +134,3 @@ class SeviriBaseTest(unittest.TestCase):
         res = get_padding_area(shape, dtype)
         expected = da.full(shape, 0, dtype=dtype, chunks=CHUNK_SIZE)
         np.testing.assert_array_equal(res, expected)
-
-    @staticmethod
-    def test_get_service_mode_fes():
-        """Test fetching of SEVIRI service mode information for FES."""
-        ssp_lon = 0.0
-        name = 'FES'
-        desc = 'Full Earth scanning service'
-        res = get_service_mode(ssp_lon)
-        np.testing.assert_equal(res['name'], name)
-        np.testing.assert_equal(res['desc'], desc)
-
-    @staticmethod
-    def test_get_service_mode_rss():
-        """Test fetching of SEVIRI service mode information for RSS."""
-        ssp_lon = 9.5
-        name = 'RSS'
-        desc = 'Rapid scanning service'
-        res = get_service_mode(ssp_lon)
-        np.testing.assert_equal(res['name'], name)
-        np.testing.assert_equal(res['desc'], desc)
-
-    @staticmethod
-    def test_get_service_mode_iodc():
-        """Test fetching of SEVIRI service mode information for IODC."""
-        ssp_lon = 41.5
-        name = 'IODC'
-        desc = 'Indian Ocean data coverage service'
-        res = get_service_mode(ssp_lon)
-        np.testing.assert_equal(res['name'], name)
-        np.testing.assert_equal(res['desc'], desc)
