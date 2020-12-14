@@ -91,7 +91,7 @@ def get_service_mode(instrument_name, ssp_lon):
                                 '41.5': {'name': 'iodc', 'desc': 'Indian Ocean Data Coverage service'}
                                 },
                      'fci':    {'0.0':  {'name': 'fdss', 'desc': 'Full Disk Scanning Service'},
-                                '9.5':  {'name': 'rss', 'desc': 'Rapid scanning service'},
+                                '9.5':  {'name': 'rss', 'desc': 'Rapid Scanning Service'},
                                 },
                      }
 
