@@ -183,7 +183,7 @@ def get_geos_area_naming(input_dict):
     area_naming_dict['description'] = '{} {} {} area definition ' \
                                       'with {} {} resolution'.format(input_dict['platform_name'].upper(),
                                                                      input_dict['instrument_name'].upper(),
-                                                                     input_dict['service_description'],
+                                                                     input_dict['service_desc'],
                                                                      resolution_strings['value'],
                                                                      resolution_strings['unit']
                                                                      )
