@@ -168,7 +168,7 @@ def sampling_to_lfac_cfac(sampling):
 
 
 def get_geos_area_naming(input_dict):
-    """Get a dictionary containing formatted AreaDefinition naming (`area_id`, `description`, `proj_id`).
+    """Get a dictionary containing formatted AreaDefinition naming.
 
     Args:
         input_dict: dict
@@ -196,7 +196,7 @@ def get_geos_area_naming(input_dict):
                                                                      resolution_strings['unit']
                                                                      )
 
-    # same as area_id but without resolution. Parameter on the way to be deprecated
+    # same as area_id but without resolution. This key on the way to be deprecated
     area_naming_dict['proj_id'] = '{}_{}_{}'.format(input_dict['platform_name'].lower(),
                                                     input_dict['instrument_name'].lower(),
                                                     input_dict['service_name'].lower()
@@ -207,6 +207,8 @@ def get_geos_area_naming(input_dict):
 
 def get_resolution_and_unit_strings(resolution):
     """Get the resolution value and unit as strings.
+
+    If the resolution is larger than 1000 m, use kilometer as unit. If lower, use meter.
 
     Args:
         resolution: scalar

@@ -181,7 +181,6 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                                   'instrument_name': 'seviri',
                                   'resolution': int(dataset_id['resolution'])
                                   }
-
         area_naming = get_geos_area_naming({**area_naming_input_dict,
                                             **get_service_mode('seviri', pdict['ssp_lon'])})
 
