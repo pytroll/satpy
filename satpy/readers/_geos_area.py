@@ -202,6 +202,6 @@ def get_resolution_and_unit_strings(resolution):
     if resolution >= 1000:
         return {'value': '{:.0f}'.format(resolution*1e-3),
                 'unit': 'km'}
-    else:
-        return {'value': '{:.0f}'.format(resolution),
-                'unit': 'm'}
+
+    return {'value': '{:.0f}'.format(resolution),
+            'unit': 'm'}
