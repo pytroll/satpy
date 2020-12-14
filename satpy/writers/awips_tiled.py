@@ -218,17 +218,18 @@ import logging
 import string
 import sys
 from datetime import datetime, timedelta
-import xarray as xr
+from collections import namedtuple
+
+from satpy.writers import Writer, DecisionTree, Enhancer, get_enhanced_image
+from satpy import __version__
+from pyresample.geometry import AreaDefinition
+from trollsift.parser import StringFormatter, Parser
 
 import numpy as np
 from pyproj import Proj
 import dask
 import dask.array as da
-from satpy.writers import Writer, DecisionTree, Enhancer, get_enhanced_image
-from satpy import __version__
-from pyresample.geometry import AreaDefinition
-from trollsift.parser import StringFormatter, Parser
-from collections import namedtuple
+import xarray as xr
 
 LOG = logging.getLogger(__name__)
 DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform_name}_{sensor}_' \
@@ -466,11 +467,11 @@ class LetteredTileGenerator(NumberedTileGenerator):
         if abs(shift_y) < 1e-10 or abs(shift_y - ch) < 1e-10:
             shift_y = 0
         if self.use_sector_reference:
-            LOG.debug("Adjusting X/Y by ({}, {}) so it better matches lettered grid".format(shift_x, shift_y))
+            LOG.debug("Adjusting X/Y by (%f, %f) so it better matches lettered grid", shift_x, shift_y)
             x = x + shift_x
             y = y + shift_y
         else:
-            LOG.debug("Adjusting lettered grid by ({}, {}) so it better matches data X/Y".format(shift_x, shift_y))
+            LOG.debug("Adjusting lettered grid by (%f, %f) so it better matches data X/Y", shift_x, shift_y)
             ul_xy = (ul_xy[0] - shift_x, ul_xy[1] - shift_y)  # outer edge of grid
             # always keep the same distance between the extents
             ll_xy = (ul_xy[0], ll_xy[1] - shift_y)
@@ -562,7 +563,7 @@ class LetteredTileGenerator(NumberedTileGenerator):
                 y_mask = np.nonzero((y > y_bot) & (y <= y_top))[0]
                 if not x_mask.any() or not y_mask.any():
                     # no data in this tile
-                    LOG.debug("Tile '{}' doesn't have any data in it".format(tile_id))
+                    LOG.debug("Tile '%s' doesn't have any data in it", tile_id)
                     continue
                 x_slice = slice(x_mask[0], x_mask[-1] + 1)  # assume it's continuous
                 y_slice = slice(y_mask[0], y_mask[-1] + 1)
@@ -716,7 +717,7 @@ class NetCDFTemplate:
         output_filename = filename_parser.compose(kwargs)
         dirname = os.path.dirname(output_filename)
         if dirname and not os.path.isdir(dirname):
-            LOG.info("Creating output directory: {}".format(dirname))
+            LOG.info("Creating output directory: %s", dirname)
             os.makedirs(dirname)
         return output_filename
 
@@ -770,8 +771,8 @@ class NetCDFTemplate:
                 value = os.path.expandvars(value)
                 value = self._str_formatter.format(value, **input_metadata)
             except (KeyError, ValueError):
-                LOG.debug("Can't format string '{}' with provided "
-                          "input metadata.".format(value))
+                LOG.debug("Can't format string '%s' with provided "
+                          "input metadata.", value)
                 value = None
                 # raise ValueError("Can't format string '{}' with provided "
                 #                  "input metadata.".format(value))
@@ -783,7 +784,7 @@ class NetCDFTemplate:
         if func is not None:
             value = func(input_metadata)
         if value is None:
-            LOG.debug('no routine matching %s' % (meth_name,))
+            LOG.debug('no routine matching %s', meth_name)
         return value
 
     def _render_attrs(self, attr_configs, input_metadata, prefix="_"):
@@ -969,8 +970,8 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             'mercator': 'mercator_projection',
         }
         if gmap_name not in preferred_names:
-            LOG.warning("Data is in projection {} which may not be supported "
-                        "by AWIPS".format(gmap_name))
+            LOG.warning("Data is in projection %s which may not be supported "
+                        "by AWIPS", gmap_name)
         area_id_as_var_name = area_def.area_id.replace('-', '_').lower()
         proj_name = preferred_names.get(gmap_name, area_id_as_var_name)
         return proj_name, proj_attrs, proj_encoding
@@ -1177,8 +1178,8 @@ def to_nonempty_netcdf(dataset_to_save, factors, output_filename, update_existin
     """
     dataset_to_save = _reapply_factors(dataset_to_save, factors)
     if _is_empty_tile(dataset_to_save, check_categories):
-        LOG.debug("Skipping tile creation for {} because it would be "
-                  "empty.".format(output_filename))
+        LOG.debug("Skipping tile creation for %s because it would be "
+                  "empty.", output_filename)
         return
 
     # TODO: Allow for new variables to be created
@@ -1322,7 +1323,7 @@ class AWIPSTiledWriter(Writer):
                 continue
             elif ds.ndim > 3 or ds.ndim < 1 or (ds.ndim == 3 and 'bands' not in ds.coords):
                 LOG.error("Can't save datasets with more or less than 2 dimensions "
-                          "that aren't RGBs to AWIPS Tiled format: {}".format(ds.name))
+                          "that aren't RGBs to AWIPS Tiled format: %s", ds.name)
             else:
                 # this is an RGB
                 img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
@@ -1652,16 +1653,17 @@ def draw_rectangle(draw, coordinates, outline=None, fill=None, width=1):
         draw.rectangle((rect_start, rect_end), outline=outline, fill=fill)
 
 
-def create_debug_lettered_tiles(init_args, create_args):
+def create_debug_lettered_tiles(**writer_kwargs):
     """Create tile files with tile identifiers "burned" in to the image data for debugging."""
-    create_args['lettered_grid'] = True
-    create_args['num_subtiles'] = (2, 2)  # default, don't use command line argument
+    writer_kwargs['lettered_grid'] = True
+    writer_kwargs['num_subtiles'] = (2, 2)  # default, don't use command line argument
 
-    writer = AWIPSTiledWriter(**init_args)
+    init_kwargs, save_kwargs = AWIPSTiledWriter.separate_init_kwargs(**writer_kwargs)
+    writer = AWIPSTiledWriter(**init_kwargs)
 
-    sector_id = create_args['sector_id']
+    sector_id = save_kwargs['sector_id']
     sector_info = writer.awips_sectors[sector_id]
-    area_def, arr = _create_debug_array(sector_info, create_args['num_subtiles'])
+    area_def, arr = _create_debug_array(sector_info, save_kwargs['num_subtiles'])
 
     now = datetime.utcnow()
     product = xr.DataArray(da.from_array(arr, chunks='auto'), attrs=dict(
@@ -1678,21 +1680,31 @@ def create_debug_lettered_tiles(init_args, create_args):
     ))
     created_files = writer.save_dataset(
         product,
-        **create_args
+        **save_kwargs
     )
     return created_files
 
 
-def add_backend_argument_groups(parser):
-    """Add command line arguments for this writer used for debugging."""
-    group_1 = parser.add_argument_group(title="Backend Initialization")
+def main():
+    """Command line interface mimicing CSPP Polar2Grid."""
+    import argparse
+    parser = argparse.ArgumentParser(description="Create AWIPS compatible NetCDF tile files")
+    parser.add_argument("--create-debug", action='store_true',
+                        help='Create debug NetCDF files to show tile locations in AWIPS')
+    parser.add_argument('-v', '--verbose', dest='verbosity', action="count", default=0,
+                        help='each occurrence increases verbosity 1 level through '
+                             'ERROR-WARNING-INFO-DEBUG (default INFO)')
+    parser.add_argument('-l', '--log', dest="log_fn", default=None,
+                        help="specify the log filename")
+
+    group_1 = parser.add_argument_group(title="Writer Initialization")
     group_1.add_argument("--backend-configs", nargs="*", dest="backend_configs",
                          help="alternative backend configuration files")
     group_1.add_argument("--compress", action="store_true",
                          help="zlib compress each netcdf file")
     group_1.add_argument("--fix-awips", action="store_true",
                          help="modify NetCDF output to work with the old/broken AWIPS NetCDF library")
-    group_2 = parser.add_argument_group(title="Backend Output Creation")
+    group_2 = parser.add_argument_group(title="Wrtier Save")
     group_2.add_argument("--tiles", dest="tile_count", nargs=2, type=int, default=[1, 1],
                          help="Number of tiles to produce in Y (rows) and X (cols) direction respectively")
     group_2.add_argument("--tile-size", dest="tile_size", nargs=2, type=int, default=None,
@@ -1709,32 +1721,17 @@ def add_backend_argument_groups(parser):
                          help="specify processing source name used in attributes and filename (default 'SSEC')")
     group_2.add_argument("--sector-id", required=True,
                          help="specify name for sector/region used in attributes and filename (example 'LCC')")
-    return group_1, group_2
-
-
-def main():
-    """Command line interface mimicing CSPP Polar2Grid."""
-    import argparse
-    parser = argparse.ArgumentParser(description="Create AWIPS compatible NetCDF tile files")
-    subgroups = add_backend_argument_groups(parser)
-    parser.add_argument("--create-debug", action='store_true',
-                        help='Create debug NetCDF files to show tile locations in AWIPS')
-    parser.add_argument('-v', '--verbose', dest='verbosity', action="count", default=0,
-                        help='each occurrence increases verbosity 1 level through '
-                             'ERROR-WARNING-INFO-DEBUG (default INFO)')
-    parser.add_argument('-l', '--log', dest="log_fn", default=None,
-                        help="specify the log filename")
+    group_2.add_argument("--template", default='polar',
+                         help="specify the template name to use (default: polar)")
     args = parser.parse_args()
-
-    init_args = {ga.dest: getattr(args, ga.dest) for ga in subgroups[0]._group_actions}
-    create_args = {ga.dest: getattr(args, ga.dest) for ga in subgroups[1]._group_actions}
 
     # Logs are renamed once data the provided start date is known
     levels = [logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG]
     logging.basicConfig(level=levels[min(3, args.verbosity)], filename=args.log_fn)
 
     if args.create_debug:
-        create_debug_lettered_tiles(init_args, create_args)
+        writer_kwargs = vars(args)
+        create_debug_lettered_tiles(**writer_kwargs)
         return
     else:
         raise NotImplementedError("Command line interface not implemented yet for AWIPS tiled writer")
