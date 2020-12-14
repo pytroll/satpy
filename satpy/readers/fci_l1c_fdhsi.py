@@ -343,7 +343,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                                   'instrument_name': 'fci',
                                   'resolution': int(key['resolution'])
                                   }
-
         area_naming = get_geos_area_naming({**area_naming_input_dict,
                                             **get_service_mode('fci', lon_0)})
 
