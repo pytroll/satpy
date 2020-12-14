@@ -23,6 +23,7 @@ import datetime
 import netCDF4
 import os
 import logging
+import xarray as xr
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -32,6 +33,8 @@ try:
     from pkg_resources import resource_string as get_resource_string
 except ImportError:
     from pkgutil import get_data as get_resource_string
+
+#
 
 # 'Polo' variable in MiRS files use these values for H/V polarization
 POLO_V = 2
@@ -75,6 +78,9 @@ SENSOR = {"n18": amsu,
           "gpm": "GPI",
           }
 
+LIMB_SEA_FILE = os.environ.get("ATMS_LIMB_SEA", "satpy.readers:limball_atmssea.txt")  # ask
+LIMB_LAND_FILE = os.environ.get("ATMS_LIMB_LAND", "satpy.readers:limball_atmsland.txt")
+
 
 class MIRSHandler(NetCDF4FileHandler):
     """MIRS handler for NetCDF4 files."""
@@ -96,7 +102,7 @@ class MIRSHandler(NetCDF4FileHandler):
     def platform_name(self):
         """Get platform name."""
         try:
-            res = PLATFORMS[self.filename_info['platform_shortname']]
+            res = PLATFORMS[self.filename_info['platform_shortname'].lower()]
         except KeyError:
             return "mirs"
         return res.lower()
@@ -250,7 +256,15 @@ class MIRSHandler(NetCDF4FileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
-        data = self[ds_info.get('file_key', ds_info['name'])]
+        if 'dependencies' in ds_info.keys():
+            var_name = ds_info['dependencies'][0]  # should be brightness temperature...need to figure out a way to chk
+            idx = ds_info['channel_index']
+            data = self[ds_info.get('file_key', var_name)]
+            data = xr.DataArray(data)
+            data = data[:, :, idx]
+        else:
+            data = self[ds_info.get('file_key', ds_info['name'])]
+
         data.attrs = self.get_metadata(data, ds_info)
         data = self._rename_dims(data)
 
@@ -304,7 +318,7 @@ class MIRSHandler(NetCDF4FileHandler):
                         new_name = "btemp_{}{}{}".format(normal_f, normal_p, str(
                             c2[normal_f + normal_p] if c[normal_f + normal_p] > 1 else ''))
                         new_names.append(new_name)
-                        var_name = 'bt_var_{}'.format(new_name)
+                        # var_name = 'bt_var_{}'.format(new_name)
 
                         # FIXME below is old p2g code
                         # FILE_STRUCTURE[var_name] = ("BT", ("scale", "scale_factor"), None, idx)
@@ -315,10 +329,18 @@ class MIRSHandler(NetCDF4FileHandler):
                         #                           dependencies=(PRODUCT_BT_CHANS, PRODUCT_SURF_TYPE),
                         #                                         channel_index=idx)
                         # self.all_bt_channels.append(new_name)
-
+                        desc_bt = ("Channel Brightness Temperature"
+                                   " at {}GHz".format(normal_f))
                         ds_info = {
                             'file_type': self.filetype_info['file_type'],
                             'name': new_name,
+                            'description': desc_bt,
+                            'units': 'K',
+                            'channel_index': idx,
+                            'frequency': "{}GHz".format(normal_f),
+                            'polarization': normal_p,
+                            'dependencies': ('BT', 'Sfc_type'),   # ask about this
+                            'coordinates': self._check_coordinates(var_name),
                         }
                         yield True, ds_info
 
