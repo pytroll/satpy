@@ -56,8 +56,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -75,8 +73,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -94,8 +90,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -113,8 +107,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -133,8 +125,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -153,8 +143,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -173,8 +161,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -192,8 +178,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -211,8 +195,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -230,8 +212,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -249,8 +229,6 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -268,8 +246,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -287,8 +263,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -307,8 +281,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -326,8 +298,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -346,8 +316,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -366,8 +334,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -385,8 +351,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -404,8 +368,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -423,8 +385,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'SEVIRI low resolution channel area',
-        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -442,8 +402,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'fill_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -461,8 +419,6 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL = {
     'fill_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'SEVIRI high resolution channel area',
-        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -727,7 +683,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_hrv_fulldisk(self):
         """Test the HRV FES with the EarthModel 1."""
@@ -741,8 +697,8 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.defs[0].proj_id, expected['Projection ID'])
-        self.assertEqual(calculated.defs[1].proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.defs[0].area_id, expected['Area ID'])
+        self.assertEqual(calculated.defs[1].area_id, expected['Area ID'])
 
     def test_earthmodel1_hrv_fulldisk_fill(self):
         """Test the HRV FES padded to fulldisk with the EarthModel 1."""
@@ -753,7 +709,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_visir_rapidscan(self):
         """Test the VISIR RSS with the EarthModel 1."""
@@ -766,7 +722,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_visir_rapidscan_fill(self):
         """Test the VISIR RSS padded to fulldisk with the EarthModel 1."""
@@ -779,7 +735,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_hrv_rapidscan(self):
         """Test the HRV RSS with the EarthModel 1."""
@@ -792,7 +748,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_hrv_rapidscan_fill(self):
         """Test the HRV RSS padded to fulldisk with the EarthModel 1."""
@@ -805,7 +761,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_visir_roi(self):
         """Test the VISIR ROI with the EarthModel 1."""
@@ -816,7 +772,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_visir_roi_fill(self):
         """Test the VISIR ROI padded to fulldisk with the EarthModel 1."""
@@ -827,7 +783,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_hrv_roi(self):
         """Test the HRV ROI with the EarthModel 1."""
@@ -838,7 +794,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel1_hrv_roi_fill(self):
         """Test the HRV ROI padded to fulldisk with the EarthModel 1."""
@@ -849,7 +805,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     # Earth model 2 tests
     def test_earthmodel2_visir_fulldisk(self):
@@ -861,7 +817,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_hrv_fulldisk(self):
         """Test the HRV FES with the EarthModel 2."""
@@ -873,8 +829,8 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.defs[0].proj_id, expected['Projection ID'])
-        self.assertEqual(calculated.defs[1].proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.defs[0].area_id, expected['Area ID'])
+        self.assertEqual(calculated.defs[1].area_id, expected['Area ID'])
 
     def test_earthmodel2_hrv_fulldisk_fill(self):
         """Test the HRV FES padded to fulldisk with the EarthModel 2."""
@@ -885,7 +841,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_visir_rapidscan(self):
         """Test the VISIR RSS with the EarthModel 2."""
@@ -897,7 +853,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_visir_rapidscan_fill(self):
         """Test the VISIR RSS padded to fulldisk with the EarthModel 2."""
@@ -909,7 +865,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_hrv_rapidscan(self):
         """Test the HRV RSS with the EarthModel 2."""
@@ -921,7 +877,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_hrv_rapidscan_fill(self):
         """Test the HRV RSS padded to fulldisk with the EarthModel 2."""
@@ -933,7 +889,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_visir_roi(self):
         """Test the VISIR ROI with the EarthModel 2."""
@@ -944,7 +900,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_visir_roi_fill(self):
         """Test the VISIR ROI padded to fulldisk with the EarthModel 2."""
@@ -955,7 +911,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_hrv_roi(self):
         """Test the HRV ROI with the EarthModel 2."""
@@ -966,7 +922,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     def test_earthmodel2_hrv_roi_fill(self):
         """Test the HRV ROI padded to fulldisk with the EarthModel 2."""
@@ -977,7 +933,7 @@ class TestNativeMSGArea(unittest.TestCase):
                                np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
-        self.assertEqual(calculated.proj_id, expected['Projection ID'])
+        self.assertEqual(calculated.area_id, expected['Area ID'])
 
     # Test check for Region Of Interest (ROI) data
     def prepare_is_roi(self, test_dict):
