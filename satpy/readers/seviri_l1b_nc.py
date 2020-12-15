@@ -17,19 +17,32 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI netcdf format reader.
 
+Notes:
+    When loading solar channels, this reader applies a correction for the
+    Sun-Earth distance variation throughout the year - as recommended by
+    the EUMETSAT document:
+        'Conversion from radiances to reflectances for SEVIRI warm channels'
+    In the unlikely situation that this correction is not required, it can be
+    removed on a per-channel basis using the
+    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
+    function.
+
 References:
     - `MSG Level 1.5 Image Data Format Description`_
+    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
 
 .. _MSG Level 1.5 Image Data Format Description:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&
     RevisionSelectionMethod=LatestReleased&Rendition=Web
 
+.. _Conversion from radiances to reflectances for SEVIRI warm channels:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
-                                       CHANNEL_NAMES, SATNUM,
-                                       SEVIRIBaseFileHandler)
+                                       CHANNEL_NAMES, SATNUM)
 import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition
@@ -38,22 +51,14 @@ from satpy import CHUNK_SIZE
 import datetime
 
 
-class NCSEVIRIFileHandler(BaseFileHandler, SEVIRIBaseFileHandler):
-    """File handler for NC seviri files.
-
-    **Calibration**
-
-    See :class:`satpy.readers.seviri_base.SEVIRIBaseFileHandler`. Note that
-    there is only one set of calibration coefficients (GSICS) available in the
-    netCDF files and therefore there is no `calib_mode` argument.
-    """
+class NCSEVIRIFileHandler(BaseFileHandler):
+    """File handler for NC seviri files."""
 
     def __init__(self, filename, filename_info, filetype_info,
                  ext_calib_coefs=None):
         """Init the file handler."""
-        BaseFileHandler.__init__(self, filename, filename_info,
-                                 filetype_info)
-        SEVIRIBaseFileHandler.__init__(self, ext_calib_coefs=ext_calib_coefs)
+        super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.ext_calib_coefs = ext_calib_coefs or {}
         self.nc = None
         self.mda = {}
         self.reference = datetime.datetime(1958, 1, 1)
