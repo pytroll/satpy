@@ -21,7 +21,7 @@ Introduction
 ------------
 
 The ``seviri_l1b_hrit`` reader reads and calibrates MSG-SEVIRI L1.5 image data in HRIT format. The format is explained
-in the `MSG Level 1.5 Image Format Description`_. The files are usually named as
+in the `MSG Level 1.5 Image Data Format Description`_. The files are usually named as
 follows:
 
 .. code-block:: none
@@ -104,7 +104,7 @@ Output:
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
   centre.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
-  :class:`HRITMSGFileHandler`.
+  :class:`satpy.readers.seviri_base`.
 * The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header. By default,
   arrays with more than 100 elements are excluded in order to limit memory usage. This threshold can be adjusted,
   see :class:`HRITMSGFileHandler`.
@@ -118,34 +118,6 @@ Output:
                                      names=('y_coord', 'time'))
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
-
-Notes:
-    When loading solar channels, this reader applies a correction for the
-    Sun-Earth distance variation throughout the year - as recommended by
-    the EUMETSAT document:
-        'Conversion from radiances to reflectances for SEVIRI warm channels'
-    In the unlikely situation that this correction is not required, it can be
-    removed on a per-channel basis using the
-    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
-    function.
-
-
-References:
-    - `MSG Level 1.5 Image Format Description`_
-    - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
-    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
-
-
-.. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
-    PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
-
-.. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
-
-.. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 """
 
@@ -440,50 +412,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     **Calibration**
 
-    It is possible to choose between two file-internal calibration coefficients for the conversion
-    from counts to radiances:
-
-        - Nominal for all channels (default)
-        - GSICS for IR channels and nominal for VIS channels
-
-    In order to change the default behaviour, use the ``reader_kwargs`` upon Scene creation::
-
-        import satpy
-        import glob
-
-        filenames = glob.glob('H-000-MSG3*')
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'calib_mode': 'GSICS'})
-        scene.load(['VIS006', 'IR_108'])
-
-    Furthermore, it is possible to specify external calibration coefficients for the conversion from
-    counts to radiances. They must be specified in [mW m-2 sr-1 (cm-1)-1]. External coefficients
-    take precedence over internal coefficients. If external calibration coefficients are specified
-    for only a subset of channels, the remaining channels will be calibrated using the chosen
-    file-internal coefficients (nominal or GSICS).
-
-    In the following example we use external calibration coefficients for the ``VIS006`` &
-    ``IR_108`` channels, and nominal coefficients for the remaining channels::
-
-        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
-                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'ext_calib_coefs': coefs})
-        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
-
-    In the next example we use we use external calibration coefficients for the ``VIS006`` &
-    ``IR_108`` channels, nominal coefficients for the remaining VIS channels and GSICS coefficients
-    for the remaining IR channels::
-
-        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
-                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'calib_mode': 'GSICS',
-                                           'ext_calib_coefs': coefs})
-        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+    See :mod:`satpy.readers.seviri_base`.
 
     **Raw Metadata**
 

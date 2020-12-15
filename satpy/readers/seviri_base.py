@@ -15,11 +15,112 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Utilities and helper classes for MSG HRIT/Native data reading.
+"""Common functionality for SEVIRI L1.5 data readers.
+
+Introduction
+------------
+
+*The Spinning Enhanced Visible and InfraRed Imager (SEVIRI) is the primary
+instrument on Meteosat Second Generation (MSG) and has the capacity to observe
+the Earth in 12 spectral channels.*
+
+*Level 1.5 corresponds to image data that has been corrected for all unwanted
+radiometric and geometric effects, has been geolocated using a standardised
+projection, and has been calibrated and radiance-linearised.*
+(From the EUMETSAT documentation)
+
+Satpy provides the following readers for SEVIRI L1.5 data in different formats:
+
+- Native: :mod:`satpy.readers.seviri_l1b_native`
+- HRIT: :mod:`satpy.readers.seviri_l1b_hrit`
+- netCDF: :mod:`satpy.readers.seviri_l1b_nc`
+
+
+Calibration
+-----------
+
+This section describes how to control the calibration of SEVIRI L1.5 data.
+
+
+Calibration to radiance
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The SEVIRI L1.5 data readers allow for choosing between two file-internal
+calibration coefficients to convert counts to radiances:
+
+    - Nominal for all channels (default)
+    - GSICS where available (IR currently) and nominal for the remaining
+      channels (VIS & HRV currently)
+
+In order to change the default behaviour, use the ``reader_kwargs`` keyword
+argument upon Scene creation::
+
+    import satpy
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'calib_mode': 'GSICS'})
+    scene.load(['VIS006', 'IR_108'])
+
+Furthermore, it is possible to specify external calibration coefficients
+for the conversion from counts to radiances. External coefficients take
+precedence over internal coefficients, but you can also mix internal and
+external coefficients: If external calibration coefficients are specified
+for only a subset of channels, the remaining channels will be calibrated
+using the chosen file-internal coefficients (nominal or GSICS).
+
+Calibration coefficients must be specified in [mW m-2 sr-1 (cm-1)-1].
+
+In the following example we use external calibration coefficients for the
+``VIS006`` & ``IR_108`` channels, and nominal coefficients for the
+remaining channels::
+
+    coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+             'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'ext_calib_coefs': coefs})
+    scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+In the next example we use external calibration coefficients for the
+``VIS006`` & ``IR_108`` channels, GSICS coefficients where available
+(other IR channels) and nominal coefficients for the rest::
+
+    coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+             'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'calib_mode': 'GSICS',
+                                       'ext_calib_coefs': coefs})
+    scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+
+Calibration to reflectance
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When loading solar channels, the SEVIRI L1.5 data readers apply a correction for
+the Sun-Earth distance variation throughout the year - as recommended by
+the EUMETSAT document
+`Conversion from radiances to reflectances for SEVIRI warm channels`_.
+In the unlikely situation that this correction is not required, it can be
+removed on a per-channel basis using
+:func:`satpy.readers.utils.remove_earthsun_distance_correction`.
+
 
 References:
-    MSG Level 1.5 Image Data Format Description
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    - `MSG Level 1.5 Image Data Format Description`_
+    - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
+
+.. _Conversion from radiances to reflectances for SEVIRI warm channels:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+.. _MSG Level 1.5 Image Data Format Description:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+.. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 """
 

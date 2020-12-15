@@ -17,27 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI native format reader.
 
-Notes:
-    When loading solar channels, this reader applies a correction for the
-    Sun-Earth distance variation throughout the year - as recommended by
-    the EUMETSAT document:
-        'Conversion from radiances to reflectances for SEVIRI warm channels'
-    In the unlikely situation that this correction is not required, it can be
-    removed on a per-channel basis using the
-    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
-    function.
-
 References:
     - `MSG Level 1.5 Native Format File Definition`_
-    - `MSG Level 1.5 Image Data Format Description`_
-    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
 
-.. _MSG Level 1.5 Native Format File Definition
+.. _MSG Level 1.5 Native Format File Definition:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
-.. _MSG Level 1.5 Image Data Format Description
-    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
-.. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
 
 """
 
@@ -70,9 +54,9 @@ logger = logging.getLogger('native_msg')
 class NativeMSGFileHandler(BaseFileHandler):
     """SEVIRI native format reader.
 
-    The Level1.5 Image data calibration method can be changed by adding the
-    required mode to the Scene object instantiation  kwargs eg
-    kwargs = {"calib_mode": "gsics",}
+    **Calibration**
+
+    See :mod:`satpy.readers.seviri_base`.
 
     **Padding channel data to full disk**
 
