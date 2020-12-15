@@ -1,17 +1,21 @@
-# This file contains a set of pre-defined areas to be used for resampling purposes.
+# This file contains a set of pre-defined areas
+# to be used for resampling purposes.
 
-# ----------------------------------------------------------------------------------------------------------------------
-# ------------------------------------------------ Geostationary Areas -------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-# This section contains a set of full-disk and regional areas in geostationary projection
+# -----------------------------------------------------------------------------
+# -------------------------- Geostationary Areas ------------------------------
+# -----------------------------------------------------------------------------
+# This section contains a set of full-disk and regional areas in geostationary
+# projection.
 
 
-# ------------------------------ Meteosat Second Generation (MSG) / SEVIRI Instrument ----------------------------------
+# ---------- Meteosat Second Generation (MSG) / SEVIRI Instrument -------------
 
 # Full disk
 
 msg_seviri_fes_3km:
-  description: MSG SEVIRI Full Earth Scanning service area definition with 3 km resolution
+  description:
+    MSG SEVIRI Full Earth Scanning service area definition
+    with 3 km resolution
   projection:
     proj: geos
     lon_0: 0.0
@@ -26,7 +30,9 @@ msg_seviri_fes_3km:
     upper_right_xy: [5567248.28340708,   5570248.686685662]
 
 msg_seviri_fes_1km:
-  description: MSG SEVIRI Full Earth Scanning service area definition with 1 km resolution
+  description:
+    MSG SEVIRI Full Earth Scanning service area definition
+    with 1 km resolution
   projection:
     proj: geos
     lon_0: 0.0
@@ -41,7 +47,9 @@ msg_seviri_fes_1km:
     upper_right_xy: [5566247.740968115,  5571248.412732527]
 
 msg_seviri_rss_3km:
-  description: MSG SEVIRI Rapid Scanning Service area definition with 3 km resolution
+  description:
+    MSG SEVIRI Rapid Scanning Service area definition
+    with 3 km resolution
   projection:
     proj: geos
     lon_0: 9.5
@@ -56,7 +64,9 @@ msg_seviri_rss_3km:
     upper_right_xy: [5567248.28340708,   5570248.686685662]
 
 msg_seviri_rss_1km:
-  description: MSG SEVIRI Rapid Scanning Service area definition with 1 km resolution
+  description:
+    MSG SEVIRI Rapid Scanning Service area definition
+    with 1 km resolution
   projection:
     proj: geos
     lon_0: 9.5
@@ -71,7 +81,9 @@ msg_seviri_rss_1km:
     upper_right_xy: [5566247.740968115,  5571248.412732527]
 
 msg_seviri_iodc_3km:
-  description: MSG SEVIRI Indian Ocean Data Coverage service area definition with 3 km resolution
+  description:
+    MSG SEVIRI Indian Ocean Data Coverage service area definition
+    with 3 km resolution
   projection:
     proj: geos
     lon_0: 41.5
@@ -86,7 +98,9 @@ msg_seviri_iodc_3km:
     upper_right_xy: [5567248.28340708,   5570248.686685662]
 
 msg_seviri_iodc_1km:
-  description: MSG SEVIRI Indian Ocean Data Coverage service area definition with 1 km resolution
+  description:
+    MSG SEVIRI Indian Ocean Data Coverage service area definition
+    with 1 km resolution
   projection:
     proj: geos
     lon_0: 41.5
@@ -99,6 +113,7 @@ msg_seviri_iodc_1km:
   area_extent:
     lower_left_xy: [-5571248.412732527, -5566247.740968115]
     upper_right_xy: [5566247.740968115,  5571248.412732527]
+
 
 # Regional
 
@@ -163,11 +178,13 @@ SouthAmerica:
     upper_right_xy: [-384719.90821206354, 1339786.2707295895]
 
 
-# ------------------------------ Meteosat Third Generation (MTG) / FCI Instrument --------------------------------------
+# ---------- Meteosat Third Generation (MTG) / FCI Instrument -----------------
 
 # Full disk
 mtg_fci_fdss_1km:
-  description: MTG FCI Full Disk Scanning Service area definition with 1 km resolution
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 1 km resolution
   projection:
     proj: geos
     lon_0: 0
@@ -185,7 +202,9 @@ mtg_fci_fdss_1km:
     units: m
 
 mtg_fci_fdss_2km:
-  description: MTG FCI Full Disk Scanning Service area definition with 2 km resolution
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 2 km resolution
   projection:
     proj: geos
     lon_0: 0
@@ -202,10 +221,11 @@ mtg_fci_fdss_2km:
     upper_right_xy: [5567999.994206558,  5567999.994206558]
     units: m
 
-# ----------------------------------------------------------------------------------------------------------------------
-# ------------------------------------------------ Miscellaneous Areas -------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-# This section contains a set of areas, local and global, in different projections.
+# -----------------------------------------------------------------------------
+# ------------------------- Miscellaneous Areas -------------------------------
+# -----------------------------------------------------------------------------
+# This section contains a set of areas, local and global,
+# in different projections.
 
 omerc_bb:
   description: Oblique Mercator Bounding Box for Polar Overpasses
@@ -262,8 +282,9 @@ mali_eqc:
     lower_left_xy: [-1224514.3987260093, -1001875.4171394627]
     upper_right_xy: [1224514.3987260093, 1001875.4171394617]
 sve:
-  description: North half of the Iberian Peninsula and the Gulf of Biscay image 0
-    degrees
+  description:
+    North half of the Iberian Peninsula and the Gulf of Biscay
+    image 0 degrees
   projection:
     init: epsg:3006
   shape:
@@ -273,8 +294,9 @@ sve:
     lower_left_xy: [-342379.698, 6032580.06]
     upper_right_xy: [1423701.52, 8029648.75]
 iber:
-  description: North half of the Iberian Peninsula and the Gulf of Biscay image 0
-    degrees
+  description:
+    North half of the Iberian Peninsula and the Gulf of Biscay
+    image 0 degrees
   projection:
     proj: utm
   shape:
@@ -1164,7 +1186,9 @@ euroasia_10km:
     lower_left_xy: [-3000000.0, -4999000.0]
     upper_right_xy: [9999000.0, 8000000.0]
 euroasia_asia:
-  description: Euroasia - optimised for Asia - Global 1km USGS Landuse database
+  description:
+    Euroasia - optimised for Asia -
+    Global 1km USGS Landuse database
   projection:
     proj: laea
     a: 6370997.0
@@ -1423,13 +1447,13 @@ robinson:
     lower_left_xy: [-2049911.5256036147, 5326895.725982913]
     upper_right_xy: [2049911.5256036168, 8625155.12857459]
 
-# ----------------------------------------------------------------------------------------------------------------------
-# ------------------------------------------------ Areas to be deprecated ----------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -------------------- Areas to be deprecated ---------------------------------
+# -----------------------------------------------------------------------------
 # This section contains areas that are obsolete.
 
-met07globe:
-  description: Full disk IODC image 57 degrees  # obsolete platform number
+met07globe:  # obsolete platform number
+  description: Full disk IODC image 57 degrees
   projection:
     proj: geos
     lon_0: 57.0
@@ -1442,8 +1466,8 @@ met07globe:
   area_extent:
     lower_left_xy: [-5621225.237846375, -5621225.237846375]
     upper_right_xy: [5621225.237846375, 5621225.237846375]
-met09globe:
-  description: Cropped disk MSG image 0 degrees  # obsolete platform number
+met09globe:  # obsolete platform number
+  description: Cropped disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
@@ -1456,8 +1480,8 @@ met09globe:
   area_extent:
     lower_left_xy: [-5432229.931711678, -5429229.528545862]
     upper_right_xy: [5429229.528545862, 5432229.931711678]
-met09globeFull:
-  description: Full disk MSG image 0 degrees  # superseded by msg_seviri_fes_3km
+met09globeFull:  # superseded by msg_seviri_fes_3km
+  description: Full disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
@@ -1470,8 +1494,8 @@ met09globeFull:
   area_extent:
     lower_left_xy: [-5570248.477339261, -5567248.074173444]
     upper_right_xy: [5567248.074173444, 5570248.477339261]
-seviri_0deg:
-  description: Full disk MSG image 0 degrees  # superseded by msg_seviri_fes_3km
+seviri_0deg:  # superseded by msg_seviri_fes_3km
+  description: Full disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
@@ -1484,8 +1508,8 @@ seviri_0deg:
   area_extent:
     lower_left_xy: [-5570248.686685662, -5567248.28340708]
     upper_right_xy: [5567248.28340708, 5570248.686685662]
-seviri_iodc:
-  description: Full disk MSG image 41.5 degrees  # superseded by msg_seviri_iodc_3km
+seviri_iodc:  # superseded by msg_seviri_iodc_3km
+  description: Full disk MSG image 41.5 degrees
   projection:
     proj: geos
     lon_0: 41.5
