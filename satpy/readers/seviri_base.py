@@ -30,6 +30,7 @@ import dask.array as da
 from satpy.readers.utils import apply_earthsun_distance_correction
 from satpy.readers.eum_base import (time_cds_short,
                                     issue_revision)
+from satpy import CHUNK_SIZE
 
 PLATFORM_DICT = {
     'MET08': 'Meteosat-8',
@@ -50,6 +51,7 @@ C2 = 1.43877523
 VISIR_NUM_COLUMNS = 3712
 VISIR_NUM_LINES = 3712
 HRV_NUM_COLUMNS = 11136
+HRV_NUM_LINES = 11136
 
 CHANNEL_NAMES = {1: "VIS006",
                  2: "VIS008",
@@ -528,3 +530,48 @@ def create_coef_dict(coefs_nominal, coefs_gsics, radiance_type, ext_coefs):
         },
         'radiance_type': radiance_type
     }
+
+
+def get_service_mode(ssp_lon):
+    """Get information about whether we're dealing with data from the FES, RSS or IODC service mode."""
+    seviri_service_modes = {'0.0': {'name': 'FES', 'desc': 'Full Earth scanning service'},
+                            '9.5': {'name': 'RSS', 'desc': 'Rapid scanning service'},
+                            '41.5': {'name': 'IODC', 'desc': 'Indian Ocean data coverage service'}}
+
+    return seviri_service_modes['%.1f' % ssp_lon]
+
+
+def get_padding_area(shape, dtype):
+    """Create a padding area filled with no data."""
+    if np.issubdtype(dtype, np.floating):
+        init_value = np.nan
+    else:
+        init_value = 0
+
+    padding_area = da.full(shape, init_value, dtype=dtype, chunks=CHUNK_SIZE)
+
+    return padding_area
+
+
+def pad_data_horizontally(data, final_size, east_bound, west_bound):
+    """Pad the data given east and west bounds and the desired size."""
+    nlines = final_size[0]
+    if west_bound - east_bound != data.shape[1] - 1:
+        raise IndexError('East and west bounds do not match data shape')
+
+    padding_east = get_padding_area((nlines, east_bound - 1), data.dtype)
+    padding_west = get_padding_area((nlines, (final_size[1] - west_bound)), data.dtype)
+
+    return np.hstack((padding_east, data, padding_west))
+
+
+def pad_data_vertically(data, final_size, south_bound, north_bound):
+    """Pad the data given south and north bounds and the desired size."""
+    ncols = final_size[1]
+    if north_bound - south_bound != data.shape[0] - 1:
+        raise IndexError('South and north bounds do not match data shape')
+
+    padding_south = get_padding_area((south_bound - 1, ncols), data.dtype)
+    padding_north = get_padding_area(((final_size[0] - north_bound), ncols), data.dtype)
+
+    return np.vstack((padding_south, data, padding_north))
