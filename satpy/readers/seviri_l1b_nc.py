@@ -15,30 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI netcdf format reader.
-
-Notes:
-    When loading solar channels, this reader applies a correction for the
-    Sun-Earth distance variation throughout the year - as recommended by
-    the EUMETSAT document:
-        'Conversion from radiances to reflectances for SEVIRI warm channels'
-    In the unlikely situation that this correction is not required, it can be
-    removed on a per-channel basis using the
-    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
-    function.
-
-References:
-    - `MSG Level 1.5 Image Data Format Description`_
-    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
-
-.. _MSG Level 1.5 Image Data Format Description:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
-
-.. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
-"""
+"""SEVIRI netcdf format reader."""
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
@@ -52,7 +29,13 @@ import datetime
 
 
 class NCSEVIRIFileHandler(BaseFileHandler):
-    """File handler for NC seviri files."""
+    """File handler for NC seviri files.
+
+    **Calibration**
+
+    See :mod:`satpy.readers.seviri_base`.
+
+    """
 
     def __init__(self, filename, filename_info, filetype_info,
                  ext_calib_coefs=None):
