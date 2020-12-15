@@ -1082,6 +1082,14 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
             # IR channel, external coefficients (mode should have no effect)
             ('IR_108', 'radiance', 'NOMINAL', True),
             ('IR_108', 'brightness_temperature', 'GSICS', True),
+            # HRV channel, internal coefficiens
+            ('HRV', 'counts', 'NOMINAL', False),
+            ('HRV', 'radiance', 'NOMINAL', False),
+            ('HRV', 'radiance', 'GSICS', False),
+            ('HRV', 'reflectance', 'NOMINAL', False),
+            # HRV channel, external coefficients (mode should have no effect)
+            ('HRV', 'radiance', 'GSICS', True),
+            ('HRV', 'reflectance', 'NOMINAL', True),
         ]
     )
     def test_calibrate(

@@ -217,9 +217,10 @@ class TestFileHandlerCalibrationBase:
     scan_time = datetime(2020, 1, 1)
     external_coefs = {
         'VIS006': {'gain': 10, 'offset': -10},
-        'IR_108': {'gain': 20, 'offset': -20}
+        'IR_108': {'gain': 20, 'offset': -20},
+        'HRV': {'gain': 5, 'offset': -5}
     }
-    spectral_channel_ids = {'VIS006': 1, 'IR_108': 9}
+    spectral_channel_ids = {'VIS006': 1, 'IR_108': 9, 'HRV': 12}
     expected = {
         'VIS006': {
             'counts': {
@@ -300,6 +301,44 @@ class TestFileHandlerCalibrationBase:
                      [758.6249, 1262.7567]],
                     dims=('y', 'x')
                 ),
+            }
+        },
+        'HRV': {
+            'counts': {
+                'NOMINAL': xr.DataArray(
+                    [[0, 10],
+                     [100, 255]],
+                    dims=('y', 'x')
+                )
+            },
+            'radiance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 108],
+                     [1188, 3048]],
+                    dims=('y', 'x')
+                ),
+                'GSICS': xr.DataArray(
+                    [[np.nan, 108],
+                     [1188, 3048]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 45],
+                     [495, 1270]],
+                    dims=('y', 'x')
+                )
+            },
+            'reflectance': {
+                'NOMINAL': xr.DataArray(
+                    [[np.nan, 401.28372],
+                     [4414.121, 11325.118]],
+                    dims=('y', 'x')
+                ),
+                'EXTERNAL': xr.DataArray(
+                    [[np.nan, 167.20154],
+                     [1839.217, 4718.799]],
+                    dims=('y', 'x')
+                )
             }
         }
     }

@@ -148,6 +148,14 @@ class TestCalibration(TestFileHandlerCalibrationBase):
             # IR channel, external coefficients
             ('IR_108', 'radiance', True),
             ('IR_108', 'brightness_temperature', True),
+            # FUTURE: Enable once HRV reading has been fixed.
+            # # HRV channel, internal coefficiens
+            # ('HRV', 'counts', False),
+            # ('HRV', 'radiance', False),
+            # ('HRV', 'reflectance', False),
+            # # HRV channel, external coefficients (mode should have no effect)
+            # ('HRV', 'radiance', True),
+            # ('HRV', 'reflectance', True),
         ]
     )
     def test_calibrate(
@@ -170,5 +178,9 @@ class TestCalibration(TestFileHandlerCalibrationBase):
         dataset_id = make_dataid(name=channel, calibration=calibration)
 
         res = fh.get_dataset(dataset_id, dataset_info)
-        res = res.isel(y=slice(None, None, -1))  # compatibility with other readers
+
+        # Flip dataset to achieve compatibility with other SEVIRI readers.
+        # FUTURE: Remove if flipping has been disabled.
+        res = res.isel(y=slice(None, None, -1))
+
         xr.testing.assert_allclose(res, expected)

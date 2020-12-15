@@ -794,7 +794,6 @@ class HRITMSGFileHandler(HRITFileHandler):
     def _get_calib_coefs(self, channel_name):
         """Get coefficients for calibration from counts to radiance."""
         band_idx = self.mda['spectral_channel_id'] - 1
-        radiance_type_idx = self.mda['spectral_channel_id']
         coefs_nominal = self.prologue["RadiometricProcessing"][
             "Level15ImageCalibration"]
         coefs_gsics = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
@@ -810,7 +809,7 @@ class HRITMSGFileHandler(HRITFileHandler):
                 coefs_gsics['GSICSOffsetCount'][band_idx]
             ),
             ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
-            radiance_type=radiance_types[radiance_type_idx]
+            radiance_type=radiance_types[band_idx]
         )
 
 
