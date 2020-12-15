@@ -172,7 +172,7 @@ def get_geos_area_naming(input_dict):
 
     Args:
         input_dict: dict
-            Dictionary with keys `platform_name`, `instrument_name`, `service_name`, `resolution` .
+            Dictionary with keys `platform_name`, `instrument_name`, `service_name`, `service_desc`, `resolution` .
             The resolution is expected in meters.
     Returns:
         area_naming_dict with `area_id`, `description`, `proj_id` keys, values are strings.
