@@ -446,19 +446,24 @@ class SEVIRICalibrationHandler:
     def get_gain_offset(self):
         """Get gain & offset for calibration from counts to radiance.
 
-        Choices for internal coefficients are nominal or GSICS. External
-        coefficients take precedence.
+        Choices for internal coefficients are nominal or GSICS. If no
+        GSICS coefficients are available for a certain channel, fall back to
+        nominal coefficients. External coefficients take precedence over
+        internal coefficients.
         """
         coefs = self._coefs['coefs']
 
         # Select internal coefficients for the given calibration mode
-        if self._calib_mode != 'GSICS' or self._channel_name in VIS_CHANNELS:
-            # GSICS doesn't have calibration coeffs for VIS channels
-            internal_gain = coefs['NOMINAL']['gain']
-            internal_offset = coefs['NOMINAL']['offset']
-        else:
-            internal_gain = coefs['GSICS']['gain']
-            internal_offset = coefs['GSICS']['offset'] * internal_gain
+        internal_gain = coefs['NOMINAL']['gain']
+        internal_offset = coefs['NOMINAL']['offset']
+        if self._calib_mode == 'GSICS':
+            gsics_gain = coefs['GSICS']['gain']
+            gsics_offset = coefs['GSICS']['offset'] * gsics_gain
+            if gsics_gain != 0 and gsics_offset != 0:
+                # If no GSICS coefficients are available for a certain channel,
+                # they are set to zero in the file.
+                internal_gain = gsics_gain
+                internal_offset = gsics_offset
 
         # Override with external coefficients, if any.
         gain = coefs['EXTERNAL'].get('gain', internal_gain)
