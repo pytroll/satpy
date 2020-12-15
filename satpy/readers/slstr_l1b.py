@@ -116,7 +116,7 @@ class NCSLSTR1B(BaseFileHandler):
     calib_dict = {'S1_nadir': 1.12}
     scene = satpy.Scene(filenames,
                         reader='slstr-l1b',
-                        reader_kwargs={'user_calib':: calib_dict})
+                        reader_kwargs={'user_calib': calib_dict})
 
     Will multiply S1 nadir radiances by 1.12.
     """

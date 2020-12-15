@@ -859,14 +859,77 @@ class ImageWriter(Writer):
 
 
 class DecisionTree(object):
-    """The decision tree."""
+    """Structure to search for nearest match from a set of parameters.
+
+    This class is used to find the best configuration section by matching
+    a set of attributes. The provided dictionary contains a mapping of
+    "section name" to "decision" dictionaries. Each decision dictionary
+    contains the attributes that will be used for matching plus any
+    additional keys that could be useful when matched. This class will
+    search these decisions and return the one with the most matching
+    parameters to the attributes passed to the
+    :meth:`~satpy.writers.DecisionTree.find_match`` method.
+
+    Note that decision sections are provided as a dict instead of a list
+    so that they can be overwritten or updated by doing the equivalent
+    of a ``current_dicts.update(new_dicts)``.
+
+    Examples:
+        Decision sections are provided as a dictionary of dictionaries.
+        The returned match will be the first result found by searching
+        provided `match_keys` in order.
+
+        decisions = {
+            'first_section': {
+                'a': 1,
+                'b': 2,
+                'useful_key': 'useful_value',
+            },
+            'second_section': {
+                'a': 5,
+                'useful_key': 'other_useful_value1',
+            },
+            'third_section': {
+                'b': 4,
+                'useful_key': 'other_useful_value2',
+            },
+        }
+        tree = DecisionTree(decisions, ('a', 'b'))
+        tree.find_match(a=5, b=2)  # second_section dict
+        tree.find_match(a=1, b=2)  # first_section dict
+        tree.find_match(a=5, b=4)  # second_section dict
+        tree.find_match(a=3, b=2)  # no match
+
+    """
 
     any_key = None
 
-    def __init__(self, decision_dicts, attrs, **kwargs):
-        """Init the decision tree."""
-        self.attrs = attrs
-        self.tree = {}
+    def __init__(self, decision_dicts, match_keys, multival_keys=None):
+        """Init the decision tree.
+
+        Args:
+            decision_dicts (dict): Dictionary of dictionaries. Each
+                sub-dictionary contains key/value pairs that can be
+                matched from the `find_match` method. Sub-dictionaries
+                can include additional keys outside of the ``match_keys``
+                provided to act as the "result" of a query. The keys of
+                the root dict are arbitrary.
+            match_keys (list): Keys of the provided dictionary to use for
+                matching.
+            multival_keys (list): Keys of `match_keys` that can be provided
+                as multiple values.
+                A multi-value key can be specified as a single value
+                (typically a string) or a set. If a set, it will be sorted
+                and converted to a tuple and then used for matching.
+                When querying the tree, these keys will
+                be searched for exact multi-value results (the sorted tuple)
+                and if not found then each of the values will be searched
+                individually in alphabetical order.
+
+        """
+        self._match_keys = match_keys
+        self._multival_keys = multival_keys or []
+        self._tree = {}
         if not isinstance(decision_dicts, (list, tuple)):
             decision_dicts = [decision_dicts]
         self.add_config_to_tree(*decision_dicts)
@@ -879,52 +942,95 @@ class DecisionTree(object):
         self._build_tree(conf)
 
     def _build_tree(self, conf):
-        """Build the tree."""
-        for _section_name, attrs in conf.items():
-            # Set a path in the tree for each section in the configuration
-            # files
-            curr_level = self.tree
-            for attr in self.attrs:
+        """Build the tree.
+
+        Create a tree structure of dicts where each level represents the
+        possible matches for a specific ``match_key``. When finding matches
+        we will iterate through the tree matching each key that we know about.
+        The last dict in the "tree" will contain the configure section whose
+        match values led down that path in the tree.
+
+        See :meth:`DecisionTree.find_match` for more information.
+
+        """
+        for _section_name, sect_attrs in conf.items():
+            # Set a path in the tree for each section in the config files
+            curr_level = self._tree
+            for match_key in self._match_keys:
                 # or None is necessary if they have empty strings
-                this_attr = attrs.get(attr, self.any_key) or None
-                if attr == self.attrs[-1]:
+                this_attr_val = sect_attrs.get(match_key, self.any_key) or None
+                if match_key in self._multival_keys and isinstance(this_attr_val, list):
+                    this_attr_val = tuple(sorted(this_attr_val))
+                is_last_key = match_key == self._match_keys[-1]
+                level_needs_init = this_attr_val not in curr_level
+                if is_last_key:
                     # if we are at the last attribute, then assign the value
                     # set the dictionary of attributes because the config is
                     # not persistent
-                    curr_level[this_attr] = attrs
-                elif this_attr not in curr_level:
-                    curr_level[this_attr] = {}
-                curr_level = curr_level[this_attr]
+                    curr_level[this_attr_val] = sect_attrs
+                elif level_needs_init:
+                    curr_level[this_attr_val] = {}
+                curr_level = curr_level[this_attr_val]
 
-    def _find_match(self, curr_level, attrs, kwargs):
+    @staticmethod
+    def _convert_query_val_to_hashable(query_val):
+        _sorted_query_val = sorted(query_val)
+        query_vals = [tuple(_sorted_query_val)] + _sorted_query_val
+        query_vals += query_val
+        return query_vals
+
+    def _get_query_values(self, query_dict, curr_match_key):
+        query_val = query_dict[curr_match_key]
+        if curr_match_key in self._multival_keys and isinstance(query_val, set):
+            query_vals = self._convert_query_val_to_hashable(query_val)
+        else:
+            query_vals = [query_val]
+        return query_vals
+
+    def _find_match_if_known(self, curr_level, remaining_match_keys, query_dict):
+        match = None
+        curr_match_key = remaining_match_keys[0]
+        if curr_match_key not in query_dict:
+            return match
+
+        query_vals = self._get_query_values(query_dict, curr_match_key)
+        for query_val in query_vals:
+            if query_val not in curr_level:
+                continue
+            match = self._find_match(curr_level[query_val],
+                                     remaining_match_keys[1:],
+                                     query_dict)
+            if match is not None:
+                break
+        return match
+
+    def _find_match(self, curr_level, remaining_match_keys, query_dict):
         """Find a match."""
-        if len(attrs) == 0:
+        if len(remaining_match_keys) == 0:
             # we're at the bottom level, we must have found something
             return curr_level
 
-        match = None
-        try:
-            if attrs[0] in kwargs and kwargs[attrs[0]] in curr_level:
-                # we know what we're searching for, try to find a pattern
-                # that uses this attribute
-                match = self._find_match(curr_level[kwargs[attrs[0]]],
-                                         attrs[1:], kwargs)
-        except TypeError:
-            # we don't handle multiple values (for example sensor) atm.
-            LOG.debug("Strange stuff happening in decision tree for %s: %s",
-                      attrs[0], kwargs[attrs[0]])
+        match = self._find_match_if_known(
+            curr_level, remaining_match_keys, query_dict)
 
         if match is None and self.any_key in curr_level:
             # if we couldn't find it using the attribute then continue with
             # the other attributes down the 'any' path
-            match = self._find_match(curr_level[self.any_key], attrs[1:],
-                                     kwargs)
+            match = self._find_match(
+                curr_level[self.any_key],
+                remaining_match_keys[1:],
+                query_dict)
         return match
 
-    def find_match(self, **kwargs):
-        """Find a match."""
+    def find_match(self, **query_dict):
+        """Find a match.
+
+        Recursively search through the tree structure for a path that matches
+        the provided match parameters.
+
+        """
         try:
-            match = self._find_match(self.tree, self.attrs, kwargs)
+            match = self._find_match(self._tree, self._match_keys, query_dict)
         except (KeyError, IndexError, ValueError):
             LOG.debug("Match exception:", exc_info=True)
             LOG.error("Error when finding matching decision section")
@@ -932,7 +1038,7 @@ class DecisionTree(object):
         if match is None:
             # only possible if no default section was provided
             raise KeyError("No decision section found for %s" %
-                           (kwargs.get("uid", None), ))
+                           (query_dict.get("uid", None),))
         return match
 
 
@@ -941,14 +1047,16 @@ class EnhancementDecisionTree(DecisionTree):
 
     def __init__(self, *decision_dicts, **kwargs):
         """Init the decision tree."""
-        attrs = kwargs.pop("attrs", ("name",
-                                     "platform_name",
-                                     "sensor",
-                                     "standard_name",
-                                     "units",))
+        match_keys = kwargs.pop("match_keys",
+                                ("name",
+                                 "platform_name",
+                                 "sensor",
+                                 "standard_name",
+                                 "units",))
         self.prefix = kwargs.pop("config_section", "enhancements")
+        multival_keys = kwargs.pop("multival_keys", ["sensor"])
         super(EnhancementDecisionTree, self).__init__(
-            decision_dicts, attrs, **kwargs)
+            decision_dicts, match_keys, multival_keys)
 
     def add_config_to_tree(self, *decision_dict):
         """Add configuration to tree."""
@@ -978,14 +1086,14 @@ class EnhancementDecisionTree(DecisionTree):
 
         self._build_tree(conf)
 
-    def find_match(self, **kwargs):
+    def find_match(self, **query_dict):
         """Find a match."""
         try:
-            return super(EnhancementDecisionTree, self).find_match(**kwargs)
+            return super(EnhancementDecisionTree, self).find_match(**query_dict)
         except KeyError:
             # give a more understandable error message
             raise KeyError("No enhancement configuration found for %s" %
-                           (kwargs.get("uid", None), ))
+                           (query_dict.get("uid", None),))
 
 
 class Enhancer(object):

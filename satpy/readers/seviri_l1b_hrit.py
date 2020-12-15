@@ -160,17 +160,18 @@ import numpy as np
 import pyproj
 import xarray as xr
 
-import satpy.readers.utils as utils
 from pyresample import geometry
 from satpy import CHUNK_SIZE
+import satpy.readers.utils as utils
 from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
+
 from satpy.readers.seviri_base import (CHANNEL_NAMES, SATNUM,
                                        SEVIRICalibrationHandler,
-                                       chebyshev, get_cds_time,
-                                       create_coef_dict)
+                                       chebyshev, get_cds_time, HRV_NUM_COLUMNS,
+                                       pad_data_horizontally, create_coef_dict)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
 from satpy.readers._geos_area import get_area_extent, get_area_definition
@@ -649,10 +650,10 @@ class HRITMSGFileHandler(HRITFileHandler):
         bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
         if self.fill_hrv:
             bounds['UpperEastColumnActual'] = 1
-            bounds['UpperWestColumnActual'] = 11136
+            bounds['UpperWestColumnActual'] = HRV_NUM_COLUMNS
             bounds['LowerEastColumnActual'] = 1
-            bounds['LowerWestColumnActual'] = 11136
-            pdict['ncols'] = 11136
+            bounds['LowerWestColumnActual'] = HRV_NUM_COLUMNS
+            pdict['ncols'] = HRV_NUM_COLUMNS
 
         upper_south_line = bounds[
             'LowerNorthLineActual'] - current_first_line - 1
@@ -730,20 +731,20 @@ class HRITMSGFileHandler(HRITFileHandler):
         data_list = list()
         if upper_south_line > 0:
             # we have some of the lower window
-            data_lower = pad_data(res[:upper_south_line, :].data,
-                                  (upper_south_line, 11136),
-                                  bounds['LowerEastColumnActual'],
-                                  bounds['LowerWestColumnActual'])
+            data_lower = pad_data_horizontally(res[:upper_south_line, :].data,
+                                               (upper_south_line, HRV_NUM_COLUMNS),
+                                               bounds['LowerEastColumnActual'],
+                                               bounds['LowerWestColumnActual'])
             data_list.append(data_lower)
 
         if upper_south_line < nlines:
             # we have some of the upper window
-            data_upper = pad_data(res[upper_south_line:, :].data,
-                                  (nlines - upper_south_line, 11136),
-                                  bounds['UpperEastColumnActual'],
-                                  bounds['UpperWestColumnActual'])
+            data_upper = pad_data_horizontally(res[upper_south_line:, :].data,
+                                               (nlines - upper_south_line, HRV_NUM_COLUMNS),
+                                               bounds['UpperEastColumnActual'],
+                                               bounds['UpperWestColumnActual'])
             data_list.append(data_upper)
-        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
+        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'), attrs=res.attrs.copy())
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""

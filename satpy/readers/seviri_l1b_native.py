@@ -33,12 +33,11 @@ References:
     - `Conversion from radiances to reflectances for SEVIRI warm channels`_
 
 .. _MSG Level 1.5 Native Format File Definition
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
 .. _MSG Level 1.5 Image Data Format Description
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
 .. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
+    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
 
 """
 
@@ -55,11 +54,12 @@ from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import recarray2dict
-from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
-                                       CHANNEL_NAMES, SATNUM,
-                                       dec10216, VISIR_NUM_COLUMNS,
-                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS,
-                                       create_coef_dict)
+from satpy.readers.seviri_base import (
+    SEVIRICalibrationHandler, CHANNEL_NAMES, SATNUM, dec10216,
+    VISIR_NUM_COLUMNS, VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
+    create_coef_dict, get_service_mode, pad_data_horizontally,
+    pad_data_vertically
+)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
@@ -73,10 +73,21 @@ class NativeMSGFileHandler(BaseFileHandler):
     The Level1.5 Image data calibration method can be changed by adding the
     required mode to the Scene object instantiation  kwargs eg
     kwargs = {"calib_mode": "gsics",}
+
+    **Padding channel data to full disk**
+
+    By providing the `fill_disk` as True in the `reader_kwargs`, the channel is loaded
+    as full disk, padded with no-data where necessary. This is especially useful for the
+    HRV channel, but can also be used for RSS and ROI data. By default the original,
+    unpadded, data are loaded::
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_native',
+                            reader_kwargs={'fill_disk': False})
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 calib_mode='nominal', ext_calib_coefs=None):
+                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
@@ -84,19 +95,19 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.platform_name = None
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
+        self.fill_disk = fill_disk
 
         # Declare required variables.
-        # Assume a full disk file, reset in _read_header if otherwise.
         self.header = {}
         self.mda = {}
-        self.mda['is_full_disk'] = True
         self.trailer = {}
 
-        # Read header, prepare dask-array, read trailer
+        # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
         self._read_header()
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
+        self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
 
     @property
     def start_time(self):
@@ -214,9 +225,12 @@ class NativeMSGFileHandler(BaseFileHandler):
         nrows = north - south + 1
 
         # check if the file has less rows or columns than
-        # the maximum, if so it is an area of interest file
+        # the maximum, if so it is a rapid scanning service
+        # or region of interest file
         if (nrows < VISIR_NUM_LINES) or (ncolumns < VISIR_NUM_COLUMNS):
             self.mda['is_full_disk'] = False
+        else:
+            self.mda['is_full_disk'] = True
 
         # If the number of columns in the file is not divisible by 4,
         # UMARF will add extra columns to the file
@@ -262,7 +276,14 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.trailer.update(recarray2dict(data))
 
     def get_area_def(self, dataset_id):
-        """Get the area definition of the band."""
+        """Get the area definition of the band.
+
+        In general, image data from one window/area is available. For the HRV channel in FES mode, however,
+        data from two windows ('Lower' and 'Upper') are available. Hence, we collect lists of area-extents
+        and corresponding number of image lines/columns. In case of FES HRV data, two area definitions are
+        computed, stacked and squeezed. For other cases, the lists will only have one entry each, from which
+        a single area definition is computed.
+        """
         pdict = {}
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
@@ -270,42 +291,28 @@ class NativeMSGFileHandler(BaseFileHandler):
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
         if dataset_id['name'] == 'HRV':
-            pdict['nlines'] = self.mda['hrv_number_of_lines']
-            pdict['ncols'] = self.mda['hrv_number_of_columns']
-            pdict['a_name'] = 'geos_seviri_hrv'
-            pdict['a_desc'] = 'SEVIRI high resolution channel area'
+            res = 1.0
             pdict['p_id'] = 'seviri_hrv'
-
-            if self.mda['is_full_disk']:
-                # handle full disk HRV data with two separated area definitions
-                [upper_area_extent, lower_area_extent,
-                 upper_nlines, upper_ncols, lower_nlines, lower_ncols] = self.get_area_extent(dataset_id)
-
-                # upper area
-                pdict['a_desc'] = 'SEVIRI high resolution channel, upper window'
-                pdict['nlines'] = upper_nlines
-                pdict['ncols'] = upper_ncols
-                upper_area = get_area_definition(pdict, upper_area_extent)
-
-                # lower area
-                pdict['a_desc'] = 'SEVIRI high resolution channel, lower window'
-                pdict['nlines'] = lower_nlines
-                pdict['ncols'] = lower_ncols
-                lower_area = get_area_definition(pdict, lower_area_extent)
-
-                area = geometry.StackedAreaDefinition(lower_area, upper_area)
-                area = area.squeeze()
-            else:
-                # if the HRV data is in a ROI, the HRV channel is delivered in one area
-                area = get_area_definition(pdict, self.get_area_extent(dataset_id))
-
         else:
-            pdict['nlines'] = self.mda['number_of_lines']
-            pdict['ncols'] = self.mda['number_of_columns']
-            pdict['a_name'] = 'geos_seviri_visir'
-            pdict['a_desc'] = 'SEVIRI low resolution channel area'
+            res = 3.0
             pdict['p_id'] = 'seviri_visir'
-            area = get_area_definition(pdict, self.get_area_extent(dataset_id))
+
+        service_mode = get_service_mode(pdict['ssp_lon'])
+        pdict['a_name'] = 'msg_seviri_%s_%.0fkm' % (service_mode['name'], res)
+        pdict['a_desc'] = 'SEVIRI %s area definition with %.0f km resolution' % (service_mode['desc'], res)
+
+        area_extent = self.get_area_extent(dataset_id)
+        areas = list()
+        for aex, nlines, ncolumns in zip(area_extent['area_extent'], area_extent['nlines'], area_extent['ncolumns']):
+            pdict['nlines'] = nlines
+            pdict['ncols'] = ncolumns
+            areas.append(get_area_definition(pdict, aex))
+
+        if len(areas) == 2:
+            area = geometry.StackedAreaDefinition(areas[0], areas[1])
+            area = area.squeeze()
+        else:
+            area = areas[0]
 
         return area
 
@@ -321,7 +328,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         SEVIRI-georeferencing-offset-correction>`_.
         """
         data15hd = self.header['15_DATA_HEADER']
-        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
 
         # check for Earth model as this affects the north-south and
         # west-east offsets
@@ -345,15 +351,17 @@ class NativeMSGFileHandler(BaseFileHandler):
         if dataset_id['name'] == 'HRV':
             grid_origin = data15hd['ImageDescription']['ReferenceGridHRV']['GridOrigin']
             center_point = (HRV_NUM_COLUMNS / 2) - 2
-            coeff = 3
             column_step = data15hd['ImageDescription']['ReferenceGridHRV']['ColumnDirGridStep'] * 1000.0
             line_step = data15hd['ImageDescription']['ReferenceGridHRV']['LineDirGridStep'] * 1000.0
+            nlines_fulldisk = HRV_NUM_LINES
+            ncolumns_fulldisk = HRV_NUM_COLUMNS
         else:
             grid_origin = data15hd['ImageDescription']['ReferenceGridVIS_IR']['GridOrigin']
             center_point = VISIR_NUM_COLUMNS / 2
-            coeff = 1
             column_step = data15hd['ImageDescription']['ReferenceGridVIS_IR']['ColumnDirGridStep'] * 1000.0
             line_step = data15hd['ImageDescription']['ReferenceGridVIS_IR']['LineDirGridStep'] * 1000.0
+            nlines_fulldisk = VISIR_NUM_LINES
+            ncolumns_fulldisk = VISIR_NUM_COLUMNS
 
         # Calculations assume grid origin is south-east corner
         # section 7.2.4 of MSG Level 1.5 Image Data Format Description
@@ -364,122 +372,104 @@ class NativeMSGFileHandler(BaseFileHandler):
             )
             raise NotImplementedError(msg)
 
-        # check if data is in Rapid Scanning Service mode (RSS)
+        aex_data = {'area_extent': [], 'nlines': [], 'ncolumns': []}
+
+        img_bounds = self.image_boundaries.get_img_bounds(dataset_id, self.is_roi())
+        for south_bound, north_bound, east_bound, west_bound in zip(*img_bounds.values()):
+
+            if self.fill_disk:
+                east_bound, west_bound = 1, ncolumns_fulldisk
+                if not self.mda['is_full_disk']:
+                    south_bound, north_bound = 1, nlines_fulldisk
+
+            nlines = north_bound - south_bound + 1
+            ncolumns = west_bound - east_bound + 1
+            aex = self._calculate_area_extent(center_point, north_bound, east_bound, south_bound, west_bound,
+                                              we_offset, ns_offset, column_step, line_step)
+
+            aex_data['area_extent'].append(aex)
+            aex_data['nlines'].append(nlines)
+            aex_data['ncolumns'].append(ncolumns)
+
+        return aex_data
+
+    def is_roi(self):
+        """Check if data covers a selected region of interest (ROI).
+
+        Standard RSS data consists of 3712 columns and 1392 lines, covering the three northmost segements
+        of the SEVIRI disk. Hence, if the data does not cover the full disk, nor the standard RSS region
+        in RSS mode, it's assumed to be ROI data.
+        """
         is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
 
-        # The HRV channel in full disk mode comes in two separate areas, and each area has its own area extent stored
-        # in the trailer.
-        # In Rapid Scanning mode, only the "Lower" area (typically over Europe) is acquired and included in the files.
-        if (dataset_id['name'] == 'HRV') and (self.mda['is_full_disk'] or is_rapid_scan):
+        # Standard RSS data is assumed to cover the three northmost segements, thus consisting of all 3712 columns and
+        # the 1392 northmost lines
+        nlines = int(self.mda['number_of_lines'])
+        ncolumns = int(self.mda['number_of_columns'])
+        north_bound = int(self.header['15_SECONDARY_PRODUCT_HEADER']['NorthLineSelectedRectangle']['Value'])
 
-            # get actual navigation parameters from trailer data
-            data15tr = self.trailer['15TRAILER']
-            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV']
+        is_top3segments = (ncolumns == VISIR_NUM_COLUMNS and nlines == 1392 and north_bound == VISIR_NUM_LINES)
 
-            # lower window
-            lower_north_line = HRV_bounds['LowerNorthLineActual']
-            lower_west_column = HRV_bounds['LowerWestColumnActual']
-            lower_south_line = HRV_bounds['LowerSouthLineActual']
-            lower_east_column = HRV_bounds['LowerEastColumnActual']
-
-            lower_area_extent = self._calculate_area_extent(
-                center_point, lower_north_line, lower_east_column,
-                lower_south_line, lower_west_column, we_offset,
-                ns_offset, column_step, line_step
-            )
-
-            if is_rapid_scan:
-                return lower_area_extent
-
-            lower_nlines = lower_north_line - lower_south_line + 1
-            lower_ncols = lower_west_column - lower_east_column + 1
-
-            # upper window
-            upper_north_line = HRV_bounds['UpperNorthLineActual']
-            upper_west_column = HRV_bounds['UpperWestColumnActual']
-            upper_south_line = HRV_bounds['UpperSouthLineActual']
-            upper_east_column = HRV_bounds['UpperEastColumnActual']
-
-            upper_area_extent = self._calculate_area_extent(
-                center_point, upper_north_line, upper_east_column,
-                upper_south_line, upper_west_column, we_offset,
-                ns_offset, column_step, line_step
-            )
-
-            upper_nlines = upper_north_line - upper_south_line + 1
-            upper_ncols = upper_west_column - upper_east_column + 1
-
-            return [upper_area_extent, lower_area_extent, upper_nlines, upper_ncols, lower_nlines, lower_ncols]
-
-        # If the data was ordered in a defined ROI, the area extent is in one piece, the corner points are
-        # the same as for VISIR channels, and the HRV channel is having three times the amount of columns and rows.
-        else:
-
-            north = coeff * int(sec15hd['NorthLineSelectedRectangle']['Value'])
-            east = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value'])
-            west = coeff * int(sec15hd['WestColumnSelectedRectangle']['Value'])
-            south = coeff * int(sec15hd['SouthLineSelectedRectangle']['Value'])
-
-            area_extent = self._calculate_area_extent(
-                center_point, north, east,
-                south, west, we_offset,
-                ns_offset, column_step, line_step
-            )
-
-        return area_extent
+        return not self.mda['is_full_disk'] and not (is_rapid_scan and is_top3segments)
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
         if dataset_id['name'] not in self.mda['channel_list']:
             raise KeyError('Channel % s not available in the file' % dataset_id['name'])
         elif dataset_id['name'] not in ['HRV']:
-            shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
-
-            # Check if there is only 1 channel in the list as a change
-            # is needed in the arrray assignment ie channl id is not present
-            if len(self.mda['channel_list']) == 1:
-                raw = self.dask_array['visir']['line_data']
-            else:
-                i = self.mda['channel_list'].index(dataset_id['name'])
-                raw = self.dask_array['visir']['line_data'][:, i, :]
-
-            data = dec10216(raw.flatten())
-            data = data.reshape(shape)
-
+            data = self._get_visir_channel(dataset_id)
         else:
-            shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
-
-            raw2 = self.dask_array['hrv']['line_data'][:, 2, :]
-            raw1 = self.dask_array['hrv']['line_data'][:, 1, :]
-            raw0 = self.dask_array['hrv']['line_data'][:, 0, :]
-
-            shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
-            data2 = dec10216(raw2.flatten())
-            data2 = data2.reshape(shape_layer)
-            data1 = dec10216(raw1.flatten())
-            data1 = data1.reshape(shape_layer)
-            data0 = dec10216(raw0.flatten())
-            data0 = data0.reshape(shape_layer)
-
-            data = np.stack((data0, data1, data2), axis=1).reshape(shape)
+            data = self._get_hrv_channel()
 
         xarr = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
 
         if xarr is None:
-            dataset = None
-        else:
-            dataset = self.calibrate(xarr, dataset_id)
-            dataset.attrs['units'] = dataset_info['units']
-            dataset.attrs['wavelength'] = dataset_info['wavelength']
-            dataset.attrs['standard_name'] = dataset_info['standard_name']
-            dataset.attrs['platform_name'] = self.mda['platform_name']
-            dataset.attrs['sensor'] = 'seviri'
-            dataset.attrs['orbital_parameters'] = {
-                'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
-                'projection_latitude': 0.,
-                'projection_altitude': self.mda['projection_parameters']['h']}
+            return None
+
+        dataset = self.calibrate(xarr, dataset_id)
+        dataset.attrs['units'] = dataset_info['units']
+        dataset.attrs['wavelength'] = dataset_info['wavelength']
+        dataset.attrs['standard_name'] = dataset_info['standard_name']
+        dataset.attrs['platform_name'] = self.mda['platform_name']
+        dataset.attrs['sensor'] = 'seviri'
+        dataset.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': self.mda['projection_parameters']['h']}
+
+        if self.fill_disk and not (dataset_id['name'] != 'HRV' and self.mda['is_full_disk']):
+            padder = Padder(dataset_id,
+                            self.image_boundaries.get_img_bounds(dataset_id, self.is_roi()),
+                            self.mda['is_full_disk'])
+            dataset = padder.pad_data(dataset)
 
         return dataset
+
+    def _get_visir_channel(self, dataset_id):
+        shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
+        # Check if there is only 1 channel in the list as a change
+        # is needed in the arrray assignment ie channl id is not present
+        if len(self.mda['channel_list']) == 1:
+            raw = self.dask_array['visir']['line_data']
+        else:
+            i = self.mda['channel_list'].index(dataset_id['name'])
+            raw = self.dask_array['visir']['line_data'][:, i, :]
+        data = dec10216(raw.flatten())
+        data = data.reshape(shape)
+        return data
+
+    def _get_hrv_channel(self):
+        shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
+        shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
+
+        data_list = []
+        for i in range(3):
+            raw = self.dask_array['hrv']['line_data'][:, i, :]
+            data = dec10216(raw.flatten())
+            data = data.reshape(shape_layer)
+            data_list.append(data)
+
+        return np.stack(data_list, axis=1).reshape(shape)
 
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
@@ -521,6 +511,142 @@ class NativeMSGFileHandler(BaseFileHandler):
             ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
             radiance_type=radiance_types[band_idx]
         )
+
+
+class ImageBoundaries:
+    """Collect image boundary information."""
+
+    def __init__(self, header, trailer, mda):
+        """Initialize the class."""
+        self._header = header
+        self._trailer = trailer
+        self._mda = mda
+
+    def get_img_bounds(self, dataset_id, is_roi):
+        """Get image line and column boundaries.
+
+        returns:
+            Dictionary with the four keys 'south_bound', 'north_bound', 'east_bound' and 'west_bound',
+            each containing a list of the respective line/column numbers of the image boundaries.
+
+        Lists (rather than scalars) are returned since the HRV data in FES mode contain data from two windows/areas.
+        """
+        if dataset_id['name'] == 'HRV' and not is_roi:
+            img_bounds = self._get_hrv_actual_img_bounds()
+        else:
+            img_bounds = self._get_selected_img_bounds(dataset_id)
+
+        self._check_for_valid_bounds(img_bounds)
+
+        return img_bounds
+
+    def _get_hrv_actual_img_bounds(self):
+        """Get HRV (if not ROI) image boundaries from the ActualL15CoverageHRV information stored in the trailer."""
+        hrv_bounds = self._trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
+
+        img_bounds = {'south_bound': [], 'north_bound': [], 'east_bound': [], 'west_bound': []}
+        for hrv_window in ['Lower', 'Upper']:
+            img_bounds['south_bound'].append(hrv_bounds['%sSouthLineActual' % hrv_window])
+            img_bounds['north_bound'].append(hrv_bounds['%sNorthLineActual' % hrv_window])
+            img_bounds['east_bound'].append(hrv_bounds['%sEastColumnActual' % hrv_window])
+            img_bounds['west_bound'].append(hrv_bounds['%sWestColumnActual' % hrv_window])
+
+            # Data from the upper hrv window are only available in FES mode
+            if not self._mda['is_full_disk']:
+                break
+
+        return img_bounds
+
+    def _get_selected_img_bounds(self, dataset_id):
+        """Get VISIR and HRV (if ROI) image boundaries from the SelectedRectangle information stored in the header."""
+        sec15hd = self._header['15_SECONDARY_PRODUCT_HEADER']
+        south_bound = int(sec15hd['SouthLineSelectedRectangle']['Value'])
+        east_bound = int(sec15hd['EastColumnSelectedRectangle']['Value'])
+
+        if dataset_id['name'] == 'HRV':
+            nlines, ncolumns = self._get_hrv_img_shape()
+            south_bound = self._convert_visir_bound_to_hrv(south_bound)
+            east_bound = self._convert_visir_bound_to_hrv(east_bound)
+        else:
+            nlines, ncolumns = self._get_visir_img_shape()
+
+        north_bound = south_bound + nlines - 1
+        west_bound = east_bound + ncolumns - 1
+
+        img_bounds = {'south_bound': [south_bound], 'north_bound': [north_bound],
+                      'east_bound': [east_bound], 'west_bound': [west_bound]}
+
+        return img_bounds
+
+    def _get_hrv_img_shape(self):
+        nlines = int(self._mda['hrv_number_of_lines'])
+        ncolumns = int(self._mda['hrv_number_of_columns'])
+        return nlines, ncolumns
+
+    def _get_visir_img_shape(self):
+        nlines = int(self._mda['number_of_lines'])
+        ncolumns = int(self._mda['number_of_columns'])
+        return nlines, ncolumns
+
+    @staticmethod
+    def _convert_visir_bound_to_hrv(bound):
+        return 3 * bound - 2
+
+    @staticmethod
+    def _check_for_valid_bounds(img_bounds):
+        len_img_bounds = [len(bound) for bound in img_bounds.values()]
+
+        same_lengths = (len(set(len_img_bounds)) == 1)
+        no_empty = (min(len_img_bounds) > 0)
+
+        if not (same_lengths and no_empty):
+            raise ValueError('Invalid image boundaries')
+
+
+class Padder:
+    """Padding of HRV, RSS and ROI data to full disk."""
+
+    def __init__(self, dataset_id, img_bounds, is_full_disk):
+        """Initialize the padder."""
+        self._img_bounds = img_bounds
+        self._is_full_disk = is_full_disk
+
+        if dataset_id['name'] == 'HRV':
+            self._final_shape = (HRV_NUM_LINES, HRV_NUM_COLUMNS)
+        else:
+            self._final_shape = (VISIR_NUM_LINES, VISIR_NUM_COLUMNS)
+
+    def pad_data(self, dataset):
+        """Pad data to full disk with empty pixels."""
+        logger.debug('Padding data to full disk')
+
+        data_list = []
+        for south_bound, north_bound, east_bound, west_bound in zip(*self._img_bounds.values()):
+            nlines = north_bound - south_bound + 1
+            data = self._extract_data_to_pad(dataset, south_bound, north_bound)
+            padded_data = pad_data_horizontally(data, (nlines, self._final_shape[1]), east_bound, west_bound)
+            data_list.append(padded_data)
+
+        padded_data = da.vstack(data_list)
+
+        # If we're dealing with RSS or ROI data, we also need to pad vertically in order to form a full disk array
+        if not self._is_full_disk:
+            padded_data = pad_data_vertically(padded_data, self._final_shape, south_bound, north_bound)
+
+        return xr.DataArray(padded_data, dims=('y', 'x'), attrs=dataset.attrs.copy())
+
+    def _extract_data_to_pad(self, dataset, south_bound, north_bound):
+        """Extract the data that shall be padded.
+
+        In case of FES (HRV) data, 'dataset' contains data from twoseparate windows that
+        are padded separately. Hence, we extract a subset of data.
+        """
+        if self._is_full_disk:
+            data = dataset[south_bound - 1:north_bound, :].data
+        else:
+            data = dataset.data
+
+        return data
 
 
 def get_available_channels(header):

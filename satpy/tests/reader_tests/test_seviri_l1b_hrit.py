@@ -25,8 +25,10 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
-                                           NoValidOrbitParams, pad_data)
+from satpy.readers.seviri_l1b_hrit import (
+    HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
+    NoValidOrbitParams
+)
 from satpy.tests.utils import make_dataid
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
     TestFileHandlerCalibrationBase
@@ -121,8 +123,8 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                     self.reader.mda['planned_start_segment_number'] = 1
 
                     tline = np.zeros(nlines, dtype=[('days', '>u2'), ('milliseconds', '>u4')])
-                    tline['days'][1:-1] = 21246 * np.ones(nlines-2)  # 2016-03-03
-                    tline['milliseconds'][1:-1] = np.arange(nlines-2)
+                    tline['days'][1:-1] = 21246 * np.ones(nlines - 2)  # 2016-03-03
+                    tline['milliseconds'][1:-1] = np.arange(nlines - 2)
                     self.reader.mda['image_segment_line_quality'] = {'line_mean_acquisition': tline}
 
     @mock.patch('satpy.readers.hrit_base.np.memmap')
@@ -228,20 +230,6 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         self.assertTrue(np.all(res['acq_time'] == timestamps))
         self.assertEqual(res['acq_time'].attrs['long_name'], 'Mean scanline acquisition time')
 
-    def test_pad_data(self):
-        """Test the hrv padding."""
-        data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
-        east_bound = 4
-        west_bound = 13
-        final_size = (1, 20)
-        res = pad_data(data, final_size, east_bound, west_bound)
-        expected = np.array([[np.nan, np.nan, np.nan,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
-                              np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
-        np.testing.assert_allclose(res, expected)
-
-        east_bound = 3
-        self.assertRaises(IndexError, pad_data, data, final_size, east_bound, west_bound)
-
     def test_get_area_def(self):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
@@ -323,8 +311,8 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                     self.reader.mda['orbital_parameters']['satellite_actual_altitude'] = 35783328
 
                     tline = np.zeros(nlines, dtype=[('days', '>u2'), ('milliseconds', '>u4')])
-                    tline['days'][1:-1] = 21246 * np.ones(nlines-2)  # 2016-03-03
-                    tline['milliseconds'][1:-1] = np.arange(nlines-2)
+                    tline['days'][1:-1] = 21246 * np.ones(nlines - 2)  # 2016-03-03
+                    tline['milliseconds'][1:-1] = np.arange(nlines - 2)
                     self.reader.mda['image_segment_line_quality'] = {'line_mean_acquisition': tline}
 
     def test_get_area_def(self):
@@ -501,8 +489,10 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the prologue file handler accepts extra keyword arguments."""
+
         def init_patched(self, *args, **kwargs):
             self.mda = {}
+
         init.side_effect = init_patched
 
         HRITMSGPrologueFileHandler(filename=None,
@@ -628,6 +618,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
     def setUp(self, init, *mocks):
         """Set up the test case."""
+
         def init_patched(self, *args, **kwargs):
             self.mda = {}
 
@@ -642,6 +633,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
     def test_extra_kwargs(self, init, *mocks):
         """Test whether the epilogue file handler accepts extra keyword arguments."""
+
         def init_patched(self, *args, **kwargs):
             self.mda = {}
 
