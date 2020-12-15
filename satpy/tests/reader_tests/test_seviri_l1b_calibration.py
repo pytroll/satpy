@@ -211,8 +211,9 @@ class TestFileHandlerCalibrationBase:
     platform_id = 324
     gains_nominal = np.arange(1, 13)
     offsets_nominal = np.arange(-1, -13, -1)
-    gains_gsics = np.arange(0.1, 1.3, 0.1)
-    offsets_gsics = np.arange(-0.1, -1.3, -0.1)
+    # No GSICS coefficients for VIS channels -> set to zero
+    gains_gsics = [0, 0, 0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 0]
+    offsets_gsics = [0, 0, 0, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1.0, -1.1, 0]
     radiance_types = 2 * np.ones(12)
     scan_time = datetime(2020, 1, 1)
     external_coefs = {
