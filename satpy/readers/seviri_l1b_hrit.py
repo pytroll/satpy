@@ -119,21 +119,10 @@ Output:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
-Notes:
-    When loading solar channels, this reader applies a correction for the
-    Sun-Earth distance variation throughout the year - as recommended by
-    the EUMETSAT document:
-        'Conversion from radiances to reflectances for SEVIRI warm channels'
-    In the unlikely situation that this correction is not required, it can be
-    removed on a per-channel basis using the
-    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
-    function.
-
 
 References:
     - `MSG Level 1.5 Image Format Description`_
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
-    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
 
 
 .. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
@@ -141,10 +130,6 @@ References:
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
-
-.. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
     RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 """
@@ -171,7 +156,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
 from satpy.readers.seviri_base import (CHANNEL_NAMES, SATNUM,
                                        SEVIRICalibrationHandler,
                                        chebyshev, get_cds_time, HRV_NUM_COLUMNS,
-                                       pad_data_horizontally, create_coef_dict)
+                                       pad_data_horizontally, create_coef_dict,
+                                       SEVIRIBaseFileHandler)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
 from satpy.readers._geos_area import get_area_extent, get_area_definition
@@ -435,55 +421,12 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
         return self._reduce(self.epilogue, max_size=max_size)
 
 
-class HRITMSGFileHandler(HRITFileHandler):
+class HRITMSGFileHandler(HRITFileHandler, SEVIRIBaseFileHandler):
     """SEVIRI HRIT format reader.
 
     **Calibration**
 
-    It is possible to choose between two file-internal calibration coefficients for the conversion
-    from counts to radiances:
-
-        - Nominal for all channels (default)
-        - GSICS for IR channels and nominal for VIS channels
-
-    In order to change the default behaviour, use the ``reader_kwargs`` upon Scene creation::
-
-        import satpy
-        import glob
-
-        filenames = glob.glob('H-000-MSG3*')
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'calib_mode': 'GSICS'})
-        scene.load(['VIS006', 'IR_108'])
-
-    Furthermore, it is possible to specify external calibration coefficients for the conversion from
-    counts to radiances. They must be specified in [mW m-2 sr-1 (cm-1)-1]. External coefficients
-    take precedence over internal coefficients. If external calibration coefficients are specified
-    for only a subset of channels, the remaining channels will be calibrated using the chosen
-    file-internal coefficients (nominal or GSICS).
-
-    In the following example we use external calibration coefficients for the ``VIS006`` &
-    ``IR_108`` channels, and nominal coefficients for the remaining channels::
-
-        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
-                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'ext_calib_coefs': coefs})
-        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
-
-    In the next example we use we use external calibration coefficients for the ``VIS006`` &
-    ``IR_108`` channels, nominal coefficients for the remaining VIS channels and GSICS coefficients
-    for the remaining IR channels::
-
-        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
-                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'calib_mode': 'GSICS',
-                                           'ext_calib_coefs': coefs})
-        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+    See :class:`satpy.readers.seviri_base.SEVIRIBaseFileHandler`.
 
     **Raw Metadata**
 
@@ -511,11 +454,16 @@ class HRITMSGFileHandler(HRITFileHandler):
                  prologue, epilogue, calib_mode='nominal',
                  ext_calib_coefs=None, mda_max_array_size=100, fill_hrv=True):
         """Initialize the reader."""
-        super(HRITMSGFileHandler, self).__init__(filename, filename_info,
-                                                 filetype_info,
-                                                 (msg_hdr_map,
-                                                  msg_variable_length_headers,
-                                                  msg_text_headers))
+        HRITFileHandler.__init__(
+            self,
+            filename,
+            filename_info,
+            filetype_info,
+            (msg_hdr_map,
+             msg_variable_length_headers,
+             msg_text_headers)
+        )
+        SEVIRIBaseFileHandler.__init__(self, calib_mode, ext_calib_coefs)
 
         self.prologue_ = prologue
         self.epilogue_ = epilogue
@@ -524,8 +472,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         self._filename_info = filename_info
         self.mda_max_array_size = mda_max_array_size
         self.fill_hrv = fill_hrv
-        self.calib_mode = calib_mode
-        self.ext_calib_coefs = ext_calib_coefs or {}
 
         self._get_header()
 
