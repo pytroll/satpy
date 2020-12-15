@@ -33,7 +33,9 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
     **Calibration**
 
-    See :mod:`satpy.readers.seviri_base`.
+    See :mod:`satpy.readers.seviri_base`. Note that there is only one set of
+    calibration coefficients available in the netCDF files and therefore there
+    is no `calib_mode` argument.
 
     """
 
