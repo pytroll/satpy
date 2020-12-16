@@ -56,15 +56,15 @@ class SARIce(GenericCompositor):
         return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)
 
 
-def square_root_channels(mhh, mhv):
+def _square_root_channels(*projectables):
     """Return the square root of the channels, preserving the attributes."""
-    ch1attrs = mhh.attrs
-    ch2attrs = mhv.attrs
-    mhh = np.sqrt(mhh)
-    mhv = np.sqrt(mhv)
-    mhh.attrs = ch1attrs
-    mhv.attrs = ch2attrs
-    return mhh, mhv
+    results = []
+    for projectable in projectables:
+        attrs = projectable.attrs
+        projectable = np.sqrt(projectable)
+        projectable.attrs = attrs
+        results.append(projectable)
+    return results
 
 
 class SARIceLegacy(GenericCompositor):
@@ -72,7 +72,7 @@ class SARIceLegacy(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR RGB composite."""
-        mhh, mhv = square_root_channels(*projectables)
+        mhh, mhv = _square_root_channels(*projectables)
         green = overlay(mhh, mhv)
         green.attrs = combine_metadata(mhh, mhv)
 
@@ -84,58 +84,11 @@ class SARRGB(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR RGB composite."""
-        mhh, mhv = square_root_channels(*projectables)
+        mhh, mhv = _square_root_channels(*projectables)
         green = overlay(mhh, mhv)
         green.attrs = combine_metadata(mhh, mhv)
 
         return super(SARRGB, self).__call__((-mhv, -green, -mhh), *args, **kwargs)
-        # (mhh, mhv) = projectables
-        # green = 1 - (overlay(mhh, mhv) / .0044)
-        # red = 1 - (mhv / .223)
-        # blue = 1 - (mhh / .596)
-        # import xarray as xr
-        # from functools import reduce
-        #
-        # mask1 = reduce(np.logical_and,
-        #                [abs(green - blue) < 10 / 255.,
-        #                 red - blue >= 0,
-        #                 np.maximum(green, blue) < 200 / 255.])
-        #
-        # mask2 = np.logical_and(abs(green - blue) < 40 / 255.,
-        #                        red - blue > 40 / 255.)
-        #
-        # mask3 = np.logical_and(red - blue > 10 / 255.,
-        #                        np.maximum(green, blue) < 120 / 255.)
-        #
-        # mask4 = reduce(np.logical_and,
-        #                [red < 70 / 255.,
-        #                 green < 60 / 255.,
-        #                 blue < 60 / 255.])
-        #
-        # mask5 = reduce(np.logical_and,
-        #                [red < 80 / 255.,
-        #                 green < 80 / 255.,
-        #                 blue < 80 / 255.,
-        #                 np.minimum(np.minimum(red, green), blue) < 30 / 255.])
-        #
-        # mask6 = reduce(np.logical_and,
-        #                [red < 110 / 255.,
-        #                 green < 110 / 255.,
-        #                 blue < 110 / 255.,
-        #                 np.minimum(red, green) < 10 / 255.])
-        #
-        # mask = reduce(np.logical_or, [mask1, mask2, mask3, mask4, mask5, mask6])
-        #
-        # red = xr.where(mask, 230 / 255. - red, red).clip(min=0)
-        # green = xr.where(mask, 1 - green, green)
-        # blue = xr.where(mask, 1 - blue, blue)
-        #
-        # attrs = combine_metadata(mhh, mhv)
-        # green.attrs = attrs
-        # red.attrs = attrs
-        # blue.attrs = attrs
-        #
-        # return super(SARRGB, self).__call__((mhv, green, mhh), *args, **kwargs)
 
 
 class SARQuickLook(GenericCompositor):
@@ -143,7 +96,7 @@ class SARQuickLook(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR QuickLook composite."""
-        mhh, mhv = square_root_channels(*projectables)
+        mhh, mhv = _square_root_channels(*projectables)
 
         blue = mhv / mhh
         blue.attrs = combine_metadata(mhh, mhv)
