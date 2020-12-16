@@ -320,15 +320,10 @@ class SAFEGRD(BaseFileHandler):
 
         if key['name'] in ['longitude', 'latitude', 'altitude']:
             logger.debug('Constructing coordinate arrays.')
+            arrays = dict()
+            arrays['longitude'], arrays['latitude'], arrays['altitude'] = self.get_lonlatalts()
 
-            lons, lats, alts = self.get_lonlatalts()
-
-            if key['name'] == 'latitude':
-                data = lats
-            elif key['name'] == 'longitude':
-                data = lons
-            elif key['name'] == 'altitude':
-                data = alts
+            data = arrays[key['name']]
             data.attrs.update(info)
 
         else:
