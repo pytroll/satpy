@@ -17,27 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI native format reader.
 
-Notes:
-    When loading solar channels, this reader applies a correction for the
-    Sun-Earth distance variation throughout the year - as recommended by
-    the EUMETSAT document:
-        'Conversion from radiances to reflectances for SEVIRI warm channels'
-    In the unlikely situation that this correction is not required, it can be
-    removed on a per-channel basis using the
-    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
-    function.
-
 References:
     - `MSG Level 1.5 Native Format File Definition`_
-    - `MSG Level 1.5 Image Data Format Description`_
-    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
 
-.. _MSG Level 1.5 Native Format File Definition
+.. _MSG Level 1.5 Native Format File Definition:
     https://www-cdn.eumetsat.int/files/2020-04/pdf_fg15_msg-native-format-15.pdf
-.. _MSG Level 1.5 Image Data Format Description
-    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
-.. _Conversion from radiances to reflectances for SEVIRI warm channels:
-    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
 
 """
 
@@ -54,11 +38,12 @@ from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import recarray2dict
-from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
-                                       CHANNEL_NAMES, CALIB, SATNUM,
-                                       dec10216, VISIR_NUM_COLUMNS,
-                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
-                                       VIS_CHANNELS, get_service_mode, pad_data_horizontally, pad_data_vertically)
+from satpy.readers.seviri_base import (
+    SEVIRICalibrationHandler, CHANNEL_NAMES, SATNUM, dec10216,
+    VISIR_NUM_COLUMNS, VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
+    create_coef_dict, get_service_mode, pad_data_horizontally,
+    pad_data_vertically
+)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
@@ -66,12 +51,12 @@ from satpy.readers._geos_area import get_area_definition
 logger = logging.getLogger('native_msg')
 
 
-class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
+class NativeMSGFileHandler(BaseFileHandler):
     """SEVIRI native format reader.
 
-    The Level1.5 Image data calibration method can be changed by adding the
-    required mode to the Scene object instantiation  kwargs eg
-    kwargs = {"calib_mode": "gsics",}
+    **Calibration**
+
+    See :mod:`satpy.readers.seviri_base`.
 
     **Padding channel data to full disk**
 
@@ -85,13 +70,15 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                             reader_kwargs={'fill_disk': False})
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal', fill_disk=False):
+    def __init__(self, filename, filename_info, filetype_info,
+                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
         self.platform_name = None
         self.calib_mode = calib_mode
+        self.ext_calib_coefs = ext_calib_coefs or {}
         self.fill_disk = fill_disk
 
         # Declare required variables.
@@ -471,51 +458,43 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     def calibrate(self, data, dataset_id):
         """Calibrate the data."""
         tic = datetime.now()
+        channel_name = dataset_id['name']
+        calib = SEVIRICalibrationHandler(
+            platform_id=self.platform_id,
+            channel_name=channel_name,
+            coefs=self._get_calib_coefs(channel_name),
+            calib_mode=self.calib_mode,
+            scan_time=self.start_time
+        )
+        res = calib.calibrate(data, dataset_id['calibration'])
+        logger.debug("Calibration time " + str(datetime.now() - tic))
+        return res
 
-        data15hdr = self.header['15_DATA_HEADER']
-        calibration = dataset_id['calibration']
-        channel = dataset_id['name']
-
+    def _get_calib_coefs(self, channel_name):
+        """Get coefficients for calibration from counts to radiance."""
         # even though all the channels may not be present in the file,
         # the header does have calibration coefficients for all the channels
         # hence, this channel index needs to refer to full channel list
-        i = list(CHANNEL_NAMES.values()).index(channel)
+        band_idx = list(CHANNEL_NAMES.values()).index(channel_name)
 
-        if calibration == 'counts':
-            return data
-
-        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            # determine the required calibration coefficients to use
-            # for the Level 1.5 Header
-            if (self.calib_mode.upper() != 'GSICS' and self.calib_mode.upper() != 'NOMINAL'):
-                raise NotImplementedError(
-                    'Unknown Calibration mode : Please check')
-
-            # NB GSICS doesn't have calibration coeffs for VIS channels
-            if (self.calib_mode.upper() != 'GSICS' or channel in VIS_CHANNELS):
-                coeffs = data15hdr[
-                    'RadiometricProcessing']['Level15ImageCalibration']
-                gain = coeffs['CalSlope'][i]
-                offset = coeffs['CalOffset'][i]
-            else:
-                coeffs = data15hdr[
-                    'RadiometricProcessing']['MPEFCalFeedback']
-                gain = coeffs['GSICSCalCoeff'][i]
-                offset = coeffs['GSICSOffsetCount'][i]
-                offset = offset * gain
-            res = self._convert_to_radiance(data, gain, offset)
-
-        if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.platform_id][channel]["F"]
-            res = self._vis_calibrate(res, solar_irradiance)
-
-        elif calibration == 'brightness_temperature':
-            cal_type = data15hdr['ImageDescription'][
-                'Level15ImageProduction']['PlannedChanProcessing'][i]
-            res = self._ir_calibrate(res, channel, cal_type)
-
-        logger.debug("Calibration time " + str(datetime.now() - tic))
-        return res
+        coefs_nominal = self.header['15_DATA_HEADER'][
+            'RadiometricProcessing']['Level15ImageCalibration']
+        coefs_gsics = self.header['15_DATA_HEADER'][
+            'RadiometricProcessing']['MPEFCalFeedback']
+        radiance_types = self.header['15_DATA_HEADER']['ImageDescription'][
+                'Level15ImageProduction']['PlannedChanProcessing']
+        return create_coef_dict(
+            coefs_nominal=(
+                coefs_nominal['CalSlope'][band_idx],
+                coefs_nominal['CalOffset'][band_idx]
+            ),
+            coefs_gsics=(
+                coefs_gsics['GSICSCalCoeff'][band_idx],
+                coefs_gsics['GSICSOffsetCount'][band_idx]
+            ),
+            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
+            radiance_type=radiance_types[band_idx]
+        )
 
 
 class ImageBoundaries:
