@@ -170,7 +170,23 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return dataset
 
     def get_area_def(self, dataset_id):
-        """Get the area def."""
+        """Get the area def.
+
+        Note that the AreaDefinition area extents returned by this function for NetCDF data will be slightly
+        different compared to the area extents returned by the SEVIRI HRIT reader.
+        This is due to slightly different pixel size values when calculated using the data available in the files. E.g.
+        for the 3 km grid:
+
+        ``NetCDF:  self.nc.attrs['vis_ir_column_dir_grid_step'] == 3000.4031658172607``
+        ``HRIT: np.deg2rad(2.**16 / pdict['lfac']) * pdict['h'] == 3000.4032785810186``
+
+        This results in the Native 3 km full-disk area extents being approx. 20 cm shorter in each direction.
+
+        The method for calculating the area extents used by the HRIT reader (CFAC/LFAC mechanism) keeps the
+        highest level of numeric precision and is used as reference by EUM. For this reason, the standard area
+        definitions defined in the `areas.yaml` file correspond to the HRIT ones.
+
+        """
         pdict = {}
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']

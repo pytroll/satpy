@@ -280,6 +280,21 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         and corresponding number of image lines/columns. In case of FES HRV data, two area definitions are
         computed, stacked and squeezed. For other cases, the lists will only have one entry each, from which
         a single area definition is computed.
+
+        Note that the AreaDefinition area extents returned by this function for Native data will be slightly
+        different compared to the area extents returned by the SEVIRI HRIT reader.
+        This is due to slightly different pixel size values when calculated using the data available in the files. E.g.
+        for the 3 km grid:
+
+        ``Native: data15hd['ImageDescription']['ReferenceGridVIS_IR']['ColumnDirGridStep'] == 3000.4031658172607``
+        ``HRIT:                            np.deg2rad(2.**16 / pdict['lfac']) * pdict['h'] == 3000.4032785810186``
+
+        This results in the Native 3 km full-disk area extents being approx. 20 cm shorter in each direction.
+
+        The method for calculating the area extents used by the HRIT reader (CFAC/LFAC mechanism) keeps the
+        highest level of numeric precision and is used as reference by EUM. For this reason, the standard area
+        definitions defined in the `areas.yaml` file correspond to the HRIT ones.
+
         """
         pdict = {}
         pdict['a'] = self.mda['projection_parameters']['a']
