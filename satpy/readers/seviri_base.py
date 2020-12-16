@@ -635,15 +635,6 @@ def create_coef_dict(coefs_nominal, coefs_gsics, radiance_type, ext_coefs):
     }
 
 
-def get_service_mode(ssp_lon):
-    """Get information about whether we're dealing with data from the FES, RSS or IODC service mode."""
-    seviri_service_modes = {'0.0': {'name': 'FES', 'desc': 'Full Earth scanning service'},
-                            '9.5': {'name': 'RSS', 'desc': 'Rapid scanning service'},
-                            '41.5': {'name': 'IODC', 'desc': 'Indian Ocean data coverage service'}}
-
-    return seviri_service_modes['%.1f' % ssp_lon]
-
-
 def get_padding_area(shape, dtype):
     """Create a padding area filled with no data."""
     if np.issubdtype(dtype, np.floating):
