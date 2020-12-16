@@ -283,8 +283,7 @@ mali_eqc:
     upper_right_xy: [1224514.3987260093, 1001875.4171394617]
 sve:
   description:
-    North half of the Iberian Peninsula and the Gulf of Biscay
-    image 0 degrees
+    Sweden and baltic sea
   projection:
     init: epsg:3006
   shape:
