@@ -62,7 +62,7 @@ extras_require = {
     'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
-    'scmi': ['netCDF4 >= 1.1.8'],
+    'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
