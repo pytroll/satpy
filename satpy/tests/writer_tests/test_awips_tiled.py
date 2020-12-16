@@ -134,7 +134,15 @@ class TestAWIPSTiledWriter:
             np.testing.assert_allclose(input_data_arr.values, output_ds['data'].data,
                                        atol=scale_factor / 2)
 
-    def test_basic_numbered_tiles(self):
+    @pytest.mark.parametrize(
+        ("tile_count", "tile_size"),
+        [
+            ((3, 3), None),
+            (None, (67, 34)),
+            (None, None),
+        ]
+    )
+    def test_basic_numbered_tiles(self, tile_count, tile_size):
         """Test creating a multiple numbered tiles."""
         import xarray as xr
         import dask
@@ -142,13 +150,25 @@ class TestAWIPSTiledWriter:
         from satpy.tests.utils import CustomScheduler
         input_data_arr = self._get_test_lcc_data()
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
-        with dask.config.set(scheduler=CustomScheduler(1)):
-            w.save_datasets([input_data_arr], sector_id='TEST',
-                            source_name="TESTS",
-                            tile_count=(3, 3),
-                            extra_global_attrs={'my_global': 'TEST'})
+        save_kwargs = dict(
+            sector_id='TEST',
+            source_name="TESTS",
+            tile_count=tile_count,
+            tile_size=tile_size,
+            extra_global_attrs={'my_global': 'TEST'}
+        )
+        should_error = tile_count is None and tile_size is None
+        if should_error:
+            with dask.config.set(scheduler=CustomScheduler(0)),\
+                 pytest.raises(ValueError, match=r'Either.*tile_count.*'):
+                w.save_datasets([input_data_arr], **save_kwargs)
+        else:
+            with dask.config.set(scheduler=CustomScheduler(1)):
+                w.save_datasets([input_data_arr], **save_kwargs)
+
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
-        assert len(all_files) == 9
+        expected_num_files = 0 if should_error else 9
+        assert len(all_files) == expected_num_files
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
