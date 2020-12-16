@@ -58,7 +58,7 @@ class NCGriddedGLML2(NC_ABI_BASE):
         """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%SZ')
 
-    def _is_cat(self, data_arr):
+    def _is_category_product(self, data_arr):
         # if after autoscaling we still have an integer
         is_int = np.issubdtype(data_arr.dtype, np.integer)
         # and it has a fill value
@@ -91,7 +91,7 @@ class NCGriddedGLML2(NC_ABI_BASE):
         res.attrs.update(key.to_dict())
 
         # remove attributes that could be confusing later
-        if not self._is_cat(res):
+        if not self._is_category_product(res):
             res.attrs.pop('_FillValue', None)
         res.attrs.pop('scale_factor', None)
         res.attrs.pop('add_offset', None)
@@ -108,9 +108,10 @@ class NCGriddedGLML2(NC_ABI_BASE):
         return res
 
     def _is_2d_xy_var(self, data_arr):
+        is_2d = data_arr.ndim == 2
         has_x_dim = 'x' in data_arr.dims
         has_y_dim = 'y' in data_arr.dims
-        return has_x_dim and has_y_dim
+        return is_2d and has_x_dim and has_y_dim
 
     def available_datasets(self, configured_datasets=None):
         """Discover new datasets and add information from file."""
