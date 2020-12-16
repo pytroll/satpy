@@ -69,6 +69,13 @@ class HighlightCompositor(GenericCompositor):
         self.max_factor = max_factor
         super().__init__(name, **kwargs)
 
+    @staticmethod
+    def _get_enhanced_background_data(background_layer):
+        img = get_enhanced_image(background_layer)
+        img.data = img.data.clip(0.0, 1.0)
+        img = img.convert('RGBA')
+        return img.data
+
     def _get_highlight_factor(self, highlight_data):
         factor = (highlight_data - self.min_highlight) / (self.max_highlight - self.min_highlight)
         factor = factor.where(factor.notnull(), 0)
@@ -94,11 +101,7 @@ class HighlightCompositor(GenericCompositor):
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Create RGBA image with highlighted pixels."""
         highlight_product, background_layer = self.match_data_arrays(projectables)
-
-        img = get_enhanced_image(background_layer)
-        img.data = img.data.clip(0.0, 1.0)
-        img = img.convert('RGBA')
-        background_data = img.data
+        background_data = self._get_enhanced_background_data(background_layer)
 
         # Adjust the colors of background by highlight layer
         factor = self._get_highlight_factor(highlight_product)
