@@ -21,6 +21,7 @@ import os
 import unittest
 from unittest import mock
 
+import numpy as np
 import pytest
 
 from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
@@ -546,49 +547,6 @@ class TestScene(unittest.TestCase):
         self.assertIn('bands', new_scn1['2'].dims)
         self.assertTupleEqual(new_scn1['1'].shape, (3, 184, 714))
         self.assertTupleEqual(new_scn1['2'].shape, (92, 3, 357))
-
-    def test_aggregate(self):
-        """Test the aggregate method."""
-        from satpy import Scene
-        from xarray import DataArray
-        from pyresample.geometry import AreaDefinition
-        import numpy as np
-        scene1 = Scene()
-        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
-                       5570248.477339745)
-        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
-                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
-        x_size = 3712
-        y_size = 3712
-        area_def = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            x_size,
-            y_size,
-            area_extent,
-        )
-
-        scene1["1"] = DataArray(np.ones((y_size, x_size)), attrs={'_satpy_id_keys': default_id_keys_config})
-        scene1["2"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'_satpy_id_keys': default_id_keys_config})
-        scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
-
-        scene1["4"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def, 'standard_name': 'backscatter',
-                                       '_satpy_id_keys': default_id_keys_config})
-
-        scene2 = scene1.aggregate(func='sum', x=2, y=2)
-        self.assertIs(scene1['1'], scene2['1'])
-        self.assertIs(scene1['2'], scene2['2'])
-        np.testing.assert_allclose(scene2['3'].data, 4)
-        self.assertTupleEqual(scene2['1'].shape, (y_size, x_size))
-        self.assertTupleEqual(scene2['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(scene2['3'].shape, (y_size / 2, x_size / 2))
-        assert 'standard_name' in scene2['4'].attrs
-        assert scene2['4'].attrs['standard_name'] == 'backscatter'
 
     def test_contains(self):
         """Test contains."""
@@ -2309,3 +2267,71 @@ class TestSceneConversions(unittest.TestCase):
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         self.assertIsNotNone(gv_obj)
+
+
+class TestSceneAggregation(unittest.TestCase):
+    """Test the scene's aggregate method."""
+
+    def test_aggregate(self):
+        """Test the aggregate method."""
+        x_size = 3712
+        y_size = 3712
+
+        scene1 = self._create_test_data(x_size, y_size)
+
+        scene2 = scene1.aggregate(func='sum', x=2, y=2)
+        expected_aggregated_shape = (y_size / 2, x_size / 2)
+        self._check_aggregation_results(expected_aggregated_shape, scene1, scene2, x_size, y_size)
+
+    @staticmethod
+    def _create_test_data(x_size, y_size):
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+        scene1["1"] = DataArray(np.ones((y_size, x_size)), attrs={'_satpy_id_keys': default_id_keys_config})
+        scene1["2"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'_satpy_id_keys': default_id_keys_config})
+        scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
+        scene1["4"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def, 'standard_name': 'backscatter',
+                                       '_satpy_id_keys': default_id_keys_config})
+        return scene1
+
+    def _check_aggregation_results(self, expected_aggregated_shape, scene1, scene2, x_size, y_size):
+        self.assertIs(scene1['1'], scene2['1'])
+        self.assertIs(scene1['2'], scene2['2'])
+        np.testing.assert_allclose(scene2['3'].data, 4)
+        self.assertTupleEqual(scene2['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(scene2['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(scene2['3'].shape, expected_aggregated_shape)
+        assert 'standard_name' in scene2['4'].attrs
+        assert scene2['4'].attrs['standard_name'] == 'backscatter'
+
+    def test_aggregate_with_boundary(self):
+        """Test aggregation with boundary argument."""
+        x_size = 3711
+        y_size = 3711
+
+        scene1 = self._create_test_data(x_size, y_size)
+
+        with pytest.raises(ValueError):
+            scene1.aggregate(func='sum', x=2, y=2, boundary='exact')
+
+        scene2 = scene1.aggregate(func='sum', x=2, y=2, boundary='trim')
+        expected_aggregated_shape = (y_size // 2, x_size // 2)
+        self._check_aggregation_results(expected_aggregated_shape, scene1, scene2, x_size, y_size)
