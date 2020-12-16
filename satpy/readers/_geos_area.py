@@ -121,11 +121,15 @@ def get_area_definition(pdict, a_ext):
             h: Platform height (m)
             a_name: Area name
             a_desc: Area description
-            p_id: Projection id  # being deprecated
+            p_id: Projection id
         a_ext: A four element tuple containing the area extent (scan angle)
                for the scene in radians
     Returns:
         a_def: An area definition for the scene
+
+    .. note::
+
+        The AreaDefinition `proj_id` attribute is being deprecated.
 
     """
     proj_dict = {'a': float(pdict['a']),
@@ -139,7 +143,7 @@ def get_area_definition(pdict, a_ext):
         pdict['a_name'],
         pdict['a_desc'],
         pdict['p_id'],
-        proj_dict,  # being deprecated
+        proj_dict,
         int(pdict['ncols']),
         int(pdict['nlines']),
         a_ext)
