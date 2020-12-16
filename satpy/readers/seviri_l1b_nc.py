@@ -20,9 +20,10 @@
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, SATNUM)
+from satpy.readers.eum_base import get_service_mode
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition
+from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy import CHUNK_SIZE
 
 import datetime
@@ -174,25 +175,48 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         }
 
     def get_area_def(self, dataset_id):
-        """Get the area def."""
+        """Get the area def.
+
+        Note that the AreaDefinition area extents returned by this function for NetCDF data will be slightly
+        different compared to the area extents returned by the SEVIRI HRIT reader.
+        This is due to slightly different pixel size values when calculated using the data available in the files. E.g.
+        for the 3 km grid:
+
+        ``NetCDF:  self.nc.attrs['vis_ir_column_dir_grid_step'] == 3000.4031658172607``
+        ``HRIT: np.deg2rad(2.**16 / pdict['lfac']) * pdict['h'] == 3000.4032785810186``
+
+        This results in the Native 3 km full-disk area extents being approx. 20 cm shorter in each direction.
+
+        The method for calculating the area extents used by the HRIT reader (CFAC/LFAC mechanism) keeps the
+        highest level of numeric precision and is used as reference by EUM. For this reason, the standard area
+        definitions defined in the `areas.yaml` file correspond to the HRIT ones.
+
+        """
         pdict = {}
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': int(dataset_id['resolution'])
+                                  }
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', pdict['ssp_lon'])})
+
         if dataset_id['name'] == 'HRV':
             pdict['nlines'] = self.mda['hrv_number_of_lines']
             pdict['ncols'] = self.mda['hrv_number_of_columns']
-            pdict['a_name'] = 'geosmsg_hrv'
-            pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
-            pdict['p_id'] = 'msg_hires'
+            pdict['a_name'] = area_naming['area_id']
+            pdict['a_desc'] = area_naming['description']
+            pdict['p_id'] = ""
         else:
             pdict['nlines'] = self.mda['number_of_lines']
             pdict['ncols'] = self.mda['number_of_columns']
-            pdict['a_name'] = 'geosmsg'
-            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
-            pdict['p_id'] = 'msg_lowres'
+            pdict['a_name'] = area_naming['area_id']
+            pdict['a_desc'] = area_naming['description']
+            pdict['p_id'] = ""
 
         area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 
