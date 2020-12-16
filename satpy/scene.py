@@ -635,7 +635,7 @@ class Scene:
 
         return new_scn
 
-    def aggregate(self, dataset_ids=None, boundary='exact', side='left', func='mean', **dim_kwargs):
+    def aggregate(self, dataset_ids=None, boundary='trim', side='left', func='mean', **dim_kwargs):
         """Create an aggregated version of the Scene.
 
         Args:
@@ -645,8 +645,8 @@ class Scene:
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
                            'argmax', 'prod', 'std', 'var'.
                            'mean' is the default.
-            boundary: Not implemented.
-            side: Not implemented.
+            boundary: See :meth:`xarray.DataArray.coarsen`, 'trim' by default.
+            side: See :meth:`xarray.DataArray.coarsen`, 'left' by default.
             dim_kwargs: the size of the windows to aggregate.
 
         Returns:
@@ -668,9 +668,7 @@ class Scene:
                     new_scn._datasets[ds_id] = self[ds_id]
                 continue
 
-            if boundary != 'exact':
-                raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
-            target_area = src_area.aggregate(**dim_kwargs)
+            target_area = src_area.aggregate(boundary=boundary, **dim_kwargs)
             try:
                 resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
             except AttributeError:
@@ -679,6 +677,7 @@ class Scene:
                 res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
 
                 new_scn._datasets[ds_id] = getattr(res, func)()
+                new_scn._datasets[ds_id].attrs = self[ds_id].attrs.copy()
                 new_scn._datasets[ds_id].attrs['area'] = target_area
                 new_scn._datasets[ds_id].attrs['resolution'] = resolution
 

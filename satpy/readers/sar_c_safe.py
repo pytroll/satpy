@@ -36,17 +36,18 @@ References:
 
 import logging
 import xml.etree.ElementTree as ET
+from functools import lru_cache
+from threading import Lock
 
 import numpy as np
 import rasterio
-from rasterio.windows import Window
-import dask.array as da
-from xarray import DataArray
+import xarray as xr
+from dask import array as da
 from dask.base import tokenize
-from threading import Lock
+from xarray import DataArray
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +157,7 @@ class SAFEXML(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._polarization != key.polarization:
+        if self._polarization != key["polarization"]:
             return
 
         xml_items = info['xml_item']
@@ -177,6 +178,7 @@ class SAFEXML(BaseFileHandler):
 
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
 
+    @lru_cache(maxsize=10)
     def get_noise_correction(self, shape, chunks=None):
         """Get the noise correction array."""
         data_items = self.root.findall(".//noiseVector")
@@ -193,8 +195,14 @@ class SAFEXML(BaseFileHandler):
             noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
-    def get_calibration(self, calibration_name, shape, chunks=None):
+    @lru_cache(maxsize=10)
+    def get_calibration(self, calibration, shape, chunks=None):
         """Get the calibration array."""
+        calibration_name = calibration.name or 'gamma'
+        if calibration_name == 'sigma_nought':
+            calibration_name = 'sigmaNought'
+        elif calibration_name == 'beta_nought':
+            calibration_name = 'betaNought'
         data_items = self.root.findall(".//calibrationVector")
         data, low_res_coords = self.read_xml_array(data_items, calibration_name)
         return self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
@@ -297,10 +305,6 @@ class SAFEGRD(BaseFileHandler):
 
         self._mission_id = filename_info['mission_id']
 
-        self.lats = None
-        self.lons = None
-        self.alts = None
-
         self.calibration = calfh
         self.noise = noisefh
         self.read_lock = Lock()
@@ -309,125 +313,60 @@ class SAFEGRD(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._polarization != key.polarization:
+        if self._polarization != key["polarization"]:
             return
 
         logger.debug('Reading %s.', key['name'])
 
-        if key['name'] in ['longitude', 'latitude']:
+        if key['name'] in ['longitude', 'latitude', 'altitude']:
             logger.debug('Constructing coordinate arrays.')
+            arrays = dict()
+            arrays['longitude'], arrays['latitude'], arrays['altitude'] = self.get_lonlatalts()
 
-            if self.lons is None or self.lats is None:
-                self.lons, self.lats, self.alts = self.get_lonlatalts()
-
-            if key['name'] == 'latitude':
-                data = self.lats
-            else:
-                data = self.lons
+            data = arrays[key['name']]
             data.attrs.update(info)
 
         else:
-            calibration_name = key['calibration'].name or 'gamma'
-            if calibration_name == 'sigma_nought':
-                calibration_name = 'sigmaNought'
-            elif calibration_name == 'beta_nought':
-                calibration_name = 'betaNought'
-
-            data = self.read_band()
-            # chunks = data.chunks  # This seems to be slower for some reason
-            chunks = CHUNK_SIZE
-            logger.debug('Reading noise data.')
-            noise = self.noise.get_noise_correction(data.shape, chunks=chunks).fillna(0)
-
-            logger.debug('Reading calibration data.')
-
-            cal = self.calibration.get_calibration(calibration_name, data.shape, chunks=chunks)
-            cal_constant = self.calibration.get_calibration_constant()
-
-            logger.debug('Calibrating.')
-            data = data.where(data > 0)
-            data = data.astype(np.float64)
-            dn = data * data
-            data = ((dn - noise).clip(min=0) + cal_constant)
-
-            data = (np.sqrt(data) / cal).clip(min=0)
+            data = xr.open_rasterio(self.filehandle,
+                                    chunks={'band': 1, 'x': CHUNK_SIZE, 'y': CHUNK_SIZE},
+                                    lock=self.read_lock).squeeze()
+            data = self._calibrate(data, key)
             data.attrs.update(info)
-
-            del noise, cal
-
             data.attrs.update({'platform_name': self._mission_id})
 
+            data = self._change_quantity(data, key['quantity'])
+
+        return data
+
+    @staticmethod
+    def _change_quantity(data, quantity):
+        """Change quantity to dB if needed."""
+        if quantity == 'dB':
+            data.data = 10 * np.log10(data.data)
+            data.attrs['units'] = 'dB'
+        else:
             data.attrs['units'] = '1'
 
         return data
 
-    def read_band_blocks(self, blocksize=CHUNK_SIZE):
-        """Read the band in native blocks."""
-        # For sentinel 1 data, the block are 1 line, and dask seems to choke on that.
-        band = self.filehandle
+    def _calibrate(self, data, key):
+        """Calibrate the data."""
+        chunks = CHUNK_SIZE
+        logger.debug('Reading noise data.')
+        noise = self.noise.get_noise_correction(data.shape, chunks=chunks).fillna(0)
+        logger.debug('Reading calibration data.')
+        cal = self.calibration.get_calibration(key['calibration'], data.shape, chunks=chunks)
+        cal_constant = self.calibration.get_calibration_constant()
+        logger.debug('Calibrating.')
+        data = data.where(data > 0)
+        data = data.astype(np.float64)
+        dn = data * data
+        data = dn - noise
+        data = ((data + cal_constant) / (cal ** 2)).clip(min=0)
 
-        shape = band.shape
-        token = tokenize(blocksize, band)
-        name = 'read_band-' + token
-        dskx = dict()
-        if len(band.block_shapes) != 1:
-            raise NotImplementedError('Bands with multiple shapes not supported.')
-        else:
-            chunks = band.block_shapes[0]
+        return data
 
-        def do_read(the_band, the_window, the_lock):
-            with the_lock:
-                return the_band.read(1, None, window=the_window)
-
-        for ji, window in band.block_windows(1):
-            dskx[(name, ) + ji] = (do_read, band, window, self.read_lock)
-
-        res = da.Array(dskx, name, shape=list(shape),
-                       chunks=chunks,
-                       dtype=band.dtypes[0])
-        return DataArray(res, dims=('y', 'x'))
-
-    def read_band(self, blocksize=CHUNK_SIZE):
-        """Read the band in chunks."""
-        band = self.filehandle
-
-        shape = band.shape
-        if len(band.block_shapes) == 1:
-            total_size = blocksize * blocksize * 1.0
-            lines, cols = band.block_shapes[0]
-            if cols > lines:
-                hblocks = cols
-                vblocks = int(total_size / cols / lines)
-            else:
-                hblocks = int(total_size / cols / lines)
-                vblocks = lines
-        else:
-            hblocks = blocksize
-            vblocks = blocksize
-        vchunks = range(0, shape[0], vblocks)
-        hchunks = range(0, shape[1], hblocks)
-
-        token = tokenize(hblocks, vblocks, band)
-        name = 'read_band-' + token
-
-        def do_read(the_band, the_window, the_lock):
-            with the_lock:
-                return the_band.read(1, None, window=the_window)
-
-        dskx = {(name, i, j): (do_read, band,
-                               Window(hcs, vcs,
-                                      min(hblocks,  shape[1] - hcs),
-                                      min(vblocks,  shape[0] - vcs)),
-                               self.read_lock)
-                for i, vcs in enumerate(vchunks)
-                for j, hcs in enumerate(hchunks)
-                }
-
-        res = da.Array(dskx, name, shape=list(shape),
-                       chunks=(vblocks, hblocks),
-                       dtype=band.dtypes[0])
-        return DataArray(res, dims=('y', 'x'))
-
+    @lru_cache(maxsize=2)
     def get_lonlatalts(self):
         """Obtain GCPs and construct latitude and longitude arrays.
 
@@ -441,7 +380,7 @@ class SAFEGRD(BaseFileHandler):
 
         (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (gcps, crs) = self.get_gcps()
 
-        # FIXME: do interpolation on cartesion coordinates if the area is
+        # FIXME: do interpolation on cartesian coordinates if the area is
         # problematic.
 
         longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, band.shape)
