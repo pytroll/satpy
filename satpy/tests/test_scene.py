@@ -227,7 +227,6 @@ class TestScene(unittest.TestCase):
         """Test iteration over the scene."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = DataArray(np.arange(5))
         scene["2"] = DataArray(np.arange(5))
@@ -240,7 +239,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import SwathDefinition
-        import numpy as np
         scene = Scene()
         sd = SwathDefinition(lons=np.arange(5), lats=np.arange(5))
         scene["1"] = DataArray(np.arange(5), attrs={'area': sd})
@@ -257,7 +255,6 @@ class TestScene(unittest.TestCase):
     def test_bad_setitem(self):
         """Test setting an item wrongly."""
         from satpy import Scene
-        import numpy as np
         scene = Scene()
         self.assertRaises(ValueError, scene.__setitem__, '1', np.arange(5))
 
@@ -265,7 +262,6 @@ class TestScene(unittest.TestCase):
         """Test setting an item."""
         from satpy import Scene
         from satpy.tests.utils import make_dataid
-        import numpy as np
         import xarray as xr
         scene = Scene()
         scene["1"] = ds1 = xr.DataArray(np.arange(5))
@@ -288,7 +284,6 @@ class TestScene(unittest.TestCase):
         """Test __getitem__ with names only."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = ds1 = DataArray(np.arange(5))
         scene["2"] = ds2 = DataArray(np.arange(5))
@@ -304,7 +299,6 @@ class TestScene(unittest.TestCase):
         """Test __getitem__ with names and modifiers."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
 
         # Return least modified item
         scene = Scene()
@@ -340,7 +334,6 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition, SwathDefinition
         from pyresample.utils import proj4_str_to_dict
-        import numpy as np
         scene1 = Scene()
         scene2 = Scene()
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
@@ -402,7 +395,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        import numpy as np
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
                        5570248.477339745)
@@ -480,7 +472,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        import numpy as np
         try:
             from pyproj import CRS  # noqa
         except ImportError:
@@ -509,7 +500,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        import numpy as np
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
                        5570248.477339745)
@@ -552,7 +542,6 @@ class TestScene(unittest.TestCase):
         """Test contains."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
                                                     '_satpy_id_keys': default_id_keys_config})
@@ -576,7 +565,6 @@ class TestScene(unittest.TestCase):
         """Test deleting an item."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
                                                     '_satpy_id_keys': default_id_keys_config})
@@ -597,7 +585,6 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        import numpy as np
         scene = Scene()
         scene["1"] = ds1 = DataArray(np.arange(10).reshape((2, 5)),
                                      attrs={'wavelength': (0.1, 0.2, 0.3)})
