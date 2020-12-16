@@ -22,12 +22,17 @@ from unittest import mock
 from datetime import datetime
 
 import numpy as np
+import pytest
 import xarray as xr
 
-from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
-                                           NoValidOrbitParams)
-from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
+from satpy.readers.seviri_l1b_hrit import (
+    HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
+    NoValidOrbitParams
+)
 from satpy.tests.utils import make_dataid
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
+    TestFileHandlerCalibrationBase
+)
 
 from numpy import testing as npt
 
@@ -348,89 +353,6 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         res = self.reader.read_band('VIS006', None)
         self.assertEqual(res.shape, (464, 3712))
 
-    @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', return_value=None)
-    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_header', autospec=True)
-    @mock.patch('satpy.readers.seviri_base.SEVIRICalibrationHandler._convert_to_radiance')
-    def test_calibrate(self, _convert_to_radiance, get_header, *mocks):
-        """Test selection of calibration coefficients."""
-        shp = (10, 10)
-        counts = xr.DataArray(np.zeros(shp))
-        nominal_gain = np.arange(1, 13)
-        nominal_offset = np.arange(-1, -13, -1)
-        gsics_gain = np.arange(0.1, 1.3, 0.1)
-        gsics_offset = np.arange(-0.1, -1.3, -0.1)
-
-        # Mock prologue & epilogue
-        pro = mock.MagicMock(prologue={'RadiometricProcessing': {
-            'Level15ImageCalibration': {'CalSlope': nominal_gain,
-                                        'CalOffset': nominal_offset},
-            'MPEFCalFeedback': {'GSICSCalCoeff': gsics_gain,
-                                'GSICSOffsetCount': gsics_offset}
-        }})
-        epi = mock.MagicMock(epilogue=None)
-
-        # Mock header readout
-        mda = {'image_segment_line_quality': {'line_validity': np.zeros(shp[0]),
-                                              'line_radiometric_quality': np.zeros(shp[0]),
-                                              'line_geometric_quality': np.zeros(shp[0])}}
-
-        def get_header_patched(self):
-            self.mda = mda
-
-        get_header.side_effect = get_header_patched
-
-        # Test selection of calibration coefficients
-        #
-        # a) Default: Nominal calibration
-        reader = HRITMSGFileHandler(filename=None, filename_info=None, filetype_info=None,
-                                    prologue=pro, epilogue=epi)
-        for ch_id, ch_name in CHANNEL_NAMES.items():
-            reader.channel_name = ch_name
-            reader.mda['spectral_channel_id'] = ch_id
-            reader.calibrate(data=counts, calibration='radiance')
-            _convert_to_radiance.assert_called_with(mock.ANY, nominal_gain[ch_id - 1],
-                                                    nominal_offset[ch_id - 1])
-
-        # b) GSICS calibration for IR channels, nominal calibration for VIS channels
-        reader = HRITMSGFileHandler(filename=None, filename_info=None, filetype_info=None,
-                                    prologue=pro, epilogue=epi, calib_mode='GSICS')
-        for ch_id, ch_name in CHANNEL_NAMES.items():
-            if ch_name in VIS_CHANNELS:
-                gain, offset = nominal_gain[ch_id - 1], nominal_offset[ch_id - 1]
-            else:
-                gain, offset = gsics_gain[ch_id - 1], gsics_offset[ch_id - 1]
-                offset = offset * gain
-
-            reader.channel_name = ch_name
-            reader.mda['spectral_channel_id'] = ch_id
-            reader.calibrate(data=counts, calibration='radiance')
-            _convert_to_radiance.assert_called_with(mock.ANY, gain, offset)
-
-        # c) External calibration coefficients for selected channels, GSICS coefs for remaining
-        #    IR channels, nominal coefs for remaining VIS channels
-        coefs = {'VIS006': {'gain': 1.234, 'offset': -0.1},
-                 'IR_108': {'gain': 2.345, 'offset': -0.2}}
-        reader = HRITMSGFileHandler(filename=None, filename_info=None, filetype_info=None,
-                                    prologue=pro, epilogue=epi, ext_calib_coefs=coefs,
-                                    calib_mode='GSICS')
-        for ch_id, ch_name in CHANNEL_NAMES.items():
-            if ch_name in coefs:
-                gain, offset = coefs[ch_name]['gain'], coefs[ch_name]['offset']
-            elif ch_name not in VIS_CHANNELS:
-                gain, offset = gsics_gain[ch_id - 1], gsics_offset[ch_id - 1]
-                offset = offset * gain
-            else:
-                gain, offset = nominal_gain[ch_id - 1], nominal_offset[ch_id - 1]
-
-            reader.channel_name = ch_name
-            reader.mda['spectral_channel_id'] = ch_id
-            reader.calibrate(data=counts, calibration='radiance')
-            _convert_to_radiance.assert_called_with(mock.ANY, gain, offset)
-
-        # d) Invalid mode
-        self.assertRaises(ValueError, HRITMSGFileHandler, filename=None, filename_info=None,
-                          filetype_info=None, prologue=pro, epilogue=epi, calib_mode='invalid')
-
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_timestamps')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
@@ -743,3 +665,105 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
         self.reader._reduced = 'red'
         self.assertEqual(self.reader.reduce(123), 'red')
         reduce_mda.assert_not_called()
+
+
+class TestHRITMSGCalibration(TestFileHandlerCalibrationBase):
+    """Unit tests for calibration."""
+
+    @pytest.fixture(name='file_handler')
+    def file_handler(self):
+        """Create a mocked file handler."""
+        prolog = {
+            'RadiometricProcessing': {
+                'Level15ImageCalibration': {
+                    'CalSlope': self.gains_nominal,
+                    'CalOffset': self.offsets_nominal,
+                },
+                'MPEFCalFeedback': {
+                    'GSICSCalCoeff': self.gains_gsics,
+                    'GSICSOffsetCount': self.offsets_gsics,
+                }
+            },
+            'ImageDescription': {
+                'Level15ImageProduction': {
+                    'PlannedChanProcessing': self.radiance_types
+                }
+            }
+        }
+        epilog = {
+            'ImageProductionStats': {
+                'ActualScanningSummary': {
+                    'ForwardScanStart': self.scan_time
+                }
+            }
+        }
+        mda = {
+            'image_segment_line_quality': {
+                'line_validity': np.zeros(2),
+                'line_radiometric_quality': np.zeros(2),
+                'line_geometric_quality': np.zeros(2)
+            },
+        }
+
+        with mock.patch(
+            'satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.__init__',
+            return_value=None
+        ):
+            fh = HRITMSGFileHandler()
+            fh.platform_id = self.platform_id
+            fh.mda = mda
+            fh.prologue = prolog
+            fh.epilogue = epilog
+            return fh
+
+    @pytest.mark.parametrize(
+        ('channel', 'calibration', 'calib_mode', 'use_ext_coefs'),
+        [
+            # VIS channel, internal coefficients
+            ('VIS006', 'counts', 'NOMINAL', False),
+            ('VIS006', 'radiance', 'NOMINAL', False),
+            ('VIS006', 'radiance', 'GSICS', False),
+            ('VIS006', 'reflectance', 'NOMINAL', False),
+            # VIS channel, external coefficients (mode should have no effect)
+            ('VIS006', 'radiance', 'GSICS', True),
+            ('VIS006', 'reflectance', 'NOMINAL', True),
+            # IR channel, internal coefficients
+            ('IR_108', 'counts', 'NOMINAL', False),
+            ('IR_108', 'radiance', 'NOMINAL', False),
+            ('IR_108', 'radiance', 'GSICS', False),
+            ('IR_108', 'brightness_temperature', 'NOMINAL', False),
+            ('IR_108', 'brightness_temperature', 'GSICS', False),
+            # IR channel, external coefficients (mode should have no effect)
+            ('IR_108', 'radiance', 'NOMINAL', True),
+            ('IR_108', 'brightness_temperature', 'GSICS', True),
+            # HRV channel, internal coefficiens
+            ('HRV', 'counts', 'NOMINAL', False),
+            ('HRV', 'radiance', 'NOMINAL', False),
+            ('HRV', 'radiance', 'GSICS', False),
+            ('HRV', 'reflectance', 'NOMINAL', False),
+            # HRV channel, external coefficients (mode should have no effect)
+            ('HRV', 'radiance', 'GSICS', True),
+            ('HRV', 'reflectance', 'NOMINAL', True),
+        ]
+    )
+    def test_calibrate(
+            self, file_handler, counts, channel, calibration, calib_mode,
+            use_ext_coefs
+    ):
+        """Test the calibration."""
+        external_coefs = self.external_coefs if use_ext_coefs else {}
+        expected = self._get_expected(
+            channel=channel,
+            calibration=calibration,
+            calib_mode=calib_mode,
+            use_ext_coefs=use_ext_coefs
+        )
+
+        fh = file_handler
+        fh.mda['spectral_channel_id'] = self.spectral_channel_ids[channel]
+        fh.channel_name = channel
+        fh.calib_mode = calib_mode
+        fh.ext_calib_coefs = external_coefs
+
+        res = fh.calibrate(counts, calibration)
+        xr.testing.assert_allclose(res, expected)
