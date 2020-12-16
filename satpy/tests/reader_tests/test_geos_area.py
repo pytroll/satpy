@@ -168,7 +168,6 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         self.assertEqual(output_dict['area_id'], 'testplatform_testinstrument_testservicename_1km')
         self.assertEqual(output_dict['description'], 'TESTPLATFORM TESTINSTRUMENT testdesc area definition'
                                                      ' with 1 km resolution')
-        self.assertEqual(output_dict['proj_id'], 'testplatform_testinstrument_testservicename')
 
     def test_get_resolution_and_unit_strings_in_km(self):
         """Test the resolution and unit strings function for a km resolution."""

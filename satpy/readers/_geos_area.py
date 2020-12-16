@@ -121,7 +121,7 @@ def get_area_definition(pdict, a_ext):
             h: Platform height (m)
             a_name: Area name
             a_desc: Area description
-            p_id: Projection id
+            p_id: Projection id  # being deprecated
         a_ext: A four element tuple containing the area extent (scan angle)
                for the scene in radians
     Returns:
@@ -139,7 +139,7 @@ def get_area_definition(pdict, a_ext):
         pdict['a_name'],
         pdict['a_desc'],
         pdict['p_id'],
-        proj_dict,
+        proj_dict,  # being deprecated
         int(pdict['ncols']),
         int(pdict['nlines']),
         a_ext)
@@ -175,7 +175,13 @@ def get_geos_area_naming(input_dict):
             Dictionary with keys `platform_name`, `instrument_name`, `service_name`, `service_desc`, `resolution` .
             The resolution is expected in meters.
     Returns:
-        area_naming_dict with `area_id`, `description`, `proj_id` keys, values are strings.
+        area_naming_dict with `area_id`, `description`  keys, values are strings.
+
+    .. note::
+
+        The AreaDefinition `proj_id` attribute is being deprecated and is therefore not formatted here.
+        An empty string is to be used until the attribute is fully removed.
+
     """
     area_naming_dict = {}
 
@@ -195,12 +201,6 @@ def get_geos_area_naming(input_dict):
                                                                      resolution_strings['value'],
                                                                      resolution_strings['unit']
                                                                      )
-
-    # same as area_id but without resolution. This key on the way to be deprecated
-    area_naming_dict['proj_id'] = '{}_{}_{}'.format(input_dict['platform_name'].lower(),
-                                                    input_dict['instrument_name'].lower(),
-                                                    input_dict['service_name'].lower()
-                                                    )
 
     return area_naming_dict
 

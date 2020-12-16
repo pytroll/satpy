@@ -349,7 +349,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         area = geometry.AreaDefinition(
             area_naming['area_id'],
             area_naming['description'],
-            area_naming['proj_id'],
+            "",
             proj_dict,
             ncols,
             nlines,
