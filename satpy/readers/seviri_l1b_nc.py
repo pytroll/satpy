@@ -210,13 +210,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             pdict['ncols'] = self.mda['hrv_number_of_columns']
             pdict['a_name'] = area_naming['area_id']
             pdict['a_desc'] = area_naming['description']
-            pdict['p_id'] = area_naming['proj_id']
+            pdict['p_id'] = ""
         else:
             pdict['nlines'] = self.mda['number_of_lines']
             pdict['ncols'] = self.mda['number_of_columns']
             pdict['a_name'] = area_naming['area_id']
             pdict['a_desc'] = area_naming['description']
-            pdict['p_id'] = area_naming['proj_id']
+            pdict['p_id'] = ""
 
         area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 

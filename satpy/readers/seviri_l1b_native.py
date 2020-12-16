@@ -298,7 +298,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         pdict['a_name'] = area_naming['area_id']
         pdict['a_desc'] = area_naming['description']
-        pdict['p_id'] = area_naming['proj_id']
+        pdict['p_id'] = ""
 
         area_extent = self.get_area_extent(dataset_id)
         areas = list()

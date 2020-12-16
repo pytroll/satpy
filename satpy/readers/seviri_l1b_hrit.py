@@ -568,7 +568,7 @@ class HRITMSGFileHandler(HRITFileHandler):
             aex = self._get_area_extent(pdict)
             pdict['a_name'] = area_naming['area_id']
             pdict['a_desc'] = area_naming['description']
-            pdict['p_id'] = area_naming['proj_id']
+            pdict['p_id'] = ""
             area = get_area_definition(pdict, aex)
             self.area = area
             return self.area
@@ -581,7 +581,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         # Or, if we are processing HRV:
         pdict['a_name'] = area_naming['area_id']
-        pdict['p_id'] = area_naming['proj_id']
+        pdict['p_id'] = ""
         bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
         if self.fill_hrv:
             bounds['UpperEastColumnActual'] = 1
