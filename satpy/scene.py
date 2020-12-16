@@ -640,8 +640,8 @@ class Scene:
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
                            'argmax', 'prod', 'std', 'var'.
                            'mean' is the default.
-            boundary: Not implemented.
-            side: Not implemented.
+            boundary: See xarray.DataArray.coarsen, 'trim' by default.
+            side: See xarray.DataArray.coarsen, 'left' by default.
             dim_kwargs: the size of the windows to aggregate.
 
         Returns:
