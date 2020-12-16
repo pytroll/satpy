@@ -36,13 +36,14 @@ class HighlightCompositor(GenericCompositor):
         highlight_factor = (highlight_data - min_highlight) / (max_highlight - min_highlight)
         channel_result = primary_data + highlight_factor * max_factor
 
-    See the ``highlight_channel`` option to control if the effect is additive,
-    subtractive, or not applied at all.
+    The ``max_factor`` is defined per channel and can be positive for an
+    additive effect, negative for a subtractive effect, or zero for no
+    effect.
 
     """
 
-    def __init__(self, name, min_highlight=0.0, max_highlight=10.0, max_factor=0.8,
-                 highlight_channel=(True, True, False, None), **kwargs):
+    def __init__(self, name, min_highlight=0.0, max_highlight=10.0,
+                 max_factor=(0.8, 0.8, -0.8, 0), **kwargs):
         """Initialize composite with highlight factor options.
 
         Args:
@@ -52,57 +53,50 @@ class HighlightCompositor(GenericCompositor):
             max_highlight (float): Maximum raw value of the "highlight" data
                 that will be used for linearly scaling the data along with
                 ``min_hightlight``.
-            max_factor (float): Maximum effect that the highlight data can
-                have on the primary image data. This will be multiplied by
-                the linearly scaled highlight data and then added or
-                subtracted from the highlight channels. See class docstring
-                for more information.
-            highlight_channel (tuple): Series of booleans or None for every
-                channel in the RGBA image (4). True means apply the highlight
-                effect by adding, False means apply the highlight effect by
-                subtracting, and None means don't apply the highlight. By
-                default this will add to the Red and Green channels, subtract
-                from the Blue channel, and not effect the Alpha channel. This
-                results in yellow highlights in the resulting image.
+            max_factor (tuple): Maximum effect that the highlight data can
+                have on each channel of the primary image data. This will be
+                multiplied by the linearly scaled highlight data and then
+                added or subtracted from the highlight channels. See class
+                docstring for more information. By default this is set to
+                ``(0.8, 0.8, -0.8, 0)`` meaning the Red and Green channel
+                will be added to by at most 0.8, the Blue channel will be
+                subtracted from by at most 0.8, and the Alpha channel will
+                not be effected.
 
         """
         self.min_highlight = min_highlight
         self.max_highlight = max_highlight
         self.max_factor = max_factor
-        self.highlight_channel = highlight_channel
         super().__init__(name, **kwargs)
 
     def _get_highlight_factor(self, highlight_data):
         factor = (highlight_data - self.min_highlight) / (self.max_highlight - self.min_highlight)
-        factor = factor.where(factor.notnull(), 0) * self.max_factor
+        factor = factor.where(factor.notnull(), 0)
         return factor
 
     def _apply_highlight_effect(self, background_data, factor):
         new_channels = []
-        for highlight_effect, band_name in zip(self.highlight_channel, "RGBA"):
-            if highlight_effect:
-                channel_factor = factor
-            elif highlight_effect is None:
-                channel_factor = None
-            else:
-                channel_factor = -factor
-
+        for max_factor, band_name in zip(self.max_factor, "RGBA"):
             new_channel = background_data.sel(bands=[band_name])
-            if channel_factor is not None:
-                new_channel = new_channel + channel_factor
+            if max_factor != 0 or max_factor is not None:
+                new_channel = new_channel + factor * max_factor
             new_channels.append(new_channel)
         return new_channels
 
+    def _update_attrs(self, new_data, background_layer, highlight_layer):
+        new_data.attrs = background_layer.attrs.copy()
+        new_data.attrs['units'] = 1
+        new_sensors = self._get_sensors((highlight_layer, background_layer))
+        new_data.attrs.update({
+            'sensor': new_sensors,
+        })
+
     def __call__(self, projectables, optional_datasets=None, **attrs):
-        """Create B/W image with highlighted pixels."""
+        """Create RGBA image with highlighted pixels."""
         highlight_product, background_layer = self.match_data_arrays(projectables)
 
-        # Enhance the background as normal (assume B/W image)
-        attrs = background_layer.attrs
         img = get_enhanced_image(background_layer)
-        # Clip image data to interval [0.0, 1.0]
         img.data = img.data.clip(0.0, 1.0)
-        # Convert to RGBA so we can adjust the colors later
         img = img.convert('RGBA')
         background_data = img.data
 
@@ -110,12 +104,6 @@ class HighlightCompositor(GenericCompositor):
         factor = self._get_highlight_factor(highlight_product)
         new_channels = self._apply_highlight_effect(background_data, factor)
         new_data = xr.concat(new_channels, dim='bands')
-        new_data.attrs = attrs
-        new_data.attrs['units'] = 1
-        new_data.attrs.update(attrs)
-        new_sensors = self._get_sensors((highlight_product, background_layer))
-        new_data.attrs.update({
-            'sensor': new_sensors,
-        })
-
+        self._update_attrs(new_data, background_layer,
+                           highlight_product)
         return super(HighlightCompositor, self).__call__((new_data,), **attrs)
