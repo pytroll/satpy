@@ -18,7 +18,8 @@
 """Unit tests for the dependency tree class and dependencies."""
 
 import unittest
-from satpy.node import CompositorNode
+from unittest.mock import MagicMock
+from satpy.node import CompositorNode, Node
 
 
 class FakeCompositor:
@@ -27,6 +28,18 @@ class FakeCompositor:
     def __init__(self, id):
         """Set up the fake compositor."""
         self.id = id
+
+
+class TestNodeCopy(unittest.TestCase):
+    """Test case for copying a node."""
+
+    def test_node_data_is_copied(self):
+        """Test that the data of the node is copied."""
+        mock_name = MagicMock()
+        mock_data = MagicMock()
+        node = Node(mock_name, mock_data)
+        node_copy = node.copy()
+        assert node_copy.data is not node.data
 
 
 class TestCompositorNode(unittest.TestCase):

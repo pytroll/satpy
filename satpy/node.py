@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
+import copy
 
 from satpy.utils import get_logger
 
@@ -80,8 +81,7 @@ class Node:
 
         if self.name is EMPTY_LEAF_NAME:
             return self
-
-        s = Node(self.name, self.data)
+        s = Node(self.name, copy.deepcopy(self.data))
         for c in self.children:
             c = c.copy(node_cache=node_cache)
             s.add_child(c)
