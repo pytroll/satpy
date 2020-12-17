@@ -25,7 +25,7 @@ import os
 import logging
 import xarray as xr
 
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 try:
@@ -93,6 +93,11 @@ class MIRSHandler(NetCDF4FileHandler):
                          auto_maskandscale, xarray_kwargs,
                          cache_var_size, cache_handle)
 
+        self.all_bt_channels = []
+        self.secondary_product_functions = {}
+        for pname in self.all_bt_channels:
+            self.secondary_product_functions[pname] = self.limb_correct_atms_bt
+
     @property
     def platform_shortname(self):
         """Get platform shortname."""
@@ -111,9 +116,9 @@ class MIRSHandler(NetCDF4FileHandler):
     def sensor(self):
         """Get sensor."""
         try:
-            res = SENSOR[self.filename_info["platform_shortname"]]
+            res = SENSOR[self.filename_info["platform_shortname"].lower()]
         except KeyError:
-            return self.sensor_names
+            res = self.sensor_names
         return res
 
     @property
@@ -126,8 +131,11 @@ class MIRSHandler(NetCDF4FileHandler):
         """Get start time."""
         # old file format
         if self.filename_info.get("date", False):
-            return datetime.datetime.combine(
-                self.force_date("date"), self.force_time("start_time"))
+            s_time = datetime.datetime.combine(
+                                               self.force_date("date"),
+                                               self.force_time("start_time")
+                                              )
+            self.filename_info["start_time"] = s_time
         return self.filename_info["start_time"]
 
     @property
@@ -135,8 +143,11 @@ class MIRSHandler(NetCDF4FileHandler):
         """Get end time."""
         # old file format
         if self.filename_info.get("date", False):
-            return datetime.datetime.combine(
-                self.force_date("date"), self.force_time("end_time"))
+            end_time = datetime.datetime.combine(
+                                                 self.force_date("date"),
+                                                 self.force_time("end_time")
+                                                 )
+            self.filename_info["end_time"] = end_time
         return self.filename_info["end_time"]
 
     def force_date(self, key):
@@ -154,6 +165,7 @@ class MIRSHandler(NetCDF4FileHandler):
             return self.filename_info.get(key)
 
     def _read_atms_limb_correction_coefficients(self, fn):
+        """Read provided limb correction files for atms."""
         if os.path.isfile(fn):
             coeff_str = open(fn, "r").readlines()
         else:
@@ -201,6 +213,7 @@ class MIRSHandler(NetCDF4FileHandler):
         return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
 
     def _apply_atms_limb_correction(self, datasets, dmean, coeffs, amean, nchx, nchanx):
+        """Apply atms limb correction coefficients."""
         all_new_ds = []
         coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
         for channel_idx in range(datasets.shape[0]):
@@ -217,6 +230,44 @@ class MIRSHandler(NetCDF4FileHandler):
                 new_ds[:, fov_idx] = coeff_sum + dmean[channel_idx]
 
         return all_new_ds
+
+    def limb_correct_atms_bt(self, ds_info):
+        """Gather data needed for limb correction."""
+        idx = ds_info['channel_index']
+        bt_data = self[ds_info.get('file_key', 'BT')]
+        full_bt_data = xr.DataArray(bt_data)
+        bt_data = full_bt_data[:, :, idx]
+        scale_factor = bt_data.attrs["scale_factor"]
+        if scale_factor != 0.0:
+            bt_data = bt_data * scale_factor
+        if self.sensor.lower() != "atms":
+            LOG.info("Limb Correction will not be applied to non-ATMS BTs")
+            return bt_data
+
+        LOG.info("Starting ATMS Limb Correction...")
+
+        deps = ds_info['dependencies']
+        if len(deps) != 2:
+            LOG.error("Expected 1 dependencies to create corrected BT product, got %d" % (len(deps),))
+            raise ValueError("Expected 1 dependencies to create corrected BT product, got %d" % (len(deps),))
+
+        full_bt_product_name = deps[0]  # should be BT
+        full_bt_product = self[ds_info.get('file_key', full_bt_product_name)]
+        full_bt_data = xr.DataArray(full_bt_product)
+        surf_type_name = deps[1]
+        surf_type_product = self[ds_info.get('file_key', surf_type_name)]
+        surf_type_mask = xr.DataArray(surf_type_product)
+
+        sea_coeff_results = self.read_atms_limb_correction_coefficients(LIMB_SEA_FILE)
+        new_sea_bt_data = self.apply_atms_limb_correction(full_bt_data, *sea_coeff_results)
+        land_coeff_results = self.read_atms_limb_correction_coefficients(LIMB_LAND_FILE)
+        new_land_bt_data = self.apply_atms_limb_correction(full_bt_data, *land_coeff_results)
+        is_sea = (surf_type_mask == 0)
+        bt_data[is_sea] = new_sea_bt_data[idx][is_sea]
+        bt_data[~is_sea] = new_land_bt_data[idx][~is_sea]
+
+        # return the same original swath object since we modified the data in place
+        return bt_data
 
     def get_metadata(self, data, ds_info):
         """Get metadata."""
@@ -256,12 +307,10 @@ class MIRSHandler(NetCDF4FileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
+        print(ds_info.keys(), ds_id)
         if 'dependencies' in ds_info.keys():
-            var_name = ds_info['dependencies'][0]  # should be brightness temperature...need to figure out a way to chk
-            idx = ds_info['channel_index']
-            data = self[ds_info.get('file_key', var_name)]
-            data = xr.DataArray(data)
-            data = data[:, :, idx]
+            data = self.limb_correct_atms_bt(ds_info)
+            data = data.rename(new_name_or_name_dict=ds_info["name"])
         else:
             data = self[ds_info.get('file_key', ds_info['name'])]
 
@@ -313,22 +362,13 @@ class MIRSHandler(NetCDF4FileHandler):
 
                     c2 = Counter()
                     new_names = []
-                    for _idx, _f, _p, normal_f, normal_p in normals:
+                    for idx, _f, _p, normal_f, normal_p in normals:
                         c2[normal_f + normal_p] += 1
                         new_name = "btemp_{}{}{}".format(normal_f, normal_p, str(
                             c2[normal_f + normal_p] if c[normal_f + normal_p] > 1 else ''))
                         new_names.append(new_name)
-                        # var_name = 'bt_var_{}'.format(new_name)
 
-                        # FIXME below is old p2g code
-                        # FILE_STRUCTURE[var_name] = ("BT", ("scale", "scale_factor"), None, idx)
-                        # self.PRODUCTS.add_product(new_name, PAIR_MIRS_NAV, "toa_brightness_temperature", FT_IMG,
-                        #                           var_name, description=
-                        #                           "Channel Brightness Temperature at {}GHz".format(normal_f),
-                        #                           units="K", frequency=f,
-                        #                           dependencies=(PRODUCT_BT_CHANS, PRODUCT_SURF_TYPE),
-                        #                                         channel_index=idx)
-                        # self.all_bt_channels.append(new_name)
+                        self.all_bt_channels.append(new_name)
                         desc_bt = ("Channel Brightness Temperature"
                                    " at {}GHz".format(normal_f))
                         ds_info = {
