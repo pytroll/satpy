@@ -27,6 +27,8 @@ from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandle
 
 import unittest
 
+from contextlib import suppress
+
 try:
     from unittest import mock
 except ImportError:
@@ -36,6 +38,7 @@ except ImportError:
 TEST_FILE = 'test_file_fci_l2_nc.nc'
 SEG_TEST_FILE = 'test_seg_file_fci_l2_nc.nc'
 TEST_ERROR_FILE = 'test_error_file_fci_l2_nc.nc'
+TEST_BYTE_FILE = 'test_byte_file_fci_l2_nc.nc'
 
 
 class TestFciL2NCFileHandler(unittest.TestCase):
@@ -98,15 +101,12 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # First delete the reader, forcing the file to be closed if still open
         del self.reader
         # Then can safely remove it from the system
-        try:
+        with suppress(OSError):
             os.remove(TEST_FILE)
-        except OSError:
-            pass
 
     def test_all_basic(self):
         """Test all basic functionalities."""
         self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 20)
-        print('reader', self.reader)
 
         self.assertEqual(self.reader._start_time,
                          datetime.datetime(year=2017, month=9, day=20,
@@ -202,7 +202,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
 
 class TestFciL2NCSegmentFileHandler(unittest.TestCase):
-    """Test the FciL2NCFileHandler reader."""
+    """Test the FciL2NCSegmentFileHandler reader."""
 
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
@@ -258,10 +258,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         # First delete the reader, forcing the file to be closed if still open
         del self.segment_reader
         # Then can safely remove it from the system
-        try:
+        with suppress(OSError):
             os.remove(SEG_TEST_FILE)
-        except OSError:
-            pass
 
     def test_all_basic(self):
         """Test all basic functionalities."""
@@ -372,10 +370,8 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
         # First delete the reader, forcing the file to be closed if still open
         del self.error_reader
         # Then can safely remove it from the system
-        try:
+        with suppress(OSError):
             os.remove(TEST_ERROR_FILE)
-        except OSError:
-            pass
 
     def test_errors(self):
         self.assertRaises(TypeError, self.error_reader._start_time,
@@ -389,3 +385,77 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
         self.assertRaises(TypeError, self.error_reader._spacecraft_name)
 
         self.assertRaises(TypeError, self.error_reader._sensor_name)
+
+
+class TestFciL2NCReadingByteData(unittest.TestCase):
+    """Test the FciL2NCFileHandler when reading and extracting byte data."""
+
+    def setUp(self):
+        """Set up the test by creating a test file and opening it with the reader."""
+        # Easiest way to test the reader is to create a test netCDF file on the fly
+
+        with Dataset(TEST_BYTE_FILE, 'w') as nc_byte:
+            # Create dimensions
+            nc_byte.createDimension('number_of_columns', 1)
+            nc_byte.createDimension('number_of_rows', 1)
+
+            # Add datasets
+            x = nc_byte.createVariable('x', np.float32, dimensions=('number_of_columns',))
+            x.standard_name = 'projection_x_coordinate'
+            x[:] = np.arange(1)
+
+            y = nc_byte.createVariable('y', np.float32, dimensions=('number_of_rows',))
+            x.standard_name = 'projection_y_coordinate'
+            y[:] = np.arange(1)
+
+            mtg_geos_projection = nc_byte.createVariable('mtg_geos_projection', np.int, dimensions=())
+            mtg_geos_projection.longitude_of_projection_origin = 10.0
+            mtg_geos_projection.semi_major_axis = 6378137.
+            mtg_geos_projection.semi_minor_axis = 6356752.
+            mtg_geos_projection.perspective_point_height = 35786400.
+
+            test_dataset = nc_byte.createVariable('cloud_mask_test_flag', np.float32,
+                                                  dimensions=('number_of_rows', 'number_of_columns',))
+
+            # This number was chosen as we know the expected byte values
+            test_dataset[:] = 4544767
+
+        self.byte_reader = FciL2NCFileHandler(
+            filename=TEST_BYTE_FILE,
+            filename_info={
+                'creation_time': datetime.datetime(year=2017, month=9, day=20,
+                                                   hour=12, minute=30, second=30),
+            },
+            filetype_info={}
+        )
+
+    def tearDown(self):
+        """Remove the previously created test file."""
+        # First delete the reader, forcing the file to be closed if still open
+        del self.byte_reader
+        # Then can safely remove it from the system
+        with suppress(OSError):
+            os.remove(TEST_BYTE_FILE)
+
+    def test_byte_extraction(self):
+        """Test the execution of the get_dataset function."""
+
+        # Value of 1 is expected to be returned for this test
+        dataset = self.byte_reader.get_dataset(None,
+                                               {'file_key': 'cloud_mask_test_flag',
+                                                'fill_value': -999, 'mask_value': 0.,
+                                                'file_type': 'nc_fci_test_clm',
+                                                'extract_byte': 1,
+                                                })
+
+        self.assertEquals(dataset.values, 1)
+
+        # Value of 0 is expected fto be returned or this test
+        dataset = self.byte_reader.get_dataset(None,
+                                               {'file_key': 'cloud_mask_test_flag',
+                                                'fill_value': -999, 'mask_value': 0.,
+                                                'file_type': 'nc_fci_test_clm',
+                                                'extract_byte': 23,
+                                                })
+
+        self.assertEquals(dataset.values, 0)

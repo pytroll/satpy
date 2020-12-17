@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers._geos_area import get_area_definition, make_ext
 from satpy import CHUNK_SIZE
+from contextlib import suppress
 
 logger = logging.getLogger(__name__)
 
@@ -105,10 +106,8 @@ class FciL2CommonFunctions(object):
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
-        try:
+        with suppress(OSError):
             self.nc.close()
-        except AttributeError:
-            pass
 
 
 class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
@@ -294,14 +293,10 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         # instead of being masked directly in the netCDF variable.
         # therefore NaN is applied where such value is found or (0 if the array contains integer values)
         # the next 11 lines have to be removed once the product files are correctly configured
-        try:
-            mask_value = dataset_info['mask_value']
-        except KeyError:
-            mask_value = np.NaN
-        try:
-            fill_value = dataset_info['fill_value']
-        except KeyError:
-            fill_value = np.NaN
+
+        mask_value = dataset_info.get('mask_value', np.NaN)
+        fill_value = dataset_info.get('fill_value', np.NaN)
+
         float_variable = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
         float_variable.attrs = variable.attrs
         variable = float_variable
