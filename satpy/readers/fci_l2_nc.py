@@ -19,15 +19,15 @@
 """Reader for the FCI L2 products in NetCDF4 format."""
 
 import logging
+from contextlib import suppress
+from datetime import datetime, timedelta
+
 import numpy as np
 import xarray as xr
 
-from datetime import datetime, timedelta
-
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers._geos_area import get_area_definition, make_ext
 from satpy import CHUNK_SIZE
-from contextlib import suppress
+from satpy.readers._geos_area import get_area_definition, make_ext
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
