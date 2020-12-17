@@ -18,16 +18,15 @@
 
 """The fci_cld_l2_nc reader tests package."""
 
-import os
-import numpy as np
 import datetime
+import os
+import unittest
+from contextlib import suppress
+
+import numpy as np
 from netCDF4 import Dataset
 
 from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandler, PRODUCT_DATA_DURATION_MINUTES
-
-import unittest
-
-from contextlib import suppress
 
 try:
     from unittest import mock
