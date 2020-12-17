@@ -442,7 +442,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 'extract_byte': 1,
                                                 })
 
-        self.assertEquals(dataset.values, 1)
+        self.assertEqual(dataset.values, 1)
 
         # Value of 0 is expected fto be returned or this test
         dataset = self.byte_reader.get_dataset(None,
@@ -452,4 +452,4 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
                                                 'extract_byte': 23,
                                                 })
 
-        self.assertEquals(dataset.values, 0)
+        self.assertEqual(dataset.values, 0)
