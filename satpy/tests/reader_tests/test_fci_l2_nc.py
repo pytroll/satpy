@@ -22,17 +22,12 @@ import datetime
 import os
 import unittest
 from contextlib import suppress
+from unittest import mock
 
 import numpy as np
 from netCDF4 import Dataset
 
 from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandler, PRODUCT_DATA_DURATION_MINUTES
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 TEST_FILE = 'test_file_fci_l2_nc.nc'
 SEG_TEST_FILE = 'test_seg_file_fci_l2_nc.nc'
