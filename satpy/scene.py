@@ -1089,14 +1089,22 @@ class Scene:
                    ".mitiff": "mitiff"}
         return mapping.get(extension.lower(), 'simple_image')
 
-    def remove_failed_datasets(self, keepables):
+    def _remove_failed_datasets(self, keepables):
         """Remove the datasets that we couldn't create."""
+        # copy the set of missing datasets because they won't be valid
+        # after they are removed in the next line
+        missing = self.missing_datasets().copy()
+
         keepables = keepables or set()
         # remove reader datasets that couldn't be loaded so they aren't
         # attempted again later
         for n in self.missing_datasets():
             if n not in keepables:
                 self._wishlist.discard(n)
+
+        missing_str = ", ".join(str(x) for x in missing)
+        LOG.warning("The following datasets were not created and may require "
+                    "resampling to be generated: {}".format(missing_str))
 
     def unload(self, keepables=None):
         """Unload all unneeded datasets.
@@ -1233,13 +1241,7 @@ class Scene:
             # don't lose datasets we loaded to try to generate composites
             keepables = set(self._datasets.keys()) | self._wishlist
         if self.missing_datasets():
-            # copy the set of missing datasets because they won't be valid
-            # after they are removed in the next line
-            missing = self.missing_datasets().copy()
-            self.remove_failed_datasets(keepables)
-            missing_str = ", ".join(str(x) for x in missing)
-            LOG.warning("The following datasets were not created and may require "
-                        "resampling to be generated: {}".format(missing_str))
+            self._remove_failed_datasets(keepables)
         if unload:
             self.unload(keepables=keepables)
 
