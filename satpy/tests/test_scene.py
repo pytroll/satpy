@@ -766,7 +766,7 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.all_ids) + 29)
+                         len(r.all_ids) + 30)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -790,8 +790,8 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), 2)
         id_list = scene.all_dataset_ids(composites=True)
         # ds1 and ds2 => 2
-        # composites that use these two datasets => 10
-        self.assertEqual(len(id_list), 2 + 10)
+        # composites that use these two datasets => 11
+        self.assertEqual(len(id_list), 2 + 11)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -812,8 +812,8 @@ class TestScene(unittest.TestCase):
         id_list = scene.available_dataset_ids()
         self.assertEqual(len(id_list), 1)
         id_list = scene.available_dataset_ids(composites=True)
-        # ds1, comp1, comp14, comp16, static_image
-        self.assertEqual(len(id_list), 5)
+        # ds1, comp1, comp14, comp16, static_image, comp26
+        self.assertEqual(len(id_list), 6)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
