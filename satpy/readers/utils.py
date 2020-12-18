@@ -15,23 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Helper functions for area extent calculations."""
+"""Helper functions for satpy readers."""
 
-import logging
-
-from contextlib import closing
-import tempfile
 import bz2
-import sys
+import logging
 import os
 import shutil
+import tempfile
+import warnings
+from contextlib import closing
+from io import BytesIO
+from subprocess import Popen, PIPE
+
 import numpy as np
 import pyproj
-from six import BytesIO
-from subprocess import Popen, PIPE
+import xarray as xr
 from pyresample.geometry import AreaDefinition
-from pyresample.boundary import AreaDefBoundary, Boundary
-
 from satpy import CHUNK_SIZE
 
 try:
@@ -55,7 +54,7 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, (np.string_, np.object_)) \
+            issubclass(value.dtype.type, (np.str_, np.string_, np.object_)) \
             and value.size == 1:
         value = value.item()
         if not isinstance(value, str):
@@ -72,8 +71,21 @@ def get_geostationary_angle_extent(geos_area):
     # TODO: take into account sweep_axis_angle parameter
 
     # get some projection parameters
-    req = float(geos_area.proj_dict['a']) / 1000
-    rp = float(geos_area.proj_dict['b']) / 1000
+    try:
+        crs = geos_area.crs
+        a = crs.ellipsoid.semi_major_metre
+        b = crs.ellipsoid.semi_minor_metre
+        if np.isnan(b):
+            # see https://github.com/pyproj4/pyproj/issues/457
+            raise AttributeError("'semi_minor_metre' attribute is not valid "
+                                 "in older versions of pyproj.")
+    except AttributeError:
+        # older versions of pyproj don't have CRS objects
+        from pyresample.utils import proj4_radius_parameters
+        a, b = proj4_radius_parameters(geos_area.proj_dict)
+
+    req = float(a) / 1000
+    rp = float(b) / 1000
     h = float(geos_area.proj_dict['h']) / 1000 + req
 
     # compute some constants
@@ -137,6 +149,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     """Get the bbox in lon/lats of the valid pixels inside *geos_area*.
 
     Args:
+      geos_area: The geostationary area to analyse.
       nb_points: Number of points on the polygon
 
     """
@@ -155,33 +168,6 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
 
     return _lonlat_from_geos_angle(x, y, geos_area)
-
-
-def get_area_slices(data_area, area_to_cover):
-    """Compute the slice to read from an *area* based on an *area_to_cover*."""
-    if data_area.proj_dict['proj'] != 'geos':
-        raise NotImplementedError('Only geos supported')
-
-    # Intersection only required for two different projections
-    if area_to_cover.proj_dict['proj'] == data_area.proj_dict['proj']:
-        LOGGER.debug('Projections for data and slice areas are'
-                     ' identical: {}'.format(area_to_cover.proj_dict['proj']))
-        # Get xy coordinates
-        llx, lly, urx, ury = area_to_cover.area_extent
-        x, y = data_area.get_xy_from_proj_coords([llx, urx], [lly, ury])
-
-        return slice(x[0], x[1] + 1), slice(y[1], y[0] + 1)
-
-    data_boundary = Boundary(*get_geostationary_bounding_box(data_area))
-
-    area_boundary = AreaDefBoundary(area_to_cover, 100)
-    intersection = data_boundary.contour_poly.intersection(
-        area_boundary.contour_poly)
-
-    x, y = data_area.get_xy_from_lonlat(np.rad2deg(intersection.lon),
-                                        np.rad2deg(intersection.lat))
-
-    return slice(min(x), max(x) + 1), slice(min(y), max(y) + 1)
 
 
 def get_sub_area(area, xslice, yslice):
@@ -207,39 +193,39 @@ def unzip_file(filename):
     if filename.endswith('bz2'):
         fdn, tmpfilepath = tempfile.mkstemp()
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
-        # If in python 3, try pbzip2
-        if sys.version_info.major >= 3:
-            pbzip = which('pbzip2')
-            # Run external pbzip2
-            if pbzip is not None:
-                n_thr = os.environ.get('OMP_NUM_THREADS')
-                if n_thr:
-                    runner = [pbzip,
-                              '-dc',
-                              '-p'+str(n_thr),
-                              filename]
-                else:
-                    runner = [pbzip,
-                              '-dc',
-                              filename]
-                p = Popen(runner, stdout=PIPE, stderr=PIPE)
-                stdout = BytesIO(p.communicate()[0])
-                status = p.returncode
-                if status != 0:
-                    raise IOError("pbzip2 error '%s', failed, status=%d"
-                                  % (filename, status))
-                with closing(os.fdopen(fdn, 'wb')) as ofpt:
-                    try:
-                        stdout.seek(0)
-                        shutil.copyfileobj(stdout, ofpt)
-                    except IOError:
-                        import traceback
-                        traceback.print_exc()
-                        LOGGER.info("Failed to read bzipped file %s",
-                                    str(filename))
-                        os.remove(tmpfilepath)
-                        raise
-                return tmpfilepath
+        # try pbzip2
+        pbzip = which('pbzip2')
+        # Run external pbzip2
+        if pbzip is not None:
+            n_thr = os.environ.get('OMP_NUM_THREADS')
+            if n_thr:
+                runner = [pbzip,
+                          '-dc',
+                          '-p'+str(n_thr),
+                          filename]
+            else:
+                runner = [pbzip,
+                          '-dc',
+                          filename]
+            p = Popen(runner, stdout=PIPE, stderr=PIPE)
+            stdout = BytesIO(p.communicate()[0])
+            status = p.returncode
+            if status != 0:
+                raise IOError("pbzip2 error '%s', failed, status=%d"
+                              % (filename, status))
+            with closing(os.fdopen(fdn, 'wb')) as ofpt:
+                try:
+                    stdout.seek(0)
+                    shutil.copyfileobj(stdout, ofpt)
+                except IOError:
+                    import traceback
+                    traceback.print_exc()
+                    LOGGER.info("Failed to read bzipped file %s",
+                                str(filename))
+                    os.remove(tmpfilepath)
+                    raise
+            return tmpfilepath
+
         # Otherwise, fall back to the original method
         bz2file = bz2.BZ2File(filename)
         with closing(os.fdopen(fdn, 'wb')) as ofpt:
@@ -301,3 +287,68 @@ def reduce_mda(mda, max_size=100):
         elif not (isinstance(val, np.ndarray) and val.size > max_size):
             reduced[key] = val
     return reduced
+
+
+def get_user_calibration_factors(band_name, correction_dict):
+    """Retrieve radiance correction factors from user-supplied dict."""
+    if band_name in correction_dict:
+        try:
+            slope = correction_dict[band_name]['slope']
+            offset = correction_dict[band_name]['offset']
+        except KeyError:
+            raise KeyError("Incorrect correction factor dictionary. You must "
+                           "supply 'slope' and 'offset' keys.")
+    else:
+        # If coefficients not present, warn user and use slope=1, offset=0
+        warnings.warn("WARNING: You have selected radiance correction but "
+                      " have not supplied coefficients for channel " +
+                      band_name)
+        return 1., 0.
+
+    return slope, offset
+
+
+def apply_rad_correction(data, slope, offset):
+    """Apply GSICS-like correction factors to radiance data."""
+    data = (data - offset) / slope
+    return data
+
+
+def get_array_date(scn_data, utc_date=None):
+    """Get start time from a channel data array."""
+    if utc_date is None:
+        try:
+            utc_date = scn_data.attrs['start_time']
+        except KeyError:
+            try:
+                utc_date = scn_data.attrs['scheduled_time']
+            except KeyError:
+                raise KeyError('Scene has no start_time '
+                               'or scheduled_time attribute.')
+    return utc_date
+
+
+def apply_earthsun_distance_correction(reflectance, utc_date=None):
+    """Correct reflectance data to account for changing Earth-Sun distance."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    utc_date = get_array_date(reflectance, utc_date)
+    sun_earth_dist = sun_earth_distance_correction(utc_date)
+
+    reflectance.attrs['sun_earth_distance_correction_applied'] = True
+    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    with xr.set_options(keep_attrs=True):
+        reflectance = reflectance * sun_earth_dist * sun_earth_dist
+    return reflectance
+
+
+def remove_earthsun_distance_correction(reflectance, utc_date=None):
+    """Remove the sun-earth distance correction."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    utc_date = get_array_date(reflectance, utc_date)
+    sun_earth_dist = sun_earth_distance_correction(utc_date)
+
+    reflectance.attrs['sun_earth_distance_correction_applied'] = False
+    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    with xr.set_options(keep_attrs=True):
+        reflectance = reflectance / (sun_earth_dist * sun_earth_dist)
+    return reflectance

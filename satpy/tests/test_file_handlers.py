@@ -15,16 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""test file handler baseclass.
-"""
+"""test file handler baseclass."""
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import numpy as np
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -34,7 +28,7 @@ class TestBaseFileHandler(unittest.TestCase):
     """Test the BaseFileHandler."""
 
     def setUp(self):
-        """Setup the test."""
+        """Set up the test."""
         self._old_set = BaseFileHandler.__abstractmethods__
         BaseFileHandler._abstractmethods__ = set()
         self.fh = BaseFileHandler(
@@ -146,16 +140,17 @@ class TestBaseFileHandler(unittest.TestCase):
         # Empty
         self.fh.combine_info([{}])
 
+    def test_file_is_kept_intact(self):
+        """Test that the file object passed (string, path, or other) is kept intact."""
+        open_file = mock.MagicMock()
+        bfh = BaseFileHandler(open_file, {'filename_info': 'bla'}, 'filetype_info')
+        assert bfh.filename == open_file
+
+        from pathlib import Path
+        filename = Path('/bla/bla.nc')
+        bfh = BaseFileHandler(filename, {'filename_info': 'bla'}, 'filetype_info')
+        assert isinstance(bfh.filename, Path)
+
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
-
-
-def suite():
-    """The test suite for test_projector.
-    """
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseFileHandler))
-
-    return my_suite

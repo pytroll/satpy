@@ -19,20 +19,12 @@
 """
 
 import os
-import sys
 import numpy as np
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -130,7 +122,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -142,7 +134,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         ds = r.load([
             'btemp_10.7v',
@@ -176,7 +168,7 @@ class TestAMSR2L1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'GW1AM2_201607201808_128A_L1DLBTBR_1110110.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         ds = r.load([
             'btemp_89.0av',
@@ -194,13 +186,3 @@ class TestAMSR2L1BReader(unittest.TestCase):
                                   DEFAULT_FILE_SHAPE)
             self.assertTupleEqual(d.attrs['area'].lats.shape,
                                   DEFAULT_FILE_SHAPE)
-
-
-def suite():
-    """The test suite for test_amsr2_l1b.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAMSR2L1BReader))
-
-    return mysuite

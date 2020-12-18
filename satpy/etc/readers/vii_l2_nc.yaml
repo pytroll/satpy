@@ -1,0 +1,436 @@
+reader:
+  name: vii_l2_nc
+  short_name: VII L2 NetCDF4
+  long_name: EPS-SG VII L2 (NetCDF4)
+  description: >
+    Reader for EUMETSAT EPSG-SG Visual Infrared Imager Level 2 files in NetCDF4 format.
+  sensors: [vii]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  # EUMETSAT EPSG-SG Visual Infrared Imager Level 2 Cloud Mask files in NetCDF4 format
+  nc_vii_l2_cld:
+    file_reader: !!python/name:satpy.readers.vii_l2_nc.ViiL2NCFileHandler
+    file_patterns: ['W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-02-CLD_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    cached_longitude: data/measurement_data/longitude
+    cached_latitude: data/measurement_data/latitude
+    orthorect: False
+
+  # EUMETSAT EPSG-SG Visual Infrared Imager Level 2 Cloud Top Pressure (using the Oxygen-A Band) files in NetCDF4 format
+  nc_vii_l2_ctp:
+    file_reader: !!python/name:satpy.readers.vii_l2_nc.ViiL2NCFileHandler
+    file_patterns: ['W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-02-CTP_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    cached_longitude: data/measurement_data/longitude
+    cached_latitude: data/measurement_data/latitude
+
+  # EUMETSAT EPSG-SG Visual Infrared Imager Level 2 Cloud Mask and First Guess Cloud Properties files in NetCDF4 format
+  nc_vii_l2_icm:
+    file_reader: !!python/name:satpy.readers.vii_l2_nc.ViiL2NCFileHandler
+    file_patterns: ['W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-02-ICM_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    cached_longitude: data/measurement_data/longitude
+    cached_latitude: data/measurement_data/latitude
+
+  # EUMETSAT EPSG-SG Visual Infrared Imager Level 2 Optimal Cloud Analysis files in NetCDF4 format
+  nc_vii_l2_oca:
+    file_reader: !!python/name:satpy.readers.vii_l2_nc.ViiL2NCFileHandler
+    file_patterns: ['W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-02-OCA_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    cached_longitude: data/measurement_data/longitude
+    cached_latitude: data/measurement_data/latitude
+
+  # EUMETSAT EPSG-SG Visual Infrared Imager Level 2 Total Precipitable Water (from VII visible/near-infrared) files in NetCDF4 format
+  nc_vii_l2_wvv:
+    file_reader: !!python/name:satpy.readers.vii_l2_nc.ViiL2NCFileHandler
+    file_patterns: ['W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-02-WVV_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    cached_longitude: data/measurement_data/longitude
+    cached_latitude: data/measurement_data/latitude
+    interpolate: False
+    orthorect: False
+
+  # EUMETSAT EPSG-SG Visual Infrared Imager Level 2 Total Precipitable Water (from VII thermal infra-red) files in NetCDF4 format
+  nc_vii_l2_wvi:
+    file_reader: !!python/name:satpy.readers.vii_l2_nc.ViiL2NCFileHandler
+    file_patterns: ['W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-02-WVI_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    cached_longitude: data/measurement_data/longitude
+    cached_latitude: data/measurement_data/latitude
+    interpolate: False
+    orthorect: False
+
+datasets:
+
+# --- Coordinates ---
+  # TODO Coordinates on tie points are kept for test purposes
+  lon_tie_points:
+    name: lon_tie_points
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/longitude
+    standard_name: longitude
+
+  lat_tie_points:
+    name: lat_tie_points
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/latitude
+    standard_name: latitude
+
+  lon_pixels_no_orthorect:
+    name: lon_pixels_no_orthorect
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: cached_longitude
+    standard_name: longitude
+
+  lat_pixels_no_orthorect:
+    name: lat_pixels_no_orthorect
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: cached_latitude
+    standard_name: latitude
+
+  lon_pixels:
+    name: lon_pixels
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: cached_longitude
+    orthorect_data: data/measurement_data/delta_lon
+    standard_name: longitude
+
+  lat_pixels:
+    name: lat_pixels
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: cached_latitude
+    orthorect_data: data/measurement_data/delta_lat
+    standard_name: latitude
+
+  lon_pixels2:
+    name: lon_pixels2
+    file_type: nc_vii_l2_oca
+    file_key: cached_longitude
+    orthorect_data: data/measurement_data/delta_lon_cloud2
+    standard_name: longitude
+
+  lat_pixels2:
+    name: lat_pixels2
+    file_type: nc_vii_l2_oca
+    file_key: cached_latitude
+    orthorect_data: data/measurement_data/delta_lat_cloud2
+    standard_name: latitude
+
+# --- Measurement data ---
+  cs_confidence:
+    name: cs_confidence
+    file_type: [nc_vii_l2_cld, nc_vii_l2_icm]
+    file_key: data/measurement_data/cs_confidence
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_area_fraction
+
+  flag_cm:
+    name: flag_cm
+    file_type: [nc_vii_l2_cld, nc_vii_l2_icm]
+    file_key: data/measurement_data/flag_cm
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_mask_classification
+
+  surface_type:
+    name: surface_type
+    file_type: [nc_vii_l2_cld, nc_vii_l2_icm]
+    file_key: data/measurement_data/surface_type
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: surface_type
+
+  ctp_o2:
+    name: ctp_o2
+    file_type: nc_vii_l2_ctp
+    file_key: data/measurement_data/ctp_o2
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: air_pressure_at_cloud_top
+
+  log10_ctp_o2_err:
+    name: log10_ctp_o2_err
+    file_type: nc_vii_l2_ctp
+    file_key: data/measurement_data/log10_ctp_o2_err
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: air_pressure_at_cloud_top
+
+  log10_cot_o2:
+    name: log10_cot_o2
+    file_type: nc_vii_l2_ctp
+    file_key: data/measurement_data/log10_cot_o2
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_optical_depth
+
+  log10_cot_o2_err:
+    name: log10_cot_o2_err
+    file_type: nc_vii_l2_ctp
+    file_key: data/measurement_data/log10_cot_o2_err
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_optical_depth
+
+  vii_ch_sel1:
+    name: vii_ch_sel1
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/vii_ch_sel1
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: toa_outgoing_radiance_per_unit_wavelength
+
+  vii_ch_sel2:
+    name: vii_ch_sel2
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/vii_ch_sel2
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: toa_outgoing_radiance_per_unit_wavelength
+
+  vii_ch_sel3:
+    name: vii_ch_sel3
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/vii_ch_sel3
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: toa_outgoing_radiance_per_unit_wavelength
+
+  flag_cph:
+    name: flag_cph
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/flag_cph
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: thermodynamic_phase_of_cloud_water_particles_at_cloud_top
+
+  log10_cot_fg:
+    name: log10_cot_fg
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/log10_cot_fg
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_optical_depth
+
+  log10_err_cot_fg:
+    name: log10_err_cot_fg
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/log10_err_cot_fg
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_optical_depth
+
+  cth_fg:
+    name: cth_fg
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/cth_fg
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: height_at_cloud_top
+
+  err_cth_fg:
+    name: err_cth_fg
+    file_type: nc_vii_l2_icm
+    file_key: data/measurement_data/err_cth_fg
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: height_at_cloud_top
+
+  moca_model_final:
+    name: moca_model_final
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/moca_model_final
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: scene_classification
+
+  log10_cot:
+    name: log10_cot
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/log10_cot
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_optical_depth
+
+  log10_err_cot:
+    name: log10_err_cot
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/log10_err_cot
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_optical_depth
+
+  cre:
+    name: cre
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/cre
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+
+  log10_err_cre:
+    name: log10_err_cre
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/log10_err_cre
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+
+  ctp:
+    name: ctp
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/ctp
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: air_pressure_at_cloud_top
+
+  log10_err_ctp:
+    name: log10_err_ctp
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/log10_err_ctp
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: air_pressure_at_cloud_top
+
+  ctt:
+    name: ctt
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/ctt
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: air_temperature_at_cloud_top
+
+  log10_cot2:
+    name: log10_cot2
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/log10_cot2
+    coordinates: [lon_pixels2, lat_pixels2]
+    standard_name: cloud_optical_depth
+
+  log10_err_cot2:
+    name: log10_err_cot2
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/log10_err_cot2
+    coordinates: [lon_pixels2, lat_pixels2]
+    standard_name: cloud_optical_depth
+
+  ctp2:
+    name: ctp2
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/ctp2
+    coordinates: [lon_pixels2, lat_pixels2]
+    standard_name: air_pressure_at_cloud_top
+
+  log10_err_ctp2:
+    name: log10_err_ctp2
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/log10_err_ctp2
+    coordinates: [lon_pixels2, lat_pixels2]
+    standard_name: air_pressure_at_cloud_top
+
+  ctt2:
+    name: ctt2
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/ctt2
+    coordinates: [lon_pixels2, lat_pixels2]
+    standard_name: air_temperature_at_cloud_top
+
+  tpw:
+    name: tpw
+    file_type: [nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/measurement_data/tpw
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: mass_of_water_in_air
+
+  tpw_err:
+    name: tpw_err
+    file_type: [nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/measurement_data/tpw_err
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: mass_of_water_in_air
+
+# --- Geometric data ---
+  # TODO Geometric data on tie points are kept for test purposes
+  solar_zenith_tie_points:
+    name: solar_zenith_tie_points
+    standard_name: solar_zenith_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/solar_zenith
+    coordinates: [lon_tie_points, lat_tie_points]
+
+  solar_azimuth_tie_points:
+    name: solar_azimuth_tie_points
+    standard_name: solar_azimuth_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/solar_azimuth
+    coordinates: [lon_tie_points, lat_tie_points]
+
+  observation_zenith_tie_points:
+    name: observation_zenith_tie_points
+    standard_name: sensor_zenith_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/observation_zenith
+    coordinates: [lon_tie_points, lat_tie_points]
+
+  observation_azimuth_tie_points:
+    name: observation_azimuth_tie_points
+    standard_name: sensor_azimuth_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/observation_azimuth
+    coordinates: [lon_tie_points, lat_tie_points]
+
+  solar_zenith:
+    name: solar_zenith
+    standard_name: solar_zenith_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/measurement_data/solar_zenith
+    interpolate: True
+    coordinates: [lon_pixels_no_orthorect, lat_pixels_no_orthorect]
+
+  solar_azimuth:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/measurement_data/solar_azimuth
+    interpolate: True
+    coordinates: [lon_pixels_no_orthorect, lat_pixels_no_orthorect]
+
+  observation_zenith:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/measurement_data/observation_zenith
+    interpolate: True
+    coordinates: [lon_pixels_no_orthorect, lat_pixels_no_orthorect]
+
+  observation_azimuth:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: [nc_vii_l2_cld, nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/measurement_data/observation_azimuth
+    interpolate: True
+    coordinates: [lon_pixels_no_orthorect, lat_pixels_no_orthorect]
+
+# --- Orthorectification data ---
+  delta_lat:
+    name: delta_lat
+    file_type: [nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/delta_lat
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: parallax_delta_latitude
+
+  delta_lon:
+    name: delta_lon
+    file_type: [nc_vii_l2_ctp, nc_vii_l2_icm, nc_vii_l2_oca]
+    file_key: data/measurement_data/delta_lon
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: parallax_delta_longitude
+
+  delta_lat_cloud2:
+    name: delta_lat_cloud2
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/delta_lat_cloud2
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: parallax_delta_latitude
+
+  delta_lon_cloud2:
+    name: delta_lon_cloud2
+    file_type: nc_vii_l2_oca
+    file_key: data/measurement_data/delta_lon_cloud2
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: parallax_delta_longitude
+
+# --- Quality Information data ---
+  log10_j:
+    name: log10_j
+    file_type: [nc_vii_l2_ctp, nc_vii_l2_oca, nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/quality_information/log10_j
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cost_function
+
+  flag_ml:
+    name: flag_ml
+    file_type: nc_vii_l2_ctp
+    file_key: data/quality_information/flag_ml
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: cloud_multilayer_classification
+
+  qi_forecast:
+    name: qi_forecast
+    file_type: [nc_vii_l2_wvi, nc_vii_l2_wvv]
+    file_key: data/quality_information/qi_forecast
+    coordinates: [lon_pixels, lat_pixels]
+    standard_name: mass_of_water_in_air

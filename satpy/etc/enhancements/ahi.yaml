@@ -1,0 +1,11 @@
+enhancements:
+  airmass:
+    # matches ABI
+    standard_name: airmass
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-26.2, -43.2, 243.9]
+          max_stretch: [0.6, 6.7, 208.5]

@@ -1,0 +1,1003 @@
+reader:
+  name: fci_l2_nc
+  short_name: FCI L2 NetCDF4
+  long_name: MTG FCI L2 (NetCDF4)
+  description: Reader for EUMETSAT MTG FCI L2 files in NetCDF4 format.
+  sensors: [fci]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  # Filename examples
+  # FCI_SIM_OCA_2L_2KM_{creation_time:%Y%m%d}_1700.nc
+  # W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-2-ASR--FD------NC4E_C_EUMT_20201105031219_L2PF_DEV_20170410171000_20170410172000_N__T_0104_0000.nc
+
+  nc_fci_oca:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: ['FCI_SIM_OCA_2L_2KM_{creation_time:%Y%m%d}_1700.nc',
+                   'W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-OCA--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+
+  nc_fci_clm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: ['FCI_SIM_CLM_2KM_{creation_time:%Y%m%d}_1700.nc',
+                    'W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CLM--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+
+  nc_fci_test_clm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: [ 'W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CLMTest-{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
+
+  nc_fci_ct:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CT--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+
+  nc_fci_cloud:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CTTH--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
+
+  nc_fci_asr:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-ASR--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
+
+  nc_fci_gii:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    # TODO: Pattern based on the available test files, not compatible with MTG GFS definitions
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-GII--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
+
+datasets:
+
+  retrieved_cloud_phase:
+    name: retrieved_cloud_phase
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_phase
+    standard_name: thermodynamic_phase_of_cloud_water_particles_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_optical_thickness_upper_layer:
+    name: retrieved_cloud_optical_thickness_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 0
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_cloud_optical_thickness_lower_layer:
+    name: retrieved_cloud_optical_thickness_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 1
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_cloud_particle_effective_radius:
+    name: retrieved_cloud_particle_effective_radius
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_temperature:
+    name: retrieved_cloud_top_temperature
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_temperature
+    standard_name: air_temperature_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_pressure_upper_layer:
+    name: retrieved_cloud_top_pressure_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 0
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_pressure_lower_layer:
+    name: retrieved_cloud_top_pressure_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 1
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_height:
+    name: retrieved_cloud_top_height
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_height
+    standard_name: height_at_cloud_top
+    fill_value: -999.
+
+  retrieved_error_cloud_optical_thickness_upper_layer:
+    name: retrieved_error_cloud_optical_thickness_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_optical_thickness
+    layer: 0
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_error_cloud_optical_thickness_lower_layer:
+    name: retrieved_error_cloud_optical_thickness_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_optical_thickness
+    layer: 1
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_error_cloud_particle_effective_radius:
+    name: retrieved_error_cloud_particle_effective_radius
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+    fill_value: -999.
+
+  retrieved_error_cloud_top_pressure_upper_layer:
+    name: retrieved_error_cloud_top_pressure_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_top_pressure
+    layer: 0
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  retrieved_error_cloud_top_pressure_lower_layer:
+    name: retrieved_error_cloud_top_pressure_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_top_pressure
+    layer: 1
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  quality_jmeas:
+    name: quality_jmeas
+    file_type: nc_fci_oca
+    file_key: quality_jmeas
+    standard_name: cost_function
+    fill_value: -999.
+
+  cloud_state:
+    name: cloud_state
+    file_type: nc_fci_clm
+    file_key: cloud_state
+    standard_name: cloud_mask_classification
+    fill_value: -999
+    mask_value: 0
+
+  quality_illumination:
+    name: quality_illumination
+    file_type: nc_fci_clm
+    file_key: quality_illumination
+    standard_name: illumination_classification
+    fill_value: -999
+    mask_value: 0
+
+  quality_nwp_parameters:
+    name: quality_nwp_parameters
+    file_type: nc_fci_clm
+    file_key: quality_nwp_parameters
+    standard_name: quality_index
+    fill_value: -999
+    mask_value: 0
+
+  quality_MTG_parameters:
+    name: quality_MTG_parameters
+    file_type: nc_fci_clm
+    file_key: quality_MTG_parameters
+    standard_name: quality_index
+    fill_value: -999
+    mask_value: 0
+
+  quality_overall_processing:
+    name: quality_overall_processing
+    file_type: nc_fci_clm
+    file_key: quality_overall_processing
+    standard_name: quality_index
+    fill_value: -999
+    mask_value: 0
+
+# CLM Test
+  cloud_test_sit1_flag:
+    name: cloud_test_sit1_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_sit1_flag
+    extract_byte: 0
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt1_flag:
+    name: cloud_test_cmt1_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt1_flag
+    extract_byte: 1
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt2_flag:
+    name: cloud_test_cmt2_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt2_flag
+    extract_byte: 2
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt3_flag:
+    name: cloud_test_cmt3_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt3_flag
+    extract_byte: 3
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt4_flag:
+    name: cloud_test_cmt4_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt4_flag
+    extract_byte: 4
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt5_flag:
+    name: cloud_test_cmt5_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt5_flag
+    extract_byte: 5
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt6_flag:
+    name: cloud_test_cmt6_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt6_flag
+    extract_byte: 6
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt7_flag:
+    name: cloud_test_cmt7_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt7_flag
+    extract_byte: 7
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt8_flag:
+    name: cloud_test_cmt8_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt8_flag
+    extract_byte: 8
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt9_flag:
+    name: cloud_test_cmt9_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt9_flag
+    extract_byte: 9
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt10_flag:
+    name: cloud_test_cmt10_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt0_flag
+    extract_byte: 10
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt11_flag:
+    name: cloud_test_cmt11_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt11_flag
+    extract_byte: 11
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt12_flag:
+    name: cloud_test_cmt12_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt12_flag
+    extract_byte: 12
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt13_flag:
+    name: cloud_test_cmt13_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt13_flag
+    extract_byte: 13
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt14_flag:
+    name: cloud_test_cmt14_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmt14_flag
+    extract_byte: 14
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_opqt_flag:
+    name: cloud_test_opqt_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_opqt_flag
+    extract_byte: 15
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt1_flag:
+    name: cloud_test_cmrt1_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmrt1_flag
+    extract_byte: 16
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt2_flag:
+    name: cloud_test_cmrt2_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmrt2_flag
+    extract_byte: 17
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt3_flag:
+    name: cloud_test_cmrt3_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmrt3_flag
+    extract_byte: 18
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt4_flag:
+    name: cloud_test_cmrt4_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmrt4_flag
+    extract_byte: 19
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt5_flag:
+    name: cloud_test_cmrt5_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmrt5_flag
+    extract_byte: 20
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt6_flag:
+    name: cloud_test_cmrt6_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_cmrt6_flag
+    extract_byte: 21
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_dust_flag:
+    name: cloud_test_dust_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_dust_flag
+    extract_byte: 22
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_ash_flag:
+    name: cloud_test_ash_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_ash_flag
+    extract_byte: 23
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_dust_ash_flag:
+    name: cloud_test_dust_ash_flag
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_flag
+    standard_name: cloud_mask_test_dust_ash_flag
+    extract_byte: 24
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_sit1:
+    name: cloud_test_sit1
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_sit1
+    extract_byte: 0
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt1:
+    name: cloud_test_cmt1
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt1
+    extract_byte: 1
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt2:
+    name: cloud_test_cmt2
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt2
+    extract_byte: 2
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt3:
+    name: cloud_test_cmt3
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt3
+    extract_byte: 3
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt4:
+    name: cloud_test_cmt4
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt4
+    extract_byte: 4
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt5:
+    name: cloud_test_cmt5
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt5
+    extract_byte: 5
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt6:
+    name: cloud_test_cmt6
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt6
+    extract_byte: 6
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt7:
+    name: cloud_test_cmt7
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt7
+    extract_byte: 7
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt8:
+    name: cloud_test_cmt8
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt8
+    extract_byte: 8
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt9:
+    name: cloud_test_cmt9
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt9
+    extract_byte: 9
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt10:
+    name: cloud_test_cmt10
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt10
+    extract_byte: 10
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt11:
+    name: cloud_test_cmt11
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt11
+    extract_byte: 11
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt12:
+    name: cloud_test_cmt12
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt12
+    extract_byte: 12
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt13:
+    name: cloud_test_cmt13
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt13
+    extract_byte: 13
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmt14:
+    name: cloud_test_cmt14
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmt14
+    extract_byte: 14
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_opqt:
+    name: cloud_test_opqt
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_opqt
+    extract_byte: 15
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt1:
+    name: cloud_test_cmrt1
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmrt1
+    extract_byte: 16
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt2:
+    name: cloud_test_cmrt2
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmrt2
+    extract_byte: 17
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt3:
+    name: cloud_test_cmrt3
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmrt3
+    extract_byte: 18
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt4:
+    name: cloud_test_cmrt4
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmrt4
+    extract_byte: 19
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt5:
+    name: cloud_test_cmrt5
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmrt5
+    extract_byte: 20
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_cmrt6:
+    name: cloud_test_cmrt6
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_cmrt6
+    extract_byte: 21
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_dust:
+    name: cloud_test_dust
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_dust
+    extract_byte: 22
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_ash:
+    name: cloud_test_ash
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_ash
+    extract_byte: 23
+    fill_value: -999
+    mask_value: 0
+
+  cloud_test_dust_ash:
+    name: cloud_test_dust_ash
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_test_result
+    standard_name: cloud_mask_test_dust_ash
+    extract_byte: 24
+    fill_value: -999
+    mask_value: 0
+
+  cloud_mask_cmrt6_result:
+    name: cloud_mask_cmrt6_result
+    file_type: nc_fci_test_clm
+    file_key: cloud_mask_cmrt6_test_result
+    standard_name: cloud_mask_cmrt6_result
+    extract_byte: 0
+#    fill_value: -999
+    mask_value: 0
+
+  latitude:
+    name: latitude
+    file_key: 'latitude'
+#    resolution:
+    file_type: [nc_fci_gii, nc_fci_asr]
+    standard_name: latitude
+    fill_value: -32767
+    mask_value: -32767
+    units: degree_north
+
+
+  longitude:
+    name: longitude
+    file_key: 'longitude'
+#    resolution:
+    file_type: [nc_fci_gii, nc_fci_asr]
+    standard_name: longitude
+    fill_value: -32767
+    mask_value: -32767
+    units: degree_east
+
+
+  # GII
+  k_index:
+    name: k_index
+    file_type: nc_fci_gii
+    file_key: k_index
+    standard_name: k_index
+    fill_value:  -32767
+    mask_value:  -32767
+    coordinates:
+      - longitude
+      - latitude
+
+  lifted_index:
+    name: lifted_index
+    file_type: nc_fci_gii
+    file_key: lifted_index
+    standard_name: lifted_index
+    fill_value: -32767
+    mask_value: -32767
+    coordinates:
+      - longitude
+      - latitude
+
+  percent_cloud_free:
+    name: percent_cloud_free
+    file_type: nc_fci_gii
+    file_key: percent_cloud_free
+    standard_name: percent_cloud_free
+    fill_value: -127
+    mask_value: -127
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_high:
+    name: prec_water_high
+    file_type: nc_fci_gii
+    file_key: prec_water_high
+    standard_name: prec_water_high
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_low:
+    name: prec_water_low
+    file_type: nc_fci_gii
+    file_key: prec_water_low
+    standard_name: prec_water_low
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_mid:
+    name: prec_water_mid
+    file_type: nc_fci_gii
+    file_key: prec_water_mid
+    standard_name: prec_water_mid
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  prec_water_total:
+    name: prec_water_total
+    file_type: nc_fci_gii
+    file_key: prec_water_total
+    standard_name: prec_water_total
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+# FCI CT L2
+  cloud_phase:
+    name: cloud_phase
+    file_type: nc_fci_ct
+    file_key: cloud_phase
+#    standard_name: cloud_phase
+    fill_value: 0
+    mask_value: 0
+
+  cloud_type:
+    name: cloud_type
+    file_type: nc_fci_ct
+    file_key: cloud_type
+#    standard_name: cloud_type
+    fill_value: 0
+    mask_value: 0
+
+# FCI CTTH Product
+  cloud_top_aviation_height:
+    name: cloud_top_aviation_height
+    file_type: nc_fci_cloud
+    file_key: cloud_top_aviation_height
+    fill_value: 0
+    mask_value: 0
+
+  cloud_top_height:
+    name: cloud_top_height
+    file_type: nc_fci_cloud
+    file_key: cloud_top_height
+    fill_value: 0
+    mask_value: 0
+
+  cloud_top_pressure:
+    name: cloud_top_pressure
+    file_type: nc_fci_th
+    file_key: cloud_top_pressure
+    fill_value: 0
+    mask_value: 0
+
+  cloud_top_temperature:
+    name: cloud_top_temperature
+    file_type: nc_fci_cloud
+    file_key: cloud_top_temperature
+    fill_value: 0
+    mask_value: 0
+
+  effective_cloudiness:
+    name: effective_cloudiness
+    file_type: nc_fci_cloud
+    file_key: effective_cloudiness
+    fill_value: 0
+    mask_value: 0
+
+# ASR
+  bt_max:
+    name: bt_max
+    file_type: nc_fci_asr
+    file_key: bt_max
+    standard_name: bt_max
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_mean:
+    name: bt_mean
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    standard_name: bt_mean
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_min:
+    name: bt_min
+    file_type: nc_fci_asr
+    file_key: bt_min
+    standard_name: bt_min
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  bt_std:
+    name: bt_std
+    file_type: nc_fci_asr
+    file_key: bt_std
+    standard_name: bt_std
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_max:
+    name: radiance_max
+    file_type: nc_fci_asr
+    file_key: radiance_max
+    standard_name: radiance_max
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_mean:
+    name: radiance_mean
+    file_type: nc_fci_asr
+    file_key: radiance_mean
+    standard_name: radiance_mean
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_min:
+    name: radiance_min
+    file_type: nc_fci_asr
+    file_key: radiance_min
+    standard_name: radiance_min
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  radiance_std:
+    name: radiance_std
+    file_type: nc_fci_asr
+    file_key: radiance_std
+    standard_name: radiance_std
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_max:
+    name: reflectance_max
+    file_type: nc_fci_asr
+    file_key: reflectance_max
+    standard_name: reflectance_max
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_mean:
+    name: reflectance_mean
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    standard_name: reflectance_mean
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_min:
+    name: reflectance_min
+    file_type: nc_fci_asr
+    file_key: reflectance_min
+    standard_name: reflectance_min
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  reflectance_std:
+    name: reflectance_std
+    file_type: nc_fci_asr
+    file_key: reflectance_std
+    standard_name: reflectance_std
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_bt:
+    name: quality_bt
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    standard_name: quality_bt
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_reflectance:
+    name: quality_reflectance
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    standard_name: quality_reflectance
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  quality_radiance:
+    name: quality_radiance
+    file_type: nc_fci_asr
+    file_key: quality_radiance
+    standard_name: quality_radiance
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  land_pixel_percent:
+    name: land_pixel_percent
+    file_type: nc_fci_asr
+    file_key: land_pixel_percent
+    standard_name: land_pixel_percent
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  water_pixel_percent:
+    name: water_pixel_percent
+    file_type: nc_fci_asr
+    file_key: water_pixel_percent
+    standard_name: water_pixel_percent
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  pixel_percentage:
+    name: pixel_percentage
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    standard_name: pixel_percentage
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude

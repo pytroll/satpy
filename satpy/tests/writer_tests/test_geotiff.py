@@ -17,18 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the geotiff writer."""
 
-import sys
+import unittest
+from unittest import mock
 import numpy as np
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class TestGeoTIFFWriter(unittest.TestCase):
@@ -153,11 +144,3 @@ class TestGeoTIFFWriter(unittest.TestCase):
             w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
             called_include = save_method.call_args[1]['include_scale_offset_tags']
             self.assertTrue(called_include)
-
-
-def suite():
-    """Test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGeoTIFFWriter))
-    return mysuite

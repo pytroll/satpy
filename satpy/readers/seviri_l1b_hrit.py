@@ -21,7 +21,7 @@ Introduction
 ------------
 
 The ``seviri_l1b_hrit`` reader reads and calibrates MSG-SEVIRI L1.5 image data in HRIT format. The format is explained
-in the `MSG Level 1.5 Image Format Description`_. The files are usually named as
+in the `MSG Level 1.5 Image Data Format Description`_. The files are usually named as
 follows:
 
 .. code-block:: none
@@ -49,7 +49,7 @@ provided through the `Scene` instantiation, eg::
   Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
 
 To see the full list of arguments that can be provided, look into the documentation
-of `:class:HRITMSGFileHandler`.
+of :class:`HRITMSGFileHandler`.
 
 Example
 -------
@@ -104,7 +104,7 @@ Output:
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
   centre.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
-  :class:`HRITMSGFileHandler`.
+  :class:`satpy.readers.seviri_base`.
 * The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header. By default,
   arrays with more than 100 elements are excluded in order to limit memory usage. This threshold can be adjusted,
   see :class:`HRITMSGFileHandler`.
@@ -119,18 +119,6 @@ Output:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
-
-References:
-    - `MSG Level 1.5 Image Format Description`_
-    - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
-
-.. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
-    PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
-
-.. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
-    RevisionSelectionMethod=LatestReleased&Rendition=Web
-
 """
 
 from __future__ import division
@@ -144,20 +132,21 @@ import numpy as np
 import pyproj
 import xarray as xr
 
-import satpy.readers.utils as utils
 from pyresample import geometry
 from satpy import CHUNK_SIZE
-from satpy.readers.eum_base import recarray2dict, time_cds_short
+import satpy.readers.utils as utils
+from satpy.readers.eum_base import recarray2dict, time_cds_short, get_service_mode
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
-from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
-                                       VIS_CHANNELS, SEVIRICalibrationHandler,
-                                       chebyshev, get_cds_time)
+
+from satpy.readers.seviri_base import (CHANNEL_NAMES, SATNUM,
+                                       SEVIRICalibrationHandler,
+                                       chebyshev, get_cds_time, HRV_NUM_COLUMNS,
+                                       pad_data_horizontally, create_coef_dict)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
-from satpy.readers._geos_area import get_area_extent, get_area_definition
-
+from satpy.readers._geos_area import get_area_extent, get_area_definition, get_geos_area_naming
 
 logger = logging.getLogger('hrit_msg')
 
@@ -417,55 +406,12 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
         return self._reduce(self.epilogue, max_size=max_size)
 
 
-class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
+class HRITMSGFileHandler(HRITFileHandler):
     """SEVIRI HRIT format reader.
 
     **Calibration**
 
-    It is possible to choose between two file-internal calibration coefficients for the conversion
-    from counts to radiances:
-
-        - Nominal for all channels (default)
-        - GSICS for IR channels and nominal for VIS channels
-
-    In order to change the default behaviour, use the ``reader_kwargs`` upon Scene creation::
-
-        import satpy
-        import glob
-
-        filenames = glob.glob('H-000-MSG3*')
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'calib_mode': 'GSICS'})
-        scene.load(['VIS006', 'IR_108'])
-
-    Furthermore, it is possible to specify external calibration coefficients for the conversion from
-    counts to radiances. They must be specified in [mW m-2 sr-1 (cm-1)-1]. External coefficients
-    take precedence over internal coefficients. If external calibration coefficients are specified
-    for only a subset of channels, the remaining channels will be calibrated using the chosen
-    file-internal coefficients (nominal or GSICS).
-
-    In the following example we use external calibration coefficients for the ``VIS006`` &
-    ``IR_108`` channels, and nominal coefficients for the remaining channels::
-
-        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
-                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'ext_calib_coefs': coefs})
-        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
-
-    In the next example we use we use external calibration coefficients for the ``VIS006`` &
-    ``IR_108`` channels, nominal coefficients for the remaining VIS channels and GSICS coefficients
-    for the remaining IR channels::
-
-        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
-                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'calib_mode': 'GSICS',
-                                           'ext_calib_coefs': coefs})
-        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+    See :mod:`satpy.readers.seviri_base`.
 
     **Raw Metadata**
 
@@ -504,14 +450,10 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
-        self.ext_calib_coefs = ext_calib_coefs if ext_calib_coefs is not None else {}
         self.mda_max_array_size = mda_max_array_size
         self.fill_hrv = fill_hrv
-        calib_mode_choices = ('NOMINAL', 'GSICS')
-        if calib_mode.upper() not in calib_mode_choices:
-            raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
-                calib_mode, calib_mode_choices))
-        self.calib_mode = calib_mode.upper()
+        self.calib_mode = calib_mode
+        self.ext_calib_coefs = ext_calib_coefs or {}
 
         self._get_header()
 
@@ -592,7 +534,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-
         # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
         loff = np.float32(self.mda['loff'])
@@ -614,13 +555,20 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         else:
             pdict['scandir'] = 'S2N'
 
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': int(dsid['resolution'])
+                                  }
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', pdict['ssp_lon'])})
+
         # Compute area definition for non-HRV channels:
-        if dsid.name != 'HRV':
+        if dsid['name'] != 'HRV':
             pdict['loff'] = loff - nlines
             aex = self._get_area_extent(pdict)
-            pdict['a_name'] = 'geosmsg'
-            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
-            pdict['p_id'] = 'msg_lowres'
+            pdict['a_name'] = area_naming['area_id']
+            pdict['a_desc'] = area_naming['description']
+            pdict['p_id'] = ""
             area = get_area_definition(pdict, aex)
             self.area = area
             return self.area
@@ -632,15 +580,15 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                               * pdict['nlines'])
 
         # Or, if we are processing HRV:
-        pdict['a_name'] = 'geosmsg_hrv'
-        pdict['p_id'] = 'msg_hires'
+        pdict['a_name'] = area_naming['area_id']
+        pdict['p_id'] = ""
         bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
         if self.fill_hrv:
             bounds['UpperEastColumnActual'] = 1
-            bounds['UpperWestColumnActual'] = 11136
+            bounds['UpperWestColumnActual'] = HRV_NUM_COLUMNS
             bounds['LowerEastColumnActual'] = 1
-            bounds['LowerWestColumnActual'] = 11136
-            pdict['ncols'] = 11136
+            bounds['LowerWestColumnActual'] = HRV_NUM_COLUMNS
+            pdict['ncols'] = HRV_NUM_COLUMNS
 
         upper_south_line = bounds[
             'LowerNorthLineActual'] - current_first_line - 1
@@ -652,7 +600,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         pdict['nlines'] = upper_south_line
         pdict['loff'] = loff - upper_south_line
         pdict['coff'] = lower_coff
-        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, lower window'
+        pdict['a_desc'] = area_naming['description']
         lower_area_extent = self._get_area_extent(pdict)
         lower_area = get_area_definition(pdict, lower_area_extent)
 
@@ -660,7 +608,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         pdict['nlines'] = nlines - upper_south_line
         pdict['loff'] = loff - pdict['nlines'] - upper_south_line
         pdict['coff'] = upper_coff
-        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, upper window'
+        pdict['a_desc'] = area_naming['description']
         upper_area_extent = self._get_area_extent(pdict)
         upper_area = get_area_definition(pdict, upper_area_extent)
 
@@ -672,8 +620,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, key, info):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
-        res = self.calibrate(res, key.calibration)
-        if key.name == 'HRV' and self.fill_hrv:
+        res = self.calibrate(res, key['calibration'])
+        if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
 
         res.attrs['units'] = info['units']
@@ -695,8 +643,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['raw_metadata'] = self._get_raw_mda()
 
         # Add scanline timestamps as additional y-coordinate
-        res['acq_time'] = ('y', self._get_timestamps())
-        res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+        res.coords['acq_time'] = ('y', self._get_timestamps())
+        res.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
 
         return res
 
@@ -718,66 +666,47 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         data_list = list()
         if upper_south_line > 0:
             # we have some of the lower window
-            data_lower = pad_data(res[:upper_south_line, :].data,
-                                  (upper_south_line, 11136),
-                                  bounds['LowerEastColumnActual'],
-                                  bounds['LowerWestColumnActual'])
+            data_lower = pad_data_horizontally(res[:upper_south_line, :].data,
+                                               (upper_south_line, HRV_NUM_COLUMNS),
+                                               bounds['LowerEastColumnActual'],
+                                               bounds['LowerWestColumnActual'])
             data_list.append(data_lower)
 
         if upper_south_line < nlines:
             # we have some of the upper window
-            data_upper = pad_data(res[upper_south_line:, :].data,
-                                  (nlines - upper_south_line, 11136),
-                                  bounds['UpperEastColumnActual'],
-                                  bounds['UpperWestColumnActual'])
+            data_upper = pad_data_horizontally(res[upper_south_line:, :].data,
+                                               (nlines - upper_south_line, HRV_NUM_COLUMNS),
+                                               bounds['UpperEastColumnActual'],
+                                               bounds['UpperWestColumnActual'])
             data_list.append(data_upper)
-        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
+        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'), attrs=res.attrs.copy())
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
-        channel_name = self.channel_name
-
-        if calibration == 'counts':
-            res = data
-        elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            # Choose calibration coefficients
-            # a) Internal: Nominal or GSICS?
-            band_idx = self.mda['spectral_channel_id'] - 1
-            if self.calib_mode != 'GSICS' or self.channel_name in VIS_CHANNELS:
-                # you cant apply GSICS values to the VIS channels
-                coefs = self.prologue["RadiometricProcessing"]["Level15ImageCalibration"]
-                int_gain = coefs['CalSlope'][band_idx]
-                int_offset = coefs['CalOffset'][band_idx]
-            else:
-                coefs = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
-                int_gain = coefs['GSICSCalCoeff'][band_idx]
-                int_offset = coefs['GSICSOffsetCount'][band_idx]
-
-            # b) Internal or external? External takes precedence.
-            gain = self.ext_calib_coefs.get(self.channel_name, {}).get('gain', int_gain)
-            offset = self.ext_calib_coefs.get(self.channel_name, {}).get('offset', int_offset)
-
-            # Convert to radiance
-            data = data.where(data > 0)
-            res = self._convert_to_radiance(data.astype(np.float32), gain, offset)
-            line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
-            line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
-            line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
-            line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
-            res *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
-
-        if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.platform_id][channel_name]["F"]
-            res = self._vis_calibrate(res, solar_irradiance)
-
-        elif calibration == 'brightness_temperature':
-            cal_type = self.prologue['ImageDescription'][
-                'Level15ImageProduction']['PlannedChanProcessing'][self.mda['spectral_channel_id']]
-            res = self._ir_calibrate(res, channel_name, cal_type)
-
+        calib = SEVIRICalibrationHandler(
+            platform_id=self.platform_id,
+            channel_name=self.channel_name,
+            coefs=self._get_calib_coefs(self.channel_name),
+            calib_mode=self.calib_mode,
+            scan_time=self.start_time
+        )
+        res = calib.calibrate(data, calibration)
+        if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+            res = self._mask_bad_quality(res)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    def _mask_bad_quality(self, data):
+        """Mask scanlines with bad quality."""
+        # Based on missing (2) or corrupted (3) data
+        line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
+        line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
+        # Do not use (4)
+        line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
+        line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
+        data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
+        return data
 
     def _get_raw_mda(self):
         """Compile raw metadata to be included in the dataset attributes."""
@@ -796,6 +725,27 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         """Read scanline timestamps from the segment header."""
         tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
         return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+
+    def _get_calib_coefs(self, channel_name):
+        """Get coefficients for calibration from counts to radiance."""
+        band_idx = self.mda['spectral_channel_id'] - 1
+        coefs_nominal = self.prologue["RadiometricProcessing"][
+            "Level15ImageCalibration"]
+        coefs_gsics = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
+        radiance_types = self.prologue['ImageDescription'][
+                'Level15ImageProduction']['PlannedChanProcessing']
+        return create_coef_dict(
+            coefs_nominal=(
+                coefs_nominal['CalSlope'][band_idx],
+                coefs_nominal['CalOffset'][band_idx]
+            ),
+            coefs_gsics=(
+                coefs_gsics['GSICSCalCoeff'][band_idx],
+                coefs_gsics['GSICSOffsetCount'][band_idx]
+            ),
+            ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
+            radiance_type=radiance_types[band_idx]
+        )
 
 
 def pad_data(data, final_size, east_bound, west_bound):

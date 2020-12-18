@@ -18,16 +18,8 @@
 """Tests for the satpy.demo module."""
 
 import os
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class _GlobHelper(object):
@@ -179,16 +171,3 @@ class TestGCPUtils(unittest.TestCase):
         """Test that 'gcsfs' is required."""
         from satpy.demo._google_cloud_platform import get_bucket_files
         self.assertRaises(RuntimeError, get_bucket_files, '*.nc', '.')
-
-
-def suite():
-    """Create the test suite for test_demo."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDemo))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGCPUtils))
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

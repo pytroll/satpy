@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-#
 """Unittests for NWC SAF MSG (2013) reader."""
 
 import unittest
@@ -23,11 +22,6 @@ import tempfile
 import os
 import h5py
 from collections import OrderedDict
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock  # noqa
 
 CTYPE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
 CTYPE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 20).astype(np.uint8)
@@ -488,11 +482,11 @@ class TestH5NWCSAF(unittest.TestCase):
     def test_get_area_def(self):
         """Get the area definition."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ct")
+        dsid = make_dataid(name="ct")
         test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
 
         area_def = test.get_area_def(dsid)
@@ -515,11 +509,11 @@ class TestH5NWCSAF(unittest.TestCase):
     def test_get_dataset(self):
         """Retrieve datasets from a NWCSAF msgv2013 hdf5 file."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ct")
+        dsid = make_dataid(name="ct")
         test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CT"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -528,7 +522,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_alti")
+        dsid = make_dataid(name="ctth_alti")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_HEIGHT"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -537,7 +531,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_pres")
+        dsid = make_dataid(name="ctth_pres")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_PRESS"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -546,7 +540,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_tempe")
+        dsid = make_dataid(name="ctth_tempe")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_TEMPER"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -560,12 +554,3 @@ class TestH5NWCSAF(unittest.TestCase):
             os.remove(self.filename_ctth)
         except OSError:
             pass
-
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestH5NWCSAF))
-
-    return my_suite

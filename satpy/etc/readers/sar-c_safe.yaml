@@ -4,6 +4,35 @@ reader:
   sensors: [sar-c]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  data_identification_keys:
+    name:
+      required: true
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+        - gamma
+        - sigma_nought
+        - beta_nought
+      transitive: true
+    quantity:
+      enum:
+        - natural
+        - dB
+      transitive: true
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
 
 file_types:
     safe_measurement:
@@ -41,6 +70,15 @@ datasets:
     polarization: [hh, hv, vv, vh]
     units: degree
 
+  altitude:
+    name: altitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: altitude
+    polarization: [hh, hv, vv, vh]
+    units: meter
+
+
   measurement:
     name: measurement
     sensor: sar-c
@@ -57,6 +95,7 @@ datasets:
       beta_nought:
         standard_name: backscatter
         units: 1
+    quantity: [natural, dB]
     coordinates: [longitude, latitude]
     file_type: safe_measurement
 

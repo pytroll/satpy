@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Satpy developers
+# Copyright (c) 2009-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -31,11 +31,11 @@ except ImportError:
     pass
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
-            'trollimage >1.10.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
+            'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'trollimage']
+                 'rasterio', 'geoviews', 'trollimage', 'fsspec']
 
 extras_require = {
     # Readers:
@@ -51,17 +51,18 @@ extras_require = {
     'amsr2_l1b': ['h5py >= 2.7.0'],
     'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
     'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.8.7'],
+    'pyspectral': ['pyspectral >= 0.10.1'],
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
     'seviri_l2_bufr': ['eccodes-python'],
+    'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
-    'scmi': ['netCDF4 >= 1.1.8'],
+    'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
@@ -102,7 +103,8 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 
 NAME = 'satpy'
-README = open('README.rst', 'r').read()
+with open('README.rst', 'r') as readme:
+    README = readme.read()
 
 setup(name=NAME,
       description='Python package for earth-observing satellite data processing',
@@ -117,7 +119,6 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
-      test_suite='satpy.tests.suite',
       packages=find_packages(),
       package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
                               os.path.join('etc', 'areas.yaml'),

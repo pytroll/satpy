@@ -256,9 +256,9 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         # Name of the dataset as it appears in the HDF EOS file
         in_file_dataset_name = dataset_info.get('file_key')
         # Name of the dataset in the YAML file
-        dataset_name = dataset_keys.name
+        dataset_name = dataset_keys['name']
         # Resolution asked
-        resolution = dataset_keys.resolution
+        resolution = dataset_keys['resolution']
         if in_file_dataset_name is not None:
             # if the YAML was configured with a specific name use that
             data = self.load_dataset(in_file_dataset_name)

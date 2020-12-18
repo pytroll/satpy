@@ -15,29 +15,60 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.grib module.
-"""
+"""Module for testing the satpy.readers.grib module."""
 
 import os
 import sys
+from unittest import mock
+
 import numpy as np
 import xarray as xr
+import pytest
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+from satpy.dataset import DataQuery
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+# Parameterized cases
+TEST_ARGS = ('proj_params', 'lon_corners', 'lat_corners')
+TEST_PARAMS = (
+    (None, None, None),  # cyl default case
+    (
+        {
+            'a': 6371229, 'b': 6371229, 'proj': 'lcc',
+            'lon_0': 265.0, 'lat_0': 25.0,
+            'lat_1': 25.0, 'lat_2': 25.0
+        },
+        [-133.459, -65.12555139, -152.8786225, -49.41598659],
+        [12.19, 14.34208538, 54.56534318, 57.32843565]
+    ),
+)
+
+
+def _round_trip_projection_lonlat_check(area):
+    """Check that X/Y coordinates can be transformed multiple times.
+
+    Many GRIB files include non-standard projects that work for the
+    initial transformation of X/Y coordinates to longitude/latitude,
+    but may fail in the reverse transformation. For example, an eqc
+    projection that goes from 0 longitude to 360 longitude. The X/Y
+    coordinates may accurately go from the original X/Y metered space
+    to the correct longitude/latitude, but transforming those coordinates
+    back to X/Y space will produce the wrong result.
+
+    """
+    from pyproj import Proj
+    p = Proj(area.crs)
+    x, y = area.get_proj_vectors()
+    lon, lat = p(x, y, inverse=True)
+    x2, y2 = p(lon, lat)
+    np.testing.assert_almost_equal(x, x2)
+    np.testing.assert_almost_equal(y, y2)
 
 
 class FakeMessage(object):
     """Fake message returned by pygrib.open().message(x)."""
 
     def __init__(self, values, proj_params=None, latlons=None, **attrs):
+        """Init the message."""
         super(FakeMessage, self).__init__()
         self.attrs = attrs
         self.values = values
@@ -47,12 +78,15 @@ class FakeMessage(object):
         self._latlons = latlons
 
     def latlons(self):
+        """Get coordinates."""
         return self._latlons
 
     def __getitem__(self, item):
+        """Get item."""
         return self.attrs[item]
 
     def valid_key(self, key):
+        """Validate key."""
         return True
 
 
@@ -60,6 +94,7 @@ class FakeGRIB(object):
     """Fake GRIB file returned by pygrib.open."""
 
     def __init__(self, messages=None, proj_params=None, latlons=None):
+        """Init the grib file."""
         super(FakeGRIB, self).__init__()
         if messages is not None:
             self._messages = messages
@@ -138,27 +173,33 @@ class FakeGRIB(object):
         self.messages = len(self._messages)
 
     def message(self, msg_num):
+        """Get a message."""
         return self._messages[msg_num - 1]
 
     def seek(self, loc):
+        """Seek."""
         return
 
     def __iter__(self):
+        """Iterate."""
         return iter(self._messages)
 
     def __enter__(self):
+        """Enter."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit."""
         pass
 
 
-class TestGRIBReader(unittest.TestCase):
-    """Test GRIB Reader"""
+class TestGRIBReader:
+    """Test GRIB Reader."""
+
     yaml_file = "grib.yaml"
 
-    def setUp(self):
-        """Wrap pygrib to read fake data"""
+    def setup_method(self):
+        """Wrap pygrib to read fake data."""
         from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
 
@@ -169,86 +210,100 @@ class TestGRIBReader(unittest.TestCase):
         self.orig_pygrib = pygrib
         sys.modules['pygrib'] = mock.MagicMock()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Re-enable pygrib import."""
         sys.modules['pygrib'] = self.orig_pygrib
 
-    @mock.patch('satpy.readers.grib.pygrib')
-    def test_init(self, pg):
+    def _get_test_datasets(self, dataids, fake_pygrib=None):
+        from satpy.readers import load_reader
+        if fake_pygrib is None:
+            fake_pygrib = FakeGRIB()
+
+        with mock.patch('satpy.readers.grib.pygrib') as pg:
+            pg.open.return_value = fake_pygrib
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames([
+                'gfs.t18z.sfluxgrbf106.grib2',
+            ])
+            r.create_filehandlers(loadables)
+            datasets = r.load(dataids)
+        return datasets
+
+    @staticmethod
+    def _get_fake_pygrib(proj_params, lon_corners, lat_corners):
+        latlons = None
+        if lon_corners is not None:
+            lats = np.array([
+                [lat_corners[0], 0, 0, 0, lat_corners[1]],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [lat_corners[2], 0, 0, 0, lat_corners[3]]])
+            lons = np.array([
+                [lon_corners[0], 0, 0, 0, lon_corners[1]],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [lon_corners[2], 0, 0, 0, lon_corners[3]]])
+            latlons = (lats, lons)
+
+        fake_pygrib = FakeGRIB(
+            proj_params=proj_params,
+            latlons=latlons)
+        return fake_pygrib
+
+    def test_init(self):
         """Test basic init with no extra parameters."""
-        pg.open.return_value = FakeGRIB()
         from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'gfs.t18z.sfluxgrbf106.grib2',
-        ])
-        self.assertTrue(len(loadables), 1)
-        r.create_filehandlers(loadables)
-        # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        with mock.patch('satpy.readers.grib.pygrib') as pg:
+            pg.open.return_value = FakeGRIB()
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames([
+                'gfs.t18z.sfluxgrbf106.grib2',
+            ])
+            assert len(loadables) == 1
+            r.create_filehandlers(loadables)
+            # make sure we have some files
+            assert r.file_handlers
 
-    @mock.patch('satpy.readers.grib.pygrib')
-    def test_load_all(self, pg):
-        """Test loading all test datasets"""
-        pg.open.return_value = FakeGRIB()
+    def test_file_pattern(self):
+        """Test matching of file patterns."""
         from satpy.readers import load_reader
-        from satpy import DatasetID
+
+        filenames = [
+                "quinoa.grb",
+                "tempeh.grb2",
+                "tofu.grib2",
+                "falafel.grib",
+                "S_NWC_NWP_1900-01-01T00:00:00Z_999.grib"]
+
         r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'gfs.t18z.sfluxgrbf106.grib2',
-        ])
-        r.create_filehandlers(loadables)
-        datasets = r.load([
-            DatasetID(name='t', level=100),
-            DatasetID(name='t', level=200),
-            DatasetID(name='t', level=300)])
-        self.assertEqual(len(datasets), 3)
+        files = r.select_files_from_pathnames(filenames)
+        assert len(files) == 4
+
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_load_all(self, proj_params, lon_corners, lat_corners):
+        """Test loading all test datasets."""
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+        dataids = [
+            DataQuery(name='t', level=100, modifiers=tuple()),
+            DataQuery(name='t', level=200, modifiers=tuple()),
+            DataQuery(name='t', level=300, modifiers=tuple())
+        ]
+        datasets = self._get_test_datasets(dataids, fake_pygrib)
+
+        assert len(datasets) == 3
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
-            self.assertIsInstance(v, xr.DataArray)
+            assert v.attrs['units'] == 'K'
+            assert isinstance(v, xr.DataArray)
 
-    @mock.patch('satpy.readers.grib.pygrib')
-    def test_load_all_lcc(self, pg):
-        """Test loading all test datasets with lcc projections"""
-        lons = np.array([
-            [12.19, 0, 0, 0, 14.34208538],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [54.56534318, 0, 0, 0, 57.32843565]])
-        lats = np.array([
-            [-133.459, 0, 0, 0, -65.12555139],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [-152.8786225, 0, 0, 0, -49.41598659]])
-        pg.open.return_value = FakeGRIB(
-            proj_params={
-                'a': 6371229, 'b': 6371229, 'proj': 'lcc',
-                'lon_0': 265.0, 'lat_0': 25.0,
-                'lat_1': 25.0, 'lat_2': 25.0},
-            latlons=(lats, lons))
-        from satpy.readers import load_reader
-        from satpy import DatasetID
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'gfs.t18z.sfluxgrbf106.grib2',
-        ])
-        r.create_filehandlers(loadables)
-        datasets = r.load([
-            DatasetID(name='t', level=100),
-            DatasetID(name='t', level=200),
-            DatasetID(name='t', level=300)])
-        self.assertEqual(len(datasets), 3)
-        for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
-            self.assertIsInstance(v, xr.DataArray)
-
-
-def suite():
-    """The test suite for test_grib."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGRIBReader))
-
-    return mysuite
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_area_def_crs(self, proj_params, lon_corners, lat_corners):
+        """Check that the projection is accurate."""
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+        dataids = [DataQuery(name='t', level=100, modifiers=tuple())]
+        datasets = self._get_test_datasets(dataids, fake_pygrib)
+        area = datasets['t'].attrs['area']
+        if not hasattr(area, 'crs'):
+            pytest.skip("Can't test with pyproj < 2.0")
+        _round_trip_projection_lonlat_check(area)

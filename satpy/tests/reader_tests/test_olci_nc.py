@@ -16,17 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.olci_nc module."""
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import unittest
+import unittest.mock as mock
 
 
 class TestOLCIReader(unittest.TestCase):
@@ -37,7 +28,7 @@ class TestOLCIReader(unittest.TestCase):
         """Test initialization of file handlers."""
         from satpy.readers.olci_nc import (NCOLCIBase, NCOLCICal, NCOLCIGeo,
                                            NCOLCIChannelBase, NCOLCI1B, NCOLCI2)
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import xarray as xr
 
         cal_data = xr.Dataset(
@@ -48,8 +39,8 @@ class TestOLCIReader(unittest.TestCase):
             {'bands': [0, 1, 2], },
         )
 
-        ds_id = DatasetID(name='Oa01', calibration='reflectance')
-        ds_id2 = DatasetID(name='wsqf', calibration='reflectance')
+        ds_id = make_dataid(name='Oa01', calibration='reflectance')
+        ds_id2 = make_dataid(name='wsqf', calibration='reflectance')
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
 
         test = NCOLCIBase('somedir/somefile.nc', filename_info, 'c')
@@ -86,17 +77,33 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.reset_mock()
 
     @mock.patch('xarray.open_dataset')
+    def test_open_file_objects(self, mocked_open_dataset):
+        """Test initialization of file handlers."""
+        from satpy.readers.olci_nc import NCOLCIBase
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
+
+        open_file = mock.MagicMock()
+
+        file_handler = NCOLCIBase(open_file, filename_info, 'c')
+        #  deepcode ignore W0104: This is a property that is actually a function call.
+        file_handler.nc  # pylint: disable=W0104
+        mocked_open_dataset.assert_called()
+        open_file.open.assert_called()
+        assert (open_file.open.return_value in mocked_open_dataset.call_args[0] or
+                open_file.open.return_value == mocked_open_dataset.call_args[1].get('filename_or_obj'))
+
+    @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCI2
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
         mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
                                                            np.array([1 << x for x in range(30)]).reshape(5, 6))},
                                                  coords={'rows': np.arange(5),
                                                          'columns': np.arange(6)})
-        ds_id = DatasetID(name='mask')
+        ds_id = make_dataid(name='mask')
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'mask', 'start_time': 0, 'end_time': 0}
         test = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
         res = test.get_dataset(ds_id, {'nc_key': 'mask'})
@@ -106,7 +113,7 @@ class TestOLCIReader(unittest.TestCase):
     def test_olci_angles(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCIAngles
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
         attr_dict = {
@@ -126,8 +133,8 @@ class TestOLCIReader(unittest.TestCase):
                                                  attrs=attr_dict)
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
 
-        ds_id = DatasetID(name='solar_azimuth_angle')
-        ds_id2 = DatasetID(name='satellite_zenith_angle')
+        ds_id = make_dataid(name='solar_azimuth_angle')
+        ds_id2 = make_dataid(name='satellite_zenith_angle')
         test = NCOLCIAngles('somedir/somefile.nc', filename_info, 'c')
         test.get_dataset(ds_id, filename_info)
         test.get_dataset(ds_id2, filename_info)
@@ -138,7 +145,7 @@ class TestOLCIReader(unittest.TestCase):
     def test_olci_meteo(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCIMeteo
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
         attr_dict = {
@@ -159,8 +166,8 @@ class TestOLCIReader(unittest.TestCase):
                                                  attrs=attr_dict)
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'humidity', 'start_time': 0, 'end_time': 0}
 
-        ds_id = DatasetID(name='humidity')
-        ds_id2 = DatasetID(name='total_ozone')
+        ds_id = make_dataid(name='humidity')
+        ds_id2 = make_dataid(name='total_ozone')
         test = NCOLCIMeteo('somedir/somefile.nc', filename_info, 'c')
         test.get_dataset(ds_id, filename_info)
         test.get_dataset(ds_id2, filename_info)
@@ -174,7 +181,7 @@ class TestBitFlags(unittest.TestCase):
     def test_bitflags(self):
         """Test the BitFlags class."""
         import numpy as np
-        from six.moves import reduce
+        from functools import reduce
         from satpy.readers.olci_nc import BitFlags
         flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
                      'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
@@ -199,16 +206,3 @@ class TestBitFlags(unittest.TestCase):
                              False, False,  True,  True, False, False, True,
                              False])
         self.assertTrue(all(mask == expected))
-
-
-def suite():
-    """Test suite for test_nc_slstr."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBitFlags))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestOLCIReader))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -79,7 +79,7 @@ The metadata to provide to the writer can also be stored in a configuration file
 
 import logging
 
-from dask import delayed
+import numpy as np
 
 import pyninjotiff.ninjotiff as nt
 from satpy.writers import ImageWriter
@@ -145,22 +145,14 @@ class NinjoTIFFWriter(ImageWriter):
                     # Here we know that the data if the image is scaled between 0 and 1
                     dmin = offset
                     dmax = scale + offset
-                    if dmin > dmax:
-                        dmin, dmax = dmax, dmin
-                    ch_min_measurement_unit, ch_max_measurement_unit = (
-                        dmin.values,
-                        dmax.values,
-                    )
+                    ch_min_measurement_unit, ch_max_measurement_unit = np.minimum(dmin, dmax), np.maximum(dmin, dmax)
                     kwargs["ch_min_measurement_unit"] = ch_min_measurement_unit
                     kwargs["ch_max_measurement_unit"] = ch_max_measurement_unit
                 except KeyError:
                     raise NotImplementedError(
                         "Don't know how to handle non-scale/offset-based enhancements yet."
                     )
-        if compute:
-            return nt.save(img, filename, data_is_scaled_01=True, **kwargs)
-        else:
-            return delayed(nt.save)(img, filename, data_is_scaled_01=True, **kwargs)
+        return nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)
 
     def save_dataset(
         self, dataset, filename=None, fill_value=None, compute=True, **kwargs

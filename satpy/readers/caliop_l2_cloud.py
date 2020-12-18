@@ -75,19 +75,19 @@ class HDF4BandReader(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
-        if key.name in ['longitude', 'latitude']:
+        if key['name'] in ['longitude', 'latitude']:
             logger.debug('Reading coordinate arrays.')
 
             if self.lons is None or self.lats is None:
                 self.lons, self.lats = self.get_lonlats()
 
-            if key.name == 'latitude':
+            if key['name'] == 'latitude':
                 proj = Dataset(self.lats, id=key, **info)
             else:
                 proj = Dataset(self.lons, id=key, **info)
 
         else:
-            data = self.get_sds_variable(key.name)
+            data = self.get_sds_variable(key['name'])
             proj = Dataset(data, id=key, **info)
 
         return proj

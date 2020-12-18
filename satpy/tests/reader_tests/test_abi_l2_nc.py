@@ -16,19 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l2_nc reader tests package."""
 
-import sys
 import numpy as np
 import xarray as xr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class Test_NC_ABI_L2_base(unittest.TestCase):
@@ -97,8 +88,8 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
 
     def test_get_dataset(self):
         """Test basic L2 load."""
-        from satpy import DatasetID
-        key = DatasetID(name='HT')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='HT')
         res = self.reader.get_dataset(key, {'file_key': 'HT'})
 
         exp_data = np.array([[2 * 0.3052037, np.nan],
@@ -205,19 +196,3 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
         np.testing.assert_allclose(call_args[6], (-85.0, -20.0, -65.0, 20))
-
-
-def suite():
-    """Create test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_area_latlon))
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_area_fixedgrid))
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_get_dataset))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

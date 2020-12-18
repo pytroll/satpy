@@ -20,22 +20,17 @@
 from abc import ABCMeta
 
 import numpy as np
-import six
-from pathlib import PurePath
-
 from pyresample.geometry import SwathDefinition
+
 from satpy.dataset import combine_metadata
 
 
-class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
+class BaseFileHandler(metaclass=ABCMeta):
     """Base file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
-        if isinstance(filename, PurePath):
-            self.filename = str(filename)
-        else:
-            self.filename = filename
+        self.filename = filename
         self.navigation_reader = None
         self.filename_info = filename_info
         self.filetype_info = filetype_info
@@ -177,7 +172,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         This method should **not** update values of the dataset information
         dictionary **unless** this file handler has a matching file type
         (the data could be loaded from this object in the future) and at least
-        **one** :class:`satpy.dataset.DatasetID` key is also modified.
+        **one** :class:`satpy.dataset.DataID` key is also modified.
         Otherwise, this file type may override the information provided by
         a more preferred file type (as specified in the YAML file).
         It is recommended that any non-ID metadata be updated during the
@@ -186,7 +181,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         other file type's handler.
         The availability "boolean" not being ``None`` does not mean that a
         file handler called later can't provide an additional dataset, but
-        it must provide more identifying (DatasetID) information to do so
+        it must provide more identifying (DataID) information to do so
         and should yield its new dataset in addition to the previous one.
 
         Args:

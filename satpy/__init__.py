@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy Package initializer.
-"""
+"""Satpy Package initializer."""
 
 import os
 from pkg_resources import get_distribution, DistributionNotFound
@@ -28,27 +27,10 @@ except DistributionNotFound:
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
-# Order of "highest" calibration from highest to lowest
-DEFAULT_CALIBRATION_ORDER = [
-    'brightness_temperature',
-    'reflectance',
-    'radiance',
-    'counts',
-    'gamma',
-    'sigma_nought',
-    'beta_nought',
-]
-CALIBRATION_ORDER = os.getenv('PYTROLL_CALIBRATION_ORDER', None)
-if CALIBRATION_ORDER is None:
-    CALIBRATION_ORDER = DEFAULT_CALIBRATION_ORDER
-else:
-    CALIBRATION_ORDER = [x.strip() for x in CALIBRATION_ORDER.split(' ')]
-# convert to a dictionary of priority for faster access (0 higher priority)
-CALIBRATION_ORDER = {cal: idx for idx, cal in enumerate(CALIBRATION_ORDER)}
-
 from satpy.utils import get_logger  # noqa
-from satpy.dataset import DatasetID, DATASET_KEYS  # noqa
-from satpy.readers import (DatasetDict, find_files_and_readers,  # noqa
+from satpy.dataset import DataID, DataQuery  # noqa
+from satpy.dataset.data_dict import DatasetDict  # noqa
+from satpy.readers import (find_files_and_readers,  # noqa
                            available_readers)  # noqa
 from satpy.writers import available_writers  # noqa
 from satpy.scene import Scene  # noqa
