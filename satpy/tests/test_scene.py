@@ -2029,14 +2029,10 @@ class TestSceneResampling(unittest.TestCase):
                                   reader='fake_reader')
 
         # Set PYTHONHASHSEED to 0 in the interpreter to test as intended (comp26 comes before comp14)
-
         scene.load(['comp26', 'comp14'], generate=False)
-        # print('base deptree', str(scene._dependency_tree))
         scene.resample(area_def, unload=True)
-        # print('base deptree', str(scene._dependency_tree))
-
         new_scene_2 = scene.resample(area_def, unload=True)
-        # print('base deptree', str(scene._dependency_tree))
+
         assert 'comp14' in new_scene_2
 
     @mock.patch('satpy.scene.resample_dataset')
