@@ -81,13 +81,13 @@ class Node:
         if self.name is EMPTY_LEAF_NAME:
             return self
 
-        s = self._copy_name_and_data()
+        s = self._copy_name_and_data(node_cache)
         for c in self.children:
             c = c.copy(node_cache=node_cache)
             s.add_child(c)
         return s
 
-    def _copy_name_and_data(self):
+    def _copy_name_and_data(self, node_cache=None):
         return Node(self.name, self.data)
 
     def add_child(self, obj):
@@ -177,10 +177,12 @@ class CompositorNode(Node):
         """Get the compositor."""
         return self.data[0]
 
-    def _copy_name_and_data(self):
+    def _copy_name_and_data(self, node_cache=None):
         new_node = CompositorNode(self.compositor)
-        new_node.add_required_nodes(self.required_nodes)
-        new_node.add_optional_nodes(self.optional_nodes)
+        new_required_nodes = [node.copy(node_cache) for node in self.required_nodes]
+        new_node.add_required_nodes(new_required_nodes)
+        new_optional_nodes = [node.copy(node_cache) for node in self.optional_nodes]
+        new_node.add_optional_nodes(new_optional_nodes)
         return new_node
 
 
@@ -191,7 +193,7 @@ class ReaderNode(Node):
         """Set up the node."""
         super().__init__(unique_id, data={'reader_name': reader_name})
 
-    def _copy_name_and_data(self):
+    def _copy_name_and_data(self, node_cache):
         return ReaderNode(self.name, self.data['reader_name'])
 
     @property
