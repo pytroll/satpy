@@ -42,11 +42,6 @@ from satpy.readers.utils import np2str
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
 from satpy import CHUNK_SIZE
 
-try:
-    import tables
-except ImportError:
-    tables = None
-
 chans_dict = {"M01": "M1",
               "M02": "M2",
               "M03": "M3",
@@ -147,14 +142,22 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.mda['platform_name'] = short_names.get(short_name, short_name)
         self.mda['sensor'] = 'viirs'
 
+    def __del__(self):
+        """Close file handlers when we are done."""
+        try:
+            self.h5f.close()
+        except OSError:
+            pass
+
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key.name)
-        if key.name in chans_dict:
+        logger.debug('Reading %s.', key['name'])
+        if key['name'] in chans_dict:
             m_data = self.read_dataset(key, info)
         else:
             m_data = self.read_geo(key, info)
         m_data.attrs.update(info)
+        m_data.attrs['rows_per_scan'] = self.scan_size
         return m_data
 
     def get_bounding_box(self):
@@ -198,16 +201,16 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         if self.lons is None or self.lats is None:
             self.lons, self.lats = self.navigate()
         for pair, fkeys in pairs.items():
-            if key.name in pair:
+            if key['name'] in pair:
                 if (self.cache.get(pair[0]) is None
                         or self.cache.get(pair[1]) is None):
                     angles = self.angles(*fkeys)
                     self.cache[pair[0]], self.cache[pair[1]] = angles
-                if key.name == pair[0]:
-                    return xr.DataArray(self.cache[pair[0]], name=key.name,
+                if key['name'] == pair[0]:
+                    return xr.DataArray(self.cache[pair[0]], name=key['name'],
                                         attrs=self.mda, dims=('y', 'x'))
                 else:
-                    return xr.DataArray(self.cache[pair[1]], name=key.name,
+                    return xr.DataArray(self.cache[pair[1]], name=key['name'],
                                         attrs=self.mda, dims=('y', 'x'))
 
         if info.get('standard_name') in ['latitude', 'longitude']:
@@ -220,7 +223,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             else:
                 return xr.DataArray(self.lats, attrs=mda, dims=('y', 'x'))
 
-        if key.name == 'dnb_moon_illumination_fraction':
+        if key['name'] == 'dnb_moon_illumination_fraction':
             mda = self.mda.copy()
             mda.update(info)
             return xr.DataArray(da.from_array(self.geostuff["MoonIllumFraction"]),
@@ -229,7 +232,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
     def read_dataset(self, dataset_key, info):
         """Read a dataset."""
         h5f = self.h5f
-        channel = chans_dict[dataset_key.name]
+        channel = chans_dict[dataset_key['name']]
         chan_dict = dict([(key.split("-")[1], key)
                           for key in h5f["All_Data"].keys()
                           if key.startswith("VIIRS")])
@@ -237,7 +240,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         h5rads = h5f["All_Data"][chan_dict[channel]]["Radiance"]
         chunks = h5rads.chunks or CHUNK_SIZE
         rads = xr.DataArray(da.from_array(h5rads, chunks=chunks),
-                            name=dataset_key.name,
+                            name=dataset_key['name'],
                             dims=['y', 'x']).astype(np.float32)
         h5attrs = h5rads.attrs
         scans = h5f["All_Data"]["NumberOfScans"][0]
@@ -260,9 +263,9 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             logger.info("Missing attribute for scaling of %s.", channel)
             pass
         unit = "W m-2 sr-1 μm-1"
-        if dataset_key.calibration == 'counts':
+        if dataset_key['calibration'] == 'counts':
             raise NotImplementedError("Can't get counts from this data")
-        if dataset_key.calibration in ['reflectance', 'brightness_temperature']:
+        if dataset_key['calibration'] in ['reflectance', 'brightness_temperature']:
             # do calibrate
             try:
                 # First guess: VIS or NIR data
@@ -288,7 +291,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 except KeyError:
                     logger.warning("Calibration failed.")
 
-        elif dataset_key.calibration != 'radiance':
+        elif dataset_key['calibration'] != 'radiance':
             raise ValueError("Calibration parameter should be radiance, "
                              "reflectance or brightness_temperature")
         rads = rads.clip(min=0)

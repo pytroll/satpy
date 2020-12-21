@@ -22,6 +22,7 @@ import unittest
 import xarray as xr
 import dask.array as da
 import numpy as np
+from satpy.tests.utils import make_dataid
 
 
 class TestGenericImage(unittest.TestCase):
@@ -100,7 +101,7 @@ class TestGenericImage(unittest.TestCase):
         self.scn = scn
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             import shutil
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -163,12 +164,7 @@ class TestGenericImage(unittest.TestCase):
         ftype_info = {}
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
 
-        class Foo(object):
-            """Mock class for dataset id"""
-            def __init__(self):
-                self.name = 'image'
-
-        foo = Foo()
+        foo = make_dataid(name='image')
         self.assertTrue(reader.file_content)
         self.assertEqual(reader.finfo['filename'], fname)
         self.assertEqual(reader.finfo['start_time'], self.date)

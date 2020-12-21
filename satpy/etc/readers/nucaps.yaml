@@ -3,6 +3,14 @@ reader:
   name: nucaps
   reader: !!python/name:satpy.readers.nucaps.NUCAPSReader
   sensors: [cris, atms]
+  data_identification_keys:
+    name:
+      required: true
+    level:
+    resolution:
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
 
 file_types:
   nucaps:
@@ -36,6 +44,11 @@ datasets:
     name: Land_Fraction
     coordinates: [longitude, latitude]
     file_type: nucaps
+  Effective_Pressure:
+    name: Effective_Pressure
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
   Surface_Pressure:
     name: Surface_Pressure
     coordinates: [longitude, latitude]

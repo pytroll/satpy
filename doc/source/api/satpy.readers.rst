@@ -60,10 +60,34 @@ satpy.readers.ahi\_hsd module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.ahi\_l1b\_gridded\_bin module
+-------------------------------------------
+
+.. automodule:: satpy.readers.ahi_l1b_gridded_bin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.ami\_l1b module
+-----------------------------
+
+.. automodule:: satpy.readers.ami_l1b
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.amsr2\_l1b module
 -------------------------------
 
 .. automodule:: satpy.readers.amsr2_l1b
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.amsr2\_l2 module
+------------------------------
+
+.. automodule:: satpy.readers.amsr2_l2
    :members:
    :undoc-members:
    :show-inheritance:
@@ -88,6 +112,14 @@ satpy.readers.clavrx module
 ---------------------------
 
 .. automodule:: satpy.readers.clavrx
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.cmsaf\_claas2 module
+----------------------------------
+
+.. automodule:: satpy.readers.cmsaf_claas2
    :members:
    :undoc-members:
    :show-inheritance:
@@ -124,6 +156,14 @@ satpy.readers.fci\_l1c\_fdhsi module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.fci\_l2\_nc module
+--------------------------------
+
+.. automodule:: satpy.readers.fci_l2_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.file\_handlers module
 -----------------------------------
 
@@ -156,6 +196,14 @@ satpy.readers.ghrsst\_l3c\_sst module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.glm\_l2 module
+----------------------------
+
+.. automodule:: satpy.readers.glm_l2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.goes\_imager\_hrit module
 ---------------------------------------
 
@@ -168,6 +216,14 @@ satpy.readers.goes\_imager\_nc module
 -------------------------------------
 
 .. automodule:: satpy.readers.goes_imager_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.gpm\_imerg module
+-------------------------------
+
+.. automodule:: satpy.readers.gpm_imerg
    :members:
    :undoc-members:
    :show-inheritance:
@@ -236,10 +292,26 @@ satpy.readers.hsaf\_grib module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.hy2\_scat\_l2b\_h5 module
+---------------------------------------
+
+.. automodule:: satpy.readers.hy2_scat_l2b_h5
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.iasi\_l2 module
 -----------------------------
 
 .. automodule:: satpy.readers.iasi_l2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.iasi\_l2\_so2\_bufr module
+----------------------------------------
+
+.. automodule:: satpy.readers.iasi_l2_so2_bufr
    :members:
    :undoc-members:
    :show-inheritance:
@@ -268,6 +340,14 @@ satpy.readers.mersi2\_l1b module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.mimic\_TPW2\_nc module
+------------------------------------
+
+.. automodule:: satpy.readers.mimic_TPW2_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.modis\_l1b module
 -------------------------------
 
@@ -292,6 +372,14 @@ satpy.readers.msi\_safe module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.mviri\_l1b\_fiduceo\_nc module
+--------------------------------------------
+
+.. automodule:: satpy.readers.mviri_l1b_fiduceo_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.netcdf\_utils module
 ----------------------------------
 
@@ -304,6 +392,14 @@ satpy.readers.nucaps module
 ---------------------------
 
 .. automodule:: satpy.readers.nucaps
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.nwcsaf\_msg2013\_hdf5 module
+------------------------------------------
+
+.. automodule:: satpy.readers.nwcsaf_msg2013_hdf5
    :members:
    :undoc-members:
    :show-inheritance:
@@ -348,6 +444,14 @@ satpy.readers.sar\_c\_safe module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.satpy\_cf\_nc module
+----------------------------------
+
+.. automodule:: satpy.readers.satpy_cf_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.scatsat1\_l2b module
 ----------------------------------
 
@@ -380,6 +484,14 @@ satpy.readers.seviri\_l1b\_hrit module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.seviri\_l1b\_icare module
+---------------------------------------
+
+.. automodule:: satpy.readers.seviri_l1b_icare
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.seviri\_l1b\_native module
 ----------------------------------------
 
@@ -404,10 +516,42 @@ satpy.readers.seviri\_l1b\_nc module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.seviri\_l2\_bufr module
+-------------------------------------
+
+.. automodule:: satpy.readers.seviri_l2_bufr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.seviri\_l2\_grib module
+-------------------------------------
+
+.. automodule:: satpy.readers.seviri_l2_grib
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.slstr\_l1b module
 -------------------------------
 
 .. automodule:: satpy.readers.slstr_l1b
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.slstr\_l2 module
+------------------------------
+
+.. automodule:: satpy.readers.slstr_l2
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.smos\_l2\_wind module
+-----------------------------------
+
+.. automodule:: satpy.readers.smos_l2_wind
    :members:
    :undoc-members:
    :show-inheritance:
@@ -432,6 +576,38 @@ satpy.readers.vaisala\_gld360 module
 ------------------------------------
 
 .. automodule:: satpy.readers.vaisala_gld360
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.vii\_base\_nc module
+----------------------------------
+
+.. automodule:: satpy.readers.vii_base_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.vii\_l1b\_nc module
+---------------------------------
+
+.. automodule:: satpy.readers.vii_l1b_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.vii\_l2\_nc module
+--------------------------------
+
+.. automodule:: satpy.readers.vii_l2_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.vii\_utils module
+-------------------------------
+
+.. automodule:: satpy.readers.vii_utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -499,7 +675,6 @@ satpy.readers.yaml\_reader module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

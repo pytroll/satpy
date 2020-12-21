@@ -77,7 +77,9 @@ import numpy as np
 
 class SEVIRI_ICARE(HDF4FileHandler):
     """SEVIRI L1B handler for HDF4 files."""
+
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(SEVIRI_ICARE, self).__init__(filename,
                                            filename_info,
                                            filetype_info)
@@ -91,6 +93,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def sensor_name(self):
+        """Get the sensor name."""
         # the sensor and platform names are stored together, eg: MSG1/SEVIRI
         attr = self['/attr/Sensors']
         if isinstance(attr, np.ndarray):
@@ -114,6 +117,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def satlon(self):
+        """Get the satellite longitude."""
         attr = self['/attr/Sub_Satellite_Longitude']
         if isinstance(attr, np.ndarray):
             attr = float(attr.astype(str))
@@ -121,6 +125,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def projlon(self):
+        """Get the projection longitude."""
         attr = self['/attr/Projection_Longitude']
         if isinstance(attr, np.ndarray):
             attr = float(attr.astype(str))
@@ -128,6 +133,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def projection(self):
+        """Get the projection."""
         attr = self['/attr/Geographic_Projection']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str))
@@ -139,6 +145,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def zone(self):
+        """Get the zone."""
         attr = self['/attr/Zone']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str)).lower()
@@ -146,6 +153,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def res(self):
+        """Get the resolution."""
         attr = self['/attr/Nadir_Pixel_Size']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str)).lower()
@@ -153,6 +161,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def end_time(self):
+        """Get the end time."""
         attr = self['/attr/End_Acquisition_Date']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str))
@@ -165,6 +174,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         attr = self['/attr/Beginning_Acquisition_Date']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str))
@@ -177,6 +187,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def alt(self):
+        """Get the altitude."""
         attr = self['/attr/Altitude']
         if isinstance(attr, np.ndarray):
             attr = attr.astype(str)
@@ -187,6 +198,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
     @property
     def geoloc(self):
+        """Get the geolocation."""
         attr = self['/attr/Geolocation']
         if isinstance(attr, np.ndarray):
             attr = attr.astype(str)
@@ -197,6 +209,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
         return [cfac, lfac, coff, loff]
 
     def get_metadata(self, data, ds_info):
+        """Get the metadata."""
         mda = {}
         mda.update(data.attrs)
         mda.update(ds_info)
@@ -221,16 +234,17 @@ class SEVIRI_ICARE(HDF4FileHandler):
         return mda
 
     def _get_dsname(self, ds_id):
-        """Returns the correct dataset name based on requested band."""
-        if ds_id.name in self.ref_bands:
+        """Return the correct dataset name based on requested band."""
+        if ds_id['name'] in self.ref_bands:
             ds_get_name = 'Normalized_Radiance'
-        elif ds_id.name in self.bt_bands:
+        elif ds_id['name'] in self.bt_bands:
             ds_get_name = 'Brightness_Temperature'
         else:
-            raise NameError("Datset type "+ds_id.name+" is not supported.")
+            raise NameError("Datset type "+ds_id['name']+" is not supported.")
         return ds_get_name
 
     def get_dataset(self, ds_id, ds_info):
+        """Get the dataset."""
         ds_get_name = self._get_dsname(ds_id)
         data = self[ds_get_name]
         data.attrs = self.get_metadata(data, ds_info)
@@ -243,11 +257,12 @@ class SEVIRI_ICARE(HDF4FileHandler):
             data.values *= scale_factor
             data.values += offset
             # Now we correct range from 0-1 to 0-100 for VIS:
-            if ds_id.name in self.ref_bands:
+            if ds_id['name'] in self.ref_bands:
                 data.values *= 100.
         return data
 
     def get_area_def(self, ds_id):
+        """Get the area def."""
         ds_get_name = self._get_dsname(ds_id)
         ds_shape = self[ds_get_name + '/shape']
         geoloc = self.geoloc
@@ -271,7 +286,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
         # Force scandir to SEVIRI default, not known from file
         pdict['scandir'] = 'S2N'
         pdict['a_name'] = 'geosmsg'
-        if ds_id.name == 'HRV':
+        if ds_id['name'] == 'HRV':
             pdict['a_desc'] = 'MSG/SEVIRI HRV channel area'
             pdict['p_id'] = 'msg_hires'
         else:

@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE SAR L2 OCN format reader
+"""SAFE SAR L2 OCN format reader.
 
 The OCN data contains various parameters, but mainly the wind speed and direction
 calculated from SAR data and input model data from ECMWF
@@ -40,6 +40,7 @@ class SAFENC(BaseFileHandler):
     """Measurement file reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file reader."""
         super(SAFENC, self).__init__(filename, filename_info,
                                      filetype_info)
 
@@ -69,26 +70,26 @@ class SAFENC(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key.name in ['owiLat', 'owiLon']:
+        if key['name'] in ['owiLat', 'owiLon']:
             if self.lons is None or self.lats is None:
                 self.lons = self.nc['owiLon']
                 self.lats = self.nc['owiLat']
-            if key.name == 'owiLat':
+            if key['name'] == 'owiLat':
                 res = self.lats
             else:
                 res = self.lons
             res.attrs = info
         else:
-            res = self.nc[key.name]
-            if key.name in ['owiHs', 'owiWl', 'owiDirmet']:
+            res = self.nc[key['name']]
+            if key['name'] in ['owiHs', 'owiWl', 'owiDirmet']:
                 res = xr.DataArray(res, dims=['y', 'x', 'oswPartitions'])
-            elif key.name in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
+            elif key['name'] in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
                 res = xr.DataArray(res, dims=['y', 'x', 'oswPolarisation'])
-            elif key.name in ['owiPolarisationName']:
+            elif key['name'] in ['owiPolarisationName']:
                 res = xr.DataArray(res, dims=['owiPolarisation'])
-            elif key.name in ['owiCalConstObsi', 'owiCalConstInci']:
+            elif key['name'] in ['owiCalConstObsi', 'owiCalConstInci']:
                 res = xr.DataArray(res, dims=['owiIncSize'])
-            elif key.name.startswith('owi'):
+            elif key['name'].startswith('owi'):
                 res = xr.DataArray(res, dims=['y', 'x'])
             else:
                 res = xr.DataArray(res, dims=['y', 'x'])

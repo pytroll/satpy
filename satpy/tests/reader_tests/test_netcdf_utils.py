@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -31,14 +31,22 @@ except ImportError:
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler for reader tests to use."""
 
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info,
+                 auto_maskandscale=False, xarray_kwargs=None,
+                 cache_var_size=0, cache_handle=False, extra_file_content=None):
         """Get fake file content from 'get_test_content'."""
+        # unused kwargs from the real file handler
+        del auto_maskandscale
+        del xarray_kwargs
+        del cache_var_size
+        del cache_handle
         if NetCDF4FileHandler is object:
             raise ImportError("Base 'NetCDF4FileHandler' could not be "
                               "imported.")
         super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
-        self.file_content.update(kwargs)
+        if extra_file_content:
+            self.file_content.update(extra_file_content)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
@@ -54,6 +62,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
             - '/attr/global_attr'
             - 'dataset/attr/global_attr'
             - 'dataset/shape'
+            - 'dataset/dimensions'
             - '/dimension/my_dim'
 
         """
@@ -122,9 +131,14 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         for ds in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
             self.assertEqual(file_handler[ds].dtype, np.float32 if ds.endswith('f') else np.int32)
             self.assertTupleEqual(file_handler[ds + '/shape'], (10, 100))
+            self.assertEqual(file_handler[ds + '/dimensions'], ("rows", "cols"))
             self.assertEqual(file_handler[ds + '/attr/test_attr_str'], 'test_string')
             self.assertEqual(file_handler[ds + '/attr/test_attr_int'], 0)
             self.assertEqual(file_handler[ds + '/attr/test_attr_float'], 1.2)
+
+        test_group = file_handler['test_group']
+        self.assertTupleEqual(test_group['ds1_i'].shape, (10, 100))
+        self.assertTupleEqual(test_group['ds1_i'].dims, ('rows', 'cols'))
 
         self.assertEqual(file_handler['/attr/test_attr_str'], 'test_string')
         self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
@@ -141,8 +155,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertEqual(file_handler["ds2_sc"], 42)
 
     def test_caching(self):
-        """Test that caching works as intended.
-        """
+        """Test that caching works as intended."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
         h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
                                cache_handle=True)
@@ -155,12 +168,16 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
         np.testing.assert_array_equal(h["test_group/ds1_i"],
                                       np.arange(10 * 100).reshape((10, 100)))
+        # check that root variables can still be read from cached file object,
+        # even if not cached themselves
+        np.testing.assert_array_equal(
+                h["ds2_f"],
+                np.arange(10. * 100).reshape((10, 100)))
         h.__del__()
         self.assertFalse(h.file_handle.isopen())
 
     def test_filenotfound(self):
-        """Test that error is raised when file not found
-        """
+        """Test that error is raised when file not found."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
         with self.assertRaises(IOError):

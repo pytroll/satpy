@@ -35,7 +35,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'trollimage']
+                 'rasterio', 'geoviews', 'trollimage', 'fsspec']
 
 extras_require = {
     # Readers:
@@ -51,7 +51,7 @@ extras_require = {
     'amsr2_l1b': ['h5py >= 2.7.0'],
     'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
     'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.8.7'],
+    'pyspectral': ['pyspectral >= 0.10.1'],
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
@@ -62,7 +62,7 @@ extras_require = {
     'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
-    'scmi': ['netCDF4 >= 1.1.8'],
+    'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
@@ -103,7 +103,8 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 
 NAME = 'satpy'
-README = open('README.rst', 'r').read()
+with open('README.rst', 'r') as readme:
+    README = readme.read()
 
 setup(name=NAME,
       description='Python package for earth-observing satellite data processing',

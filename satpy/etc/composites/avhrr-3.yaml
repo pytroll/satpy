@@ -9,9 +9,19 @@ composites:
     - ct
     standard_name: nwc_pps_ct_masked_ir
     # Default is opaque (transparency = 0)
-    transparency:
-      Cloud-free_land: 100
-      Cloud-free_sea: 100
-      Snow_over_land: 100
-      Sea_ice: 100
-      Fractional_clouds: 45
+    conditions:
+      - method: equal
+        value: Cloud-free_land
+        transparency: 100
+      - method: equal
+        value: Cloud-free_sea
+        transparency: 100
+      - method: equal
+        value: Snow_over_land
+        transparency: 100
+      - method: equal
+        value: Sea_ice
+        transparency: 100
+      - method: equal
+        value: Fractional_clouds
+        transparency: 45
