@@ -299,15 +299,15 @@ class DependencyTree(Tree):
 
     def _find_matching_ids_in_readers(self, dataset_key):
         matching_ids = {}
-        for file_handler_name, reader_instance in self.readers.items():
-            matching_ids[file_handler_name] = []
+        for reader_name, reader_instance in self.readers.items():
+            matching_ids[reader_name] = []
             try:
                 ds_ids = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only,
                                                          num_results=0, best=False)
             except KeyError:
-                LOG.trace("Can't find dataset %s in reader %s", str(dataset_key), file_handler_name)
+                LOG.trace("Can't find dataset %s in reader %s", str(dataset_key), reader_name)
                 continue
-            matching_ids[file_handler_name].extend(ds_ids)
+            matching_ids[reader_name].extend(ds_ids)
         return matching_ids
 
     def _get_unique_matching_id(self, matching_ids, dataset_key, query):
