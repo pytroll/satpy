@@ -929,7 +929,7 @@ class Scene:
         Returns: :class:`xarray.Dataset`
 
         """
-        dataarrays = self._get_actual_dataarrays(datasets)
+        dataarrays = self._get_dataarrays_from_identifiers(datasets)
 
         ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in dataarrays if i.attrs.get('area') is not None}
         mdata = combine_metadata(*tuple(i.attrs for i in dataarrays))
@@ -948,9 +948,9 @@ class Scene:
         ds.attrs = mdata
         return ds
 
-    def _get_actual_dataarrays(self, datasets):
-        if datasets is not None:
-            dataarrays = [self[ds] for ds in datasets]
+    def _get_dataarrays_from_identifiers(self, identifiers):
+        if identifiers is not None:
+            dataarrays = [self[ds] for ds in identifiers]
         else:
             dataarrays = [self._datasets.get(ds) for ds in self._wishlist]
             dataarrays = [ds for ds in dataarrays if ds is not None]
@@ -1048,7 +1048,7 @@ class Scene:
             close any objects that have a "close" method.
 
         """
-        dataarrays = self._get_actual_dataarrays(datasets)
+        dataarrays = self._get_dataarrays_from_identifiers(datasets)
         if not dataarrays:
             raise RuntimeError("None of the requested datasets have been "
                                "generated or could not be loaded. Requested "
