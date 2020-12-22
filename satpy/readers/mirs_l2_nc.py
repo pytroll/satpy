@@ -24,6 +24,7 @@ import netCDF4
 import os
 import logging
 import xarray as xr
+import dask as dask
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -95,6 +96,8 @@ class MIRSHandler(NetCDF4FileHandler):
 
         self.all_bt_channels = []
         self.secondary_product_functions = {}
+        self.sea_bt_data = []
+        self.land_bt_data = []
         for pname in self.all_bt_channels:
             self.secondary_product_functions[pname] = self.limb_correct_atms_bt
 
@@ -164,7 +167,7 @@ class MIRSHandler(NetCDF4FileHandler):
         else:
             return self.filename_info.get(key)
 
-    def _read_atms_limb_correction_coefficients(self, fn):
+    def read_atms_limb_correction_coeffs(self, fn):
         """Read provided limb correction files for atms."""
         if os.path.isfile(fn):
             coeff_str = open(fn, "r").readlines()
@@ -212,13 +215,16 @@ class MIRSHandler(NetCDF4FileHandler):
 
         return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
 
-    def _apply_atms_limb_correction(self, datasets, dmean, coeffs, amean, nchx, nchanx):
+    @dask.delayed
+    def apply_atms_limb_correction(self, datasets, dmean, coeffs, amean, nchx, nchanx):
         """Apply atms limb correction coefficients."""
         all_new_ds = []
-        coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
+        # ds_type = datasets[0].dtype
+        ds_type = np.float32
+        coeff_sum = np.zeros(datasets.shape[1], dtype=ds_type)
         for channel_idx in range(datasets.shape[0]):
             ds = datasets[channel_idx]
-            new_ds = ds.copy()
+            new_ds = ds.copy().values
             all_new_ds.append(new_ds)
             for fov_idx in range(n_fov):
                 coeff_sum[:] = 0
@@ -226,7 +232,7 @@ class MIRSHandler(NetCDF4FileHandler):
                     coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
                             datasets[nchanx[channel_idx, k], :, fov_idx] -
                             amean[nchanx[channel_idx, k], fov_idx, channel_idx])
-                    coeff_sum += coef
+                    coeff_sum = coeff_sum + coef.values.astype(ds_type)
                 new_ds[:, fov_idx] = coeff_sum + dmean[channel_idx]
 
         return all_new_ds
@@ -235,38 +241,54 @@ class MIRSHandler(NetCDF4FileHandler):
         """Gather data needed for limb correction."""
         idx = ds_info['channel_index']
         bt_data = self[ds_info.get('file_key', 'BT')]
-        full_bt_data = xr.DataArray(bt_data)
-        bt_data = full_bt_data[:, :, idx]
+        bt_data = bt_data.rename(new_name_or_name_dict=ds_info["name"])
         scale_factor = bt_data.attrs["scale_factor"]
         if scale_factor != 0.0:
             bt_data = bt_data * scale_factor
-        if self.sensor.lower() != "atms":
+
+        skip_limb_correction = False
+        if self.sensor.lower() != "atms" or skip_limb_correction:
             LOG.info("Limb Correction will not be applied to non-ATMS BTs")
+            bt_data = bt_data[:, :, idx]
             return bt_data
 
         LOG.info("Starting ATMS Limb Correction...")
+        # transpose bt_data for correction
+        bt_data = self._rename_dims(bt_data)
+        bt_data = bt_data.transpose("Channel", "y", "x")
 
         deps = ds_info['dependencies']
         if len(deps) != 2:
             LOG.error("Expected 1 dependencies to create corrected BT product, got %d" % (len(deps),))
             raise ValueError("Expected 1 dependencies to create corrected BT product, got %d" % (len(deps),))
 
-        full_bt_product_name = deps[0]  # should be BT
-        full_bt_product = self[ds_info.get('file_key', full_bt_product_name)]
-        full_bt_data = xr.DataArray(full_bt_product)
         surf_type_name = deps[1]
-        surf_type_product = self[ds_info.get('file_key', surf_type_name)]
-        surf_type_mask = xr.DataArray(surf_type_product)
+        surf_type_mask = self[ds_info.get('file_key', surf_type_name)]
+        surf_type_mask = self._rename_dims(surf_type_mask)
+        surf_type_mask = self._rename_dims(surf_type_mask)
 
-        sea_coeff_results = self.read_atms_limb_correction_coefficients(LIMB_SEA_FILE)
-        new_sea_bt_data = self.apply_atms_limb_correction(full_bt_data, *sea_coeff_results)
-        land_coeff_results = self.read_atms_limb_correction_coefficients(LIMB_LAND_FILE)
-        new_land_bt_data = self.apply_atms_limb_correction(full_bt_data, *land_coeff_results)
+        if len(self.sea_bt_data) == 0:
+            sea = self.read_atms_limb_correction_coeffs(LIMB_SEA_FILE)
+            sea_bt = self.apply_atms_limb_correction(bt_data, *sea)
+            self.sea_bt_data = sea_bt.compute()
+        else:
+            LOG.info("Limb Corrections previously calculated")
+        if len(self.land_bt_data) == 0:
+            land = self.read_atms_limb_correction_coeffs(LIMB_LAND_FILE)
+            land_bt = self.apply_atms_limb_correction(bt_data, *land)
+            self.land_bt_data = land_bt.compute()
+        else:
+            LOG.info("Limb Corrections previously calculated")
+
+        LOG.info("Finishing limb correction")
         is_sea = (surf_type_mask == 0)
-        bt_data[is_sea] = new_sea_bt_data[idx][is_sea]
-        bt_data[~is_sea] = new_land_bt_data[idx][~is_sea]
-
+        bt_data = bt_data[idx, :, :]
+        new_data = (self.sea_bt_data[idx].squeeze()*[is_sea]) +\
+                   (self.land_bt_data[idx].squeeze()*[~is_sea])
         # return the same original swath object since we modified the data in place
+
+        bt_data = xr.DataArray(new_data.squeeze(), dims=bt_data.dims,
+                               coords=bt_data.coords, attrs=bt_data.attrs)
         return bt_data
 
     def get_metadata(self, data, ds_info):
@@ -310,7 +332,6 @@ class MIRSHandler(NetCDF4FileHandler):
         print(ds_info.keys(), ds_id)
         if 'dependencies' in ds_info.keys():
             data = self.limb_correct_atms_bt(ds_info)
-            data = data.rename(new_name_or_name_dict=ds_info["name"])
         else:
             data = self[ds_info.get('file_key', ds_info['name'])]
 
@@ -369,8 +390,9 @@ class MIRSHandler(NetCDF4FileHandler):
                         new_names.append(new_name)
 
                         self.all_bt_channels.append(new_name)
-                        desc_bt = ("Channel Brightness Temperature"
-                                   " at {}GHz".format(normal_f))
+                        desc_bt = ("Channel {} Brightness Temperature"
+                                   " at {}GHz {}".format(idx, normal_f,
+                                                         normal_p))
                         ds_info = {
                             'file_type': self.filetype_info['file_type'],
                             'name': new_name,
