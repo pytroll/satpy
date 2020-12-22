@@ -339,13 +339,13 @@ class DependencyTree(Tree):
             raise MissingDependencies
         return result
 
-    def _get_unique_reader_node_from_id(self, unique_id, reader_name):
+    def _get_unique_reader_node_from_id(self, data_id, reader_name):
         try:
             # now that we know we have the exact DataID see if we have already created a Node for it
-            return self.getitem(unique_id)
+            return self.getitem(data_id)
         except KeyError:
             # we haven't created a node yet, create it now
-            return ReaderNode(unique_id, reader_name)
+            return ReaderNode(data_id, reader_name)
 
     def _get_subtree_for_existing_name(self, dsq):
         try:
