@@ -228,7 +228,7 @@ class TestScene(unittest.TestCase):
         from satpy.scene import Scene
         from satpy.tests.utils import FakeReader
         with mock.patch('satpy.readers.configs_for_reader') as src, \
-             mock.patch("satpy.readers.load_reader") as srl:
+                mock.patch("satpy.readers.load_reader") as srl:
             r1 = FakeReader('strona')
             r1.select_files_from_pathnames = mock.MagicMock()
             r1.select_files_from_pathnames.return_value = ["campello monti"]
@@ -717,7 +717,7 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.all_ids) + 29)
+                         len(r.all_ids) + 30)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -741,8 +741,8 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), 2)
         id_list = scene.all_dataset_ids(composites=True)
         # ds1 and ds2 => 2
-        # composites that use these two datasets => 10
-        self.assertEqual(len(id_list), 2 + 10)
+        # composites that use these two datasets => 11
+        self.assertEqual(len(id_list), 2 + 11)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -763,8 +763,8 @@ class TestScene(unittest.TestCase):
         id_list = scene.available_dataset_ids()
         self.assertEqual(len(id_list), 1)
         id_list = scene.available_dataset_ids(composites=True)
-        # ds1, comp1, comp14, comp16, static_image
-        self.assertEqual(len(id_list), 5)
+        # ds1, comp1, comp14, comp16, static_image, comp26
+        self.assertEqual(len(id_list), 6)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -1615,7 +1615,8 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(r.load.call_count, 1)
         loaded_ids = list(scene._datasets.keys())
         self.assertEqual(len(loaded_ids), 1)
-        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
+        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene._datasets.keys())
@@ -1625,7 +1626,8 @@ class TestSceneLoading(unittest.TestCase):
                           loaded_ids)
             # m.assert_called_once_with(set([scene._dependency_tree['ds1']]))
             m.assert_called_once_with(set())
-        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
+        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene._datasets.keys())
@@ -1738,7 +1740,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(scene._datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
-        scene._generate_composites()
+        scene._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist))
         self.assertIn('comp10', scene._datasets)
         self.assertEqual(len(scene.missing_datasets), 0)
@@ -1951,6 +1953,42 @@ class TestSceneResampling(unittest.TestCase):
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
+    def test_resample_scene_preserves_requested_dependencies(self, cri, cl, rs):
+        """Test that the Scene is properly copied during resampling.
+
+        The Scene that is created as a copy of the original Scene should not
+        be able to affect the original Scene object.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        rs.side_effect = self._fake_resample_dataset
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def.get_area_slices = mock.MagicMock()
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # Set PYTHONHASHSEED to 0 in the interpreter to test as intended (comp26 comes before comp14)
+        scene.load(['comp26', 'comp14'], generate=False)
+        scene.resample(area_def, unload=True)
+        new_scene_2 = scene.resample(area_def, unload=True)
+
+        assert 'comp14' in new_scene_2
+
+    @mock.patch('satpy.scene.resample_dataset')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_resample_reduce_data_toggle(self, cri, cl, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
         import satpy.scene
@@ -2126,7 +2164,7 @@ class TestSceneResampling(unittest.TestCase):
         self.assertEqual(len(scene._datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
-        new_scn._generate_composites()
+        new_scn._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist))
         self.assertIn('comp10', new_scn)
         self.assertEqual(len(new_scn.missing_datasets), 0)
