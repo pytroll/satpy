@@ -674,3 +674,9 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: green
     standard_name: true_color
+
+  highlight_C14:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: C14
+    standard_name: highlighted_toa_brightness_temperature

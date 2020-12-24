@@ -15,11 +15,109 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Utilities and helper classes for MSG HRIT/Native data reading.
+"""Common functionality for SEVIRI L1.5 data readers.
+
+Introduction
+------------
+
+*The Spinning Enhanced Visible and InfraRed Imager (SEVIRI) is the primary
+instrument on Meteosat Second Generation (MSG) and has the capacity to observe
+the Earth in 12 spectral channels.*
+
+*Level 1.5 corresponds to image data that has been corrected for all unwanted
+radiometric and geometric effects, has been geolocated using a standardised
+projection, and has been calibrated and radiance-linearised.*
+(From the EUMETSAT documentation)
+
+Satpy provides the following readers for SEVIRI L1.5 data in different formats:
+
+- Native: :mod:`satpy.readers.seviri_l1b_native`
+- HRIT: :mod:`satpy.readers.seviri_l1b_hrit`
+- netCDF: :mod:`satpy.readers.seviri_l1b_nc`
+
+
+Calibration
+-----------
+
+This section describes how to control the calibration of SEVIRI L1.5 data.
+
+
+Calibration to radiance
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The SEVIRI L1.5 data readers allow for choosing between two file-internal
+calibration coefficients to convert counts to radiances:
+
+    - Nominal for all channels (default)
+    - GSICS where available (IR currently) and nominal for the remaining
+      channels (VIS & HRV currently)
+
+In order to change the default behaviour, use the ``reader_kwargs`` keyword
+argument upon Scene creation::
+
+    import satpy
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'calib_mode': 'GSICS'})
+    scene.load(['VIS006', 'IR_108'])
+
+Furthermore, it is possible to specify external calibration coefficients
+for the conversion from counts to radiances. External coefficients take
+precedence over internal coefficients, but you can also mix internal and
+external coefficients: If external calibration coefficients are specified
+for only a subset of channels, the remaining channels will be calibrated
+using the chosen file-internal coefficients (nominal or GSICS).
+
+Calibration coefficients must be specified in [mW m-2 sr-1 (cm-1)-1].
+
+In the following example we use external calibration coefficients for the
+``VIS006`` & ``IR_108`` channels, and nominal coefficients for the
+remaining channels::
+
+    coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+             'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'ext_calib_coefs': coefs})
+    scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+In the next example we use external calibration coefficients for the
+``VIS006`` & ``IR_108`` channels, GSICS coefficients where available
+(other IR channels) and nominal coefficients for the rest::
+
+    coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+             'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+    scene = satpy.Scene(filenames,
+                        reader='seviri_l1b_...',
+                        reader_kwargs={'calib_mode': 'GSICS',
+                                       'ext_calib_coefs': coefs})
+    scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+
+Calibration to reflectance
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When loading solar channels, the SEVIRI L1.5 data readers apply a correction for
+the Sun-Earth distance variation throughout the year - as recommended by
+the EUMETSAT document
+`Conversion from radiances to reflectances for SEVIRI warm channels`_.
+In the unlikely situation that this correction is not required, it can be
+removed on a per-channel basis using
+:func:`satpy.readers.utils.remove_earthsun_distance_correction`.
+
 
 References:
-    MSG Level 1.5 Image Data Format Description
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    - `MSG Level 1.5 Image Data Format Description`_
+    - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
+
+.. _Conversion from radiances to reflectances for SEVIRI warm channels:
+    https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
+
+.. _MSG Level 1.5 Image Data Format Description:
+    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
+
+.. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
+    https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_msg_seviri_rad_calib.pdf
 
 """
 
@@ -334,23 +432,29 @@ class MpefProductHeader(object):
 mpef_product_header = MpefProductHeader().get()
 
 
-class SEVIRICalibrationHandler(object):
-    """Calibration handler for SEVIRI HRIT- and native-formats."""
+class SEVIRICalibrationAlgorithm:
+    """SEVIRI calibration algorithms."""
 
-    def _convert_to_radiance(self, data, gain, offset):
+    def __init__(self, platform_id, scan_time):
+        """Initialize the calibration algorithm."""
+        self._platform_id = platform_id
+        self._scan_time = scan_time
+
+    def convert_to_radiance(self, data, gain, offset):
         """Calibrate to radiance."""
+        data = data.where(data > 0)
         return (data * gain + offset).clip(0.0, None)
 
     def _erads2bt(self, data, channel_name):
         """Convert effective radiance to brightness temperature."""
-        cal_info = CALIB[self.platform_id][channel_name]
+        cal_info = CALIB[self._platform_id][channel_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
-        wavenumber = CALIB[self.platform_id][channel_name]["VC"]
+        wavenumber = CALIB[self._platform_id][channel_name]["VC"]
 
         return (self._tl15(data, wavenumber) - beta) / alpha
 
-    def _ir_calibrate(self, data, channel_name, cal_type):
+    def ir_calibrate(self, data, channel_name, cal_type):
         """Calibrate to brightness temperature."""
         if cal_type == 1:
             # spectral radiances
@@ -364,7 +468,7 @@ class SEVIRICalibrationHandler(object):
     def _srads2bt(self, data, channel_name):
         """Convert spectral radiance to brightness temperature."""
         a__, b__, c__ = BTFIT[channel_name]
-        wavenumber = CALIB[self.platform_id][channel_name]["VC"]
+        wavenumber = CALIB[self._platform_id][channel_name]["VC"]
         temp = self._tl15(data, wavenumber)
 
         return a__ * temp * temp + b__ * temp + c__
@@ -374,14 +478,95 @@ class SEVIRICalibrationHandler(object):
         return ((C2 * wavenumber) /
                 np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
-    def _vis_calibrate(self, data, solar_irradiance):
+    def vis_calibrate(self, data, solar_irradiance):
         """Calibrate to reflectance.
 
         This uses the method described in Conversion from radiances to
         reflectances for SEVIRI warm channels: https://tinyurl.com/y67zhphm
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
-        return apply_earthsun_distance_correction(reflectance, self.start_time)
+        return apply_earthsun_distance_correction(reflectance, self._scan_time)
+
+
+class SEVIRICalibrationHandler:
+    """Calibration handler for SEVIRI HRIT-, native- and netCDF-formats.
+
+    Handles selection of calibration coefficients and calls the appropriate
+    calibration algorithm.
+    """
+
+    def __init__(self, platform_id, channel_name, coefs, calib_mode, scan_time):
+        """Initialize the calibration handler."""
+        self._platform_id = platform_id
+        self._channel_name = channel_name
+        self._coefs = coefs
+        self._calib_mode = calib_mode.upper()
+        self._scan_time = scan_time
+        self._algo = SEVIRICalibrationAlgorithm(
+            platform_id=self._platform_id,
+            scan_time=self._scan_time
+        )
+
+        valid_modes = ('NOMINAL', 'GSICS')
+        if self._calib_mode not in valid_modes:
+            raise ValueError(
+                'Invalid calibration mode: {}. Choose one of {}'.format(
+                    self._calib_mode, valid_modes)
+            )
+
+    def calibrate(self, data, calibration):
+        """Calibrate the given data."""
+        if calibration == 'counts':
+            res = data
+        elif calibration in ['radiance', 'reflectance',
+                             'brightness_temperature']:
+            gain, offset = self.get_gain_offset()
+            res = self._algo.convert_to_radiance(
+                data.astype(np.float32), gain, offset
+            )
+        else:
+            raise ValueError(
+                'Invalid calibration {} for channel {}'.format(
+                    calibration, self._channel_name
+                )
+            )
+
+        if calibration == 'reflectance':
+            solar_irradiance = CALIB[self._platform_id][self._channel_name]["F"]
+            res = self._algo.vis_calibrate(res, solar_irradiance)
+        elif calibration == 'brightness_temperature':
+            res = self._algo.ir_calibrate(
+                res, self._channel_name, self._coefs['radiance_type']
+            )
+
+        return res
+
+    def get_gain_offset(self):
+        """Get gain & offset for calibration from counts to radiance.
+
+        Choices for internal coefficients are nominal or GSICS. If no
+        GSICS coefficients are available for a certain channel, fall back to
+        nominal coefficients. External coefficients take precedence over
+        internal coefficients.
+        """
+        coefs = self._coefs['coefs']
+
+        # Select internal coefficients for the given calibration mode
+        internal_gain = coefs['NOMINAL']['gain']
+        internal_offset = coefs['NOMINAL']['offset']
+        if self._calib_mode == 'GSICS':
+            gsics_gain = coefs['GSICS']['gain']
+            gsics_offset = coefs['GSICS']['offset'] * gsics_gain
+            if gsics_gain != 0 and gsics_offset != 0:
+                # If no GSICS coefficients are available for a certain channel,
+                # they are set to zero in the file.
+                internal_gain = gsics_gain
+                internal_offset = gsics_offset
+
+        # Override with external coefficients, if any.
+        gain = coefs['EXTERNAL'].get('gain', internal_gain)
+        offset = coefs['EXTERNAL'].get('offset', internal_offset)
+        return gain, offset
 
 
 def chebyshev(coefs, time, domain):
@@ -432,13 +617,22 @@ def calculate_area_extent(area_dict):
     return tuple(aex)
 
 
-def get_service_mode(ssp_lon):
-    """Get information about whether we're dealing with data from the FES, RSS or IODC service mode."""
-    seviri_service_modes = {'0.0': {'name': 'FES', 'desc': 'Full Earth scanning service'},
-                            '9.5': {'name': 'RSS', 'desc': 'Rapid scanning service'},
-                            '41.5': {'name': 'IODC', 'desc': 'Indian Ocean data coverage service'}}
-
-    return seviri_service_modes['%.1f' % ssp_lon]
+def create_coef_dict(coefs_nominal, coefs_gsics, radiance_type, ext_coefs):
+    """Create coefficient dictionary expected by calibration class."""
+    return {
+        'coefs': {
+            'NOMINAL': {
+                'gain': coefs_nominal[0],
+                'offset': coefs_nominal[1],
+            },
+            'GSICS': {
+                'gain': coefs_gsics[0],
+                'offset': coefs_gsics[1]
+            },
+            'EXTERNAL': ext_coefs
+        },
+        'radiance_type': radiance_type
+    }
 
 
 def get_padding_area(shape, dtype):
