@@ -36,10 +36,10 @@ satpy.writers.ninjotiff module
    :undoc-members:
    :show-inheritance:
 
-satpy.writers.scmi module
--------------------------
+satpy.writers.awips_tiled module
+--------------------------------
 
-.. automodule:: satpy.writers.scmi
+.. automodule:: satpy.writers.awips_tiled
    :members:
    :undoc-members:
    :show-inheritance:

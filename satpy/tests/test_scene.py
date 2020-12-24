@@ -21,6 +21,7 @@ import os
 import unittest
 from unittest import mock
 
+import numpy as np
 import pytest
 
 from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
@@ -227,7 +228,7 @@ class TestScene(unittest.TestCase):
         from satpy.scene import Scene
         from satpy.tests.utils import FakeReader
         with mock.patch('satpy.readers.configs_for_reader') as src, \
-             mock.patch("satpy.readers.load_reader") as srl:
+                mock.patch("satpy.readers.load_reader") as srl:
             r1 = FakeReader('strona')
             r1.select_files_from_pathnames = mock.MagicMock()
             r1.select_files_from_pathnames.return_value = ["campello monti"]
@@ -257,7 +258,6 @@ class TestScene(unittest.TestCase):
         """Test iteration over the scene."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = DataArray(np.arange(5))
         scene["2"] = DataArray(np.arange(5))
@@ -270,7 +270,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import SwathDefinition
-        import numpy as np
         scene = Scene()
         sd = SwathDefinition(lons=np.arange(5), lats=np.arange(5))
         scene["1"] = DataArray(np.arange(5), attrs={'area': sd})
@@ -287,7 +286,6 @@ class TestScene(unittest.TestCase):
     def test_bad_setitem(self):
         """Test setting an item wrongly."""
         from satpy import Scene
-        import numpy as np
         scene = Scene()
         self.assertRaises(ValueError, scene.__setitem__, '1', np.arange(5))
 
@@ -295,7 +293,6 @@ class TestScene(unittest.TestCase):
         """Test setting an item."""
         from satpy import Scene
         from satpy.tests.utils import make_dataid
-        import numpy as np
         import xarray as xr
         scene = Scene()
         scene["1"] = ds1 = xr.DataArray(np.arange(5))
@@ -318,7 +315,6 @@ class TestScene(unittest.TestCase):
         """Test __getitem__ with names only."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = ds1 = DataArray(np.arange(5))
         scene["2"] = ds2 = DataArray(np.arange(5))
@@ -334,7 +330,6 @@ class TestScene(unittest.TestCase):
         """Test __getitem__ with names and modifiers."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
 
         # Return least modified item
         scene = Scene()
@@ -370,7 +365,6 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition, SwathDefinition
         from pyresample.utils import proj4_str_to_dict
-        import numpy as np
         scene1 = Scene()
         scene2 = Scene()
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
@@ -432,7 +426,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        import numpy as np
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
                        5570248.477339745)
@@ -510,7 +503,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        import numpy as np
         try:
             from pyproj import CRS  # noqa
         except ImportError:
@@ -539,7 +531,6 @@ class TestScene(unittest.TestCase):
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        import numpy as np
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
                        5570248.477339745)
@@ -578,48 +569,10 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['1'].shape, (3, 184, 714))
         self.assertTupleEqual(new_scn1['2'].shape, (92, 3, 357))
 
-    def test_aggregate(self):
-        """Test the aggregate method."""
-        from satpy import Scene
-        from xarray import DataArray
-        from pyresample.geometry import AreaDefinition
-        import numpy as np
-        scene1 = Scene()
-        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
-                       5570248.477339745)
-        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
-                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
-        x_size = 3712
-        y_size = 3712
-        area_def = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            x_size,
-            y_size,
-            area_extent,
-        )
-
-        scene1["1"] = DataArray(np.ones((y_size, x_size)), attrs={'_satpy_id_keys': default_id_keys_config})
-        scene1["2"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'_satpy_id_keys': default_id_keys_config})
-        scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
-
-        scene2 = scene1.aggregate(func='sum', x=2, y=2)
-        self.assertIs(scene1['1'], scene2['1'])
-        self.assertIs(scene1['2'], scene2['2'])
-        np.testing.assert_allclose(scene2['3'].data, 4)
-        self.assertTupleEqual(scene2['1'].shape, (y_size, x_size))
-        self.assertTupleEqual(scene2['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(scene2['3'].shape, (y_size / 2, x_size / 2))
-
     def test_contains(self):
         """Test contains."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
                                                     '_satpy_id_keys': default_id_keys_config})
@@ -643,7 +596,6 @@ class TestScene(unittest.TestCase):
         """Test deleting an item."""
         from satpy import Scene
         from xarray import DataArray
-        import numpy as np
         scene = Scene()
         scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
                                                     '_satpy_id_keys': default_id_keys_config})
@@ -664,7 +616,6 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        import numpy as np
         scene = Scene()
         scene["1"] = ds1 = DataArray(np.arange(10).reshape((2, 5)),
                                      attrs={'wavelength': (0.1, 0.2, 0.3)})
@@ -766,7 +717,7 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.all_ids) + 29)
+                         len(r.all_ids) + 30)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -790,8 +741,8 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), 2)
         id_list = scene.all_dataset_ids(composites=True)
         # ds1 and ds2 => 2
-        # composites that use these two datasets => 10
-        self.assertEqual(len(id_list), 2 + 10)
+        # composites that use these two datasets => 11
+        self.assertEqual(len(id_list), 2 + 11)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -812,8 +763,8 @@ class TestScene(unittest.TestCase):
         id_list = scene.available_dataset_ids()
         self.assertEqual(len(id_list), 1)
         id_list = scene.available_dataset_ids(composites=True)
-        # ds1, comp1, comp14, comp16, static_image
-        self.assertEqual(len(id_list), 5)
+        # ds1, comp1, comp14, comp16, static_image, comp26
+        self.assertEqual(len(id_list), 6)
 
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -1664,7 +1615,8 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(r.load.call_count, 1)
         loaded_ids = list(scene._datasets.keys())
         self.assertEqual(len(loaded_ids), 1)
-        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
+        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene._datasets.keys())
@@ -1674,7 +1626,8 @@ class TestSceneLoading(unittest.TestCase):
                           loaded_ids)
             # m.assert_called_once_with(set([scene._dependency_tree['ds1']]))
             m.assert_called_once_with(set())
-        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
+        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene._datasets.keys())
@@ -1787,7 +1740,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(scene._datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
-        scene._generate_composites()
+        scene._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist))
         self.assertIn('comp10', scene._datasets)
         self.assertEqual(len(scene.missing_datasets), 0)
@@ -2000,6 +1953,42 @@ class TestSceneResampling(unittest.TestCase):
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
+    def test_resample_scene_preserves_requested_dependencies(self, cri, cl, rs):
+        """Test that the Scene is properly copied during resampling.
+
+        The Scene that is created as a copy of the original Scene should not
+        be able to affect the original Scene object.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        rs.side_effect = self._fake_resample_dataset
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def.get_area_slices = mock.MagicMock()
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        # Set PYTHONHASHSEED to 0 in the interpreter to test as intended (comp26 comes before comp14)
+        scene.load(['comp26', 'comp14'], generate=False)
+        scene.resample(area_def, unload=True)
+        new_scene_2 = scene.resample(area_def, unload=True)
+
+        assert 'comp14' in new_scene_2
+
+    @mock.patch('satpy.scene.resample_dataset')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_resample_reduce_data_toggle(self, cri, cl, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
         import satpy.scene
@@ -2175,7 +2164,7 @@ class TestSceneResampling(unittest.TestCase):
         self.assertEqual(len(scene._datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
-        new_scn._generate_composites()
+        new_scn._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist))
         self.assertIn('comp10', new_scn)
         self.assertEqual(len(new_scn.missing_datasets), 0)
@@ -2334,3 +2323,71 @@ class TestSceneConversions(unittest.TestCase):
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         self.assertIsNotNone(gv_obj)
+
+
+class TestSceneAggregation(unittest.TestCase):
+    """Test the scene's aggregate method."""
+
+    def test_aggregate(self):
+        """Test the aggregate method."""
+        x_size = 3712
+        y_size = 3712
+
+        scene1 = self._create_test_data(x_size, y_size)
+
+        scene2 = scene1.aggregate(func='sum', x=2, y=2)
+        expected_aggregated_shape = (y_size / 2, x_size / 2)
+        self._check_aggregation_results(expected_aggregated_shape, scene1, scene2, x_size, y_size)
+
+    @staticmethod
+    def _create_test_data(x_size, y_size):
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+        scene1["1"] = DataArray(np.ones((y_size, x_size)), attrs={'_satpy_id_keys': default_id_keys_config})
+        scene1["2"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'_satpy_id_keys': default_id_keys_config})
+        scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
+        scene1["4"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def, 'standard_name': 'backscatter',
+                                       '_satpy_id_keys': default_id_keys_config})
+        return scene1
+
+    def _check_aggregation_results(self, expected_aggregated_shape, scene1, scene2, x_size, y_size):
+        self.assertIs(scene1['1'], scene2['1'])
+        self.assertIs(scene1['2'], scene2['2'])
+        np.testing.assert_allclose(scene2['3'].data, 4)
+        self.assertTupleEqual(scene2['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(scene2['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(scene2['3'].shape, expected_aggregated_shape)
+        assert 'standard_name' in scene2['4'].attrs
+        assert scene2['4'].attrs['standard_name'] == 'backscatter'
+
+    def test_aggregate_with_boundary(self):
+        """Test aggregation with boundary argument."""
+        x_size = 3711
+        y_size = 3711
+
+        scene1 = self._create_test_data(x_size, y_size)
+
+        with pytest.raises(ValueError):
+            scene1.aggregate(func='sum', x=2, y=2, boundary='exact')
+
+        scene2 = scene1.aggregate(func='sum', x=2, y=2, boundary='trim')
+        expected_aggregated_shape = (y_size // 2, x_size // 2)
+        self._check_aggregation_results(expected_aggregated_shape, scene1, scene2, x_size, y_size)
