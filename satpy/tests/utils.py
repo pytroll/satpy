@@ -145,7 +145,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     se = mock.MagicMock()
 
     def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
-        if ds_id['name'] == 'comp14':
+        if ds_id['name'] in ('comp14', 'comp26'):
             # used as a test when composites update the dataset id with
             # information from prereqs
             ds_id = DataID(ds_id.id_keys, resolution=555, **ds_id)
@@ -251,7 +251,8 @@ def test_composites(sensor_name):
         make_cid(name='comp25', resolution=1000): ([make_dsq(name='comp24', resolution=1000),
                                                     make_dsq(name='ds5', resolution=1000)], []),
         make_cid(name='ahi_green'): ([make_dsq(wavelength=30.5, modifiers=('sunz_corr', 'rayleigh_corr')),
-                                      make_dsq(wavelength=30.85, modifiers=('sunz_corr',))], [])
+                                      make_dsq(wavelength=30.85, modifiers=('sunz_corr',))], []),
+        make_cid(name='comp26'): (['comp14'], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
