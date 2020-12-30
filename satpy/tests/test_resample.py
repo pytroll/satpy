@@ -696,8 +696,10 @@ class TestBucketAvg(unittest.TestCase):
         from satpy.resample import BucketAvg
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
+        get_proj_vectors = mock.MagicMock()
+        get_proj_vectors.return_value = ([1, 2, 3, 4, 5],  [1, 2, 3, 4, 5])
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
-        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats, crs=None, get_proj_vectors=get_proj_vectors)
         self.bucket = BucketAvg(self.source_geo_def, self.target_geo_def)
 
     def test_init(self):
@@ -874,8 +876,10 @@ class TestBucketFraction(unittest.TestCase):
         from satpy.resample import BucketFraction
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
+        get_proj_vectors = mock.MagicMock()
+        get_proj_vectors.return_value = ([1, 2, 3, 4, 5],  [1, 2, 3, 4, 5])
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
-        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats, crs=None, get_proj_vectors=get_proj_vectors)
         self.bucket = BucketFraction(self.source_geo_def, self.target_geo_def)
 
     def test_compute(self):

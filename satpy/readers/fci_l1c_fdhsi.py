@@ -84,6 +84,8 @@ import xarray as xr
 
 from pyresample import geometry
 from netCDF4 import default_fillvals
+from satpy.readers._geos_area import get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode
 
 from .netcdf_utils import NetCDF4FileHandler
 
@@ -337,15 +339,17 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                      'units': 'm',
                      "sweep": sweep}
 
-        # follow the format <platform>_<instrument>_<service>_<resolution>
-        area_id_name = 'mtg_fci_fdss_{:.0f}km'.format(key['resolution']/1000)
-        area_id_description = 'FCI Full-Disk Scanning Service area definition with {:.0f} km resolution' \
-                              ''.format(key['resolution']/1000)
+        area_naming_input_dict = {'platform_name': 'mtg',
+                                  'instrument_name': 'fci',
+                                  'resolution': int(key['resolution'])
+                                  }
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('fci', lon_0)})
 
         area = geometry.AreaDefinition(
-            area_id_name,
-            area_id_description,
-            "FCI Full-Disk Scanning Service geostationary projection",
+            area_naming['area_id'],
+            area_naming['description'],
+            "",
             proj_dict,
             ncols,
             nlines,

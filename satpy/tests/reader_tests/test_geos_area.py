@@ -21,7 +21,9 @@ import unittest
 from satpy.readers._geos_area import (get_xy_from_linecol,
                                       get_area_extent,
                                       get_area_definition,
-                                      sampling_to_lfac_cfac)
+                                      sampling_to_lfac_cfac,
+                                      get_geos_area_naming,
+                                      get_resolution_and_unit_strings)
 
 import numpy as np
 
@@ -152,3 +154,29 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         lfac = 13642337  # SEVIRI LFAC
         sampling = np.deg2rad(2 ** 16 / lfac)
         np.testing.assert_allclose(sampling_to_lfac_cfac(sampling), lfac)
+
+    def test_get_geos_area_naming(self):
+        """Test the geos area naming function."""
+        input_dict = {'platform_name': 'testplatform',
+                      'instrument_name': 'testinstrument',
+                      'resolution': 1000,
+                      'service_name': 'testservicename',
+                      'service_desc': 'testdesc'}
+
+        output_dict = get_geos_area_naming(input_dict)
+
+        self.assertEqual(output_dict['area_id'], 'testplatform_testinstrument_testservicename_1km')
+        self.assertEqual(output_dict['description'], 'TESTPLATFORM TESTINSTRUMENT testdesc area definition'
+                                                     ' with 1 km resolution')
+
+    def test_get_resolution_and_unit_strings_in_km(self):
+        """Test the resolution and unit strings function for a km resolution."""
+        out = get_resolution_and_unit_strings(1000)
+        self.assertEqual(out['value'], '1')
+        self.assertEqual(out['unit'], 'km')
+
+    def test_get_resolution_and_unit_strings_in_m(self):
+        """Test the resolution and unit strings function for a m resolution."""
+        out = get_resolution_and_unit_strings(500)
+        self.assertEqual(out['value'], '500')
+        self.assertEqual(out['unit'], 'm')
