@@ -24,7 +24,8 @@ import yaml
 from yaml import UnsafeLoader
 
 from satpy import DatasetDict, DataQuery, DataID
-from satpy.config import CONFIG_PATH, get_entry_points_config_dirs, config_search_paths, recursive_dict_update
+from satpy.config import CONFIG_PATH, get_entry_points_config_dirs, config_search_paths
+from satpy.utils import recursive_dict_update
 from satpy.dataset.dataid import minimal_default_keys_config
 
 logger = logging.getLogger(__name__)

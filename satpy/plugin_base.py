@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The :mod:`satpy.plugin_base` module defines the plugin API.
-"""
+"""Classes and utilities for defining generic "plugin" components."""
 
 import logging
 
@@ -27,7 +26,8 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import config_search_paths, get_environ_config_dir, recursive_dict_update
+from satpy.config import config_search_paths, get_environ_config_dir
+from satpy.utils import recursive_dict_update
 
 LOG = logging.getLogger(__name__)
 

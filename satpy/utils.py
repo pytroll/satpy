@@ -20,51 +20,13 @@
 
 import logging
 import os
-import re
 import warnings
+from typing import Mapping
+
 import numpy as np
-import configparser
 
 _is_logging_on = False
 TRACE_LEVEL = 5
-
-
-class OrderedConfigParser(object):
-    """Intercepts read and stores ordered section names.
-
-    Cannot use inheritance and super as ConfigParser use old style classes.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the instance."""
-        self.config_parser = configparser.ConfigParser(*args, **kwargs)
-
-    def __getattr__(self, name):
-        """Get the attribute."""
-        return getattr(self.config_parser, name)
-
-    def read(self, filename):
-        """Read config file."""
-        try:
-            conf_file = open(filename, 'r')
-            config = conf_file.read()
-            config_keys = re.findall(r'\[.*\]', config)
-            self.section_keys = [key[1:-1] for key in config_keys]
-        except IOError as e:
-            # Pass if file not found
-            if e.errno != 2:
-                raise
-        finally:
-            conf_file.close()
-
-        return self.config_parser.read(filename)
-
-    def sections(self):
-        """Get sections from config file."""
-        try:
-            return self.section_keys
-        except:  # noqa: E722
-            return self.config_parser.sections()
 
 
 def ensure_dir(filename):
@@ -327,3 +289,20 @@ def get_satpos(dataset):
         alt = dataset.attrs['satellite_altitude']
 
     return lon, lat, alt
+
+
+def recursive_dict_update(d, u):
+    """Recursive dictionary update.
+
+    Copied from:
+
+        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+
+    """
+    for k, v in u.items():
+        if isinstance(v, Mapping):
+            r = recursive_dict_update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d

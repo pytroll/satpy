@@ -16,14 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Configuration directory and file handling."""
-from __future__ import print_function
 
-import configparser
 import glob
 import logging
 import os
 from collections import OrderedDict
-from collections.abc import Mapping
 
 import pkg_resources
 import yaml
@@ -57,13 +54,6 @@ def get_environ_ancpath(default='.'):
 CONFIG_PATH = get_environ_config_dir()
 
 
-def runtime_import(object_path):
-    """Import at runtime."""
-    obj_module, obj_element = object_path.rsplit(".", 1)
-    loader = __import__(obj_module, globals(), locals(), [str(obj_element)])
-    return getattr(loader, obj_element)
-
-
 def get_entry_points_config_dirs(name):
     """Get the config directories for all entry points of given name."""
     dirs = []
@@ -95,20 +85,6 @@ def config_search_paths(filename, *search_dirs, **kwargs):
     return paths[::-1]
 
 
-def get_config(filename, *search_dirs, **kwargs):
-    """Blends the different configs, from package defaults to ."""
-    config = kwargs.get("config_reader_class", configparser.ConfigParser)()
-
-    paths = config_search_paths(filename, *search_dirs)
-    successes = config.read(reversed(paths))
-    if successes:
-        LOG.debug("Read config from %s", str(successes))
-        return config, successes
-
-    LOG.warning("Couldn't file any config file matching %s", filename)
-    return None, []
-
-
 def glob_config(pattern, *search_dirs):
     """Return glob results for all possible configuration locations.
 
@@ -131,24 +107,7 @@ def get_config_path(filename, *search_dirs):
             return path
 
 
-def recursive_dict_update(d, u):
-    """Recursive dictionary update.
-
-    Copied from:
-
-        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
-
-    """
-    for k, v in u.items():
-        if isinstance(v, Mapping):
-            r = recursive_dict_update(d.get(k, {}), v)
-            d[k] = r
-        else:
-            d[k] = u[k]
-    return d
-
-
-def check_yaml_configs(configs, key):
+def _check_yaml_configs(configs, key):
     """Get a diagnostic for the yaml *configs*.
 
     *key* is the section to look for to get a name for the config at hand.
@@ -206,13 +165,13 @@ def check_satpy(readers=None, writers=None, extras=None):
 
     print('Readers')
     print('=======')
-    for reader, res in sorted(check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
+    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
         print(reader + ': ', res)
     print()
 
     print('Writers')
     print('=======')
-    for writer, res in sorted(check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
+    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
         print(writer + ': ', res)
     print()
 
