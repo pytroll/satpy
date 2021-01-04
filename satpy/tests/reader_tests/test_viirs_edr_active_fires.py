@@ -160,7 +160,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeModFiresNetCDF4FileHandler,))
@@ -217,7 +217,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeImgFiresNetCDF4FileHandler,))
@@ -275,7 +275,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
 
     def setUp(self):
         """Wrap file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeModFiresTextFileHandler,))
@@ -331,7 +331,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
 
     def setUp(self):
         """Wrap file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeImgFiresTextFileHandler,))

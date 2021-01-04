@@ -30,8 +30,8 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          glob_config)
+from satpy._config import (config_search_paths, get_environ_config_dir,
+                           glob_config)
 from .yaml_reader import (AbstractYAMLReader,
                           load_yaml_configs as load_yaml_reader_configs)
 

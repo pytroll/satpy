@@ -220,7 +220,7 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
 @pytest.fixture
 def reader_configs():
     """Return reader configs for FCI."""
-    from satpy.config import config_search_paths
+    from satpy._config import config_search_paths
     return config_search_paths(
         os.path.join("readers", "fci_l1c_fdhsi.yaml"))
 

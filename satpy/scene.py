@@ -22,7 +22,7 @@ import os
 
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import CompositorLoader
-from satpy.config import get_environ_config_dir
+from satpy._config import get_environ_config_dir
 from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
 from satpy.node import MissingDependencies, ReaderNode, CompositorNode

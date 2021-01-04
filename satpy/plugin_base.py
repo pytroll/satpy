@@ -26,7 +26,7 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import config_search_paths, get_environ_config_dir
+from satpy._config import config_search_paths, get_environ_config_dir
 from satpy.utils import recursive_dict_update
 
 LOG = logging.getLogger(__name__)

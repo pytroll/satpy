@@ -332,7 +332,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.hy2_scat_l2b_h5 import HY2SCATL2BH5FileHandler
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(HY2SCATL2BH5FileHandler, '__bases__', (FakeHDF5FileHandler2,))

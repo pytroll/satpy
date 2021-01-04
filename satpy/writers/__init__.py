@@ -34,8 +34,8 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import (config_search_paths, glob_config,
-                          get_environ_config_dir)
+from satpy._config import (config_search_paths, glob_config,
+                           get_environ_config_dir)
 from satpy.utils import recursive_dict_update
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin

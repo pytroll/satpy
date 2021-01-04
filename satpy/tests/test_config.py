@@ -27,12 +27,12 @@ class TestCheckSatpy(unittest.TestCase):
 
     def test_basic_check_satpy(self):
         """Test 'check_satpy' basic functionality."""
-        from satpy.config import check_satpy
+        from satpy._config import check_satpy
         check_satpy()
 
     def test_specific_check_satpy(self):
         """Test 'check_satpy' with specific features provided."""
-        from satpy.config import check_satpy
+        from satpy._config import check_satpy
         with mock.patch('satpy.config.print') as print_mock:
             check_satpy(readers=['viirs_sdr'], extras=('cartopy', '__fake'))
             checked_fake = False
@@ -124,6 +124,6 @@ class TestPluginsConfigs(unittest.TestCase):
         ep.dist.module_path = os.path.join(os.path.sep + 'bla', 'bla')
         iter_entry_points.return_value = [ep]
 
-        from satpy.config import get_entry_points_config_dirs
+        from satpy._config import get_entry_points_config_dirs
         dirs = get_entry_points_config_dirs('satpy.composites')
         self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])

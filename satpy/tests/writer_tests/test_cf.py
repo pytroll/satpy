@@ -57,8 +57,8 @@ class TestCFWriter(unittest.TestCase):
     def test_init(self):
         """Test initializing the CFWriter class."""
         from satpy.writers.cf_writer import CFWriter
-        import satpy.config
-        CFWriter(config_files=[os.path.join(satpy.config.CONFIG_PATH,
+        import satpy._config
+        CFWriter(config_files=[os.path.join(satpy._config.CONFIG_PATH,
                                             'writers', 'cf.yaml')])
 
     def test_save_array(self):
@@ -967,7 +967,7 @@ class TestCFWriter(unittest.TestCase):
             importlib.reload(sys.modules['satpy.writers.cf_writer'])
 
     def test_global_attr_default_history_and_Conventions(self):
-        """Test saving global attributes history and Conventions"""
+        """Test saving global attributes history and Conventions."""
         from satpy import Scene
         import xarray as xr
         scn = Scene()
@@ -985,7 +985,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
     def test_global_attr_history_and_Conventions(self):
-        """Test saving global attributes history and Conventions"""
+        """Test saving global attributes history and Conventions."""
         from satpy import Scene
         import xarray as xr
         scn = Scene()
@@ -1011,7 +1011,7 @@ class TestCFWriterData(unittest.TestCase):
     """Test case for CF writer where data arrays are needed."""
 
     def setUp(self):
-        """Create some testdata."""
+        """Create some test data."""
         import xarray as xr
         import pyresample.geometry
         data = [[75, 2], [3, 4]]
@@ -1083,7 +1083,9 @@ class TestCFWriterData(unittest.TestCase):
 
 class EncodingUpdateTest(unittest.TestCase):
     """Test update of netCDF encoding."""
+
     def setUp(self):
+        """Create fake data for testing."""
         import xarray as xr
         self.ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
                               'bar': (('y', 'x'), [[3, 4], [5, 6]])},
@@ -1092,6 +1094,7 @@ class EncodingUpdateTest(unittest.TestCase):
                                      'lon': (('y', 'x'), [[7, 8], [9, 10]])})
 
     def test_without_time(self):
+        """Test data with no time dimension."""
         from satpy.writers.cf_writer import update_encoding
 
         # Without time dimension
@@ -1117,6 +1120,7 @@ class EncodingUpdateTest(unittest.TestCase):
                                    'bar': {'chunksizes': (2, 2)}})
 
     def test_with_time(self):
+        """Test data with a time dimension."""
         from satpy.writers.cf_writer import update_encoding
 
         # With time dimension

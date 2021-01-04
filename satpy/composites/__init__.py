@@ -25,7 +25,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.config import get_environ_ancpath
+from satpy._config import get_environ_ancpath
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.writers import get_enhanced_image

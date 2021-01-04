@@ -26,7 +26,7 @@ import dask.array as da
 import xarray as xr
 
 from satpy.composites import CompositeBase, GenericCompositor
-from satpy.config import get_environ_ancpath
+from satpy._config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 from satpy.utils import get_satpos
 

@@ -106,7 +106,7 @@ class TestScene(unittest.TestCase):
     def test_init_alone(self):
         """Test simple initialization."""
         from satpy.scene import Scene
-        from satpy.config import PACKAGE_CONFIG_PATH
+        from satpy._config import PACKAGE_CONFIG_PATH
         scn = Scene()
         self.assertEqual(scn._ppp_config_dir, PACKAGE_CONFIG_PATH)
         self.assertFalse(scn._readers, 'Empty scene should not load any readers')
