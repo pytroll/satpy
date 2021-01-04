@@ -1,3 +1,5 @@
+.. _chapter_enhancements:
+
 ============
 Enhancements
 ============
