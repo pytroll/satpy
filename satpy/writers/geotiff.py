@@ -186,8 +186,10 @@ class GeoTIFFWriter(ImageWriter):
             fill_value = self.info.get('fill_value')
 
         dtype = dtype if dtype is not None else self.dtype
-        if dtype is None:
+        if (dtype is None) and (self.enhancer is not False):
             dtype = np.uint8
+        else:
+            dtype = img.data.dtype.type
 
         if "alpha" in kwargs:
             raise ValueError(
