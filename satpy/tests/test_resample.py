@@ -749,6 +749,7 @@ class TestBucketAvg(unittest.TestCase):
     @mock.patch('pyresample.bucket.BucketResampler')
     def test_resample(self, pyresample_bucket):
         """Test bucket resamplers resample method."""
+        import numpy as np
         import xarray as xr
         import dask.array as da
         self.bucket.resampler = mock.MagicMock()
@@ -766,12 +767,13 @@ class TestBucketAvg(unittest.TestCase):
         self.assertTrue('bar' in res.attrs)
         self.assertEqual(res.attrs['bar'], 'baz')
 
-        # 2D input data
-        data = xr.DataArray(da.ones((5, 5)), dims=('foo', 'bar'))
+        # 2D input data with dtype
+        data = xr.DataArray(da.ones((5, 5), dtype=np.float32), dims=('foo', 'bar'))
         self.bucket.compute.return_value = da.ones((5, 5))
         res = self.bucket.resample(data)
         self.assertEqual(res.shape, (5, 5))
         self.assertEqual(res.dims, ('y', 'x'))
+        self.assertEqual(res.dtype, data.dtype)
 
         # 3D input data with 'bands' dim
         data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'foo', 'bar'),
@@ -920,10 +922,11 @@ class TestBucketFraction(unittest.TestCase):
         self.bucket.compute = mock.MagicMock()
 
         # Fractions return a dict
-        data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'y', 'x'))
+        data = xr.DataArray(da.ones((1, 5, 5), dtype=np.float32), dims=('bands', 'y', 'x'))
         arr = da.ones((5, 5))
         self.bucket.compute.return_value = {0: arr, 1: arr, 2: arr}
         res = self.bucket.resample(data)
         self.assertTrue('categories' in res.coords)
         self.assertTrue('categories' in res.dims)
         self.assertTrue(np.all(res.coords['categories'] == np.array([0, 1, 2])))
+        self.assertEqual(res.dtype, data.dtype)

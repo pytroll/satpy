@@ -1105,7 +1105,7 @@ class BucketResamplerBase(BaseResampler):
             attrs['calibration'] = ''
             attrs['standard_name'] = 'number_of_observations'
 
-        result = xr.DataArray(result, dims=dims, coords=coords,
+        result = xr.DataArray(result.astype(data.dtype.type), dims=dims, coords=coords,
                               attrs=attrs)
 
         return update_resampled_coords(data, result, self.target_geo_def)
