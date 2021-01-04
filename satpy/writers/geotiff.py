@@ -35,7 +35,7 @@ class GeoTIFFWriter(ImageWriter):
         >>> scn.save_datasets(writer='geotiff')
 
     By default the writer will use the :class:`~satpy.writers.Enhancer` class to
-    linear stretch the data (see :ref:`Enhancements <chapter_enhancements>`).
+    linear stretch the data (see :doc:`../enhancements`).
     To get Un-enhanced images ``enhance=False`` can be specified which will
     write a geotiff with the data type of the dataset with NaN for
     fill values by default. If a geotiff with a certain datatype is desired
@@ -192,7 +192,7 @@ class GeoTIFFWriter(ImageWriter):
             fill_value = self.info.get('fill_value')
 
         dtype = dtype if dtype is not None else self.dtype
-        if (dtype is None) and (self.enhancer is not False):
+        if dtype is None and self.enhancer is not False:
             dtype = np.uint8
         else:
             dtype = img.data.dtype.type
