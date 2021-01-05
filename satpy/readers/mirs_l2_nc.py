@@ -24,6 +24,7 @@ import datetime
 import os
 import logging
 import xarray as xr
+import dask as da
 import tempfile
 
 LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
@@ -96,10 +97,14 @@ class MIRSL2ncHandler(BaseFileHandler):
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
+                                  decode_coords=True,
                                   chunks={'Field_of_view': LOAD_CHUNK_SIZE,
                                           'Scanline': LOAD_CHUNK_SIZE})
 
         self.nc = self.nc.rename_dims({"Scanline": "y", "Field_of_view": "x"})
+
+        if len(self.nc.coords.values()) == 0:
+            self.nc = self.nc.assign_coords(self.new_coords())
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
@@ -112,6 +117,17 @@ class MIRSL2ncHandler(BaseFileHandler):
 
         self.sea_bt_data = []
         self.land_bt_data = []
+
+    def new_coords(self):
+        """Define coordinates when file does not use variable attributes."""
+        if len(self.nc.coords.keys()) == 0:
+            # this file did not define variable coordinates
+            new_coords = {'Latitude': self['Latitude'],
+                          'Longitude': self['Longitude']}
+        else:
+            # strange message, but let xarray handle real coordinates.
+            new_coords = {}
+        return new_coords
 
     def get_swath(self):
         """Get lonlats."""
@@ -303,10 +319,12 @@ class MIRSL2ncHandler(BaseFileHandler):
         new_data = (self.sea_bt_data[idx].squeeze()*[is_sea]) +\
                    (self.land_bt_data[idx].squeeze()*[~is_sea])
 
+        # for consistency when not doing limb correction, return a dask.array
+        new_data = da.array.from_array(new_data.squeeze())
+
         bt_data = xr.DataArray(new_data.squeeze(), dims=bt_data.dims,
                                coords=bt_data.coords, attrs=ds_info,
                                name=bt_data.name)
-
         return bt_data
 
     def get_metadata(self, data, ds_info):
@@ -347,7 +365,12 @@ class MIRSL2ncHandler(BaseFileHandler):
         return data_arr, attrs
 
     def _fill_data(self, data_arr, attrs):
-        fill_value = attrs.pop('_FillValue', None)
+        try:
+            global_attr_fill = self.nc.missing_value
+        except AttributeError:
+            global_attr_fill = None
+        fill_value = attrs.pop('_FillValue', global_attr_fill)
+
         fill_out = self._nan_for_dtype(data_arr.dtype)
         if fill_value is not None:
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
@@ -408,7 +431,7 @@ class MIRSL2ncHandler(BaseFileHandler):
                 # get specific brightness temperature band products
                 if (var_name == 'BT' and
                         self.filetype_info['file_type'] in 'mirs_atms'):
-                    freq = self.nc.coords.get('Freq')
+                    freq = self.nc.coords.get('Freq', self.nc.get('Freq'))
                     polo = self.nc['Polo']
                     from collections import Counter
                     c = Counter()
@@ -487,6 +510,7 @@ class MIRSL2ncHandler(BaseFileHandler):
             if coord_name not in self.coords:
                 self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
+
         data.coords.update(new_coords)
         return data
 
