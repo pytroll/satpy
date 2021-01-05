@@ -26,8 +26,8 @@ References:
     https://navigator.eumetsat.int/
 
 """
-import dask.array as da
 import logging
+import dask.array as da
 import numpy as np
 import xarray as xr
 from datetime import timedelta
