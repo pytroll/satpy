@@ -125,7 +125,7 @@ class MIRSL2ncHandler(BaseFileHandler):
             new_coords = {'Latitude': self['Latitude'],
                           'Longitude': self['Longitude']}
         else:
-            # strange message, but let xarray handle real coordinates.
+            # let xarray handle coordinates defined by variable attributes.
             new_coords = {}
         return new_coords
 
