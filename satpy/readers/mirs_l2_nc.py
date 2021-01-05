@@ -24,7 +24,7 @@ import datetime
 import os
 import logging
 import xarray as xr
-import dask as dask
+import tempfile
 
 LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
 LOG = logging.getLogger(__name__)
@@ -87,9 +87,7 @@ LIMB_LAND_FILE = os.environ.get("ATMS_LIMB_LAND", "satpy.readers:limball_atmslan
 class MIRSL2ncHandler(BaseFileHandler):
     """MIRS handler for NetCDF4 files using xarray."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, cache_handle=False):
+    def __init__(self, filename, filename_info, filetype_info):
         """Init method."""
         super(MIRSL2ncHandler, self).__init__(filename,
                                               filename_info,
@@ -115,7 +113,7 @@ class MIRSL2ncHandler(BaseFileHandler):
         self.sea_bt_data = []
         self.land_bt_data = []
 
-    def get_swath(self, dsid):
+    def get_swath(self):
         """Get lonlats."""
         if self.area is None:
             if self.lons is None or self.lats is None:
@@ -193,6 +191,19 @@ class MIRSL2ncHandler(BaseFileHandler):
         else:
             return self.filename_info.get(key)
 
+    def _write_temporary_btdata(self, bt_data):
+        tempfile_wrapper = tempfile.NamedTemporaryFile(suffix="dat", prefix="bt_data")
+        with tempfile_wrapper as filename:
+            try:
+                fp = np.memmap(filename, dtype=bt_data.dtype, mode='w+', shape=bt_data.shape)
+            except (OSError, ValueError):
+                LOG.error("Could not extract data from file")
+                LOG.debug("Extraction exception: ", exc_info=True)
+                raise
+
+        fp[:] = bt_data[:]
+        return fp
+
     def read_atms_limb_correction_coeffs(self, fn):
         """Read provided limb correction files for atms."""
         if os.path.isfile(fn):
@@ -241,16 +252,13 @@ class MIRSL2ncHandler(BaseFileHandler):
 
         return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
 
-    @dask.delayed
     def apply_atms_limb_correction(self, datasets, dmean, coeffs, amean, nchx, nchanx):
-        """Apply atms limb correction coefficients."""
+        """Apply the atms limb correction to the brightness temperature data."""
         all_new_ds = []
-        # ds_type = datasets[0].dtype
-        ds_type = np.float32
-        coeff_sum = np.zeros(datasets.shape[1], dtype=ds_type)
+        coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
         for channel_idx in range(datasets.shape[0]):
             ds = datasets[channel_idx]
-            new_ds = ds.copy().values
+            new_ds = ds.copy()
             all_new_ds.append(new_ds)
             for fov_idx in range(N_FOV):
                 coeff_sum[:] = 0
@@ -258,27 +266,20 @@ class MIRSL2ncHandler(BaseFileHandler):
                     coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
                             datasets[nchanx[channel_idx, k], :, fov_idx] -
                             amean[nchanx[channel_idx, k], fov_idx, channel_idx])
-                    coeff_sum = coeff_sum + coef.values.astype(ds_type)
-
+                    coeff_sum += coef
                 new_ds[:, fov_idx] = coeff_sum + dmean[channel_idx]
 
         return all_new_ds
 
-    def limb_correct_atms_bt(self, ds_info):
+    def limb_correct_atms_bt(self, bt_data, ds_info):
         """Gather data needed for limb correction."""
         idx = ds_info['channel_index']
-        bt_data = self['BT']
-        bt_data = bt_data.rename(new_name_or_name_dict=ds_info["name"])
-
-        skip_limb_correction = True
-        if self.sensor.lower() != "atms" or skip_limb_correction:
-            LOG.info("Limb Correction will not be applied to non-ATMS BTs")
-            bt_data = bt_data[:, :, idx]
-            return bt_data
-
         LOG.info("Starting ATMS Limb Correction...")
         # transpose bt_data for correction
         bt_data = bt_data.transpose("Channel", "y", "x")
+
+        # write bt_data to a temp file
+        fp = self._write_temporary_btdata(bt_data)
 
         deps = ds_info['dependencies']
         if len(deps) != 2:
@@ -289,23 +290,23 @@ class MIRSL2ncHandler(BaseFileHandler):
         surf_type_mask = self[surf_type_name]
 
         sea = self.read_atms_limb_correction_coeffs(LIMB_SEA_FILE)
-        sea_bt = self.apply_atms_limb_correction(bt_data, *sea)
-        self.sea_bt_data = sea_bt.compute()
+        sea_bt = self.apply_atms_limb_correction(fp, *sea)
+        self.sea_bt_data = sea_bt
 
         land = self.read_atms_limb_correction_coeffs(LIMB_LAND_FILE)
-        land_bt = self.apply_atms_limb_correction(bt_data, *land)
-        self.land_bt_data = land_bt.compute()
+        land_bt = self.apply_atms_limb_correction(fp, *land)
+        self.land_bt_data = land_bt
 
         LOG.info("Finishing limb correction")
         is_sea = (surf_type_mask == 0)
         bt_data = bt_data[idx, :, :]
         new_data = (self.sea_bt_data[idx].squeeze()*[is_sea]) +\
                    (self.land_bt_data[idx].squeeze()*[~is_sea])
-        # return the same original swath object since we modified the data in place
 
         bt_data = xr.DataArray(new_data.squeeze(), dims=bt_data.dims,
                                coords=bt_data.coords, attrs=ds_info,
                                name=bt_data.name)
+
         return bt_data
 
     def get_metadata(self, data, ds_info):
@@ -317,16 +318,54 @@ class MIRSL2ncHandler(BaseFileHandler):
             'platform_name': self.platform_name,
             'start_time': self.start_time,
             'end_time': self.end_time,
-            'area': self.get_swath(ds_info['name'])
+            'coordinates': self.get_lonlat_coords(data, ds_info),
+            'area': self.get_swath(),
         })
 
         return metadata
 
+    @staticmethod
+    def _nan_for_dtype(data_arr_dtype):
+        # don't force the conversion from 32-bit float to 64-bit float
+        # if we don't have to
+        if data_arr_dtype.type == np.float32:
+            return np.float32(np.nan)
+        elif np.issubdtype(data_arr_dtype, np.timedelta64):
+            return np.timedelta64('NaT')
+        elif np.issubdtype(data_arr_dtype, np.datetime64):
+            return np.datetime64('NaT')
+        return np.nan
+
+    def _scale_data(self, data_arr, attrs):
+        # handle scaling
+        # take special care for integer/category fields
+        scale_factor = attrs.pop('scale_factor', 1.)
+        add_offset = attrs.pop('add_offset', 0.)
+        scaling_needed = not (scale_factor == 1 and add_offset == 0)
+        if scaling_needed:
+            data_arr = data_arr * scale_factor + add_offset
+        return data_arr, attrs
+
+    def _fill_data(self, data_arr, attrs):
+        fill_value = attrs.pop('_FillValue', None)
+        fill_out = self._nan_for_dtype(data_arr.dtype)
+        if fill_value is not None:
+            data_arr = data_arr.where(data_arr != fill_value, fill_out)
+        return data_arr, attrs
+
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
         if 'dependencies' in ds_info.keys():
-            data = self.limb_correct_atms_bt(ds_info)
-            self.nc = self.nc.merge(data)
+            idx = ds_info['channel_index']
+            data = self['BT']
+            data = data.rename(new_name_or_name_dict=ds_info["name"])
+
+            if self.sensor.lower() != "atms":
+                LOG.info("Limb Correction will not be applied to non-ATMS BTs")
+                data = data[:, :, idx]
+            else:
+                data = self.limb_correct_atms_bt(data, ds_info)
+                self.nc = self.nc.merge(data)
         else:
             data = self[ds_id]
 
@@ -334,31 +373,35 @@ class MIRSL2ncHandler(BaseFileHandler):
 
         return data
 
-    def available_datasets(self, configured_datasets=None):
-        """Update information for or add datasets provided by this file."""
-        handled_variables = set()
-        # update previously configured datasets
+    def _available_if_this_file_type(self, configured_datasets):
         for is_avail, ds_info in (configured_datasets or []):
-            # some other file handler knows how to load this
             if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
                 yield is_avail, ds_info
+                continue
+            yield self.file_type_matches(ds_info['file_type']), ds_info
 
-            var_name = ds_info.get('file_key', ds_info['name'])
-            matches = self.file_type_matches(ds_info['file_type'])
-            # we can confidently say that we can provide this dataset and can
-            # provide more info
-            if matches and var_name in self.nc.keys():
-                handled_variables.add(var_name)
-                new_info = ds_info.copy()  # don't mess up the above yielded
-                yield True, new_info
-            elif is_avail is None:
-                # if we didn't know how to handle this dataset and no one else did
-                # then we should keep it going down the chain
-                yield is_avail, ds_info
+    def get_lonlat_coords(self, data_arr, ds_info):
+        """Get lat/lon coordinates for metadata."""
+        lat_coord = None
+        lon_coord = None
+        for coord_name in data_arr.coords:
+            if 'longitude' in coord_name.lower():
+                lon_coord = coord_name
+            if 'latitude' in coord_name.lower():
+                lat_coord = coord_name
+        ds_info['coordinates'] = [lon_coord, lat_coord]
 
-        # Provide new datasets
-        for var_name, val in self.nc.items():
-            if var_name in handled_variables:
+        return ds_info['coordinates']
+
+    def _available_new_datasets(self):
+        possible_vars = list(self.nc.data_vars.items()) + list(self.nc.coords.items())
+        for var_name, val in possible_vars:
+            if val.ndim < 2:
+                # only handle 2d variables and 3-D BT.
+                # This brings in uncorrected BT(YM) as well... agh!
                 continue
 
             if isinstance(val, xr.DataArray):
@@ -379,12 +422,18 @@ class MIRSL2ncHandler(BaseFileHandler):
                     c2 = Counter()
                     for idx, _f, _p, normal_f, normal_p in normals:
                         c2[normal_f + normal_p] += 1
-                        new_name = "btemp_{}{}{}".format(normal_f, normal_p, str(
-                            c2[normal_f + normal_p] if c[normal_f + normal_p] > 1 else ''))
+                        p_count = str(c2[normal_f + normal_p]
+                                      if c[normal_f + normal_p] > 1 else '')
+
+                        new_name = "btemp_{}{}{}".format(normal_f,
+                                                         normal_p,
+                                                         p_count)
 
                         desc_bt = ("Channel {} Brightness Temperature"
-                                   " at {}GHz {}".format(idx, normal_f,
-                                                         normal_p))
+                                   " at {}GHz {}{}".format(idx,
+                                                           normal_f,
+                                                           normal_p,
+                                                           p_count))
                         ds_info = {
                             'file_type': self.filetype_info['file_type'],
                             'name': new_name,
@@ -394,7 +443,6 @@ class MIRSL2ncHandler(BaseFileHandler):
                             'frequency': "{}GHz".format(normal_f),
                             'polarization': normal_p,
                             'dependencies': ('BT', 'Sfc_type'),
-                            'coordinates': ('longitude', 'latitude'),
                         }
                         yield True, ds_info
 
@@ -402,9 +450,18 @@ class MIRSL2ncHandler(BaseFileHandler):
                     ds_info = {
                         'file_type': self.filetype_info['file_type'],
                         'name': var_name,
-                        'coordinates': ('longitude', 'latitude'),
                     }
                     yield True, ds_info
+
+    def available_datasets(self, configured_datasets=None):
+        """Dynamically discover what variables can be loaded from this file.
+
+        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        for more information.
+
+        """
+        yield from self._available_if_this_file_type(configured_datasets)
+        yield from self._available_new_datasets()
 
     def __getitem__(self, item):
         """Wrap around `self.nc[item]`.
@@ -415,17 +472,9 @@ class MIRSL2ncHandler(BaseFileHandler):
 
         """
         data = self.nc[item]
-        attrs = data.attrs
-        factor = data.attrs.get('scale_factor')
-        fill = data.attrs.get('_FillValue')
-        if fill is not None:
-            data = data.where(data != fill)
-        if factor is not None:
-            # make sure the factor is a 64-bit float
-            # can't do this in place since data is most likely uint16
-            # and we are making it a 64-bit float
-            data = data * float(factor)
-        data.attrs = attrs
+        attrs = data.attrs.copy()
+        data, attrs = self._scale_data(data, attrs)
+        data, attrs = self._fill_data(data, attrs)
 
         # handle coordinates (and recursive fun)
         new_coords = {}
