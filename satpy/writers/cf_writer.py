@@ -154,11 +154,13 @@ def create_grid_mapping(area):
     return area.area_id, grid_mapping
 
 
-def get_extra_ds(dataset):
+def get_extra_ds(dataset, keys=None):
     """Get the extra datasets associated to *dataset*."""
     ds_collection = {}
     for ds in dataset.attrs.get('ancillary_variables', []):
-        ds_collection.update(get_extra_ds(ds))
+        if keys and ds.name not in keys:
+            keys.append(ds.name)
+            ds_collection.update(get_extra_ds(ds, keys))
     ds_collection[dataset.attrs['name']] = dataset
 
     return ds_collection
