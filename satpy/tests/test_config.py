@@ -33,7 +33,7 @@ class TestCheckSatpy(unittest.TestCase):
     def test_specific_check_satpy(self):
         """Test 'check_satpy' with specific features provided."""
         from satpy._config import check_satpy
-        with mock.patch('satpy.config.print') as print_mock:
+        with mock.patch('satpy._config.print') as print_mock:
             check_satpy(readers=['viirs_sdr'], extras=('cartopy', '__fake'))
             checked_fake = False
             for call in print_mock.mock_calls:
@@ -115,7 +115,7 @@ class TestBuiltinAreas(unittest.TestCase):
 class TestPluginsConfigs(unittest.TestCase):
     """Test that plugins are working."""
 
-    @mock.patch('satpy.config.pkg_resources.iter_entry_points')
+    @mock.patch('satpy._config.pkg_resources.iter_entry_points')
     def test_get_plugin_configs(self, iter_entry_points):
         """Check that the plugin configs are looked for."""
         import pkg_resources

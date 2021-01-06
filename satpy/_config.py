@@ -20,11 +20,13 @@
 import glob
 import logging
 import os
+import sys
 from collections import OrderedDict
 
 import pkg_resources
 import yaml
 from yaml import BaseLoader
+from donfig import Config
 
 try:
     from yaml import UnsafeLoader
@@ -52,6 +54,47 @@ def get_environ_ancpath(default='.'):
 
 # FIXME: Old readers still use only this, but this may get updated by Scene
 CONFIG_PATH = get_environ_config_dir()
+
+
+_CONFIG_DEFAULTS = {
+}
+
+
+# Satpy main configuration object
+# See https://donfig.readthedocs.io/en/latest/configuration.html
+# for more information.
+#
+# Configuration values will be loaded from files at:
+# 1. The builtin package satpy.yaml (not present currently)
+# 2. $SATPY_ROOT_CONFIG (default: /etc/satpy/satpy.yaml)
+# 3. <python-env-prefix>/etc/satpy/satpy.yaml
+# 4. ~/.config/satpy/satpy.yaml
+# 5. ~/.satpy/satpy.yaml
+# 6. $SATPY_CONFIG_PATH/satpy.yaml if present (colon separated)
+_CONFIG_PATHS = [
+    os.path.join(PACKAGE_CONFIG_PATH, 'satpy.yaml'),
+    os.getenv('SATPY_ROOT_CONFIG', os.path.join('/etc', 'satpy', 'satpy.yaml')),
+    os.path.join(sys.prefix, 'etc', 'satpy', 'satpy.yaml'),
+    os.path.join(os.path.expanduser('~'), '.config', 'satpy', 'satpy.yaml'),
+    os.path.join(os.path.expanduser('~'), '.satpy', 'satpy.yaml'),
+]
+# The above files can also be directories. If directories all files
+# with `.yaml`., `.yml`, or `.json` extensions will be used.
+
+_ppp_config_dir = os.getenv('PPP_CONFIG_DIR', None)
+_satpy_config_path = os.getenv('SATPY_CONFIG_PATH', None)
+if _ppp_config_dir is not None and _satpy_config_path is None:
+    LOG.warning("'PPP_CONFIG_DIR' is deprecated. Please use 'SATPY_CONFIG_PATH' instead.")
+    _satpy_config_path = _ppp_config_dir
+    os.env['SATPY_CONFIG_PATH'] = _satpy_config_path
+
+if _satpy_config_path is not None:
+    _satpy_config_path = _satpy_config_path.split(':')
+    os.env['SATPY_CONFIG_PATH'] = _satpy_config_path
+    for config_dir in _satpy_config_path[::-1]:
+        _CONFIG_PATHS.append(os.path.join(config_dir, 'satpy.yaml'))
+
+config = Config("satpy", defaults=_CONFIG_DEFAULTS, paths=_CONFIG_PATHS)
 
 
 def get_entry_points_config_dirs(name):
