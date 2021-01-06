@@ -24,7 +24,7 @@ import yaml
 from yaml import UnsafeLoader
 
 from satpy import DatasetDict, DataQuery, DataID
-from satpy._config import CONFIG_PATH, get_entry_points_config_dirs, config_search_paths
+from satpy._config import get_entry_points_config_dirs, config_search_paths, get_environ_config_dir
 from satpy.utils import recursive_dict_update
 from satpy.dataset.dataid import minimal_default_keys_config
 
@@ -171,7 +171,7 @@ class CompositorLoader:
     def __init__(self, ppp_config_dir=None):
         """Initialize the compositor loader."""
         if ppp_config_dir is None:
-            ppp_config_dir = CONFIG_PATH
+            ppp_config_dir = get_environ_config_dir()
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir

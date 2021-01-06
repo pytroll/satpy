@@ -111,9 +111,7 @@ class Scene:
         self.attrs = dict()
         if ppp_config_dir is None:
             ppp_config_dir = get_environ_config_dir()
-        # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere in pytroll
-        LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
-        os.environ["PPP_CONFIG_DIR"] = self._ppp_config_dir = ppp_config_dir
+        self._ppp_config_dir = ppp_config_dir
 
         if not filenames and (start_time or end_time or base_dir):
             import warnings

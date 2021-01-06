@@ -52,10 +52,6 @@ def get_environ_ancpath(default='.'):
     return os.environ.get('SATPY_ANCPATH', default)
 
 
-# FIXME: Old readers still use only this, but this may get updated by Scene
-CONFIG_PATH = get_environ_config_dir()
-
-
 _CONFIG_DEFAULTS = {
 }
 
