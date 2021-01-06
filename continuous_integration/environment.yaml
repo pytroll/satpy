@@ -5,6 +5,7 @@ dependencies:
   - xarray
   - dask
   - distributed
+  - donfig
   - toolz
   - Cython
   - sphinx
