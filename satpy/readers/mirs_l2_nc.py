@@ -207,9 +207,10 @@ class MIRSL2ncHandler(BaseFileHandler):
         else:
             return self.filename_info.get(key)
 
-    def _write_temporary_btdata(self, bt_data):
-        tempfile_wrapper = tempfile.NamedTemporaryFile(suffix="dat", prefix="bt_data")
-        with tempfile_wrapper as filename:
+    @staticmethod
+    def _write_temporary_btdata(bt_data):
+        temp_wrapper = tempfile.NamedTemporaryFile(suffix="dat", prefix="bt_data")
+        with temp_wrapper as filename:
             try:
                 fp = np.memmap(filename, dtype=bt_data.dtype, mode='w+', shape=bt_data.shape)
             except (OSError, ValueError):
@@ -220,7 +221,8 @@ class MIRSL2ncHandler(BaseFileHandler):
         fp[:] = bt_data[:]
         return fp
 
-    def read_atms_limb_correction_coeffs(self, fn):
+    @staticmethod
+    def read_atms_limb_correction_coeffs(fn):
         """Read provided limb correction files for atms."""
         if os.path.isfile(fn):
             coeff_str = open(fn, "r").readlines()
@@ -268,7 +270,8 @@ class MIRSL2ncHandler(BaseFileHandler):
 
         return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
 
-    def apply_atms_limb_correction(self, datasets, dmean, coeffs, amean, nchx, nchanx):
+    @staticmethod
+    def apply_atms_limb_correction(datasets, dmean, coeffs, amean, nchx, nchanx):
         """Apply the atms limb correction to the brightness temperature data."""
         all_new_ds = []
         coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
