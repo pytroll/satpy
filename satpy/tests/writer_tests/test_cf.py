@@ -57,10 +57,8 @@ class TestCFWriter(unittest.TestCase):
     def test_init(self):
         """Test initializing the CFWriter class."""
         from satpy.writers.cf_writer import CFWriter
-        import satpy._config
-        CFWriter(config_files=[
-            os.path.join(satpy._config.get_environ_config_dir(),
-                         'writers', 'cf.yaml')])
+        from satpy.writers import configs_for_writer
+        CFWriter(config_files=list(configs_for_writer('cf'))[0])
 
     def test_save_array(self):
         """Test saving an array to netcdf/cf."""

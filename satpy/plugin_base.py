@@ -26,7 +26,7 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy._config import config_search_paths, get_environ_config_dir
+from satpy._config import config_search_paths
 from satpy.utils import recursive_dict_update
 
 LOG = logging.getLogger(__name__)
@@ -35,14 +35,12 @@ LOG = logging.getLogger(__name__)
 class Plugin(object):
     """Base plugin class for all dynamically loaded and configured objects."""
 
-    def __init__(self, ppp_config_dir=None, default_config_filename=None, config_files=None, **kwargs):
+    def __init__(self, default_config_filename=None, config_files=None, **kwargs):
         """Load configuration files related to this plugin.
 
         This initializes a `self.config` dictionary that can be used to customize the subclass.
 
         Args:
-            ppp_config_dir (str): Base "etc" directory for all configuration
-                files.
             default_config_filename (str): Configuration filename to use if
                 no other files have been specified with `config_files`.
             config_files (list or str): Configuration files to load instead
@@ -51,13 +49,11 @@ class Plugin(object):
             kwargs (dict): Unused keyword arguments.
 
         """
-        self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
-
         self.default_config_filename = default_config_filename
         self.config_files = config_files
         if self.config_files is None and self.default_config_filename is not None:
             # Specify a default
-            self.config_files = config_search_paths(self.default_config_filename, self.ppp_config_dir)
+            self.config_files = config_search_paths(self.default_config_filename)
         if not isinstance(self.config_files, (list, tuple)):
             self.config_files = [self.config_files]
 

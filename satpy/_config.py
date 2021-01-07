@@ -27,6 +27,7 @@ import pkg_resources
 import yaml
 from yaml import BaseLoader
 from donfig import Config
+import appdirs
 
 try:
     from yaml import UnsafeLoader
@@ -40,19 +41,16 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
-def get_environ_config_dir(default=None):
-    """Get the config dir."""
-    if default is None:
-        default = PACKAGE_CONFIG_PATH
-    return os.environ.get('PPP_CONFIG_DIR', default)
-
-
 def get_environ_ancpath(default='.'):
     """Get the ancpath."""
     return os.environ.get('SATPY_ANCPATH', default)
 
 
+_satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
+    'cache_dir': _satpy_dirs.user_cache_dir,
+    'data_dir': _satpy_dirs.user_data_dir,
+    'config_path': [],
 }
 
 
@@ -82,18 +80,26 @@ _satpy_config_path = os.getenv('SATPY_CONFIG_PATH', None)
 if _ppp_config_dir is not None and _satpy_config_path is None:
     LOG.warning("'PPP_CONFIG_DIR' is deprecated. Please use 'SATPY_CONFIG_PATH' instead.")
     _satpy_config_path = _ppp_config_dir
-    os.env['SATPY_CONFIG_PATH'] = _satpy_config_path
+    os.environ['SATPY_CONFIG_PATH'] = _satpy_config_path
 
 if _satpy_config_path is not None:
+    # colon-separated are ordered by builtins -> custom
+    # i.e. first/lowest priority to last/highest priority
     _satpy_config_path = _satpy_config_path.split(':')
-    os.env['SATPY_CONFIG_PATH'] = _satpy_config_path
+    os.environ['SATPY_CONFIG_PATH'] = _satpy_config_path
     for config_dir in _satpy_config_path[::-1]:
         _CONFIG_PATHS.append(os.path.join(config_dir, 'satpy.yaml'))
 
-config = Config("satpy", defaults=_CONFIG_DEFAULTS, paths=_CONFIG_PATHS)
+_ancpath = os.getenv('SATPY_ANCPATH', None)
+_data_dir = os.getenv('SATPY_DATA_DIR', None)
+if _ancpath is not None and _data_dir is None:
+    LOG.warning("'SATPY_ANCPATH' is deprecated. Please use 'SATPY_DATA_DIR' instead.")
+    os.environ['SATPY_DATA_DIR'] = _ancpath
+
+config = Config("satpy", defaults=[_CONFIG_DEFAULTS], paths=_CONFIG_PATHS)
 
 
-def get_entry_points_config_dirs(name):
+def get_entry_points_config_dirs(name, include_config_path=True):
     """Get the config directories for all entry points of given name."""
     dirs = []
     for entry_point in pkg_resources.iter_entry_points(name):
@@ -101,19 +107,19 @@ def get_entry_points_config_dirs(name):
         new_dir = os.path.join(entry_point.dist.module_path, package_name, 'etc')
         if not dirs or dirs[-1] != new_dir:
             dirs.append(new_dir)
+    if include_config_path:
+        dirs.extend(config.get('config_path')[::-1])
     return dirs
 
 
-def config_search_paths(filename, *search_dirs, **kwargs):
-    """Get the environment variable value every time (could be set dynamically)."""
-    # FIXME: Consider removing the 'magic' environment variable all together
-    CONFIG_PATH = get_environ_config_dir()  # noqa
+def config_search_paths(filename, search_dirs=None, **kwargs):
+    """Get series of configuration base paths where Satpy configs are located."""
+    if search_dirs is None:
+        search_dirs = config.get('config_path')[::-1]
 
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]
-    # FUTURE: Remove CONFIG_PATH because it should be included as a search_dir
-    paths += [os.path.join(CONFIG_PATH, filename),
-              os.path.join(PACKAGE_CONFIG_PATH, filename)]
+    paths += [os.path.join(PACKAGE_CONFIG_PATH, filename)]
     paths = [os.path.abspath(path) for path in paths]
 
     if kwargs.get("check_exists", True):
@@ -124,13 +130,13 @@ def config_search_paths(filename, *search_dirs, **kwargs):
     return paths[::-1]
 
 
-def glob_config(pattern, *search_dirs):
+def glob_config(pattern, search_dirs=None):
     """Return glob results for all possible configuration locations.
 
     Note: This method does not check the configuration "base" directory if the pattern includes a subdirectory.
           This is done for performance since this is usually used to find *all* configs for a certain component.
     """
-    patterns = config_search_paths(pattern, *search_dirs, check_exists=False)
+    patterns = config_search_paths(pattern, search_dirs=search_dirs, check_exists=False)
 
     for pattern in patterns:
         for path in glob.iglob(pattern):

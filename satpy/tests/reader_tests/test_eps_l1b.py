@@ -28,7 +28,7 @@ import pytest
 import satpy
 import xarray as xr
 from satpy.readers import eps_l1b as eps
-from satpy._config import get_environ_config_dir
+from satpy._config import config_search_paths
 from satpy.tests.utils import make_dataid
 
 grh_dtype = np.dtype([("record_class", "|i1"),
@@ -43,7 +43,8 @@ grh_dtype = np.dtype([("record_class", "|i1"),
 def create_sections(structure):
     """Create file sections."""
     sections = {}
-    form = eps.XMLFormat(os.path.join(get_environ_config_dir(), "eps_avhrrl1b_6.5.xml"))
+    format_fn = list(config_search_paths("eps_avhrrl1b_6.5.xml"))[-1]
+    form = eps.XMLFormat(format_fn)
     for count, (rec_class, sub_class) in structure:
         try:
             the_dtype = form.dtype((rec_class, sub_class))
