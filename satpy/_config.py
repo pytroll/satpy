@@ -40,19 +40,12 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 # FIXME: Use package_resources?
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
-
-def get_environ_ancpath(default='.'):
-    """Get the ancpath."""
-    return os.environ.get('SATPY_ANCPATH', default)
-
-
 _satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
     'cache_dir': _satpy_dirs.user_cache_dir,
     'data_dir': _satpy_dirs.user_data_dir,
     'config_path': [],
 }
-
 
 # Satpy main configuration object
 # See https://donfig.readthedocs.io/en/latest/configuration.html
