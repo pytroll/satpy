@@ -24,15 +24,8 @@ import sys
 from collections import OrderedDict
 
 import pkg_resources
-import yaml
-from yaml import BaseLoader
 from donfig import Config
 import appdirs
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader
 
 LOG = logging.getLogger(__name__)
 
@@ -123,99 +116,21 @@ def config_search_paths(filename, search_dirs=None, **kwargs):
     return paths[::-1]
 
 
-def glob_config(pattern, search_dirs=None):
+def glob_config(pattern):
     """Return glob results for all possible configuration locations.
 
     Note: This method does not check the configuration "base" directory if the pattern includes a subdirectory.
           This is done for performance since this is usually used to find *all* configs for a certain component.
     """
-    patterns = config_search_paths(pattern, search_dirs=search_dirs, check_exists=False)
-
+    patterns = config_search_paths(pattern, check_exists=False)
     for pattern in patterns:
         for path in glob.iglob(pattern):
             yield path
 
 
-def get_config_path(filename, *search_dirs):
-    """Get the appropriate path for a filename, in that order: filename, ., PPP_CONFIG_DIR, package's etc dir."""
-    paths = config_search_paths(filename, *search_dirs)
-
+def get_config_path(filename):
+    """Get the path to the highest priority version of a config file."""
+    paths = config_search_paths(filename)
     for path in paths[::-1]:
         if os.path.exists(path):
             return path
-
-
-def _check_yaml_configs(configs, key):
-    """Get a diagnostic for the yaml *configs*.
-
-    *key* is the section to look for to get a name for the config at hand.
-    """
-    diagnostic = {}
-    for i in configs:
-        for fname in i:
-            with open(fname, 'r', encoding='utf-8') as stream:
-                try:
-                    res = yaml.load(stream, Loader=UnsafeLoader)
-                    msg = 'ok'
-                except yaml.YAMLError as err:
-                    stream.seek(0)
-                    res = yaml.load(stream, Loader=BaseLoader)
-                    if err.context == 'while constructing a Python object':
-                        msg = err.problem
-                    else:
-                        msg = 'error'
-                finally:
-                    try:
-                        diagnostic[res[key]['name']] = msg
-                    except (KeyError, TypeError):
-                        # this object doesn't have a 'name'
-                        pass
-    return diagnostic
-
-
-def _check_import(module_names):
-    """Import the specified modules and provide status."""
-    diagnostics = {}
-    for module_name in module_names:
-        try:
-            __import__(module_name)
-            res = 'ok'
-        except ImportError as err:
-            res = str(err)
-        diagnostics[module_name] = res
-    return diagnostics
-
-
-def check_satpy(readers=None, writers=None, extras=None):
-    """Check the satpy readers and writers for correct installation.
-
-    Args:
-        readers (list or None): Limit readers checked to those specified
-        writers (list or None): Limit writers checked to those specified
-        extras (list or None): Limit extras checked to those specified
-
-    Returns: bool
-        True if all specified features were successfully loaded.
-
-    """
-    from satpy.readers import configs_for_reader
-    from satpy.writers import configs_for_writer
-
-    print('Readers')
-    print('=======')
-    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
-        print(reader + ': ', res)
-    print()
-
-    print('Writers')
-    print('=======')
-    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
-        print(writer + ': ', res)
-    print()
-
-    print('Extras')
-    print('======')
-    module_names = extras if extras is not None else ('cartopy', 'geoviews')
-    for module_name, res in sorted(_check_import(module_names).items()):
-        print(module_name + ': ', res)
-    print()

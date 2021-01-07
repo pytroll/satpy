@@ -24,6 +24,13 @@ import warnings
 from typing import Mapping
 
 import numpy as np
+import yaml
+from yaml import BaseLoader
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -306,3 +313,79 @@ def recursive_dict_update(d, u):
         else:
             d[k] = u[k]
     return d
+
+
+def _check_yaml_configs(configs, key):
+    """Get a diagnostic for the yaml *configs*.
+
+    *key* is the section to look for to get a name for the config at hand.
+    """
+    diagnostic = {}
+    for i in configs:
+        for fname in i:
+            with open(fname, 'r', encoding='utf-8') as stream:
+                try:
+                    res = yaml.load(stream, Loader=UnsafeLoader)
+                    msg = 'ok'
+                except yaml.YAMLError as err:
+                    stream.seek(0)
+                    res = yaml.load(stream, Loader=BaseLoader)
+                    if err.context == 'while constructing a Python object':
+                        msg = err.problem
+                    else:
+                        msg = 'error'
+                finally:
+                    try:
+                        diagnostic[res[key]['name']] = msg
+                    except (KeyError, TypeError):
+                        # this object doesn't have a 'name'
+                        pass
+    return diagnostic
+
+
+def _check_import(module_names):
+    """Import the specified modules and provide status."""
+    diagnostics = {}
+    for module_name in module_names:
+        try:
+            __import__(module_name)
+            res = 'ok'
+        except ImportError as err:
+            res = str(err)
+        diagnostics[module_name] = res
+    return diagnostics
+
+
+def check_satpy(readers=None, writers=None, extras=None):
+    """Check the satpy readers and writers for correct installation.
+
+    Args:
+        readers (list or None): Limit readers checked to those specified
+        writers (list or None): Limit writers checked to those specified
+        extras (list or None): Limit extras checked to those specified
+
+    Returns: bool
+        True if all specified features were successfully loaded.
+
+    """
+    from satpy.readers import configs_for_reader
+    from satpy.writers import configs_for_writer
+
+    print('Readers')
+    print('=======')
+    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
+        print(reader + ': ', res)
+    print()
+
+    print('Writers')
+    print('=======')
+    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
+        print(writer + ': ', res)
+    print()
+
+    print('Extras')
+    print('======')
+    module_names = extras if extras is not None else ('cartopy', 'geoviews')
+    for module_name, res in sorted(_check_import(module_names).items()):
+        print(module_name + ': ', res)
+    print()

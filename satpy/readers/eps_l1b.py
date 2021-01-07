@@ -26,7 +26,7 @@ import xarray as xr
 import dask.array as da
 from dask.delayed import delayed
 from pyresample.geometry import SwathDefinition
-from satpy._config import config_search_paths
+from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
 from satpy import CHUNK_SIZE
@@ -54,7 +54,7 @@ record_class = ["Reserved", "mphr", "sphr",
 
 def read_records(filename):
     """Read *filename* without scaling it afterwards."""
-    format_fn = list(config_search_paths("eps_avhrrl1b_6.5.xml"))[-1]
+    format_fn = get_config_path("eps_avhrrl1b_6.5.xml")
     form = XMLFormat(format_fn)
 
     grh_dtype = np.dtype([("record_class", "|i1"),

@@ -285,3 +285,25 @@ def test_make_fake_scene():
             attrs={"please": "preserve", "answer": 42})},
         common_attrs={"bad words": "semprini bahnhof veerooster winterbanden"})
     assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}
+
+
+class TestCheckSatpy(unittest.TestCase):
+    """Test the 'check_satpy' function."""
+
+    def test_basic_check_satpy(self):
+        """Test 'check_satpy' basic functionality."""
+        from satpy.utils import check_satpy
+        check_satpy()
+
+    def test_specific_check_satpy(self):
+        """Test 'check_satpy' with specific features provided."""
+        from satpy.utils import check_satpy
+        with mock.patch('satpy.utils.print') as print_mock:
+            check_satpy(readers=['viirs_sdr'], extras=('cartopy', '__fake'))
+            checked_fake = False
+            for call in print_mock.mock_calls:
+                if len(call[1]) > 0 and '__fake' in call[1][0]:
+                    self.assertNotIn('ok', call[1][1])
+                    checked_fake = True
+            self.assertTrue(checked_fake, "Did not find __fake module "
+                                          "mentioned in checks")
