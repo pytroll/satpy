@@ -21,6 +21,9 @@ import numpy as np
 
 from satpy.readers.eum_base import (time_cds_short, time_cds,
                                     time_cds_expanded)
+from satpy.readers.seviri_base import (
+    VISIR_NUM_LINES, VISIR_NUM_COLUMNS, HRV_NUM_COLUMNS, HRV_NUM_LINES
+)
 
 
 class GSDTRecords(object):
@@ -76,13 +79,18 @@ class GSDTRecords(object):
 class Msg15NativeHeaderRecord(object):
     """SEVIRI Level 1.5 header for native-format."""
 
-    def get(self):
-        """Get header data."""
-        # 450400 bytes
-        record = [
-            ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
-            ('15_SECONDARY_PRODUCT_HEADER',
-             L15SecondaryProductHeaderRecord().get()),
+    def get(self, with_archive_header):
+        """Get the header type."""
+        # 450400 bytes including archive header
+        # 445286 bytes excluding archive header
+        record = []
+        if with_archive_header:
+            record += [
+                ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
+                ('15_SECONDARY_PRODUCT_HEADER',
+                 L15SecondaryProductHeaderRecord().get()),
+            ]
+        record += [
             ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
             ('GP_PK_SH1', GSDTRecords.gp_pk_sh1),
             ('15_DATA_HEADER', L15DataHeaderRecord().get())
@@ -1020,10 +1028,33 @@ class HritPrologue(L15DataHeaderRecord):
         return np.dtype(record).newbyteorder('>')
 
 
+def get_native_header(with_archive_header=True):
+    """Get Native format header type.
+
+    There are two variants, one including an ASCII archive header and one
+    without that header. The header is prepended if the data are ordered
+    through the EUMETSAT data center.
+    """
+    return Msg15NativeHeaderRecord().get(with_archive_header)
+
+
+DEFAULT_15_SECONDARY_PRODUCT_HEADER = {
+    'NorthLineSelectedRectangle': {'Value': VISIR_NUM_LINES},
+    'SouthLineSelectedRectangle': {'Value': 1},
+    'EastColumnSelectedRectangle': {'Value': 1},
+    'WestColumnSelectedRectangle': {'Value': VISIR_NUM_COLUMNS},
+    'NumberColumnsVISIR': {'Value': VISIR_NUM_COLUMNS},
+    'NumberLinesVISIR': {'Value': VISIR_NUM_LINES},
+    'NumberColumnsHRV': {'Value': HRV_NUM_COLUMNS},
+    'NumberLinesHRV': {'Value': HRV_NUM_LINES},
+    'SelectedBandIDs': {'Value': 'XXXXXXXXXXXX'}
+}
+"""Default secondary product header for files containing all channels."""
+
+
 hrit_epilogue = np.dtype(
     Msg15NativeTrailerRecord().seviri_l15_trailer).newbyteorder('>')
 hrit_prologue = HritPrologue().get()
 impf_configuration = np.dtype(
     L15DataHeaderRecord().impf_configuration).newbyteorder('>')
-native_header = Msg15NativeHeaderRecord().get()
 native_trailer = Msg15NativeTrailerRecord().get()
