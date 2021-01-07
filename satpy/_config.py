@@ -79,7 +79,7 @@ if _satpy_config_path is not None:
     # colon-separated are ordered by builtins -> custom
     # i.e. first/lowest priority to last/highest priority
     _satpy_config_path = _satpy_config_path.split(':')
-    os.environ['SATPY_CONFIG_PATH'] = _satpy_config_path
+    os.environ['SATPY_CONFIG_PATH'] = repr(_satpy_config_path)
     for config_dir in _satpy_config_path[::-1]:
         _CONFIG_PATHS.append(os.path.join(config_dir, 'satpy.yaml'))
 
