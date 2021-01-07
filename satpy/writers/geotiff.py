@@ -38,8 +38,9 @@ class GeoTIFFWriter(ImageWriter):
     linear stretch the data (see :doc:`../enhancements`).
     To get Un-enhanced images ``enhance=False`` can be specified which will
     write a geotiff with the data type of the dataset. The fill value defaults
-    to the the datasets ``"fill_value"`` attribute if not ``None`` and no value is
-    passed to ``fill_value`` otherwise NaN will be used. If a geotiff with a
+    to the the datasets ``"_FillValue"`` attribute if not ``None`` and no value is
+    passed to ``fill_value`` for integer data. In case of float data if ``fill_value``
+    is not passed NaN will be used. If a geotiff with a
     certain datatype is desired for example 32 bit floating point geotiffs:
 
         >>> scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
