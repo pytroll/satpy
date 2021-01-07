@@ -1,3 +1,21 @@
+## Version 0.25.1 (2021/01/06)
+
+### Issues Closed
+
+* [Issue 1500](https://github.com/pytroll/satpy/issues/1500) - Cannot create a scene for OLCI data
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1502](https://github.com/pytroll/satpy/pull/1502) - Fix the linting error of test_agri_l1
+* [PR 1459](https://github.com/pytroll/satpy/pull/1459) - Remove unnecessary string decode in agri_l1 reader
+
+In this release 2 pull requests were closed.
+
+
 ## Version 0.25.0 (2021/01/04)
 
 ### Issues Closed
