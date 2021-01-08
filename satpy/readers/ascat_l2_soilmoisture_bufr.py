@@ -87,8 +87,8 @@ class ASCATSOILMOISTUREBUFR(BaseFileHandler):
                 seconds = np.resize(ec.codes_get_array(bufr, 'second'), size)
                 for year, month, day, hour, minute, second in zip(years, months, days, hours, minutes, seconds):
                     time_stamp = datetime(year, month, day, hour, minute, second)
-                    date_min = not date_min and time_stamp or min(date_min, time_stamp)
-                    date_max = not date_max and time_stamp or max(date_max, time_stamp)
+                    date_min = time_stamp if not date_min else min(date_min, time_stamp)
+                    date_max = time_stamp if not date_max else max(date_max, time_stamp)
             return date_min, date_max
 
     def get_bufr_data(self, key):
