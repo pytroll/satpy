@@ -1,0 +1,91 @@
+reader:
+  name: ascat_l2_soilmoisture
+  #short_name: IASI L2 SO2 BUFR
+  #long_name: METOP IASI Level 2 SO2 BUFR
+  description: >
+    Reader for ASCAT L2 SOIL MOISUTRE FILES
+  sensors: [scatterometer]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  default_datasets:
+
+file_types:
+  ascat_l2_soilmoisture_bufr:
+    file_reader: !!python/name:satpy.readers.ascat_l2_soilmoisture_bufr.ASCATSOILMOISTUREBUFR
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_ssm_{level}.bin"]
+
+datasets:
+
+  latitude:
+    name: latitude
+    file_type: ascat_l2_soilmoisture_bufr
+    standard_name: latitude
+    units: "degrees"
+    resolution: 12000
+    key: 'latitude'
+    fill_value: -1.e+100
+
+  longitude:
+    name: longitude
+    file_type: ascat_l2_soilmoisture_bufr
+    standard_name: longitude
+    units: "degrees"
+    resolution: 12000
+    key: 'longitude'
+    fill_value: -1.e+100
+
+  surface_soil_moisture:
+    name: surface_soil_moisture
+    file_type: ascat_l2_soilmoisture_bufr
+    units: 'percent'
+    coordinates: [longitude, latitude]
+    key: surfaceSoilMoisture
+    fill_value: -1.e+100
+    sensor: scatterometer
+
+
+  soil_moisture_quality:
+    name: soil_moisture_quality
+    file_type: ascat_l2_soilmoisture_bufr
+    coordinates: [longitude, latitude]
+    key: soilMoistureQuality
+    fill_value: -1.e+100
+
+  snow_cover:
+    name: snow_cover
+    file_type: ascat_l2_soilmoisture_bufr
+    coordinates: [longitude, latitude]
+    units: 'fraction'
+    key: snowCover
+    fill_value: -1.e+100
+
+  frozen_land_surface_fraction:
+    name: frozen_land_surface_fraction
+    file_type: ascat_l2_soilmoisture_bufr
+    coordinates: [longitude, latitude]
+    units: 'fraction'
+    key: frozenLandSurfaceFraction
+    fill_value: -1.e+100
+
+  inundation_and_wetland_fraction:
+    name: inundation_and_wetland_fraction
+    file_type: ascat_l2_soilmoisture_bufr
+    coordinates: [longitude, latitude]
+    key: inundationAndWetlandFraction
+    fill_value: -1.e+100
+
+    #  so2_quality_flag:
+    #name: so2_quality_flag
+    #file_type: iasi_l2_so2_bufr
+    #units: ""
+    #resolution: 12000
+    #coordinates: [longitude, latitude]
+    #key: '#1#generalRetrievalQualityFlagForSo2'
+    #fill_value: -1.e+100
+
+
+
+
+
+
+
+
