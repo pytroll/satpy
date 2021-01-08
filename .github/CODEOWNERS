@@ -58,7 +58,7 @@ satpy/etc/readers/viirs_l1b.yaml @djhoese
 satpy/etc/readers/virr_l1b.yaml @djhoese @adybbroe
 satpy/etc/writers/cf.yaml @mraspaud
 satpy/etc/writers/ninjotiff.yaml @mraspaud
-satpy/etc/writers/scmi.yaml @djhoese
+satpy/etc/writers/awips_tiled.yaml @djhoese
 satpy/readers/aapp_l1b.py @pnuu @mraspaud @adybbroe
 satpy/readers/abi_l1b.py @djhoese
 satpy/readers/acspo.py @djhoese
@@ -98,6 +98,6 @@ satpy/readers/viirs_l1b.py @djhoese
 satpy/readers/xmlformat.py @mraspaud
 satpy/resample.py @pnuu @djhoese @mraspaud
 satpy/writers/cf_writer.py @mraspaud
-satpy/writers/scmi.py @djhoese
+satpy/writers/awips_tiled.py @djhoese
 utils/coord2area_def.py @mraspaud @adybbroe
 utils/fetch_avhrr_calcoeffs.py @pnuu

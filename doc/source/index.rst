@@ -82,7 +82,7 @@ the base Satpy installation.
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
       - `seviri_l1b_native`
-      - HRV full disk data cannot be remapped.
+      - Nominal.
     * - MSG (Meteosat 8 to 11) SEVIRI data in netCDF format
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
@@ -93,6 +93,9 @@ the base Satpy installation.
     * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
       - `seviri_l2_grib`
       - In development, CLM, OCA and FIR products supported
+    * - MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
+      - `mviri_l1b_fiduceo_nc`
+      - Beta
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
@@ -260,11 +263,14 @@ the base Satpy installation.
       - `smos_l2_wind`
       - Beta
     * - AMSR2 level 2 wind data in HDF5 format
-      - `amsr_l2`
+      - `amsr2_l2`
       - Beta
     * - GPM IMERG level 3 precipitation data in HDF5 format
       - `gpm_imerg`
       - Nominal
+    * - AMSR2 level 2 GAASP in NetCDF4 format
+      - `amsr2_l2_gaasp`
+      - Beta
 
 Indices and tables
 ==================

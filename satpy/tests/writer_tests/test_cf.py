@@ -135,6 +135,30 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
+    def test_ancillary_variables(self):
+        """Test ancillary_variables cited each other."""
+        import xarray as xr
+        from satpy import Scene
+        from satpy.tests.utils import make_dataid
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        da = xr.DataArray([1, 2, 3],
+                          attrs=dict(start_time=start_time,
+                          end_time=end_time,
+                          prerequisites=[make_dataid(name='hej')]))
+        scn['test-array-1'] = da
+        scn['test-array-2'] = da.copy()
+        scn['test-array-1'].attrs['ancillary_variables'] = [scn['test-array-2']]
+        scn['test-array-2'].attrs['ancillary_variables'] = [scn['test-array-1']]
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f['test-array-1'].attrs['ancillary_variables'],
+                                 'test-array-2')
+                self.assertEqual(f['test-array-2'].attrs['ancillary_variables'],
+                                 'test-array-1')
+
     def test_groups(self):
         """Test creating a file with groups."""
         import xarray as xr
@@ -967,7 +991,7 @@ class TestCFWriter(unittest.TestCase):
             importlib.reload(sys.modules['satpy.writers.cf_writer'])
 
     def test_global_attr_default_history_and_Conventions(self):
-        """Test saving global attributes history and Conventions"""
+        """Test saving global attributes history and Conventions."""
         from satpy import Scene
         import xarray as xr
         scn = Scene()
@@ -985,7 +1009,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
 
     def test_global_attr_history_and_Conventions(self):
-        """Test saving global attributes history and Conventions"""
+        """Test saving global attributes history and Conventions."""
         from satpy import Scene
         import xarray as xr
         scn = Scene()
@@ -1083,7 +1107,9 @@ class TestCFWriterData(unittest.TestCase):
 
 class EncodingUpdateTest(unittest.TestCase):
     """Test update of netCDF encoding."""
+
     def setUp(self):
+        """Create fake data for testing."""
         import xarray as xr
         self.ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
                               'bar': (('y', 'x'), [[3, 4], [5, 6]])},
@@ -1092,6 +1118,7 @@ class EncodingUpdateTest(unittest.TestCase):
                                      'lon': (('y', 'x'), [[7, 8], [9, 10]])})
 
     def test_without_time(self):
+        """Test data without a time dimension."""
         from satpy.writers.cf_writer import update_encoding
 
         # Without time dimension
@@ -1117,6 +1144,7 @@ class EncodingUpdateTest(unittest.TestCase):
                                    'bar': {'chunksizes': (2, 2)}})
 
     def test_with_time(self):
+        """Test data with a time dimension."""
         from satpy.writers.cf_writer import update_encoding
 
         # With time dimension

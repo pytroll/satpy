@@ -94,7 +94,7 @@ def get_fake_prologue():
     }
 
 
-def get_fake_mda(nlines, ncols, start_time):
+def get_fake_mda(nlines, ncols, start_time, projection_longitude=0.0):
     """Create fake metadata."""
     nbits = 10
     tline = get_acq_time_cds(start_time, nlines)
@@ -111,7 +111,7 @@ def get_fake_mda(nlines, ncols, start_time):
             'a': 6378169.0,
             'b': 6356583.8,
             'h': 35785831.0,
-            'SSP_longitude': 44,
+            'SSP_longitude': projection_longitude,
             'SSP_latitude': 0.0
         },
         'orbital_parameters': {
@@ -167,7 +167,7 @@ def get_acq_time_exp(start_time, nlines):
     return tline_exp
 
 
-def get_attrs_exp():
+def get_attrs_exp(projection_longitude=0.0):
     """Get expected dataset attributes."""
     return {
         'units': 'units',
@@ -175,10 +175,10 @@ def get_attrs_exp():
         'standard_name': 'standard_name',
         'platform_name': 'Meteosat-11',
         'sensor': 'seviri',
-        'satellite_longitude': 44,
+        'satellite_longitude': projection_longitude,
         'satellite_latitude': 0.0,
         'satellite_altitude': 35785831.0,
-        'orbital_parameters': {'projection_longitude': 44,
+        'orbital_parameters': {'projection_longitude': projection_longitude,
                                'projection_latitude': 0.,
                                'projection_altitude': 35785831.0,
                                'satellite_nominal_longitude': 47,

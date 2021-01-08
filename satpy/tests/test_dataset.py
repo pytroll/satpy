@@ -536,5 +536,5 @@ def test_wavelength_range():
         wr2 in wr
 
     # Check __str__
-    assert str(wr) == "2 µm (1-3 µm)"
-    assert str(wr2) == "2 nm (1-3 nm)"
+    assert str(wr) == "2 µm (1-3 µm)"
+    assert str(wr2) == "2 nm (1-3 nm)"
