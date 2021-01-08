@@ -69,45 +69,44 @@ class ASCATSOILMOISTUREBUFR(BaseFileHandler):
 
     def get_start_end_date(self):
         """Gets the first and last date from the bufr file."""
-        fh = open(self.filename, "rb")
-        date_min = None
-        date_max = None
-        while True:
-            # get handle for message
-            bufr = ec.codes_bufr_new_from_file(fh)
-            if bufr is None:
-                break
-            ec.codes_set(bufr, 'unpack', 1)
-            size = ec.codes_get(bufr, 'numberOfSubsets')
-            years = np.resize(ec.codes_get_array(bufr, 'year'), size)
-            months = np.resize(ec.codes_get_array(bufr, 'month'), size)
-            days = np.resize(ec.codes_get_array(bufr, 'day'), size)
-            hours = np.resize(ec.codes_get_array(bufr, 'hour'), size)
-            minutes = np.resize(ec.codes_get_array(bufr, 'minute'), size)
-            seconds = np.resize(ec.codes_get_array(bufr, 'second'), size)
-            for year, month, day, hour, minute, second in zip(years, months, days, hours, minutes, seconds):
-                time_stamp = datetime(year, month, day, hour, minute, second)
-                date_min = not date_min and time_stamp or min(date_min, time_stamp)
-                date_max = not date_max and time_stamp or max(date_max, time_stamp)
-        return date_min, date_max
+        with open(self.filename, 'rb') as fh:
+            date_min = None
+            date_max = None
+            while True:
+                # get handle for message
+                bufr = ec.codes_bufr_new_from_file(fh)
+                if bufr is None:
+                    break
+                ec.codes_set(bufr, 'unpack', 1)
+                size = ec.codes_get(bufr, 'numberOfSubsets')
+                years = np.resize(ec.codes_get_array(bufr, 'year'), size)
+                months = np.resize(ec.codes_get_array(bufr, 'month'), size)
+                days = np.resize(ec.codes_get_array(bufr, 'day'), size)
+                hours = np.resize(ec.codes_get_array(bufr, 'hour'), size)
+                minutes = np.resize(ec.codes_get_array(bufr, 'minute'), size)
+                seconds = np.resize(ec.codes_get_array(bufr, 'second'), size)
+                for year, month, day, hour, minute, second in zip(years, months, days, hours, minutes, seconds):
+                    time_stamp = datetime(year, month, day, hour, minute, second)
+                    date_min = not date_min and time_stamp or min(date_min, time_stamp)
+                    date_max = not date_max and time_stamp or max(date_max, time_stamp)
+            return date_min, date_max
 
     def get_bufr_data(self, key):
         """Get BUFR data by key."""
-        fh = open(self.filename, "rb")
         attr = np.array([])
-        while True:
-            # get handle for message
-            bufr = ec.codes_bufr_new_from_file(fh)
-            if bufr is None:
-                break
-            ec.codes_set(bufr, 'unpack', 1)
-            tmp = ec.codes_get_array(bufr, key, float)
-            if len(tmp) == 1:
-                size = ec.codes_get(bufr, 'numberOfSubsets')
-                tmp = np.resize(tmp, size)
-            attr = np.append(attr, tmp)
-            ec.codes_release(bufr)
-        fh.close()
+        with open(self.filename, 'rb') as fh:
+            while True:
+                # get handle for message
+                bufr = ec.codes_bufr_new_from_file(fh)
+                if bufr is None:
+                    break
+                ec.codes_set(bufr, 'unpack', 1)
+                tmp = ec.codes_get_array(bufr, key, float)
+                if len(tmp) == 1:
+                    size = ec.codes_get(bufr, 'numberOfSubsets')
+                    tmp = np.resize(tmp, size)
+                attr = np.append(attr, tmp)
+                ec.codes_release(bufr)
         return attr
 
     def get_dataset(self, dataset_id, dataset_info):
