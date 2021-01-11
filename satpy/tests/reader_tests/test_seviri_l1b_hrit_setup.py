@@ -22,7 +22,10 @@ from unittest import mock
 
 import numpy as np
 
-from satpy.readers.seviri_l1b_hrit import HRITMSGFileHandler
+from satpy.readers.seviri_l1b_hrit import (
+    HRITMSGFileHandler, HRITMSGPrologueFileHandler
+)
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 
 
 def new_get_hd(instance, hdr_info):
@@ -38,63 +41,107 @@ def new_get_hd(instance, hdr_info):
     instance.mda['total_header_length'] = 12
 
 
-def get_fake_file_handler(filename_info, mda, prologue, epilogue):
+def get_new_read_prologue(prologue):
+    """Create mocked read_prologue() method."""
+    def new_read_prologue(self):
+        self.prologue = prologue
+    return new_read_prologue
+
+
+def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0):
     """Create a mocked SEVIRI HRIT file handler."""
+    prologue = get_fake_prologue(projection_longitude)
+    mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=start_time)
+    filename_info = get_fake_filename_info(start_time)
+    epilogue = get_fake_epilogue()
+
     m = mock.mock_open()
-    with mock.patch('satpy.readers.seviri_l1b_hrit.np.fromfile') as fromfile:
+    with mock.patch('satpy.readers.seviri_l1b_hrit.np.fromfile') as fromfile, \
+            mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, \
+            mock.patch('satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES'), \
+            mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd), \
+            mock.patch.object(HRITMSGPrologueFileHandler, 'read_prologue',
+                              new=get_new_read_prologue(prologue)):
+
         fromfile.return_value = np.array(
             [(1, 2)],
             dtype=[('total_header_length', int),
                    ('hdr_id', int)]
         )
-        with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen:
-            with mock.patch('satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES'):
-                with mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd):
-                    newopen.return_value.__enter__.return_value.tell.return_value = 1
-                    prologue = mock.MagicMock(prologue=prologue)
-                    epilogue = mock.MagicMock(epilogue=epilogue)
-                    prologue.get_satpos.return_value = None, None, None
-                    prologue.get_earth_radii.return_value = None, None
+        newopen.return_value.__enter__.return_value.tell.return_value = 1
+        prologue = HRITMSGPrologueFileHandler(
+            filename=None,
+            filename_info=filename_info,
+            filetype_info={}
+        )
+        epilogue = mock.MagicMock(epilogue=epilogue)
 
-                    reader = HRITMSGFileHandler(
-                        'filename',
-                        filename_info,
-                        {'filetype': 'info'},
-                        prologue,
-                        epilogue
-                    )
-                    reader.mda.update(mda)
-                    return reader
+        reader = HRITMSGFileHandler(
+            'filename',
+            filename_info,
+            {'filetype': 'info'},
+            prologue,
+            epilogue
+        )
+        reader.mda.update(mda)
+        return reader
 
 
-def get_fake_prologue():
+def get_fake_prologue(projection_longitude):
     """Create a fake HRIT prologue."""
     return {
          "SatelliteStatus": {
              "SatelliteDefinition": {
                  "SatelliteId": 324,
-                 "NominalLongitude": 47
+                 "NominalLongitude": -3.5
+             },
+             'Orbit': {
+                 'OrbitPolynomial': ORBIT_POLYNOMIALS,
              }
          },
          'GeometricProcessing': {
              'EarthModel': {
                  'TypeOfEarthModel': 2,
-                 'NorthPolarRadius': 10,
-                 'SouthPolarRadius': 10,
-                 'EquatorialRadius': 10}
+                 'EquatorialRadius': 6378.169,
+                 'NorthPolarRadius': 6356.5838,
+                 'SouthPolarRadius': 6356.5838
+             }
          },
          'ImageDescription': {
              'ProjectionDescription': {
-                 'LongitudeOfSSP': 0.0
+                 'LongitudeOfSSP': projection_longitude
              },
              'Level15ImageProduction': {
                  'ImageProcDirection': 1
              }
+         },
+         'ImageAcquisition': {
+            'PlannedAcquisitionTime': {
+                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888)
+            }
          }
     }
 
 
-def get_fake_mda(nlines, ncols, start_time, projection_longitude=0.0):
+def get_fake_epilogue():
+    """Create a fake HRIT epilogue."""
+    return {
+            'ImageProductionStats': {
+                'ActualL15CoverageHRV': {
+                    'LowerSouthLineActual': 1,
+                    'LowerNorthLineActual': 8256,
+                    'LowerEastColumnActual': 2877,
+                    'LowerWestColumnActual': 8444,
+                    'UpperSouthLineActual': 8257,
+                    'UpperNorthLineActual': 11136,
+                    'UpperEastColumnActual': 1805,
+                    'UpperWestColumnActual': 7372
+                }
+            }
+        }
+
+
+def get_fake_mda(nlines, ncols, start_time):
     """Create fake metadata."""
     nbits = 10
     tline = get_acq_time_cds(start_time, nlines)
@@ -107,20 +154,6 @@ def get_fake_mda(nlines, ncols, start_time, projection_longitude=0.0):
         'lfac': 5,
         'coff': 10,
         'loff': 10,
-        'projection_parameters': {
-            'a': 6378169.0,
-            'b': 6356583.8,
-            'h': 35785831.0,
-            'SSP_longitude': projection_longitude,
-            'SSP_latitude': 0.0
-        },
-        'orbital_parameters': {
-            'satellite_nominal_longitude': 47,
-            'satellite_nominal_latitude': 0.0,
-            'satellite_actual_longitude': 47.5,
-            'satellite_actual_latitude': -0.5,
-            'satellite_actual_altitude': 35783328
-        },
         'image_segment_line_quality': {
             'line_mean_acquisition': tline
         }
@@ -181,10 +214,10 @@ def get_attrs_exp(projection_longitude=0.0):
         'orbital_parameters': {'projection_longitude': projection_longitude,
                                'projection_latitude': 0.,
                                'projection_altitude': 35785831.0,
-                               'satellite_nominal_longitude': 47,
+                               'satellite_nominal_longitude': -3.5,
                                'satellite_nominal_latitude': 0.0,
-                               'satellite_actual_longitude': 47.5,
-                               'satellite_actual_latitude': -0.5,
-                               'satellite_actual_altitude': 35783328},
+                               'satellite_actual_longitude': -3.55117540817073,
+                               'satellite_actual_latitude': -0.5711243456528018,
+                               'satellite_actual_altitude': 35783296.150123544},
         'georef_offset_corrected': True
     }

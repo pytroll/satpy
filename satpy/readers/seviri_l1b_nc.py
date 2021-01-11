@@ -106,6 +106,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.east = int(self.nc.attrs['east_most_pixel'])
         self.west = int(self.nc.attrs['west_most_pixel'])
         self.south = int(self.nc.attrs['south_most_line'])
+        self.platform_id = int(self.nc.attrs['satellite_id'])
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
@@ -123,8 +124,6 @@ class NCSEVIRIFileHandler(BaseFileHandler):
                 pass
 
         dataset = self.nc[dataset_info['nc_key']]
-        dataset.attrs.update(dataset_info)
-        self.platform_id = int(self.nc.attrs['satellite_id'])
 
         # Correct for the scan line order
         # TODO: Move _add_scanline_acq_time() call to the end of the method
@@ -132,36 +131,8 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self._add_scanline_acq_time(dataset, dataset_id)
         dataset = dataset.sel(y=slice(None, None, -1))
 
-        # Calibrate the data as needed
         dataset = self.calibrate(dataset, dataset_id)
-
-        # Update dataset attributes
-        dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
-        dataset.attrs.update(dataset_info)
-        dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
-        dataset.attrs['sensor'] = 'seviri'
-        actual_lon, actual_lat, actual_alt = self._get_satpos()
-        dataset.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
-            'projection_latitude': 0.,
-            'projection_altitude': self.mda['projection_parameters']['h'],
-            'satellite_nominal_longitude': float(
-                self.nc.attrs['nominal_longitude']
-            ),
-            'satellite_nominal_latitude': 0.0,
-        }
-        if actual_lon is not None:
-            dataset.attrs['orbital_parameters'].update({
-                'satellite_actual_longitude': actual_lon,
-                'satellite_actual_latitude': actual_lat,
-                'satellite_actual_altitude': actual_alt,
-            })
-
-        # remove attributes from original file which don't apply anymore
-        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
-        for a in strip_attrs:
-            dataset.attrs.pop(a)
-
+        self._update_attrs(dataset, dataset_info)
         return dataset
 
     def calibrate(self, dataset, dataset_id):
@@ -198,6 +169,35 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             },
             'radiance_type': self.nc['planned_chan_processing'].values[band_idx]
         }
+
+    def _update_attrs(self, dataset, dataset_info):
+        """Update dataset attributes."""
+        dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
+        dataset.attrs.update(dataset_info)
+        dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
+        dataset.attrs['sensor'] = 'seviri'
+        actual_lon, actual_lat, actual_alt = self._get_satpos()
+        dataset.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': self.mda['projection_parameters']['h'],
+            'satellite_nominal_longitude': float(
+                self.nc.attrs['nominal_longitude']
+            ),
+            'satellite_nominal_latitude': 0.0,
+        }
+        if actual_lon is not None:
+            dataset.attrs['orbital_parameters'].update({
+                'satellite_actual_longitude': actual_lon,
+                'satellite_actual_latitude': actual_lat,
+                'satellite_actual_altitude': actual_alt,
+            })
+        dataset.attrs['georef_offset_corrected'] = self._get_earth_model() == 2
+
+        # remove attributes from original file which don't apply anymore
+        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
+        for a in strip_attrs:
+            dataset.attrs.pop(a)
 
     def get_area_def(self, dataset_id):
         """Get the area def.
@@ -269,7 +269,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         # check for Earth model as this affects the north-south and
         # west-east offsets
         # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-        earth_model = int(self.nc.attrs['type_of_earth_model'], 16)
+        earth_model = self._get_earth_model()
         if earth_model == 2:
             ns_offset = 0  # north +ve
             we_offset = 0  # west +ve
@@ -353,6 +353,9 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             # Cache results
             self.satpos = lon, lat, alt
         return self.satpos
+
+    def _get_earth_model(self):
+        return int(self.nc.attrs['type_of_earth_model'], 16)
 
 
 class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):

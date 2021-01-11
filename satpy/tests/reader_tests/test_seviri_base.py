@@ -17,14 +17,19 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test the MSG common (native and hrit format) functionionalities."""
 
+from datetime import datetime
+import pytest
 import unittest
 
 import numpy as np
 import xarray as xr
 import dask.array as da
 
-from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time, \
-    get_padding_area, pad_data_horizontally, pad_data_vertically
+from satpy.readers.seviri_base import (
+    dec10216, chebyshev, get_cds_time, get_padding_area, pad_data_horizontally,
+    pad_data_vertically, SatelliteLocator, SatelliteLocatorFactory,
+    NoValidOrbitParams
+)
 from satpy import CHUNK_SIZE
 
 
@@ -135,3 +140,193 @@ class SeviriBaseTest(unittest.TestCase):
         res = get_padding_area(shape, dtype)
         expected = da.full(shape, 0, dtype=dtype, chunks=CHUNK_SIZE)
         np.testing.assert_array_equal(res, expected)
+
+
+ORBIT_POLYNOMIALS = {
+    'StartTime': np.array([
+        [
+            datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 12),
+            datetime(2006, 1, 1, 18), datetime(1958, 1, 1, 0)]
+    ]),
+    'EndTime': np.array([
+        [
+            datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
+            datetime(2006, 1, 2, 0), datetime(1958, 1, 1, 0)
+        ]
+    ]),
+    'X': [np.zeros(8),
+          [8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
+           -2.70135453e-01,
+           -3.84364650e-02, 8.48718433e-03, 7.70548174e-04,
+           -1.44262718e-04],
+          np.zeros(8)],
+    'Y': [np.zeros(8),
+          [-5.21170255e+03, 5.12998948e+00, -1.33370453e+00,
+           -3.09634144e-01,
+           6.18232793e-02, 7.50505681e-03, -1.35131011e-03,
+           -1.12054405e-04],
+          np.zeros(8)],
+    'Z': [np.zeros(8),
+          [-6.51293855e+02, 1.45830459e+02, 5.61379400e+01,
+           -3.90970565e+00,
+           -7.38137565e-01, 3.06131644e-02, 3.82892428e-03,
+           -1.12739309e-04],
+          np.zeros(8)],
+}
+ORBIT_POLYNOMIALS_SYNTH = {
+    # 12-31: Contiguous
+    # 01-01: Small gap (12:00 - 13:00)
+    # 01-02: Large gap (04:00 - 18:00)
+    # 01-03: Overlap (10:00 - 13:00)
+    'StartTime': np.array([
+        [
+            datetime(2005, 12, 31, 10), datetime(2005, 12, 31, 12),
+            datetime(2006, 1, 1, 10), datetime(2006, 1, 1, 13),
+            datetime(2006, 1, 2, 0), datetime(2006, 1, 2, 18),
+            datetime(2006, 1, 3, 6), datetime(2006, 1, 3, 10),
+        ]
+    ]),
+    'EndTime': np.array([
+        [
+            datetime(2005, 12, 31, 12), datetime(2005, 12, 31, 18),
+            datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
+            datetime(2006, 1, 2, 4), datetime(2006, 1, 2, 22),
+            datetime(2006, 1, 3, 13), datetime(2006, 1, 3, 18),
+        ]
+    ]),
+    'X': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+    'Y': [1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1, 8.1],
+    'Z': [1.2, 2.2, 3.2, 4.2, 5.2, 6.2, 7.2, 8.2],
+}
+ORBIT_POLYNOMIALS_INVALID = {
+    'StartTime': np.array([
+        [
+            datetime(1958, 1, 1), datetime(1958, 1, 1)
+        ]
+    ]),
+    'EndTime': np.array([
+        [
+            datetime(1958, 1, 1), datetime(1958, 1, 1)
+        ]
+    ]),
+    'X': [1, 2],
+    'Y': [3, 4],
+    'Z': [5, 6],
+}
+ORBIT_POLYNOMIAL = {
+    'StartTime': datetime(2006, 1, 1, 12),
+    'EndTime': datetime(2006, 1, 1, 18),
+    'X': np.array([8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
+                   -2.70135453e-01, -3.84364650e-02, 8.48718433e-03,
+                   7.70548174e-04, -1.44262718e-04]),
+    'Y': np.array([-5.21170255e+03, 5.12998948e+00, -1.33370453e+00,
+                   -3.09634144e-01, 6.18232793e-02, 7.50505681e-03,
+                   -1.35131011e-03, -1.12054405e-04]),
+    'Z': np.array([-6.51293855e+02, 1.45830459e+02, 5.61379400e+01,
+                   -3.90970565e+00, -7.38137565e-01, 3.06131644e-02,
+                   3.82892428e-03, -1.12739309e-04])
+}
+
+
+class TestSatelliteLocator:
+    """Test locating the satellite."""
+
+    @pytest.fixture
+    def time(self):
+        """Get scan timestamp for testing."""
+        return datetime(2006, 1, 1, 12, 15, 9, 304888)
+
+    @pytest.fixture
+    def locator(self):
+        """Create satellite locator."""
+        return SatelliteLocator(ORBIT_POLYNOMIAL)
+
+    def test_get_satpos_cart(self, locator, time):
+        """Test getting the position in cartesian coordinates."""
+        x, y, z = locator.get_satpos_cart(time)
+        np.testing.assert_allclose(
+            [x, y, z],
+            [42078421.37095518, -2611352.744615312, -419828.9699940758]
+        )
+
+    def test_get_satpos_geodetic(self, locator, time):
+        """Test getting the position in geodetic coordinates."""
+        lon, lat, alt = locator.get_satpos_geodetic(
+            time, a=6378169.00, b=6356583.80
+        )
+        np.testing.assert_allclose(
+            [lon, lat, alt],
+            [-3.55117540817073, -0.5711243456528018, 35783296.150123544]
+        )
+
+
+class TestSatelliteLocatorFactory:
+    """Unit tests for satellite locator factory."""
+
+    @pytest.mark.parametrize(
+        ('orbit_polynomials', 'time', 'orbit_polynomial_exp'),
+        [
+            # Contiguous validity intervals (that's the norm)
+            (
+                ORBIT_POLYNOMIALS_SYNTH,
+                datetime(2005, 12, 31, 12, 15),
+                {
+                    'StartTime': np.datetime64('2005-12-31 12:00'),
+                    'EndTime': np.datetime64('2005-12-31 18:00'),
+                    'X': 2.0,
+                    'Y': 2.1,
+                    'Z': 2.2
+                },
+            ),
+            # No interval enclosing the given timestamp, but closest interval
+            # not too far away
+            (
+                    ORBIT_POLYNOMIALS_SYNTH,
+                    datetime(2006, 1, 1, 12, 15),
+                    {
+                        'StartTime': np.datetime64('2006-01-01 10:00'),
+                        'EndTime': np.datetime64('2006-01-01 12:00'),
+                        'X': 3.0,
+                        'Y': 3.1,
+                        'Z': 3.2
+                    },
+            ),
+            # Overlapping intervals
+            (
+                    ORBIT_POLYNOMIALS_SYNTH,
+                    datetime(2006, 1, 3, 12, 15),
+                    {
+                        'StartTime': np.datetime64('2006-01-03 10:00'),
+                        'EndTime': np.datetime64('2006-01-03 18:00'),
+                        'X': 8.0,
+                        'Y': 8.1,
+                        'Z': 8.2
+                    },
+            ),
+        ]
+    )
+    def test_get_satellite_locator(self, orbit_polynomials, time,
+                                   orbit_polynomial_exp):
+        """Test getting the satellite locator."""
+        factory = SatelliteLocatorFactory(orbit_polynomials)
+        locator = factory.get_satellite_locator(time=time)
+        np.testing.assert_equal(
+            locator.orbit_polynomial,
+            orbit_polynomial_exp
+        )
+
+    @pytest.mark.parametrize(
+        ('orbit_polynomials', 'time'),
+        [
+            # No interval enclosing the given timestamp and closest interval
+            # too far away
+            (ORBIT_POLYNOMIALS_SYNTH, datetime(2006, 1, 2, 12, 15)),
+            # No valid polynomials at all
+            (ORBIT_POLYNOMIALS_INVALID, datetime(2006, 1, 1, 12, 15))
+        ]
+    )
+    def test_get_satellite_locator_exceptions(self, orbit_polynomials, time):
+        """Test exceptions thrown while getting the satellite locator."""
+        factory = SatelliteLocatorFactory(orbit_polynomials)
+        with pytest.raises(NoValidOrbitParams):
+            factory.get_satellite_locator(time=time)

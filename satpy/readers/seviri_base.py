@@ -642,7 +642,7 @@ class SatelliteLocator:
             Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         x, y, z = self.get_satpos_cart(time)
-        geocent = pyproj.CRS(proj='geocent')
+        geocent = pyproj.CRS(proj='geocent', a=a, b=b, units='m')
         latlong = pyproj.CRS(proj='latlong', a=a, b=b, units='m')
         transformer = pyproj.Transformer.from_crs(geocent, latlong)
         lon, lat, alt = transformer.transform(x, y, z)
