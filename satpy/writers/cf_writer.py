@@ -204,13 +204,6 @@ def area2cf(dataarray, strict=False):
     return res
 
 
-def make_time_bounds(start_times, end_times):
-    """Create time bounds for the current *dataarray*."""
-    data = xr.DataArray([[start_times, end_times]],
-                        dims=['time', 'bnds_1d'])
-    return data
-
-
 def assert_xy_unique(datas):
     """Check that all datasets share the same projection coordinates x/y."""
     unique_x = set()
@@ -483,8 +476,6 @@ class CFWriter(Writer):
             ds_collection.update(get_extra_ds(ds))
 
         datas = {}
-        start_times = []
-        end_times = []
         # sort by name, but don't use the name
         for _, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
@@ -497,8 +488,6 @@ class CFWriter(Writer):
             except KeyError:
                 new_datasets = [ds]
             for new_ds in new_datasets:
-                start_times.append(new_ds.attrs.get("start_time", None))
-                end_times.append(new_ds.attrs.get("end_time", None))
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                      exclude_attrs=exclude_attrs, compression=compression)
                 datas[new_var.name] = new_var
@@ -624,14 +613,11 @@ class CFWriter(Writer):
         # Write datasets to groups (appending to the file; group=None means no group)
         for group_name, group_datasets in groups_.items():
             # XXX: Should we combine the info of all datasets?
-            datas, start_times, end_times = self._collect_datasets(
-                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression)
+            datas = self._collect_datasets(group_datasets,
+                                           epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
+                                           include_lonlats=include_lonlats, pretty=pretty, compression=compression)
             dataset = xr.Dataset(datas)
             if 'time' in dataset:
-                dataset['time_bnds'] = make_time_bounds(start_times,
-                                                        end_times)
-                dataset['time'].attrs['bounds'] = "time_bnds"
                 dataset['time'].attrs['standard_name'] = "time"
             else:
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
