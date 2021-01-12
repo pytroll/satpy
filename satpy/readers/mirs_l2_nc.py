@@ -17,15 +17,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to MIRS product."""
 
-from satpy.readers.file_handlers import BaseFileHandler
-from pyresample.geometry import SwathDefinition
-import numpy as np
-import datetime
 import os
 import logging
+import datetime
+import numpy as np
 import xarray as xr
-import dask as da
-import tempfile
+import dask.array as da
+from satpy.readers.file_handlers import BaseFileHandler
+from pyresample.geometry import SwathDefinition
 
 LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
 LOG = logging.getLogger(__name__)
@@ -85,6 +84,18 @@ LIMB_SEA_FILE = os.environ.get("ATMS_LIMB_SEA", "satpy.readers:limball_atmssea.t
 LIMB_LAND_FILE = os.environ.get("ATMS_LIMB_LAND", "satpy.readers:limball_atmsland.txt")
 
 
+def coeff_cums_calc(datasets, channel_idx, fov_idx,
+                    dmean, coeffs, amean, nchx, nchanx):
+    """Calculate the correction for each channel."""
+    coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
+    for k in range(nchx[channel_idx]):
+        coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
+                datasets[nchanx[channel_idx, k], :, fov_idx] -
+                amean[nchanx[channel_idx, k], fov_idx, channel_idx])
+        coeff_sum = coef + coeff_sum
+    return coeff_sum + dmean[channel_idx]
+
+
 class MIRSL2ncHandler(BaseFileHandler):
     """MIRS handler for NetCDF4 files using xarray."""
 
@@ -120,7 +131,7 @@ class MIRSL2ncHandler(BaseFileHandler):
 
     def new_coords(self):
         """Define coordinates when file does not use variable attributes."""
-        if len(self.nc.coords.keys()) == 0:
+        if not self.nc.coords.keys():
             # this file did not define variable coordinates
             new_coords = {'Latitude': self['Latitude'],
                           'Longitude': self['Longitude']}
@@ -175,9 +186,9 @@ class MIRSL2ncHandler(BaseFileHandler):
         # old file format
         if self.filename_info.get("date", False):
             s_time = datetime.datetime.combine(
-                                               self.force_date("date"),
-                                               self.force_time("start_time")
-                                              )
+                self.force_date("date"),
+                self.force_time("start_time")
+            )
             self.filename_info["start_time"] = s_time
         return self.filename_info["start_time"]
 
@@ -187,9 +198,9 @@ class MIRSL2ncHandler(BaseFileHandler):
         # old file format
         if self.filename_info.get("date", False):
             end_time = datetime.datetime.combine(
-                                                 self.force_date("date"),
-                                                 self.force_time("end_time")
-                                                 )
+                self.force_date("date"),
+                self.force_time("end_time")
+            )
             self.filename_info["end_time"] = end_time
         return self.filename_info["end_time"]
 
@@ -207,22 +218,23 @@ class MIRSL2ncHandler(BaseFileHandler):
         else:
             return self.filename_info.get(key)
 
-    @staticmethod
-    def _write_temporary_btdata(bt_data):
-        temp_wrapper = tempfile.NamedTemporaryFile(suffix="dat", prefix="bt_data")
-        with temp_wrapper as filename:
-            try:
-                fp = np.memmap(filename, dtype=bt_data.dtype, mode='w+', shape=bt_data.shape)
-            except (OSError, ValueError):
-                LOG.error("Could not extract data from file")
-                LOG.debug("Extraction exception: ", exc_info=True)
-                raise
+    def apply_atms_limb_correction(self, datasets, channel_idx, dmean, coeffs, amean, nchx, nchanx):
+        """Apply the atms limb correction to the brightness temperature data."""
+        all_new_ds = []
+        datasets = datasets.persist()
+        ds = datasets[channel_idx]
+        new_ds = np.zeros(ds.shape, dtype=ds.dtype)
+        for fov_idx in range(96):
+            new_ds[:, fov_idx] = da.map_blocks(coeff_cums_calc,
+                                               datasets, channel_idx,
+                                               fov_idx, dmean, coeffs,
+                                               amean, nchx,
+                                               nchanx, dtype=ds.dtype)
+            all_new_ds.append(new_ds)
 
-        fp[:] = bt_data[:]
-        return fp
+        return all_new_ds
 
-    @staticmethod
-    def read_atms_limb_correction_coeffs(fn):
+    def read_atms_limb_correction_coeffs(self, fn):
         """Read provided limb correction files for atms."""
         if os.path.isfile(fn):
             coeff_str = open(fn, "r").readlines()
@@ -234,8 +246,8 @@ class MIRSL2ncHandler(BaseFileHandler):
         # make it a generator
         coeff_str = (line.strip() for line in coeff_str)
 
-        all_coeffs = np.zeros((22, N_FOV, 22), dtype=np.float32)
-        all_amean = np.zeros((22, N_FOV, 22), dtype=np.float32)
+        all_coeffs = np.zeros((22, 96, 22), dtype=np.float32)
+        all_amean = np.zeros((22, 96, 22), dtype=np.float32)
         all_dmean = np.zeros(22, dtype=np.float32)
         all_nchx = np.zeros(22, dtype=np.int32)
         all_nchanx = np.zeros((22, 22), dtype=np.int32)
@@ -247,13 +259,13 @@ class MIRSL2ncHandler(BaseFileHandler):
 
             # section header
             nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
-            nx = int(nx)
+            nx = int(nx)  # Question, was this supposed to be used somewhere?
             all_nchx[chan_idx] = nchx = int(nchx)
             all_dmean[chan_idx] = float(dmean)
 
             # coeff locations (indexes to put the future coefficients in)
             locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
-            assert (len(locations) == nchx)
+            assert len(locations) == nchx
             for x in range(nchx):
                 all_nchanx[chan_idx, x] = locations[x] - 1
 
@@ -270,35 +282,12 @@ class MIRSL2ncHandler(BaseFileHandler):
 
         return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
 
-    @staticmethod
-    def apply_atms_limb_correction(datasets, dmean, coeffs, amean, nchx, nchanx):
-        """Apply the atms limb correction to the brightness temperature data."""
-        all_new_ds = []
-        coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
-        for channel_idx in range(datasets.shape[0]):
-            ds = datasets[channel_idx]
-            new_ds = ds.copy()
-            all_new_ds.append(new_ds)
-            for fov_idx in range(N_FOV):
-                coeff_sum[:] = 0
-                for k in range(nchx[channel_idx]):
-                    coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
-                            datasets[nchanx[channel_idx, k], :, fov_idx] -
-                            amean[nchanx[channel_idx, k], fov_idx, channel_idx])
-                    coeff_sum += coef
-                new_ds[:, fov_idx] = coeff_sum + dmean[channel_idx]
-
-        return all_new_ds
-
     def limb_correct_atms_bt(self, bt_data, ds_info):
         """Gather data needed for limb correction."""
         idx = ds_info['channel_index']
         LOG.info("Starting ATMS Limb Correction...")
         # transpose bt_data for correction
         bt_data = bt_data.transpose("Channel", "y", "x")
-
-        # write bt_data to a temp file
-        fp = self._write_temporary_btdata(bt_data)
 
         deps = ds_info['dependencies']
         if len(deps) != 2:
@@ -309,21 +298,21 @@ class MIRSL2ncHandler(BaseFileHandler):
         surf_type_mask = self[surf_type_name]
 
         sea = self.read_atms_limb_correction_coeffs(LIMB_SEA_FILE)
-        sea_bt = self.apply_atms_limb_correction(fp, *sea)
+        sea_bt = self.apply_atms_limb_correction(bt_data, idx, *sea)
         self.sea_bt_data = sea_bt
 
         land = self.read_atms_limb_correction_coeffs(LIMB_LAND_FILE)
-        land_bt = self.apply_atms_limb_correction(fp, *land)
+        land_bt = self.apply_atms_limb_correction(bt_data, idx, *land)
         self.land_bt_data = land_bt
 
         LOG.info("Finishing limb correction")
         is_sea = (surf_type_mask == 0)
         bt_data = bt_data[idx, :, :]
-        new_data = (self.sea_bt_data[idx].squeeze()*[is_sea]) +\
-                   (self.land_bt_data[idx].squeeze()*[~is_sea])
+        new_data = (self.sea_bt_data[idx].squeeze() * [is_sea]) + \
+                   (self.land_bt_data[idx].squeeze() * [~is_sea])
 
         # for consistency when not doing limb correction, return a dask.array
-        new_data = da.array.from_array(new_data.squeeze())
+        new_data = da.from_array(new_data.squeeze())
 
         bt_data = xr.DataArray(new_data.squeeze(), dims=bt_data.dims,
                                coords=bt_data.coords, attrs=ds_info,
@@ -517,6 +506,6 @@ class MIRSL2ncHandler(BaseFileHandler):
         data.coords.update(new_coords)
         return data
 
-    def get_shape(self, key, info):
+    def get_shape(self):
         """Get the shape of the data."""
         return self.nlines, self.ncols
