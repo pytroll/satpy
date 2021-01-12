@@ -121,7 +121,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
 
     def __del__(self):
-        """Delete object."""
+        """Delete the file handler."""
         if self.file_handle is not None:
             try:
                 self.file_handle.close()

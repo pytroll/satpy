@@ -6,7 +6,7 @@
 4. run `loghub` and update the `CHANGELOG.md` file:
 
    ```
-   loghub pytroll/satpy --token $LOGHUB_GITHUB_TOKEN -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes"
+   loghub pytroll/satpy --token $LOGHUB_GITHUB_TOKEN -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backward incompatible changes" -plg refactor "Refactoring"
    ```
 
    This uses a `LOGHUB_GITHUB_TOKEN` environment variable. This must be created
@@ -36,4 +36,11 @@
 
 
 6. push changes to github `git push --follow-tags`
-7. Verify travis tests passed and deployed sdist and wheel to PyPI
+7. Verify github action unittests passed.
+8. Create a "Release" on GitHub by going to
+   https://github.com/pytroll/satpy/releases and clicking "Draft a new release".
+   On the next page enter the newly created tag in the "Tag version" field,
+   "Version X.Y.Z" in the "Release title" field, and paste the markdown from
+   the changelog (the portion under the version section header) in the
+   "Describe this release" box. Finally click "Publish release".
+9. Verify the GitHub actions for deployment succeed and the release is on PyPI.

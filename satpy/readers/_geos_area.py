@@ -127,6 +127,10 @@ def get_area_definition(pdict, a_ext):
     Returns:
         a_def: An area definition for the scene
 
+    .. note::
+
+        The AreaDefinition `proj_id` attribute is being deprecated.
+
     """
     proj_dict = {'a': float(pdict['a']),
                  'b': float(pdict['b']),
@@ -145,3 +149,81 @@ def get_area_definition(pdict, a_ext):
         a_ext)
 
     return a_def
+
+
+def sampling_to_lfac_cfac(sampling):
+    """Convert angular sampling to line/column scaling factor (aka LFAC/CFAC).
+
+    Reference: `MSG Ground Segment LRIT HRIT Mission Specific Implementation`_,
+    Appendix E.2.
+
+
+    .. _MSG Ground Segment LRIT HRIT Mission Specific Implementation:
+    https://www-cdn.eumetsat.int/files/2020-04/pdf_ten_05057_spe_msg_lrit_hri.pdf
+
+    Args:
+        sampling: float
+            Angular sampling (rad)
+
+    Returns:
+        Line/column scaling factor (deg-1)
+    """
+    return 2.0 ** 16 / np.rad2deg(sampling)
+
+
+def get_geos_area_naming(input_dict):
+    """Get a dictionary containing formatted AreaDefinition naming.
+
+    Args:
+        input_dict: dict
+            Dictionary with keys `platform_name`, `instrument_name`, `service_name`, `service_desc`, `resolution` .
+            The resolution is expected in meters.
+    Returns:
+        area_naming_dict with `area_id`, `description`  keys, values are strings.
+
+    .. note::
+
+        The AreaDefinition `proj_id` attribute is being deprecated and is therefore not formatted here.
+        An empty string is to be used until the attribute is fully removed.
+
+    """
+    area_naming_dict = {}
+
+    resolution_strings = get_resolution_and_unit_strings(input_dict['resolution'])
+
+    area_naming_dict['area_id'] = '{}_{}_{}_{}{}'.format(input_dict['platform_name'].lower(),
+                                                         input_dict['instrument_name'].lower(),
+                                                         input_dict['service_name'].lower(),
+                                                         resolution_strings['value'],
+                                                         resolution_strings['unit']
+                                                         )
+
+    area_naming_dict['description'] = '{} {} {} area definition ' \
+                                      'with {} {} resolution'.format(input_dict['platform_name'].upper(),
+                                                                     input_dict['instrument_name'].upper(),
+                                                                     input_dict['service_desc'],
+                                                                     resolution_strings['value'],
+                                                                     resolution_strings['unit']
+                                                                     )
+
+    return area_naming_dict
+
+
+def get_resolution_and_unit_strings(resolution):
+    """Get the resolution value and unit as strings.
+
+    If the resolution is larger than 1000 m, use kilometer as unit. If lower, use meter.
+
+    Args:
+        resolution: scalar
+            Resolution in meters.
+
+    Returns:
+        Dictionary with `value` and `unit` keys, values are strings.
+    """
+    if resolution >= 1000:
+        return {'value': '{:.0f}'.format(resolution*1e-3),
+                'unit': 'km'}
+
+    return {'value': '{:.0f}'.format(resolution),
+            'unit': 'm'}

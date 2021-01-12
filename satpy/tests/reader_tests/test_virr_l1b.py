@@ -130,23 +130,23 @@ class TestVIRRL1BReader(unittest.TestCase):
         datasets = reader.load([band for band in band_values])
         for dataset in datasets:
             # Object returned by get_dataset.
-            ds = datasets[dataset.name]
+            ds = datasets[dataset['name']]
             attributes = ds.attrs
             self.assertTrue(isinstance(ds.data, da.Array))
             self.assertEqual('virr', attributes['sensor'])
             self.assertEqual(platform_name, attributes['platform_name'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
-            self.assertEqual((19, 20), datasets[dataset.name].shape)
-            self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
-            if dataset.name in ['1', '2', '6', '7', '8', '9', '10']:
+            self.assertEqual((19, 20), datasets[dataset['name']].shape)
+            self.assertEqual(('y', 'x'), datasets[dataset['name']].dims)
+            if dataset['name'] in ['1', '2', '6', '7', '8', '9', '10']:
                 self._band_helper(attributes, '%', 'reflectance',
                                   'toa_bidirectional_reflectance', 'virr_l1b',
                                   7, 1000)
-            elif dataset.name in ['3', '4', '5']:
+            elif dataset['name'] in ['3', '4', '5']:
                 self._band_helper(attributes, Emissive_units, 'brightness_temperature',
                                   'toa_brightness_temperature', 'virr_l1b', 3, 1000)
-            elif dataset.name in ['longitude', 'latitude']:
+            elif dataset['name'] in ['longitude', 'latitude']:
                 self.assertEqual('degrees', attributes['units'])
                 self.assertTrue(attributes['standard_name'] in ['longitude', 'latitude'])
                 self.assertEqual(['virr_l1b', 'virr_geoxx'], attributes['file_type'])
@@ -158,7 +158,7 @@ class TestVIRRL1BReader(unittest.TestCase):
                                                     'sensor_azimuth_angle'])
                 self.assertEqual(['virr_geoxx', 'virr_l1b'], attributes['file_type'])
                 self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
-            self.assertEqual(band_values[dataset.name],
+            self.assertEqual(band_values[dataset['name']],
                              round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
 
     def test_fy3b_file(self):
@@ -166,7 +166,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         from satpy.readers import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(['tf2018359214943.FY3B-L_VIRRX_L1B.HDF'])
-        self.assertTrue(1, len(FY3B_file))
+        self.assertEqual(1, len(FY3B_file))
         FY3B_reader.create_filehandlers(FY3B_file)
         # Make sure we have some files
         self.assertTrue(FY3B_reader.file_handlers)
@@ -178,7 +178,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         FY3C_reader = load_reader(self.reader_configs)
         FY3C_files = FY3C_reader.select_files_from_pathnames(['tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF',
                                                               'tf2018359143912.FY3C-L_VIRRX_L1B.HDF'])
-        self.assertTrue(2, len(FY3C_files))
+        self.assertEqual(2, len(FY3C_files))
         FY3C_reader.create_filehandlers(FY3C_files)
         # Make sure we have some files
         self.assertTrue(FY3C_reader.file_handlers)

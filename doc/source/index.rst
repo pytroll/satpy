@@ -21,7 +21,7 @@ The Satpy library acts as a high-level abstraction layer on top of other
 libraries maintained by the Pytroll group including:
 
 - `Pyresample <http://pyresample.readthedocs.io/en/latest/>`_
-- `PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_
+- `PySpectral <https://pyspectral.readthedocs.io/en/latest/>`_
 - `Trollimage <http://trollimage.readthedocs.io/en/latest/>`_
 - `Pycoast <https://pycoast.readthedocs.io/en/latest/>`_
 - `Pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
@@ -82,7 +82,7 @@ the base Satpy installation.
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
       - `seviri_l1b_native`
-      - HRV full disk data cannot be remapped.
+      - Nominal.
     * - MSG (Meteosat 8 to 11) SEVIRI data in netCDF format
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
@@ -92,12 +92,19 @@ the base Satpy installation.
       - AMV BUFR products not supported yet.
     * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
       - `seviri_l2_grib`
-      - In development, CLM and OCA products supported  
+      - In development, CLM, OCA and FIR products supported
+    * - MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
+      - `mviri_l1b_fiduceo_nc`
+      - Beta
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
     * - Himawari 8 and 9 AHI data in HRIT format
       - `ahi_hrit`
+      - Nominal
+    * - Himawari 8 and 9 AHI data in Gridded binary format,
+        from http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
+      - `ahi_l1b_gridded_bin`
       - Nominal
     * - MTSAT-1R JAMI data in JMA HRIT format
       - `jami_hrit`
@@ -256,11 +263,14 @@ the base Satpy installation.
       - `smos_l2_wind`
       - Beta
     * - AMSR2 level 2 wind data in HDF5 format
-      - `amsr_l2`
+      - `amsr2_l2`
       - Beta
     * - GPM IMERG level 3 precipitation data in HDF5 format
       - `gpm_imerg`
       - Nominal
+    * - AMSR2 level 2 GAASP in NetCDF4 format
+      - `amsr2_l2_gaasp`
+      - Beta
 
 Indices and tables
 ==================

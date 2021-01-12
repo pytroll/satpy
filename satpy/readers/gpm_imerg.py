@@ -65,7 +65,7 @@ class Hdf5IMERG(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
-        file_key = ds_info.get('file_key', dataset_id.name)
+        file_key = ds_info.get('file_key', dataset_id['name'])
         dsname = 'Grid/' + file_key
         data = self[dsname].squeeze().transpose()
         data.values = np.flipud(data.values)

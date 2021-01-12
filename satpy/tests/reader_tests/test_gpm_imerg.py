@@ -114,7 +114,7 @@ class TestHdf5IMERG(unittest.TestCase):
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)

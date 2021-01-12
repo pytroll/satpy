@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit tests for AMSR L2 reader"""
+"""Unit tests for AMSR L2 reader."""
 
 import os
 import unittest
@@ -36,9 +36,10 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/PlatformShortName': 'GCOM-W1',
             '/attr/SensorShortName': 'AMSR2',
@@ -67,11 +68,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 
 class TestAMSR2L2Reader(unittest.TestCase):
-    """Test AMSR2 L2 Reader"""
+    """Test AMSR2 L2 Reader."""
+
     yaml_file = "amsr2_l2.yaml"
 
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.amsr2_l2 import AMSR2L2FileHandler
         from satpy.readers.amsr2_l1b import AMSR2L1BFileHandler
@@ -83,7 +85,7 @@ class TestAMSR2L2Reader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -93,19 +95,19 @@ class TestAMSR2L2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
     def test_load_basic(self):
-        """Test loading of basic channels"""
+        """Test loading of basic channels."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         ds = r.load(['ssw'])
         self.assertEqual(len(ds), 1)

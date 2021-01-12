@@ -61,24 +61,28 @@ class MERSI2L1B(HDF5FileHandler):
         }.get(file_sensor, file_sensor)
         return sensor
 
+    def _get_single_slope_intercept(self, slope, intercept, cal_index):
+        try:
+            # convert scalar arrays to scalar
+            return slope.item(), intercept.item()
+        except ValueError:
+            # numpy array but has more than one element
+            return slope[cal_index], intercept[cal_index]
+        return slope, intercept
+
     def _get_coefficients(self, cal_key, cal_index):
         coeffs = self[cal_key][cal_index]
         slope = coeffs.attrs.pop('Slope', None)
         intercept = coeffs.attrs.pop('Intercept', None)
         if slope is not None:
-            # sometimes slope has multiple elements
-            if hasattr(slope, '__len__') and len(slope) == 1:
-                slope = slope[0]
-                intercept = intercept[0]
-            elif hasattr(slope, '__len__'):
-                slope = slope[cal_index]
-                intercept = intercept[cal_index]
+            slope, intercept = self._get_single_slope_intercept(
+                slope, intercept, cal_index)
             coeffs = coeffs * slope + intercept
         return coeffs
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data variable and metadata and calibrate if needed."""
-        file_key = ds_info.get('file_key', dataset_id.name)
+        file_key = ds_info.get('file_key', dataset_id['name'])
         band_index = ds_info.get('band_index')
         data = self[file_key]
         if band_index is not None:
@@ -92,7 +96,7 @@ class MERSI2L1B(HDF5FileHandler):
 
         fill_value = attrs.pop('FillValue', np.nan)  # covered by valid_range
         valid_range = attrs.pop('valid_range', None)
-        if dataset_id.calibration == 'counts':
+        if dataset_id.get('calibration') == 'counts':
             # preserve integer type of counts if possible
             attrs['_FillValue'] = fill_value
             new_fill = fill_value
@@ -101,7 +105,7 @@ class MERSI2L1B(HDF5FileHandler):
         if valid_range is not None:
             # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
             # in the HDF data, this is hardcoded here.
-            if dataset_id.name in ['24', '25'] and valid_range[1] == 4095:
+            if dataset_id['name'] in ['24', '25'] and valid_range[1] == 4095:
                 valid_range[1] = 25000
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
@@ -110,20 +114,20 @@ class MERSI2L1B(HDF5FileHandler):
 
         slope = attrs.pop('Slope', None)
         intercept = attrs.pop('Intercept', None)
-        if slope is not None and dataset_id.calibration != 'counts':
+        if slope is not None and dataset_id.get('calibration') != 'counts':
             if band_index is not None:
                 slope = slope[band_index]
                 intercept = intercept[band_index]
             data = data * slope + intercept
 
-        if dataset_id.calibration == "reflectance":
+        if dataset_id.get('calibration') == "reflectance":
             # some bands have 0 counts for the first N columns and
             # seem to be invalid data points
             data = data.where(data != 0)
             coeffs = self._get_coefficients(ds_info['calibration_key'],
                                             ds_info['calibration_index'])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2
-        elif dataset_id.calibration == "brightness_temperature":
+        elif dataset_id.get('calibration') == "brightness_temperature":
             cal_index = ds_info['calibration_index']
             # Apparently we don't use these calibration factors for Rad -> BT
             # coeffs = self._get_coefficients(ds_info['calibration_key'], cal_index)
@@ -137,7 +141,7 @@ class MERSI2L1B(HDF5FileHandler):
 
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
-            wave_number = 1. / (dataset_id.wavelength[1] / 1e6)
+            wave_number = 1. / (dataset_id['wavelength'][1] / 1e6)
             # pass the dask array
             bt_data = rad2temp(wave_number, data.data * 1e-5)  # brightness temperature
             if isinstance(bt_data, np.ndarray):

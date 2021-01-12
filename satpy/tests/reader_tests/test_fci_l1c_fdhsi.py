@@ -149,21 +149,14 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
     def _get_test_content_areadef(self):
         data = {}
-        proc = "state/processor"
-        for (lb, no) in (
-                ("earth_equatorial_radius", 6378137),
-                ("earth_polar_radius", 6356752),
-                ("reference_altitude", 35786000),
-                ("projection_origin_longitude", 0)):
-            data[proc + "/" + lb] = xr.DataArray(no)
+
         proj = "data/mtg_geos_projection"
 
         attrs = {
-                "sweep_angle_axis": "x",
-                "perspective_point_height": "35786400",
-                "semi_major_axis": "6378137",
-                "semi_minor_axis": "6356752",
-                "longitude_of_projection_origin": "0",
+                "sweep_angle_axis": "y",
+                "perspective_point_height": "35786400.0",
+                "semi_major_axis": "6378137.0",
+                "longitude_of_projection_origin": "0.0",
                 "inverse_flattening": "298.257223563",
                 "units": "m"}
         data[proj] = xr.DataArray(
@@ -227,7 +220,6 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
 @pytest.fixture
 def reader_configs():
     """Return reader configs for FCI."""
-
     from satpy.config import config_search_paths
     return config_search_paths(
         os.path.join("readers", "fci_l1c_fdhsi.yaml"))
@@ -256,9 +248,6 @@ class TestFCIL1CFDHSIReader:
 
 class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
     """Test FCI L1C FDHSI reader."""
-
-    # TODO:
-    # - test geolocation
 
     _alt_handler = FakeNetCDF4FileHandler2
 
@@ -296,7 +285,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_counts(self, reader_configs):
         """Test loading with counts."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         # testing two filenames to test correctly combined
@@ -313,8 +302,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [DatasetID(name=name, calibration="counts") for name in
-                    self._chans["solar"] + self._chans["terran"]])
+                [make_dataid(name=name, calibration="counts") for name in
+                    self._chans["solar"] + self._chans["terran"]], pad_data=False)
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch].shape == (200*2, 11136)
@@ -329,7 +318,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_radiance(self, reader_configs):
         """Test loading with radiance."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -342,8 +331,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [DatasetID(name=name, calibration="radiance") for name in
-                    self._chans["solar"] + self._chans["terran"]])
+                [make_dataid(name=name, calibration="radiance") for name in
+                    self._chans["solar"] + self._chans["terran"]], pad_data=False)
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch].shape == (200, 11136)
@@ -358,7 +347,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_reflectance(self, reader_configs):
         """Test loading with reflectance."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -371,8 +360,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [DatasetID(name=name, calibration="reflectance") for name in
-                    self._chans["solar"]])
+                [make_dataid(name=name, calibration="reflectance") for name in
+                    self._chans["solar"]], pad_data=False)
         assert 8 == len(res)
         for ch in self._chans["solar"]:
             assert res[ch].shape == (200, 11136)
@@ -383,7 +372,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_bt(self, reader_configs, caplog):
         """Test loading with bt."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -396,8 +385,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         with caplog.at_level(logging.WARNING):
             res = reader.load(
-                    [DatasetID(name=name, calibration="brightness_temperature") for
-                        name in self._chans["terran"]])
+                    [make_dataid(name=name, calibration="brightness_temperature") for
+                        name in self._chans["terran"]], pad_data=False)
             assert caplog.text == ""
         for ch in self._chans["terran"]:
             assert res[ch].shape == (200, 11136)
@@ -417,7 +406,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         # this method should probably move to a dedicated class and module
         # in the tests.compositor_tests package
 
-        from satpy.composites import CompositorLoader
+        from satpy.composites.config_loader import CompositorLoader
         cl = CompositorLoader()
         (comps, mods) = cl.load_compositors(["fci"])
         assert len(comps["fci"]) > 0
@@ -436,7 +425,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        res = reader.load(["ir_123_pixel_quality"])
+        res = reader.load(["ir_123_pixel_quality"], pad_data=False)
         assert res["ir_123_pixel_quality"].attrs["name"] == "ir_123_pixel_quality"
 
     def test_platform_name(self, reader_configs):
@@ -456,12 +445,12 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        res = reader.load(["ir_123"])
+        res = reader.load(["ir_123"], pad_data=False)
         assert res["ir_123"].attrs["platform_name"] == "MTG-I1"
 
-    def test_excs(self, reader_configs, caplog):
+    def test_excs(self, reader_configs):
         """Test that exceptions are raised where expected."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -475,15 +464,47 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         fhs = reader.create_filehandlers(loadables)
 
         with pytest.raises(ValueError):
-            fhs["fci_l1c_fdhsi"][0].get_dataset(DatasetID(name="invalid"), {})
+            fhs["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
         with pytest.raises(ValueError):
-            fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(DatasetID(name="invalid"),
+            fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(make_dataid(name="invalid"),
                                                          {})
-        with caplog.at_level(logging.ERROR):
+        with pytest.raises(ValueError):
             fhs["fci_l1c_fdhsi"][0].get_dataset(
-                    DatasetID(name="ir_123", calibration="unknown"),
+                    make_dataid(name="ir_123", calibration="unknown"),
                     {"units": "unknown"})
-            assert "unknown calibration key" in caplog.text
+
+    def test_area_definition_computation(self, reader_configs):
+        """Test that the geolocation computation is correct."""
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        res = reader.load(['ir_105', 'vis_06'], pad_data=False)
+
+        # test that area_ids are harmonisation-conform <platform>_<instrument>_<service>_<resolution>
+        assert res['vis_06'].attrs['area'].area_id == 'mtg_fci_fdss_1km'
+        assert res['ir_105'].attrs['area'].area_id == 'mtg_fci_fdss_2km'
+
+        area_def = res['ir_105'].attrs['area']
+        # test area extents computation
+        np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
+                                             np.array([-5568062.23065902, 5168057.7600648,
+                                                       16704186.692027, 5568062.23065902]))
+
+        # check that the projection is read in properly
+        assert area_def.crs.coordinate_operation.method_name == 'Geostationary Satellite (Sweep Y)'
+        assert area_def.crs.coordinate_operation.params[0].value == 0.0  # projection origin longitude
+        assert area_def.crs.coordinate_operation.params[1].value == 35786400.0  # projection height
+        assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0
+        assert area_def.crs.ellipsoid.inverse_flattening == 298.257223563
+        assert area_def.crs.ellipsoid.is_semi_minor_computed
 
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
@@ -493,7 +514,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
 
     def test_handling_bad_data_ir(self, reader_configs, caplog):
         """Test handling of bad IR data."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -506,14 +527,14 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         with caplog.at_level("ERROR"):
-            reader.load([DatasetID(
+            reader.load([make_dataid(
                     name="ir_123",
-                    calibration="brightness_temperature")])
+                    calibration="brightness_temperature")], pad_data=False)
             assert "cannot produce brightness temperature" in caplog.text
 
     def test_handling_bad_data_vis(self, reader_configs, caplog):
         """Test handling of bad VIS data."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -526,7 +547,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         with caplog.at_level("ERROR"):
-            reader.load([DatasetID(
+            reader.load([make_dataid(
                     name="vis_04",
-                    calibration="reflectance")])
+                    calibration="reflectance")], pad_data=False)
             assert "cannot produce reflectance" in caplog.text

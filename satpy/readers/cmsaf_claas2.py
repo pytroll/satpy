@@ -7,6 +7,7 @@ from .netcdf_utils import NetCDF4FileHandler
 
 class CLAAS2(NetCDF4FileHandler):
     """Handle CMSAF CLAAS-2 files."""
+
     def __init__(self, *args, **kwargs):
         """Initialise class."""
         super().__init__(*args, **kwargs, cache_handle=False,
@@ -15,7 +16,6 @@ class CLAAS2(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get start time from file."""
-
         # datetime module can't handle timezone identifier
         return datetime.datetime.fromisoformat(
                 self["/attr/time_coverage_start"].rstrip("Z"))
@@ -32,7 +32,6 @@ class CLAAS2(NetCDF4FileHandler):
         Return a generator that will yield the datasets available in the loaded
         files.  See docstring in parent class for specification details.
         """
-
         # this method should work for any (CF-conform) NetCDF file, should it
         # be somewhere more generically available?  Perhaps in the
         # `NetCDF4FileHandler`?
@@ -64,13 +63,15 @@ class CLAAS2(NetCDF4FileHandler):
         return ds_info
 
     def get_dataset(self, dataset_id, info):
-        ds = self[dataset_id.name]
+        """Get the dataset."""
+        ds = self[dataset_id['name']]
         if "time" in ds.dims:
             return ds.squeeze(["time"])
         else:
             return ds
 
     def get_area_def(self, dataset_id):
+        """Get the area definition."""
         return pyresample.geometry.AreaDefinition(
                 "some_area_name",
                 "on-the-fly area",

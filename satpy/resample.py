@@ -49,7 +49,7 @@ argument and defaults to ``nearest``:
 .. code-block:: python
 
     >>> scn = Scene(...)
-    >>> euro_scn = global_scene.resample('euro4', resampler='nearest')
+    >>> euro_scn = scn.resample('euro4', resampler='nearest')
 
 .. warning::
 
@@ -106,7 +106,7 @@ areas that can be passed to the resample method::
 
     >>> from pyresample.geometry import AreaDefinition
     >>> my_area = AreaDefinition(...)
-    >>> local_scene = global_scene.resample(my_area)
+    >>> local_scene = scn.resample(my_area)
 
 Create dynamic area definition
 ------------------------------
@@ -145,10 +145,11 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
+except ImportError:
+    PRBaseResampler = None
+try:
     from pyresample.gradient import GradientSearchResampler
 except ImportError:
-    warnings.warn('Gradient search resampler not available, upgrade Pyresample.')
-    PRBaseResampler = None
     GradientSearchResampler = None
 
 from satpy import CHUNK_SIZE
@@ -828,7 +829,10 @@ class BilinearResampler(BaseResampler):
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
-        from pyresample.bilinear.xarr import XArrayResamplerBilinear
+        try:
+            from pyresample.bilinear import XArrayBilinearResampler
+        except ImportError:
+            from pyresample.bilinear import XArrayResamplerBilinear as XArrayBilinearResampler
 
         del kwargs
         del mask
@@ -840,7 +844,7 @@ class BilinearResampler(BaseResampler):
                           neighbours=32,
                           epsilon=epsilon)
 
-            self.resampler = XArrayResamplerBilinear(**kwargs)
+            self.resampler = XArrayBilinearResampler(**kwargs)
             try:
                 self.load_bil_info(cache_dir, **kwargs)
                 LOG.debug("Loaded bilinear parameters")
@@ -857,11 +861,10 @@ class BilinearResampler(BaseResampler):
                                                    prefix='bil_lut-',
                                                    **kwargs)
             try:
-                fid = zarr.open(filename, 'r')
-                for val in BIL_COORDINATES.keys():
-                    cache = np.array(fid[val])
-                    setattr(self.resampler, val, cache)
-            except ValueError:
+                self.resampler.load_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
                 raise IOError
         else:
             raise IOError
@@ -876,15 +879,11 @@ class BilinearResampler(BaseResampler):
             if os.path.exists(filename):
                 _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
-            zarr_out = xr.Dataset()
-            for idx_name, coord in BIL_COORDINATES.items():
-                var = getattr(self.resampler, idx_name)
-                if isinstance(var, np.ndarray):
-                    var = da.from_array(var, chunks=CHUNK_SIZE)
-                else:
-                    var = var.rechunk(CHUNK_SIZE)
-                zarr_out[idx_name] = (coord, var)
-            zarr_out.to_zarr(filename)
+            try:
+                self.resampler.save_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
@@ -907,7 +906,7 @@ def _move_existing_caches(cache_dir, filename):
     import shutil
     old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
     try:
-        os.mkdir(old_cache_dir)
+        os.makedirs(old_cache_dir)
     except FileExistsError:
         pass
     try:
@@ -1109,7 +1108,7 @@ class BucketResamplerBase(BaseResampler):
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
 
-        return result
+        return update_resampled_coords(data, result, self.target_geo_def)
 
 
 class BucketAvg(BucketResamplerBase):
@@ -1232,6 +1231,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
+# deepcode ignore PythonSameEvalBinaryExpressiontrue: PRBaseResampler is None only on import errors
 if PRBaseResampler is None:
     PRBaseResampler = BaseResampler
 
@@ -1249,6 +1249,8 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     elif isinstance(resampler, str):
         resampler_class = RESAMPLERS.get(resampler, None)
         if resampler_class is None:
+            if resampler == "gradient_search":
+                warnings.warn('Gradient search resampler not available. Maybe missing `shapely`?')
             raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler

@@ -24,10 +24,12 @@ from unittest import TestCase
 from unittest import mock
 
 import numpy as np
-import xarray as xr
+import pytest
 import satpy
-from satpy import DatasetID
+import xarray as xr
 from satpy.readers import eps_l1b as eps
+from satpy.tests.utils import make_dataid
+
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
                       ("RECORD_SUBCLASS", "|i1"),
@@ -57,23 +59,38 @@ def create_sections(structure):
     return sections
 
 
-class TestEPSL1B(TestCase):
+class BaseTestCaseEPSL1B(TestCase):
+    """Base class for EPS l1b test case."""
+
+    def _create_structure(self):
+        structure = [(1, ('mphr', 0)), (1, ('sphr', 0)), (11, ('ipr', 0)),
+                     (1, ('geadr', 1)), (1, ('geadr', 2)), (1, ('geadr', 3)),
+                     (1, ('geadr', 4)), (1, ('geadr', 5)), (1, ('geadr', 6)),
+                     (1, ('geadr', 7)), (1, ('giadr', 1)), (1, ('giadr', 2)),
+                     (1, ('veadr', 1)), (self.scan_lines, ('mdr', 2))]
+        sections = create_sections(structure)
+        return sections
+
+
+class TestEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler."""
 
     def setUp(self):
         """Set up the tests."""
         # ipr is not present in the xml format ?
-        structure = [(1, ('mphr', 0)), (1, ('sphr', 0)), (11, ('ipr', 0)),
-                     (1, ('geadr', 1)), (1, ('geadr', 2)), (1, ('geadr', 3)),
-                     (1, ('geadr', 4)), (1, ('geadr', 5)), (1, ('geadr', 6)),
-                     (1, ('geadr', 7)), (1, ('giadr', 1)), (1, ('giadr', 2)),
-                     (1, ('veadr', 1)), (1080, ('mdr', 2))]
+        self.scan_lines = 1080
+        self.earth_views = 2048
 
-        sections = create_sections(structure)
-        sections[('mphr', 0)]['TOTAL_MDR'] = b'TOTAL_MDR                     =   1080\n'
+        sections = self._create_structure()
+        sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
+                                              bytes(str(self.scan_lines), encoding='ascii') +
+                                              b'\n')
         sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
         sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
-        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = b'EARTH_VIEWS_PER_SCANLINE      =  2048\n'
+        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = (b'EARTH_VIEWS_PER_SCANLINE      =  ' +
+                                                             bytes(str(self.earth_views), encoding='ascii') +
+                                                             b'\n')
+        sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = b'NAV_SAMPLE_RATE               =  20\n'
 
         _fd, fname = mkstemp()
         fd = open(_fd)
@@ -93,7 +110,7 @@ class TestEPSL1B(TestCase):
 
     def test_dataset(self):
         """Test getting a dataset."""
-        did = DatasetID('1', calibration='reflectance')
+        did = make_dataid(name='1', calibration='reflectance')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
@@ -101,7 +118,7 @@ class TestEPSL1B(TestCase):
         assert(res.attrs['name'] == '1')
         assert(res.attrs['calibration'] == 'reflectance')
 
-        did = DatasetID('4', calibration='brightness_temperature')
+        did = make_dataid(name='4', calibration='brightness_temperature')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
@@ -111,7 +128,7 @@ class TestEPSL1B(TestCase):
 
     def test_navigation(self):
         """Test the navigation."""
-        did = DatasetID('longitude')
+        did = make_dataid(name='longitude')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
@@ -120,7 +137,7 @@ class TestEPSL1B(TestCase):
 
     def test_angles(self):
         """Test the navigation."""
-        did = DatasetID('solar_zenith_angle')
+        did = make_dataid(name='solar_zenith_angle')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
@@ -160,7 +177,106 @@ class TestEPSL1B(TestCase):
             sun_zen_np2 = np.array(avhrr_reader.sun_zen)
             assert np.allclose(sun_zen_np1, sun_zen_np2)
 
+
+class TestWrongScanlinesEPSL1B(BaseTestCaseEPSL1B):
+    """Test the filehandler on a corrupt file."""
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        """Inject caplog."""
+        self._caplog = caplog
+
+    def setUp(self):
+        """Set up the tests."""
+        # ipr is not present in the xml format ?
+        self.scan_lines = 1080
+        self.earth_views = 2048
+
+        sections = self._create_structure()
+        sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
+                                              bytes(str(self.scan_lines - 2), encoding='ascii') +
+                                              b'\n')
+        sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
+        sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
+        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = (b'EARTH_VIEWS_PER_SCANLINE      =  ' +
+                                                             bytes(str(self.earth_views), encoding='ascii') +
+                                                             b'\n')
+        sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = b'NAV_SAMPLE_RATE               =  20\n'
+        _fd, fname = mkstemp()
+        fd = open(_fd)
+
+        self.filename = fname
+        for _, arr in sections.items():
+            arr.tofile(fd)
+        fd.close()
+        self.fh = eps.EPSAVHRRFile(self.filename, {'start_time': 'now',
+                                                   'end_time': 'later'}, {})
+
+    def test_read_all_return_right_number_of_scan_lines(self):
+        """Test scanline assignment."""
+        self.fh._read_all()
+        assert self.fh.scanlines == self.scan_lines
+
+    def test_read_all_warns_about_scan_lines(self):
+        """Test scanline assignment."""
+        self.fh._read_all()
+        assert "scanlines" in self._caplog.records[0].message
+        assert self._caplog.records[0].levelname == 'WARNING'
+
+    def test_read_all_assigns_int_scan_lines(self):
+        """Test scanline assignment."""
+        self.fh._read_all()
+        assert isinstance(self.fh.scanlines, int)
+
+    def test_get_dataset_longitude_shape_is_right(self):
+        """Test that the shape of longitude is 1080."""
+        key = make_dataid(name="longitude")
+        longitudes = self.fh.get_dataset(key, dict())
+        assert longitudes.shape == (self.scan_lines, self.earth_views)
+
     def tearDown(self):
         """Tear down the tests."""
         with suppress(OSError):
             os.remove(self.filename)
+
+
+class TestWrongSamplingEPSL1B(BaseTestCaseEPSL1B):
+    """Test the filehandler on a corrupt file."""
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        """Inject caplog."""
+        self._caplog = caplog
+
+    def setUp(self):
+        """Set up the tests."""
+        self.scan_lines = 1080
+        self.earth_views = 2048
+        self.sample_rate = 23
+        sections = self._create_structure()
+        sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
+                                              bytes(str(self.scan_lines), encoding='ascii') +
+                                              b'\n')
+        sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
+        sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
+        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = (b'EARTH_VIEWS_PER_SCANLINE      =  ' +
+                                                             bytes(str(self.earth_views), encoding='ascii') +
+                                                             b'\n')
+        sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = (b'NAV_SAMPLE_RATE               =  ' +
+                                                    bytes(str(self.sample_rate), encoding='ascii') +
+                                                    b'\n')
+        _fd, fname = mkstemp()
+        fd = open(_fd)
+
+        self.filename = fname
+        for _, arr in sections.items():
+            arr.tofile(fd)
+        fd.close()
+        self.fh = eps.EPSAVHRRFile(self.filename, {'start_time': 'now',
+                                                   'end_time': 'later'}, {})
+
+    def test_get_dataset_fails_because_of_wrong_sample_rate(self):
+        """Test that lons fail to be interpolate."""
+        key = make_dataid(name="longitude")
+        with pytest.raises(NotImplementedError):
+            self.fh.get_dataset(key, dict())

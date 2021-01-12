@@ -34,6 +34,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     _ncols = 40
 
     def __init__(self, *args, auto_maskandscale, **kwargs):
+        """Init the file handler."""
         # make sure that CLAAS2 reader asks NetCDF4FileHandler for having
         # auto_maskandscale enabled
         assert auto_maskandscale
@@ -128,7 +129,6 @@ def fake_handler():
 
 def test_file_pattern(reader):
     """Test file pattern matching."""
-
     filenames = [
             "CTXin20040120091500305SVMSG01MD.nc",
             "CTXin20040120093000305SVMSG01MD.nc",
@@ -142,7 +142,7 @@ def test_file_pattern(reader):
 
 def test_load(reader):
     """Test loading."""
-    from satpy import DatasetID
+    from satpy.tests.utils import make_dataid
 
     # testing two filenames to test correctly combined
     filenames = [
@@ -152,7 +152,7 @@ def test_load(reader):
     loadables = reader.select_files_from_pathnames(filenames)
     reader.create_filehandlers(loadables)
     res = reader.load(
-            [DatasetID(name=name) for name in ["cph", "ctt"]])
+            [make_dataid(name=name) for name in ["cph", "ctt"]])
     assert 2 == len(res)
     assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
     assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)

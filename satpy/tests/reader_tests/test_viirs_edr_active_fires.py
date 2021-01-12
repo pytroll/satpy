@@ -178,7 +178,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
@@ -235,7 +235,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
@@ -293,7 +293,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
@@ -349,7 +349,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 

@@ -39,9 +39,10 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
-    """Swap-in HDF4 File Handler"""
+    """Swap-in HDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/platform': 'SNPP',
             '/attr/sensor': 'VIIRS',
@@ -106,10 +107,11 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
 
 class TestCLAVRXReaderPolar(unittest.TestCase):
     """Test CLAVR-X Reader with Polar files."""
+
     yaml_file = "clavrx.yaml"
 
     def setUp(self):
-        """Wrap HDF4 file handler with our own fake handler"""
+        """Wrap HDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.clavrx import CLAVRXFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -119,7 +121,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -129,7 +131,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -141,7 +143,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -201,7 +203,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         self.assertEqual(new_ds_infos[8][1]['resolution'], 742)
 
     def test_load_all(self):
-        """Test loading all test datasets"""
+        """Test loading all test datasets."""
         from satpy.readers import load_reader
         import xarray as xr
         r = load_reader(self.reader_configs)
@@ -215,15 +217,16 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
 
 class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
-    """Swap-in HDF4 File Handler"""
+    """Swap-in HDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/platform': 'HIM8',
             '/attr/sensor': 'AHI',
@@ -296,10 +299,11 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
 
 class TestCLAVRXReaderGeo(unittest.TestCase):
     """Test CLAVR-X Reader with Geo files."""
+
     yaml_file = "clavrx.yaml"
 
     def setUp(self):
-        """Wrap HDF4 file handler with our own fake handler"""
+        """Wrap HDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.clavrx import CLAVRXFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -309,7 +313,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -319,7 +323,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_H08_20180806_1800.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -364,7 +368,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
@@ -397,7 +401,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
