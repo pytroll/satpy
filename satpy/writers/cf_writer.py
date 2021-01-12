@@ -594,7 +594,7 @@ class CFWriter(Writer):
         link_coords(datas)
         datas = make_alt_coords_unique(datas, pretty=pretty)
 
-        return datas, start_times, end_times
+        return datas
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
