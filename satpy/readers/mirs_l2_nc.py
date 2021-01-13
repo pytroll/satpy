@@ -382,7 +382,7 @@ class MIRSL2ncHandler(BaseFileHandler):
                 data = self.limb_correct_atms_bt(data, ds_info)
                 self.nc = self.nc.merge(data)
         else:
-            data = self[ds_id]
+            data = self[ds_id['name']]
 
         data.attrs = self.get_metadata(data, ds_info)
 
