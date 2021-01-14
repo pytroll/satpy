@@ -1,3 +1,83 @@
+## Version 0.25.1 (2021/01/06)
+
+### Issues Closed
+
+* [Issue 1500](https://github.com/pytroll/satpy/issues/1500) - Cannot create a scene for OLCI data
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1502](https://github.com/pytroll/satpy/pull/1502) - Fix the linting error of test_agri_l1
+* [PR 1459](https://github.com/pytroll/satpy/pull/1459) - Remove unnecessary string decode in agri_l1 reader
+
+In this release 2 pull requests were closed.
+
+
+## Version 0.25.0 (2021/01/04)
+
+### Issues Closed
+
+* [Issue 1494](https://github.com/pytroll/satpy/issues/1494) - geolocation problem with MODIS LAADS data
+* [Issue 1489](https://github.com/pytroll/satpy/issues/1489) - The reader "viirs_l1b" cannot read the VIIRS L1B data
+* [Issue 1488](https://github.com/pytroll/satpy/issues/1488) - Resampling with bucket resamplers drops coords from xr.DataArray ([PR 1491](https://github.com/pytroll/satpy/pull/1491))
+* [Issue 1460](https://github.com/pytroll/satpy/issues/1460) - VIIl1b reader fails for testdata ([PR 1462](https://github.com/pytroll/satpy/pull/1462))
+* [Issue 1453](https://github.com/pytroll/satpy/issues/1453) - Small error in documentation ([PR 1473](https://github.com/pytroll/satpy/pull/1473))
+* [Issue 1449](https://github.com/pytroll/satpy/issues/1449) - Encoding of wavelength range ([PR 1466](https://github.com/pytroll/satpy/pull/1466))
+* [Issue 1446](https://github.com/pytroll/satpy/issues/1446) - Resample
+* [Issue 1443](https://github.com/pytroll/satpy/issues/1443) - Loading and resampling composites sometimes discards their dependencies ([PR 1351](https://github.com/pytroll/satpy/pull/1351))
+* [Issue 1440](https://github.com/pytroll/satpy/issues/1440) - Error reading SEVIRI native file from EUMETSAT API ([PR 1438](https://github.com/pytroll/satpy/pull/1438))
+* [Issue 1437](https://github.com/pytroll/satpy/issues/1437) - HSD / HRIT projection question
+* [Issue 1436](https://github.com/pytroll/satpy/issues/1436) - 'str' object has no attribute 'decode' during Sentinel-2 MSI processing
+* [Issue 1187](https://github.com/pytroll/satpy/issues/1187) - Areas claiming to view "full globe" should be labelled "full disk" instead ([PR 1485](https://github.com/pytroll/satpy/pull/1485))
+
+In this release 12 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1491](https://github.com/pytroll/satpy/pull/1491) - Fix missing coordinates for bucket resamplers ([1488](https://github.com/pytroll/satpy/issues/1488))
+* [PR 1481](https://github.com/pytroll/satpy/pull/1481) - Remove x/y coordinates in mviri_l1b_fiduceo_nc
+* [PR 1473](https://github.com/pytroll/satpy/pull/1473) - Fix '::' erroneous for dicts syntax in docstrings ([1453](https://github.com/pytroll/satpy/issues/1453), [1453](https://github.com/pytroll/satpy/issues/1453))
+* [PR 1466](https://github.com/pytroll/satpy/pull/1466) - Fix wavelength range print out to use regular nbsp ([1449](https://github.com/pytroll/satpy/issues/1449))
+* [PR 1447](https://github.com/pytroll/satpy/pull/1447) - Fix handling of modifiers in satpy-cf reader
+
+#### Features added
+
+* [PR 1485](https://github.com/pytroll/satpy/pull/1485) - Harmonise AreaDefinition namings in EUM geos readers and sort geos areas in areas.yaml ([1187](https://github.com/pytroll/satpy/issues/1187))
+* [PR 1478](https://github.com/pytroll/satpy/pull/1478) - Improve FCI geolocation computation, harmonize area_id, add geolocation tests
+* [PR 1476](https://github.com/pytroll/satpy/pull/1476) - Add support for multiple values in the DecisionTree used for enhancements
+* [PR 1474](https://github.com/pytroll/satpy/pull/1474) - Fix EUMGACFDR reader so that all datasets can be read.
+* [PR 1465](https://github.com/pytroll/satpy/pull/1465) - Updates to FCI reader to include CT, CTTH, GII and the latest filenam…
+* [PR 1457](https://github.com/pytroll/satpy/pull/1457) - Harmonize calibration in SEVIRI readers
+* [PR 1442](https://github.com/pytroll/satpy/pull/1442) - Switch ci coverage to xml for codecov compatibility
+* [PR 1441](https://github.com/pytroll/satpy/pull/1441) - Add github workflow
+* [PR 1439](https://github.com/pytroll/satpy/pull/1439) - Add support for s3 buckets in OLCI and ABI l1 readers
+* [PR 1438](https://github.com/pytroll/satpy/pull/1438) - Full disk padding feature for SEVIRI Native data ([1440](https://github.com/pytroll/satpy/issues/1440))
+* [PR 1427](https://github.com/pytroll/satpy/pull/1427) - Add reader for FIDUCEO MVIRI FCDR data
+* [PR 1421](https://github.com/pytroll/satpy/pull/1421) - Add reader for AMSR2 Level 2 data produced by GAASP software (amsr2_l2_gaasp)
+* [PR 1402](https://github.com/pytroll/satpy/pull/1402) - Add ability to create complex tiled AWIPS NetCDF files (formerly SCMI writer)
+* [PR 1393](https://github.com/pytroll/satpy/pull/1393) - Fix sar-c calibration and add support for dB units
+* [PR 1380](https://github.com/pytroll/satpy/pull/1380) - Add arbitrary filename suffix to ABI L1B reader
+* [PR 1351](https://github.com/pytroll/satpy/pull/1351) - Refactor Scene loading and dependency tree ([1443](https://github.com/pytroll/satpy/issues/1443))
+* [PR 937](https://github.com/pytroll/satpy/pull/937) - Add GLM + ABI highlight composite
+
+#### Documentation changes
+
+* [PR 1473](https://github.com/pytroll/satpy/pull/1473) - Fix '::' erroneous for dicts syntax in docstrings ([1453](https://github.com/pytroll/satpy/issues/1453), [1453](https://github.com/pytroll/satpy/issues/1453))
+* [PR 1448](https://github.com/pytroll/satpy/pull/1448) - DOC: add explanation to the way x and y work in aggregate
+
+#### Refactoring
+
+* [PR 1402](https://github.com/pytroll/satpy/pull/1402) - Add ability to create complex tiled AWIPS NetCDF files (formerly SCMI writer)
+* [PR 1351](https://github.com/pytroll/satpy/pull/1351) - Refactor Scene loading and dependency tree ([1443](https://github.com/pytroll/satpy/issues/1443))
+
+In this release 26 pull requests were closed.
+
+
 ## Version 0.24.0 (2020/11/16)
 
 ### Issues Closed

@@ -1108,7 +1108,7 @@ class BucketResamplerBase(BaseResampler):
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
 
-        return result
+        return update_resampled_coords(data, result, self.target_geo_def)
 
 
 class BucketAvg(BucketResamplerBase):
