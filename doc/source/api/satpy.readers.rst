@@ -60,6 +60,14 @@ satpy.readers.ahi\_hsd module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.ahi\_l1b\_gridded\_bin module
+-------------------------------------------
+
+.. automodule:: satpy.readers.ahi_l1b_gridded_bin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.ami\_l1b module
 -----------------------------
 
@@ -428,6 +436,14 @@ satpy.readers.sar\_c\_safe module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.satpy\_cf\_nc module
+----------------------------------
+
+.. automodule:: satpy.readers.satpy_cf_nc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.scatsat1\_l2b module
 ----------------------------------
 
@@ -651,7 +667,6 @@ satpy.readers.yaml\_reader module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

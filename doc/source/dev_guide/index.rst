@@ -52,7 +52,7 @@ If you plan on contributing back to the project you should first
 `fork the repository <https://help.github.com/articles/fork-a-repo/>`_ and
 clone your fork. The package can then be installed in development mode by doing::
 
-    conda install --deps-only satpy
+    conda install --only-deps satpy
     pip install -e .
 
 The first command will install all dependencies needed by the Satpy

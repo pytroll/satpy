@@ -145,10 +145,11 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
+except ImportError:
+    PRBaseResampler = None
+try:
     from pyresample.gradient import GradientSearchResampler
 except ImportError:
-    warnings.warn('Gradient search resampler not available, upgrade Pyresample.')
-    PRBaseResampler = None
     GradientSearchResampler = None
 
 from satpy import CHUNK_SIZE
@@ -828,7 +829,10 @@ class BilinearResampler(BaseResampler):
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
-        from pyresample.bilinear.xarr import XArrayResamplerBilinear
+        try:
+            from pyresample.bilinear import XArrayBilinearResampler
+        except ImportError:
+            from pyresample.bilinear import XArrayResamplerBilinear as XArrayBilinearResampler
 
         del kwargs
         del mask
@@ -840,7 +844,7 @@ class BilinearResampler(BaseResampler):
                           neighbours=32,
                           epsilon=epsilon)
 
-            self.resampler = XArrayResamplerBilinear(**kwargs)
+            self.resampler = XArrayBilinearResampler(**kwargs)
             try:
                 self.load_bil_info(cache_dir, **kwargs)
                 LOG.debug("Loaded bilinear parameters")
@@ -857,11 +861,10 @@ class BilinearResampler(BaseResampler):
                                                    prefix='bil_lut-',
                                                    **kwargs)
             try:
-                fid = zarr.open(filename, 'r')
-                for val in BIL_COORDINATES.keys():
-                    cache = np.array(fid[val])
-                    setattr(self.resampler, val, cache)
-            except ValueError:
+                self.resampler.load_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
                 raise IOError
         else:
             raise IOError
@@ -876,15 +879,11 @@ class BilinearResampler(BaseResampler):
             if os.path.exists(filename):
                 _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
-            zarr_out = xr.Dataset()
-            for idx_name, coord in BIL_COORDINATES.items():
-                var = getattr(self.resampler, idx_name)
-                if isinstance(var, np.ndarray):
-                    var = da.from_array(var, chunks=CHUNK_SIZE)
-                else:
-                    var = var.rechunk(CHUNK_SIZE)
-                zarr_out[idx_name] = (coord, var)
-            zarr_out.to_zarr(filename)
+            try:
+                self.resampler.save_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
@@ -1250,6 +1249,8 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     elif isinstance(resampler, str):
         resampler_class = RESAMPLERS.get(resampler, None)
         if resampler_class is None:
+            if resampler == "gradient_search":
+                warnings.warn('Gradient search resampler not available. Maybe missing `shapely`?')
             raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler

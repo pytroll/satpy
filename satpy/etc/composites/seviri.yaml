@@ -2,10 +2,10 @@ sensor_name: visir/seviri
 
 modifiers:
   sunz_corrected:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
 
   co2_corrected:
-    compositor: !!python/name:satpy.composites.CO2Corrector
+    modifier: !!python/name:satpy.modifiers.CO2Corrector
     sensor: [seviri]
     prerequisites:
     - IR_108
