@@ -69,11 +69,11 @@ if _ppp_config_dir is not None and _satpy_config_path is None:
     os.environ['SATPY_CONFIG_PATH'] = _satpy_config_path
 
 if _satpy_config_path is not None:
-    # colon-separated are ordered by builtins -> custom
-    # i.e. first/lowest priority to last/highest priority
+    # colon-separated are ordered by custom -> builtins
+    # i.e. last-applied/highest priority to first-applied/lowest priority
     _satpy_config_path = _satpy_config_path.split(':')
     os.environ['SATPY_CONFIG_PATH'] = repr(_satpy_config_path)
-    for config_dir in _satpy_config_path[::-1]:
+    for config_dir in _satpy_config_path:
         _CONFIG_PATHS.append(os.path.join(config_dir, 'satpy.yaml'))
 
 _ancpath = os.getenv('SATPY_ANCPATH', None)

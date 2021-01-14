@@ -1,0 +1,130 @@
+Configuration
+=============
+
+Satpy has two levels of configuration that allow to control how Satpy and
+its various components behave. There are a series of "settings" that change
+the global Satpy behavior. There are also a series of "component
+configuration" YAML files for controlling the complex functionality in readers,
+compositors, writers, and other Satpy components that can't be controlled
+with traditional keyword arguments.
+
+Settings
+--------
+
+There are configuration parameters in Satpy that are not specific to one
+component and control more global behavior of Satpy. These parameters can be
+set in one of three ways:
+
+1. Environment variable
+2. YAML file
+3. At runtime with ``satpy.config``
+
+This functionality is provided by the :doc:`donfig <donfig:configuration>`
+library. The currently available settings are described below.
+Each option is available from all three methods. If specified as an
+environment variable or specified in the YAML file on disk, it must be set
+**before** Satpy is imported.
+
+**YAML Configuration**
+
+YAML files that include these parameters can be in any of the following
+locations:
+
+1. ``<python environment prefix>/etc/satpy/satpy.yaml``
+2. ``~/.config/satpy/satpy.yaml``
+3. ``~/.satpy/satpy.yaml``
+4. ``<SATPY_CONFIG_PATH>/satpy.yaml`` (see :ref:`config_path_setting` below)
+
+**At runtime**
+
+After import, the values can be customized at runtime by doing:
+
+.. code-block:: python
+
+    import satpy
+    satpy.config.set(cache_dir="/my/new/cache/path")
+    # ... normal satpy code ...
+
+Or for specific blocks of code:
+
+.. code-block:: python
+
+    import satpy
+    with satpy.config.set(cache_dir="/my/new/cache/path"):
+        # ... some satpy code ...
+    # ... code using the original cache_dir
+
+cache_dir
+^^^^^^^^^
+
+**Environment variable**: SATPY_CACHE_DIR
+**Default**: See below
+
+Directory where any files cached by Satpy will be stored. This
+directory is not necessarily cleared out by Satpy, but is rarely used without
+explicitly being enabled by the user. This
+defaults to a different path depending on your operating system following
+the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+"user cache dir".
+
+.. _config_path_setting:
+
+config_path
+^^^^^^^^^^^
+
+**Environment variable**: SATPY_CONFIG_PATH
+**Default**: []
+
+Base directory, or directories, where Satpy component YAML configuration files
+are stored. Directories provided will typically include subdirectories for
+each component that is being configured (ex. `readers`, `writers`, etc).
+This option replaces the legacy ``PPP_CONFIG_DIR`` environment variable.
+
+Satpy will always include the builtin configuration files that it
+is distributed with regardless of this setting. When specified as an
+environment variable it must be a colon-separated series of paths. Otherwise,
+it should be specified as a list. When a component supports merging of
+configuration files, they are merged in reverse order. This means "base"
+configuration paths should be at the end of the list and custom/user paths
+should be at the beginning of the list.
+
+data_dir
+^^^^^^^^
+
+**Environment variable**: SATPY_DATA_DIR
+
+Directory where any data Satpy needs to perform certain operations will be
+stored. This replaces the legacy ``SATPY_ANCPATH`` environment variable. This
+defaults to a different path depending on your operating system following the
+`appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
+"user data dir".
+
+.. _component_configuration:
+
+Component Configuration
+-----------------------
+
+Many of the main functionality of Satpy comes from the various components it
+uses, like readers, writers, compositors, and enhancements. These components
+are configured for reuse from YAML files stored inside Satpy or in custom user
+configuration files. Custom directories can be provided by specifying the
+:ref:`config_path setting <config_path_setting>` mentioned above.
+
+To create and use your own custom component configuration you should:
+
+1. Create a directory to store your new custom YAML configuration files.
+   The files for each component will go in a subdirectory specific to that
+   component (ex. ``composites``, ``enhancements``, ``readers``, ``writers``).
+2. Set the Satpy :ref:`config_path <config_path_setting` to point to your new
+   directory. This could be done by setting the environment variable
+   ``SATPY_CONFIG_PATH`` to your custom directory (don't include the
+   component sub-directory) or one of the other methods for setting this path.
+3. Create YAML configuration files with your custom YAML files. In most cases
+   there is no need to copy configuration from the builtin Satpy files as
+   these will be merged with your custom files.
+4. If your custom configuration uses custom Python code, this code must be
+   importable by Python. This means your code must either be installed in your
+   Python environment or you must set your ``PYTHONPATH`` to the location of
+   the modules.
+5. Run your Satpy code and access your custom components like any of the
+   builtin components.

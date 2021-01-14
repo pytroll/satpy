@@ -51,6 +51,7 @@ the base Satpy installation.
 
     overview
     install
+    config
     data_download
     examples/index
     quickstart
