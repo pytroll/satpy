@@ -43,6 +43,8 @@ differs by operating system. Typical user config directories are:
 * Unix/Linux: ``~/.config/satpy``
 * Windows: ``C:\\Users\\<username>\\AppData\\Local\\pytroll\\satpy``
 
+All YAML files found from the above paths will be merged into one
+configuration object (accessed via ``satpy.config``).
 The YAML contents should be a simple mapping of configuration key to its
 value. For example:
 
@@ -50,6 +52,11 @@ value. For example:
 
     cache_dir: "/tmp"
     data_dir: "/tmp"
+
+Lastly, it is possible to specify an additional config path to the above
+options by setting the environment variable ``SATPY_CONFIG``. The file
+specified with this environment variable will be added last after all of the
+above paths have been merged together.
 
 At runtime
 ^^^^^^^^^^
@@ -70,6 +77,9 @@ Or for specific blocks of code:
     with satpy.config.set(cache_dir="/my/new/cache/path"):
         # ... some satpy code ...
     # ... code using the original cache_dir
+
+Similarly, if you need to access one of the values you can
+use the ``satpy.config.get`` method.
 
 Cache Directory
 ^^^^^^^^^^^^^^^
