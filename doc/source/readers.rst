@@ -211,11 +211,10 @@ This is described in the developer guide, see :doc:`dev_guide/custom_reader`.
 Implemented readers
 ===================
 
+SEVIRI L1.5 data readers
+------------------------
 
-xRIT-based readers
-------------------
-
-.. automodule:: satpy.readers.hrit_base
+.. automodule:: satpy.readers.seviri_base
     :noindex:
 
 SEVIRI HRIT format reader
@@ -223,6 +222,26 @@ SEVIRI HRIT format reader
 
 .. automodule:: satpy.readers.seviri_l1b_hrit
     :noindex:
+
+SEVIRI Native format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.seviri_l1b_native
+    :noindex:
+
+SEVIRI netCDF format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.seviri_l1b_nc
+    :noindex:
+
+
+Other xRIT-based readers
+------------------------
+
+.. automodule:: satpy.readers.hrit_base
+    :noindex:
+
 
 JMA HRIT format reader
 ^^^^^^^^^^^^^^^^^^^^^^

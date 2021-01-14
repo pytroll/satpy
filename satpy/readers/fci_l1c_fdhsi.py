@@ -21,27 +21,29 @@ This module defines the :class:`FCIFDHSIFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
 Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
-in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
+in 2022 by the earliest.  For more information about FCI, see `EUMETSAT`_.
+
+For simulated test data to be used with this reader, see `test data release`_.
+For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
+
 
 Geolocation is based on information from the data files.  It uses:
 
     * From the shape of the data variable ``data/<channel>/measured/effective_radiance``,
       start and end line columns of current swath.
     * From the data variable ``data/<channel>/measured/x``, the x-coordinates
-      for the grid, in radians
+      for the grid, in radians (azimuth angle positive towards West).
     * From the data variable ``data/<channel>/measured/y``, the y-coordinates
-      for the grid, in radians
+      for the grid, in radians (elevation angle positive towards North).
     * From the attribute ``semi_major_axis`` on the data variable
       ``data/mtg_geos_projection``, the Earth equatorial radius
-    * From the attribute ``semi_minor_axis`` on the same, the Earth polar
-      radius
-    * From the attribute ``perspective_point_height`` on the same data
-      variable, the geostationary altitude in the normalised geostationary
-      projection (see `PUG`_ §5.2)
-    * From the attribute ``longitude_of_projection_origin`` on the same
-      data variable, the longitude of the projection origin
     * From the attribute ``inverse_flattening`` on the same data variable, the
       (inverse) flattening of the ellipsoid
+    * From the attribute ``perspective_point_height`` on the same data
+      variable, the geostationary altitude in the normalised geostationary
+      projection
+    * From the attribute ``longitude_of_projection_origin`` on the same
+      data variable, the longitude of the projection origin
     * From the attribute ``sweep_angle_axis`` on the same, the sweep angle
       axis, see https://proj.org/operations/projections/geos.html
 
@@ -53,8 +55,8 @@ geostationary altitude, and longitude of projection origin, are passed on to
 ``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
 geolocation calculations.
 
-The brightness temperature calculation is based on the formulas indicated in
-`PUG`_ and `RADTOBR`_.
+The brightness temperature and reflectance calculation is based on the formulas indicated in
+`PUG`_.
 
 The reading routine supports channel data in counts, radiances, and (depending
 on channel) brightness temperatures or reflectances.  For each channel, it also
@@ -68,9 +70,9 @@ supports the pixel quality, obtained by prepending the channel name such as
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
     `DataID`.
 
-.. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
-.. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
-.. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
+.. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
+.. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
+.. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
 """
 
 from __future__ import (division, absolute_import, print_function,
@@ -82,6 +84,8 @@ import xarray as xr
 
 from pyresample import geometry
 from netCDF4 import default_fillvals
+from satpy.readers._geos_area import get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode
 
 from .netcdf_utils import NetCDF4FileHandler
 
@@ -262,33 +266,51 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # Calculate full globe line extent
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
 
-        ext = {}
-        for c in "xy":
-            c_radian = self["data/{:s}/measured/{:s}".format(lab, c)]
-            c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
+        extents = {}
+        for coord in "xy":
+            coord_radian = self["data/{:s}/measured/{:s}".format(lab, coord)]
+            coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
 
-            # FCI defines pixels by centroids (Example Products for Pytroll
-            # Workshop, §B.4.2)
-            #
-            # pyresample defines corners as lower left corner of lower left pixel,
-            # upper right corner of upper right pixel (Martin Raspaud, personal
-            # communication).
+            # FCI defines pixels by centroids (see PUG), while pyresample
+            # defines corners as lower left corner of lower left pixel, upper right corner of upper right pixel
+            # (see https://pyresample.readthedocs.io/en/latest/geo_def.html).
+            # Therefore, half a pixel (i.e. half scale factor) needs to be added in each direction.
+
+            # The grid origin is in the South-West corner.
+            # Note that the azimuth angle (x) is defined as positive towards West (see PUG - Level 1c Reference Grid)
+            # The elevation angle (y) is defined as positive towards North as per usual convention. Therefore:
+            # The values of x go from positive (West) to negative (East) and the scale factor of x is negative.
+            # The values of y go from negative (South) to positive (North) and the scale factor of y is positive.
+
+            # South-West corner (x positive, y negative)
+            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor/2
+            # North-East corner (x negative, y positive)
+            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor/2
+
+            # convert to arc length in m
+            first_coord = first_coord_radian * h  # arc length in m
+            last_coord = last_coord_radian * h
 
             # the .item() call is needed with the h5netcdf backend, see
             # https://github.com/pytroll/satpy/issues/972#issuecomment-558191583
             # but we need to compute it first if this is dask
-            min_c_radian = c_radian_num[0] - c_radian.scale_factor/2
-            max_c_radian = c_radian_num[-1] + c_radian.scale_factor/2
-            min_c = min_c_radian * h  # arc length in m
-            max_c = max_c_radian * h
             try:
-                min_c = min_c.compute()
-                max_c = max_c.compute()
+                first_coord = first_coord.compute()
+                last_coord = last_coord.compute()
             except AttributeError:  # not a dask.array
                 pass
-            ext[c] = (min_c.item(), max_c.item())
 
-        area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
+            extents[coord] = (first_coord.item(), last_coord.item())
+
+        # For the final extents, take into account that the image is upside down (lower line is North), and that
+        # East is defined as positive azimuth in Proj, so we need to multiply by -1 the azimuth extents.
+
+        # lower left x: west-ward extent: first coord of x, multiplied by -1 to account for azimuth orientation
+        # lower left y: north-ward extent: last coord of y
+        # upper right x: east-ward extent: last coord of x, multiplied by -1 to account for azimuth orientation
+        # upper right y: south-ward extent: first coord of y
+        area_extent = (-extents["x"][0], extents["y"][1], -extents["x"][1], extents["y"][0])
+
         return area_extent, nlines, ncols
 
     def get_area_def(self, key, info=None):
@@ -299,29 +321,35 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             return self._cache[key['resolution']]
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
-        b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
-        if_ = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
+        rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
-        # Channel dependent swath resolution
+
         area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
+        # use a (semi-major axis) and rf (reverse flattening) to define ellipsoid as recommended by EUM (see PUG)
         proj_dict = {'a': a,
-                     'b': b,
                      'lon_0': lon_0,
                      'h': h,
-                     "fi": float(if_),
+                     "rf": rf,
                      'proj': 'geos',
                      'units': 'm',
                      "sweep": sweep}
 
+        area_naming_input_dict = {'platform_name': 'mtg',
+                                  'instrument_name': 'fci',
+                                  'resolution': int(key['resolution'])
+                                  }
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('fci', lon_0)})
+
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosfci',
+            area_naming['area_id'],
+            area_naming['description'],
+            "",
             proj_dict,
             ncols,
             nlines,
@@ -379,9 +407,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
+        # using the method from PUG section Converting from Effective Radiance to Brightness Temperature for IR Channels
+
         measured = self.get_channel_measured_group_path(key['name'])
 
-        # using the method from RADTOBR and PUG
         vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
 
         a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]

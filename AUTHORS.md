@@ -14,6 +14,7 @@ The following people have made contributions to this project:
 - [Jorge Bravo (jhbravo)](https://github.com/jhbravo)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
+- [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
@@ -32,6 +33,7 @@ The following people have made contributions to this project:
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
+- [Jactry Zeng](https://github.com/jactry)
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)

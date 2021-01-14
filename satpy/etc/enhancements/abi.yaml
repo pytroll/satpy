@@ -143,3 +143,15 @@ enhancements:
         stretch: crude
         min_stretch: [ 0.0,   0.0,   0.0]
         max_stretch: [97.5, 108.6, 100.0]
+
+  # IR with white clouds
+  highlighted_brightness_temperature:
+    standard_name: highlighted_toa_brightness_temperature
+    sensor: abi
+    operations:
+      - name: btemp_threshold
+        method: !!python/name:satpy.enhancements.btemp_threshold
+        kwargs:
+          threshold: 242.0
+          min_in: 163.0
+          max_in: 330.0
