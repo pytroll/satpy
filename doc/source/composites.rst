@@ -233,7 +233,7 @@ you can create your custom composite YAML configuration files.
 Compositors that can be used for multiple instruments can be placed in the
 generic ``$SATPY_CONFIG_PATH/composites/visir.yaml`` file. Composites that
 are specific to one sensor should be placed in
-``$SATPY_CONFIG_PATH/composites/<sensor.yaml``. Custom enhancements for your new
+``$SATPY_CONFIG_PATH/composites/<sensor>.yaml``. Custom enhancements for your new
 composites can be stored in ``$SATPY_CONFIG_PATH/enhancements/generic.yaml`` or
 ``$SATPY_CONFIG_PATH/enhancements/<sensor>.yaml``.
 
