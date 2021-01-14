@@ -32,9 +32,16 @@ YAML files that include these parameters can be in any of the following
 locations:
 
 1. ``<python environment prefix>/etc/satpy/satpy.yaml``
-2. ``~/.config/satpy/satpy.yaml``
+2. ``<user_config_dir>/satpy.yaml`` (see below)
 3. ``~/.satpy/satpy.yaml``
 4. ``<SATPY_CONFIG_PATH>/satpy.yaml`` (see :ref:`config_path_setting` below)
+
+The above ``user_config_dir`` is provided by the ``appdirs`` package and
+differs by operating system. Typical user config directories are:
+
+* Mac OSX: ``~/Library/Preferences/satpy``
+* Unix/Linux: ``~/.config/satpy``
+* Windows: ``C:\\Users\\<username>\\AppData\\Local\\pytroll\\satpy``
 
 The YAML contents should be a simple mapping of configuration key to its
 value. For example:

@@ -55,7 +55,7 @@ _CONFIG_PATHS = [
     os.path.join(PACKAGE_CONFIG_PATH, 'satpy.yaml'),
     os.getenv('SATPY_ROOT_CONFIG', os.path.join('/etc', 'satpy', 'satpy.yaml')),
     os.path.join(sys.prefix, 'etc', 'satpy', 'satpy.yaml'),
-    os.path.join(os.path.expanduser('~'), '.config', 'satpy', 'satpy.yaml'),
+    os.path.join(_satpy_dirs.user_config_dir, 'satpy.yaml'),
     os.path.join(os.path.expanduser('~'), '.satpy', 'satpy.yaml'),
 ]
 # The above files can also be directories. If directories all files
