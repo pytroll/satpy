@@ -63,7 +63,7 @@ _CONFIG_PATHS = [
 
 _ppp_config_dir = os.getenv('PPP_CONFIG_DIR', None)
 _satpy_config_path = os.getenv('SATPY_CONFIG_PATH', None)
-if _ppp_config_dir is not None and _satpy_config_path is None:
+if _ppp_config_dir is not None:
     LOG.warning("'PPP_CONFIG_DIR' is deprecated. Please use 'SATPY_CONFIG_PATH' instead.")
     _satpy_config_path = _ppp_config_dir
     os.environ['SATPY_CONFIG_PATH'] = _satpy_config_path
