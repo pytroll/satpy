@@ -123,8 +123,8 @@ def glob_config(pattern):
           This is done for performance since this is usually used to find *all* configs for a certain component.
     """
     patterns = config_search_paths(pattern, check_exists=False)
-    for pattern in patterns:
-        for path in glob.iglob(pattern):
+    for pattern_fn in patterns:
+        for path in glob.iglob(pattern_fn):
             yield path
 
 
@@ -134,3 +134,5 @@ def get_config_path(filename):
     for path in paths[::-1]:
         if os.path.exists(path):
             return path
+    raise FileNotFoundError("Could not find file in configuration path: "
+                            "'{}'".format(filename))
