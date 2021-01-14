@@ -182,7 +182,7 @@ class CompositorLoader:
         paths = get_entry_points_config_dirs('satpy.composites')
         composite_configs = config_search_paths(
             os.path.join("composites", config_filename),
-            *paths, check_exists=True)
+            search_dirs=paths, check_exists=True)
         if not composite_configs:
             logger.debug("No composite config found called %s",
                          config_filename)
