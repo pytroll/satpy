@@ -6,6 +6,7 @@ dependencies:
   - pip
   - dask
   - donfig
+  - appdirs
   - graphviz
   - numpy
   - pillow
