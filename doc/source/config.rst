@@ -25,8 +25,7 @@ Each option is available from all three methods. If specified as an
 environment variable or specified in the YAML file on disk, it must be set
 **before** Satpy is imported.
 
-YAML Configuration
-^^^^^^^^^^^^^^^^^^
+**YAML Configuration**
 
 YAML files that include these parameters can be in any of the following
 locations:
@@ -58,8 +57,7 @@ options by setting the environment variable ``SATPY_CONFIG``. The file
 specified with this environment variable will be added last after all of the
 above paths have been merged together.
 
-At runtime
-^^^^^^^^^^
+**At runtime**
 
 After import, the values can be customized at runtime by doing:
 
@@ -84,9 +82,9 @@ use the ``satpy.config.get`` method.
 Cache Directory
 ^^^^^^^^^^^^^^^
 
-**Environment variable**: SATPY_CACHE_DIR
-**YAML/Config Key**: cache_dir
-**Default**: See below
+* **Environment variable**: ``SATPY_CACHE_DIR``
+* **YAML/Config Key**: ``cache_dir``
+* **Default**: See below
 
 Directory where any files cached by Satpy will be stored. This
 directory is not necessarily cleared out by Satpy, but is rarely used without
@@ -100,9 +98,9 @@ the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
 Component Configuration Path
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Environment variable**: SATPY_CONFIG_PATH
-**YAML/Config Key**: config_path
-**Default**: []
+* **Environment variable**: ``SATPY_CONFIG_PATH``
+* **YAML/Config Key**: ``config_path``
+* **Default**: ``[]``
 
 Base directory, or directories, where Satpy component YAML configuration files
 are stored. Directories provided will typically include subdirectories for
@@ -120,9 +118,9 @@ should be at the beginning of the list.
 Data Directory
 ^^^^^^^^^^^^^^
 
-**Environment variable**: SATPY_DATA_DIR
-**YAML/Config Key**: data_dir
-**Default**: See below
+* **Environment variable**: ``SATPY_DATA_DIR``
+* **YAML/Config Key**: ``data_dir``
+* **Default**: See below
 
 Directory where any data Satpy needs to perform certain operations will be
 stored. This replaces the legacy ``SATPY_ANCPATH`` environment variable. This
@@ -135,7 +133,7 @@ defaults to a different path depending on your operating system following the
 Component Configuration
 -----------------------
 
-Many of the main functionality of Satpy comes from the various components it
+Much of the functionality of Satpy comes from the various components it
 uses, like readers, writers, compositors, and enhancements. These components
 are configured for reuse from YAML files stored inside Satpy or in custom user
 configuration files. Custom directories can be provided by specifying the
