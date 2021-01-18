@@ -6,6 +6,26 @@ enhancements:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: linear}
+  
+  soil_moisture2:
+    standard_name: soil_moisture2
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: rdbu, min_value: 0, max_value: 100}
+
+
+  surfaceSoilMoisture2:
+    standard_name: surfaceSoilMoisture2
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: rdbu, min_value: 0, max_value: 100}
+
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
     operations:
