@@ -1,7 +1,7 @@
 reader:
-  name: ascat_l2_soilmoisture
-  #short_name: IASI L2 SO2 BUFR
-  #long_name: METOP IASI Level 2 SO2 BUFR
+  name: ascat_l2_soilmoisture_bufr
+  short_name: ASCAT L2 SOILMOISTURE BUFR
+  long_name: METOP ASCAT Level 2 SOILMOISTURE BUFR
   description: >
     Reader for ASCAT L2 SOIL MOISUTRE FILES
   sensors: [scatterometer]
@@ -11,7 +11,7 @@ reader:
 file_types:
   ascat_l2_soilmoisture_bufr:
     file_reader: !!python/name:satpy.readers.ascat_l2_soilmoisture_bufr.ASCATSOILMOISTUREBUFR
-    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_ssm_{level}.bin"]
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_{level}.bin"]
 
 datasets:
 
