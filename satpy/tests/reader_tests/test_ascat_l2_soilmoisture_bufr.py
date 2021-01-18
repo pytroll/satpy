@@ -19,8 +19,8 @@
 
 import os
 import sys
-import numpy as np
 import unittest
+import numpy as np
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
 
@@ -37,7 +37,7 @@ def create_message():
     lon = np.round(np.ravel(lon), 4)
     surfaceSoilMoisture = np.round(np.random.rand(samples)*100, 1)
     surfaceSoilMoisture[0] = -1e+100
-    msg = {
+    retmsg = {
         'inputDelayedDescriptorReplicationFactor': [8],
         'edition': 4,
         'masterTableNumber': 0,
@@ -75,7 +75,7 @@ def create_message():
         'surfaceSoilMoisture': surfaceSoilMoisture,
         'soilMoistureQuality': np.zeros(samples),
     }
-    return msg
+    return retmsg
 
 
 msg = create_message()
@@ -107,7 +107,7 @@ def save_test_data(path):
     with open(filepath, "wb") as f:
         for m in [msg]:
             buf = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
-            for key in m.keys():
+            for key in m:
                 val = m[key]
                 if np.isscalar(val):
                     ec.codes_set(buf, key, val)
@@ -178,8 +178,3 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
             # (note: if all subtests pass, they will count as one test)
             with self.subTest(msg="Test failed for dataset: "+name):
                 self.assertTrue(np.allclose(original_values, loaded_values_nan_filled))
-
-    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
-    def test_init(self):
-        """Test reader initialization."""
-        self.assertTrue(True)
