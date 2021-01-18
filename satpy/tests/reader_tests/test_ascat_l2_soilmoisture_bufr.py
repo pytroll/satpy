@@ -183,7 +183,3 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
     def test_init(self):
         """Test reader initialization."""
         self.assertTrue(True)
-
-
-if __name__ == '__main__':
-    unittest.main()
