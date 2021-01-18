@@ -23,8 +23,8 @@ import datetime
 import numpy as np
 import xarray as xr
 import dask.array as da
+from pyproj import CRS
 from satpy.readers.file_handlers import BaseFileHandler
-from pyresample.geometry import SwathDefinition
 
 LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
 LOG = logging.getLogger(__name__)
@@ -84,18 +84,6 @@ LIMB_SEA_FILE = os.environ.get("ATMS_LIMB_SEA", "satpy.readers:limball_atmssea.t
 LIMB_LAND_FILE = os.environ.get("ATMS_LIMB_LAND", "satpy.readers:limball_atmsland.txt")
 
 
-def coeff_cums_calc(datasets, channel_idx, fov_idx,
-                    dmean, coeffs, amean, nchx, nchanx):
-    """Calculate the correction for each channel."""
-    coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
-    for k in range(nchx[channel_idx]):
-        coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
-                datasets[nchanx[channel_idx, k], :, fov_idx] -
-                amean[nchanx[channel_idx, k], fov_idx, channel_idx])
-        coeff_sum = coef + coeff_sum
-    return coeff_sum + dmean[channel_idx]
-
-
 class MIRSL2ncHandler(BaseFileHandler):
     """MIRS handler for NetCDF4 files using xarray."""
 
@@ -113,9 +101,13 @@ class MIRSL2ncHandler(BaseFileHandler):
                                           'Scanline': LOAD_CHUNK_SIZE})
 
         self.nc = self.nc.rename_dims({"Scanline": "y", "Field_of_view": "x"})
+        self.nc = self.nc.rename({"Latitude": "latitude",
+                                  "Longitude": "longitude"})
 
         if len(self.nc.coords.values()) == 0:
+            print('Fake')
             self.nc = self.nc.assign_coords(self.new_coords())
+            print(self.nc.coords)
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
@@ -126,31 +118,16 @@ class MIRSL2ncHandler(BaseFileHandler):
         self.area = None
         self.coords = {}
 
-        self.sea_bt_data = []
-        self.land_bt_data = []
-
     def new_coords(self):
         """Define coordinates when file does not use variable attributes."""
         if not self.nc.coords.keys():
             # this file did not define variable coordinates
-            new_coords = {'Latitude': self['Latitude'],
-                          'Longitude': self['Longitude']}
+            new_coords = {'latitude': self['latitude'],
+                          'longitude': self['longitude']}
         else:
             # let xarray handle coordinates defined by variable attributes.
-            new_coords = {}
+            new_coords = self.nc.coords.keys()
         return new_coords
-
-    def get_swath(self):
-        """Get lonlats."""
-        if self.area is None:
-            if self.lons is None or self.lats is None:
-                self.lons = self['Longitude']
-                self.lats = self['Latitude']
-            self.area = SwathDefinition(lons=self.lons, lats=self.lats)
-            self.area.name = '_'.join([self.platform_name,
-                                       str(self.start_time),
-                                       str(self.end_time)])
-        return self.area
 
     @property
     def platform_shortname(self):
@@ -220,21 +197,32 @@ class MIRSL2ncHandler(BaseFileHandler):
 
     def apply_atms_limb_correction(self, datasets, channel_idx, dmean, coeffs, amean, nchx, nchanx):
         """Apply the atms limb correction to the brightness temperature data."""
-        all_new_ds = []
         datasets = datasets.persist()
         ds = datasets[channel_idx]
         new_ds = np.zeros(ds.shape, dtype=ds.dtype)
-        for fov_idx in range(96):
-            new_ds[:, fov_idx] = da.map_blocks(coeff_cums_calc,
+        for fov_idx in range(N_FOV):
+            new_ds[:, fov_idx] = da.map_blocks(self.coeff_cums_calc,
                                                datasets, channel_idx,
                                                fov_idx, dmean, coeffs,
                                                amean, nchx,
                                                nchanx, dtype=ds.dtype)
-            all_new_ds.append(new_ds)
 
-        return all_new_ds
+        return new_ds
 
-    def read_atms_limb_correction_coeffs(self, fn):
+    @staticmethod
+    def coeff_cums_calc(datasets, channel_idx, fov_idx,
+                        dmean, coeffs, amean, nchx, nchanx):
+        """Calculate the correction for each channel."""
+        coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
+        for k in range(nchx[channel_idx]):
+            coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
+                    datasets[nchanx[channel_idx, k], :, fov_idx] -
+                    amean[nchanx[channel_idx, k], fov_idx, channel_idx])
+            coeff_sum = coef + coeff_sum
+        return coeff_sum + dmean[channel_idx]
+
+    @staticmethod
+    def read_atms_limb_correction_coeffs(fn):
         """Read provided limb correction files for atms."""
         if os.path.isfile(fn):
             coeff_str = open(fn, "r").readlines()
@@ -299,17 +287,15 @@ class MIRSL2ncHandler(BaseFileHandler):
 
         sea = self.read_atms_limb_correction_coeffs(LIMB_SEA_FILE)
         sea_bt = self.apply_atms_limb_correction(bt_data, idx, *sea)
-        self.sea_bt_data = sea_bt
 
         land = self.read_atms_limb_correction_coeffs(LIMB_LAND_FILE)
         land_bt = self.apply_atms_limb_correction(bt_data, idx, *land)
-        self.land_bt_data = land_bt
 
         LOG.info("Finishing limb correction")
         is_sea = (surf_type_mask == 0)
         bt_data = bt_data[idx, :, :]
-        new_data = (self.sea_bt_data[idx].squeeze() * [is_sea]) + \
-                   (self.land_bt_data[idx].squeeze() * [~is_sea])
+        new_data = (sea_bt.squeeze() * [is_sea] +
+                    land_bt.squeeze() * [~is_sea])
 
         # for consistency when not doing limb correction, return a dask.array
         new_data = da.from_array(new_data.squeeze())
@@ -319,7 +305,7 @@ class MIRSL2ncHandler(BaseFileHandler):
                                name=bt_data.name)
         return bt_data
 
-    def get_metadata(self, data, ds_info):
+    def get_metadata(self, ds_info):
         """Get metadata."""
         metadata = {}
         metadata.update(ds_info)
@@ -328,10 +314,8 @@ class MIRSL2ncHandler(BaseFileHandler):
             'platform_name': self.platform_name,
             'start_time': self.start_time,
             'end_time': self.end_time,
-            'coordinates': self.get_lonlat_coords(data, ds_info),
-            'area': self.get_swath(),
+            'crs': CRS(4326)
         })
-
         return metadata
 
     @staticmethod
@@ -375,16 +359,19 @@ class MIRSL2ncHandler(BaseFileHandler):
             data = self['BT']
             data = data.rename(new_name_or_name_dict=ds_info["name"])
 
-            if self.sensor.lower() != "atms":
+            LOG.info("Limb Correction not supported yet")
+            data = data[:, :, idx]
+
+            """if self.sensor.lower() != "atms":
                 LOG.info("Limb Correction will not be applied to non-ATMS BTs")
                 data = data[:, :, idx]
             else:
                 data = self.limb_correct_atms_bt(data, ds_info)
-                self.nc = self.nc.merge(data)
+                self.nc = self.nc.merge(data)"""
         else:
             data = self[ds_id['name']]
 
-        data.attrs = self.get_metadata(data, ds_info)
+        data.attrs = self.get_metadata(ds_info)
 
         return data
 
@@ -398,21 +385,8 @@ class MIRSL2ncHandler(BaseFileHandler):
                 continue
             yield self.file_type_matches(ds_info['file_type']), ds_info
 
-    def get_lonlat_coords(self, data_arr, ds_info):
-        """Get lat/lon coordinates for metadata."""
-        lat_coord = None
-        lon_coord = None
-        for coord_name in data_arr.coords:
-            if 'longitude' in coord_name.lower():
-                lon_coord = coord_name
-            if 'latitude' in coord_name.lower():
-                lat_coord = coord_name
-        ds_info['coordinates'] = [lon_coord, lat_coord]
-
-        return ds_info['coordinates']
-
     def _available_new_datasets(self):
-        possible_vars = list(self.nc.data_vars.items()) + list(self.nc.coords.items())
+        possible_vars = list(self.nc.data_vars.items())
         for var_name, val in possible_vars:
             if val.ndim < 2:
                 # only handle 2d variables and 3-D BT.
@@ -458,6 +432,7 @@ class MIRSL2ncHandler(BaseFileHandler):
                             'frequency': "{}GHz".format(normal_f),
                             'polarization': normal_p,
                             'dependencies': ('BT', 'Sfc_type'),
+                            'coordinates': ["longitude", "latitude"]
                         }
                         yield True, ds_info
 
@@ -465,8 +440,25 @@ class MIRSL2ncHandler(BaseFileHandler):
                     ds_info = {
                         'file_type': self.filetype_info['file_type'],
                         'name': var_name,
+                        'coordinates': ["longitude", "latitude"]
                     }
+                    print(ds_info)
                     yield True, ds_info
+
+    def _available_coordinates(self):
+        for var_name, data_arr in list(self.nc.coords.items()):
+            attrs = data_arr.attrs.copy()
+            ds_info = {
+                'file_type': self.filetype_info['file_type'],
+                'name': var_name,
+            }
+            if var_name in ['latitude', 'longitude']:
+                ds_info.update({
+                    'standard_name': var_name,
+                    'coordinates': ['longitude', 'latitude']
+                })
+            data_arr.attrs = attrs
+            yield True, ds_info
 
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
@@ -475,6 +467,7 @@ class MIRSL2ncHandler(BaseFileHandler):
         for more information.
 
         """
+        yield from self._available_coordinates()
         yield from self._available_if_this_file_type(configured_datasets)
         yield from self._available_new_datasets()
 

@@ -16,44 +16,51 @@ file_types:
 datasets:
   latitude:
     name: latitude
+    long_name: latitude
     file_key: Latitude
     file_type: mirs_atms
     units: degrees_north
     standard_name: latitude
     coordinates: [longitude, latitude]
   longitude:
-    name: longitude
+    name: longtiude
+    long_name: longitude
     file_key: Longitude
     file_type: mirs_atms
     units: degrees_east
     standard_name: longitude
     coordinates: [longitude, latitude]
   rain_rate:
-    name: rain_rate
+    name: RR
+    long_name: rain_rate
     file_key: RR
     file_type: mirs_atms
     units: mm/hr
     coordinates: [longitude, latitude]
   sea_ice:
-    name: sea_ice
+    name: SIce
+    long_name: sea_ice
     file_key: SIce
     file_type: mirs_atms
     coordinates: [longitude, latitude]
     units: "%"
   snow_cover:
-    name: snow_cover
+    name: Snow
+    long_name: snow_cover
     file_key: Snow
     file_type: mirs_atms
     coordinates: [longitude, latitude]
     units: '1'
   tpw:
-    name: total_precipitable_water
+    name: TPW
+    long_name: total_precipitable_water
     file_key: TPW
     file_type: mirs_atms
     coordinates: [longitude, latitude]
     units: mm
   swe:
-    name: snow_water_equivalence
+    name: SWE
+    long_name: snow_water_equivalence
     file_key: SWE
     file_type: mirs_atms
     coordinates: [longitude, latitude]

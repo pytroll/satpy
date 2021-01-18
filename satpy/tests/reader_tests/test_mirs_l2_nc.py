@@ -19,19 +19,22 @@
 """Module for testing the satpy.readers.tropomi_l2 module."""
 
 import os
-import pytest
 from unittest import mock
+import pytest
 from datetime import datetime
 import numpy as np
 import xarray as xr
+from satpy.utils import debug_on
+
+debug_on()
 
 AWIPS_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"
-NPP_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r6_npp_s202012201629120_e202012201637116_c202012201658410.nc"
-OTHER_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_gpm_s202010072325170_e202010072330160_c202010080001310.nc"
+NPP_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r6_npp_s201702061601000_e201702061607000_c202012201658410.nc"
+OTHER_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_gpm_s201702061601000_e201702061607000_c202010080001310.nc"
 
 EXAMPLE_FILES = [AWIPS_FILE, NPP_MIRS_L2_SWATH, OTHER_MIRS_L2_SWATH]
 
-N_CHANNEL = 22
+N_CHANNEL = 3
 N_FOV = 96
 N_SCANLINE = 100
 DEFAULT_FILE_DTYPE = np.float64
@@ -41,9 +44,19 @@ DEFAULT_LAT = np.linspace(23.09356, 36.42844, N_SCANLINE * N_FOV,
                           dtype=DEFAULT_FILE_DTYPE)
 DEFAULT_LON = np.linspace(127.6879, 144.5284, N_SCANLINE * N_FOV,
                           dtype=DEFAULT_FILE_DTYPE)
+FREQ = xr.DataArray([88, 88, 22], dims='Channel',
+                    attrs={'description': "Central Frequencies (GHz)"})
+POLO = xr.DataArray([2, 2, 3], dims='Channel',
+                    attrs={'description': "Polarizations"})
 
-DS_IDS = ['rain_rate', 'longitude', 'latitude']
-TEST_VARS = ['btemp_88h1', 'btemp_88v2', 'RR', 'Sfc_type', 'Latitude', 'Longitude']
+DS_IDS = ['RR', 'longitude', 'latitude']
+TEST_VARS = ['btemp_88v1', 'btemp_88v2',
+             'btemp_22h', 'RR', 'Sfc_type']
+PLATFORM = {"M2": "metop-a", "NPP": "npp", "GPM": "gpm"}
+SENSOR = {"m2": "amsu-mhs", "npp": "atms", "gpm": "GPI"}
+
+START_TIME = datetime(2017, 2, 6, 16, 1, 0)
+END_TIME = datetime(2017, 2, 6, 16, 7, 0)
 
 
 def _get_shared_global_attrs():
@@ -55,12 +68,6 @@ def _get_shared_global_attrs():
 
 def _get_datasets_with_attributes():
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
-    freq = xr.DataArray(np.zeros(N_CHANNEL) + 88,
-                        dims='Channel',
-                        attrs={'description': "Central Frequencies (GHz)"})
-    polo = xr.DataArray(np.linspace(2, 4, N_CHANNEL, dtype=int),
-                        dims='Channel',
-                        attrs={'description': "Polarizations"})
     bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
                       attrs={'long_name': "Channel Temperature (K)",
@@ -95,8 +102,8 @@ def _get_datasets_with_attributes():
                              dims=('Scanline', 'Field_of_view'))
 
     ds_vars = {
-        'Freq': freq,
-        'Polo': polo,
+        'Freq': FREQ,
+        'Polo': POLO,
         'BT': bt,
         'RR': rr,
         'Sfc_type': sfc_type,
@@ -112,12 +119,6 @@ def _get_datasets_with_attributes():
 
 def _get_datasets_with_less_attributes():
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
-    freq = xr.DataArray(np.zeros(N_CHANNEL) + 88,
-                        dims='Channel',
-                        attrs={'description': "Central Frequencies (GHz)"})
-    polo = xr.DataArray(np.linspace(2, 4, N_CHANNEL, dtype=int),
-                        dims='Channel',
-                        attrs={'description': "Polarizations"})
     bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
                       attrs={'long_name': "Channel Temperature (K)",
@@ -140,8 +141,8 @@ def _get_datasets_with_less_attributes():
                                     "Longitude of the view (-180,180)"})
 
     ds_vars = {
-        'Freq': freq,
-        'Polo': polo,
+        'Freq': FREQ,
+        'Polo': POLO,
         'BT': bt,
         'RR': rr,
         'Sfc_type': sfc_type,
@@ -210,7 +211,6 @@ class TestMirsL2_NcReader:
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
             avails = list(r.available_dataset_names)
-            print(avails)
             for var_name in expected_datasets:
                 assert var_name in avails
 
@@ -228,19 +228,23 @@ class TestMirsL2_NcReader:
             assert data_arr.dtype.type == np.float64
 
     @staticmethod
-    def _check_attrs(data_arr):
+    def _check_attrs(data_arr, platform_name):
         attrs = data_arr.attrs
         assert 'scale_factor' not in attrs
+        assert 'platform_name' in attrs
+        assert attrs['platform_name'] == platform_name
+        assert attrs['start_time'] == START_TIME
+        assert attrs['end_time'] == END_TIME
 
     @pytest.mark.parametrize(
-        ("filenames", "loadable_ids"),
+        ("filenames", "loadable_ids", "platform_name"),
         [
-            ([AWIPS_FILE], TEST_VARS),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS),
+            ([AWIPS_FILE], TEST_VARS, "metop-a"),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
         ]
     )
-    def test_basic_load(self, filenames, loadable_ids):
+    def test_basic_load(self, filenames, loadable_ids, platform_name):
         """Test that variables are loaded properly."""
         from satpy.readers import load_reader
         with mock.patch('satpy.readers.mirs_l2_nc.xr.open_dataset') as od:
@@ -253,4 +257,4 @@ class TestMirsL2_NcReader:
             for _data_id, data_arr in loaded_data_arrs.items():
                 self._check_area(data_arr)
                 self._check_fill(data_arr)
-                self._check_attrs(data_arr)
+                self._check_attrs(data_arr, platform_name)
