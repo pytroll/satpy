@@ -14,22 +14,6 @@ file_types:
       - 'IMG_SX.{platform_shortname}.D{date:%y%j}.S{start_time:%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
 
 datasets:
-  latitude:
-    name: latitude
-    long_name: latitude
-    file_key: Latitude
-    file_type: mirs_atms
-    units: degrees_north
-    standard_name: latitude
-    coordinates: [longitude, latitude]
-  longitude:
-    name: longtiude
-    long_name: longitude
-    file_key: Longitude
-    file_type: mirs_atms
-    units: degrees_east
-    standard_name: longitude
-    coordinates: [longitude, latitude]
   rain_rate:
     name: RR
     long_name: rain_rate
