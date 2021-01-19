@@ -99,15 +99,14 @@ class MIRSL2ncHandler(BaseFileHandler):
                                   decode_coords=True,
                                   chunks={'Field_of_view': LOAD_CHUNK_SIZE,
                                           'Scanline': LOAD_CHUNK_SIZE})
-
-        self.nc = self.nc.rename_dims({"Scanline": "y", "Field_of_view": "x"})
+        # y,x is used in satpy, bands rather than channel using in xrimage
+        self.nc = self.nc.rename_dims({"Scanline": "y",
+                                       "Field_of_view": "x"})
         self.nc = self.nc.rename({"Latitude": "latitude",
                                   "Longitude": "longitude"})
 
         if len(self.nc.coords.values()) == 0:
-            print('Fake')
             self.nc = self.nc.assign_coords(self.new_coords())
-            print(self.nc.coords)
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
@@ -357,22 +356,25 @@ class MIRSL2ncHandler(BaseFileHandler):
         if 'dependencies' in ds_info.keys():
             idx = ds_info['channel_index']
             data = self['BT']
+            LOG.debug('Calc {} {}'.format(idx, ds_id))
             data = data.rename(new_name_or_name_dict=ds_info["name"])
 
-            LOG.info("Limb Correction not supported yet")
-            data = data[:, :, idx]
+            # only correct for 'BT' data
+            if 'BT' not in ds_info['dependencies']:
+                do_not_apply = True
+            else:
+                do_not_apply = False
 
-            """if self.sensor.lower() != "atms":
+            if self.sensor.lower() != "atms" or do_not_apply:
                 LOG.info("Limb Correction will not be applied to non-ATMS BTs")
                 data = data[:, :, idx]
             else:
                 data = self.limb_correct_atms_bt(data, ds_info)
-                self.nc = self.nc.merge(data)"""
+                self.nc = self.nc.merge(data)
         else:
             data = self[ds_id['name']]
 
         data.attrs = self.get_metadata(ds_info)
-
         return data
 
     def _available_if_this_file_type(self, configured_datasets):
@@ -437,28 +439,28 @@ class MIRSL2ncHandler(BaseFileHandler):
                         yield True, ds_info
 
                 else:
-                    ds_info = {
-                        'file_type': self.filetype_info['file_type'],
-                        'name': var_name,
-                        'coordinates': ["longitude", "latitude"]
-                    }
-                    print(ds_info)
-                    yield True, ds_info
+                    # only yield 'y','x' data other than BT for now.
+                    if self.nc[var_name].ndim == 2:
+                        ds_info = {
+                            'file_type': self.filetype_info['file_type'],
+                            'name': var_name,
+                            'coordinates': ["longitude", "latitude"]
+                        }
+                        yield True, ds_info
 
     def _available_coordinates(self):
         for var_name, data_arr in list(self.nc.coords.items()):
-            attrs = data_arr.attrs.copy()
-            ds_info = {
-                'file_type': self.filetype_info['file_type'],
-                'name': var_name,
-            }
-            if var_name in ['latitude', 'longitude']:
-                ds_info.update({
+            # don't yield ndim == 1, it cannot be displayed.
+            if data_arr.ndim == 2:
+                attrs = data_arr.attrs.copy()
+                ds_info = {
+                    'file_type': self.filetype_info['file_type'],
+                    'name': var_name,
                     'standard_name': var_name,
                     'coordinates': ['longitude', 'latitude']
-                })
-            data_arr.attrs = attrs
-            yield True, ds_info
+                }
+                data_arr.attrs = attrs
+                yield True, ds_info
 
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
@@ -467,8 +469,8 @@ class MIRSL2ncHandler(BaseFileHandler):
         for more information.
 
         """
-        yield from self._available_coordinates()
         yield from self._available_if_this_file_type(configured_datasets)
+        yield from self._available_coordinates()
         yield from self._available_new_datasets()
 
     def __getitem__(self, item):
