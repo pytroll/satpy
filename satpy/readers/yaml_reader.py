@@ -39,7 +39,7 @@ except ImportError:
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
-from satpy.config import recursive_dict_update
+from satpy.utils import recursive_dict_update
 from satpy.dataset import DataQuery, DataID, get_key
 from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
 from satpy import DatasetDict

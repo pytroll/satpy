@@ -267,4 +267,5 @@ intersphinx_mapping = {
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
+    'donfig': ('https://donfig.readthedocs.io/en/latest', None),
 }

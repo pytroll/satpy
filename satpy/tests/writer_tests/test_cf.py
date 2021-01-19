@@ -57,9 +57,8 @@ class TestCFWriter(unittest.TestCase):
     def test_init(self):
         """Test initializing the CFWriter class."""
         from satpy.writers.cf_writer import CFWriter
-        import satpy.config
-        CFWriter(config_files=[os.path.join(satpy.config.CONFIG_PATH,
-                                            'writers', 'cf.yaml')])
+        from satpy.writers import configs_for_writer
+        CFWriter(config_files=list(configs_for_writer('cf'))[0])
 
     def test_save_array(self):
         """Test saving an array to netcdf/cf."""
@@ -1035,7 +1034,7 @@ class TestCFWriterData(unittest.TestCase):
     """Test case for CF writer where data arrays are needed."""
 
     def setUp(self):
-        """Create some testdata."""
+        """Create some test data."""
         import xarray as xr
         import pyresample.geometry
         data = [[75, 2], [3, 4]]
@@ -1118,7 +1117,7 @@ class EncodingUpdateTest(unittest.TestCase):
                                      'lon': (('y', 'x'), [[7, 8], [9, 10]])})
 
     def test_without_time(self):
-        """Test data without a time dimension."""
+        """Test data with no time dimension."""
         from satpy.writers.cf_writer import update_encoding
 
         # Without time dimension

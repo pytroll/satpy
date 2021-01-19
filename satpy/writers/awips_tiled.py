@@ -1224,7 +1224,7 @@ class AWIPSTiledWriter(Writer):
     def enhancer(self):
         """Get lazy loaded enhancer object only if needed."""
         if self._enhancer is None:
-            self._enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir)
+            self._enhancer = Enhancer()
         return self._enhancer
 
     @classmethod

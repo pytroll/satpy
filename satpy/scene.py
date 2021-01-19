@@ -22,7 +22,6 @@ import os
 
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import CompositorLoader
-from satpy.config import get_environ_config_dir
 from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
 from satpy.node import MissingDependencies, ReaderNode, CompositorNode
@@ -69,13 +68,8 @@ class Scene:
 
     """
 
-    def __init__(self, filenames=None, reader=None, filter_parameters=None, reader_kwargs=None,
-                 ppp_config_dir=None,
-                 base_dir=None,
-                 sensor=None,
-                 start_time=None,
-                 end_time=None,
-                 area=None):
+    def __init__(self, filenames=None, reader=None, filter_parameters=None,
+                 reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
         To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
@@ -97,52 +91,9 @@ class Scene:
                 reader instances, or a dictionary mapping reader names to
                 sub-dictionaries to pass different arguments to different
                 reader instances.
-            ppp_config_dir (str): The directory containing the configuration files for satpy.
-            base_dir (str): (DEPRECATED) The directory to search for files containing the
-                            data to load. If *filenames* is also provided,
-                            this is ignored.
-            sensor (list or str): (DEPRECATED: Use `find_files_and_readers` function) Limit used files by provided
-                                  sensors.
-            area (AreaDefinition): (DEPRECATED: Use `filter_parameters`) Limit used files by geographic area.
-            start_time (datetime): (DEPRECATED: Use `filter_parameters`) Limit used files by starting time.
-            end_time (datetime): (DEPRECATED: Use `filter_parameters`) Limit used files by ending time.
 
         """
         self.attrs = dict()
-        if ppp_config_dir is None:
-            ppp_config_dir = get_environ_config_dir()
-        # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere in pytroll
-        LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
-        os.environ["PPP_CONFIG_DIR"] = self._ppp_config_dir = ppp_config_dir
-
-        if not filenames and (start_time or end_time or base_dir):
-            import warnings
-            warnings.warn(
-                "Deprecated: Use " +
-                "'from satpy import find_files_and_readers' to find files")
-            from satpy import find_files_and_readers
-            filenames = find_files_and_readers(
-                start_time=start_time,
-                end_time=end_time,
-                base_dir=base_dir,
-                reader=reader,
-                sensor=sensor,
-                ppp_config_dir=self._ppp_config_dir,
-                reader_kwargs=reader_kwargs,
-            )
-        elif start_time or end_time or area:
-            import warnings
-            warnings.warn(
-                "Deprecated: Use " +
-                "'filter_parameters' to filter loaded files by 'start_time', " +
-                "'end_time', or 'area'.")
-            fp = filter_parameters if filter_parameters else {}
-            fp.update({
-                'start_time': start_time,
-                'end_time': end_time,
-                'area': area,
-            })
-            filter_parameters = fp
         if filter_parameters:
             if reader_kwargs is None:
                 reader_kwargs = {}
@@ -158,7 +109,7 @@ class Scene:
                                                       reader_kwargs=reader_kwargs)
         self.attrs.update(self._compute_metadata_from_readers())
         self._datasets = DatasetDict()
-        self._composite_loader = CompositorLoader(self._ppp_config_dir)
+        self._composite_loader = CompositorLoader()
         comps, mods = self._composite_loader.load_compositors(self.attrs['sensor'])
         self._wishlist = set()
         self._dependency_tree = DependencyTree(self._readers, comps, mods)
@@ -204,8 +155,7 @@ class Scene:
         """Find readers and return their instances."""
         return load_readers(filenames=filenames,
                             reader=reader,
-                            reader_kwargs=reader_kwargs,
-                            ppp_config_dir=self._ppp_config_dir)
+                            reader_kwargs=reader_kwargs)
 
     @property
     def start_time(self):
@@ -1006,7 +956,6 @@ class Scene:
             writer = self._get_writer_by_ext(os.path.splitext(filename)[1])
 
         writer, save_kwargs = load_writer(writer,
-                                          ppp_config_dir=self._ppp_config_dir,
                                           filename=filename,
                                           **kwargs)
         return writer.save_dataset(self[dataset_id],
@@ -1059,7 +1008,6 @@ class Scene:
             else:
                 writer = self._get_writer_by_ext(os.path.splitext(filename)[1])
         writer, save_kwargs = load_writer(writer,
-                                          ppp_config_dir=self._ppp_config_dir,
                                           filename=filename,
                                           **kwargs)
         return writer.save_datasets(dataarrays, compute=compute, **save_kwargs)

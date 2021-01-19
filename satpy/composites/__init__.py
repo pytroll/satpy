@@ -25,7 +25,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.config import get_environ_ancpath
+import satpy
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.writers import get_enhanced_image
@@ -1006,7 +1006,7 @@ class StaticImageCompositor(GenericCompositor):
         from satpy import Scene
         # Check if filename exists, if not then try from SATPY_ANCPATH
         if not os.path.isfile(self.filename):
-            tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
+            tmp_filename = os.path.join(satpy.config.get('data_dir'), self.filename)
             if os.path.isfile(tmp_filename):
                 self.filename = tmp_filename
         scn = Scene(reader='generic_image', filenames=[self.filename])

@@ -157,7 +157,7 @@ class TestNUCAPSReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.nucaps import NUCAPSFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -358,7 +358,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.nucaps import NUCAPSFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library

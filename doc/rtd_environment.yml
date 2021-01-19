@@ -5,6 +5,8 @@ dependencies:
   - python=3.7
   - pip
   - dask
+  - donfig
+  - appdirs
   - graphviz
   - numpy
   - pillow

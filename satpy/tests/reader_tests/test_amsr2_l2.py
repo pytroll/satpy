@@ -74,7 +74,7 @@ class TestAMSR2L2Reader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.amsr2_l2 import AMSR2L2FileHandler
         from satpy.readers.amsr2_l1b import AMSR2L1BFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))

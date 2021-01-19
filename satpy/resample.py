@@ -153,7 +153,7 @@ except ImportError:
     GradientSearchResampler = None
 
 from satpy import CHUNK_SIZE
-from satpy.config import config_search_paths, get_config_path
+from satpy._config import config_search_paths, get_config_path
 
 
 LOG = getLogger(__name__)

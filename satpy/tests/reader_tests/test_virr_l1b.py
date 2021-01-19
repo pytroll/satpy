@@ -90,7 +90,7 @@ class TestVIRRL1BReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.virr_l1b import VIRR_L1B
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(VIRR_L1B, '__bases__', (FakeHDF5FileHandler2,))

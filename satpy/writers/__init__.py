@@ -34,8 +34,8 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import (config_search_paths, glob_config,
-                          get_environ_config_dir, recursive_dict_update)
+from satpy._config import config_search_paths, glob_config
+from satpy.utils import recursive_dict_update
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
@@ -65,8 +65,7 @@ def read_writer_config(config_files, loader=UnsafeLoader):
     return writer_info
 
 
-def load_writer_configs(writer_configs, ppp_config_dir,
-                        **writer_kwargs):
+def load_writer_configs(writer_configs, **writer_kwargs):
     """Load the writer from the provided `writer_configs`."""
     try:
         writer_info = read_writer_config(writer_configs)
@@ -75,59 +74,49 @@ def load_writer_configs(writer_configs, ppp_config_dir,
         raise ValueError("Invalid writer configs: "
                          "'{}'".format(writer_configs))
     init_kwargs, kwargs = writer_class.separate_init_kwargs(writer_kwargs)
-    writer = writer_class(ppp_config_dir=ppp_config_dir,
-                          config_files=writer_configs,
+    writer = writer_class(config_files=writer_configs,
                           **init_kwargs)
     return writer, kwargs
 
 
-def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
+def load_writer(writer, **writer_kwargs):
     """Find and load writer `writer` in the available configuration files."""
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
     config_fn = writer + ".yaml" if "." not in writer else writer
-    config_files = config_search_paths(
-        os.path.join("writers", config_fn), ppp_config_dir)
+    config_files = config_search_paths(os.path.join("writers", config_fn))
     writer_kwargs.setdefault("config_files", config_files)
     if not writer_kwargs['config_files']:
         raise ValueError("Unknown writer '{}'".format(writer))
 
     try:
         return load_writer_configs(writer_kwargs['config_files'],
-                                   ppp_config_dir=ppp_config_dir,
                                    **writer_kwargs)
     except ValueError:
         raise ValueError("Writer '{}' does not exist or could not be "
                          "loaded".format(writer))
 
 
-def configs_for_writer(writer=None, ppp_config_dir=None):
+def configs_for_writer(writer=None):
     """Generate writer configuration files for one or more writers.
 
     Args:
         writer (Optional[str]): Yield configs only for this writer
-        ppp_config_dir (Optional[str]): Additional configuration directory
-            to search for writer configuration files.
 
     Returns: Generator of lists of configuration files
 
     """
-    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
     if writer is not None:
         if not isinstance(writer, (list, tuple)):
             writer = [writer]
         # given a config filename or writer name
         config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
     else:
-        writer_configs = glob_config(os.path.join('writers', '*.yaml'),
-                                     *search_paths)
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'))
         config_files = set(writer_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         writer_configs = config_search_paths(
-            os.path.join("writers", config_basename), *search_paths)
+            os.path.join("writers", config_basename))
 
         if not writer_configs:
             LOG.warning("No writer configs found for '%s'", writer)
@@ -402,13 +391,12 @@ def add_decorate(orig, fill_value=None, **decorate):
     return img
 
 
-def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
+def get_enhanced_image(dataset, enhance=None, enhancement_config_file=None,
                        overlay=None, decorate=None, fill_value=None):
     """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
 
     Args:
         dataset (xarray.DataArray): Data to be enhanced and converted to an image.
-        ppp_config_dir (str): Root configuration directory.
         enhance (bool or Enhancer): Whether to automatically enhance
             data to be more visually useful and to fit inside the file
             format being saved to. By default this will default to using
@@ -437,9 +425,6 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         instead.
 
     """
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
     if enhancement_config_file is not None:
         warnings.warn("'enhancement_config_file' has been deprecated. Pass an instance of the "
                       "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
@@ -449,7 +434,7 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         enhancer = None
     elif enhance is None or enhance is True:
         # default enhancement
-        enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+        enhancer = Enhancer(enhancement_config_file)
     else:
         # custom enhancer
         enhancer = enhance
@@ -800,7 +785,7 @@ class ImageWriter(Writer):
             self.enhancer = False
         elif enhance is None or enhance is True:
             # default enhancement
-            self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
+            self.enhancer = Enhancer(enhancement_config_file=enhancement_config)
         else:
             # custom enhancer
             self.enhancer = enhance
@@ -1099,21 +1084,19 @@ class EnhancementDecisionTree(DecisionTree):
 class Enhancer(object):
     """Helper class to get enhancement information for images."""
 
-    def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
+    def __init__(self, enhancement_config_file=None):
         """Initialize an Enhancer instance.
 
         Args:
-            ppp_config_dir: Points to the base configuration directory
             enhancement_config_file: The enhancement configuration to apply, False to leave as is.
         """
-        self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
         # Set enhancement_config_file to False for no enhancements
         if self.enhancement_config_file is None:
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
+            self.enhancement_config_file = config_search_paths(config_fn)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -1134,7 +1117,7 @@ class Enhancer(object):
 
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".yaml")
-            config_files = config_search_paths(config_fn, self.ppp_config_dir)
+            config_files = config_search_paths(config_fn)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:

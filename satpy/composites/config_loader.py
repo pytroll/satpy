@@ -24,7 +24,8 @@ import yaml
 from yaml import UnsafeLoader
 
 from satpy import DatasetDict, DataQuery, DataID
-from satpy.config import CONFIG_PATH, get_entry_points_config_dirs, config_search_paths, recursive_dict_update
+from satpy._config import get_entry_points_config_dirs, config_search_paths
+from satpy.utils import recursive_dict_update
 from satpy.dataset.dataid import minimal_default_keys_config
 
 logger = logging.getLogger(__name__)
@@ -167,13 +168,10 @@ class _ModifierConfigHelper:
 class CompositorLoader:
     """Read compositors and modifiers using the configuration files on disk."""
 
-    def __init__(self, ppp_config_dir=None):
+    def __init__(self):
         """Initialize the compositor loader."""
-        if ppp_config_dir is None:
-            ppp_config_dir = CONFIG_PATH
         self.modifiers = {}
         self.compositors = {}
-        self.ppp_config_dir = ppp_config_dir
         # sensor -> { dict of DataID key information }
         self._sensor_dataid_keys = {}
 
@@ -182,10 +180,9 @@ class CompositorLoader:
         config_filename = sensor_name + ".yaml"
         logger.debug("Looking for composites config file %s", config_filename)
         paths = get_entry_points_config_dirs('satpy.composites')
-        paths.append(self.ppp_config_dir)
         composite_configs = config_search_paths(
             os.path.join("composites", config_filename),
-            *paths, check_exists=True)
+            search_dirs=paths, check_exists=True)
         if not composite_configs:
             logger.debug("No composite config found called %s",
                          config_filename)

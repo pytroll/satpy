@@ -227,18 +227,15 @@ BackgroundCompositor
 Creating composite configuration files
 ======================================
 
-To save the custom composite, the following procedure can be used:
-
-1. Create a custom directory for your custom configs.
-2. Set the environment variable ``PPP_CONFIG_DIR`` to this path.
-3. Write config files with your changes only (see examples below), pointing
-   to the (custom) module containing your composites. Generic compositors can
-   be placed in ``$PPP_CONFIG_DIR/composites/visir.yaml`` and instrument-
-   specific ones in ``$PPP_CONFIG_DIR/composites/<sensor>.yaml``. Don't forget
-   to add changes to the ``enhancement/generic.yaml`` file too.
-4. If custom compositing code was used then it must be importable by python.
-   If the code is not installed in your python environment then another option
-   it to add it to your ``PYTHONPATH``.
+To save the custom composite, follow the :ref:`component_configuration`
+documentation. Once your component configuration directory is created
+you can create your custom composite YAML configuration files.
+Compositors that can be used for multiple instruments can be placed in the
+generic ``$SATPY_CONFIG_PATH/composites/visir.yaml`` file. Composites that
+are specific to one sensor should be placed in
+``$SATPY_CONFIG_PATH/composites/<sensor>.yaml``. Custom enhancements for your new
+composites can be stored in ``$SATPY_CONFIG_PATH/enhancements/generic.yaml`` or
+``$SATPY_CONFIG_PATH/enhancements/<sensor>.yaml``.
 
 With that, you should be able to load your new composite directly. Example
 configuration files can be found in the satpy repository as well as a few
@@ -468,7 +465,7 @@ And finally either show or save the image::
 
 As pointed out in the composite section, it is better to define
 frequently used enhancements in configuration files under
-``$PPP_CONFIG_DIR/enhancements/``.  The enhancements can either be in
+``$SATPY_CONFIG_PATH/enhancements/``.  The enhancements can either be in
 ``generic.yaml`` or instrument-specific file (e.g., ``seviri.yaml``).
 
 The above enhancement can be written (with the headers necessary for
