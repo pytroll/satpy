@@ -11,7 +11,7 @@ file_types:
     file_reader: !!python/name:satpy.readers.mirs_l2_nc.MIRSL2ncHandler
     file_patterns:
       - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
-      - 'IMG_SX.{platform_shortname}.D{date:%y%j}.S{start_time:%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
+      - 'IMG_SX.{platform_shortname}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
 
 datasets:
   rain_rate:
