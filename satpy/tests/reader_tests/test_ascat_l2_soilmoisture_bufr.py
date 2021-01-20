@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -21,6 +21,7 @@ import os
 import sys
 import unittest
 import numpy as np
+from datetime import datetime
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
 
@@ -78,7 +79,7 @@ def create_message():
     return retmsg
 
 
-msg = create_message()
+MSG = create_message()
 
 # the notional filename that would contain the above test message data
 FILENAME = 'W_XX-EUMETSAT-TEST,SOUNDING+SATELLITE,METOPA+ASCAT_C_EUMC_20201221093300_73545_eps_o_125_ssm_l2.bin'
@@ -105,7 +106,7 @@ def save_test_data(path):
     import eccodes as ec
     filepath = os.path.join(path, FILENAME)
     with open(filepath, "wb") as f:
-        for m in [msg]:
+        for m in [MSG]:
             buf = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
             for key in m:
                 val = m[key]
@@ -150,6 +151,8 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         self.assertTrue('end_time' in scn.attrs)
         self.assertTrue('sensor' in scn.attrs)
         self.assertTrue('scatterometer' in scn.attrs['sensor'])
+        self.assertTrue(datetime(2020, 12, 21, 9, 33, 0) == scn.attrs['start_time'])
+        self.assertTrue(datetime(2020, 12, 21, 9, 33, 59) == scn.attrs['end_time'])
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):
@@ -157,7 +160,10 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         from satpy import Scene
         fname = os.path.join(self.base_dir, FILENAME)
         scn = Scene(reader='ascat_l2_soilmoisture_bufr', filenames=[fname])
+        self.assertTrue('surface_soil_moisture' in scn.available_dataset_names())
         scn.load(scn.available_dataset_names())
+        loaded = [dataset.name for dataset in scn]
+        self.assertTrue(loaded.sort() == scn.available_dataset_names().sort())
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_dataset_values(self):
@@ -173,7 +179,7 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
             # to make them comparable
             loaded_values_nan_filled = np.nan_to_num(loaded_values, nan=fill_value)
             key = scn[name].attrs['key']
-            original_values = msg[key]
+            original_values = MSG[key]
             # this makes each assertion below a separate test from unittest's point of view
             # (note: if all subtests pass, they will count as one test)
             with self.subTest(msg="Test failed for dataset: "+name):

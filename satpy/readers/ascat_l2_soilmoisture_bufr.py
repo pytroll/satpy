@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -67,6 +67,22 @@ class AscatSoilMoistureBufr(BaseFileHandler):
         """Return spacecraft name."""
         return self.filename_info['platform']
 
+    def extract_msg_date_extremes(self, bufr, date_min=None, date_max=None):
+        """Extracts the minimum and maximum dates from a single bufr message."""
+        ec.codes_set(bufr, 'unpack', 1)
+        size = ec.codes_get(bufr, 'numberOfSubsets')
+        years = np.resize(ec.codes_get_array(bufr, 'year'), size)
+        months = np.resize(ec.codes_get_array(bufr, 'month'), size)
+        days = np.resize(ec.codes_get_array(bufr, 'day'), size)
+        hours = np.resize(ec.codes_get_array(bufr, 'hour'), size)
+        minutes = np.resize(ec.codes_get_array(bufr, 'minute'), size)
+        seconds = np.resize(ec.codes_get_array(bufr, 'second'), size)
+        for year, month, day, hour, minute, second in zip(years, months, days, hours, minutes, seconds):
+            time_stamp = datetime(year, month, day, hour, minute, second)
+            date_min = time_stamp if not date_min else min(date_min, time_stamp)
+            date_max = time_stamp if not date_max else max(date_max, time_stamp)
+        return date_min, date_max
+
     def get_start_end_date(self):
         """Gets the first and last date from the bufr file."""
         with open(self.filename, 'rb') as fh:
@@ -77,18 +93,7 @@ class AscatSoilMoistureBufr(BaseFileHandler):
                 bufr = ec.codes_bufr_new_from_file(fh)
                 if bufr is None:
                     break
-                ec.codes_set(bufr, 'unpack', 1)
-                size = ec.codes_get(bufr, 'numberOfSubsets')
-                years = np.resize(ec.codes_get_array(bufr, 'year'), size)
-                months = np.resize(ec.codes_get_array(bufr, 'month'), size)
-                days = np.resize(ec.codes_get_array(bufr, 'day'), size)
-                hours = np.resize(ec.codes_get_array(bufr, 'hour'), size)
-                minutes = np.resize(ec.codes_get_array(bufr, 'minute'), size)
-                seconds = np.resize(ec.codes_get_array(bufr, 'second'), size)
-                for year, month, day, hour, minute, second in zip(years, months, days, hours, minutes, seconds):
-                    time_stamp = datetime(year, month, day, hour, minute, second)
-                    date_min = time_stamp if not date_min else min(date_min, time_stamp)
-                    date_max = time_stamp if not date_max else max(date_max, time_stamp)
+                date_min, date_max = self.extract_msg_date_extremes(bufr, date_min, date_max)
             return date_min, date_max
 
     def get_bufr_data(self, key):
