@@ -10,7 +10,7 @@ reader:
 
 file_types:
   ascat_l2_soilmoisture_bufr:
-    file_reader: !!python/name:satpy.readers.ascat_l2_soilmoisture_bufr.ASCATSOILMOISTUREBUFR
+    file_reader: !!python/name:satpy.readers.ascat_l2_soilmoisture_bufr.AscatSoilMoistureBufr
     file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_{level}.bin"]
 
 datasets:

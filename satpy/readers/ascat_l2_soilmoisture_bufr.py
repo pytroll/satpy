@@ -36,15 +36,15 @@ except ImportError as e:
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
-logger = logging.getLogger('ASCATSOILMOISTUREBUFR')
+logger = logging.getLogger('AscatSoilMoistureBufr')
 
 
-class ASCATSOILMOISTUREBUFR(BaseFileHandler):
+class AscatSoilMoistureBufr(BaseFileHandler):
     """File handler for the ASCAT Soil Moisture BUFR product."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialise the file handler for the ASCAT Soil Moisture BUFR data."""
-        super(ASCATSOILMOISTUREBUFR, self).__init__(filename, filename_info, filetype_info)
+        super(AscatSoilMoistureBufr, self).__init__(filename, filename_info, filetype_info)
 
         start_time, end_time = self.get_start_end_date()
 

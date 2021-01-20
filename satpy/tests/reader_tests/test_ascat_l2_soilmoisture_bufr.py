@@ -96,7 +96,7 @@ FILENAME_INFO = {
 # file type info for the above file that is defined in the .yaml
 FILETYPE_INFO = {
     'file_type': 'ascat_l2_soilmoisture_bufr',
-    'file_reader': 'ASCATSOILMOISTUREBUFR'
+    'file_reader': 'AscatSoilMoistureBufr'
 }
 
 
@@ -125,12 +125,12 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
     def setUp(self):
         """Create temporary file to perform tests with."""
         import tempfile
-        from satpy.readers.ascat_l2_soilmoisture_bufr import ASCATSOILMOISTUREBUFR
+        from satpy.readers.ascat_l2_soilmoisture_bufr import AscatSoilMoistureBufr
         self.base_dir = tempfile.mkdtemp()
         self.fname = save_test_data(self.base_dir)
         self.fname_info = FILENAME_INFO
         self.ftype_info = FILETYPE_INFO
-        self.reader = ASCATSOILMOISTUREBUFR(self.fname, self.fname_info, self.ftype_info)
+        self.reader = AscatSoilMoistureBufr(self.fname, self.fname_info, self.ftype_info)
 
     def tearDown(self):
         """Remove the temporary directory created for a test."""
