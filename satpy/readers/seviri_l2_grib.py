@@ -153,7 +153,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
                 # Retrieve values and metadata from the GRIB message, masking the values equal to missing_value
                 xarr = self._get_xarray_from_msg(gid)
-                xarr.data = xr.where(xarr.data == missing_value, np.nan, xarr.data)
+
+                xarr.data = da.where(xarr.data == missing_value, np.nan, xarr.data)
 
                 ec.codes_release(gid)
 

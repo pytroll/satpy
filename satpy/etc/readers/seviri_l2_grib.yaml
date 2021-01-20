@@ -73,7 +73,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_clm
     parameter_number: 7
-    units: ""
+    units: "1"
     long_name: cloud_mask_classification
 
   pixel_scene_type:
@@ -81,7 +81,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_oca
     parameter_number: 8
-    units: ""
+    units: "1"
     long_name: scene_classification
 
   measurement_cost:
@@ -89,7 +89,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_oca
     parameter_number: 30
-    units: ""
+    units: "1"
     long_name: cost_function
 
   upper_layer_cloud_optical_depth:
@@ -97,7 +97,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_oca
     parameter_number: 31
-    units: ""
+    units: "1"
     long_name: cloud_optical_depth
 
   upper_layer_cloud_top_pressure:
@@ -121,7 +121,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_oca
     parameter_number: 34
-    units: ""
+    units: "1"
     long_name: cloud_optical_depth
 
   error_in_upper_layer_cloud_top_pressure:
@@ -145,7 +145,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_oca
     parameter_number: 37
-    units: ""
+    units: "1"
     long_name: cloud_optical_depth
 
   lower_layer_cloud_top_pressure:
@@ -161,7 +161,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_oca
     parameter_number: 39
-    units: ""
+    units: "1"
     long_name: cloud_optical_depth_standard_error
 
   error_in_lower_layer_cloud_top_pressure:
@@ -185,7 +185,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_fir
     parameter_number: 9
-    units: ""
+    units: "1"
     long_name: active_fire_classification
 
   aerosol_optical_thickness_vis06:
@@ -217,7 +217,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_aes
     parameter_number: 23
-    units: ""
+    units: "1"
     long_name: angstroem_coefficient
 
   aes_quality:
@@ -225,7 +225,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_aes
     parameter_number: 192
-    units: ""
+    units: "1"
     long_name: aes_quality
 
   cloud_top_height:
@@ -241,7 +241,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_cth
     parameter_number: 3
-    units: ""
+    units: "1"
     long_name: cloud_top_quality
 
   vis_refl_06:
@@ -281,7 +281,7 @@ datasets:
     resolution: 3000
     file_type: grib_seviri_crm
     parameter_number: 6
-    units: ""
+    units: "1"
     long_name:  num_accumulations
 
   azimuth_angle:
