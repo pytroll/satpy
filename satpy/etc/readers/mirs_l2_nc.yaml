@@ -4,7 +4,7 @@ reader:
   short_name: MiRS Level 2 NetCDF4
   long_name: MiRS Level 2 Swath Product Reader (NetCDF4)
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  sensors: [amsu, amsu-mhs, atms, ssmis, gmi]
+  sensors: [amsu-mhs, atms, ssmis, gmi]
 
 file_types:
   mirs_atms:
