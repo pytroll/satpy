@@ -23,10 +23,9 @@ import datetime
 import numpy as np
 import xarray as xr
 import dask.array as da
-from pyproj import CRS
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
-LOAD_CHUNK_SIZE = int(os.getenv('PYTROLL_LOAD_CHUNK_SIZE', -1))
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -65,7 +64,7 @@ PLATFORMS = {"n18": "NOAA-18",
              }
 SENSOR = {"n18": amsu,
           "n19": amsu,
-          "n20": amsu,
+          "n20": 'atms',
           "np": amsu,
           "m1": amsu,
           "m2": amsu,
@@ -80,8 +79,88 @@ SENSOR = {"n18": amsu,
           "gpm": "GPI",
           }
 
-LIMB_SEA_FILE = os.environ.get("ATMS_LIMB_SEA", "satpy.readers:limball_atmssea.txt")
-LIMB_LAND_FILE = os.environ.get("ATMS_LIMB_LAND", "satpy.readers:limball_atmsland.txt")
+LIMB_SEA_FILE = os.environ.get("ATMS_LIMB_SEA",
+                               "/Users/joleenf/data/mirs/coeff/"
+                               "limball_atmssea.txt")
+LIMB_LAND_FILE = os.environ.get("ATMS_LIMB_LAND",
+                                "/Users/joleenf/data/mirs/coeff/"
+                                "limball_atmsland.txt")
+
+
+def read_atms_limb_correction_coeffs(fn):
+    """Read provided limb correction files for atms."""
+    if os.path.isfile(fn):
+        coeff_str = open(fn, "r").readlines()
+    else:
+        parts = fn.split(":")
+        mod_part, file_part = parts if len(parts) == 2 else ("", parts[0])
+        mod_part = mod_part or __package__  # self.__module__
+        coeff_str = get_resource_string(mod_part, file_part).decode().split("\n")
+    # make it a generator
+    coeff_str = (line.strip() for line in coeff_str)
+
+    all_coeffs = np.zeros((22, 96, 22), dtype=np.float32)
+    all_amean = np.zeros((22, 96, 22), dtype=np.float32)
+    all_dmean = np.zeros(22, dtype=np.float32)
+    all_nchx = np.zeros(22, dtype=np.int32)
+    all_nchanx = np.zeros((22, 22), dtype=np.int32)
+    all_nchanx[:] = 9999
+    # There should be 22 sections
+    for chan_idx in range(22):
+        # blank line at the start of each section
+        _ = next(coeff_str)
+
+        # section header
+        nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
+        nx = int(nx)  # Question, was this supposed to be used somewhere?
+        all_nchx[chan_idx] = nchx = int(nchx)
+        all_dmean[chan_idx] = float(dmean)
+
+        # coeff locations (indexes to put the future coefficients in)
+        locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
+        assert len(locations) == nchx
+        for x in range(nchx):
+            all_nchanx[chan_idx, x] = locations[x] - 1
+
+        # Read 'nchx' coefficients for each of 96 FOV (N_FOV).
+        for fov_idx in range(N_FOV):
+            # chan_num, fov_num, *coefficients, error
+            coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
+            coeffs = [float(x) for x in coeff_line_parts[:nchx]]
+            ameans = [float(x) for x in coeff_line_parts[nchx:-1]]
+            # error_val = float(coeff_line_parts[-1])
+            for x in range(nchx):
+                all_coeffs[chan_idx, fov_idx, all_nchanx[chan_idx, x]] = coeffs[x]
+                all_amean[all_nchanx[chan_idx, x], fov_idx, chan_idx] = ameans[x]
+
+    return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
+
+
+def apply_atms_limb_correction(datasets, channel_idx, dmean, coeffs, amean, nchx, nchanx):
+    """Apply the atms limb correction to the brightness temperature data."""
+    datasets = datasets.persist()
+    ds = datasets[channel_idx]
+    new_ds = np.zeros(ds.shape, dtype=ds.dtype)
+    for fov_idx in range(N_FOV):
+        new_ds[:, fov_idx] = da.map_blocks(coeff_cums_calc,
+                                           datasets, channel_idx,
+                                           fov_idx, dmean, coeffs,
+                                           amean, nchx,
+                                           nchanx, dtype=ds.dtype)
+
+    return new_ds
+
+
+def coeff_cums_calc(datasets, channel_idx, fov_idx,
+                    dmean, coeffs, amean, nchx, nchanx):
+    """Calculate the correction for each channel."""
+    coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
+    for k in range(nchx[channel_idx]):
+        coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
+                datasets[nchanx[channel_idx, k], :, fov_idx] -
+                amean[nchanx[channel_idx, k], fov_idx, channel_idx])
+        coeff_sum = coef + coeff_sum
+    return coeff_sum + dmean[channel_idx]
 
 
 class MIRSL2ncHandler(BaseFileHandler):
@@ -97,8 +176,8 @@ class MIRSL2ncHandler(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   decode_coords=True,
-                                  chunks={'Field_of_view': LOAD_CHUNK_SIZE,
-                                          'Scanline': LOAD_CHUNK_SIZE})
+                                  chunks={'Field_of_view': CHUNK_SIZE,
+                                          'Scanline': CHUNK_SIZE})
         # y,x is used in satpy, bands rather than channel using in xrimage
         self.nc = self.nc.rename_dims({"Scanline": "y",
                                        "Field_of_view": "x"})
@@ -194,81 +273,6 @@ class MIRSL2ncHandler(BaseFileHandler):
         else:
             return self.filename_info.get(key)
 
-    def apply_atms_limb_correction(self, datasets, channel_idx, dmean, coeffs, amean, nchx, nchanx):
-        """Apply the atms limb correction to the brightness temperature data."""
-        datasets = datasets.persist()
-        ds = datasets[channel_idx]
-        new_ds = np.zeros(ds.shape, dtype=ds.dtype)
-        for fov_idx in range(N_FOV):
-            new_ds[:, fov_idx] = da.map_blocks(self.coeff_cums_calc,
-                                               datasets, channel_idx,
-                                               fov_idx, dmean, coeffs,
-                                               amean, nchx,
-                                               nchanx, dtype=ds.dtype)
-
-        return new_ds
-
-    @staticmethod
-    def coeff_cums_calc(datasets, channel_idx, fov_idx,
-                        dmean, coeffs, amean, nchx, nchanx):
-        """Calculate the correction for each channel."""
-        coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
-        for k in range(nchx[channel_idx]):
-            coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
-                    datasets[nchanx[channel_idx, k], :, fov_idx] -
-                    amean[nchanx[channel_idx, k], fov_idx, channel_idx])
-            coeff_sum = coef + coeff_sum
-        return coeff_sum + dmean[channel_idx]
-
-    @staticmethod
-    def read_atms_limb_correction_coeffs(fn):
-        """Read provided limb correction files for atms."""
-        if os.path.isfile(fn):
-            coeff_str = open(fn, "r").readlines()
-        else:
-            parts = fn.split(":")
-            mod_part, file_part = parts if len(parts) == 2 else ("", parts[0])
-            mod_part = mod_part or __package__  # self.__module__
-            coeff_str = get_resource_string(mod_part, file_part).decode().split("\n")
-        # make it a generator
-        coeff_str = (line.strip() for line in coeff_str)
-
-        all_coeffs = np.zeros((22, 96, 22), dtype=np.float32)
-        all_amean = np.zeros((22, 96, 22), dtype=np.float32)
-        all_dmean = np.zeros(22, dtype=np.float32)
-        all_nchx = np.zeros(22, dtype=np.int32)
-        all_nchanx = np.zeros((22, 22), dtype=np.int32)
-        all_nchanx[:] = 9999
-        # There should be 22 sections
-        for chan_idx in range(22):
-            # blank line at the start of each section
-            _ = next(coeff_str)
-
-            # section header
-            nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
-            nx = int(nx)  # Question, was this supposed to be used somewhere?
-            all_nchx[chan_idx] = nchx = int(nchx)
-            all_dmean[chan_idx] = float(dmean)
-
-            # coeff locations (indexes to put the future coefficients in)
-            locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
-            assert len(locations) == nchx
-            for x in range(nchx):
-                all_nchanx[chan_idx, x] = locations[x] - 1
-
-            # Read 'nchx' coefficients for each of 96 FOV (N_FOV).
-            for fov_idx in range(N_FOV):
-                # chan_num, fov_num, *coefficients, error
-                coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
-                coeffs = [float(x) for x in coeff_line_parts[:nchx]]
-                ameans = [float(x) for x in coeff_line_parts[nchx:-1]]
-                # error_val = float(coeff_line_parts[-1])
-                for x in range(nchx):
-                    all_coeffs[chan_idx, fov_idx, all_nchanx[chan_idx, x]] = coeffs[x]
-                    all_amean[all_nchanx[chan_idx, x], fov_idx, chan_idx] = ameans[x]
-
-        return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
-
     def limb_correct_atms_bt(self, bt_data, ds_info):
         """Gather data needed for limb correction."""
         idx = ds_info['channel_index']
@@ -284,11 +288,11 @@ class MIRSL2ncHandler(BaseFileHandler):
         surf_type_name = deps[1]
         surf_type_mask = self[surf_type_name]
 
-        sea = self.read_atms_limb_correction_coeffs(LIMB_SEA_FILE)
-        sea_bt = self.apply_atms_limb_correction(bt_data, idx, *sea)
+        sea = read_atms_limb_correction_coeffs(LIMB_SEA_FILE)
+        sea_bt = apply_atms_limb_correction(bt_data, idx, *sea)
 
-        land = self.read_atms_limb_correction_coeffs(LIMB_LAND_FILE)
-        land_bt = self.apply_atms_limb_correction(bt_data, idx, *land)
+        land = read_atms_limb_correction_coeffs(LIMB_LAND_FILE)
+        land_bt = apply_atms_limb_correction(bt_data, idx, *land)
 
         LOG.info("Finishing limb correction")
         is_sea = (surf_type_mask == 0)
@@ -313,7 +317,6 @@ class MIRSL2ncHandler(BaseFileHandler):
             'platform_name': self.platform_name,
             'start_time': self.start_time,
             'end_time': self.end_time,
-            'crs': CRS(4326)
         })
         return metadata
 
