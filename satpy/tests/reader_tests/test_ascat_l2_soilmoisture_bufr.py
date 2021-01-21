@@ -20,8 +20,8 @@
 import os
 import sys
 import unittest
-import numpy as np
 from datetime import datetime
+import numpy as np
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
 
@@ -36,6 +36,7 @@ def create_message():
     lat, lon = np.meshgrid(np.linspace(63, 65, nlat), np.linspace(-30, -20, nlon))
     lat = np.round(np.ravel(lat), 4)
     lon = np.round(np.ravel(lon), 4)
+    np.random.seed(0)
     surfaceSoilMoisture = np.round(np.random.rand(samples)*100, 1)
     surfaceSoilMoisture[0] = -1e+100
     retmsg = {
@@ -163,7 +164,7 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         self.assertTrue('surface_soil_moisture' in scn.available_dataset_names())
         scn.load(scn.available_dataset_names())
         loaded = [dataset.name for dataset in scn]
-        self.assertTrue(loaded.sort() == scn.available_dataset_names().sort())
+        self.assertTrue(sorted(loaded) == sorted(scn.available_dataset_names()))
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_dataset_values(self):
