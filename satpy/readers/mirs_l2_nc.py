@@ -366,7 +366,7 @@ class MIRSL2ncHandler(BaseFileHandler):
             if 'BT' not in ds_info['dependencies']:
                 do_not_apply = True
             else:
-                do_not_apply = False
+                do_not_apply = True   # TODO:  Change this to false when coeff loc is resolved.
 
             if self.sensor.lower() != "atms" or do_not_apply:
                 LOG.info("Limb Correction will not be applied to non-ATMS BTs")
