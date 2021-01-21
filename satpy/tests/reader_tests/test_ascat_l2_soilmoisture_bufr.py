@@ -36,7 +36,7 @@ def create_message():
     lat, lon = np.meshgrid(np.linspace(63, 65, nlat), np.linspace(-30, -20, nlon))
     lat = np.round(np.ravel(lat), 4)
     lon = np.round(np.ravel(lon), 4)
-    rstate=np.random.RandomState(0)
+    rstate = np.random.RandomState(0)
     surfaceSoilMoisture = np.round(rstate.rand(samples)*100, 1)
     surfaceSoilMoisture[0] = -1e+100
     retmsg = {
