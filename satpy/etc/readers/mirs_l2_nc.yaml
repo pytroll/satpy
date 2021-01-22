@@ -1,0 +1,51 @@
+reader:
+  description: NetCDF Reader for the Microwave Integrated Retrieval System Level 2 swath products
+  name: mirs_l2_nc
+  short_name: MiRS Level 2 NetCDF4
+  long_name: MiRS Level 2 Swath Product Reader (NetCDF4)
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [amsu, amsu-mhs, atms, ssmis, gmi]
+
+file_types:
+  mirs_atms:
+    file_reader: !!python/name:satpy.readers.mirs_l2_nc.MiRSL2ncHandler
+    file_patterns:
+      - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
+      - 'IMG_SX.{platform_shortname}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
+
+datasets:
+  rain_rate:
+    name: RR
+    long_name: rain_rate
+    file_key: RR
+    file_type: mirs_atms
+    units: mm/hr
+    coordinates: [longitude, latitude]
+  sea_ice:
+    name: SIce
+    long_name: sea_ice
+    file_key: SIce
+    file_type: mirs_atms
+    coordinates: [longitude, latitude]
+    units: "%"
+  snow_cover:
+    name: Snow
+    long_name: snow_cover
+    file_key: Snow
+    file_type: mirs_atms
+    coordinates: [longitude, latitude]
+    units: '1'
+  tpw:
+    name: TPW
+    long_name: total_precipitable_water
+    file_key: TPW
+    file_type: mirs_atms
+    coordinates: [longitude, latitude]
+    units: mm
+  swe:
+    name: SWE
+    long_name: snow_water_equivalence
+    file_key: SWE
+    file_type: mirs_atms
+    coordinates: [longitude, latitude]
+    units: cm
