@@ -207,6 +207,11 @@ class CompositorLoader:
                 continue
         raise KeyError("Could not find modifier '{}'".format(key))
 
+    def load_all_sensors(self):
+        """Load compositors for all sensors."""
+        # TODO
+        pass
+
     def load_compositors(self, sensor_names):
         """Load all compositor configs for the provided sensors.
 

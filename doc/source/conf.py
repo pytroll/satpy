@@ -268,4 +268,5 @@ intersphinx_mapping = {
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
     'donfig': ('https://donfig.readthedocs.io/en/latest', None),
+    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }

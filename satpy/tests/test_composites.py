@@ -892,13 +892,13 @@ class TestStaticImageCompositor(unittest.TestCase):
 
         # No area defined
         comp = StaticImageCompositor("name", filename="foo.tif")
-        self.assertEqual(comp.filename, "foo.tif")
+        self.assertEqual(comp.file_uri, "foo.tif")
         self.assertIsNone(comp.area)
 
         # Area defined
         get_area_def.return_value = "bar"
         comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
-        self.assertEqual(comp.filename, "foo.tif")
+        self.assertEqual(comp.file_uri, "foo.tif")
         self.assertEqual(comp.area, "bar")
         get_area_def.assert_called_once_with("euro4")
 
@@ -919,7 +919,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader='generic_image',
-                                      filenames=[comp.filename])
+                                      filenames=[comp.file_uri])
         self.assertTrue("start_time" in res.attrs)
         self.assertTrue("end_time" in res.attrs)
         self.assertIsNone(res.attrs['sensor'])
@@ -940,7 +940,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         # Filename contains environment variable
         os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
-        self.assertEqual(comp.filename, "/path/to/image/foo.tif")
+        self.assertEqual(comp.file_uri, "/path/to/image/foo.tif")
 
 
 def _enhance2dataset(dataset, convert_p=False):

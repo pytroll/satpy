@@ -115,6 +115,8 @@ configuration files, they are merged in reverse order. This means "base"
 configuration paths should be at the end of the list and custom/user paths
 should be at the beginning of the list.
 
+.. _data_dir_setting:
+
 Data Directory
 ^^^^^^^^^^^^^^
 

@@ -25,7 +25,6 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-import satpy
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.writers import get_enhanced_image
@@ -981,7 +980,8 @@ class StaticImageCompositor(GenericCompositor):
     Environment variables in the filename are automatically expanded
     """
 
-    def __init__(self, name, filename=None, area=None, **kwargs):
+    def __init__(self, name, filename=None, known_hash=None, area=None,
+                 **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -993,23 +993,33 @@ class StaticImageCompositor(GenericCompositor):
         """
         if filename is None:
             raise ValueError("No image configured for static image compositor")
-        self.filename = os.path.expandvars(filename)
+        self.file_uri = os.path.expandvars(filename)
+        self._cache_filename = os.path.basename(self.file_uri)
+        self._cache_key = None  # initialized later
+        self._known_hash = known_hash
         self.area = None
         if area is not None:
             from satpy.resample import get_area_def
             self.area = get_area_def(area)
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
+        self.register_data_files()
+
+    def register_data_files(self):
+        """Tell Satpy about files we may want to download."""
+        from satpy.data_download import register_file
+        cache_key = register_file(self.file_uri, self._cache_filename,
+                                  component_type='composites',
+                                  component_name=self.__class__.__name__,
+                                  known_hash=self._known_hash)
+        self._cache_key = cache_key
 
     def __call__(self, *args, **kwargs):
         """Call the compositor."""
         from satpy import Scene
-        # Check if filename exists, if not then try from SATPY_ANCPATH
-        if not os.path.isfile(self.filename):
-            tmp_filename = os.path.join(satpy.config.get('data_dir'), self.filename)
-            if os.path.isfile(tmp_filename):
-                self.filename = tmp_filename
-        scn = Scene(reader='generic_image', filenames=[self.filename])
+        from satpy.data_download import retrieve
+        local_file = retrieve(self._cache_key)
+        scn = Scene(reader='generic_image', filenames=[local_file])
         scn.load(['image'])
         img = scn['image']
         # use compositor parameters as extra metadata
