@@ -189,11 +189,8 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
-        self.nlines = self.nc.dims['y']
-        self.ncols = self.nc.dims['x']
         self.lons = None
         self.lats = None
-        self.area = None
         self.coords = {}
 
     def new_coords(self):
@@ -503,7 +500,3 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         data.coords.update(new_coords)
         return data
-
-    def get_shape(self):
-        """Get the shape of the data."""
-        return self.nlines, self.ncols
