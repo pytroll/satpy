@@ -5,6 +5,8 @@ dependencies:
   - xarray
   - dask
   - distributed
+  - donfig
+  - appdirs
   - toolz
   - Cython
   - sphinx

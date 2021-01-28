@@ -25,8 +25,8 @@ import dask
 import dask.array as da
 import xarray as xr
 
+import satpy
 from satpy.composites import CompositeBase, GenericCompositor
-from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 from satpy.utils import get_satpos
 
@@ -81,7 +81,8 @@ class ReflectanceCorrector(CompositeBase):
         if os.path.exists(dem_filename):
             self.dem_file = dem_filename
         else:
-            self.dem_file = os.path.join(get_environ_ancpath(), dem_filename)
+            self.dem_file = os.path.join(satpy.config.get('data_dir'),
+                                         dem_filename)
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
 

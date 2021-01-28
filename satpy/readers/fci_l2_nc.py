@@ -19,21 +19,98 @@
 """Reader for the FCI L2 products in NetCDF4 format."""
 
 import logging
+from contextlib import suppress
+from datetime import datetime, timedelta
+
 import numpy as np
 import xarray as xr
 
-from datetime import datetime, timedelta
-
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers._geos_area import get_area_definition, make_ext
 from satpy import CHUNK_SIZE
+from satpy.readers._geos_area import get_area_definition, make_ext
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 PRODUCT_DATA_DURATION_MINUTES = 20
 
+SSP_DEFAULT = 0.0
 
-class FciL2NCFileHandler(BaseFileHandler):
+
+class FciL2CommonFunctions(object):
+    @property
+    def _start_time(self):
+        try:
+            start_time = datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
+        except (ValueError, KeyError):
+            # TODO if the sensing_start_time_utc attribute is not valid, uses a hardcoded value
+            logger.warning("Start time cannot be obtained from file content, using default value instead")
+            start_time = datetime.strptime('20200101120000', '%Y%m%d%H%M%S')
+        return start_time
+
+    @property
+    def _end_time(self):
+        """Get observation end time."""
+        try:
+            end_time = datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%d%H%M%S')
+        except (ValueError, KeyError):
+            # TODO if the sensing_end_time_utc attribute is not valid, adds 20 minutes to the start time
+            end_time = self._start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
+        return end_time
+
+    @property
+    def _spacecraft_name(self):
+        """Return spacecraft name."""
+        try:
+            return self.nc.attrs['platform']
+        except KeyError:
+            # TODO if the platform attribute is not valid, return a default value
+            logger.warning("Spacecraft name cannot be obtained from file content, using default value instead")
+            return 'DEFAULT_MTG'
+
+    @property
+    def _sensor_name(self):
+        """Return instrument."""
+        try:
+            return self.nc.attrs['data_source']
+        except KeyError:
+            # TODO if the data_source attribute is not valid, return a default value
+            logger.warning("Sensor cannot be obtained from file content, using default value instead")
+            return 'fci'
+
+    def _get_global_attributes(self):
+        """Create a dictionary of global attributes to be added to all datasets.
+
+        Returns:
+            dict: A dictionary of global attributes.
+                filename: name of the product file
+                start_time: sensing start time from best available source
+                end_time: sensing end time from best available source
+                spacecraft_name: name of the spacecraft
+                ssp_lon: longitude of subsatellite point
+                sensor: name of sensor
+                creation_time: creation time of the product
+                platform_name: name of the platform
+
+        """
+        attributes = {
+            'filename': self.filename,
+            'start_time': self._start_time,
+            'end_time': self._end_time,
+            'spacecraft_name': self._spacecraft_name,
+            'ssp_lon': self.ssp_lon,
+            'sensor': self._sensor_name,
+            'creation_time': self.filename_info['creation_time'],
+            'platform_name': self._spacecraft_name,
+        }
+        return attributes
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        with suppress(OSError):
+            self.nc.close()
+
+
+class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
     """Reader class for FCI L2 products in NetCDF4 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -60,55 +137,13 @@ class FciL2NCFileHandler(BaseFileHandler):
         self._area_def = self._compute_area_def()
 
     @property
-    def start_time(self):
-        """Get observation start time."""
-        try:
-            start_time = datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
-        except (ValueError, KeyError):
-            # TODO if the sensing_start_time_utc attribute is not valid, uses a hardcoded value
-            logger.warning("Start time cannot be obtained from file content, using default value instead")
-            start_time = datetime.strptime('20200101120000', '%Y%m%d%H%M%S')
-        return start_time
-
-    @property
-    def end_time(self):
-        """Get observation end time."""
-        try:
-            end_time = datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%d%H%M%S')
-        except (ValueError, KeyError):
-            # TODO if the sensing_end_time_utc attribute is not valid, adds 20 minutes to the start time
-            end_time = self.start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
-        return end_time
-
-    @property
-    def spacecraft_name(self):
-        """Return spacecraft name."""
-        try:
-            return self.nc.attrs['platform']
-        except KeyError:
-            # TODO if the platform attribute is not valid, return a default value
-            logger.warning("Spacecraft name cannot be obtained from file content, using default value instead")
-            return 'DEFAULT_MTG'
-
-    @property
-    def sensor(self):
-        """Return instrument."""
-        try:
-            return self.nc.attrs['data_source']
-        except KeyError:
-            # TODO if the data_source attribute is not valid, return a default value
-            logger.warning("Sensor cannot be obtained from file content, using default value instead")
-            return 'fci'
-
-    @property
     def ssp_lon(self):
         """Return subsatellite point longitude."""
         try:
             return float(self._projection.attrs['longitude_of_projection_origin'])
         except KeyError:
-            # TODO if the longitude_of_projection_origin attribute is not valid, return a default value
             logger.warning("ssp_lon cannot be obtained from file content, using default value instead")
-            return 0.
+            return SSP_DEFAULT
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
@@ -133,9 +168,14 @@ class FciL2NCFileHandler(BaseFileHandler):
             fill_value = dataset_info['fill_value']
         except KeyError:
             fill_value = np.NaN
-        float_variable = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
-        float_variable.attrs = variable.attrs
-        variable = float_variable
+
+        if dataset_info['file_type'] == 'nc_fci_test_clm':
+            data_values = variable.where(variable != fill_value, mask_value).astype('uint32', copy=False)
+        else:
+            data_values = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
+
+        data_values.attrs = variable.attrs
+        variable = data_values
 
         # If the variable has 3 dimensions, select the required layer
         if variable.ndim == 3:
@@ -143,8 +183,11 @@ class FciL2NCFileHandler(BaseFileHandler):
             logger.debug('Selecting the layer %d.', layer)
             variable = variable.sel(maximum_number_of_layers=layer)
 
+        if dataset_info['file_type'] == 'nc_fci_test_clm' and var_key != 'cloud_mask_cmrt6_test_result':
+            variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
+
         # Rename the dimensions as required by Satpy
-        variable = variable.rename({'number_of_rows': 'y', 'number_of_columns': 'x'})
+        variable = variable.rename({"number_of_rows": 'y', "number_of_columns": 'x'})
 
         # Manage the attributes of the dataset
         variable.attrs.setdefault('units', None)
@@ -153,33 +196,6 @@ class FciL2NCFileHandler(BaseFileHandler):
         variable.attrs.update(self._get_global_attributes())
 
         return variable
-
-    def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets.
-
-        Returns:
-            dict: A dictionary of global attributes.
-                filename: name of the product file
-                start_time: sensing start time from best available source
-                end_time: sensing end time from best available source
-                spacecraft_name: name of the spacecraft
-                ssp_lon: longitude of subsatellite point
-                sensor: name of sensor
-                creation_time: creation time of the product
-                platform_name: name of the platform
-
-        """
-        attributes = {
-            'filename': self.filename,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'spacecraft_name': self.spacecraft_name,
-            'ssp_lon': self.ssp_lon,
-            'sensor': self.sensor,
-            'creation_time': self.filename_info['creation_time'],
-            'platform_name': self.spacecraft_name,
-        }
-        return attributes
 
     def get_area_def(self, key):
         """Return the area definition (common to all data in product)."""
@@ -238,9 +254,59 @@ class FciL2NCFileHandler(BaseFileHandler):
 
         return area_def
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
+
+class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
+    """Reader class for FCI L2 Segmented products in NetCDF4 format."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Open the NetCDF file with xarray and prepare for dataset reading."""
+        super().__init__(filename, filename_info, filetype_info)
+        # Use xarray's default netcdf4 engine to open the file
+        self.nc = xr.open_dataset(
+            self.filename,
+            decode_cf=True,
+            mask_and_scale=True,
+            chunks={
+                'number_of_FoR_cols': CHUNK_SIZE,
+                'number_of_FoR_rows': CHUNK_SIZE
+            }
+        )
+
+        # Read metadata which are common to all datasets
+        self.nlines = self.nc['number_of_FoR_rows'].size
+        self.ncols = self.nc['number_of_FoR_cols'].size
+
+        self.ssp_lon = SSP_DEFAULT
+
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset using the file_key in dataset_info."""
+        var_key = dataset_info['file_key']
+        logger.debug('Reading in file to get dataset with key %s.', var_key)
+
         try:
-            self.nc.close()
-        except AttributeError:
-            pass
+            variable = self.nc[var_key]
+        except KeyError:
+            logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
+            return None
+
+        # TODO in some of the test files, invalid pixels contain the value defined as "fill_value" in the YAML file
+        # instead of being masked directly in the netCDF variable.
+        # therefore NaN is applied where such value is found or (0 if the array contains integer values)
+        # the next 11 lines have to be removed once the product files are correctly configured
+
+        mask_value = dataset_info.get('mask_value', np.NaN)
+        fill_value = dataset_info.get('fill_value', np.NaN)
+
+        float_variable = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
+        float_variable.attrs = variable.attrs
+        variable = float_variable
+
+        # Rename the dimensions as required by Satpy
+        variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
+#       # Manage the attributes of the dataset
+        variable.attrs.setdefault('units', None)
+
+        variable.attrs.update(dataset_info)
+        variable.attrs.update(self._get_global_attributes())
+
+        return variable

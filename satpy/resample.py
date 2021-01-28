@@ -153,7 +153,7 @@ except ImportError:
     GradientSearchResampler = None
 
 from satpy import CHUNK_SIZE
-from satpy.config import config_search_paths, get_config_path
+from satpy._config import config_search_paths, get_config_path
 
 
 LOG = getLogger(__name__)
@@ -1108,7 +1108,7 @@ class BucketResamplerBase(BaseResampler):
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
 
-        return result
+        return update_resampled_coords(data, result, self.target_geo_def)
 
 
 class BucketAvg(BucketResamplerBase):

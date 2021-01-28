@@ -101,7 +101,7 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
 
     def test_modis_overview_1000m(self):
         """Test a modis overview dependency calculation with resolution fixed to 1000m."""
-        from satpy.config import PACKAGE_CONFIG_PATH
+        from satpy._config import PACKAGE_CONFIG_PATH
         from satpy.readers.yaml_reader import FileYAMLReader
 
         from satpy import DataQuery

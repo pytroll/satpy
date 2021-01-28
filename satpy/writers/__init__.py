@@ -34,8 +34,8 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import (config_search_paths, glob_config,
-                          get_environ_config_dir, recursive_dict_update)
+from satpy._config import config_search_paths, glob_config
+from satpy.utils import recursive_dict_update
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
@@ -65,8 +65,7 @@ def read_writer_config(config_files, loader=UnsafeLoader):
     return writer_info
 
 
-def load_writer_configs(writer_configs, ppp_config_dir,
-                        **writer_kwargs):
+def load_writer_configs(writer_configs, **writer_kwargs):
     """Load the writer from the provided `writer_configs`."""
     try:
         writer_info = read_writer_config(writer_configs)
@@ -75,59 +74,49 @@ def load_writer_configs(writer_configs, ppp_config_dir,
         raise ValueError("Invalid writer configs: "
                          "'{}'".format(writer_configs))
     init_kwargs, kwargs = writer_class.separate_init_kwargs(writer_kwargs)
-    writer = writer_class(ppp_config_dir=ppp_config_dir,
-                          config_files=writer_configs,
+    writer = writer_class(config_files=writer_configs,
                           **init_kwargs)
     return writer, kwargs
 
 
-def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
+def load_writer(writer, **writer_kwargs):
     """Find and load writer `writer` in the available configuration files."""
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
     config_fn = writer + ".yaml" if "." not in writer else writer
-    config_files = config_search_paths(
-        os.path.join("writers", config_fn), ppp_config_dir)
+    config_files = config_search_paths(os.path.join("writers", config_fn))
     writer_kwargs.setdefault("config_files", config_files)
     if not writer_kwargs['config_files']:
         raise ValueError("Unknown writer '{}'".format(writer))
 
     try:
         return load_writer_configs(writer_kwargs['config_files'],
-                                   ppp_config_dir=ppp_config_dir,
                                    **writer_kwargs)
     except ValueError:
         raise ValueError("Writer '{}' does not exist or could not be "
                          "loaded".format(writer))
 
 
-def configs_for_writer(writer=None, ppp_config_dir=None):
+def configs_for_writer(writer=None):
     """Generate writer configuration files for one or more writers.
 
     Args:
         writer (Optional[str]): Yield configs only for this writer
-        ppp_config_dir (Optional[str]): Additional configuration directory
-            to search for writer configuration files.
 
     Returns: Generator of lists of configuration files
 
     """
-    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
     if writer is not None:
         if not isinstance(writer, (list, tuple)):
             writer = [writer]
         # given a config filename or writer name
         config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
     else:
-        writer_configs = glob_config(os.path.join('writers', '*.yaml'),
-                                     *search_paths)
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'))
         config_files = set(writer_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         writer_configs = config_search_paths(
-            os.path.join("writers", config_basename), *search_paths)
+            os.path.join("writers", config_basename))
 
         if not writer_configs:
             LOG.warning("No writer configs found for '%s'", writer)
@@ -402,13 +391,12 @@ def add_decorate(orig, fill_value=None, **decorate):
     return img
 
 
-def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
+def get_enhanced_image(dataset, enhance=None, enhancement_config_file=None,
                        overlay=None, decorate=None, fill_value=None):
     """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
 
     Args:
         dataset (xarray.DataArray): Data to be enhanced and converted to an image.
-        ppp_config_dir (str): Root configuration directory.
         enhance (bool or Enhancer): Whether to automatically enhance
             data to be more visually useful and to fit inside the file
             format being saved to. By default this will default to using
@@ -437,9 +425,6 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         instead.
 
     """
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
     if enhancement_config_file is not None:
         warnings.warn("'enhancement_config_file' has been deprecated. Pass an instance of the "
                       "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
@@ -449,7 +434,7 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         enhancer = None
     elif enhance is None or enhance is True:
         # default enhancement
-        enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+        enhancer = Enhancer(enhancement_config_file)
     else:
         # custom enhancer
         enhancer = enhance
@@ -800,7 +785,7 @@ class ImageWriter(Writer):
             self.enhancer = False
         elif enhance is None or enhance is True:
             # default enhancement
-            self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
+            self.enhancer = Enhancer(enhancement_config_file=enhancement_config)
         else:
             # custom enhancer
             self.enhancer = enhance
@@ -859,14 +844,77 @@ class ImageWriter(Writer):
 
 
 class DecisionTree(object):
-    """The decision tree."""
+    """Structure to search for nearest match from a set of parameters.
+
+    This class is used to find the best configuration section by matching
+    a set of attributes. The provided dictionary contains a mapping of
+    "section name" to "decision" dictionaries. Each decision dictionary
+    contains the attributes that will be used for matching plus any
+    additional keys that could be useful when matched. This class will
+    search these decisions and return the one with the most matching
+    parameters to the attributes passed to the
+    :meth:`~satpy.writers.DecisionTree.find_match`` method.
+
+    Note that decision sections are provided as a dict instead of a list
+    so that they can be overwritten or updated by doing the equivalent
+    of a ``current_dicts.update(new_dicts)``.
+
+    Examples:
+        Decision sections are provided as a dictionary of dictionaries.
+        The returned match will be the first result found by searching
+        provided `match_keys` in order.
+
+        decisions = {
+            'first_section': {
+                'a': 1,
+                'b': 2,
+                'useful_key': 'useful_value',
+            },
+            'second_section': {
+                'a': 5,
+                'useful_key': 'other_useful_value1',
+            },
+            'third_section': {
+                'b': 4,
+                'useful_key': 'other_useful_value2',
+            },
+        }
+        tree = DecisionTree(decisions, ('a', 'b'))
+        tree.find_match(a=5, b=2)  # second_section dict
+        tree.find_match(a=1, b=2)  # first_section dict
+        tree.find_match(a=5, b=4)  # second_section dict
+        tree.find_match(a=3, b=2)  # no match
+
+    """
 
     any_key = None
 
-    def __init__(self, decision_dicts, attrs, **kwargs):
-        """Init the decision tree."""
-        self.attrs = attrs
-        self.tree = {}
+    def __init__(self, decision_dicts, match_keys, multival_keys=None):
+        """Init the decision tree.
+
+        Args:
+            decision_dicts (dict): Dictionary of dictionaries. Each
+                sub-dictionary contains key/value pairs that can be
+                matched from the `find_match` method. Sub-dictionaries
+                can include additional keys outside of the ``match_keys``
+                provided to act as the "result" of a query. The keys of
+                the root dict are arbitrary.
+            match_keys (list): Keys of the provided dictionary to use for
+                matching.
+            multival_keys (list): Keys of `match_keys` that can be provided
+                as multiple values.
+                A multi-value key can be specified as a single value
+                (typically a string) or a set. If a set, it will be sorted
+                and converted to a tuple and then used for matching.
+                When querying the tree, these keys will
+                be searched for exact multi-value results (the sorted tuple)
+                and if not found then each of the values will be searched
+                individually in alphabetical order.
+
+        """
+        self._match_keys = match_keys
+        self._multival_keys = multival_keys or []
+        self._tree = {}
         if not isinstance(decision_dicts, (list, tuple)):
             decision_dicts = [decision_dicts]
         self.add_config_to_tree(*decision_dicts)
@@ -879,52 +927,95 @@ class DecisionTree(object):
         self._build_tree(conf)
 
     def _build_tree(self, conf):
-        """Build the tree."""
-        for _section_name, attrs in conf.items():
-            # Set a path in the tree for each section in the configuration
-            # files
-            curr_level = self.tree
-            for attr in self.attrs:
+        """Build the tree.
+
+        Create a tree structure of dicts where each level represents the
+        possible matches for a specific ``match_key``. When finding matches
+        we will iterate through the tree matching each key that we know about.
+        The last dict in the "tree" will contain the configure section whose
+        match values led down that path in the tree.
+
+        See :meth:`DecisionTree.find_match` for more information.
+
+        """
+        for _section_name, sect_attrs in conf.items():
+            # Set a path in the tree for each section in the config files
+            curr_level = self._tree
+            for match_key in self._match_keys:
                 # or None is necessary if they have empty strings
-                this_attr = attrs.get(attr, self.any_key) or None
-                if attr == self.attrs[-1]:
+                this_attr_val = sect_attrs.get(match_key, self.any_key) or None
+                if match_key in self._multival_keys and isinstance(this_attr_val, list):
+                    this_attr_val = tuple(sorted(this_attr_val))
+                is_last_key = match_key == self._match_keys[-1]
+                level_needs_init = this_attr_val not in curr_level
+                if is_last_key:
                     # if we are at the last attribute, then assign the value
                     # set the dictionary of attributes because the config is
                     # not persistent
-                    curr_level[this_attr] = attrs
-                elif this_attr not in curr_level:
-                    curr_level[this_attr] = {}
-                curr_level = curr_level[this_attr]
+                    curr_level[this_attr_val] = sect_attrs
+                elif level_needs_init:
+                    curr_level[this_attr_val] = {}
+                curr_level = curr_level[this_attr_val]
 
-    def _find_match(self, curr_level, attrs, kwargs):
+    @staticmethod
+    def _convert_query_val_to_hashable(query_val):
+        _sorted_query_val = sorted(query_val)
+        query_vals = [tuple(_sorted_query_val)] + _sorted_query_val
+        query_vals += query_val
+        return query_vals
+
+    def _get_query_values(self, query_dict, curr_match_key):
+        query_val = query_dict[curr_match_key]
+        if curr_match_key in self._multival_keys and isinstance(query_val, set):
+            query_vals = self._convert_query_val_to_hashable(query_val)
+        else:
+            query_vals = [query_val]
+        return query_vals
+
+    def _find_match_if_known(self, curr_level, remaining_match_keys, query_dict):
+        match = None
+        curr_match_key = remaining_match_keys[0]
+        if curr_match_key not in query_dict:
+            return match
+
+        query_vals = self._get_query_values(query_dict, curr_match_key)
+        for query_val in query_vals:
+            if query_val not in curr_level:
+                continue
+            match = self._find_match(curr_level[query_val],
+                                     remaining_match_keys[1:],
+                                     query_dict)
+            if match is not None:
+                break
+        return match
+
+    def _find_match(self, curr_level, remaining_match_keys, query_dict):
         """Find a match."""
-        if len(attrs) == 0:
+        if len(remaining_match_keys) == 0:
             # we're at the bottom level, we must have found something
             return curr_level
 
-        match = None
-        try:
-            if attrs[0] in kwargs and kwargs[attrs[0]] in curr_level:
-                # we know what we're searching for, try to find a pattern
-                # that uses this attribute
-                match = self._find_match(curr_level[kwargs[attrs[0]]],
-                                         attrs[1:], kwargs)
-        except TypeError:
-            # we don't handle multiple values (for example sensor) atm.
-            LOG.debug("Strange stuff happening in decision tree for %s: %s",
-                      attrs[0], kwargs[attrs[0]])
+        match = self._find_match_if_known(
+            curr_level, remaining_match_keys, query_dict)
 
         if match is None and self.any_key in curr_level:
             # if we couldn't find it using the attribute then continue with
             # the other attributes down the 'any' path
-            match = self._find_match(curr_level[self.any_key], attrs[1:],
-                                     kwargs)
+            match = self._find_match(
+                curr_level[self.any_key],
+                remaining_match_keys[1:],
+                query_dict)
         return match
 
-    def find_match(self, **kwargs):
-        """Find a match."""
+    def find_match(self, **query_dict):
+        """Find a match.
+
+        Recursively search through the tree structure for a path that matches
+        the provided match parameters.
+
+        """
         try:
-            match = self._find_match(self.tree, self.attrs, kwargs)
+            match = self._find_match(self._tree, self._match_keys, query_dict)
         except (KeyError, IndexError, ValueError):
             LOG.debug("Match exception:", exc_info=True)
             LOG.error("Error when finding matching decision section")
@@ -932,7 +1023,7 @@ class DecisionTree(object):
         if match is None:
             # only possible if no default section was provided
             raise KeyError("No decision section found for %s" %
-                           (kwargs.get("uid", None), ))
+                           (query_dict.get("uid", None),))
         return match
 
 
@@ -941,14 +1032,16 @@ class EnhancementDecisionTree(DecisionTree):
 
     def __init__(self, *decision_dicts, **kwargs):
         """Init the decision tree."""
-        attrs = kwargs.pop("attrs", ("name",
-                                     "platform_name",
-                                     "sensor",
-                                     "standard_name",
-                                     "units",))
+        match_keys = kwargs.pop("match_keys",
+                                ("name",
+                                 "platform_name",
+                                 "sensor",
+                                 "standard_name",
+                                 "units",))
         self.prefix = kwargs.pop("config_section", "enhancements")
+        multival_keys = kwargs.pop("multival_keys", ["sensor"])
         super(EnhancementDecisionTree, self).__init__(
-            decision_dicts, attrs, **kwargs)
+            decision_dicts, match_keys, multival_keys)
 
     def add_config_to_tree(self, *decision_dict):
         """Add configuration to tree."""
@@ -978,34 +1071,32 @@ class EnhancementDecisionTree(DecisionTree):
 
         self._build_tree(conf)
 
-    def find_match(self, **kwargs):
+    def find_match(self, **query_dict):
         """Find a match."""
         try:
-            return super(EnhancementDecisionTree, self).find_match(**kwargs)
+            return super(EnhancementDecisionTree, self).find_match(**query_dict)
         except KeyError:
             # give a more understandable error message
             raise KeyError("No enhancement configuration found for %s" %
-                           (kwargs.get("uid", None), ))
+                           (query_dict.get("uid", None),))
 
 
 class Enhancer(object):
     """Helper class to get enhancement information for images."""
 
-    def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
+    def __init__(self, enhancement_config_file=None):
         """Initialize an Enhancer instance.
 
         Args:
-            ppp_config_dir: Points to the base configuration directory
             enhancement_config_file: The enhancement configuration to apply, False to leave as is.
         """
-        self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
         # Set enhancement_config_file to False for no enhancements
         if self.enhancement_config_file is None:
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
+            self.enhancement_config_file = config_search_paths(config_fn)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -1026,7 +1117,7 @@ class Enhancer(object):
 
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".yaml")
-            config_files = config_search_paths(config_fn, self.ppp_config_dir)
+            config_files = config_search_paths(config_fn)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:

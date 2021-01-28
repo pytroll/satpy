@@ -32,7 +32,7 @@ except ImportError:
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
-            'dask[array] >=0.17.1', 'pyproj', 'zarr']
+            'dask[array] >=0.17.1', 'pyproj', 'zarr', 'donfig', 'appdirs']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec']
@@ -62,7 +62,7 @@ extras_require = {
     'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
-    'scmi': ['netCDF4 >= 1.1.8'],
+    'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
@@ -132,7 +132,8 @@ setup(name=NAME,
                               os.path.join('etc', 'enhancements', '*.yaml'),
                               ]},
       zip_safe=False,
-      use_scm_version=True,
+      use_scm_version={'write_to': 'satpy/version.py'},
+      setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
       install_requires=requires,
       tests_require=test_requires,
       python_requires='>=3.6',
