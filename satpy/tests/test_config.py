@@ -104,7 +104,7 @@ class TestPluginsConfigs(unittest.TestCase):
 
         import satpy
         from satpy._config import get_entry_points_config_dirs
-        # don't let user env vars effect results
+        # don't let user env vars affect results
         with satpy.config.set(config_path=[]):
             dirs = get_entry_points_config_dirs('satpy.composites')
             self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])
