@@ -546,10 +546,14 @@ class FSFile(os.PathLike):
     def __init__(self, file, fs=None):
         """Initialise the FSFile instance.
 
-        *file* can be string, an object implementing the PathLike protocol, or
-            an fsspec.OpenFile instance. In the latter case, the follow argument
-            *fs* has no effect.
-        *fs* can be None or a fsspec filesystem instance.
+        Args:
+            file (str, Pathlike, or OpenFile):
+                String, object implementing the `os.PathLike` protocol, or
+                an `fsspec.OpenFile` instance.  If passed an instance of
+                `fsspec.OpenFile`, the following argument ``fs`` has no
+                effect.
+            fs (fsspec filesystem, optional)
+                Object implementing the fsspec filesystem protocol.
         """
         try:
             self._file = file.path
