@@ -896,6 +896,12 @@ class TestFSFile(unittest.TestCase):
         from satpy.readers import FSFile
         assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
 
+    def test_fsfile_with_pathlike(self):
+        from satpy.readers import FSFile
+        from pathlib import Path
+        f = FSFile(Path(self.local_filename))
+        assert str(f) == os.fspath(f) == self.local_filename
+
     def test_fsfile_with_fs_open_file_abides_pathlike(self):
         """Test that FSFile abides PathLike for fsspec OpenFile instances."""
         from satpy.readers import FSFile
