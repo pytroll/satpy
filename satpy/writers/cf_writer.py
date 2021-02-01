@@ -484,6 +484,7 @@ def update_encoding(dataset, to_netcdf_kwargs):
     _set_default_chunks(encoding, dataset)
     _set_default_fill_value(encoding, dataset)
     _set_default_time_encoding(encoding, dataset)
+
     return encoding, other_to_netcdf_kwargs
 
 
