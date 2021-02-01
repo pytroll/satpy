@@ -476,10 +476,14 @@ def update_encoding(dataset, to_netcdf_kwargs):
     other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
     encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
 
+    for var_name, variable in dataset.variables.items():
+        if 'satpy_dataset_name' in variable.attrs:
+            if variable.attrs['satpy_dataset_name'] in encoding:
+                encoding['CHANNEL_' + variable.attrs['satpy_dataset_name']] = encoding.pop(variable.attrs['satpy_dataset_name'])
+
     _set_default_chunks(encoding, dataset)
     _set_default_fill_value(encoding, dataset)
     _set_default_time_encoding(encoding, dataset)
-
     return encoding, other_to_netcdf_kwargs
 
 
@@ -507,6 +511,9 @@ class CFWriter(Writer):
         new_data = dataarray.copy()
         if 'name' in new_data.attrs:
             name = new_data.attrs.pop('name')
+            if name[0].isdigit():
+                new_data.attrs['satpy_dataset_name'] = name
+                name = 'CHANNEL_' + name
             new_data = new_data.rename(name)
 
         # Remove _satpy* attributes
