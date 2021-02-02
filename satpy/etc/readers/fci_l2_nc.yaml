@@ -657,7 +657,7 @@ datasets:
     name: latitude
     file_key: 'latitude'
 #    resolution:
-    file_type: [nc_fci_gii, nc_fci_asr]
+    file_type: [nc_fci_gii, nc_fci_asr, nc_fci_toz]
     standard_name: latitude
     fill_value: -32767
     mask_value: -32767
@@ -668,7 +668,7 @@ datasets:
     name: longitude
     file_key: 'longitude'
 #    resolution:
-    file_type: [nc_fci_gii, nc_fci_asr]
+    file_type: [nc_fci_gii, nc_fci_asr, nc_fci_toz]
     standard_name: longitude
     fill_value: -32767
     mask_value: -32767
