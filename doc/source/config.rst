@@ -123,6 +123,8 @@ Note that this value must be a list. In Python, this could be set by doing:
 
 As mentioned above, if setting an environment variable then it must be a
 colon-separated string and must be set **before** calling/importing Satpy.
+If the environment variable is a single path it will be converted to a list
+when Satpy is imported.
 
 .. code-block:: bash
 
