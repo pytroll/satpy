@@ -1,6 +1,6 @@
 reader:
   description: NetCDF Reader for the Microwave Integrated Retrieval System Level 2 swath products
-  name: mirs_l2_nc
+  name: mirs
   short_name: MiRS Level 2 NetCDF4
   long_name: MiRS Level 2 Swath Product Reader (NetCDF4)
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -8,7 +8,7 @@ reader:
 
 file_types:
   mirs_atms:
-    file_reader: !!python/name:satpy.readers.mirs_l2_nc.MiRSL2ncHandler
+    file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
     file_patterns:
       - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
       - 'IMG_SX.{platform_shortname}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'

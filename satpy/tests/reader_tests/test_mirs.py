@@ -162,9 +162,9 @@ def fake_open_dataset(filename, **kwargs):
 
 
 class TestMirsL2_NcReader:
-    """Test mirs_l2_nc Reader."""
+    """Test mirs Reader."""
 
-    yaml_file = "mirs_l2_nc.yaml"
+    yaml_file = "mirs.yaml"
 
     def setup_method(self):
         """Read fake data."""
@@ -182,7 +182,7 @@ class TestMirsL2_NcReader:
     def test_reader_creation(self, filenames, expected_loadables):
         """Test basic initialization."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.mirs_l2_nc.xr.open_dataset') as od:
+        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
@@ -202,7 +202,7 @@ class TestMirsL2_NcReader:
     def test_available_datasets(self, filenames, expected_datasets):
         """Test that variables are dynamically discovered."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.mirs_l2_nc.xr.open_dataset') as od:
+        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
@@ -244,7 +244,7 @@ class TestMirsL2_NcReader:
     def test_basic_load(self, filenames, loadable_ids, platform_name):
         """Test that variables are loaded properly."""
         from satpy.readers import load_reader
-        with mock.patch('satpy.readers.mirs_l2_nc.xr.open_dataset') as od:
+        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
