@@ -115,6 +115,19 @@ configuration files, they are merged in reverse order. This means "base"
 configuration paths should be at the end of the list and custom/user paths
 should be at the beginning of the list.
 
+Note that this value must be a list. In Python, this could be set by doing:
+
+.. code-block:: python
+
+    satpy.config.set(config_path=['/path/custom1', '/path/custom2'])
+
+As mentioned above, if setting an environment variable then it must be a
+colon-separated string and must be set **before** calling/importing Satpy.
+
+.. code-block:: bash
+
+    export SATPY_CONFIG_PATH="/path/custom1:/path/custom2"
+
 Data Directory
 ^^^^^^^^^^^^^^
 
