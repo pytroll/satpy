@@ -33,12 +33,9 @@ import logging
 from datetime import datetime
 
 import numpy as np
-try:
-    from pygac.calibration import calibrate_solar, calibrate_thermal
-except ImportError:
-    from pygac.gac_calibration import calibrate_solar, calibrate_thermal
+import xarray as xr
+from pygac.calibration import calibrate_solar, calibrate_thermal, Calibrator
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -82,7 +79,7 @@ def time_seconds(tc_array, year):
 
 def bfield(array, bit):
     """Return the bit array."""
-    return (array & 2**(9 - bit + 1)).astype(np.bool)
+    return (array & 2**(9 - bit + 1)).astype(bool)
 
 
 spacecrafts = {7: "NOAA 15", 3: "NOAA 16", 13: "NOAA 18", 15: "NOAA 19"}
@@ -146,9 +143,9 @@ class HRPTFile(BaseFileHandler):
         if key['name'] in ['latitude', 'longitude']:
             lons, lats = self.get_lonlats()
             if key['name'] == 'latitude':
-                return Dataset(lats, id=key)
+                return xr.DataArray(lats, attrs=info.copy())
             else:
-                return Dataset(lons, id=key)
+                return xr.DataArray(lons, attrs=info.copy())
 
         avhrr_channel_index = {'1': 0,
                                '2': 1,
@@ -163,16 +160,13 @@ class HRPTFile(BaseFileHandler):
             self._is3b = np.logical_not(ch3a)
 
         if key['name'] == '3a':
-            mask = np.tile(self._is3b, (1, 2048))
+            mask = np.tile(np.logical_not(self._is3b), (2048, 1)).T
         elif key['name'] == '3b':
-            mask = np.tile(np.logical_not(self._is3b), (1, 2048))
+            mask = np.tile(self._is3b, (2048, 1)).T
 
         data = self._data["image_data"][:, :, index]
         if key['calibration'] == 'counts':
-            return Dataset(data,
-                           mask=mask,
-                           area=self.get_lonlats(),
-                           units='1')
+            return xr.DataArray(data, attrs=info.copy())
 
         pg_spacecraft = ''.join(self.platform_name.split()).lower()
 
@@ -180,8 +174,7 @@ class HRPTFile(BaseFileHandler):
             self.year) + '-01-01T00:00:00Z')) / np.timedelta64(1, 'D')
         if index < 2 or key['name'] == '3a':
             data = calibrate_solar(data, index, self.year, jdays,
-                                   pg_spacecraft)
-            units = '%'
+                                   Calibrator(pg_spacecraft))
 
         if index > 2 or key['name'] == '3b':
             if self.times is None:
@@ -195,10 +188,12 @@ class HRPTFile(BaseFileHandler):
             chan = index + 1
             data = calibrate_thermal(data, self.prt, self.ict[:, chan - 3],
                                      self.space[:, chan - 3], line_numbers,
-                                     chan, pg_spacecraft)
-            units = 'K'
-        # TODO: check if entirely masked before returning
-        return Dataset(data, mask=mask, units=units)
+                                     chan, Calibrator(pg_spacecraft))
+        result = xr.DataArray(data, attrs=info.copy())
+        if mask is False:
+            return result
+        else:
+            return result.where(mask)
 
     def get_telemetry(self):
         """Get the telemetry."""
@@ -232,10 +227,7 @@ class HRPTFile(BaseFileHandler):
         sgeom = avhrr(scanline_nb, scan_points, apply_offset=False)
         # no attitude error
         rpy = [0, 0, 0]
-        s_times = sgeom.times(
-            self.times[:, np.newaxis]).ravel()
-        # s_times = (np.tile(sgeom._times[0, :], (scanline_nb, 1)).astype(
-        #    'timedelta64[s]') + self.times[:, np.newaxis]).ravel()
+        s_times = sgeom.times(self.times[:, np.newaxis])
 
         orb = Orbital(self.platform_name)
 
