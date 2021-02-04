@@ -36,7 +36,10 @@ class TestHRPTWithFile(unittest.TestCase):
     def setUp(self) -> None:
         """Set up the test case."""
         test_data = np.ones(10, dtype=dtype)
-        test_data["id"]["id"] = 890
+        # Channel 3a
+        test_data["id"]["id"][:5] = 891
+        # Channel 3b
+        test_data["id"]["id"][5:] = 890
         with NamedTemporaryFile(mode='w+', suffix='.hmf', delete=False) as hrpt_file:
             self.filename = hrpt_file.name
             test_data.tofile(hrpt_file)
@@ -45,6 +48,10 @@ class TestHRPTWithFile(unittest.TestCase):
         """Tear down the test case."""
         with suppress(OSError):
             os.remove(self.filename)
+
+    def _get_dataset(self, dsid):
+        fh = HRPTFile(self.filename, {}, {})
+        return fh.get_dataset(dsid, {})
 
 
 class TestHRPTReading(TestHRPTWithFile):
@@ -60,10 +67,7 @@ class TestHRPTGetUncalibratedData(TestHRPTWithFile):
     """Test case for reading uncalibrated hrpt data."""
 
     def _get_channel_1_counts(self):
-        fh = HRPTFile(self.filename, {}, {})
-        dsid = make_dataid(name='1', calibration='counts')
-        result = fh.get_dataset(dsid, {})
-        return result
+        return self._get_dataset(make_dataid(name='1', calibration='counts'))
 
     def test_get_dataset_returns_a_dataarray(self):
         """Test that get_dataset returns a dataarray."""
@@ -81,6 +85,18 @@ class TestHRPTGetUncalibratedData(TestHRPTWithFile):
         assert (result.values == 1).all()
 
 
+def fake_calibrate_solar(data, *args, **kwargs):
+    """Fake calibration."""
+    del args, kwargs
+    return data * 25.43 + 3
+
+
+def fake_calibrate_thermal(data, *args, **kwargs):
+    """Fake calibration."""
+    del args, kwargs
+    return data * 35.43 + 3
+
+
 class CalibratorPatcher(PygacPatcher):
     """Patch pygac."""
 
@@ -93,7 +109,9 @@ class CalibratorPatcher(PygacPatcher):
         from pygac.calibration import calibrate_solar, calibrate_thermal, Calibrator
         self.Calibrator = Calibrator
         self.calibrate_thermal = calibrate_thermal
+        self.calibrate_thermal.side_effect = fake_calibrate_thermal
         self.calibrate_solar = calibrate_solar
+        self.calibrate_solar.side_effect = fake_calibrate_solar
 
 
 class TestHRPTWithPatchedCalibratorAndFile(CalibratorPatcher, TestHRPTWithFile):
@@ -110,25 +128,16 @@ class TestHRPTWithPatchedCalibratorAndFile(CalibratorPatcher, TestHRPTWithFile):
         TestHRPTWithFile.tearDown(self)
 
 
-def fake_calibrate(data, *args, **kwargs):
-    """Fake calibration."""
-    del args, kwargs
-    return data * 25.43 + 3
-
-
 class TestHRPTGetCalibratedReflectances(TestHRPTWithPatchedCalibratorAndFile):
     """Test case for reading calibrated reflectances from hrpt data."""
 
     def _get_channel_1_reflectance(self):
         """Get the channel 1 reflectance."""
-        fh = HRPTFile(self.filename, {}, {})
         dsid = make_dataid(name='1', calibration='reflectance')
-        result = fh.get_dataset(dsid, {})
-        return result
+        return self._get_dataset(dsid)
 
     def test_calibrated_reflectances_values(self):
         """Test the calibrated reflectance values."""
-        self.calibrate_solar.side_effect = fake_calibrate
         result = self._get_channel_1_reflectance()
         np.testing.assert_allclose(result.values, 28.43)
 
@@ -138,13 +147,36 @@ class TestHRPTGetCalibratedBT(TestHRPTWithPatchedCalibratorAndFile):
 
     def _get_channel_4_bt(self):
         """Get the channel 4 bt."""
-        fh = HRPTFile(self.filename, {}, {})
         dsid = make_dataid(name='4', calibration='brightness_temperature')
-        result = fh.get_dataset(dsid, {})
-        return result
+        return self._get_dataset(dsid)
 
-    def test_calibrated_reflectances_values(self):
+    def test_calibrated_bt_values(self):
         """Test the calibrated reflectance values."""
-        self.calibrate_thermal.side_effect = fake_calibrate
         result = self._get_channel_4_bt()
-        np.testing.assert_allclose(result.values, 28.43)
+        np.testing.assert_allclose(result.values, 38.43)
+
+
+class TestHRPTChannel3(TestHRPTWithPatchedCalibratorAndFile):
+    """Test case for reading calibrated brightness temperature from hrpt data."""
+
+    def _get_channel_3b_bt(self):
+        """Get the channel 4 bt."""
+        dsid = make_dataid(name='3b', calibration='brightness_temperature')
+        return self._get_dataset(dsid)
+
+    def _get_channel_3a_reflectance(self):
+        """Get the channel 4 bt."""
+        dsid = make_dataid(name='3a', calibration='reflectance')
+        return self._get_dataset(dsid)
+
+    def test_channel_3b_masking(self):
+        """Test that channel 3b is split correctly."""
+        result = self._get_channel_3b_bt()
+        assert np.isnan(result.values[:5]).all()
+        assert np.isfinite(result.values[5:]).all()
+
+    def test_channel_3a_masking(self):
+        """Test that channel 3a is split correctly."""
+        result = self._get_channel_3a_reflectance()
+        assert np.isnan(result.values[5:]).all()
+        assert np.isfinite(result.values[:5]).all()
