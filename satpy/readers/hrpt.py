@@ -34,8 +34,11 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.aapp_l1b import LINE_CHUNK
+from satpy._compat import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +106,18 @@ def geo_interpolate(lons32km, lats32km):
     return lons, lats
 
 
+def _get_channel_index(key):
+    """Get the avhrr channel index."""
+    avhrr_channel_index = {'1': 0,
+                           '2': 1,
+                           '3a': 2,
+                           '3b': 2,
+                           '4': 3,
+                           '5': 4}
+    index = avhrr_channel_index[key['name']]
+    return index
+
+
 class HRPTFile(BaseFileHandler):
     """Reader for HRPT Minor Frame, 10 bits data expanded to 16 bits."""
 
@@ -113,17 +128,17 @@ class HRPTFile(BaseFileHandler):
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
 
         self._data = None
-        self._is3b = None
         self.lons = None
         self.lats = None
         self.area = None
         self.platform_name = None
         self.year = filename_info.get('start_time', datetime.utcnow()).year
-        self.times = None
-        self.prt = None
-        self.ict = None
-        self.space = None
         self.read()
+
+    @cached_property
+    def times(self):
+        """Get the timestamps for each line."""
+        return time_seconds(self._data["timecode"], self.year)
 
     def read(self):
         """Read the file."""
@@ -145,71 +160,72 @@ class HRPTFile(BaseFileHandler):
         if key['name'] in ['latitude', 'longitude']:
             lons, lats = self.get_lonlats()
             if key['name'] == 'latitude':
-                return xr.DataArray(lats, attrs=attrs)
+                return xr.DataArray(lats, dims=['y', 'x'], attrs=attrs)
             else:
-                return xr.DataArray(lons, attrs=attrs)
+                return xr.DataArray(lons, dims=['y', 'x'], attrs=attrs)
 
-        avhrr_channel_index = {'1': 0,
-                               '2': 1,
-                               '3a': 2,
-                               '3b': 2,
-                               '4': 3,
-                               '5': 4}
-        index = avhrr_channel_index[key['name']]
-        mask = False
-        if key['name'] in ['3a', '3b'] and self._is3b is None:
-            ch3a = bfield(self._data["id"]["id"], 10)
-            self._is3b = np.logical_not(ch3a)
+        data = da.from_array(self._data["image_data"][:, :, _get_channel_index(key)], chunks=(LINE_CHUNK, 2048))
+        if key['calibration'] != 'counts':
+            if key['name'] in ['1', '2', '3a']:
+                data = self.calibrate_solar_channel(data, key)
 
+            if key['name'] in ['3b', '4', '5']:
+                data = self.calibrate_thermal_channel(data, key)
+
+        result = xr.DataArray(data, dims=['y', 'x'], attrs=attrs)
+        mask = self._get_ch3_mask_or_true(key)
+        return result.where(mask)
+
+    def _get_ch3_mask_or_true(self, key):
+        mask = True
         if key['name'] == '3a':
             mask = np.tile(np.logical_not(self._is3b), (2048, 1)).T
         elif key['name'] == '3b':
             mask = np.tile(self._is3b, (2048, 1)).T
+        return mask
 
-        data = self._data["image_data"][:, :, index]
-        if key['calibration'] == 'counts':
-            return xr.DataArray(data, attrs=attrs)
+    @cached_property
+    def _is3b(self):
+        return bfield(self._data["id"]["id"], 10) == 0
 
-        from pygac.calibration import calibrate_solar, calibrate_thermal, Calibrator
+    def calibrate_thermal_channel(self, data, key):
+        """Calibrate a thermal channel."""
+        from pygac.calibration import calibrate_thermal
+        line_numbers = (
+            np.round((self.times - self.times[-1]) /
+                     np.timedelta64(166666667, 'ns'))).astype(np.int)
+        line_numbers -= line_numbers[0]
+        prt, ict, space = self.telemetry
+        index = _get_channel_index(key) + 1
+        data = calibrate_thermal(data, prt, ict[:, index - 3],
+                                 space[:, index - 3], line_numbers,
+                                 index, self.calibrator)
+        return data
+
+    def calibrate_solar_channel(self, data, key):
+        """Calibrate a solar channel."""
+        from pygac.calibration import calibrate_solar
+        julian_days = ((np.datetime64(self.start_time)
+                        - np.datetime64(str(self.year) + '-01-01T00:00:00Z'))
+                       / np.timedelta64(1, 'D'))
+        data = calibrate_solar(data, _get_channel_index(key), self.year, julian_days,
+                               self.calibrator)
+        return data
+
+    @cached_property
+    def calibrator(self):
+        """Create a calibrator for the data."""
+        from pygac.calibration import Calibrator
         pg_spacecraft = ''.join(self.platform_name.split()).lower()
+        return Calibrator(pg_spacecraft)
 
-        jdays = (np.datetime64(self.start_time) - np.datetime64(str(
-            self.year) + '-01-01T00:00:00Z')) / np.timedelta64(1, 'D')
-        if index < 2 or key['name'] == '3a':
-            data = calibrate_solar(data, index, self.year, jdays,
-                                   Calibrator(pg_spacecraft))
-
-        if index > 2 or key['name'] == '3b':
-            if self.times is None:
-                self.times = time_seconds(self._data["timecode"], self.year)
-            line_numbers = (
-                np.round((self.times - self.times[-1]) /
-                         np.timedelta64(166666667, 'ns'))).astype(np.int)
-            line_numbers -= line_numbers[0]
-            if self.prt is None:
-                self.prt, self.ict, self.space = self.get_telemetry()
-            chan = index + 1
-            data = calibrate_thermal(data, self.prt, self.ict[:, chan - 3],
-                                     self.space[:, chan - 3], line_numbers,
-                                     chan, Calibrator(pg_spacecraft))
-        result = xr.DataArray(data, attrs=attrs)
-        if mask is False:
-            return result
-        else:
-            return result.where(mask)
-
-    def get_telemetry(self):
+    @cached_property
+    def telemetry(self):
         """Get the telemetry."""
+        # This isn't converted to dask arrays as it does not work with pygac
         prt = np.mean(self._data["telemetry"]['PRT'], axis=1)
-
-        ict = np.empty((len(self._data), 3))
-        for i in range(3):
-            ict[:, i] = np.mean(self._data['back_scan'][:, :, i], axis=1)
-
-        space = np.empty((len(self._data), 3))
-        for i in range(3):
-            space[:, i] = np.mean(self._data['space_data'][
-                                  :, :, i + 2], axis=1)
+        ict = np.mean(self._data['back_scan'], axis=1)
+        space = np.mean(self._data['space_data'][:, :, 2:], axis=1)
 
         return prt, ict, space
 

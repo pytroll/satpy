@@ -169,6 +169,11 @@ class TestHRPTChannel3(TestHRPTWithPatchedCalibratorAndFile):
         dsid = make_dataid(name='3a', calibration='reflectance')
         return self._get_dataset(dsid)
 
+    def _get_channel_3a_counts(self):
+        """Get the channel 4 bt."""
+        dsid = make_dataid(name='3a', calibration='counts')
+        return self._get_dataset(dsid)
+
     def test_channel_3b_masking(self):
         """Test that channel 3b is split correctly."""
         result = self._get_channel_3b_bt()
@@ -178,5 +183,11 @@ class TestHRPTChannel3(TestHRPTWithPatchedCalibratorAndFile):
     def test_channel_3a_masking(self):
         """Test that channel 3a is split correctly."""
         result = self._get_channel_3a_reflectance()
+        assert np.isnan(result.values[5:]).all()
+        assert np.isfinite(result.values[:5]).all()
+
+    def test_uncalibrated_channel_3a_masking(self):
+        """Test that channel 3a is split correctly."""
+        result = self._get_channel_3a_counts()
         assert np.isnan(result.values[5:]).all()
         assert np.isfinite(result.values[:5]).all()
