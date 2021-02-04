@@ -24,11 +24,7 @@ TODO: Put examples here or on a new sphinx page?
 import logging
 import satpy
 
-try:
-    import pooch
-except ImportError:
-    # TODO: Implement DumpPooch for local files only
-    pooch = None
+import pooch
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +100,6 @@ def retrieve(cache_key, pooch_kwargs=None):
 
 
     """
-    if pooch is None:
-        raise ImportError("Extra dependency library 'pooch' is required to "
-                          "download data files.")
     pooch_kwargs = pooch_kwargs or {}
 
     path = satpy.config.get('data_dir')
@@ -123,9 +116,6 @@ def retrieve_all(pooch_kwargs=None):
     before going to an environment/system that does not have internet access.
 
     """
-    if pooch is None:
-        raise ImportError("Extra dependency library 'pooch' is required to "
-                          "download data files.")
     if pooch_kwargs is None:
         pooch_kwargs = {}
 
