@@ -144,7 +144,7 @@ def _find_registerable_files_compositors():
     """
     from satpy.composites.config_loader import CompositorLoader
     composite_loader = CompositorLoader()
-    all_sensor_names = ['viirs', 'seviri']  # FIXME: Find a way to actually get these
+    all_sensor_names = composite_loader.all_composite_sensors()
     composite_loader.load_compositors(all_sensor_names)
 
 # TODO: Add MixIn class that can be used by readers and writers
