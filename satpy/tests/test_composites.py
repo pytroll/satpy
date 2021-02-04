@@ -902,8 +902,10 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertEqual(comp.area, "bar")
         get_area_def.assert_called_once_with("euro4")
 
+    @mock.patch('satpy.data_download.retrieve')
+    @mock.patch('satpy.data_download.register_file')
     @mock.patch('satpy.Scene')
-    def test_call(self, Scene):  # noqa
+    def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
         from satpy.composites import StaticImageCompositor
 
@@ -916,6 +918,8 @@ class TestStaticImageCompositor(unittest.TestCase):
         scn = MockScene()
         scn['image'] = img
         Scene.return_value = scn
+        register.return_value = "foo.tif"
+        retrieve.return_value = "foo.tif"
         comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader='generic_image',

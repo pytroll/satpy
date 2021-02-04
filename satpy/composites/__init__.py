@@ -995,7 +995,6 @@ class StaticImageCompositor(GenericCompositor):
             raise ValueError("No image configured for static image compositor")
         self.file_uri = os.path.expandvars(filename)
         self._cache_filename = os.path.basename(self.file_uri)
-        self._cache_key = None  # initialized later
         self._known_hash = known_hash
         self.area = None
         if area is not None:
@@ -1003,7 +1002,7 @@ class StaticImageCompositor(GenericCompositor):
             self.area = get_area_def(area)
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
-        self.register_data_files()
+        self._cache_key = self.register_data_files()[0]
 
     def register_data_files(self):
         """Tell Satpy about files we may want to download."""
@@ -1012,7 +1011,7 @@ class StaticImageCompositor(GenericCompositor):
                                   component_type='composites',
                                   component_name=self.__class__.__name__,
                                   known_hash=self._known_hash)
-        self._cache_key = cache_key
+        return [cache_key]
 
     def __call__(self, *args, **kwargs):
         """Call the compositor."""
