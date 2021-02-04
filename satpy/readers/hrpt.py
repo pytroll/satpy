@@ -34,7 +34,6 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
-from pygac.calibration import calibrate_solar, calibrate_thermal, Calibrator
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -140,12 +139,15 @@ class HRPTFile(BaseFileHandler):
         if self._data is None:
             self.read()
 
+        attrs = info.copy()
+        attrs['platform_name'] = self.platform_name
+
         if key['name'] in ['latitude', 'longitude']:
             lons, lats = self.get_lonlats()
             if key['name'] == 'latitude':
-                return xr.DataArray(lats, attrs=info.copy())
+                return xr.DataArray(lats, attrs=attrs)
             else:
-                return xr.DataArray(lons, attrs=info.copy())
+                return xr.DataArray(lons, attrs=attrs)
 
         avhrr_channel_index = {'1': 0,
                                '2': 1,
@@ -166,8 +168,9 @@ class HRPTFile(BaseFileHandler):
 
         data = self._data["image_data"][:, :, index]
         if key['calibration'] == 'counts':
-            return xr.DataArray(data, attrs=info.copy())
+            return xr.DataArray(data, attrs=attrs)
 
+        from pygac.calibration import calibrate_solar, calibrate_thermal, Calibrator
         pg_spacecraft = ''.join(self.platform_name.split()).lower()
 
         jdays = (np.datetime64(self.start_time) - np.datetime64(str(
@@ -189,7 +192,7 @@ class HRPTFile(BaseFileHandler):
             data = calibrate_thermal(data, self.prt, self.ict[:, chan - 3],
                                      self.space[:, chan - 3], line_numbers,
                                      chan, Calibrator(pg_spacecraft))
-        result = xr.DataArray(data, attrs=info.copy())
+        result = xr.DataArray(data, attrs=attrs)
         if mask is False:
             return result
         else:
@@ -222,7 +225,6 @@ class HRPTFile(BaseFileHandler):
             self.times = time_seconds(self._data["timecode"], self.year)
         scanline_nb = len(self.times)
         scan_points = np.arange(0, 2048, 32)
-        # scan_points = np.arange(2048)
 
         sgeom = avhrr(scanline_nb, scan_points, apply_offset=False)
         # no attitude error
