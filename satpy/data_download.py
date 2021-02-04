@@ -23,7 +23,6 @@ TODO: Put examples here or on a new sphinx page?
 
 import logging
 import satpy
-import unittest.mock
 
 try:
     import pooch
@@ -33,8 +32,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-FILE_REGISTRY = {}
-FILE_URLS = {}
+_FILE_REGISTRY = {}
+_FILE_URLS = {}
 
 
 def register_file(url, filename, component_type=None, component_name=None, known_hash=None):
@@ -68,15 +67,12 @@ def register_file(url, filename, component_type=None, component_name=None, known
         :func:`satpy.data_download_retrieve` when the file will be used.
 
     """
-    if known_hash is None:
-        # https://www.fatiando.org/pooch/v1.3.0/advanced.html#bypassing-the-hash-check
-        known_hash = unittest.mock.ANY
     fname = _generate_filename(filename, component_type, component_name)
 
-    global FILE_REGISTRY
-    global FILE_URLS
-    FILE_REGISTRY[fname] = known_hash
-    FILE_URLS[fname] = url
+    global _FILE_REGISTRY
+    global _FILE_URLS
+    _FILE_REGISTRY[fname] = known_hash
+    _FILE_URLS[fname] = url
     return fname
 
 
@@ -89,20 +85,6 @@ def _generate_filename(filename, component_type, component_name):
     if component_type:
         path = '/'.join([component_type, path])
     return path
-
-
-# def retrieve(url, filename=None, component_type=None, component_name=None,
-#              known_hash=None, pooch_kwargs=None):
-#     if pooch is None:
-#         raise ImportError("Extra dependency library 'pooch' is required to "
-#                           "download data files.")
-#     pooch_kwargs = pooch_kwargs or {}
-#
-#     path = satpy.config.get('data_dir')
-#     fname = register_file(url, filename, component_type, component_name,
-#                           known_hash)
-#     return pooch.retrieve(url, known_hash, fname=fname, path=path,
-#                           **pooch_kwargs)
 
 
 def retrieve(cache_key, pooch_kwargs=None):
@@ -129,8 +111,8 @@ def retrieve(cache_key, pooch_kwargs=None):
 
     path = satpy.config.get('data_dir')
     # reuse data directory as the default URL where files can be downloaded from
-    pooch_obj = pooch.create(path, path, registry=FILE_REGISTRY,
-                             urls=FILE_URLS)
+    pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
+                             urls=_FILE_URLS)
     return pooch_obj.fetch(cache_key, **pooch_kwargs)
 
 
@@ -147,20 +129,21 @@ def retrieve_all(pooch_kwargs=None):
     if pooch_kwargs is None:
         pooch_kwargs = {}
 
-    _find_registerable_files()
+    find_registerable_files()
     path = satpy.config.get('data_dir')
-    pooch_obj = pooch.create(path, path, registry=FILE_REGISTRY,
-                             urls=FILE_URLS)
-    for fname in FILE_REGISTRY:
+    pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
+                             urls=_FILE_URLS)
+    for fname in _FILE_REGISTRY:
         logger.info("Downloading extra data file '%s'...", fname)
         pooch_obj.fetch(fname, **pooch_kwargs)
     logger.info("Done downloading all extra files.")
 
 
-def _find_registerable_files():
+def find_registerable_files():
     """Load all Satpy components so they can be downloaded."""
     _find_registerable_files_compositors()
     # TODO: Readers, writers
+    return sorted(_FILE_REGISTRY.keys())
 
 
 def _find_registerable_files_compositors():
@@ -173,3 +156,5 @@ def _find_registerable_files_compositors():
     composite_loader = CompositorLoader()
     all_sensor_names = ['viirs', 'seviri']  # FIXME: Find a way to actually get these
     composite_loader.load_compositors(all_sensor_names)
+
+# TODO: Add MixIn class that can be used by readers and writers
