@@ -35,7 +35,7 @@ def _setup_custom_composite_config(base_dir):
             "composites": {
                 "test_static": {
                     "compositor": StaticImageCompositor,
-                    "filename": README_URL,
+                    "url": README_URL,
                     "known_hash": None,
                 },
             },

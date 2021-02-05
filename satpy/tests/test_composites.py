@@ -908,6 +908,7 @@ class TestStaticImageCompositor(unittest.TestCase):
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
         from satpy.composites import StaticImageCompositor
+        remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
             def load(self, arg):
@@ -918,12 +919,27 @@ class TestStaticImageCompositor(unittest.TestCase):
         scn = MockScene()
         scn['image'] = img
         Scene.return_value = scn
-        register.return_value = "foo.tif"
-        retrieve.return_value = "foo.tif"
-        comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
+        # absolute path to local file
+        comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader='generic_image',
-                                      filenames=[comp.file_uri])
+                                      filenames=['/foo.tif'])
+        register.assert_not_called
+        retrieve.assert_not_called
+        self.assertTrue("start_time" in res.attrs)
+        self.assertTrue("end_time" in res.attrs)
+        self.assertIsNone(res.attrs['sensor'])
+        self.assertTrue('modifiers' not in res.attrs)
+        self.assertTrue('calibration' not in res.attrs)
+
+        # remote file with local cached version
+        Scene.reset_mock()
+        register.return_value = "data_dir/foo.tif"
+        retrieve.return_value = "data_dir/foo.tif"
+        comp = StaticImageCompositor("name", url=remote_tif, area="euro4")
+        res = comp()
+        Scene.assert_called_once_with(reader='generic_image',
+                                      filenames=['data_dir/foo.tif'])
         self.assertTrue("start_time" in res.attrs)
         self.assertTrue("end_time" in res.attrs)
         self.assertIsNone(res.attrs['sensor'])
@@ -932,19 +948,19 @@ class TestStaticImageCompositor(unittest.TestCase):
 
         # Non-georeferenced image, no area given
         img.attrs.pop('area')
-        comp = StaticImageCompositor("name", filename="foo.tif")
+        comp = StaticImageCompositor("name", filename="/foo.tif")
         with self.assertRaises(AttributeError):
-            res = comp()
+            comp()
 
         # Non-georeferenced image, area given
-        comp = StaticImageCompositor("name", filename="foo.tif", area='euro4')
+        comp = StaticImageCompositor("name", filename="/foo.tif", area='euro4')
         res = comp()
         self.assertEqual(res.attrs['area'].area_id, 'euro4')
 
         # Filename contains environment variable
         os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
-        self.assertEqual(comp.file_uri, "/path/to/image/foo.tif")
+        self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
 
 
 def _enhance2dataset(dataset, convert_p=False):

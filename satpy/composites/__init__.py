@@ -980,21 +980,34 @@ class StaticImageCompositor(GenericCompositor):
     Environment variables in the filename are automatically expanded
     """
 
-    def __init__(self, name, filename=None, known_hash=None, area=None,
+    def __init__(self, name, filename=None, url=None, known_hash=None, area=None,
                  **kwargs):
         """Collect custom configuration values.
 
         Args:
-            filename (str): Filename of the image to load, environment
-                            variables are expanded
+            filename (str): Name to use when storing and referring to the file
+                in the ``data_dir`` cache. If ``url`` is provided (preferred),
+                then this is used as the filename in the cache and will be
+                appended to ``<data_dir>/composites/<class_name>/``. If
+                ``url`` is provided and ``filename`` is not then the
+                ``filename`` will be guessed from the ``url``.
+                If ``url`` is not provided, then it is assumed ``filename``
+                refers to a local file with an absolute path.
+                Environment variables are expanded.
+            url (str): URL to remote file. When the composite is created the
+                file will be downloaded and cached in Satpy's ``data_dir``.
+                Environment variables are expanded.
+            known_hash (str or None): Hash of the remote file used to verify
+                a successful download. If not provided then the download will
+                not be verified. See :func:`satpy.data_download.register_file`
+                for more information.
             area (str): Name of area definition for the image.  Optional
-                        for images with built-in area definitions (geotiff)
+                for images with built-in area definitions (geotiff).
 
         """
-        if filename is None:
-            raise ValueError("No image configured for static image compositor")
-        self.file_uri = os.path.expandvars(filename)
-        self._cache_filename = os.path.basename(self.file_uri)
+        filename, url = self._get_cache_filename_and_url(filename, url)
+        self._cache_filename = filename
+        self._url = url
         self._known_hash = known_hash
         self.area = None
         if area is not None:
@@ -1004,20 +1017,40 @@ class StaticImageCompositor(GenericCompositor):
         super(StaticImageCompositor, self).__init__(name, **kwargs)
         self._cache_key = self.register_data_files()[0]
 
+    @staticmethod
+    def _get_cache_filename_and_url(filename, url):
+        if filename is not None:
+            filename = os.path.expanduser(os.path.expandvars(filename))
+        if url is not None:
+            url = os.path.expandvars(url)
+            if filename is None:
+                filename = os.path.basename(url)
+        if url is None and not os.path.isabs(filename):
+            raise ValueError("StaticImageCompositor needs a remote 'url' "
+                             "or absolute path to 'filename'.")
+        return filename, url
+
     def register_data_files(self):
         """Tell Satpy about files we may want to download."""
+        if os.path.isabs(self._cache_filename):
+            return [None]
         from satpy.data_download import register_file
-        cache_key = register_file(self.file_uri, self._cache_filename,
+        cache_key = register_file(self._url, self._cache_filename,
                                   component_type='composites',
                                   component_name=self.__class__.__name__,
                                   known_hash=self._known_hash)
         return [cache_key]
 
+    def _retrieve_data_file(self):
+        from satpy.data_download import retrieve
+        if os.path.isabs(self._cache_filename):
+            return self._cache_filename
+        return retrieve(self._cache_key)
+
     def __call__(self, *args, **kwargs):
         """Call the compositor."""
         from satpy import Scene
-        from satpy.data_download import retrieve
-        local_file = retrieve(self._cache_key)
+        local_file = self._retrieve_data_file()
         scn = Scene(reader='generic_image', filenames=[local_file])
         scn.load(['image'])
         img = scn['image']
