@@ -21,6 +21,7 @@ TODO: Put examples here or on a new sphinx page?
 
 """
 
+import os
 import logging
 import satpy
 
@@ -132,7 +133,8 @@ def retrieve_all(pooch_kwargs=None):
 def find_registerable_files():
     """Load all Satpy components so they can be downloaded."""
     _find_registerable_files_compositors()
-    # TODO: Readers, writers
+    _find_registerable_files_readers()
+    _find_registerable_files_writers()
     return sorted(_FILE_REGISTRY.keys())
 
 
@@ -147,4 +149,126 @@ def _find_registerable_files_compositors():
     all_sensor_names = composite_loader.all_composite_sensors()
     composite_loader.load_compositors(all_sensor_names)
 
-# TODO: Add MixIn class that can be used by readers and writers
+
+def _find_registerable_files_readers():
+    """Load all readers so that files are registered."""
+    import yaml
+    from satpy.readers import configs_for_reader, load_reader
+    for reader_configs in configs_for_reader():
+        try:
+            load_reader(reader_configs)
+        except (ModuleNotFoundError, yaml.YAMLError):
+            continue
+
+
+def _find_registerable_files_writers():
+    """Load all writers so that files are registered."""
+    from satpy.writers import configs_for_writer, load_writer_configs
+    for writer_configs in configs_for_writer():
+        load_writer_configs(writer_configs)
+
+
+class DataDownloadMixin:
+    """Mixin class for Satpy components to download files.
+
+    This class simplifies the logic needed to download and cache data files
+    needed for operations in a Satpy component (readers, writers, etc). It
+    does this in a two step process where files that might be downloaded are
+    "registered" and then "retrieved" when they need to be used.
+
+    To use this class include it as one of the subclasses of your reader,
+    writer, or other Satpy component. Then in the ``__init__`` method,
+    initialize the data file info storage and call the ``register_data_files``
+    function during initialization::
+
+        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.data_download import DataDownloadMixin
+
+        class MyReader(FileYAMLReader, DataDownloadMixin):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.data_files = []
+                self.register_data_files()
+
+    This class expects data files to be configured in either a
+    ``self.info['data_files']`` (standard for readers/writers) or
+    ``self.config['data_files']`` list. The ``data_files`` item
+    itself is a list of dictionaries. This information can also be
+    passed directly to ``register_data_files`` for more complex cases.
+    In YAML, for a reader, this might look like this::
+
+        reader:
+            name: abi_l1b
+            short_name: ABI L1b
+            long_name: GOES-R ABI Level 1b
+            ... other metadata ...
+            data_files:
+              - url: "https://example.com/my_data_file.dat"
+              - url: "https://raw.githubusercontent.com/pytroll/satpy/master/README.rst"
+                known_hash: "sha256:5891286b63e7745de08c4b0ac204ad44cfdb9ab770309debaba90308305fa759"
+              - url: "https://raw.githubusercontent.com/pytroll/satpy/master/RELEASING.md"
+                filename: "satpy_releasing.md"
+                known_hash: null
+
+    In this example we register two files that might be downloaded.
+    If ``known_hash`` is not provided or None (null in YAML) then the data
+    file will not be checked for validity when downloaded. See
+    :func:`~satpy.data_download.register_file` for more information. You can
+    optionally specify ``filename`` to define the in-cache name when this file
+    is downloaded. This can be useful in cases when the filename can not be
+    easily determined from the URL.
+
+    When it comes time to needing the file, you can retrieve the local path
+    by calling ``~satpy.data_download.retrieve(cache_key)`` with the
+    "cache key" generated during registration. These keys will be in the
+    format: ``<component_type>/<component_class_name>/<filename>``. For a
+    reader with a class named ``MySensorReader`` this would be
+    ``readers/MySensorReader/satpy_release.md``. See
+    :meth:`~satpy.data_download.DataDownloadMixin.retrieve_data_file`.
+
+    This Mixin is not the only way to register and download files for a
+    Satpy component, but is the most generic and flexible. Feel free to
+    use the :func:`~satpy.data_download.register_file` and
+    :func:`~satpy.data_download.retrieve` functions directly.
+    However, :meth:`~satpy.data_download.find_registerable_files` must also
+    be updated to support your component (if files are not register during
+    initialization).
+
+    """
+
+    DATA_FILE_COMPONENTS = {
+        'reader': 'readers',
+        'writer': 'writers',
+    }
+
+    @property
+    def _data_file_component_type(self):
+        cls_name = self.__class__.__name__.lower()
+        for cls_name_sub, comp_type in self.DATA_FILE_COMPONENTS.items():
+            if cls_name_sub in cls_name:
+                return comp_type
+        return 'other'
+
+    def register_data_files(self, data_files=None):
+        """Register a series of files that may be downloaded later.
+
+        See :class:`~satpy.data_download.DataDownloadMixin` for more
+        information on the assumptions and structure of the data file
+        configuration dictionary.
+
+        """
+        comp_type = self._data_file_component_type
+        if data_files is None:
+            df_parent = getattr(self, 'info', self.config)
+            data_files = df_parent.get('data_files', [])
+        for data_file_entry in data_files:
+            cache_key = self._register_data_file(data_file_entry, comp_type)
+            self.data_files.append(cache_key)
+
+    def _register_data_file(self, data_file_entry, comp_type):
+        url = data_file_entry['url']
+        filename = data_file_entry.get('filename', os.path.basename(url))
+        known_hash = data_file_entry.get('known_hash')
+        return register_file(url, filename, component_type=comp_type,
+                             component_name=self.__class__.__name__,
+                             known_hash=known_hash)
