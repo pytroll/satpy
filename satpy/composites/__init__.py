@@ -1025,7 +1025,7 @@ class StaticImageCompositor(GenericCompositor):
             url = os.path.expandvars(url)
             if filename is None:
                 filename = os.path.basename(url)
-        if url is None and not os.path.isabs(filename):
+        if url is None and (filename is None or not os.path.isabs(filename)):
             raise ValueError("StaticImageCompositor needs a remote 'url' "
                              "or absolute path to 'filename'.")
         return filename, url
