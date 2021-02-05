@@ -165,7 +165,10 @@ def _find_registerable_files_writers():
     """Load all writers so that files are registered."""
     from satpy.writers import configs_for_writer, load_writer_configs
     for writer_configs in configs_for_writer():
-        load_writer_configs(writer_configs)
+        try:
+            load_writer_configs(writer_configs)
+        except ValueError:
+            continue
 
 
 class DataDownloadMixin:
