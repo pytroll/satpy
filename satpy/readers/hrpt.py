@@ -146,14 +146,14 @@ class HRPTFile(BaseFileHandler):
         """Read the file."""
         with open(self.filename, "rb") as fp_:
             data = np.memmap(fp_, dtype=dtype, mode="r")
-        if np.all(data['frame_sync'][0] > 1024):
+        if np.all(np.median(data['frame_sync'], axis=0) > 1024):
             data = self._data.newbyteorder()
         return data
 
     @cached_property
     def platform_name(self):
         """Get the platform name."""
-        return spacecrafts[(self._data["id"]["id"][0] >> 3) & 15]
+        return spacecrafts[np.median((self._data["id"]["id"] >> 3) & 15)]
 
     def get_dataset(self, key, info):
         """Get the dataset."""
