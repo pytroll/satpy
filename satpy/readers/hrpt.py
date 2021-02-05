@@ -32,13 +32,17 @@ http://www.ncdc.noaa.gov/oa/pod-guide/ncdc/docs/klm/html/c7/sec7-1.htm
 import logging
 from datetime import datetime
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
+from geotiepoints import SatelliteInterpolator
+from pyorbital.geoloc import compute_pixels, get_lonlatalt
+from pyorbital.geoloc_instrument_definitions import avhrr
+from pyorbital.orbital import Orbital
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.aapp_l1b import LINE_CHUNK
 from satpy._compat import cached_property
+from satpy.readers.aapp_l1b import LINE_CHUNK
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +93,6 @@ spacecrafts = {7: "NOAA 15", 3: "NOAA 16", 13: "NOAA 18", 15: "NOAA 19"}
 
 def geo_interpolate(lons32km, lats32km):
     """Interpolate geo data."""
-    from geotiepoints import SatelliteInterpolator
     cols32km = np.arange(0, 2048, 32)
     cols1km = np.arange(2048)
     lines = lons32km.shape[0]
@@ -127,43 +130,47 @@ class HRPTFile(BaseFileHandler):
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
 
-        self._data = None
-        self.lons = None
-        self.lats = None
-        self.area = None
-        self.platform_name = None
         self.year = filename_info.get('start_time', datetime.utcnow()).year
-        self.read()
 
     @cached_property
     def times(self):
         """Get the timestamps for each line."""
         return time_seconds(self._data["timecode"], self.year)
 
+    @cached_property
+    def _data(self):
+        """Get the data."""
+        return self.read()
+
     def read(self):
         """Read the file."""
         with open(self.filename, "rb") as fp_:
-            self._data = np.memmap(fp_, dtype=dtype, mode="r")
-        if np.all(self._data['frame_sync'][0] > 1024):
-            self._data = self._data.newbyteorder()
-        self.platform_name = spacecrafts[
-            (self._data["id"]["id"][0] >> 3) & 15]
+            data = np.memmap(fp_, dtype=dtype, mode="r")
+        if np.all(data['frame_sync'][0] > 1024):
+            data = self._data.newbyteorder()
+        return data
+
+    @cached_property
+    def platform_name(self):
+        """Get the platform name."""
+        return spacecrafts[(self._data["id"]["id"][0] >> 3) & 15]
 
     def get_dataset(self, key, info):
         """Get the dataset."""
-        if self._data is None:
-            self.read()
-
         attrs = info.copy()
         attrs['platform_name'] = self.platform_name
 
         if key['name'] in ['latitude', 'longitude']:
-            lons, lats = self.get_lonlats()
-            if key['name'] == 'latitude':
-                return xr.DataArray(lats, dims=['y', 'x'], attrs=attrs)
-            else:
-                return xr.DataArray(lons, dims=['y', 'x'], attrs=attrs)
+            data = self._get_navigation_data(key)
+        else:
+            data = self._get_channel_data(key)
 
+        result = xr.DataArray(data, dims=['y', 'x'], attrs=attrs)
+        mask = self._get_ch3_mask_or_true(key)
+        return result.where(mask)
+
+    def _get_channel_data(self, key):
+        """Get channel data."""
         data = da.from_array(self._data["image_data"][:, :, _get_channel_index(key)], chunks=(LINE_CHUNK, 2048))
         if key['calibration'] != 'counts':
             if key['name'] in ['1', '2', '3a']:
@@ -171,10 +178,16 @@ class HRPTFile(BaseFileHandler):
 
             if key['name'] in ['3b', '4', '5']:
                 data = self.calibrate_thermal_channel(data, key)
+        return data
 
-        result = xr.DataArray(data, dims=['y', 'x'], attrs=attrs)
-        mask = self._get_ch3_mask_or_true(key)
-        return result.where(mask)
+    def _get_navigation_data(self, key):
+        """Get navigation data."""
+        lons, lats = self.lons_lats
+        if key['name'] == 'latitude':
+            data = da.from_array(lats, chunks=(LINE_CHUNK, 2048))
+        else:
+            data = da.from_array(lons, chunks=(LINE_CHUNK, 2048))
+        return data
 
     def _get_ch3_mask_or_true(self, key):
         mask = True
@@ -196,10 +209,10 @@ class HRPTFile(BaseFileHandler):
                      np.timedelta64(166666667, 'ns'))).astype(np.int)
         line_numbers -= line_numbers[0]
         prt, ict, space = self.telemetry
-        index = _get_channel_index(key) + 1
-        data = calibrate_thermal(data, prt, ict[:, index - 3],
-                                 space[:, index - 3], line_numbers,
-                                 index, self.calibrator)
+        index = _get_channel_index(key)
+        data = calibrate_thermal(data, prt, ict[:, index - 2],
+                                 space[:, index], line_numbers,
+                                 index + 1, self.calibrator)
         return data
 
     def calibrate_solar_channel(self, data, key):
@@ -225,36 +238,30 @@ class HRPTFile(BaseFileHandler):
         # This isn't converted to dask arrays as it does not work with pygac
         prt = np.mean(self._data["telemetry"]['PRT'], axis=1)
         ict = np.mean(self._data['back_scan'], axis=1)
-        space = np.mean(self._data['space_data'][:, :, 2:], axis=1)
+        space = np.mean(self._data['space_data'][:, :], axis=1)
 
         return prt, ict, space
 
-    def get_lonlats(self):
-        """Get the lonlats."""
-        if self.lons is not None and self.lats is not None:
-            return self.lons, self.lats
-        from pyorbital.orbital import Orbital
-        from pyorbital.geoloc import compute_pixels, get_lonlatalt
-        from pyorbital.geoloc_instrument_definitions import avhrr
-
-        if self.times is None:
-            self.times = time_seconds(self._data["timecode"], self.year)
+    @cached_property
+    def lons_lats(self):
+        """Get the lons and lats."""
         scanline_nb = len(self.times)
         scan_points = np.arange(0, 2048, 32)
+        lons, lats = self._get_avhrr_tiepoints(scan_points, scanline_nb)
 
+        lons, lats = geo_interpolate(
+            lons.reshape((scanline_nb, -1)), lats.reshape((scanline_nb, -1)))
+        return lons, lats
+
+    def _get_avhrr_tiepoints(self, scan_points, scanline_nb):
         sgeom = avhrr(scanline_nb, scan_points, apply_offset=False)
         # no attitude error
         rpy = [0, 0, 0]
         s_times = sgeom.times(self.times[:, np.newaxis])
-
         orb = Orbital(self.platform_name)
-
         pixels_pos = compute_pixels(orb, sgeom, s_times, rpy)
         lons, lats, alts = get_lonlatalt(pixels_pos, s_times)
-        self.lons, self.lats = geo_interpolate(
-            lons.reshape((scanline_nb, -1)), lats.reshape((scanline_nb, -1)))
-
-        return self.lons, self.lats
+        return lons, lats
 
     @property
     def start_time(self):

@@ -17,17 +17,21 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the hrpt reader."""
 
-import unittest
-from satpy.tests.utils import make_dataid
-from tempfile import NamedTemporaryFile
-from contextlib import suppress
-from satpy.tests.reader_tests.test_avhrr_l1b_gaclac import PygacPatcher
 import os
+import unittest
+from contextlib import suppress
+from tempfile import NamedTemporaryFile
+from unittest import mock
 
 import numpy as np
 import xarray as xr
 
 from satpy.readers.hrpt import dtype, HRPTFile
+from satpy.tests.reader_tests.test_avhrr_l1b_gaclac import PygacPatcher
+from satpy.tests.utils import make_dataid
+
+NUMBER_OF_SCANS = 10
+SWATH_WIDTH = 2048
 
 
 class TestHRPTWithFile(unittest.TestCase):
@@ -35,7 +39,7 @@ class TestHRPTWithFile(unittest.TestCase):
 
     def setUp(self) -> None:
         """Set up the test case."""
-        test_data = np.ones(10, dtype=dtype)
+        test_data = np.ones(NUMBER_OF_SCANS, dtype=dtype)
         # Channel 3a
         test_data["id"]["id"][:5] = 891
         # Channel 3b
@@ -49,9 +53,9 @@ class TestHRPTWithFile(unittest.TestCase):
         with suppress(OSError):
             os.remove(self.filename)
 
-    def _get_dataset(self, dsid):
+    def _get_dataset(self, dataset_id):
         fh = HRPTFile(self.filename, {}, {})
-        return fh.get_dataset(dsid, {})
+        return fh.get_dataset(dataset_id, {})
 
 
 class TestHRPTReading(TestHRPTWithFile):
@@ -133,8 +137,8 @@ class TestHRPTGetCalibratedReflectances(TestHRPTWithPatchedCalibratorAndFile):
 
     def _get_channel_1_reflectance(self):
         """Get the channel 1 reflectance."""
-        dsid = make_dataid(name='1', calibration='reflectance')
-        return self._get_dataset(dsid)
+        dataset_id = make_dataid(name='1', calibration='reflectance')
+        return self._get_dataset(dataset_id)
 
     def test_calibrated_reflectances_values(self):
         """Test the calibrated reflectance values."""
@@ -147,8 +151,8 @@ class TestHRPTGetCalibratedBT(TestHRPTWithPatchedCalibratorAndFile):
 
     def _get_channel_4_bt(self):
         """Get the channel 4 bt."""
-        dsid = make_dataid(name='4', calibration='brightness_temperature')
-        return self._get_dataset(dsid)
+        dataset_id = make_dataid(name='4', calibration='brightness_temperature')
+        return self._get_dataset(dataset_id)
 
     def test_calibrated_bt_values(self):
         """Test the calibrated reflectance values."""
@@ -161,18 +165,18 @@ class TestHRPTChannel3(TestHRPTWithPatchedCalibratorAndFile):
 
     def _get_channel_3b_bt(self):
         """Get the channel 4 bt."""
-        dsid = make_dataid(name='3b', calibration='brightness_temperature')
-        return self._get_dataset(dsid)
+        dataset_id = make_dataid(name='3b', calibration='brightness_temperature')
+        return self._get_dataset(dataset_id)
 
     def _get_channel_3a_reflectance(self):
         """Get the channel 4 bt."""
-        dsid = make_dataid(name='3a', calibration='reflectance')
-        return self._get_dataset(dsid)
+        dataset_id = make_dataid(name='3a', calibration='reflectance')
+        return self._get_dataset(dataset_id)
 
     def _get_channel_3a_counts(self):
         """Get the channel 4 bt."""
-        dsid = make_dataid(name='3a', calibration='counts')
-        return self._get_dataset(dsid)
+        dataset_id = make_dataid(name='3a', calibration='counts')
+        return self._get_dataset(dataset_id)
 
     def test_channel_3b_masking(self):
         """Test that channel 3b is split correctly."""
@@ -191,3 +195,43 @@ class TestHRPTChannel3(TestHRPTWithPatchedCalibratorAndFile):
         result = self._get_channel_3a_counts()
         assert np.isnan(result.values[5:]).all()
         assert np.isfinite(result.values[:5]).all()
+
+
+class TestHRPTNavigation(TestHRPTWithFile):
+    """Test case for computing HRPT navigation."""
+
+    def setUp(self) -> None:
+        """Set up the test case."""
+        super().setUp()
+        self.fake_lons = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH))
+        self.fake_lats = np.ones((NUMBER_OF_SCANS, SWATH_WIDTH)) * 2
+
+    def _prepare_mocks(self, Orbital, SatelliteInterpolator, get_lonlatalt):
+        """Prepare the mocks."""
+        Orbital.return_value.get_position.return_value = mock.MagicMock(), mock.MagicMock()
+        get_lonlatalt.return_value = (mock.MagicMock(), mock.MagicMock(), mock.MagicMock())
+        SatelliteInterpolator.return_value.interpolate.return_value = self.fake_lons, self.fake_lats
+
+    @mock.patch.multiple('satpy.readers.hrpt',
+                         Orbital=mock.DEFAULT,
+                         compute_pixels=mock.DEFAULT,
+                         get_lonlatalt=mock.DEFAULT,
+                         SatelliteInterpolator=mock.DEFAULT)
+    def test_longitudes_are_returned(self, Orbital, compute_pixels, get_lonlatalt, SatelliteInterpolator):
+        """Check that latitudes are returned properly."""
+        self._prepare_mocks(Orbital, SatelliteInterpolator, get_lonlatalt)
+        dataset_id = make_dataid(name='longitude')
+        result = self._get_dataset(dataset_id)
+        assert (result == self.fake_lons).all()
+
+    @mock.patch.multiple('satpy.readers.hrpt',
+                         Orbital=mock.DEFAULT,
+                         compute_pixels=mock.DEFAULT,
+                         get_lonlatalt=mock.DEFAULT,
+                         SatelliteInterpolator=mock.DEFAULT)
+    def test_latitudes_are_returned(self, Orbital, compute_pixels, get_lonlatalt, SatelliteInterpolator):
+        """Check that latitudes are returned properly."""
+        self._prepare_mocks(Orbital, SatelliteInterpolator, get_lonlatalt)
+        dataset_id = make_dataid(name='latitude')
+        result = self._get_dataset(dataset_id)
+        assert (result == self.fake_lats).all()
