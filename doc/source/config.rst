@@ -107,21 +107,7 @@ are stored. Directories provided will typically include subdirectories for
 each component that is being configured (ex. `readers`, `writers`, etc).
 This option replaces the legacy ``PPP_CONFIG_DIR`` environment variable.
 
-Satpy will always include the builtin configuration files that it
-is distributed with regardless of this setting. When specified as an
-environment variable it must be a colon-separated series of paths. Otherwise,
-it should be specified as a list. When a component supports merging of
-configuration files, they are merged in reverse order. This means "base"
-configuration paths should be at the end of the list and custom/user paths
-should be at the beginning of the list.
-
-Note that this value must be a list. In Python, this could be set by doing:
-
-.. code-block:: python
-
-    satpy.config.set(config_path=['/path/custom1', '/path/custom2'])
-
-As mentioned above, if setting an environment variable then it must be a
+If setting an environment variable then it must be a
 colon-separated string and must be set **before** calling/importing Satpy.
 If the environment variable is a single path it will be converted to a list
 when Satpy is imported.
@@ -129,6 +115,18 @@ when Satpy is imported.
 .. code-block:: bash
 
     export SATPY_CONFIG_PATH="/path/custom1:/path/custom2"
+
+Satpy will always include the builtin configuration files that it
+is distributed with regardless of this setting. When a component supports
+merging of configuration files, they are merged in reverse order. This means
+"base" configuration paths should be at the end of the list and custom/user
+paths should be at the beginning of the list.
+
+Note that this value must be a list. In Python, this could be set by doing:
+
+.. code-block:: python
+
+    satpy.config.set(config_path=['/path/custom1', '/path/custom2'])
 
 Data Directory
 ^^^^^^^^^^^^^^
