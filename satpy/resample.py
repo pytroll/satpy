@@ -1120,24 +1120,29 @@ class BucketAvg(BucketResamplerBase):
     Parameters
     ----------
     fill_value : float (default: np.nan)
-        Fill value for missing data
-    mask_all_nans : boolean (default: False)
-        Mask all locations with all-NaN values
+        Fill value to mark missing/invalid values in the input data,
+            as well as in the binned and averaged output data.
+    skipna : boolean (default: True)
+        If True, skips missing values (as marked by NaN or `fill_value`) for the average calculation
+             (similarly to Numpy's `nanmean`). Buckets containing only missing values are set to fill_value.
+            If False, sets the bucket to fill_value if one or more missing values are present in the bucket
+            (similarly to Numpy's `mean`).
+            In both cases, empty buckets are set to `fill_value`.
 
     """
 
-    def compute(self, data, fill_value=np.nan, mask_all_nan=False, **kwargs):
+    def compute(self, data, fill_value=np.nan, skipna=True, **kwargs):
         """Call the resampling."""
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_average(data[i, :, :],
                                                  fill_value=fill_value,
-                                                 mask_all_nan=mask_all_nan)
+                                                 skipna=skipna)
                 results.append(res)
         else:
             res = self.resampler.get_average(data, fill_value=fill_value,
-                                             mask_all_nan=mask_all_nan)
+                                             skipna=skipna)
             results.append(res)
 
         return da.stack(results)
@@ -1153,22 +1158,26 @@ class BucketSum(BucketResamplerBase):
     ----------
     fill_value : float (default: np.nan)
         Fill value for missing data
-    mask_all_nans : boolean (default: False)
-        Mask all locations with all-NaN values
+    skipna : boolean (default: True)
+        If True, skips NaN values for the sum calculation
+                    (similarly to Numpy's `nansum`). Buckets containing only NaN are set to zero.
+                If False, sets the bucket to NaN if one or more NaN values are present in the bucket
+                    (similarly to Numpy's `sum`).
+                In both cases, empty buckets are set to 0.
 
     """
 
-    def compute(self, data, mask_all_nan=False, **kwargs):
+    def compute(self, data, skipna=True, **kwargs):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_sum(data[i, :, :],
-                                             mask_all_nan=mask_all_nan)
+                                             skipna=skipna)
                 results.append(res)
         else:
-            res = self.resampler.get_sum(data, mask_all_nan=mask_all_nan)
+            res = self.resampler.get_sum(data, skipna=skipna)
             results.append(res)
 
         return da.stack(results)
