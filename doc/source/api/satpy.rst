@@ -11,19 +11,12 @@ Subpackages
    satpy.dataset
    satpy.demo
    satpy.enhancements
+   satpy.modifiers
    satpy.readers
    satpy.writers
 
 Submodules
 ----------
-
-satpy.config module
--------------------
-
-.. automodule:: satpy.config
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 satpy.dependency\_tree module
 -----------------------------
@@ -77,6 +70,14 @@ satpy.utils module
 ------------------
 
 .. automodule:: satpy.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.version module
+--------------------
+
+.. automodule:: satpy.version
    :members:
    :undoc-members:
    :show-inheritance:

@@ -4,6 +4,14 @@ satpy.writers package
 Submodules
 ----------
 
+satpy.writers.awips\_tiled module
+---------------------------------
+
+.. automodule:: satpy.writers.awips_tiled
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.writers.cf\_writer module
 -------------------------------
 
@@ -32,14 +40,6 @@ satpy.writers.ninjotiff module
 ------------------------------
 
 .. automodule:: satpy.writers.ninjotiff
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-satpy.writers.awips_tiled module
---------------------------------
-
-.. automodule:: satpy.writers.awips_tiled
    :members:
    :undoc-members:
    :show-inheritance:

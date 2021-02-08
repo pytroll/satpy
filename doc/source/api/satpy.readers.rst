@@ -92,6 +92,22 @@ satpy.readers.amsr2\_l2 module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.amsr2\_l2\_gaasp module
+-------------------------------------
+
+.. automodule:: satpy.readers.amsr2_l2_gaasp
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.readers.ascat\_l2\_soilmoisture\_bufr module
+--------------------------------------------------
+
+.. automodule:: satpy.readers.ascat_l2_soilmoisture_bufr
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.avhrr\_l1b\_gaclac module
 ---------------------------------------
 

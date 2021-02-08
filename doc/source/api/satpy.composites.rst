@@ -28,10 +28,26 @@ satpy.composites.cloud\_products module
    :undoc-members:
    :show-inheritance:
 
+satpy.composites.config\_loader module
+--------------------------------------
+
+.. automodule:: satpy.composites.config_loader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.composites.crefl\_utils module
 ------------------------------------
 
 .. automodule:: satpy.composites.crefl_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+satpy.composites.glm module
+---------------------------
+
+.. automodule:: satpy.composites.glm
    :members:
    :undoc-members:
    :show-inheritance:
