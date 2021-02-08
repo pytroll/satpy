@@ -725,7 +725,7 @@ class TestBucketAvg(unittest.TestCase):
         self.bucket.resampler.get_average.assert_called_once_with(
             data,
             fill_value=2,
-            mask_all_nan=False)
+            skipna=True)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
         self.bucket.resampler = mock.MagicMock()
@@ -735,7 +735,7 @@ class TestBucketAvg(unittest.TestCase):
         self.bucket.resampler.get_average.assert_called_once_with(
             data,
             fill_value=2,
-            mask_all_nan=False)
+            skipna=True)
         self.assertEqual(res.shape, (1, 5, 5))
         # 3D data
         self.bucket.resampler = mock.MagicMock()
@@ -810,7 +810,7 @@ class TestBucketSum(unittest.TestCase):
         res = self.bucket.compute(data)
         self.bucket.resampler.get_sum.assert_called_once_with(
             data,
-            mask_all_nan=False)
+            skipna=True)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
         self.bucket.resampler = mock.MagicMock()
@@ -819,7 +819,7 @@ class TestBucketSum(unittest.TestCase):
         res = self.bucket.compute(data)
         self.bucket.resampler.get_sum.assert_called_once_with(
             data,
-            mask_all_nan=False)
+            skipna=True)
         self.assertEqual(res.shape, (1, 5, 5))
         # 3D data
         self.bucket.resampler = mock.MagicMock()
