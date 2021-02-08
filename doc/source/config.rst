@@ -104,8 +104,14 @@ Component Configuration Path
 
 Base directory, or directories, where Satpy component YAML configuration files
 are stored. Directories provided will typically include subdirectories for
-each component that is being configured (ex. `readers`, `writers`, etc).
+each component that is being configured (ex. ``readers``, ``writers``, etc).
 This option replaces the legacy ``PPP_CONFIG_DIR`` environment variable.
+
+Note that this value must be a list. In Python, this could be set by doing:
+
+.. code-block:: python
+
+    satpy.config.set(config_path=['/path/custom1', '/path/custom2'])
 
 If setting an environment variable then it must be a
 colon-separated string and must be set **before** calling/importing Satpy.
@@ -121,12 +127,6 @@ is distributed with regardless of this setting. When a component supports
 merging of configuration files, they are merged in reverse order. This means
 "base" configuration paths should be at the end of the list and custom/user
 paths should be at the beginning of the list.
-
-Note that this value must be a list. In Python, this could be set by doing:
-
-.. code-block:: python
-
-    satpy.config.set(config_path=['/path/custom1', '/path/custom2'])
 
 Data Directory
 ^^^^^^^^^^^^^^
