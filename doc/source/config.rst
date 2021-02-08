@@ -103,9 +103,14 @@ Component Configuration Path
 * **Default**: ``[]``
 
 Base directory, or directories, where Satpy component YAML configuration files
-are stored. Directories provided will typically include subdirectories for
-each component that is being configured (ex. ``readers``, ``writers``, etc).
-This option replaces the legacy ``PPP_CONFIG_DIR`` environment variable.
+are stored. Satpy expects configuration files for specific component types to
+be in appropriate subdirectories (ex. ``readers``, ``writers``, etc), but
+these subdirectories should not be included in the ``config_path``.
+For example, if you have custom composites configured in
+``/my/config/dir/etc/composites/visir.yaml``, then ``config_path`` should
+include ``/my/config/dir/etc`` for Satpy to find this configuration file
+when searching for composites. This option replaces the legacy
+``PPP_CONFIG_DIR`` environment variable.
 
 Note that this value must be a list. In Python, this could be set by doing:
 
