@@ -257,7 +257,7 @@ class SatpyCFFileHandler(BaseFileHandler):
             yield True, ds_info
 
     def _coordinate_datasets(self, configured_datasets=None):
-        """Add information of coordiante datasets."""
+        """Add information of coordinate datasets."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
         for var_name, val in nc.coords.items():
             ds_info = dict(val.attrs)
