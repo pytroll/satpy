@@ -787,7 +787,7 @@ datasets:
 
   cloud_top_pressure:
     name: cloud_top_pressure
-    file_type: nc_fci_th
+    file_type: nc_fci_cloud
     file_key: cloud_top_pressure
     fill_value: 0
     mask_value: 0
