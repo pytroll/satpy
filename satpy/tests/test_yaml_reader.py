@@ -528,8 +528,8 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
                 return lons
             elif dsid['name'] == 'latitude':
                 return lats
-            else:
-                return data
+
+            return data
 
         fake_fh.get_dataset.side_effect = _assign_array
         self.reader.file_handlers = {'ftype1': [fake_fh]}

@@ -844,7 +844,7 @@ class FileYAMLReader(AbstractYAMLReader):
         if not coords:
             coords = []
             for coord in ds.coords.values():
-                if coord.attrs['standard_name'] in ['longitude', 'latitude']:
+                if coord.attrs.get('standard_name') in ['longitude', 'latitude']:
                     coords.append(coord)
         return coords
 
