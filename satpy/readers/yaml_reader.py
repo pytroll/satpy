@@ -823,18 +823,30 @@ class FileYAMLReader(AbstractYAMLReader):
         if not file_handlers:
             return
 
-        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
-
         try:
             ds = self._load_dataset_data(file_handlers, dsid, **kwargs)
         except (KeyError, ValueError) as err:
             logger.exception("Could not load dataset '%s': %s", dsid, str(err))
             return None
 
+        coords = self._assign_builtin_coords(coords, ds)
+
+        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
+
         if area is not None:
             ds.attrs['area'] = area
             ds = add_crs_xy_coords(ds, area)
         return ds
+
+    @staticmethod
+    def _assign_builtin_coords(coords, ds):
+        """Assign builtin coords if needed."""
+        if not coords:
+            coords = []
+            for coord in ds.coords.values():
+                if coord.attrs['standard_name'] in ['longitude', 'latitude']:
+                    coords.append(coord)
+        return coords
 
     def _load_ancillary_variables(self, datasets, **kwargs):
         """Load the ancillary variables of `datasets`."""
