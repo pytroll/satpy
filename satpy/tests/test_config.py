@@ -20,6 +20,7 @@
 import os
 import unittest
 from unittest import mock
+import pytest
 
 
 class TestBuiltinAreas(unittest.TestCase):
@@ -159,3 +160,21 @@ class TestConfigObject:
             assert satpy.config.get('config_path') == ['/my/configs1',
                                                        '/my/configs2',
                                                        '/my/configs3']
+
+    def test_bad_str_config_path(self):
+        """Test that a str config path isn't allowed."""
+        from importlib import reload
+        import satpy
+        old_vars = {
+            'SATPY_CONFIG_PATH': '/my/configs1',
+        }
+
+        # single path from env var still works
+        with mock.patch.dict('os.environ', old_vars):
+            reload(satpy._config)
+            reload(satpy)
+            assert satpy.config.get('config_path') == ['/my/configs1']
+
+        # strings are not allowed, lists are
+        with satpy.config.set(config_path='/single/string/paths/are/bad'):
+            pytest.raises(ValueError, satpy._config.get_config_path_safe)
