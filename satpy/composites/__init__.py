@@ -27,6 +27,7 @@ import xarray as xr
 
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
+from satpy.data_download import DataDownloadMixin
 from satpy.writers import get_enhanced_image
 
 
@@ -970,7 +971,7 @@ class NaturalEnh(GenericCompositor):
                                                 *args, **kwargs)
 
 
-class StaticImageCompositor(GenericCompositor):
+class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
     """A compositor that loads a static image from disk.
 
     If the filename passed to this compositor is not valid then
@@ -1015,7 +1016,8 @@ class StaticImageCompositor(GenericCompositor):
             self.area = get_area_def(area)
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
-        self._cache_key = self.register_data_files()[0]
+        cache_keys = self.register_data_files([])
+        self._cache_key = cache_keys[0]
 
     @staticmethod
     def _get_cache_filename_and_url(filename, url):
@@ -1030,16 +1032,15 @@ class StaticImageCompositor(GenericCompositor):
                              "or absolute path to 'filename'.")
         return filename, url
 
-    def register_data_files(self):
+    def register_data_files(self, data_files):
         """Tell Satpy about files we may want to download."""
         if os.path.isabs(self._cache_filename):
             return [None]
-        from satpy.data_download import register_file
-        cache_key = register_file(self._url, self._cache_filename,
-                                  component_type='composites',
-                                  component_name=self.__class__.__name__,
-                                  known_hash=self._known_hash)
-        return [cache_key]
+        return super().register_data_files([{
+            'url': self._url,
+            'known_hash': self._known_hash,
+            'filename': self._cache_filename,
+        }])
 
     def _retrieve_data_file(self):
         from satpy.data_download import retrieve

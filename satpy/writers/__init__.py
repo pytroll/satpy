@@ -39,6 +39,7 @@ from satpy.utils import recursive_dict_update
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
+from satpy.data_download import DataDownloadMixin
 
 from trollsift import parser
 
@@ -543,7 +544,7 @@ def compute_writer_results(results):
                 target.close()
 
 
-class Writer(Plugin):
+class Writer(Plugin, DataDownloadMixin):
     """Base Writer class for all other writers.
 
     A minimal writer subclass should implement the `save_dataset` method.
@@ -595,6 +596,7 @@ class Writer(Plugin):
             raise ValueError("Writer 'name' not provided")
 
         self.filename_parser = self.create_filename_parser(base_dir)
+        self.register_data_files()
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):

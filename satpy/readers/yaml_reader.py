@@ -42,6 +42,7 @@ from satpy.resample import get_area_def
 from satpy.utils import recursive_dict_update
 from satpy.dataset import DataQuery, DataID, get_key
 from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
+from satpy.data_download import DataDownloadMixin
 from satpy import DatasetDict
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -329,7 +330,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         return ids
 
 
-class FileYAMLReader(AbstractYAMLReader):
+class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
     """Primary reader base class that is configured by a YAML file.
 
     This class uses the idea of per-file "file handler" objects to read file
@@ -354,6 +355,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
         self.coords_cache = WeakValueDictionary()
+        self.register_data_files()
 
     @property
     def sensor_names(self):

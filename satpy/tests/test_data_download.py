@@ -19,10 +19,6 @@
 
 from unittest import mock
 
-from satpy.readers.yaml_reader import FileYAMLReader
-from satpy.writers import Writer
-from satpy.data_download import DataDownloadMixin
-
 import pytest
 import yaml
 
@@ -47,34 +43,6 @@ def _setup_custom_composite_config(base_dir):
         }, comp_file)
 
 
-class FakeMixedReader(FileYAMLReader, DataDownloadMixin):
-    """Fake reader that uses the data download mixin."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialize reader and data downloading."""
-        super().__init__(*args, **kwargs)
-        self.data_files = []
-        self.register_data_files()
-
-    @property
-    def start_time(self):
-        """Start time of the reader."""
-        return None
-
-    @property
-    def end_time(self):
-        """End time of the reader."""
-        return None
-
-    def filter_selected_filenames(self, filenames):
-        """Filter provided filenames by parameters in reader configuration."""
-        return filenames
-
-    def load(self, dataset_keys):
-        """Load some data."""
-        return {}
-
-
 def _setup_custom_reader_config(base_dir):
     reader_config = base_dir.mkdir("readers").join("fake.yaml")
     with open(reader_config, 'wt') as comp_file:
@@ -82,7 +50,7 @@ def _setup_custom_reader_config(base_dir):
         comp_file.write("""
 reader:
   name: "fake"
-  reader: !!python/name:satpy.tests.test_data_download.FakeMixedReader
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   data_files:
     - url: {}
       known_hash: null
@@ -93,16 +61,6 @@ file_types: {{}}
 """.format(README_URL, README_URL))
 
 
-class FakeMixedWriter(Writer, DataDownloadMixin):
-    """Fake reader that uses the data download mixin."""
-
-    def __init__(self, *args, **kwargs):
-        """Initialize writer and data downloading."""
-        super().__init__(*args, **kwargs)
-        self.data_files = []
-        self.register_data_files()
-
-
 def _setup_custom_writer_config(base_dir):
     writer_config = base_dir.mkdir("writers").join("fake.yaml")
     with open(writer_config, 'wt') as comp_file:
@@ -110,7 +68,7 @@ def _setup_custom_writer_config(base_dir):
         comp_file.write("""
 writer:
   name: "fake"
-  writer: !!python/name:satpy.tests.test_data_download.FakeMixedWriter
+  writer: !!python/name:satpy.writers.Writer
   data_files:
     - url: {}
       known_hash: null
@@ -138,11 +96,11 @@ class TestDataDownload:
         with satpy.config.set(config_path=[tmpdir]), \
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
             found_files = find_registerable_files()
-            assert 'composites/StaticImageCompositor/README.rst' in found_files
-            assert 'readers/FakeMixedReader/README.rst' in found_files
-            assert 'readers/FakeMixedReader/README2.rst' in found_files
-            assert 'writers/FakeMixedWriter/README.rst' in found_files
-            assert 'writers/FakeMixedWriter/README2.rst' in found_files
+            assert 'composites/README.rst' in found_files
+            assert 'readers/README.rst' in found_files
+            assert 'readers/README2.rst' in found_files
+            assert 'writers/README.rst' in found_files
+            assert 'writers/README2.rst' in found_files
 
     def test_retrieve(self, tmpdir):
         """Test retrieving a single file."""
@@ -152,7 +110,7 @@ class TestDataDownload:
         file_registry = {}
         with satpy.config.set(config_path=[tmpdir], data_dir=str(tmpdir)), \
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
-            comp_file = 'composites/StaticImageCompositor/README.rst'
+            comp_file = 'composites/README.rst'
             found_files = find_registerable_files()
             assert comp_file in found_files
             assert not tmpdir.join(comp_file).exists()
@@ -170,7 +128,7 @@ class TestDataDownload:
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry), \
              mock.patch('satpy.data_download._FILE_URLS', file_urls), \
              mock.patch('satpy.data_download.find_registerable_files'):
-            comp_file = 'composites/StaticImageCompositor/README.rst'
+            comp_file = 'composites/README.rst'
             file_registry[comp_file] = None
             file_urls[comp_file] = README_URL
             assert not tmpdir.join(comp_file).exists()
