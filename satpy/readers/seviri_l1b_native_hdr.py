@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Header and trailer records of SEVIRI native format.
-"""
+"""Header and trailer records of SEVIRI native format."""
 
 import numpy as np
 
@@ -31,6 +30,7 @@ class GSDTRecords(object):
     MSG Ground Segment Design Specification (GSDS)
 
     """
+
     gp_fac_env = np.uint8
     gp_fac_id = np.uint8
     gp_sc_id = np.uint16
@@ -74,12 +74,10 @@ class GSDTRecords(object):
 
 
 class Msg15NativeHeaderRecord(object):
-    """
-    SEVIRI Level 1.5 header for native-format
-    """
+    """SEVIRI Level 1.5 header for native-format."""
 
     def get(self):
-
+        """Get header data."""
         # 450400 bytes
         record = [
             ('15_MAIN_PRODUCT_HEADER', L15MainProductHeaderRecord().get()),
@@ -94,6 +92,7 @@ class Msg15NativeHeaderRecord(object):
 
 
 class L15PhData(object):
+    """L15 Ph handler."""
 
     # 80 bytes
     l15_ph_data = [
@@ -103,13 +102,14 @@ class L15PhData(object):
 
 
 class L15MainProductHeaderRecord(object):
-    """
+    """L15 Main Product header handler.
+
     Reference Document:
     MSG Level 1.5 Native Format File Definition
     """
 
     def get(self):
-
+        """Get header data."""
         l15_ph_data = L15PhData.l15_ph_data
 
         l15_ph_data_identification = [
@@ -152,13 +152,14 @@ class L15MainProductHeaderRecord(object):
 
 
 class L15SecondaryProductHeaderRecord(object):
-    """
+    """L15 Secondary Product header handler.
+
     Reference Document:
     MSG Level 1.5 Native Format File Definition
     """
 
     def get(self):
-
+        """Get header data."""
         l15_ph_data = L15PhData.l15_ph_data
 
         # 1440 bytes
@@ -187,13 +188,14 @@ class L15SecondaryProductHeaderRecord(object):
 
 
 class L15DataHeaderRecord(object):
-    """
+    """L15 Data Header handler.
+
     Reference Document (EUM/MSG/ICD/105):
     MSG Level 1.5 Image Data Format Description
     """
 
     def get(self):
-
+        """Get header record data."""
         # 445248 bytes
         record = [
             ('15HeaderVersion', np.uint8),
@@ -209,7 +211,7 @@ class L15DataHeaderRecord(object):
 
     @property
     def satellite_status(self):
-
+        """Get satellite status data."""
         # 7 bytes
         satellite_definition = [
             ('SatelliteId', np.uint16),
@@ -283,7 +285,7 @@ class L15DataHeaderRecord(object):
 
     @property
     def image_acquisition(self):
-
+        """Get image acquisition data."""
         planned_acquisition_time = [
             ('TrueRepeatCycleStart', time_cds_expanded),
             ('PlanForwardScanEnd', time_cds_expanded),
@@ -356,7 +358,7 @@ class L15DataHeaderRecord(object):
 
     @property
     def celestial_events(self):
-
+        """Get celestial events data."""
         earth_moon_sun_coeff = [
             ('StartTime', time_cds_short),
             ('EndTime', time_cds_short),
@@ -396,7 +398,7 @@ class L15DataHeaderRecord(object):
 
     @property
     def image_description(self):
-
+        """Get image description data."""
         projection_description = [
             ('TypeOfProjection', np.uint8),
             ('LongitudeOfSSP', np.float32)]
@@ -441,7 +443,7 @@ class L15DataHeaderRecord(object):
 
     @property
     def radiometric_processing(self):
-
+        """Get radiometric processing data."""
         rp_summary = [
             ('RadianceLinearization', (np.bool, 12)),
             ('DetectorEqualization', (np.bool, 12)),
@@ -564,7 +566,7 @@ class L15DataHeaderRecord(object):
 
     @property
     def geometric_processing(self):
-
+        """Get geometric processing data."""
         opt_axis_distances = [
             ('E-WFocalPlane', (np.float32, 42)),
             ('N_SFocalPlane', (np.float32, 42))]
@@ -585,7 +587,7 @@ class L15DataHeaderRecord(object):
 
     @property
     def impf_configuration(self):
-
+        """Get impf configuration information."""
         overall_configuration = [
             ('Issue', np.uint16),
             ('Revision', np.uint16)
@@ -678,15 +680,14 @@ class L15DataHeaderRecord(object):
 
 
 class Msg15NativeTrailerRecord(object):
-    """
-    SEVIRI Level 1.5 trailer for native-format
+    """SEVIRI Level 1.5 trailer for native-format.
 
     Reference Document (EUM/MSG/ICD/105):
     MSG Level 1.5 Image Data Format Description
     """
 
     def get(self):
-
+        """Get header record data."""
         # 380363 bytes
         record = [
             ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
@@ -698,7 +699,7 @@ class Msg15NativeTrailerRecord(object):
 
     @property
     def seviri_l15_trailer(self):
-
+        """Get file trailer data."""
         record = [
             ('15TrailerVersion', np.uint8),
             ('ImageProductionStats', self.image_production_stats),
@@ -712,7 +713,7 @@ class Msg15NativeTrailerRecord(object):
 
     @property
     def image_production_stats(self):
-
+        """Get image production statistics."""
         gp_sc_id = GSDTRecords.gp_sc_id
 
         actual_scanning_summary = [
@@ -785,7 +786,7 @@ class Msg15NativeTrailerRecord(object):
 
     @property
     def navigation_extraction_results(self):
-
+        """Get navigation extraction data."""
         horizon_observation = [
             ('HorizonId', np.uint8),
             ('Alpha', np.float64),
@@ -834,7 +835,7 @@ class Msg15NativeTrailerRecord(object):
 
     @property
     def radiometric_quality(self):
-
+        """Get radiometric quality record data."""
         l10_rad_quality = [
             ('FullImageMinimumCount', np.uint16),
             ('FullImageMaximumCount', np.uint16),
@@ -921,7 +922,7 @@ class Msg15NativeTrailerRecord(object):
 
     @property
     def geometric_quality(self):
-
+        """Get geometric quality record data."""
         absolute_accuracy = [
             ('QualityInfoValidity', np.uint8),
             ('EastWestAccuracyRMS', np.float32),
@@ -978,7 +979,7 @@ class Msg15NativeTrailerRecord(object):
 
     @property
     def timeliness_and_completeness(self):
-
+        """Get time and completeness record data."""
         timeliness = [
             ('MaxDelay', np.float32),
             ('MinDelay', np.float32),
@@ -1002,9 +1003,10 @@ class Msg15NativeTrailerRecord(object):
 
 
 class HritPrologue(L15DataHeaderRecord):
+    """HRIT Prologue handler."""
 
     def get(self):
-
+        """Get record data array."""
         # X bytes
         record = [
             ('SatelliteStatus', self.satellite_status),

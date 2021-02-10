@@ -33,7 +33,6 @@ onboard Joint Polar Satellite System spacecraft.
 
 """
 
-from datetime import datetime
 import xarray as xr
 import pandas as pd
 import numpy as np
