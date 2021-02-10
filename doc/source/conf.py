@@ -83,7 +83,12 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
 # API docs
 apidoc_module_dir = "../../satpy"
 apidoc_output_dir = "api"
-apidoc_excluded_paths = []
+apidoc_excluded_paths = [
+    'readers/caliop_l2_cloud.py',
+    'readers/ghrsst_l3c_sst.py',
+    'readers/li_l2.py',
+    'readers/scatsat1_l2b.py',
+]
 apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.

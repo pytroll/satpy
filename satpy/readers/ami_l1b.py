@@ -44,7 +44,8 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     AMI data contains GSICS adjustment factors for the IR bands.
     By default, these are not applied. If you wish to apply them then you must
-    set the calibration mode appropriately:
+    set the calibration mode appropriately::
+
         import satpy
         import glob
 
@@ -55,12 +56,15 @@ class AMIL1bNetCDF(BaseFileHandler):
         scene.load(['B13'])
 
     In addition, the GSICS website (and other sources) also supply radiance
-    correction coefficients like so:
-    radiance_corr = (radiance_orig - corr_offset) / corr_slope
+    correction coefficients like so::
+
+        radiance_corr = (radiance_orig - corr_offset) / corr_slope
 
     If you wish to supply such coefficients, pass 'user_calibration' and a
     dictionary containing per-channel slopes and offsets as a reader_kwarg::
+
        user_calibration={'chan': {'slope': slope, 'offset': offset}}
+
     If you do not have coefficients for a particular band, then by default the
     slope will be set to 1 .and the offset to 0.::
 

@@ -27,7 +27,7 @@ There are several readers using the same satpy_cf_nc.py reader.
 * EUMETSAT GAC FDR reader ``avhrr_l1c_eum_gac_fdr_nc``
 
 Generic reader
--------
+--------------
 
 The generic ``satpy_cf_nc`` reader reads files of type:
 
@@ -38,6 +38,7 @@ The generic ``satpy_cf_nc`` reader reads files of type:
 
 Example
 -------
+
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -48,7 +49,6 @@ Here is an example how to read the data in satpy:
     scn = Scene(reader='satpy_cf_nc', filenames=filenames)
     scn.load(['M05'])
     scn['M05']
-
 
 Output:
 
@@ -83,7 +83,7 @@ Notes:
     Available datasets and attributes will depend on the data saved with the cf_writer.
 
 EUMETSAT AVHRR GAC FDR L1C reader
--------
+---------------------------------
 
 The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
 
@@ -94,6 +94,7 @@ The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
 
 Example
 -------
+
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
