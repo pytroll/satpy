@@ -49,7 +49,7 @@ REFLMIN = -0.01
 REFLMAX = 1.6
 
 
-def csalbr(tau):
+def _csalbr(tau):
     # Previously 3 functions csalbr fintexp1, fintexp3
     a = [-.57721566, 0.99999193, -0.24991055, 0.05519968, -0.00976004,
          0.00107857]
@@ -208,7 +208,6 @@ def find_coefficient_index(sensor, wavelength_range, resolution=0):
     :return: index in to coefficient arrays like `aH2O`, `aO3`, etc.
              None is returned if no matching wavelength is found
     """
-
     index_map = COEFF_INDEX_MAP[sensor.lower()]
     # Find the best resolution of coefficients
     for res in sorted(index_map.keys()):
@@ -231,12 +230,16 @@ def find_coefficient_index(sensor, wavelength_range, resolution=0):
 
 
 def get_coefficients(sensor, wavelength_range, resolution=0):
-    """
+    """Get coefficients used in CREFL correction.
 
-    :param sensor: sensor of the band to be corrected
-    :param wavelength_range: 3-element tuple of (min wavelength, nominal wavelength, max wavelength)
-    :param resolution: resolution of the band to be corrected
-    :return: aH2O, bH2O, aO3, taur0 coefficient values
+    Args:
+        sensor: sensor of the band to be corrected
+        wavelength_range: 3-element tuple of (min wavelength, nominal wavelength, max wavelength)
+        resolution: resolution of the band to be corrected
+
+    Returns:
+        aH2O, bH2O, aO3, taur0 coefficient values
+
     """
     idx = find_coefficient_index(sensor,
                                  wavelength_range,
@@ -244,7 +247,7 @@ def get_coefficients(sensor, wavelength_range, resolution=0):
     return aH2O[idx], bH2O[idx], aO3[idx], taur0[idx]
 
 
-def chand(phi, muv, mus, taur):
+def _chand(phi, muv, mus, taur):
     # FROM FUNCTION CHAND
     # phi: azimuthal difference between sun and observation in degree
     #      (phi=0 in backscattering direction)
@@ -327,12 +330,12 @@ def _sphalb_index(index_arr, sphalb0):
     return sphalb0[index_arr]
 
 
-def atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
+def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
     tau_step = da.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES,
                            chunks=int(MAXNUMSPHALBVALUES / 2))
-    sphalb0 = csalbr(tau_step)
+    sphalb0 = _csalbr(tau_step)
     taur = tau * da.exp(-height / SCALEHEIGHT)
-    rhoray, trdown, trup = chand(phi, muv, mus, taur)
+    rhoray, trdown, trup = _chand(phi, muv, mus, taur)
     if isinstance(height, xr.DataArray):
         sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0.compute(),
                                dtype=sphalb0.dtype)
@@ -346,6 +349,7 @@ def atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, 
 
 
 def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
+    """Get atmospheric variables for non-ABI instruments."""
     air_mass = 1.0 / mus + 1 / muv
     air_mass = air_mass.where(air_mass <= MAXAIRMASS, -1.0)
     tO3 = 1.0
@@ -358,10 +362,11 @@ def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
         else:
             tH2O = da.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
     # Returns sphalb, rhoray, TtotraytH2O, tOG
-    return atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
+    return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
 
 
 def get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, ao3, tau):
+    """Get atmospheric variables for ABI."""
     tO3 = 1.0
     tH2O = 1.0
     if ao3 != 0:
@@ -370,10 +375,10 @@ def get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, a
         tH2O = da.exp(-G_H2O * ah2o)
     tO2 = da.exp(-G_O2 * ao2)
     # Returns sphalb, rhoray, TtotraytH2O, tOG.
-    return atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
+    return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
 
 
-def G_calc(zenith, a_coeff):
+def _G_calc(zenith, a_coeff):
     return (da.cos(da.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
 
 
@@ -439,9 +444,9 @@ def run_crefl(refl, coeffs,
         a_O3 = [268.45, 0.5, 115.42, -3.2922]
         a_H2O = [0.0311, 0.1, 92.471, -1.3814]
         a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
-        G_O3 = G_calc(solar_zenith, a_O3) + G_calc(sensor_zenith, a_O3)
-        G_H2O = G_calc(solar_zenith, a_H2O) + G_calc(sensor_zenith, a_H2O)
-        G_O2 = G_calc(solar_zenith, a_O2) + G_calc(sensor_zenith, a_O2)
+        G_O3 = _G_calc(solar_zenith, a_O3) + _G_calc(sensor_zenith, a_O3)
+        G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
+        G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
         # Note: bh2o values are actually ao2 values for abi
         sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
     else:
