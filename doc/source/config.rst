@@ -130,6 +130,21 @@ defaults to a different path depending on your operating system following the
 `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
 "user data dir".
 
+.. _download_aux_setting:
+
+Download Auxiliary Data
+^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_DOWNLOAD_AUX``
+* **YAML/Config Key**: ``download_aux``
+* **Default**: True
+
+Whether to allow downloading of auxiliary files for certain Satpy operations.
+See :doc:`dev_guide/aux_data` for more information. If ``True`` then Satpy
+will download and cache any necessary data files to :ref:`data_dir_setting`
+when needed. If ``False`` then pre-downloaded files will be used, but any
+other files will not be downloaded or checked for validity.
+
 .. _component_configuration:
 
 Component Configuration

@@ -73,6 +73,17 @@ def _generate_filename(filename, component_type):
     return path
 
 
+def _retrieve_offline(data_dir, cache_key):
+    logger.debug('Downloading auxiliary files is turned off, will check '
+                 'local files.')
+    local_file = os.path.join(data_dir, *cache_key.split('/'))
+    if not os.path.isfile(local_file):
+        raise RuntimeError("Satpy 'download_aux' setting is False meaning "
+                           "no new files will be downloaded and the local "
+                           "file '{}' does not exist.".format(local_file))
+    return local_file
+
+
 def retrieve(cache_key, pooch_kwargs=None):
     """Download and cache the file associated with the provided ``cache_key``.
 
@@ -93,6 +104,8 @@ def retrieve(cache_key, pooch_kwargs=None):
     pooch_kwargs = pooch_kwargs or {}
 
     path = satpy.config.get('data_dir')
+    if not satpy.config.get('download_aux'):
+        return _retrieve_offline(path, cache_key)
     # reuse data directory as the default URL where files can be downloaded from
     pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
                              urls=_FILE_URLS)
@@ -123,6 +136,9 @@ def retrieve_all(readers=None, writers=None, composite_sensors=None,
     """
     if pooch_kwargs is None:
         pooch_kwargs = {}
+    if not satpy.config.get('download_aux'):
+        raise RuntimeError("Satpy 'download_aux' setting is False so no files "
+                           "will be downloaded.")
 
     find_registerable_files(readers=readers,
                             writers=writers,

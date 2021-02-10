@@ -117,3 +117,6 @@ called ``satpy_retrieve_all``. Run the following for usage information.
 .. code-block:: bash
 
     satpy_retrieve_all --help
+
+To make sure that no additional files are downloaded when running Satpy see
+:ref:`download_aux_setting`.

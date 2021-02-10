@@ -168,6 +168,40 @@ class TestDataDownload:
             retrieve(comp_file)
             assert tmpdir.join(comp_file).exists()
 
+    def test_offline_retrieve(self, tmpdir):
+        """Test retrieving a single file when offline."""
+        import satpy
+        from satpy.data_download import find_registerable_files, retrieve
+        _setup_custom_configs(tmpdir)
+        file_registry = {}
+        with satpy.config.set(config_path=[tmpdir], data_dir=str(tmpdir), download_aux=True), \
+             mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
+            comp_file = 'composites/README.rst'
+            found_files = find_registerable_files()
+            assert comp_file in found_files
+
+            # the file doesn't exist, we can't download it
+            assert not tmpdir.join(comp_file).exists()
+            with satpy.config.set(download_aux=False):
+                pytest.raises(RuntimeError, retrieve, comp_file)
+
+            # allow downloading and get it
+            retrieve(comp_file)
+            assert tmpdir.join(comp_file).exists()
+
+            # turn off downloading and make sure we get local file
+            with satpy.config.set(download_aux=False):
+                local_file = retrieve(comp_file)
+                assert local_file
+
+    def test_offline_retrieve_all(self, tmpdir):
+        """Test registering and retrieving all files fails when offline."""
+        import satpy
+        from satpy.data_download import retrieve_all
+        _setup_custom_configs(tmpdir)
+        with satpy.config.set(config_path=[tmpdir], data_dir=str(tmpdir), download_aux=False):
+            pytest.raises(RuntimeError, retrieve_all)
+
     def test_retrieve_all(self, tmpdir):
         """Test registering and retrieving all files."""
         import satpy

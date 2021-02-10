@@ -38,6 +38,7 @@ _CONFIG_DEFAULTS = {
     'cache_dir': _satpy_dirs.user_cache_dir,
     'data_dir': _satpy_dirs.user_data_dir,
     'config_path': [],
+    'download_aux': True,
 }
 
 # Satpy main configuration object
