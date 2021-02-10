@@ -56,6 +56,7 @@ def check_required_common_attributes(ds):
             # grid mapping variable
             assert 'grid_mapping_name' in data_arr.attrs
             continue
+        assert data_arr.encoding.get('zlib', False)
         assert 'grid_mapping' in data_arr.attrs
         assert data_arr.attrs['grid_mapping'] in ds
 

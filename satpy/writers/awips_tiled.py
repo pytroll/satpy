@@ -1545,6 +1545,8 @@ class AWIPSTiledWriter(Writer):
                                      extra_global_attrs=extra_global_attrs)
             if self.compress:
                 new_ds.encoding['zlib'] = True
+                for var in new_ds.variables.values():
+                    var.encoding['zlib'] = True
 
             datasets_to_save.append(new_ds)
             output_filenames.append(output_filename)
