@@ -974,11 +974,8 @@ class NaturalEnh(GenericCompositor):
 class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
     """A compositor that loads a static image from disk.
 
-    If the filename passed to this compositor is not valid then
-    the SATPY_ANCPATH environment variable will be checked to see
-    if the image is located there
+    Environment variables in the filename are automatically expanded.
 
-    Environment variables in the filename are automatically expanded
     """
 
     def __init__(self, name, filename=None, url=None, known_hash=None, area=None,
