@@ -81,7 +81,13 @@ autoclass_content = 'both'  # append class __init__ docstring to the class docst
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'doi_role',
-              'sphinx.ext.viewcode']
+              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc']
+
+# API docs
+apidoc_module_dir = "../../satpy"
+apidoc_output_dir = "api"
+apidoc_excluded_paths = []
+apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
