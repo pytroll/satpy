@@ -99,17 +99,34 @@ def retrieve(cache_key, pooch_kwargs=None):
     return pooch_obj.fetch(cache_key, **pooch_kwargs)
 
 
-def retrieve_all(pooch_kwargs=None):
+def retrieve_all(readers=None, writers=None, composite_sensors=None,
+                 pooch_kwargs=None):
     """Find cache-able data files for Satpy and download them.
 
     The typical use case for this function is to download all ancillary files
     before going to an environment/system that does not have internet access.
 
+    Args:
+        readers (list or None): Limit searching to these readers. If not
+            specified or ``None`` then all readers are searched. If an
+            empty list then no readers are searched.
+        writers (list or None): Limit searching to these writers. If not
+            specified or ``None`` then all writers are searched. If an
+            empty list then no writers are searched.
+        composite_sensors (list or None): Limit searching to composite
+            configuration files for these sensors. If ``None`` then all sensor
+            configs will be searched. If an empty list then no composites
+            will be searched.
+        pooch_kwargs (dict): Additional keyword arguments to pass to pooch
+            ``fetch``.
+
     """
     if pooch_kwargs is None:
         pooch_kwargs = {}
 
-    find_registerable_files()
+    find_registerable_files(readers=readers,
+                            writers=writers,
+                            composite_sensors=composite_sensors)
     path = satpy.config.get('data_dir')
     pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
                              urls=_FILE_URLS)
@@ -119,15 +136,30 @@ def retrieve_all(pooch_kwargs=None):
     logger.info("Done downloading all extra files.")
 
 
-def find_registerable_files():
-    """Load all Satpy components so they can be downloaded."""
-    _find_registerable_files_compositors()
-    _find_registerable_files_readers()
-    _find_registerable_files_writers()
+def find_registerable_files(readers=None, writers=None,
+                            composite_sensors=None):
+    """Load all Satpy components so they can be downloaded.
+
+    Args:
+        readers (list or None): Limit searching to these readers. If not
+            specified or ``None`` then all readers are searched. If an
+            empty list then no readers are searched.
+        writers (list or None): Limit searching to these writers. If not
+            specified or ``None`` then all writers are searched. If an
+            empty list then no writers are searched.
+        composite_sensors (list or None): Limit searching to composite
+            configuration files for these sensors. If ``None`` then all sensor
+            configs will be searched. If an empty list then no composites
+            will be searched.
+
+    """
+    _find_registerable_files_compositors(composite_sensors)
+    _find_registerable_files_readers(readers)
+    _find_registerable_files_writers(writers)
     return sorted(_FILE_REGISTRY.keys())
 
 
-def _find_registerable_files_compositors():
+def _find_registerable_files_compositors(sensors=None):
     """Load all compositor configs so that files are registered.
 
     Compositor objects should register files when they are initialized.
@@ -135,25 +167,27 @@ def _find_registerable_files_compositors():
     """
     from satpy.composites.config_loader import CompositorLoader
     composite_loader = CompositorLoader()
-    all_sensor_names = composite_loader.all_composite_sensors()
-    composite_loader.load_compositors(all_sensor_names)
+    if sensors is None:
+        sensors = composite_loader.all_composite_sensors()
+    if sensors:
+        composite_loader.load_compositors(sensors)
 
 
-def _find_registerable_files_readers():
+def _find_registerable_files_readers(readers=None):
     """Load all readers so that files are registered."""
     import yaml
     from satpy.readers import configs_for_reader, load_reader
-    for reader_configs in configs_for_reader():
+    for reader_configs in configs_for_reader(reader=readers):
         try:
             load_reader(reader_configs)
         except (ModuleNotFoundError, yaml.YAMLError):
             continue
 
 
-def _find_registerable_files_writers():
+def _find_registerable_files_writers(writers=None):
     """Load all writers so that files are registered."""
     from satpy.writers import configs_for_writer, load_writer_configs
-    for writer_configs in configs_for_writer():
+    for writer_configs in configs_for_writer(writer=writers):
         try:
             load_writer_configs(writer_configs)
         except ValueError:
@@ -264,9 +298,43 @@ class DataDownloadMixin:
             cache_keys.append(cache_key)
         return cache_keys
 
-    def _register_data_file(self, data_file_entry, comp_type):
+    @staticmethod
+    def _register_data_file(data_file_entry, comp_type):
         url = data_file_entry['url']
         filename = data_file_entry.get('filename', os.path.basename(url))
         known_hash = data_file_entry.get('known_hash')
         return register_file(url, filename, component_type=comp_type,
                              known_hash=known_hash)
+
+
+def retrieve_all_cmd():
+    """Call 'retrieve_all' function from console script 'satpy_retrieve_all'."""
+    import argparse
+    parser = argparse.ArgumentParser(description="Download auxiliary data files used by Satpy.")
+    parser.add_argument('--data-dir',
+                        help="Override 'SATPY_DATA_DIR' for destination of "
+                             "downloaded files. This does NOT change the "
+                             "directory Satpy will look at when searching "
+                             "for files outside of this script.")
+    parser.add_argument('--composite-sensors', nargs="*",
+                        help="Limit loaded composites for the specified "
+                             "sensors. If specified with no arguments, "
+                             "no composite files will be downloaded.")
+    parser.add_argument('--readers', nargs="*",
+                        help="Limit searching to these readers. If specified "
+                             "with no arguments, no reader files will be "
+                             "downloaded.")
+    parser.add_argument('--writers', nargs="*",
+                        help="Limit searching to these writers. If specified "
+                             "with no arguments, no writer files will be "
+                             "downloaded.")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
+
+    if args.data_dir is None:
+        args.data_dir = satpy.config.get('data_dir')
+
+    with satpy.config.set(datA_dir=args.data_dir):
+        retrieve_all(readers=args.readers, writers=args.writers,
+                     composite_sensors=args.composite_sensors)

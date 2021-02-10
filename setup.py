@@ -103,6 +103,13 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
     return data_files
 
 
+entry_points = {
+    'console_scripts': [
+        'satpy_retrieve_all=satpy.data_download:retrieve_all_cmd',
+    ],
+}
+
+
 NAME = 'satpy'
 with open('README.rst', 'r') as readme:
     README = readme.read()
@@ -139,4 +146,5 @@ setup(name=NAME,
       tests_require=test_requires,
       python_requires='>=3.6',
       extras_require=extras_require,
+      entry_points=entry_points,
       )

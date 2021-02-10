@@ -84,10 +84,38 @@ def _setup_custom_configs(base_dir):
     _setup_custom_writer_config(base_dir)
 
 
+def _get_reader_find_conditions(readers, found_files):
+    r_cond1 = 'readers/README.rst' in found_files
+    r_cond2 = 'readers/README2.rst' in found_files
+    if readers is not None and not readers:
+        r_cond1 = not r_cond1
+        r_cond2 = not r_cond2
+    return r_cond1, r_cond2
+
+
+def _get_writer_find_conditions(writers, found_files):
+    w_cond1 = 'writers/README.rst' in found_files
+    w_cond2 = 'writers/README2.rst' in found_files
+    if writers is not None and not writers:
+        w_cond1 = not w_cond1
+        w_cond2 = not w_cond2
+    return w_cond1, w_cond2
+
+
+def _get_comp_find_conditions(comp_sensors, found_files):
+    comp_cond = 'composites/README.rst' in found_files
+    if comp_sensors is not None and not comp_sensors:
+        comp_cond = not comp_cond
+    return comp_cond
+
+
 class TestDataDownload:
     """Test basic data downloading functionality."""
 
-    def test_find_registerable(self, tmpdir):
+    @pytest.mark.parametrize('comp_sensors', [[], None, ['visir']])
+    @pytest.mark.parametrize('writers', [[], None, ['fake']])
+    @pytest.mark.parametrize('readers', [[], None, ['fake']])
+    def test_find_registerable(self, readers, writers, comp_sensors, tmpdir):
         """Test that find_registerable finds some things."""
         import satpy
         from satpy.data_download import find_registerable_files
@@ -95,12 +123,35 @@ class TestDataDownload:
         file_registry = {}
         with satpy.config.set(config_path=[tmpdir]), \
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
-            found_files = find_registerable_files()
-            assert 'composites/README.rst' in found_files
-            assert 'readers/README.rst' in found_files
-            assert 'readers/README2.rst' in found_files
-            assert 'writers/README.rst' in found_files
-            assert 'writers/README2.rst' in found_files
+            found_files = find_registerable_files(
+                readers=readers, writers=writers,
+                composite_sensors=comp_sensors,
+            )
+
+            r_cond1, r_cond2 = _get_reader_find_conditions(readers, found_files)
+            assert r_cond1
+            assert r_cond2
+            w_cond1, w_cond2 = _get_writer_find_conditions(writers, found_files)
+            assert w_cond1
+            assert w_cond2
+            comp_cond = _get_comp_find_conditions(comp_sensors, found_files)
+            assert comp_cond
+
+    @pytest.mark.parametrize('comp_sensors', [[], None, ['visir']])
+    @pytest.mark.parametrize('writers', [[], None, ['fake']])
+    @pytest.mark.parametrize('readers', [[], None, ['fake']])
+    def test_limited_find_registerable(self, readers, writers, comp_sensors, tmpdir):
+        """Test that find_registerable doesn't find anything when limited."""
+        import satpy
+        from satpy.data_download import find_registerable_files
+        _setup_custom_configs(tmpdir)
+        file_registry = {}
+        with satpy.config.set(config_path=[tmpdir]), \
+             mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
+            found_files = find_registerable_files(
+                readers=[], writers=[], composite_sensors=[],
+            )
+            assert not found_files
 
     def test_retrieve(self, tmpdir):
         """Test retrieving a single file."""

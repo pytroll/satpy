@@ -107,3 +107,13 @@ To assist with operational environments, Satpy includes a
 :func:`~satpy.data_download.retrieve_all` function that will try to find all
 files that Satpy components may need to download in the future and download
 them to the current directory specified by :ref:`data_dir_setting`.
+This function allows you to specify a list of ``readers``, ``writers``, or
+``composite_sensors`` to limit what components are checked for files to
+download.
+
+The ``retrieve_all`` function is also available through a command line script
+called ``satpy_retrieve_all``. Run the following for usage information.
+
+.. code-block:: bash
+
+    satpy_retrieve_all --help
