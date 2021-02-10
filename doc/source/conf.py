@@ -10,9 +10,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
-# To generate apidoc modules:
-#     sphinx-apidoc -f -T -o source/api ../satpy ../satpy/tests
 """Sphinx documentation configuration and setup."""
 
 import os

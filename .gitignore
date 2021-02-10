@@ -73,3 +73,4 @@ doc/source/_build/*
 # setuptools_scm files
 # this should be generated automatically when installed
 satpy/version.py
+doc/api/*.rst
