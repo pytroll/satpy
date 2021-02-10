@@ -46,7 +46,8 @@ jobs:
       - name: Install satpy
         shell: bash -l {0}
         run: |
-          pip install --no-deps -e .[doc]
+          pip install sphinx sphinx_rtd_theme sphinxcontrib-apidoc; \
+          pip install --no-deps -e .
 
       - name: Run unit tests
         shell: bash -l {0}
