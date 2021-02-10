@@ -124,8 +124,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             res = self['/attr/platform_name']
             if isinstance(res, np.ndarray):
                 return str(res.astype(str))
-            else:
-                return res
+            return res
         except KeyError:
             return self.filename_info['platform_shortname']
 
