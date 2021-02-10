@@ -533,7 +533,7 @@ def test_wavelength_range():
     assert wr2 in wr
     wr2 = WavelengthRange(1, 2, 3, 'nm')
     with pytest.raises(NotImplementedError):
-        wr2 in wr
+        wr2 in wr  # noqa
 
     # Check __str__
     assert str(wr) == "2 µm (1-3 µm)"

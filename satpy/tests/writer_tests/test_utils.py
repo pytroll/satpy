@@ -15,14 +15,17 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for writer utilities"""
+"""Tests for writer utilities."""
 
 import unittest
 import satpy.writers.utils as wutils
 
 
 class WriterUtilsTest(unittest.TestCase):
+    """Test various writer utilities."""
+
     def test_flatten_dict(self):
+        """Test dictionary flattening."""
         d = {'a': 1, 'b': {'c': 1, 'd': {'e': 1, 'f': {'g': [1, 2]}}}}
         expected = {'a': 1,
                     'b_c': 1,
