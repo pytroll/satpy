@@ -28,6 +28,8 @@ import satpy.readers.yaml_reader as yr
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.dataset import DataQuery
 from satpy.tests.utils import make_dataid
+import xarray as xr
+import numpy as np
 
 
 class FakeFH(BaseFileHandler):
@@ -504,41 +506,51 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
                                             'start_time': datetime(2000, 1, 1),
                                             'end_time': datetime(2000, 1, 2),
                                         })
-
-    def test_load_dataset_with_builtin_coords(self):
-        """Test loading a dataset with builtin coordinates."""
         fake_fh = FakeFH(None, None)
-        import xarray as xr
-        import numpy as np
-        lons = xr.DataArray(np.ones((2, 2)) * 2,
-                            dims=['y', 'x'],
-                            attrs={'standard_name': 'longitude',
-                                   'name': 'longitude'})
-        lats = xr.DataArray(np.ones((2, 2)) * 2,
-                            dims=['y', 'x'],
-                            attrs={'standard_name': 'latitude',
-                                   'name': 'latitude'})
-        data = xr.DataArray(np.ones((2, 2)),
-                            coords={'longitude': lons,
-                            'latitude': lats},
-                            dims=['y', 'x'])
+        self.lons = xr.DataArray(np.ones((2, 2)) * 2,
+                                 dims=['y', 'x'],
+                                 attrs={'standard_name': 'longitude',
+                                        'name': 'longitude'})
+        self.lats = xr.DataArray(np.ones((2, 2)) * 2,
+                                 dims=['y', 'x'],
+                                 attrs={'standard_name': 'latitude',
+                                        'name': 'latitude'})
+        self.data = None
 
         def _assign_array(dsid, *_args, **_kwargs):
             if dsid['name'] == 'longitude':
-                return lons
+                return self.lons
             elif dsid['name'] == 'latitude':
-                return lats
+                return self.lats
 
-            return data
+            return self.data
 
         fake_fh.get_dataset.side_effect = _assign_array
         self.reader.file_handlers = {'ftype1': [fake_fh]}
 
-        res = self.reader.load(['ch01'])
+    def test_load_dataset_with_builtin_coords(self):
+        """Test loading a dataset with builtin coordinates."""
+        self.data = xr.DataArray(np.ones((2, 2)),
+                                 coords={'longitude': self.lons,
+                                         'latitude': self.lats},
+                                 dims=['y', 'x'])
 
+        self._check_area_for_ch01()
+
+    def test_load_dataset_with_builtin_coords_in_wrong_order(self):
+        """Test loading a dataset with builtin coordinates in the wrong order."""
+        self.data = xr.DataArray(np.ones((2, 2)),
+                                 coords={'latitude': self.lats,
+                                         'longitude': self.lons},
+                                 dims=['y', 'x'])
+
+        self._check_area_for_ch01()
+
+    def _check_area_for_ch01(self):
+        res = self.reader.load(['ch01'])
         assert 'area' in res['ch01'].attrs
-        np.testing.assert_array_equal(res['ch01'].attrs['area'].lons, lons)
-        np.testing.assert_array_equal(res['ch01'].attrs['area'].lats, lats)
+        np.testing.assert_array_equal(res['ch01'].attrs['area'].lons, self.lons)
+        np.testing.assert_array_equal(res['ch01'].attrs['area'].lats, self.lats)
 
 
 class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):

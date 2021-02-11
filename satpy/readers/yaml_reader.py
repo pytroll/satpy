@@ -775,32 +775,44 @@ class FileYAMLReader(AbstractYAMLReader):
     def _make_area_from_coords(self, coords):
         """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
-            lon_sn = coords[0].attrs.get('standard_name')
-            lat_sn = coords[1].attrs.get('standard_name')
-            if lon_sn == 'longitude' and lat_sn == 'latitude':
-                key = None
-                try:
-                    key = (coords[0].data.name, coords[1].data.name)
-                    sdef = self.coords_cache.get(key)
-                except AttributeError:
-                    sdef = None
-                if sdef is None:
-                    sdef = SwathDefinition(*coords)
-                    sensor_str = '_'.join(self.info['sensors'])
-                    shape_str = '_'.join(map(str, coords[0].shape))
-                    sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                     coords[0].attrs['name'],
-                                                     coords[1].attrs['name'])
-                    if key is not None:
-                        self.coords_cache[key] = sdef
-                return sdef
-            else:
-                raise ValueError(
-                    'Coordinates info object missing standard_name key: ' +
-                    str(coords))
+            lats, lons = self._get_lons_lats_from_coords(coords)
+
+            sdef = self._make_swath_definition_from_lons_lats(lons, lats)
+            return sdef
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
+
+    def _get_lons_lats_from_coords(self, coords):
+        """Get lons and lats from the coords list."""
+        lons, lats = None, None
+        for coord in coords:
+            if coord.attrs.get('standard_name') == 'longitude':
+                lons = coord
+            elif coord.attrs.get('standard_name') == 'latitude':
+                lats = coord
+        if lons is None or lats is None:
+            raise ValueError('Missing longitude or latitude coordinate: ' + str(coords))
+        return lats, lons
+
+    def _make_swath_definition_from_lons_lats(self, lons, lats):
+        """Make a swath definition instance from lons and lats."""
+        key = None
+        try:
+            key = (lons.data.name, lats.data.name)
+            sdef = self.coords_cache.get(key)
+        except AttributeError:
+            sdef = None
+        if sdef is None:
+            sdef = SwathDefinition(lons, lats)
+            sensor_str = '_'.join(self.info['sensors'])
+            shape_str = '_'.join(map(str, lons.shape))
+            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                             lons.attrs.get('name', lons.name),
+                                             lats.attrs.get('name', lats.name))
+            if key is not None:
+                self.coords_cache[key] = sdef
+        return sdef
 
     def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
         """Get the area for *dsid*."""
