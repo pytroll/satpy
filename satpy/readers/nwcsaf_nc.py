@@ -299,7 +299,7 @@ class NcNWCSAF(BaseFileHandler):
         if self._unzipped:
             try:
                 os.remove(self._unzipped)
-            except (IOError, OSError):
+            except OSError:
                 pass
 
     @property

@@ -368,6 +368,7 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
             os.remove(TEST_ERROR_FILE)
 
     def test_errors(self):
+        """Test that certain properties cause errors."""
         self.assertRaises(TypeError, self.error_reader._start_time,
                           datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=30, second=40))
@@ -433,7 +434,6 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
 
     def test_byte_extraction(self):
         """Test the execution of the get_dataset function."""
-
         # Value of 1 is expected to be returned for this test
         dataset = self.byte_reader.get_dataset(None,
                                                {'file_key': 'cloud_mask_test_flag',

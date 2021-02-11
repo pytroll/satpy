@@ -246,7 +246,7 @@ class DataID(dict):
     def __init__(self, id_keys, **keyval_dict):
         """Init the DataID.
 
-        The *id_keys* dictionary has to be formed as described in :doc:`satpy_internals`.
+        The *id_keys* dictionary has to be formed as described in :doc:`../dev_guide/satpy_internals`.
         The other keyword arguments are values to be assigned to the keys. Note that
         `None` isn't a valid value and will simply be ignored.
         """

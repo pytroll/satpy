@@ -386,8 +386,9 @@ class ColormapCompositor(GenericCompositor):
 
         Colormaps come in different forms, but they are all supposed to have
         color values between 0 and 255. The following cases are considered:
+
         - Palettes comprised of only a list on colors. If *dtype* is uint8,
-          the values of the colormap are the enumaration of the colors.
+          the values of the colormap are the enumeration of the colors.
           Otherwise, the colormap values will be spread evenly from the min
           to the max of the valid_range provided in `info`.
         - Palettes that have a palette_meanings attribute. The palette meanings
@@ -1095,18 +1096,19 @@ class MaskingCompositor(GenericCompositor):
             conditions (list): list of three items determining the masking
                                settings.
 
-        Each condition in *conditions* consists of of three items:
+        Each condition in *conditions* consists of three items:
+
         - `method`: Numpy method name.  The following are supported
-           operations: `less`, `less_equal`, `equal`, `greater_equal`,
-           `greater`, `not_equal`, `isnan`, `isfinite`, `isinf`,
-          `isneginf`, `isposinf`
+            operations: `less`, `less_equal`, `equal`, `greater_equal`,
+            `greater`, `not_equal`, `isnan`, `isfinite`, `isinf`,
+            `isneginf`, or `isposinf`.
         - `value`: threshold value of the *mask* applied with the
-          operator.  Can be a string, in which case the corresponding
-          value will be determined from `flag_meanings` and
-          `flag_values` attributes of the mask.
-          NOTE: the `value` should not be given to 'is*` methods.
+            operator.  Can be a string, in which case the corresponding
+            value will be determined from `flag_meanings` and
+            `flag_values` attributes of the mask.
+            NOTE: the `value` should not be given to 'is*` methods.
         - `transparency`: transparency from interval [0 ... 100] used
-          for the method/threshold. Value of 100 is fully transparent.
+            for the method/threshold. Value of 100 is fully transparent.
 
         Example::
 
@@ -1121,6 +1123,7 @@ class MaskingCompositor(GenericCompositor):
           >>> compositor = MaskingCompositor("masking compositor",
                                              transparency=transparency)
           >>> result = compositor([data, mask])
+
 
         This will set transparency of `data` based on the values in
         the `mask` dataset.  Locations where `mask` has values of `0`

@@ -121,7 +121,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     def _load_lut(self):
         """Determine if LUT is available and, if not, download it."""
-
         # First, check that the LUT is available. If not, download it.
         lut_file = self.lut_dir + self.product_name
         if not os.path.exists(lut_file):
@@ -135,7 +134,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     def _calibrate(self, data):
         """Load calibration from LUT and apply."""
-
         lut = self._load_lut()
 
         # LUT may truncate NaN values, so manually set those in data
@@ -197,7 +195,8 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Get the area definition.
 
         This is fixed, but not defined in the file. So we must
-        generate it ourselves with some assumptions."""
+        generate it ourselves with some assumptions.
+        """
         if self.areaname == 'fld':
             area_extent = AHI_FULLDISK_EXTENT
         else:
@@ -227,7 +226,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-
         with open(self.filename, "rb") as fp_:
             res = self._read_data(fp_)
 

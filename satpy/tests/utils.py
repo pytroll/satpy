@@ -404,8 +404,8 @@ def make_fake_scene(content_dict, daskify=False, area=True,
             and values may be either ``numpy.ndarray`` or
             ``xarray.DataArray``.
         daskify (bool): optional, to use dask when converting
-            ``numpy.ndarray`` to ``xarray.DataArray`.  No effect when the
-            values in ``content_dict`` are already ``xarray.DataArray`.
+            ``numpy.ndarray`` to ``xarray.DataArray``.  No effect when the
+            values in ``content_dict`` are already ``xarray.DataArray``.
         area (bool or BaseDefinition): Can be ``True``, ``False``, or an
             instance of ``pyresample.geometry.BaseDefinition`` such as
             ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is

@@ -69,7 +69,7 @@ extras_require = {
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
-    'doc': ['sphinx'],
+    'doc': ['sphinx', 'sphinx_rtd_theme', 'sphinxcontrib-apidoc'],
     # Other
     'geoviews': ['geoviews'],
 }

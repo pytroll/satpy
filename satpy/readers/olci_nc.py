@@ -305,7 +305,7 @@ class NCOLCILowResData(BaseFileHandler):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 
@@ -378,7 +378,7 @@ class NCOLCIAngles(NCOLCILowResData):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 

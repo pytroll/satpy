@@ -16,6 +16,7 @@ dependencies:
   - setuptools_scm_git_archive
   - sphinx
   - sphinx_rtd_theme
+  - sphinxcontrib-apidoc
   - trollsift
   - xarray
   - zarr

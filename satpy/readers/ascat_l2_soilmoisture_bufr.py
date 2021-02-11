@@ -15,8 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-r"""ASCAT Soil moisture product reader for BUFR messages.
-Based on the IASI L2 SO2 BUFR reader
+"""ASCAT Soil moisture product reader for BUFR messages.
+
+Based on the IASI L2 SO2 BUFR reader.
 
 """
 
@@ -68,7 +69,7 @@ class AscatSoilMoistureBufr(BaseFileHandler):
         return self.filename_info['platform']
 
     def extract_msg_date_extremes(self, bufr, date_min=None, date_max=None):
-        """Extracts the minimum and maximum dates from a single bufr message."""
+        """Extract the minimum and maximum dates from a single bufr message."""
         ec.codes_set(bufr, 'unpack', 1)
         size = ec.codes_get(bufr, 'numberOfSubsets')
         years = np.resize(ec.codes_get_array(bufr, 'year'), size)
@@ -84,7 +85,7 @@ class AscatSoilMoistureBufr(BaseFileHandler):
         return date_min, date_max
 
     def get_start_end_date(self):
-        """Gets the first and last date from the bufr file."""
+        """Get the first and last date from the bufr file."""
         with open(self.filename, 'rb') as fh:
             date_min = None
             date_max = None

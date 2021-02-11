@@ -567,6 +567,7 @@ class CFWriter(Writer):
 
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):
+        """Update encoding info (deprecated)."""
         warnings.warn('CFWriter.update_encoding is deprecated. '
                       'Use satpy.writers.cf_writer.update_encoding instead.',
                       DeprecationWarning)

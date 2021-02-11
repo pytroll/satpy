@@ -66,7 +66,7 @@ the base Satpy installation.
 .. toctree::
     :maxdepth: 1
 
-    Satpy API <api/satpy>
+    Satpy API <api/modules>
     faq
 
 .. _reader_table:

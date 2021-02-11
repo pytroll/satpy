@@ -853,7 +853,7 @@ class DecisionTree(object):
     additional keys that could be useful when matched. This class will
     search these decisions and return the one with the most matching
     parameters to the attributes passed to the
-    :meth:`~satpy.writers.DecisionTree.find_match`` method.
+    :meth:`~satpy.writers.DecisionTree.find_match` method.
 
     Note that decision sections are provided as a dict instead of a list
     so that they can be overwritten or updated by doing the equivalent
@@ -864,26 +864,28 @@ class DecisionTree(object):
         The returned match will be the first result found by searching
         provided `match_keys` in order.
 
-        decisions = {
-            'first_section': {
-                'a': 1,
-                'b': 2,
-                'useful_key': 'useful_value',
-            },
-            'second_section': {
-                'a': 5,
-                'useful_key': 'other_useful_value1',
-            },
-            'third_section': {
-                'b': 4,
-                'useful_key': 'other_useful_value2',
-            },
-        }
-        tree = DecisionTree(decisions, ('a', 'b'))
-        tree.find_match(a=5, b=2)  # second_section dict
-        tree.find_match(a=1, b=2)  # first_section dict
-        tree.find_match(a=5, b=4)  # second_section dict
-        tree.find_match(a=3, b=2)  # no match
+        ::
+
+            decisions = {
+                'first_section': {
+                    'a': 1,
+                    'b': 2,
+                    'useful_key': 'useful_value',
+                },
+                'second_section': {
+                    'a': 5,
+                    'useful_key': 'other_useful_value1',
+                },
+                'third_section': {
+                    'b': 4,
+                    'useful_key': 'other_useful_value2',
+                },
+            }
+            tree = DecisionTree(decisions, ('a', 'b'))
+            tree.find_match(a=5, b=2)  # second_section dict
+            tree.find_match(a=1, b=2)  # first_section dict
+            tree.find_match(a=5, b=4)  # second_section dict
+            tree.find_match(a=3, b=2)  # no match
 
     """
 

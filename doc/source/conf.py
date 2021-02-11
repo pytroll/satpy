@@ -10,9 +10,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
-# To generate apidoc modules:
-#     sphinx-apidoc -f -T -o source/api ../satpy ../satpy/tests
 """Sphinx documentation configuration and setup."""
 
 import os
@@ -81,7 +78,18 @@ autoclass_content = 'both'  # append class __init__ docstring to the class docst
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'doi_role',
-              'sphinx.ext.viewcode']
+              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc']
+
+# API docs
+apidoc_module_dir = "../../satpy"
+apidoc_output_dir = "api"
+apidoc_excluded_paths = [
+    'readers/caliop_l2_cloud.py',
+    'readers/ghrsst_l3c_sst.py',
+    'readers/li_l2.py',
+    'readers/scatsat1_l2b.py',
+]
+apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
