@@ -254,6 +254,9 @@ class SatpyCFFileHandler(BaseFileHandler):
                 ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
             except KeyError:
                 pass
+            except ValueError:
+                if isinstance(ds_info['wavelength'], str):
+                    ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'].split(',')[0:3]])
             self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
