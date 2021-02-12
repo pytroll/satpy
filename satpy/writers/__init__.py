@@ -39,7 +39,7 @@ from satpy.utils import recursive_dict_update
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
-from satpy.data_download import DataDownloadMixin
+from satpy.aux_download import DataDownloadMixin
 
 from trollsift import parser
 

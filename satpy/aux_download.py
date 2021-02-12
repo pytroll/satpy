@@ -34,7 +34,7 @@ def register_file(url, filename, component_type=None, known_hash=None):
 
     This function only prepares Satpy to be able to download and cache the
     provided file. It will not download the file. See
-    :func:`satpy.data_download.retrieve` for more information.
+    :func:`satpy.aux_download.retrieve` for more information.
 
     Args:
         url (str): URL where remote file can be downloaded.
@@ -51,7 +51,7 @@ def register_file(url, filename, component_type=None, known_hash=None):
     Returns:
         Cache key that can be used to retrieve the file later. The cache key
         consists of the ``component_type`` and provided ``filename``. This
-        should be passed to :func:`satpy.data_download_retrieve` when the
+        should be passed to :func:`satpy.aux_download_retrieve` when the
         file will be used.
 
     """
@@ -89,7 +89,7 @@ def retrieve(cache_key, pooch_kwargs=None):
 
     Args:
         cache_key (str): Cache key returned by
-            :func:`~satpy.data_download.register_file`.
+            :func:`~satpy.aux_download.register_file`.
         pooch_kwargs (dict or None): Extra keyword arguments to pass to
             :meth:`pooch.Pooch.fetch`.
 
@@ -232,7 +232,7 @@ class DataDownloadMixin:
     The below code is shown as an example::
 
         from satpy.readers.yaml_reader import AbstractYAMLReader
-        from satpy.data_download import DataDownloadMixin
+        from satpy.aux_download import DataDownloadMixin
 
         class MyReader(AbstractYAMLReader, DataDownloadMixin):
             def __init__(self, *args, **kwargs):
@@ -261,22 +261,22 @@ class DataDownloadMixin:
     In this example we register two files that might be downloaded.
     If ``known_hash`` is not provided or None (null in YAML) then the data
     file will not be checked for validity when downloaded. See
-    :func:`~satpy.data_download.register_file` for more information. You can
+    :func:`~satpy.aux_download.register_file` for more information. You can
     optionally specify ``filename`` to define the in-cache name when this file
     is downloaded. This can be useful in cases when the filename can not be
     easily determined from the URL.
 
     When it comes time to needing the file, you can retrieve the local path
-    by calling ``~satpy.data_download.retrieve(cache_key)`` with the
+    by calling ``~satpy.aux_download.retrieve(cache_key)`` with the
     "cache key" generated during registration. These keys will be in the
     format: ``<component_type>/<filename>``. For a
     reader this would be ``readers/satpy_release.md``.
 
     This Mixin is not the only way to register and download files for a
     Satpy component, but is the most generic and flexible. Feel free to
-    use the :func:`~satpy.data_download.register_file` and
-    :func:`~satpy.data_download.retrieve` functions directly.
-    However, :meth:`~satpy.data_download.find_registerable_files` must also
+    use the :func:`~satpy.aux_download.register_file` and
+    :func:`~satpy.aux_download.retrieve` functions directly.
+    However, :meth:`~satpy.aux_download.find_registerable_files` must also
     be updated to support your component (if files are not register during
     initialization).
 
@@ -299,7 +299,7 @@ class DataDownloadMixin:
     def register_data_files(self, data_files=None):
         """Register a series of files that may be downloaded later.
 
-        See :class:`~satpy.data_download.DataDownloadMixin` for more
+        See :class:`~satpy.aux_download.DataDownloadMixin` for more
         information on the assumptions and structure of the data file
         configuration dictionary.
 

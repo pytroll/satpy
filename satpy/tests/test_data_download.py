@@ -119,9 +119,9 @@ class TestDataDownload:
     def test_find_registerable(self, readers, writers, comp_sensors):
         """Test that find_registerable finds some things."""
         import satpy
-        from satpy.data_download import find_registerable_files
+        from satpy.aux_download import find_registerable_files
         with satpy.config.set(config_path=[self.tmpdir]), \
-             mock.patch('satpy.data_download._FILE_REGISTRY', {}):
+             mock.patch('satpy.aux_download._FILE_REGISTRY', {}):
             found_files = find_registerable_files(
                 readers=readers, writers=writers,
                 composite_sensors=comp_sensors,
@@ -139,10 +139,10 @@ class TestDataDownload:
     def test_limited_find_registerable(self):
         """Test that find_registerable doesn't find anything when limited."""
         import satpy
-        from satpy.data_download import find_registerable_files
+        from satpy.aux_download import find_registerable_files
         file_registry = {}
         with satpy.config.set(config_path=[self.tmpdir]), \
-             mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
             found_files = find_registerable_files(
                 readers=[], writers=[], composite_sensors=[],
             )
@@ -151,10 +151,10 @@ class TestDataDownload:
     def test_retrieve(self):
         """Test retrieving a single file."""
         import satpy
-        from satpy.data_download import find_registerable_files, retrieve
+        from satpy.aux_download import find_registerable_files, retrieve
         file_registry = {}
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir)), \
-             mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
             comp_file = 'composites/README.rst'
             found_files = find_registerable_files()
             assert comp_file in found_files
@@ -165,10 +165,10 @@ class TestDataDownload:
     def test_offline_retrieve(self):
         """Test retrieving a single file when offline."""
         import satpy
-        from satpy.data_download import find_registerable_files, retrieve
+        from satpy.aux_download import find_registerable_files, retrieve
         file_registry = {}
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir), download_aux=True), \
-             mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
             comp_file = 'composites/README.rst'
             found_files = find_registerable_files()
             assert comp_file in found_files
@@ -190,20 +190,20 @@ class TestDataDownload:
     def test_offline_retrieve_all(self):
         """Test registering and retrieving all files fails when offline."""
         import satpy
-        from satpy.data_download import retrieve_all
+        from satpy.aux_download import retrieve_all
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir), download_aux=False):
             pytest.raises(RuntimeError, retrieve_all)
 
     def test_retrieve_all(self):
         """Test registering and retrieving all files."""
         import satpy
-        from satpy.data_download import retrieve_all
+        from satpy.aux_download import retrieve_all
         file_registry = {}
         file_urls = {}
         with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir)), \
-             mock.patch('satpy.data_download._FILE_REGISTRY', file_registry), \
-             mock.patch('satpy.data_download._FILE_URLS', file_urls), \
-             mock.patch('satpy.data_download.find_registerable_files'):
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry), \
+             mock.patch('satpy.aux_download._FILE_URLS', file_urls), \
+             mock.patch('satpy.aux_download.find_registerable_files'):
             comp_file = 'composites/README.rst'
             file_registry[comp_file] = None
             file_urls[comp_file] = README_URL

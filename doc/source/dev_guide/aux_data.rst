@@ -37,17 +37,17 @@ Once registered, Satpy can be told to retrieve the file (see below) by using a
 Satpy includes a low-level function and a high-level Mixin class for
 registering files. The higher level class is recommended for any Satpy
 component like readers, writers, and compositors. The lower-level
-:func:`~satpy.data_download.register_file` function can be used for any other
+:func:`~satpy.aux_download.register_file` function can be used for any other
 use case.
 
-The :class:`~satpy.data_download.DataMixIn` class is automatically included
+The :class:`~satpy.aux_download.DataMixIn` class is automatically included
 in the :class:`~satpy.readers.yaml_reader.FileYAMLReader` and
 :class:`~satpy.writers.Writer` base classes. For any other component (like
 a compositor) you should include it as another parent class:
 
 .. code-block:: python
 
-    from satpy.data_download import DataDownloadMixin
+    from satpy.aux_download import DataDownloadMixin
     from satpy.composites import GenericCompositor
 
     class MyCompositor(GenericCompositor, DataDownloadMixin):
@@ -59,7 +59,7 @@ a compositor) you should include it as another parent class:
             self.register_data_files(data_files)
 
 However your code registers files, to be consistent it must do it during
-initialization so that the :func:`~satpy.data_download.find_registerable_files`.
+initialization so that the :func:`~satpy.aux_download.find_registerable_files`.
 If your component isn't a reader, writer, or compositor then this function
 will need to be updated to find and load your registered files. See
 :ref:`offline_aux_downloads` below for more information.
@@ -84,13 +84,13 @@ of dictionaries including a ``url``, ``known_hash``, and optional
             filename: "satpy_releasing.md"
             known_hash: null
 
-See the :class:`~satpy.data_download.DataDownloadMixin` for more information.
+See the :class:`~satpy.aux_download.DataDownloadMixin` for more information.
 
 Retrieving
 ^^^^^^^^^^
 
 Files that have been registered (see above) can be retrieved by calling the
-:func:`~satpy.data_download.retrieve` function. This function expects a single
+:func:`~satpy.aux_download.retrieve` function. This function expects a single
 argument: the cache key. Cache keys are returned by registering functions, but
 can also be pre-determined by following the scheme
 ``<component_type>/<filename>`` (ex. ``readers/README.rst``).
@@ -104,7 +104,7 @@ Offline Downloads
 -----------------
 
 To assist with operational environments, Satpy includes a
-:func:`~satpy.data_download.retrieve_all` function that will try to find all
+:func:`~satpy.aux_download.retrieve_all` function that will try to find all
 files that Satpy components may need to download in the future and download
 them to the current directory specified by :ref:`data_dir_setting`.
 This function allows you to specify a list of ``readers``, ``writers``, or

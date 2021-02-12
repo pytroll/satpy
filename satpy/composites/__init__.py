@@ -27,7 +27,7 @@ import xarray as xr
 
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
-from satpy.data_download import DataDownloadMixin
+from satpy.aux_download import DataDownloadMixin
 from satpy.writers import get_enhanced_image
 
 
@@ -1040,7 +1040,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         }])
 
     def _retrieve_data_file(self):
-        from satpy.data_download import retrieve
+        from satpy.aux_download import retrieve
         if os.path.isabs(self._cache_filename):
             return self._cache_filename
         return retrieve(self._cache_key)
