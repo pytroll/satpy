@@ -50,8 +50,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         mjd_1970 = 40587.0
         lines_sparse = np.array(list(range(1, nlines, 20)) + [nlines])
         times_sparse = mjd_1970 + lines_sparse / 24 / 3600
-        acq_time_s = ['LINE:={}\rTIME:={:.6f}\r'.format(l, t)
-                      for l, t in zip(lines_sparse, times_sparse)]
+        acq_time_s = ['LINE:={}\rTIME:={:.6f}\r'.format(line, time)
+                      for line, time in zip(lines_sparse, times_sparse)]
         acq_time_b = ''.join(acq_time_s).encode()
         return acq_time_b
 

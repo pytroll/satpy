@@ -30,6 +30,7 @@ import numpy as np
 
 
 def create_message():
+    """Create fake message for testing."""
     nlat = 10
     nlon = 10
     samples = nlat*nlon

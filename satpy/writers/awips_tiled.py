@@ -102,8 +102,8 @@ The ``global_attributes`` section takes names of global attributes and
 then a series of options to "render" that attribute from the metadata
 provided when creating files. For example::
 
-product_name:
-    value: "{name}"
+    product_name:
+        value: "{name}"
 
 For more information see the
 :meth:`satpy.writers.awips_tiled.NetCDFTemplate.get_attr_value` method.
@@ -115,14 +115,14 @@ modified as tiled files usually have only ``x`` and ``y`` dimension variables.
 The Variables on the other hand use a decision tree to determine what section
 applies for a particular DataArray being saved. The basic structure is::
 
-variables:
-  arbitrary_section_name:
-    <decision tree matching parameters>
-    var_name: "output_netcdf_variable_name"
-    attributes:
-      <attributes similar to global attributes>
-    encoding:
-      <xarray encoding parameters>
+    variables:
+      arbitrary_section_name:
+        <decision tree matching parameters>
+        var_name: "output_netcdf_variable_name"
+        attributes:
+          <attributes similar to global attributes>
+        encoding:
+          <xarray encoding parameters>
 
 The "decision tree matching parameters" can be one or more of "name",
 "standard_name', "satellite", "sensor", "area_id', "units", or "reader".
@@ -1545,6 +1545,8 @@ class AWIPSTiledWriter(Writer):
                                      extra_global_attrs=extra_global_attrs)
             if self.compress:
                 new_ds.encoding['zlib'] = True
+                for var in new_ds.variables.values():
+                    var.encoding['zlib'] = True
 
             datasets_to_save.append(new_ds)
             output_filenames.append(output_filename)

@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy resampling module.
+"""Resampling in Satpy.
 
 Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
