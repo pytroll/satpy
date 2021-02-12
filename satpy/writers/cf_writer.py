@@ -476,7 +476,7 @@ def update_encoding(dataset, to_netcdf_kwargs):
     other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
     encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
 
-    for var_name, variable in dataset.variables.items():
+    for _var_name, variable in dataset.variables.items():
         if 'satpy_dataset_name' in variable.attrs:
             if variable.attrs['satpy_dataset_name'] in encoding:
                 encoding['CHANNEL_' + variable.attrs['satpy_dataset_name']] = \
