@@ -254,7 +254,7 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info['file_type'] = self.filetype_info['file_type']
             ds_info['name'] = var_name
             try:
-                ds_info['wavelength'] = WavelengthRange.from_json(ds_info['wavelength'])
+                ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
             except KeyError:
                 pass
             self.fix_modifier_attr(ds_info)

@@ -386,8 +386,8 @@ def encode_nc(obj):
     Plain lists are encoded recursively.
     """
     with suppress(AttributeError):
-        json_dump = obj.to_json()
-        return json_dump
+        dump = obj.to_cf()
+        return dump
 
     if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
         return [encode_nc(item) for item in obj]
