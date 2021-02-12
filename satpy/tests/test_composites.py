@@ -906,8 +906,8 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertEqual(comp.area, "bar")
         get_area_def.assert_called_once_with("euro4")
 
-    @mock.patch('satpy.data_download.retrieve')
-    @mock.patch('satpy.data_download.register_file')
+    @mock.patch('satpy.aux_download.retrieve')
+    @mock.patch('satpy.aux_download.register_file')
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""

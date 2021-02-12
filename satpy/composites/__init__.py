@@ -997,7 +997,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
                 Environment variables are expanded.
             known_hash (str or None): Hash of the remote file used to verify
                 a successful download. If not provided then the download will
-                not be verified. See :func:`satpy.data_download.register_file`
+                not be verified. See :func:`satpy.aux_download.register_file`
                 for more information.
             area (str): Name of area definition for the image.  Optional
                 for images with built-in area definitions (geotiff).
