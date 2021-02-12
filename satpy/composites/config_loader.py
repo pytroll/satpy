@@ -24,7 +24,8 @@ import yaml
 from yaml import UnsafeLoader
 
 from satpy import DatasetDict, DataQuery, DataID
-from satpy._config import get_entry_points_config_dirs, config_search_paths
+from satpy._config import (get_entry_points_config_dirs, config_search_paths,
+                           glob_config)
 from satpy.utils import recursive_dict_update
 from satpy.dataset.dataid import minimal_default_keys_config
 
@@ -174,6 +175,19 @@ class CompositorLoader:
         self.compositors = {}
         # sensor -> { dict of DataID key information }
         self._sensor_dataid_keys = {}
+
+    @classmethod
+    def all_composite_sensors(cls):
+        """Get all sensor names from available composite configs."""
+        paths = get_entry_points_config_dirs('satpy.composites')
+        composite_configs = glob_config(
+            os.path.join("composites", "*.yaml"),
+            search_dirs=paths)
+        yaml_names = set([os.path.splitext(os.path.basename(fn))[0]
+                          for fn in composite_configs])
+        non_sensor_yamls = ('visir',)
+        sensor_names = [x for x in yaml_names if x not in non_sensor_yamls]
+        return sensor_names
 
     def load_sensor_composites(self, sensor_name):
         """Load all compositor configs for the provided sensor."""

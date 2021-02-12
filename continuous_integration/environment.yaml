@@ -39,6 +39,7 @@ dependencies:
   - fsspec
   - pylibtiff
   - python-geotiepoints
+  - pooch
   - pip
   - pip:
     - trollsift
