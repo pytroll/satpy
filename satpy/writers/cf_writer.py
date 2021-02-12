@@ -467,6 +467,18 @@ def _set_default_time_encoding(encoding, dataset):
         encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
 
 
+def _rename_to_original_dataset_names(encoding, dataset):
+    """netcdf variable names should not start with numbers
+    A lot of channel names in satpy do that. When writing data with the satpy_cf_nc
+    these channels are prepended with CHANNEL_ and an attribute added to the variable.
+    These are stripped of here.
+    """
+    for _var_name, variable in dataset.variables.items():
+        if 'satpy_dataset_name' in variable.attrs and variable.attrs['satpy_dataset_name'] in encoding:
+            encoding['CHANNEL_' + variable.attrs['satpy_dataset_name']] = \
+                encoding.pop(variable.attrs['satpy_dataset_name'])
+
+
 def update_encoding(dataset, to_netcdf_kwargs):
     """Update encoding.
 
@@ -476,12 +488,7 @@ def update_encoding(dataset, to_netcdf_kwargs):
     other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
     encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
 
-    for _var_name, variable in dataset.variables.items():
-        if 'satpy_dataset_name' in variable.attrs:
-            if variable.attrs['satpy_dataset_name'] in encoding:
-                encoding['CHANNEL_' + variable.attrs['satpy_dataset_name']] = \
-                    encoding.pop(variable.attrs['satpy_dataset_name'])
-
+    _rename_to_original_dataset_names(encoding, dataset)
     _set_default_chunks(encoding, dataset)
     _set_default_fill_value(encoding, dataset)
     _set_default_time_encoding(encoding, dataset)
