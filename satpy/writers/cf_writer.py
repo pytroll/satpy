@@ -98,24 +98,23 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 .. _CF-compliant: http://cfconventions.org/
 """
 
-from collections import OrderedDict, defaultdict
 import copy
-import logging
-from datetime import datetime
 import json
+import logging
 import warnings
-
-from dask.base import tokenize
-import xarray as xr
-from xarray.coding.times import CFDatetimeCoder
-import numpy as np
-
-from pyresample.geometry import AreaDefinition, SwathDefinition
-from satpy.writers import Writer
-from satpy.writers.utils import flatten_dict
-
+from collections import OrderedDict, defaultdict
+from contextlib import suppress
+from datetime import datetime
 from distutils.version import LooseVersion
 
+import numpy as np
+import xarray as xr
+from dask.base import tokenize
+from pyresample.geometry import AreaDefinition, SwathDefinition
+from xarray.coding.times import CFDatetimeCoder
+
+from satpy.writers import Writer
+from satpy.writers.utils import flatten_dict
 
 logger = logging.getLogger(__name__)
 
@@ -386,6 +385,10 @@ def encode_nc(obj):
     Try to find the datatype which most closely resembles the object's nature. If that fails, encode as a string.
     Plain lists are encoded recursively.
     """
+    with suppress(AttributeError):
+        json_dump = obj.to_json()
+        return json_dump
+
     if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
         return [encode_nc(item) for item in obj]
     try:

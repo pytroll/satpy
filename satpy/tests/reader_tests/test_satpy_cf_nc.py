@@ -26,6 +26,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import Scene
+from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
 
 
@@ -52,7 +53,10 @@ class TestCFReader(unittest.TestCase):
         vis006 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
                               coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_vis006)},
-                              attrs={'name': 'image0', 'id_tag': 'ch_r06', 'coordinates': 'lat lon'})
+                              attrs={'name': 'image0', 'id_tag': 'ch_r06',
+                                     'coordinates': 'lat lon', 'resolution': 1000, 'calibration': 'reflectance',
+                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm')
+                                     })
 
         ir_108 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
@@ -103,6 +107,7 @@ class TestCFReader(unittest.TestCase):
             self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
             self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
             self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
+            assert isinstance(scn_['image0'].attrs['wavelength'], WavelengthRange)
         finally:
             with suppress(PermissionError):
                 os.remove(filename)

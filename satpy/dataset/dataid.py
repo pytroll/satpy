@@ -160,6 +160,17 @@ class WavelengthRange(wlklass):
             return cls(*wl)
         return wl
 
+    def to_json(self):
+        """Serialize to json."""
+        import json
+        return json.dumps(self)
+
+    @classmethod
+    def from_json(cls, blob):
+        """Read from json."""
+        import json
+        return json.loads(blob)
+
 
 class ModifierTuple(tuple):
     """A tuple holder for modifiers."""
