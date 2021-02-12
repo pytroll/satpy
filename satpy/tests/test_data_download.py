@@ -78,12 +78,6 @@ writer:
 """.format(README_URL, README_URL))
 
 
-def _setup_custom_configs(base_dir):
-    _setup_custom_composite_config(base_dir)
-    _setup_custom_reader_config(base_dir)
-    _setup_custom_writer_config(base_dir)
-
-
 def _get_reader_find_conditions(readers, found_files):
     r_cond1 = 'readers/README.rst' in found_files
     r_cond2 = 'readers/README2.rst' in found_files
@@ -112,17 +106,22 @@ def _get_comp_find_conditions(comp_sensors, found_files):
 class TestDataDownload:
     """Test basic data downloading functionality."""
 
+    @pytest.fixture(autouse=True)
+    def _setup_custom_configs(self, tmpdir):
+        _setup_custom_composite_config(tmpdir)
+        _setup_custom_reader_config(tmpdir)
+        _setup_custom_writer_config(tmpdir)
+        self.tmpdir = tmpdir
+
     @pytest.mark.parametrize('comp_sensors', [[], None, ['visir']])
     @pytest.mark.parametrize('writers', [[], None, ['fake']])
     @pytest.mark.parametrize('readers', [[], None, ['fake']])
-    def test_find_registerable(self, readers, writers, comp_sensors, tmpdir):
+    def test_find_registerable(self, readers, writers, comp_sensors):
         """Test that find_registerable finds some things."""
         import satpy
         from satpy.data_download import find_registerable_files
-        _setup_custom_configs(tmpdir)
-        file_registry = {}
-        with satpy.config.set(config_path=[tmpdir]), \
-             mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
+        with satpy.config.set(config_path=[self.tmpdir]), \
+             mock.patch('satpy.data_download._FILE_REGISTRY', {}):
             found_files = find_registerable_files(
                 readers=readers, writers=writers,
                 composite_sensors=comp_sensors,
@@ -137,85 +136,77 @@ class TestDataDownload:
             comp_cond = _get_comp_find_conditions(comp_sensors, found_files)
             assert comp_cond
 
-    @pytest.mark.parametrize('comp_sensors', [[], None, ['visir']])
-    @pytest.mark.parametrize('writers', [[], None, ['fake']])
-    @pytest.mark.parametrize('readers', [[], None, ['fake']])
-    def test_limited_find_registerable(self, readers, writers, comp_sensors, tmpdir):
+    def test_limited_find_registerable(self):
         """Test that find_registerable doesn't find anything when limited."""
         import satpy
         from satpy.data_download import find_registerable_files
-        _setup_custom_configs(tmpdir)
         file_registry = {}
-        with satpy.config.set(config_path=[tmpdir]), \
+        with satpy.config.set(config_path=[self.tmpdir]), \
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
             found_files = find_registerable_files(
                 readers=[], writers=[], composite_sensors=[],
             )
             assert not found_files
 
-    def test_retrieve(self, tmpdir):
+    def test_retrieve(self):
         """Test retrieving a single file."""
         import satpy
         from satpy.data_download import find_registerable_files, retrieve
-        _setup_custom_configs(tmpdir)
         file_registry = {}
-        with satpy.config.set(config_path=[tmpdir], data_dir=str(tmpdir)), \
+        with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir)), \
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
             comp_file = 'composites/README.rst'
             found_files = find_registerable_files()
             assert comp_file in found_files
-            assert not tmpdir.join(comp_file).exists()
+            assert not self.tmpdir.join(comp_file).exists()
             retrieve(comp_file)
-            assert tmpdir.join(comp_file).exists()
+            assert self.tmpdir.join(comp_file).exists()
 
-    def test_offline_retrieve(self, tmpdir):
+    def test_offline_retrieve(self):
         """Test retrieving a single file when offline."""
         import satpy
         from satpy.data_download import find_registerable_files, retrieve
-        _setup_custom_configs(tmpdir)
         file_registry = {}
-        with satpy.config.set(config_path=[tmpdir], data_dir=str(tmpdir), download_aux=True), \
+        with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir), download_aux=True), \
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry):
             comp_file = 'composites/README.rst'
             found_files = find_registerable_files()
             assert comp_file in found_files
 
             # the file doesn't exist, we can't download it
-            assert not tmpdir.join(comp_file).exists()
+            assert not self.tmpdir.join(comp_file).exists()
             with satpy.config.set(download_aux=False):
                 pytest.raises(RuntimeError, retrieve, comp_file)
 
             # allow downloading and get it
             retrieve(comp_file)
-            assert tmpdir.join(comp_file).exists()
+            assert self.tmpdir.join(comp_file).exists()
 
             # turn off downloading and make sure we get local file
             with satpy.config.set(download_aux=False):
                 local_file = retrieve(comp_file)
                 assert local_file
 
-    def test_offline_retrieve_all(self, tmpdir):
+    def test_offline_retrieve_all(self):
         """Test registering and retrieving all files fails when offline."""
         import satpy
         from satpy.data_download import retrieve_all
-        _setup_custom_configs(tmpdir)
-        with satpy.config.set(config_path=[tmpdir], data_dir=str(tmpdir), download_aux=False):
+        with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir), download_aux=False):
             pytest.raises(RuntimeError, retrieve_all)
 
-    def test_retrieve_all(self, tmpdir):
+    def test_retrieve_all(self):
         """Test registering and retrieving all files."""
         import satpy
         from satpy.data_download import retrieve_all
-        _setup_custom_configs(tmpdir)
         file_registry = {}
         file_urls = {}
-        with satpy.config.set(config_path=[tmpdir], data_dir=str(tmpdir)), \
+        with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir)), \
              mock.patch('satpy.data_download._FILE_REGISTRY', file_registry), \
              mock.patch('satpy.data_download._FILE_URLS', file_urls), \
              mock.patch('satpy.data_download.find_registerable_files'):
             comp_file = 'composites/README.rst'
             file_registry[comp_file] = None
             file_urls[comp_file] = README_URL
-            assert not tmpdir.join(comp_file).exists()
+            assert not self.tmpdir.join(comp_file).exists()
             retrieve_all()
-            assert tmpdir.join(comp_file).exists()
+            assert self.tmpdir.join(comp_file).exists()

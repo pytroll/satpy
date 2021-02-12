@@ -105,7 +105,7 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 entry_points = {
     'console_scripts': [
-        'satpy_retrieve_all=satpy.data_download:retrieve_all_cmd',
+        'satpy_retrieve_all_aux_data=satpy.data_download:retrieve_all_cmd',
     ],
 }
 

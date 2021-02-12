@@ -112,11 +112,11 @@ This function allows you to specify a list of ``readers``, ``writers``, or
 download.
 
 The ``retrieve_all`` function is also available through a command line script
-called ``satpy_retrieve_all``. Run the following for usage information.
+called ``satpy_retrieve_all_aux_data``. Run the following for usage information.
 
 .. code-block:: bash
 
-    satpy_retrieve_all --help
+    satpy_retrieve_all_aux_data --help
 
 To make sure that no additional files are downloaded when running Satpy see
 :ref:`download_aux_setting`.

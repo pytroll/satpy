@@ -56,9 +56,6 @@ def register_file(url, filename, component_type=None, known_hash=None):
 
     """
     fname = _generate_filename(filename, component_type)
-
-    global _FILE_REGISTRY
-    global _FILE_URLS
     _FILE_REGISTRY[fname] = known_hash
     _FILE_URLS[fname] = url
     return fname
@@ -112,6 +109,17 @@ def retrieve(cache_key, pooch_kwargs=None):
     return pooch_obj.fetch(cache_key, **pooch_kwargs)
 
 
+def _retrieve_all_with_pooch(pooch_kwargs):
+    if pooch_kwargs is None:
+        pooch_kwargs = {}
+    path = satpy.config.get('data_dir')
+    pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
+                             urls=_FILE_URLS)
+    for fname in _FILE_REGISTRY:
+        logger.info("Downloading extra data file '%s'...", fname)
+        pooch_obj.fetch(fname, **pooch_kwargs)
+
+
 def retrieve_all(readers=None, writers=None, composite_sensors=None,
                  pooch_kwargs=None):
     """Find cache-able data files for Satpy and download them.
@@ -134,8 +142,6 @@ def retrieve_all(readers=None, writers=None, composite_sensors=None,
             ``fetch``.
 
     """
-    if pooch_kwargs is None:
-        pooch_kwargs = {}
     if not satpy.config.get('download_aux'):
         raise RuntimeError("Satpy 'download_aux' setting is False so no files "
                            "will be downloaded.")
@@ -143,12 +149,7 @@ def retrieve_all(readers=None, writers=None, composite_sensors=None,
     find_registerable_files(readers=readers,
                             writers=writers,
                             composite_sensors=composite_sensors)
-    path = satpy.config.get('data_dir')
-    pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
-                             urls=_FILE_URLS)
-    for fname in _FILE_REGISTRY:
-        logger.info("Downloading extra data file '%s'...", fname)
-        pooch_obj.fetch(fname, **pooch_kwargs)
+    _retrieve_all_with_pooch(pooch_kwargs)
     logger.info("Done downloading all extra files.")
 
 
@@ -256,7 +257,6 @@ class DataDownloadMixin:
                 known_hash: "sha256:5891286b63e7745de08c4b0ac204ad44cfdb9ab770309debaba90308305fa759"
               - url: "https://raw.githubusercontent.com/pytroll/satpy/master/RELEASING.md"
                 filename: "satpy_releasing.md"
-                known_hash: null
 
     In this example we register two files that might be downloaded.
     If ``known_hash`` is not provided or None (null in YAML) then the data
