@@ -479,7 +479,8 @@ def update_encoding(dataset, to_netcdf_kwargs):
     for var_name, variable in dataset.variables.items():
         if 'satpy_dataset_name' in variable.attrs:
             if variable.attrs['satpy_dataset_name'] in encoding:
-                encoding['CHANNEL_' + variable.attrs['satpy_dataset_name']] = encoding.pop(variable.attrs['satpy_dataset_name'])
+                encoding['CHANNEL_' + variable.attrs['satpy_dataset_name']] = \
+                    encoding.pop(variable.attrs['satpy_dataset_name'])
 
     _set_default_chunks(encoding, dataset)
     _set_default_fill_value(encoding, dataset)
