@@ -103,9 +103,12 @@ class TestPluginsConfigs(unittest.TestCase):
         ep.dist.module_path = os.path.join(os.path.sep + 'bla', 'bla')
         iter_entry_points.return_value = [ep]
 
+        import satpy
         from satpy._config import get_entry_points_config_dirs
-        dirs = get_entry_points_config_dirs('satpy.composites')
-        self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])
+        # don't let user env vars affect results
+        with satpy.config.set(config_path=[]):
+            dirs = get_entry_points_config_dirs('satpy.composites')
+            self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])
 
 
 class TestConfigObject:
