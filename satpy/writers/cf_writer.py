@@ -468,7 +468,8 @@ def _set_default_time_encoding(encoding, dataset):
 
 
 def _rename_to_original_dataset_names(encoding, dataset):
-    """netcdf variable names should not start with numbers
+    """Netcdf variable names should not start with numbers.
+
     A lot of channel names in satpy do that. When writing data with the satpy_cf_nc
     these channels are prepended with CHANNEL_ and an attribute added to the variable.
     These are stripped of here.
