@@ -775,7 +775,7 @@ class FileYAMLReader(AbstractYAMLReader):
     def _make_area_from_coords(self, coords):
         """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
-            lats, lons = self._get_lons_lats_from_coords(coords)
+            lons, lats = self._get_lons_lats_from_coords(coords)
 
             sdef = self._make_swath_definition_from_lons_lats(lons, lats)
             return sdef
@@ -793,7 +793,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 lats = coord
         if lons is None or lats is None:
             raise ValueError('Missing longitude or latitude coordinate: ' + str(coords))
-        return lats, lons
+        return lons, lats
 
     def _make_swath_definition_from_lons_lats(self, lons, lats):
         """Make a swath definition instance from lons and lats."""
@@ -841,7 +841,7 @@ class FileYAMLReader(AbstractYAMLReader):
             logger.exception("Could not load dataset '%s': %s", dsid, str(err))
             return None
 
-        coords = self._assign_builtin_coords(coords, ds)
+        coords = self._assign_coords_from_dataarray(coords, ds)
 
         area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
 
@@ -851,8 +851,8 @@ class FileYAMLReader(AbstractYAMLReader):
         return ds
 
     @staticmethod
-    def _assign_builtin_coords(coords, ds):
-        """Assign builtin coords if needed."""
+    def _assign_coords_from_dataarray(coords, ds):
+        """Assign coords from the *ds* dataarray if needed."""
         if not coords:
             coords = []
             for coord in ds.coords.values():
