@@ -17,11 +17,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF reader."""
 
-import unittest
 import os
+import unittest
+from contextlib import suppress
 from datetime import datetime
-import xarray as xr
+
 import numpy as np
+import xarray as xr
+
 from satpy import Scene
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
 
@@ -85,25 +88,24 @@ class TestCFReader(unittest.TestCase):
 
     def test_write_and_read(self):
         """Save a file with cf_writer and read the data again."""
-        # '{testin}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
-        self.scene.save_datasets(writer='cf',
-                                 filename=filename,
-                                 header_attrs={'instrument': 'avhrr'},
-                                 engine='h5netcdf',
-                                 flatten_attrs=True,
-                                 pretty=True)
-        scn_ = Scene(reader='satpy_cf_nc',
-                     filenames=[filename])
-        scn_.load(['image0', 'image1', 'lat'])
-        self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
-        self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
-        self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
         try:
-            os.remove(filename)
-        except PermissionError:
-            pass
+            self.scene.save_datasets(writer='cf',
+                                     filename=filename,
+                                     header_attrs={'instrument': 'avhrr'},
+                                     engine='h5netcdf',
+                                     flatten_attrs=True,
+                                     pretty=True)
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['image0', 'image1', 'lat'])
+            self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
+            self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
+            self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
 
     def test_fix_modifier_attr(self):
         """Check that fix modifier can handle empty list as modifier attribute."""
