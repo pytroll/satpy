@@ -1115,6 +1115,27 @@ class EncodingUpdateTest(unittest.TestCase):
                              coords={'y': [1, 2],
                                      'x': [3, 4],
                                      'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+        self.ds_digit = xr.Dataset({'CHANNEL_1': (('y', 'x'), [[1, 2], [3, 4]], {'satpy_dataset_name': '1'}),
+                                    'CHANNEL_2': (('y', 'x'), [[3, 4], [5, 6]], {'satpy_dataset_name': '2'})},
+                                   coords={'y': [1, 2],
+                                           'x': [3, 4],
+                                           'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+
+    def test_dataset_name_digit(self):
+        """Test data with dataset name staring with a digit."""
+        from satpy.writers.cf_writer import update_encoding
+
+        # Dataset with name staring with digit
+        ds = self.ds_digit
+        kwargs = {'encoding': {'1': {'dtype': 'float32'},
+                               '2': {'dtype': 'float32'}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'CHANNEL_1': {'dtype': 'float32'},
+                                   'CHANNEL_2': {'dtype': 'float32'}})
+        self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
 
     def test_without_time(self):
         """Test data with no time dimension."""
