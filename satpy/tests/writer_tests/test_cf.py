@@ -134,6 +134,18 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
+    def test_save_dataset_a_digit(self):
+        """Test saving an array to netcdf/cf where dataset name starting with a digit."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename) as f:
+                self.assertTrue(np.all(f['CHANNEL_1'][:] == [1, 2, 3]))
+                self.assertEqual(f['CHANNEL_1'].attrs['satpy_dataset_name'], '1')
+
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
         import xarray as xr
