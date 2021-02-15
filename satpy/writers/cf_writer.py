@@ -392,7 +392,7 @@ def _encode_python_objects(obj):
     If on failure, encode as a string. Plain lists are encoded recursively.
     """
     if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
-        dump = [encode_nc(item) for item in obj]
+        return [encode_nc(item) for item in obj]
     try:
         dump = _encode_nc(obj)
     except ValueError:
