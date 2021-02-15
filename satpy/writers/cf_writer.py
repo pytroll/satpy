@@ -501,7 +501,8 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None):
+    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
+              valid_cf_dataset_name=False):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -513,7 +514,8 @@ class CFWriter(Writer):
                 If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
-
+            valid_cf_dataset_name (bool):
+                Prepend dataset name with CHANNEL_ if staring with a digit
         """
         if exclude_attrs is None:
             exclude_attrs = []
@@ -521,9 +523,11 @@ class CFWriter(Writer):
         new_data = dataarray.copy()
         if 'name' in new_data.attrs:
             name = new_data.attrs.pop('name')
-            if name[0].isdigit():
-                new_data.attrs['satpy_dataset_name'] = name
+            if valid_cf_dataset_name and name[0].isdigit():
+                _orig_name = name
                 name = 'CHANNEL_' + name
+                warnings.warn('Rename dataset {} to {}.'.format(_orig_name, name))
+                new_data.attrs['satpy_dataset_name'] = _orig_name
             new_data = new_data.rename(name)
 
         # Remove _satpy* attributes
@@ -595,7 +599,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None):
+                          pretty=False, compression=None, valid_cf_dataset_name=False):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -619,7 +623,8 @@ class CFWriter(Writer):
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                     exclude_attrs=exclude_attrs, compression=compression)
+                                     exclude_attrs=exclude_attrs, compression=compression,
+                                     valid_cf_dataset_name=valid_cf_dataset_name)
                 datas[new_var.name] = new_var
 
         # Check and prepare coordinates
@@ -711,6 +716,9 @@ class CFWriter(Writer):
         for kwarg in satpy_kwargs:
             to_netcdf_kwargs.pop(kwarg, None)
 
+        # Allow to prepend CHANNEL_ to datasets name staring with digit
+        valid_cf_dataset_name = to_netcdf_kwargs.pop('valid_cf_dataset_name', False)
+
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
         init_nc_kwargs.pop('unlimited_dims', None)
@@ -721,7 +729,8 @@ class CFWriter(Writer):
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression)
+                include_lonlats=include_lonlats, pretty=pretty, compression=compression,
+                valid_cf_dataset_name=valid_cf_dataset_name)
             dataset = xr.Dataset(datas)
             if 'time' in dataset:
                 dataset['time_bnds'] = make_time_bounds(start_times,

@@ -141,7 +141,7 @@ class TestCFWriter(unittest.TestCase):
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf')
+            scn.save_datasets(filename=filename, writer='cf', valid_cf_dataset_name=True)
             with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['CHANNEL_1'][:] == [1, 2, 3]))
                 self.assertEqual(f['CHANNEL_1'].attrs['satpy_dataset_name'], '1')
