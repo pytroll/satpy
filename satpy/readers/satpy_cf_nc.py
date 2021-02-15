@@ -178,11 +178,14 @@ Output:
         ancillary_variables:                   []
 
 """
-from satpy.readers.file_handlers import BaseFileHandler
-import logging
 import itertools
+import logging
+
 import xarray as xr
+
 from satpy import CHUNK_SIZE
+from satpy.dataset.dataid import WavelengthRange
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -251,7 +254,7 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info['file_type'] = self.filetype_info['file_type']
             ds_info['name'] = var_name
             try:
-                ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
+                ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
             except KeyError:
                 pass
             self.fix_modifier_attr(ds_info)

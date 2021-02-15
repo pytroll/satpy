@@ -538,3 +538,13 @@ def test_wavelength_range():
     # Check __str__
     assert str(wr) == "2 µm (1-3 µm)"
     assert str(wr2) == "2 nm (1-3 nm)"
+
+
+def test_wavelength_range_cf_roundtrip():
+    """Test the wavelength range object roundtrip to cf."""
+    from satpy.dataset.dataid import WavelengthRange
+
+    wr = WavelengthRange(1, 2, 3)
+
+    assert WavelengthRange.from_cf(wr.to_cf()) == wr
+    assert WavelengthRange.from_cf([str(item) for item in wr]) == wr
