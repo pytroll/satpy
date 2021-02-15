@@ -103,7 +103,6 @@ import json
 import logging
 import warnings
 from collections import OrderedDict, defaultdict
-from contextlib import suppress
 from datetime import datetime
 from distutils.version import LooseVersion
 
@@ -380,26 +379,30 @@ def _encode_nc(obj):
 
 
 def encode_nc(obj):
-    """Encode the given object as a netcdf compatible datatype.
-
-    Try to find the datatype which most closely resembles the object's nature. If that fails, encode as a string.
-    Plain lists are encoded recursively.
-    """
-    with suppress(AttributeError):
-        dump = obj.to_cf()
-        return dump
-
-    if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
-        return [encode_nc(item) for item in obj]
+    """Encode the given object as a netcdf compatible datatype."""
     try:
-        return _encode_nc(obj)
+        return obj.to_cf()
+    except AttributeError:
+        return _encode_python_objects(obj)
+
+
+def _encode_python_objects(obj):
+    """Try to find the datatype which most closely resembles the object's nature.
+
+    If on failure, encode as a string. Plain lists are encoded recursively.
+    """
+    if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
+        dump = [encode_nc(item) for item in obj]
+    try:
+        dump = _encode_nc(obj)
     except ValueError:
         try:
             # Decode byte-strings
             decoded = obj.decode()
         except AttributeError:
             decoded = obj
-        return json.dumps(decoded, cls=AttributeEncoder).strip('"')
+        dump = json.dumps(decoded, cls=AttributeEncoder).strip('"')
+    return dump
 
 
 def encode_attrs_nc(attrs):

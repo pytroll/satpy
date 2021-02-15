@@ -187,8 +187,8 @@ class WavelengthRange(wlklass):
     @classmethod
     def _read_cf_from_string_list(cls, blob):
         """Read blob as a list of strings (legacy formatting)."""
-        min, central, max, unit = blob
-        obj = cls(float(min), float(central), float(max), unit)
+        min_wl, central_wl, max_wl, unit = blob
+        obj = cls(float(min_wl), float(central_wl), float(max_wl), unit)
         return obj
 
 
