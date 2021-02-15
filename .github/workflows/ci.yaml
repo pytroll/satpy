@@ -43,13 +43,13 @@ jobs:
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
 
-      - name: Install satpy
+      - name: Install Satpy
         shell: bash -l {0}
         run: |
           pip install sphinx sphinx_rtd_theme sphinxcontrib-apidoc; \
           pip install --no-deps -e .
 
-      - name: Run unit tests
+      - name: Run Sphinx Build
         shell: bash -l {0}
         run: |
           cd doc; \
