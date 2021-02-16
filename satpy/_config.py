@@ -38,6 +38,7 @@ _CONFIG_DEFAULTS = {
     'cache_dir': _satpy_dirs.user_cache_dir,
     'data_dir': _satpy_dirs.user_data_dir,
     'config_path': [],
+    'download_aux': True,
 }
 
 # Satpy main configuration object
@@ -125,13 +126,14 @@ def config_search_paths(filename, search_dirs=None, **kwargs):
     return paths[::-1]
 
 
-def glob_config(pattern):
+def glob_config(pattern, search_dirs=None):
     """Return glob results for all possible configuration locations.
 
     Note: This method does not check the configuration "base" directory if the pattern includes a subdirectory.
           This is done for performance since this is usually used to find *all* configs for a certain component.
     """
-    patterns = config_search_paths(pattern, check_exists=False)
+    patterns = config_search_paths(pattern, search_dirs=search_dirs,
+                                   check_exists=False)
     for pattern_fn in patterns:
         for path in glob.iglob(pattern_fn):
             yield path

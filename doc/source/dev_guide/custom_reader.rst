@@ -572,3 +572,11 @@ One way of implementing a file handler is shown below:
 
 If you have any questions, please contact the
 :ref:`Satpy developers <dev_help>`.
+
+Auxiliary File Download
+-----------------------
+
+If your reader needs additional data files to do calibrations, corrections,
+or anything else see the :doc:`aux_data` document for more information on
+how to download and cache these files without including them in the Satpy
+python package.

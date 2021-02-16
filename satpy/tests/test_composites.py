@@ -721,13 +721,13 @@ class TestGenericCompositor(unittest.TestCase):
         num_bands = len(res.bands)
         self.assertEqual(num_bands, 1)
         self.assertEqual(res.shape[0], num_bands)
-        self.assertTrue(res.bands[0] == 'L')
+        self.assertEqual(res.bands[0], 'L')
         res = self.comp._concat_datasets([self.all_valid, self.all_valid], 'LA')
         num_bands = len(res.bands)
         self.assertEqual(num_bands, 2)
         self.assertEqual(res.shape[0], num_bands)
-        self.assertTrue(res.bands[0] == 'L')
-        self.assertTrue(res.bands[1] == 'A')
+        self.assertEqual(res.bands[0], 'L')
+        self.assertEqual(res.bands[1], 'A')
         self.assertRaises(IncompatibleAreas, self.comp._concat_datasets,
                           [self.all_valid, self.wrong_shape], 'LA')
 
@@ -742,10 +742,10 @@ class TestGenericCompositor(unittest.TestCase):
         dset2 = self.first_invalid
         dset2.attrs['sensor'] = 'bar'
         res = self.comp._get_sensors([dset1, dset2])
-        self.assertTrue('foo' in res)
-        self.assertTrue('bar' in res)
+        self.assertIn('foo', res)
+        self.assertIn('bar', res)
         self.assertEqual(len(res), 2)
-        self.assertTrue(isinstance(res, set))
+        self.assertIsInstance(res, set)
 
     @mock.patch('satpy.composites.GenericCompositor._get_sensors')
     @mock.patch('satpy.composites.combine_metadata')
@@ -790,11 +790,11 @@ class TestGenericCompositor(unittest.TestCase):
         res = self.comp([self.all_valid, self.first_invalid], **attrs)
         # Verify attributes
         self.assertEqual(res.attrs.get('sensor'), 'foo')
-        self.assertTrue('foo' in res.attrs)
+        self.assertIn('foo', res.attrs)
         self.assertEqual(res.attrs.get('foo'), 'bar')
-        self.assertTrue('units' not in res.attrs)
-        self.assertTrue('calibration' not in res.attrs)
-        self.assertTrue('modifiers' not in res.attrs)
+        self.assertNotIn('units', res.attrs)
+        self.assertNotIn('calibration', res.attrs)
+        self.assertNotIn('modifiers', res.attrs)
         self.assertIsNone(res.attrs['wavelength'])
         self.assertEqual(res.attrs['mode'], 'LA')
         self.assertEqual(res.attrs['resolution'], 333)
@@ -888,24 +888,31 @@ class TestStaticImageCompositor(unittest.TestCase):
 
         # No filename given raises ValueError
         with self.assertRaises(ValueError):
-            comp = StaticImageCompositor("name")
+            StaticImageCompositor("name")
+
+        # No absolute filename and no URL
+        with self.assertRaises(ValueError):
+            StaticImageCompositor("name", filename="foo.tif")
 
         # No area defined
-        comp = StaticImageCompositor("name", filename="foo.tif")
-        self.assertEqual(comp.filename, "foo.tif")
+        comp = StaticImageCompositor("name", filename="/foo.tif")
+        self.assertEqual(comp._cache_filename, "/foo.tif")
         self.assertIsNone(comp.area)
 
         # Area defined
         get_area_def.return_value = "bar"
-        comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
-        self.assertEqual(comp.filename, "foo.tif")
+        comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
+        self.assertEqual(comp._cache_filename, "/foo.tif")
         self.assertEqual(comp.area, "bar")
         get_area_def.assert_called_once_with("euro4")
 
+    @mock.patch('satpy.aux_download.retrieve')
+    @mock.patch('satpy.aux_download.register_file')
     @mock.patch('satpy.Scene')
-    def test_call(self, Scene):  # noqa
+    def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
         from satpy.composites import StaticImageCompositor
+        remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
             def load(self, arg):
@@ -916,31 +923,48 @@ class TestStaticImageCompositor(unittest.TestCase):
         scn = MockScene()
         scn['image'] = img
         Scene.return_value = scn
-        comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
+        # absolute path to local file
+        comp = StaticImageCompositor("name", filename="/foo.tif", area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader='generic_image',
-                                      filenames=[comp.filename])
-        self.assertTrue("start_time" in res.attrs)
-        self.assertTrue("end_time" in res.attrs)
+                                      filenames=['/foo.tif'])
+        register.assert_not_called()
+        retrieve.assert_not_called()
+        self.assertIn("start_time", res.attrs)
+        self.assertIn("end_time", res.attrs)
         self.assertIsNone(res.attrs['sensor'])
-        self.assertTrue('modifiers' not in res.attrs)
-        self.assertTrue('calibration' not in res.attrs)
+        self.assertNotIn('modifiers', res.attrs)
+        self.assertNotIn('calibration', res.attrs)
+
+        # remote file with local cached version
+        Scene.reset_mock()
+        register.return_value = "data_dir/foo.tif"
+        retrieve.return_value = "data_dir/foo.tif"
+        comp = StaticImageCompositor("name", url=remote_tif, area="euro4")
+        res = comp()
+        Scene.assert_called_once_with(reader='generic_image',
+                                      filenames=['data_dir/foo.tif'])
+        self.assertIn("start_time", res.attrs)
+        self.assertIn("end_time", res.attrs)
+        self.assertIsNone(res.attrs['sensor'])
+        self.assertNotIn('modifiers', res.attrs)
+        self.assertNotIn('calibration', res.attrs)
 
         # Non-georeferenced image, no area given
         img.attrs.pop('area')
-        comp = StaticImageCompositor("name", filename="foo.tif")
+        comp = StaticImageCompositor("name", filename="/foo.tif")
         with self.assertRaises(AttributeError):
-            res = comp()
+            comp()
 
         # Non-georeferenced image, area given
-        comp = StaticImageCompositor("name", filename="foo.tif", area='euro4')
+        comp = StaticImageCompositor("name", filename="/foo.tif", area='euro4')
         res = comp()
         self.assertEqual(res.attrs['area'].area_id, 'euro4')
 
         # Filename contains environment variable
         os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
-        self.assertEqual(comp.filename, "/path/to/image/foo.tif")
+        self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
 
 
 def _enhance2dataset(dataset, convert_p=False):
@@ -1158,7 +1182,7 @@ class TestMaskingCompositor(unittest.TestCase):
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v1)
             res = comp([data, ct_data])
-        self.assertTrue(res.mode == 'LA')
+        self.assertEqual(res.mode, 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
@@ -1166,7 +1190,7 @@ class TestMaskingCompositor(unittest.TestCase):
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, ct_data])
-        self.assertTrue(res.mode == 'LA')
+        self.assertEqual(res.mode, 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
@@ -1175,7 +1199,7 @@ class TestMaskingCompositor(unittest.TestCase):
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, ct_data])
-        self.assertTrue(res.mode == 'LA')
+        self.assertEqual(res.mode, 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
@@ -1185,7 +1209,7 @@ class TestMaskingCompositor(unittest.TestCase):
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v3)
             res = comp([data, ct_data_v3])
-        self.assertTrue(res.mode == 'LA')
+        self.assertEqual(res.mode, 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), reference_data_v3)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha_v3)
 
@@ -1210,7 +1234,7 @@ class TestMaskingCompositor(unittest.TestCase):
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v1)
             res = comp([data, ct_data])
-        self.assertTrue(res.mode == 'RGBA')
+        self.assertEqual(res.mode, 'RGBA')
         np.testing.assert_allclose(res.sel(bands='R'),
                                    data.sel(bands='R').where(ct_data > 1))
         np.testing.assert_allclose(res.sel(bands='G'),
@@ -1229,7 +1253,7 @@ class TestMaskingCompositor(unittest.TestCase):
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, ct_data])
-        self.assertTrue(res.mode == 'RGBA')
+        self.assertEqual(res.mode, 'RGBA')
         np.testing.assert_allclose(res.sel(bands='R'),
                                    data.sel(bands='R').where(ct_data > 1))
         np.testing.assert_allclose(res.sel(bands='G'),

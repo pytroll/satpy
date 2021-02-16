@@ -23,6 +23,11 @@ import os
 from unittest import mock
 
 try:
+    from pyresample.ewa import LegacyDaskEWAResampler
+except ImportError:
+    LegacyDaskEWAResampler = None
+
+try:
     from pyproj import CRS
 except ImportError:
     CRS = None
@@ -251,6 +256,9 @@ class TestKDTreeResampler(unittest.TestCase):
             shutil.rmtree(the_dir)
 
 
+@unittest.skipIf(LegacyDaskEWAResampler is not None,
+                 "Deprecated EWA resampler is now in pyresample. "
+                 "No need to test in Satpy.")
 class TestEWAResampler(unittest.TestCase):
     """Test EWA resampler class."""
 
