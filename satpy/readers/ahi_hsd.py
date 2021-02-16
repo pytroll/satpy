@@ -259,10 +259,14 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     Alternative AHI calibrations are also available, such as GSICS
     coefficients. As such, you can supply custom per-channel correction
-    by setting calib_mode='custom' and passing correction factors via:
-       user_calibration={'chan': ['slope': slope, 'offset': offset]}
+    by setting calib_mode='custom' and passing correction factors via::
+
+        user_calibration={'chan': ['slope': slope, 'offset': offset]}
+
     Where slo and off are per-channel slope and offset coefficients defined by::
-     rad_leo = (rad_geo - off) / slo
+
+        rad_leo = (rad_geo - off) / slo
+
     If you do not have coefficients for a particular band, then by default the
     slope will be set to 1 .and the offset to 0.::
 
@@ -286,9 +290,11 @@ class AHIHSDFileHandler(BaseFileHandler):
     converting digital number into radiance via Rad = DN * gain + offset are
     also possible. To supply your own factors, supply a user calibration dict
     using `type: 'DN'` as follows::
+
         calib_dict = {'B07': {'slope': 0.0037, 'offset': 18.5},
                       'B14': {'slope': -0.002, 'offset': 22.8},
                       'type': 'DN'}
+
     You can also explicitly select radiance correction with `'type': 'RAD'`
     but this is not necessary as it is the default option if you supply your
     own correction coefficients.

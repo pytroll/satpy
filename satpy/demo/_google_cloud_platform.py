@@ -35,14 +35,15 @@ LOG = logging.getLogger(__name__)
 
 
 def is_google_cloud_instance():
+    """Check if we are on a GCP virtual machine."""
     try:
         return urlopen('http://metadata.google.internal').headers.get('Metadata-Flavor') == 'Google'
     except URLError:
         return False
 
 
-def get_bucket_files(glob_pattern, base_dir, force=False, pattern_slice=slice(None)):
-    """Helper function to download files from Google Cloud Storage.
+def get_bucket_files(glob_pattern, base_dir, force=False, pattern_slice=None):
+    """Download files from Google Cloud Storage.
 
     Args:
         glob_pattern (str or list): Glob pattern string or series of patterns
@@ -61,6 +62,8 @@ def get_bucket_files(glob_pattern, base_dir, force=False, pattern_slice=slice(No
             returned by each glob pattern.
 
     """
+    if pattern_slice is None:
+        pattern_slice = slice(None)
     if gcsfs is None:
         raise RuntimeError("Missing 'gcsfs' dependency for GCS download.")
     if not os.path.isdir(base_dir):

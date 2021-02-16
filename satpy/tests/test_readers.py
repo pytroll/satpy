@@ -897,6 +897,7 @@ class TestFSFile(unittest.TestCase):
         assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
 
     def test_fsfile_with_pathlike(self):
+        """Test FSFile with path-like object."""
         from satpy.readers import FSFile
         from pathlib import Path
         f = FSFile(Path(self.local_filename))

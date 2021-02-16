@@ -38,6 +38,7 @@ _CONFIG_DEFAULTS = {
     'cache_dir': _satpy_dirs.user_cache_dir,
     'data_dir': _satpy_dirs.user_data_dir,
     'config_path': [],
+    'download_aux': True,
 }
 
 # Satpy main configuration object
@@ -85,6 +86,15 @@ if _ancpath is not None and _data_dir is None:
 config = Config("satpy", defaults=[_CONFIG_DEFAULTS], paths=_CONFIG_PATHS)
 
 
+def get_config_path_safe():
+    """Get 'config_path' and check for proper 'list' type."""
+    config_path = config.get('config_path')
+    if not isinstance(config_path, list):
+        raise ValueError("Satpy config option 'config_path' must be a "
+                         "list, not '{}'".format(type(config_path)))
+    return config_path
+
+
 def get_entry_points_config_dirs(name, include_config_path=True):
     """Get the config directories for all entry points of given name."""
     dirs = []
@@ -101,7 +111,7 @@ def get_entry_points_config_dirs(name, include_config_path=True):
 def config_search_paths(filename, search_dirs=None, **kwargs):
     """Get series of configuration base paths where Satpy configs are located."""
     if search_dirs is None:
-        search_dirs = config.get('config_path')[::-1]
+        search_dirs = get_config_path_safe()[::-1]
 
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]
@@ -116,13 +126,14 @@ def config_search_paths(filename, search_dirs=None, **kwargs):
     return paths[::-1]
 
 
-def glob_config(pattern):
+def glob_config(pattern, search_dirs=None):
     """Return glob results for all possible configuration locations.
 
     Note: This method does not check the configuration "base" directory if the pattern includes a subdirectory.
           This is done for performance since this is usually used to find *all* configs for a certain component.
     """
-    patterns = config_search_paths(pattern, check_exists=False)
+    patterns = config_search_paths(pattern, search_dirs=search_dirs,
+                                   check_exists=False)
     for pattern_fn in patterns:
         for path in glob.iglob(pattern_fn):
             yield path

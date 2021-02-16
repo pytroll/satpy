@@ -1024,6 +1024,9 @@ templates:
         encoding:
           dtype: int16
           _Unsigned: "true"
+          scale_factor: 1.0000001
+          add_offset: 0.0
+          _FillValue: -1
       flash_extent_density_window:
         name: "flash_extent_density_window"
         var_name: "Flash_extent_density_w5u1"

@@ -10,12 +10,14 @@ dependencies:
   - graphviz
   - numpy
   - pillow
+  - pooch
   - pyresample
   - setuptools
   - setuptools_scm
   - setuptools_scm_git_archive
   - sphinx
   - sphinx_rtd_theme
+  - sphinxcontrib-apidoc
   - trollsift
   - xarray
   - zarr

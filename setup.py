@@ -32,7 +32,8 @@ except ImportError:
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
-            'dask[array] >=0.17.1', 'pyproj', 'zarr', 'donfig', 'appdirs']
+            'dask[array] >=0.17.1', 'pyproj', 'zarr', 'donfig', 'appdirs',
+            'pooch']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec']
@@ -69,7 +70,7 @@ extras_require = {
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
-    'doc': ['sphinx'],
+    'doc': ['sphinx', 'sphinx_rtd_theme', 'sphinxcontrib-apidoc'],
     # Other
     'geoviews': ['geoviews'],
 }
@@ -100,6 +101,13 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
         data_files.append((base_dir, new_data_files))
 
     return data_files
+
+
+entry_points = {
+    'console_scripts': [
+        'satpy_retrieve_all_aux_data=satpy.aux_download:retrieve_all_cmd',
+    ],
+}
 
 
 NAME = 'satpy'
@@ -138,4 +146,5 @@ setup(name=NAME,
       tests_require=test_requires,
       python_requires='>=3.6',
       extras_require=extras_require,
+      entry_points=entry_points,
       )

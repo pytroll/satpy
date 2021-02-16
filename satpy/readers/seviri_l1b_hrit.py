@@ -100,7 +100,6 @@ Output:
         modifiers:                ()
         ancillary_variables:      []
 
-
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
   centre.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
@@ -118,6 +117,9 @@ Output:
                                      names=('y_coord', 'time'))
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
+
+.. _MSG Level 1.5 Image Data Format Description:
+    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
 
 """
 

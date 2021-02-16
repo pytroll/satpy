@@ -42,6 +42,7 @@ from satpy.resample import get_area_def
 from satpy.utils import recursive_dict_update
 from satpy.dataset import DataQuery, DataID, get_key
 from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
+from satpy.aux_download import DataDownloadMixin
 from satpy import DatasetDict
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -329,7 +330,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         return ids
 
 
-class FileYAMLReader(AbstractYAMLReader):
+class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
     """Primary reader base class that is configured by a YAML file.
 
     This class uses the idea of per-file "file handler" objects to read file
@@ -354,6 +355,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
         self.coords_cache = WeakValueDictionary()
+        self.register_data_files()
 
     @property
     def sensor_names(self):
@@ -775,32 +777,44 @@ class FileYAMLReader(AbstractYAMLReader):
     def _make_area_from_coords(self, coords):
         """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
-            lon_sn = coords[0].attrs.get('standard_name')
-            lat_sn = coords[1].attrs.get('standard_name')
-            if lon_sn == 'longitude' and lat_sn == 'latitude':
-                key = None
-                try:
-                    key = (coords[0].data.name, coords[1].data.name)
-                    sdef = self.coords_cache.get(key)
-                except AttributeError:
-                    sdef = None
-                if sdef is None:
-                    sdef = SwathDefinition(*coords)
-                    sensor_str = '_'.join(self.info['sensors'])
-                    shape_str = '_'.join(map(str, coords[0].shape))
-                    sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                     coords[0].attrs['name'],
-                                                     coords[1].attrs['name'])
-                    if key is not None:
-                        self.coords_cache[key] = sdef
-                return sdef
-            else:
-                raise ValueError(
-                    'Coordinates info object missing standard_name key: ' +
-                    str(coords))
+            lons, lats = self._get_lons_lats_from_coords(coords)
+
+            sdef = self._make_swath_definition_from_lons_lats(lons, lats)
+            return sdef
         elif len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
+
+    def _get_lons_lats_from_coords(self, coords):
+        """Get lons and lats from the coords list."""
+        lons, lats = None, None
+        for coord in coords:
+            if coord.attrs.get('standard_name') == 'longitude':
+                lons = coord
+            elif coord.attrs.get('standard_name') == 'latitude':
+                lats = coord
+        if lons is None or lats is None:
+            raise ValueError('Missing longitude or latitude coordinate: ' + str(coords))
+        return lons, lats
+
+    def _make_swath_definition_from_lons_lats(self, lons, lats):
+        """Make a swath definition instance from lons and lats."""
+        key = None
+        try:
+            key = (lons.data.name, lats.data.name)
+            sdef = self.coords_cache.get(key)
+        except AttributeError:
+            sdef = None
+        if sdef is None:
+            sdef = SwathDefinition(lons, lats)
+            sensor_str = '_'.join(self.info['sensors'])
+            shape_str = '_'.join(map(str, lons.shape))
+            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                             lons.attrs.get('name', lons.name),
+                                             lats.attrs.get('name', lats.name))
+            if key is not None:
+                self.coords_cache[key] = sdef
+        return sdef
 
     def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
         """Get the area for *dsid*."""
@@ -823,18 +837,30 @@ class FileYAMLReader(AbstractYAMLReader):
         if not file_handlers:
             return
 
-        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
-
         try:
             ds = self._load_dataset_data(file_handlers, dsid, **kwargs)
         except (KeyError, ValueError) as err:
             logger.exception("Could not load dataset '%s': %s", dsid, str(err))
             return None
 
+        coords = self._assign_coords_from_dataarray(coords, ds)
+
+        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
+
         if area is not None:
             ds.attrs['area'] = area
             ds = add_crs_xy_coords(ds, area)
         return ds
+
+    @staticmethod
+    def _assign_coords_from_dataarray(coords, ds):
+        """Assign coords from the *ds* dataarray if needed."""
+        if not coords:
+            coords = []
+            for coord in ds.coords.values():
+                if coord.attrs.get('standard_name') in ['longitude', 'latitude']:
+                    coords.append(coord)
+        return coords
 
     def _load_ancillary_variables(self, datasets, **kwargs):
         """Load the ancillary variables of `datasets`."""

@@ -23,6 +23,11 @@ import os
 from unittest import mock
 
 try:
+    from pyresample.ewa import LegacyDaskEWAResampler
+except ImportError:
+    LegacyDaskEWAResampler = None
+
+try:
     from pyproj import CRS
 except ImportError:
     CRS = None
@@ -32,13 +37,15 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
                   input_dims=('y', 'x')):
     """Get common data objects used in testing.
 
-    Returns: tuple with the following elements
-        input_data_on_area: DataArray with dimensions as if it is a gridded
-            dataset.
-        input_area_def: AreaDefinition of the above DataArray
-        input_data_on_swath: DataArray with dimensions as if it is a swath.
-        input_swath: SwathDefinition of the above DataArray
-        target_area_def: AreaDefinition to be used as a target for resampling
+    Returns:
+        tuple:
+
+        * input_data_on_area: DataArray with dimensions as if it is a gridded
+          dataset.
+        * input_area_def: AreaDefinition of the above DataArray
+        * input_data_on_swath: DataArray with dimensions as if it is a swath.
+        * input_swath: SwathDefinition of the above DataArray
+        * target_area_def: AreaDefinition to be used as a target for resampling
 
     """
     from xarray import DataArray
@@ -249,6 +256,9 @@ class TestKDTreeResampler(unittest.TestCase):
             shutil.rmtree(the_dir)
 
 
+@unittest.skipIf(LegacyDaskEWAResampler is not None,
+                 "Deprecated EWA resampler is now in pyresample. "
+                 "No need to test in Satpy.")
 class TestEWAResampler(unittest.TestCase):
     """Test EWA resampler class."""
 
