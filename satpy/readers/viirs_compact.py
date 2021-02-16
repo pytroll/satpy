@@ -106,7 +106,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                 channel = key.split('-')[1]
                 break
 
-        # This supposes  there is  only one  tiepoint zone  in the track direction
+        # This supposes there is only one tiepoint zone in the track direction.
         channel_path = f"All_Data/VIIRS-{channel}-SDR_All"
         self.scan_size = self.h5f[channel_path].attrs["TiePointZoneSizeTrack"].item()
         self.track_offset = self.h5f[channel_path].attrs["PixelOffsetTrack"][()]
