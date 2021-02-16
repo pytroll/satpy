@@ -515,7 +515,7 @@ class CFWriter(Writer):
             exclude_attrs (list):
                 List of dataset attributes to be excluded
             valid_cf_dataset_name (bool):
-                Prepend dataset name with CHANNEL_ if staring with a digit
+                Prepend dataset name with CHANNEL_ if starting with a digit
         """
         if exclude_attrs is None:
             exclude_attrs = []
