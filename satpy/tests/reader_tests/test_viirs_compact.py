@@ -2442,19 +2442,22 @@ class TestCompact(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {'file_type': 'compact_dnb'}
-        dsid = make_dataid(name='DNB', calibration='radiance')
         test = VIIRSCompactFileHandler(self.filename, filename_info, filetype_info)
-        ds = test.get_dataset(dsid, {})
-        self.assertEqual(ds.shape, (752, 4064))
-        self.assertEqual(ds.dtype, np.float32)
-        self.assertEqual(ds.attrs['rows_per_scan'], 16)
 
+        dsid = make_dataid(name='DNB', calibration='radiance')
+        ds1 = test.get_dataset(dsid, {})
         dsid = make_dataid(name='longitude_dnb')
-        ds = test.get_dataset(dsid, {'standard_name': 'longitude'})
-        self.assertEqual(ds.shape, (752, 4064))
-        self.assertEqual(ds.dtype, np.float32)
-        self.assertEqual(ds.compute().shape, (752, 4064))
-        self.assertEqual(ds.attrs['rows_per_scan'], 16)
+        ds2 = test.get_dataset(dsid, {'standard_name': 'longitude'})
+        dsid = make_dataid(name='latitude_dnb')
+        ds3 = test.get_dataset(dsid, {'standard_name': 'latitude'})
+        dsid = make_dataid(name='solar_zenith_angle')
+        ds4 = test.get_dataset(dsid, {'standard_name': 'solar_zenith_angle'})
+
+        for ds in [ds1, ds2, ds3, ds4]:
+            self.assertEqual(ds.shape, (752, 4064))
+            self.assertEqual(ds.dtype, np.float32)
+            self.assertEqual(ds.compute().shape, (752, 4064))
+            self.assertEqual(ds.attrs['rows_per_scan'], 16)
 
     def tearDown(self):
         """Destroy."""
