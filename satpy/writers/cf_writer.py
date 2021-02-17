@@ -36,7 +36,10 @@ format:
 * By default the dataset name is prepended to non-dimensional coordinates such as scanline timestamps. This ensures
   maximum consistency, i.e. the netCDF variable names are independent of the number/set of datasets to be written.
   If a non-dimensional coordinate is identical for
-
+* Some dataset names start with a digit, like AVHRR channels 1, 2, 3a, 3b, 4 and 5. This doesn't comply with CF
+  https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch02s03.html. These channels are prefixed
+  with `CHANNEL` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
+  Setting it to `None` will skip the prefixing.
 
 Grouping
 ~~~~~~~~
