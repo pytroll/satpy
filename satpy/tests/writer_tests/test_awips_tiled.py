@@ -25,6 +25,18 @@ import dask.array as da
 import pytest
 
 
+def _check_production_location(ds):
+    if 'production_site' in ds.attrs:
+        prod_loc_name = 'production_site'
+    elif 'production_location' in ds.attrs:
+        prod_loc_name = 'producton_location'
+    else:
+        return
+
+    if prod_loc_name in ds.attrs:
+        assert len(ds.attrs[prod_loc_name]) == 31
+
+
 def check_required_common_attributes(ds):
     """Check common properties of the created AWIPS tiles for validity."""
     assert 'x' in ds.coords
@@ -50,6 +62,7 @@ def check_required_common_attributes(ds):
                       'number_product_tiles',
                       'product_rows', 'product_columns'):
         assert attr_name in ds.attrs
+    _check_production_location(ds)
 
     for data_arr in ds.data_vars.values():
         if data_arr.ndim == 0:
@@ -533,6 +546,8 @@ class TestAWIPSTiledWriter:
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
+        import os
+        os.environ['ORGANIZATION'] = '1' * 50
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',

@@ -216,6 +216,7 @@ lettered tile locations.
 import os
 import logging
 import string
+import warnings
 import sys
 from datetime import datetime, timedelta
 from collections import namedtuple
@@ -915,10 +916,20 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         del input_metadata
         org = os.environ.get('ORGANIZATION', None)
         if org is not None:
-            return org
-        LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
-        import socket
-        return socket.gethostname()  # FUTURE: something more correct but this will do for now
+            prod_location = org
+        else:
+            LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
+            import socket
+            prod_location = socket.gethostname()  # FUTURE: something more correct but this will do for now
+
+        if len(prod_location) > 31:
+            warnings.warn("Production location attribute is longer than 31 "
+                          "characters (AWIPS limit). Set it to a smaller "
+                          "value with the 'ORGANIZATION' environment "
+                          "variable. Defaults to hostname and is currently "
+                          "set to '{}'.".format(prod_location))
+            prod_location = prod_location[:31]
+        return prod_location
 
     _global_production_site = _global_production_location
 
