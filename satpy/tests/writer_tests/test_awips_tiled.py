@@ -518,7 +518,15 @@ class TestAWIPSTiledWriter:
         ['C',
          'F']
     )
-    def test_multivar_numbered_tiles_glm(self, sector):
+    @pytest.mark.parametrize(
+        "extra_kwargs",
+        [
+            {},
+            {'environment_prefix': 'AA'},
+            {'environment_prefix': 'BB', 'filename': '{environment_prefix}_{name}_GLM_T{tile_number:04d}.nc'},
+        ]
+    )
+    def test_multivar_numbered_tiles_glm(self, sector, extra_kwargs):
         """Test creating a tiles with multiple variables."""
         import xarray as xr
         from satpy.writers.awips_tiled import AWIPSTiledWriter
@@ -570,8 +578,10 @@ class TestAWIPSTiledWriter:
         })
 
         w.save_datasets([ds1, ds2, ds3, dqf], sector_id='TEST', source_name="TESTS",
-                        tile_count=(3, 3), template='glm_l2_rad{}'.format(sector.lower()))
-        all_files = glob(os.path.join(self.base_dir, '*_GLM*.nc'))
+                        tile_count=(3, 3), template='glm_l2_rad{}'.format(sector.lower()),
+                        **extra_kwargs)
+        fn_glob = self._get_glm_glob_filename(extra_kwargs)
+        all_files = glob(os.path.join(self.base_dir, fn_glob))
         assert len(all_files) == 9
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
@@ -580,3 +590,11 @@ class TestAWIPSTiledWriter:
                 assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
             else:  # 'F'
                 assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    @staticmethod
+    def _get_glm_glob_filename(extra_kwargs):
+        if 'filename' in extra_kwargs:
+            return 'BB*_GLM*.nc'
+        elif 'environment_prefix' in extra_kwargs:
+            return 'AA*_GLM*.nc'
+        return 'DR*_GLM*.nc'

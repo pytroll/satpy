@@ -777,7 +777,7 @@ templates:
   glm_l2_radc:
     single_variable: false
     # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
-    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
+    filename: '{environment_prefix}_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
     global_attributes:
       # FIXME: This should come from the reader's metadata
       dataset_name:
@@ -951,7 +951,7 @@ templates:
   glm_l2_radf:
     single_variable: false
     # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
-    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
+    filename: '{environment_prefix}_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
     global_attributes:
       # FIXME: This should come from the reader's metadata
       dataset_name:
