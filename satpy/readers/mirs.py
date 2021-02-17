@@ -189,9 +189,6 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
-        self.lons = None
-        self.lats = None
-        self.coords = {}
 
     def new_coords(self):
         """Define coordinates when file does not use variable attributes."""
@@ -486,17 +483,8 @@ class MiRSL2ncHandler(BaseFileHandler):
         data, attrs = self._scale_data(data, attrs)
         data, attrs = self._fill_data(data, attrs)
 
-        # handle coordinates (and recursive fun)
-        new_coords = {}
-        # 'time' dimension causes issues in other processing
+        # 'Freq' dimension causes issues in other processing
         if 'Freq' in data.coords:
             data = data.drop_vars('Freq')
-        if item in data.coords:
-            self.coords[item] = data
-        for coord_name in data.coords.keys():
-            if coord_name not in self.coords:
-                self.coords[coord_name] = self[coord_name]
-            new_coords[coord_name] = self.coords[coord_name]
 
-        data.coords.update(new_coords)
         return data
