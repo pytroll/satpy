@@ -474,13 +474,13 @@ def _set_default_time_encoding(encoding, dataset):
 
 
 def _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
-    """Setting Netcdf variable names encoding according to numeric_name_prefix.
+    """Set Netcdf variable names encoding according to numeric_name_prefix.
 
     A lot of channel names in satpy starts with a digit. When writing data with the satpy_cf_nc
     these channels are prepended with numeric_name_prefix.
     This ensures this is also done with any matching variables in encoding.
     """
-    for _var_name, variable in dataset.variables.items():
+    for _var_name, _variable in dataset.variables.items():
         if _var_name.startswith(numeric_name_prefix + "_"):
             _orig_var_name = "".join(_var_name.split("_")[1:])
             if _orig_var_name in encoding:
