@@ -487,7 +487,7 @@ def _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
                 encoding[_var_name] = encoding.pop(_orig_var_name)
 
 
-def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix):
+def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL'):
     """Update encoding.
 
     Preserve dask chunks, avoid fill values in coordinate variables and make sure that
