@@ -18,16 +18,20 @@
 """Interface to MiRS product."""
 
 import os
+import re
 import logging
 import datetime
+import appdirs
 import numpy as np
 import xarray as xr
 import dask.array as da
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.aux_download import find_registerable_files, retrieve
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
+SATPY_DATA_DIR = appdirs.user_data_dir("satpy")
 
 try:
     # try getting setuptools/distribute's version of resource retrieval first
@@ -189,6 +193,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
+        self.coeffs = self.coeff_filenames
 
     def new_coords(self):
         """Define coordinates when file does not use variable attributes."""
@@ -253,6 +258,28 @@ class MiRSL2ncHandler(BaseFileHandler):
             self.filename_info["end_time"] = end_time
         return self.filename_info["end_time"]
 
+    @property
+    def coeff_filenames(self):
+        """Retrieve necessary files for coefficients if needed."""
+        found_files = find_registerable_files(readers=['mirs'], writers=[],
+                                              composite_sensors=[])
+        if self.platform_name == "noaa-20":
+            platform_files = list(filter(lambda x: re.findall('noaa20', x),
+                                         found_files))
+        if self.platform_name == 'npp':
+            platform_files = list(filter(lambda x: re.findall('snpp', x),
+                                         found_files))
+        coeff_fn = {'sea': None, 'land': None}
+
+        for filename in platform_files:
+            if "atmssea" in filename:
+                coeff_fn['sea'] = retrieve(filename)
+            elif "atmsland" in filename:
+                coeff_fn['land'] = retrieve(filename)
+            else:
+                LOG.warning('Unknown coefficient filename {}', filename)
+        return coeff_fn
+
     def force_date(self, key):
         """Force datetime.date for combine."""
         if isinstance(self.filename_info[key], datetime.datetime):
@@ -282,10 +309,10 @@ class MiRSL2ncHandler(BaseFileHandler):
         surf_type_name = deps[1]
         surf_type_mask = self[surf_type_name]
 
-        sea = read_atms_limb_correction_coeffs(LIMB_SEA_FILE)
+        sea = read_atms_limb_correction_coeffs(self.coeffs['sea'])
         sea_bt = apply_atms_limb_correction(bt_data, idx, *sea)
 
-        land = read_atms_limb_correction_coeffs(LIMB_LAND_FILE)
+        land = read_atms_limb_correction_coeffs(self.coeffs['land'])
         land_bt = apply_atms_limb_correction(bt_data, idx, *land)
 
         LOG.info("Finishing limb correction")
@@ -356,13 +383,7 @@ class MiRSL2ncHandler(BaseFileHandler):
             LOG.debug('Calc {} {}'.format(idx, ds_id))
             data = data.rename(new_name_or_name_dict=ds_info["name"])
 
-            # only correct for 'BT' data
-            if 'BT' not in ds_info['dependencies']:
-                do_not_apply = True
-            else:
-                do_not_apply = True   # TODO:  Change this to false when coeff loc is resolved.
-
-            if self.sensor.lower() != "atms" or do_not_apply:
+            if self.sensor.lower() != "atms":
                 LOG.info("Limb Correction will not be applied to non-ATMS BTs")
                 data = data[:, :, idx]
             else:
