@@ -38,8 +38,8 @@ format:
   If a non-dimensional coordinate is identical for
 * Some dataset names start with a digit, like AVHRR channels 1, 2, 3a, 3b, 4 and 5. This doesn't comply with CF
   https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch02s03.html. These channels are prefixed
-  with `CHANNEL` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
-  Setting it to `None` will skip the prefixing.
+  with `CHANNEL_` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
+  Setting it to `None` or `''` will skip the prefixing.
 
 Grouping
 ~~~~~~~~
@@ -484,12 +484,14 @@ def _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
     This ensures this is also done with any matching variables in encoding.
     """
     for _var_name, _variable in dataset.variables.items():
-        _orig_var_name = "".join(_var_name.split("_")[1:])
-        if _var_name.startswith(numeric_name_prefix + "_") and _orig_var_name in encoding:
+        if not numeric_name_prefix or not _var_name.startswith(numeric_name_prefix):
+            continue
+        _orig_var_name = _var_name.replace(numeric_name_prefix, '')
+        if _orig_var_name in encoding:
             encoding[_var_name] = encoding.pop(_orig_var_name)
 
 
-def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL'):
+def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL_'):
     """Update encoding.
 
     Preserve dask chunks, avoid fill values in coordinate variables and make sure that
@@ -509,9 +511,9 @@ def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL'):
 def _handle_dataarray_name(name, numeric_name_prefix):
     if name[0].isdigit():
         if numeric_name_prefix:
-            name = numeric_name_prefix + "_" + name
+            name = numeric_name_prefix + name
         else:
-            warnings.warn('Dataset name {} starts with a digit.'.format(name))
+            warnings.warn('Invalid NetCDF dataset name: {} starts with a digit.'.format(name))
     return name
 
 
@@ -520,7 +522,7 @@ class CFWriter(Writer):
 
     @staticmethod
     def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
-              numeric_name_prefix='CHANNEL'):
+              numeric_name_prefix='CHANNEL_'):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -613,7 +615,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, numeric_name_prefix='CHANNEL'):
+                          pretty=False, compression=None, numeric_name_prefix='CHANNEL_'):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -650,7 +652,7 @@ class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, numeric_name_prefix='CHANNEL', **to_netcdf_kwargs):
+                      compression=None, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
