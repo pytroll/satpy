@@ -481,10 +481,9 @@ def _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
     This ensures this is also done with any matching variables in encoding.
     """
     for _var_name, _variable in dataset.variables.items():
-        if _var_name.startswith(numeric_name_prefix + "_"):
-            _orig_var_name = "".join(_var_name.split("_")[1:])
-            if _orig_var_name in encoding:
-                encoding[_var_name] = encoding.pop(_orig_var_name)
+        _orig_var_name = "".join(_var_name.split("_")[1:])
+        if _var_name.startswith(numeric_name_prefix + "_") and _orig_var_name in encoding:
+            encoding[_var_name] = encoding.pop(_orig_var_name)
 
 
 def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL'):
@@ -504,16 +503,13 @@ def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL'):
     return encoding, other_to_netcdf_kwargs
 
 
-def _handle_dataarray_name(new_data, numeric_name_prefix):
-    if 'name' in new_data.attrs:
-        name = new_data.attrs.pop('name')
-        if name[0].isdigit():
-            if numeric_name_prefix:
-                name = numeric_name_prefix + "_" + name
-            else:
-                warnings.warn('Dataset name {} starts with a digit.'.format(name))
-        new_data = new_data.rename(name)
-    return new_data
+def _handle_dataarray_name(name, numeric_name_prefix):
+    if name[0].isdigit():
+        if numeric_name_prefix:
+            name = numeric_name_prefix + "_" + name
+        else:
+            warnings.warn('Dataset name {} starts with a digit.'.format(name))
+    return name
 
 
 class CFWriter(Writer):
@@ -540,7 +536,10 @@ class CFWriter(Writer):
             exclude_attrs = []
 
         new_data = dataarray.copy()
-        new_data = _handle_dataarray_name(new_data, numeric_name_prefix)
+        if 'name' in new_data.attrs:
+            name = new_data.attrs.pop('name')
+            name = _handle_dataarray_name(name, numeric_name_prefix)
+            new_data = new_data.rename(name)
 
         # Remove _satpy* attributes
         satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
