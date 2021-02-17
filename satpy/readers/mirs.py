@@ -420,19 +420,22 @@ class MiRSL2ncHandler(BaseFileHandler):
                     freq = self.nc.coords.get('Freq', self.nc.get('Freq'))
                     polo = self.nc['Polo']
                     from collections import Counter
-                    c = Counter()
+                    # count times a channel/polarization pair occur
+                    chn_total = Counter()
                     normals = []
                     for idx, (f, p) in enumerate(zip(freq, polo)):
                         normal_f = str(int(f))
                         normal_p = 'v' if p == POLO_V else 'h'
-                        c[normal_f + normal_p] += 1
+                        chn_total[normal_f + normal_p] += 1
                         normals.append((idx, f, p, normal_f, normal_p))
 
-                    c2 = Counter()
+                    # keep track of current channel count for string description
+                    chn_cnt = Counter()
                     for idx, _f, _p, normal_f, normal_p in normals:
-                        c2[normal_f + normal_p] += 1
-                        p_count = str(c2[normal_f + normal_p]
-                                      if c[normal_f + normal_p] > 1 else '')
+                        chn_cnt[normal_f + normal_p] += 1
+                        p_count = str(chn_cnt[normal_f + normal_p]
+                                      if chn_total[normal_f + normal_p] > 1
+                                      else '')
 
                         new_name = "btemp_{}{}{}".format(normal_f,
                                                          normal_p,
