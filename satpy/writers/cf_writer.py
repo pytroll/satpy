@@ -473,20 +473,21 @@ def _set_default_time_encoding(encoding, dataset):
         encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
 
 
-def _set_encoding_dataset_names(encoding, dataset):
-    """Netcdf variable names should not start with numbers.
+def _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix):
+    """Setting Netcdf variable names encoding according to numeric_name_prefix.
 
-    A lot of channel names in satpy do that. When writing data with the satpy_cf_nc
-    these channels are prepended with CHANNEL_ and an attribute added to the variable.
-    Ensure this is also done with any matching variables in encoding.
+    A lot of channel names in satpy starts with a digit. When writing data with the satpy_cf_nc
+    these channels are prepended with numeric_name_prefix.
+    This ensures this is also done with any matching variables in encoding.
     """
     for _var_name, variable in dataset.variables.items():
-        if 'satpy_dataset_name' in variable.attrs and variable.attrs['satpy_dataset_name'] in encoding:
-            encoding['CHANNEL_' + variable.attrs['satpy_dataset_name']] = \
-                encoding.pop(variable.attrs['satpy_dataset_name'])
+        if _var_name.startswith(numeric_name_prefix + "_"):
+            _orig_var_name = "".join(_var_name.split("_")[1:])
+            if _orig_var_name in encoding:
+                encoding[_var_name] = encoding.pop(_orig_var_name)
 
 
-def update_encoding(dataset, to_netcdf_kwargs):
+def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix):
     """Update encoding.
 
     Preserve dask chunks, avoid fill values in coordinate variables and make sure that
@@ -495,7 +496,7 @@ def update_encoding(dataset, to_netcdf_kwargs):
     other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
     encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
 
-    _set_encoding_dataset_names(encoding, dataset)
+    _set_encoding_dataset_names(encoding, dataset, numeric_name_prefix)
     _set_default_chunks(encoding, dataset)
     _set_default_fill_value(encoding, dataset)
     _set_default_time_encoding(encoding, dataset)
@@ -503,12 +504,24 @@ def update_encoding(dataset, to_netcdf_kwargs):
     return encoding, other_to_netcdf_kwargs
 
 
+def _handle_dataarray_name(new_data, numeric_name_prefix):
+    if 'name' in new_data.attrs:
+        name = new_data.attrs.pop('name')
+        if name[0].isdigit():
+            if numeric_name_prefix:
+                name = numeric_name_prefix + "_" + name
+            else:
+                warnings.warn('Dataset name {} starts with a digit.'.format(name))
+        new_data = new_data.rename(name)
+    return new_data
+
+
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
     def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
-              valid_cf_dataset_name=False):
+              numeric_name_prefix='CHANNEL'):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -520,21 +533,14 @@ class CFWriter(Writer):
                 If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
-            valid_cf_dataset_name (bool):
-                Prepend dataset name with CHANNEL_ if staring with a digit
+            numeric_name_prefix (string):
+                Prepend dataset name with this if starting with a digit
         """
         if exclude_attrs is None:
             exclude_attrs = []
 
         new_data = dataarray.copy()
-        if 'name' in new_data.attrs:
-            name = new_data.attrs.pop('name')
-            if valid_cf_dataset_name and name[0].isdigit():
-                _orig_name = name
-                name = 'CHANNEL_' + name
-                warnings.warn('Rename dataset {} to {}.'.format(_orig_name, name))
-                new_data.attrs['satpy_dataset_name'] = _orig_name
-            new_data = new_data.rename(name)
+        new_data = _handle_dataarray_name(new_data, numeric_name_prefix)
 
         # Remove _satpy* attributes
         satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
@@ -605,7 +611,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, valid_cf_dataset_name=False):
+                          pretty=False, compression=None, numeric_name_prefix='CHANNEL'):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -630,7 +636,7 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                      exclude_attrs=exclude_attrs, compression=compression,
-                                     valid_cf_dataset_name=valid_cf_dataset_name)
+                                     numeric_name_prefix=numeric_name_prefix)
                 datas[new_var.name] = new_var
 
         # Check and prepare coordinates
@@ -642,7 +648,7 @@ class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, **to_netcdf_kwargs):
+                      compression=None, numeric_name_prefix='CHANNEL', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -722,9 +728,6 @@ class CFWriter(Writer):
         for kwarg in satpy_kwargs:
             to_netcdf_kwargs.pop(kwarg, None)
 
-        # Allow to prepend CHANNEL_ to datasets name staring with digit
-        valid_cf_dataset_name = to_netcdf_kwargs.pop('valid_cf_dataset_name', False)
-
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
         init_nc_kwargs.pop('unlimited_dims', None)
@@ -736,7 +739,7 @@ class CFWriter(Writer):
             datas, start_times, end_times = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
                 include_lonlats=include_lonlats, pretty=pretty, compression=compression,
-                valid_cf_dataset_name=valid_cf_dataset_name)
+                numeric_name_prefix=numeric_name_prefix)
             dataset = xr.Dataset(datas)
             if 'time' in dataset:
                 dataset['time_bnds'] = make_time_bounds(start_times,
@@ -747,7 +750,7 @@ class CFWriter(Writer):
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs)
+            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix)
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                     **other_to_netcdf_kwargs)
             written.append(res)

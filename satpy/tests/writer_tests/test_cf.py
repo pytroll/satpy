@@ -141,10 +141,20 @@ class TestCFWriter(unittest.TestCase):
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf', valid_cf_dataset_name=True)
+            scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['CHANNEL_1'][:] == [1, 2, 3]))
-                self.assertEqual(f['CHANNEL_1'].attrs['satpy_dataset_name'], '1')
+
+    def test_save_dataset_a_digit_prefix(self):
+        """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', numeric_name_prefix='TEST')
+            with xr.open_dataset(filename) as f:
+                self.assertTrue(np.all(f['TEST_1'][:] == [1, 2, 3]))
 
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
@@ -1127,8 +1137,8 @@ class EncodingUpdateTest(unittest.TestCase):
                              coords={'y': [1, 2],
                                      'x': [3, 4],
                                      'lon': (('y', 'x'), [[7, 8], [9, 10]])})
-        self.ds_digit = xr.Dataset({'CHANNEL_1': (('y', 'x'), [[1, 2], [3, 4]], {'satpy_dataset_name': '1'}),
-                                    'CHANNEL_2': (('y', 'x'), [[3, 4], [5, 6]], {'satpy_dataset_name': '2'})},
+        self.ds_digit = xr.Dataset({'CHANNEL_1': (('y', 'x'), [[1, 2], [3, 4]]),
+                                    'CHANNEL_2': (('y', 'x'), [[3, 4], [5, 6]])},
                                    coords={'y': [1, 2],
                                            'x': [3, 4],
                                            'lon': (('y', 'x'), [[7, 8], [9, 10]])})
@@ -1142,7 +1152,7 @@ class EncodingUpdateTest(unittest.TestCase):
         kwargs = {'encoding': {'1': {'dtype': 'float32'},
                                '2': {'dtype': 'float32'}},
                   'other': 'kwargs'}
-        enc, other_kwargs = update_encoding(ds, kwargs)
+        enc, other_kwargs = update_encoding(ds, kwargs, numeric_name_prefix='CHANNEL')
         self.assertDictEqual(enc, {'y': {'_FillValue': None},
                                    'x': {'_FillValue': None},
                                    'CHANNEL_1': {'dtype': 'float32'},
