@@ -154,7 +154,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', numeric_name_prefix='TEST')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['TEST_1'][:] == [1, 2, 3]))
+                self.assertTrue(np.all(f['TEST1'][:] == [1, 2, 3]))
 
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
@@ -1152,7 +1152,7 @@ class EncodingUpdateTest(unittest.TestCase):
         kwargs = {'encoding': {'1': {'dtype': 'float32'},
                                '2': {'dtype': 'float32'}},
                   'other': 'kwargs'}
-        enc, other_kwargs = update_encoding(ds, kwargs, numeric_name_prefix='CHANNEL')
+        enc, other_kwargs = update_encoding(ds, kwargs, numeric_name_prefix='CHANNEL_')
         self.assertDictEqual(enc, {'y': {'_FillValue': None},
                                    'x': {'_FillValue': None},
                                    'CHANNEL_1': {'dtype': 'float32'},
