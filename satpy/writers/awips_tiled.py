@@ -216,6 +216,7 @@ lettered tile locations.
 import os
 import logging
 import string
+import warnings
 import sys
 from datetime import datetime, timedelta
 from collections import namedtuple
@@ -915,10 +916,20 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         del input_metadata
         org = os.environ.get('ORGANIZATION', None)
         if org is not None:
-            return org
-        LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
-        import socket
-        return socket.gethostname()  # FUTURE: something more correct but this will do for now
+            prod_location = org
+        else:
+            LOG.warning('environment ORGANIZATION not set for .production_location attribute, using hostname')
+            import socket
+            prod_location = socket.gethostname()  # FUTURE: something more correct but this will do for now
+
+        if len(prod_location) > 31:
+            warnings.warn("Production location attribute is longer than 31 "
+                          "characters (AWIPS limit). Set it to a smaller "
+                          "value with the 'ORGANIZATION' environment "
+                          "variable. Defaults to hostname and is currently "
+                          "set to '{}'.".format(prod_location))
+            prod_location = prod_location[:31]
+        return prod_location
 
     _global_production_site = _global_production_location
 
@@ -1397,6 +1408,7 @@ class AWIPSTiledWriter(Writer):
                 columns=area_def.width,
                 sector_id=sector_id,
                 tile_id=tile_info.tile_id,
+                tile_number=tile_info.tile_number,
                 **kwargs)
         except RuntimeError:
             # the user didn't provide a specific filename, use the template
@@ -1445,7 +1457,7 @@ class AWIPSTiledWriter(Writer):
                       lettered_grid=False, num_subtiles=None,
                       use_end_time=False, use_sector_reference=False,
                       template='polar', check_categories=True,
-                      extra_global_attrs=None,
+                      extra_global_attrs=None, environment_prefix='DR',
                       compute=True, **kwargs):
         """Write a series of DataArray objects to multiple NetCDF4 Tile files.
 
@@ -1464,6 +1476,12 @@ class AWIPSTiledWriter(Writer):
             source_name (str): Name of producer of these files (ex. "SSEC").
                 This name is used to create the output filename for some
                 templates.
+            environment_prefix (str): Prefix of filenames for some templates.
+                For operational real-time data this is usually "OR", "OT" for
+                test data, "IR" for test system real-time data, and "IT" for
+                test system test data. This defaults to "DR" for "Developer
+                Real-time" to avoid anyone accidentally producing files that
+                could be mistaken for the operational system.
             tile_count (tuple): For numbered tiles only, how many tile rows
                 and tile columns to produce. Default to ``(1, 1)``, a single
                 giant tile. Either ``tile_count``, ``tile_size``, or
@@ -1535,6 +1553,7 @@ class AWIPSTiledWriter(Writer):
                                                source_name)
             output_filename = self.get_filename(template, area_def,
                                                 tile_info, sector_id,
+                                                environment_prefix=environment_prefix,
                                                 **ds_info)
             self.check_tile_exists(output_filename)
             # TODO: Provide attribute caching for things that likely won't change (functools lrucache)
