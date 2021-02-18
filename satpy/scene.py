@@ -207,8 +207,8 @@ class Scene:
                    for x in areas[1:]):
             raise ValueError("Can't compare areas of different types")
         elif isinstance(areas[0], AreaDefinition):
-            first_pstr = areas[0].proj_str
-            if not all(ad.proj_str == first_pstr for ad in areas[1:]):
+            first_pstr = self._crs_or_proj(areas[0])
+            if not all(self._crs_or_proj(ad) == first_pstr for ad in areas[1:]):
                 raise ValueError("Can't compare areas with different "
                                  "projections.")
 
@@ -417,12 +417,18 @@ class Scene:
         all_areas = [x for x in all_areas if x is not None]
         return all(all_areas[0] == x for x in all_areas[1:])
 
+    @staticmethod
+    def _crs_or_proj(area_def):
+        if hasattr(area_def, 'crs'):
+            return area_def.crs
+        return area_def.proj_str
+
     @property
     def all_same_proj(self):
         """All contained data array are in the same projection."""
         all_areas = [x.attrs.get('area', None) for x in self.values()]
         all_areas = [x for x in all_areas if x is not None]
-        return all(all_areas[0].proj_str == x.proj_str for x in all_areas[1:])
+        return all(self._crs_or_proj(all_areas[0]) == self._crs_or_proj(x) for x in all_areas[1:])
 
     @staticmethod
     def _slice_area_from_bbox(src_area, dst_area, ll_bbox=None,
