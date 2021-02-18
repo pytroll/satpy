@@ -35,18 +35,18 @@ class TestHelpers(unittest.TestCase):
 
     def test_lonlat_from_geos(self):
         """Get lonlats from geos."""
+        import pyproj
         geos_area = mock.MagicMock()
+        del geos_area.crs
         lon_0 = 0
         h = 35785831.00
         geos_area.proj_dict = {'a': 6378169.00,
                                'b': 6356583.80,
                                'h': h,
-                               'lon_0': lon_0}
+                               'lon_0': lon_0,
+                               'proj': 'geos'}
 
-        expected = np.array((lon_0, 0))
-
-        import pyproj
-        proj = pyproj.Proj(proj='geos', **geos_area.proj_dict)
+        proj = pyproj.Proj(geos_area.proj_dict)
 
         expected = proj(0, 0, inverse=True)
 
@@ -192,11 +192,11 @@ class TestHelpers(unittest.TestCase):
         area.area_id = 'fakeid'
         area.name = 'fake name'
         area.proj_id = 'fakeproj'
-        area.proj_dict = {'fake': 'dict'}
+        area.crs = 'some_crs'
 
         hf.get_sub_area(area, slice(1, 4), slice(0, 3))
         adef.assert_called_once_with('fakeid', 'fake name', 'fakeproj',
-                                     {'fake': 'dict'},
+                                     'some_crs',
                                      3, 3,
                                      (0.75, -3.75, 5.25, 0.75))
 

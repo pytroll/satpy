@@ -1276,7 +1276,7 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
                           fh in file_handlers]
     area = file_handlers[0].get_area_def(dsid)
     seg_size = area.shape
-    proj_dict = area.proj_dict
+    crs = area.crs if hasattr(area, 'crs') else area.proj_dict
     padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
 
     for segment in range(available_segments[0] - 1, 0, -1):
@@ -1289,7 +1289,7 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
         fill_extent = (area.area_extent[0], new_ll_y,
                        area.area_extent[2], new_ur_y)
         area = AreaDefinition('fill', 'fill', 'fill',
-                              proj_dict,
+                              crs,
                               seg_size[1], new_height_px,
                               fill_extent)
         area_defs[segment] = area

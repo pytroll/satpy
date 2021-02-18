@@ -30,6 +30,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+from pyresample.geometry import AreaDefinition
 from pyresample.utils import get_area_def
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -281,10 +282,8 @@ class NcNWCSAF(BaseFileHandler):
     @staticmethod
     def _ensure_area_def_is_in_meters(area_definition):
         """Fix units in Earth shape, satellite altitude and 'units' attribute."""
-        if area_definition.proj_dict["units"] == "km":
-            proj_dict = area_definition.proj_dict.copy()
-            from pyresample.geometry import AreaDefinition
-
+        proj_dict = area_definition.proj_dict.copy()
+        if proj_dict["units"] == "km":
             proj_dict["units"] = "m"
             proj_dict["a"] *= 1000.
             proj_dict["h"] *= 1000.

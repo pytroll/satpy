@@ -1063,7 +1063,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
-        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.crs = 'proj_dict'
         seg2_area.area_extent = [0, 1000, 200, 500]
         seg2_area.shape = [200, 500]
         get_area_def = MagicMock()
@@ -1090,7 +1090,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
-        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.crs = 'proj_dict'
         seg2_area.area_extent = [0, 1000, 200, 500]
         seg2_area.shape = [278, 5568]
         get_area_def = MagicMock()
