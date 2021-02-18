@@ -1261,8 +1261,7 @@ class Scene:
 
         try:
             composite = compositor(prereq_datasets,
-                                   optional_datasets=optional_datasets,
-                                   **self.attrs)
+                                   optional_datasets=optional_datasets)
             cid = DataID.new_id_from_dataarray(composite)
             self._datasets[cid] = composite
 

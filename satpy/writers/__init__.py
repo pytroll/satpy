@@ -632,6 +632,11 @@ class Writer(Plugin, DataDownloadMixin):
             file_pattern = self.file_pattern
         return parser.Parser(file_pattern) if file_pattern else None
 
+    @staticmethod
+    def _prepare_metadata_for_filename_formatting(attrs):
+        if isinstance(attrs.get('sensor'), set):
+            attrs['sensor'] = '-'.join(attrs['sensor'])
+
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.
 
@@ -642,6 +647,7 @@ class Writer(Plugin, DataDownloadMixin):
         """
         if self.filename_parser is None:
             raise RuntimeError("No filename pattern or specific filename provided")
+        self._prepare_metadata_for_filename_formatting(kwargs)
         output_filename = self.filename_parser.compose(kwargs)
         dirname = os.path.dirname(output_filename)
         if dirname and not os.path.isdir(dirname):
