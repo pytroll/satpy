@@ -635,7 +635,7 @@ class Writer(Plugin, DataDownloadMixin):
     @staticmethod
     def _prepare_metadata_for_filename_formatting(attrs):
         if isinstance(attrs.get('sensor'), set):
-            attrs['sensor'] = '-'.join(attrs['sensor'])
+            attrs['sensor'] = '-'.join(sorted(attrs['sensor']))
 
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.
