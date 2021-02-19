@@ -17,9 +17,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of utils."""
 
+import logging
 import unittest
+import warnings
 from unittest import mock
+
+import pytest
 from numpy import sqrt
+
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters, get_satpos
 
 
@@ -307,3 +312,26 @@ class TestCheckSatpy(unittest.TestCase):
                     checked_fake = True
             self.assertTrue(checked_fake, "Did not find __fake module "
                                           "mentioned in checks")
+
+
+def test_debug_on(caplog):
+    """Test that debug_on is working as expected."""
+    from satpy.utils import debug_on
+
+    def depwarn():
+        logger = logging.getLogger("satpy.silly")
+        logger.debug("But now it's just got SILLY.")
+        warnings.warn("Stop that! It's SILLY.", DeprecationWarning)
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    debug_on(False)
+    filts_before = warnings.filters.copy()
+    # test that logging on, but deprecation warnings still off
+    with caplog.at_level(logging.DEBUG):
+        depwarn()
+    assert warnings.filters == filts_before
+    assert "But now it's just got SILLY." in caplog.text
+    debug_on(True)
+    # test that logging on and deprecation warnings on
+    with pytest.warns(DeprecationWarning):
+        depwarn()
+    assert warnings.filters != filts_before

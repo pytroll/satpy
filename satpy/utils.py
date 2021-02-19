@@ -74,7 +74,7 @@ def trace_on():
 def dep_warnings_on():
     """Switch on deprecation warnings.
     """
-    logging.filterwarnings("default", DeprecationWarning)
+    warnings.filterwarnings("default", category=DeprecationWarning)
 
 
 def logging_on(level=logging.WARNING):
