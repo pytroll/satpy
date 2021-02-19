@@ -67,30 +67,25 @@ def np2str(value):
 
 
 def _get_geostationary_height(geos_area):
-    try:
-        crs = geos_area.crs
-        params = crs.coordinate_operation.params
-        h_param = [p for p in params if 'satellite height' in p.name.lower()][0]
-        return h_param.value
-    except AttributeError:
-        return geos_area.proj_dict['h']
+    params = geos_area.crs.coordinate_operation.params
+    h_param = [p for p in params if 'satellite height' in p.name.lower()][0]
+    return h_param.value
+
+
+def _get_geostationary_reference_longitude(geos_area):
+    params = geos_area.crs.coordinate_operation.params
+    lon_0_params = [p for p in params if 'longitude of natural origin' in p.name.lower()]
+    if not lon_0_params:
+        return 0
+    elif len(lon_0_params) != 1:
+        raise ValueError("Not sure how to get reference longitude "
+                         "information from AreaDefinition.")
+    return lon_0_params[0].value
 
 
 def _get_geostationary_semi_axes(geos_area):
-    try:
-        crs = geos_area.crs
-        a = crs.ellipsoid.semi_major_metre
-        b = crs.ellipsoid.semi_minor_metre
-        if np.isnan(b):
-            # see https://github.com/pyproj4/pyproj/issues/457
-            raise AttributeError("'semi_minor_metre' attribute is not valid "
-                                 "in older versions of pyproj.")
-    except AttributeError:
-        # older versions of pyproj don't have CRS objects
-        from pyresample.utils import proj4_radius_parameters
-        proj_dict = geos_area.proj_dict
-        a, b = proj4_radius_parameters(proj_dict)
-    return a, b
+    from pyresample.utils import proj4_radius_parameters
+    return proj4_radius_parameters(geos_area.crs)
 
 
 def get_geostationary_angle_extent(geos_area):
@@ -141,6 +136,7 @@ def _lonlat_from_geos_angle(x, y, geos_area):
     """Get lons and lats from x, y in projection coordinates."""
     a, b = _get_geostationary_semi_axes(geos_area)
     h = _get_geostationary_height(geos_area)
+    lon_0 = _get_geostationary_reference_longitude(geos_area)
     h__ = float(h + a) / 1000
     b__ = (a / float(b)) ** 2
 
@@ -155,7 +151,7 @@ def _lonlat_from_geos_angle(x, y, geos_area):
     s3 = -sn * np.sin(y)
     sxy = np.sqrt(s1**2 + s2**2)
 
-    lons = np.rad2deg(np.arctan2(s2, s1)) + geos_area.proj_dict.get('lon_0', 0)
+    lons = np.rad2deg(np.arctan2(s2, s1)) + lon_0
     lats = np.rad2deg(-np.arctan2(b__ * s3, sxy))
 
     return lons, lats
@@ -198,9 +194,8 @@ def get_sub_area(area, xslice, yslice):
                        (area.pixel_upper_left[1] -
                         (yslice.start - 0.5) * area.pixel_size_y))
 
-    crs = area.crs if hasattr(area, 'crs') else area.proj_dict
     return AreaDefinition(area.area_id, area.name,
-                          area.proj_id, crs,
+                          area.proj_id, area.crs,
                           xslice.stop - xslice.start,
                           yslice.stop - yslice.start,
                           new_area_extent)

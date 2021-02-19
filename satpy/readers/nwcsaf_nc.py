@@ -31,7 +31,7 @@ import numpy as np
 import xarray as xr
 
 from pyresample.geometry import AreaDefinition
-from pyresample.utils import get_area_def
+from pyproj import CRS
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
@@ -268,30 +268,29 @@ class NcNWCSAF(BaseFileHandler):
 
         nlines, ncols = self.nc[dsid['name']].shape
 
-        area = self._ensure_area_def_is_in_meters(
-            get_area_def('some_area_name',
-                         "On-the-fly area",
-                         'geosmsg',
-                         proj_str,
-                         ncols,
-                         nlines,
-                         area_extent))
+        crs, area_extent = self._ensure_crs_extents_in_meters(proj_str, area_extent)
+        area = AreaDefinition('some_area_name',
+                              "On-the-fly area",
+                              'geosmsg',
+                              crs,
+                              ncols,
+                              nlines,
+                              area_extent)
 
         return area
 
     @staticmethod
-    def _ensure_area_def_is_in_meters(area_definition):
+    def _ensure_crs_extents_in_meters(proj_str, area_extent):
         """Fix units in Earth shape, satellite altitude and 'units' attribute."""
-        proj_dict = area_definition.proj_dict.copy()
-        if proj_dict["units"] == "km":
+        from pyresample.utils import proj4_str_to_dict
+        proj_dict = proj4_str_to_dict(proj_str)
+        if proj_dict.get('units') == 'km':
             proj_dict["units"] = "m"
             proj_dict["a"] *= 1000.
+            proj_dict["b"] *= 1000.
             proj_dict["h"] *= 1000.
-            area_extent = tuple([val * 1000. for val in area_definition.area_extent])
-            return AreaDefinition(area_definition.area_id, area_definition.description,
-                                  area_definition.proj_id, proj_dict,
-                                  area_definition.width, area_definition.height, area_extent)
-        return area_definition
+            area_extent = tuple([val * 1000. for val in area_extent])
+        return CRS(proj_dict), area_extent
 
     def __del__(self):
         """Delete the instance."""
