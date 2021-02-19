@@ -286,8 +286,12 @@ class NcNWCSAF(BaseFileHandler):
         proj_dict = proj4_str_to_dict(proj_str)
         if proj_dict.get('units') == 'km':
             proj_dict["units"] = "m"
-            proj_dict["a"] *= 1000.
-            proj_dict["b"] *= 1000.
+            if "a" in proj_dict:
+                proj_dict["a"] *= 1000.
+            if "b" in proj_dict:
+                proj_dict["b"] *= 1000.
+            if "R" in proj_dict:
+                proj_dict["R"] *= 1000.
             proj_dict["h"] *= 1000.
             area_extent = tuple([val * 1000. for val in area_extent])
         return CRS(proj_dict), area_extent
