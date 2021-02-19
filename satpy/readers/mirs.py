@@ -18,7 +18,6 @@
 """Interface to MiRS product."""
 
 import os
-import re
 import logging
 import datetime
 import appdirs
@@ -27,7 +26,7 @@ import xarray as xr
 import dask.array as da
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.aux_download import find_registerable_files, retrieve
+from satpy.aux_download import retrieve
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -82,13 +81,6 @@ SENSOR = {"n18": amsu,
           "f18": "ssmis",
           "gpm": "GPI",
           }
-
-LIMB_SEA_FILE = os.environ.get("ATMS_LIMB_SEA",
-                               "/Users/joleenf/data/mirs/coeff/"
-                               "limball_atmssea.txt")
-LIMB_LAND_FILE = os.environ.get("ATMS_LIMB_LAND",
-                                "/Users/joleenf/data/mirs/coeff/"
-                                "limball_atmsland.txt")
 
 
 def read_atms_limb_correction_coeffs(fn):
@@ -193,7 +185,6 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
-        self.coeffs = self.coeff_filenames
 
     def new_coords(self):
         """Define coordinates when file does not use variable attributes."""
@@ -258,28 +249,6 @@ class MiRSL2ncHandler(BaseFileHandler):
             self.filename_info["end_time"] = end_time
         return self.filename_info["end_time"]
 
-    @property
-    def coeff_filenames(self):
-        """Retrieve necessary files for coefficients if needed."""
-        found_files = find_registerable_files(readers=['mirs'], writers=[],
-                                              composite_sensors=[])
-        if self.platform_name == "noaa-20":
-            platform_files = list(filter(lambda x: re.findall('noaa20', x),
-                                         found_files))
-        if self.platform_name == 'npp':
-            platform_files = list(filter(lambda x: re.findall('snpp', x),
-                                         found_files))
-        coeff_fn = {'sea': None, 'land': None}
-
-        for filename in platform_files:
-            if "atmssea" in filename:
-                coeff_fn['sea'] = retrieve(filename)
-            elif "atmsland" in filename:
-                coeff_fn['land'] = retrieve(filename)
-            else:
-                LOG.warning('Unknown coefficient filename {}', filename)
-        return coeff_fn
-
     def force_date(self, key):
         """Force datetime.date for combine."""
         if isinstance(self.filename_info[key], datetime.datetime):
@@ -293,6 +262,19 @@ class MiRSL2ncHandler(BaseFileHandler):
             return self.filename_info.get(key).time()
         else:
             return self.filename_info.get(key)
+
+    @property
+    def coeff_filenames(self):
+        """Retrieve necessary files for coefficients if needed."""
+        coeff_fn = {'sea': None, 'land': None}
+        if self.platform_name == "noaa-20":
+            coeff_fn['land'] = retrieve("readers/limbcoef_atmsland_noaa20.txt")
+            coeff_fn['sea'] = retrieve("readers/limbcoef_atmssea_noaa20.txt")
+        if self.platform_name == 'npp':
+            coeff_fn['land'] = retrieve("readers/limbcoef_atmsland_snpp.txt")
+            coeff_fn['sea'] = retrieve("readers/limbcoef_atmssea_snpp.txt")
+
+        return coeff_fn
 
     def limb_correct_atms_bt(self, bt_data, ds_info):
         """Gather data needed for limb correction."""
@@ -309,25 +291,24 @@ class MiRSL2ncHandler(BaseFileHandler):
         surf_type_name = deps[1]
         surf_type_mask = self[surf_type_name]
 
-        sea = read_atms_limb_correction_coeffs(self.coeffs['sea'])
+        # get coefficient filenames
+        coeff_fns = self.coeff_filenames
+
+        sea = read_atms_limb_correction_coeffs(coeff_fns['sea'])
         sea_bt = apply_atms_limb_correction(bt_data, idx, *sea)
 
-        land = read_atms_limb_correction_coeffs(self.coeffs['land'])
+        land = read_atms_limb_correction_coeffs(coeff_fns['land'])
         land_bt = apply_atms_limb_correction(bt_data, idx, *land)
 
         LOG.info("Finishing limb correction")
         is_sea = (surf_type_mask == 0)
-        bt_data = bt_data[idx, :, :]
-        new_data = (sea_bt.squeeze() * [is_sea] +
-                    land_bt.squeeze() * [~is_sea])
+        new_data = da.where(is_sea, sea_bt, land_bt)
 
-        # for consistency when not doing limb correction, return a dask.array
-        new_data = da.from_array(new_data.squeeze())
-
-        bt_data = xr.DataArray(new_data.squeeze(), dims=bt_data.dims,
-                               coords=bt_data.coords, attrs=ds_info,
-                               name=bt_data.name)
-        return bt_data
+        bt_corrected = xr.DataArray(new_data, dims=bt_data[idx, :, :].dims,
+                                    coords=bt_data[idx, :, :].coords,
+                                    attrs=ds_info,
+                                    name=bt_data.name)
+        return bt_corrected
 
     def get_metadata(self, ds_info):
         """Get metadata."""
