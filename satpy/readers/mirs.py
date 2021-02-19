@@ -106,8 +106,8 @@ def read_atms_limb_correction_coeffs(fn):
         _ = next(coeff_str)
 
         # section header
-        nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
-        nx = int(nx)  # Question, was this supposed to be used somewhere?
+        _nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
+        # nx = int(nx)  # Question, was this supposed to be used somewhere?
         all_nchx[chan_idx] = nchx = int(nchx)
         all_dmean[chan_idx] = float(dmean)
 
@@ -179,7 +179,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         self.nc = self.nc.rename({"Latitude": "latitude",
                                   "Longitude": "longitude"})
 
-        if len(self.nc.coords.values()) == 0:
+        if not self.nc.coords:
             self.nc = self.nc.assign_coords(self.new_coords())
 
         self.platform_name = self._get_platform_name
@@ -284,11 +284,11 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         deps = ds_info['dependencies']
         if len(deps) != 2:
-            LOG.error("Expected 1 dependencies to create corrected BT product, got %d" % (len(deps),))
-            raise ValueError("Expected 1 dependencies to create corrected BT product, got %d" % (len(deps),))
+            str_ndeps = str(len(deps))
+            msg = ("Expected 2 dependencies for corrected BT product %d", str_ndeps)
+            raise ValueError(msg)
 
-        surf_type_name = deps[1]
-        surf_type_mask = self[surf_type_name]
+        surf_type_mask = self[deps[1]]
 
         # get coefficient filenames
         coeff_fns = self.coeff_filenames
@@ -333,7 +333,8 @@ class MiRSL2ncHandler(BaseFileHandler):
             return np.datetime64('NaT')
         return np.nan
 
-    def _scale_data(self, data_arr, attrs):
+    @staticmethod
+    def _scale_data(data_arr, attrs):
         # handle scaling
         # take special care for integer/category fields
         scale_factor = attrs.pop('scale_factor', 1.)
@@ -360,7 +361,6 @@ class MiRSL2ncHandler(BaseFileHandler):
         if 'dependencies' in ds_info.keys():
             idx = ds_info['channel_index']
             data = self['BT']
-            LOG.debug('Calc {} {}'.format(idx, ds_id))
             data = data.rename(new_name_or_name_dict=ds_info["name"])
 
             if self.sensor.lower() != "atms":
