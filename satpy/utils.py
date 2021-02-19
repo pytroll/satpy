@@ -43,14 +43,38 @@ def ensure_dir(filename):
         os.makedirs(directory)
 
 
-def debug_on():
-    """Turn debugging logging on."""
+def debug_on(dep_warnings=True):
+    """Turn debugging logging on.
+
+    Sets up a StreamHandler to to `sys.stderr` at debug level for all
+    loggers, such that all debug messages (and log messages with higher
+    severity) are logged to the standard error stream.
+
+    By default, since Satpy 0.26, this also enables the global visibility
+    of deprecation warnings.  This can be suppressed by passing a false
+    value.
+
+    Args:
+        dep_warnings (Optional[bool]): Switch on deprecation warnings.
+            Defaults to True.
+
+    Returns:
+        None
+    """
     logging_on(logging.DEBUG)
+    if dep_warnings:
+        dep_warnings_on()
 
 
 def trace_on():
     """Turn trace logging on."""
     logging_on(TRACE_LEVEL)
+
+
+def dep_warnings_on():
+    """Switch on deprecation warnings.
+    """
+    logging.filterwarnings("default", DeprecationWarning)
 
 
 def logging_on(level=logging.WARNING):
