@@ -66,7 +66,7 @@ def np2str(value):
         raise ValueError("Array is not a string type or is larger than 1")
 
 
-def _get_geostationary_h(geos_area):
+def _get_geostationary_height(geos_area):
     try:
         crs = geos_area.crs
         params = crs.coordinate_operation.params
@@ -76,7 +76,7 @@ def _get_geostationary_h(geos_area):
         return geos_area.proj_dict['h']
 
 
-def _get_geostationary_ab(geos_area):
+def _get_geostationary_semi_axes(geos_area):
     try:
         crs = geos_area.crs
         a = crs.ellipsoid.semi_major_metre
@@ -96,8 +96,8 @@ def _get_geostationary_ab(geos_area):
 def get_geostationary_angle_extent(geos_area):
     """Get the max earth (vs space) viewing angles in x and y."""
     # TODO: take into account sweep_axis_angle parameter
-    a, b = _get_geostationary_ab(geos_area)
-    h = _get_geostationary_h(geos_area)
+    a, b = _get_geostationary_semi_axes(geos_area)
+    h = _get_geostationary_height(geos_area)
     req = float(a) / 1000
     rp = float(b) / 1000
     h = float(h) / 1000 + req
@@ -125,7 +125,7 @@ def get_geostationary_mask(area):
 
     """
     # Compute projection coordinates at the earth's limb
-    h = _get_geostationary_h(area)
+    h = _get_geostationary_height(area)
     xmax, ymax = get_geostationary_angle_extent(area)
     xmax *= h
     ymax *= h
@@ -139,8 +139,8 @@ def get_geostationary_mask(area):
 
 def _lonlat_from_geos_angle(x, y, geos_area):
     """Get lons and lats from x, y in projection coordinates."""
-    a, b = _get_geostationary_ab(geos_area)
-    h = _get_geostationary_h(geos_area)
+    a, b = _get_geostationary_semi_axes(geos_area)
+    h = _get_geostationary_height(geos_area)
     h__ = float(h + a) / 1000
     b__ = (a / float(b)) ** 2
 
@@ -170,7 +170,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
 
     """
     xmax, ymax = get_geostationary_angle_extent(geos_area)
-    h = _get_geostationary_h(geos_area)
+    h = _get_geostationary_height(geos_area)
 
     # generate points around the north hemisphere in satellite projection
     # make it a bit smaller so that we stay inside the valid area
