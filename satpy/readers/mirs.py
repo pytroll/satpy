@@ -20,17 +20,16 @@
 import os
 import logging
 import datetime
-import appdirs
 import numpy as np
 import xarray as xr
 import dask.array as da
+from collections import Counter
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.aux_download import retrieve
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
-SATPY_DATA_DIR = appdirs.user_data_dir("satpy")
 
 try:
     # try getting setuptools/distribute's version of resource retrieval first
@@ -386,69 +385,60 @@ class MiRSL2ncHandler(BaseFileHandler):
                 continue
             yield self.file_type_matches(ds_info['file_type']), ds_info
 
+    def _count_channel_repeat_number(self):
+        """Count channel/polarization pair repetition."""
+        freq = self.nc.coords.get('Freq', self.nc.get('Freq'))
+        polo = self.nc['Polo']
+
+        chn_total = Counter()
+        normals = []
+        for idx, (f, p) in enumerate(zip(freq, polo)):
+            normal_f = str(int(f))
+            normal_p = 'v' if p == POLO_V else 'h'
+            chn_total[normal_f + normal_p] += 1
+            normals.append((idx, f, p, normal_f, normal_p))
+
+        return chn_total, normals
+
+    def _available_btemp_datasets(self):
+        """Create metadata for channel BTs."""
+        chn_total, normals = self._count_channel_repeat_number()
+        # keep track of current channel count for string description
+        chn_cnt = Counter()
+        for idx, _f, _p, normal_f, normal_p in normals:
+            chn_cnt[normal_f + normal_p] += 1
+            p_count = str(chn_cnt[normal_f + normal_p]
+                          if chn_total[normal_f + normal_p] > 1 else '')
+
+            new_name = "btemp_{}{}{}".format(normal_f, normal_p, p_count)
+
+            desc_bt = "Channel {} Brightness Temperature at {}GHz {}{}"
+            desc_bt = desc_bt.format(idx, normal_f, normal_p, p_count)
+            ds_info = {
+                'file_type': self.filetype_info['file_type'],
+                'name': new_name,
+                'description': desc_bt,
+                'units': 'K',
+                'channel_index': idx,
+                'frequency': "{}GHz".format(normal_f),
+                'polarization': normal_p,
+                'dependencies': ('BT', 'Sfc_type'),
+                'coordinates': ["longitude", "latitude"]
+            }
+            yield True, ds_info
+
     def _available_new_datasets(self):
+        """Metadata for available variables other than BT."""
         possible_vars = list(self.nc.data_vars.items())
         for var_name, val in possible_vars:
-            if val.ndim < 2:
-                # only handle 2d variables and 3-D BT.
-                # This brings in uncorrected BT(YM) as well... agh!
-                continue
-
-            if isinstance(val, xr.DataArray):
-                # get specific brightness temperature band products
-                if (var_name == 'BT' and
-                        self.filetype_info['file_type'] in 'mirs_atms'):
-                    freq = self.nc.coords.get('Freq', self.nc.get('Freq'))
-                    polo = self.nc['Polo']
-                    from collections import Counter
-                    # count times a channel/polarization pair occur
-                    chn_total = Counter()
-                    normals = []
-                    for idx, (f, p) in enumerate(zip(freq, polo)):
-                        normal_f = str(int(f))
-                        normal_p = 'v' if p == POLO_V else 'h'
-                        chn_total[normal_f + normal_p] += 1
-                        normals.append((idx, f, p, normal_f, normal_p))
-
-                    # keep track of current channel count for string description
-                    chn_cnt = Counter()
-                    for idx, _f, _p, normal_f, normal_p in normals:
-                        chn_cnt[normal_f + normal_p] += 1
-                        p_count = str(chn_cnt[normal_f + normal_p]
-                                      if chn_total[normal_f + normal_p] > 1
-                                      else '')
-
-                        new_name = "btemp_{}{}{}".format(normal_f,
-                                                         normal_p,
-                                                         p_count)
-
-                        desc_bt = ("Channel {} Brightness Temperature"
-                                   " at {}GHz {}{}".format(idx,
-                                                           normal_f,
-                                                           normal_p,
-                                                           p_count))
-                        ds_info = {
-                            'file_type': self.filetype_info['file_type'],
-                            'name': new_name,
-                            'description': desc_bt,
-                            'units': 'K',
-                            'channel_index': idx,
-                            'frequency': "{}GHz".format(normal_f),
-                            'polarization': normal_p,
-                            'dependencies': ('BT', 'Sfc_type'),
-                            'coordinates': ["longitude", "latitude"]
-                        }
-                        yield True, ds_info
-
-                else:
-                    # only yield 'y','x' data other than BT for now.
-                    if self.nc[var_name].ndim == 2:
-                        ds_info = {
-                            'file_type': self.filetype_info['file_type'],
-                            'name': var_name,
-                            'coordinates': ["longitude", "latitude"]
-                        }
-                        yield True, ds_info
+            if val.ndim == 2:
+                # only handle 2d variables
+                ds_info = {
+                           'file_type': self.filetype_info['file_type'],
+                           'name': var_name,
+                           'coordinates': ["longitude", "latitude"]
+                          }
+                yield True, ds_info
 
     def _available_coordinates(self):
         for var_name, data_arr in list(self.nc.coords.items()):
@@ -473,6 +463,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         """
         yield from self._available_if_this_file_type(configured_datasets)
         yield from self._available_coordinates()
+        yield from self._available_btemp_datasets()
         yield from self._available_new_datasets()
 
     def __getitem__(self, item):
