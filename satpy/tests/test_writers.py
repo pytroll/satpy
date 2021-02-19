@@ -577,11 +577,11 @@ class TestBaseWriter:
             attrs={
                 'name': 'test',
                 'start_time': datetime(2018, 1, 1, 0, 0, 0),
-                'sensor': 'fake',
+                'sensor': 'fake_sensor',
             }
         )
         ds2 = ds1.copy()
-        ds2.attrs['sensor'] = {'fake1', 'fake2'}
+        ds2.attrs['sensor'] = {'fake_sensor1', 'fake_sensor2'}
         self.scn = Scene()
         self.scn['test'] = ds1
         self.scn['test2'] = ds2
@@ -607,7 +607,7 @@ class TestBaseWriter:
             ('geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif',
              ['geotiff_test_20180101_000000.tif', 'geotiff_test2_20180101_000000.tif']),
             ('geotiff_{name}_{sensor}.tif',
-             ['geotiff_test_fake.tif', 'geotiff_test2_fake1-fake2.tif']),
+             ['geotiff_test_fake_sensor.tif', 'geotiff_test2_fake_sensor1-fake_sensor2.tif']),
         ]
     )
     def test_save_dataset_dynamic_filename(self, fmt_fn, exp_fns):

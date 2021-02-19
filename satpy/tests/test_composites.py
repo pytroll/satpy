@@ -667,7 +667,7 @@ class TestSingleBandCompositor(unittest.TestCase):
             'foo': 'bar',
             'resolution': 333,
             'units': 'K',
-            'sensor': {'fake1', 'fake2'},
+            'sensor': {'fake_sensor1', 'fake_sensor2'},
             'calibration': 'BT',
             'wavelength': 10.8
         }
