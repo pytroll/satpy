@@ -131,6 +131,14 @@ def read_atms_limb_correction_coeffs(fn):
     return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
 
 
+def get_coeff_by_sfc(coeff_fn, bt_data, idx):
+    """Read coefficients for specific filename (land or sea)."""
+    sfc_coeff = read_atms_limb_correction_coeffs(coeff_fn)
+    correction = apply_atms_limb_correction(bt_data, idx, *sfc_coeff)
+
+    return correction
+
+
 def apply_atms_limb_correction(datasets, channel_idx, dmean, coeffs, amean, nchx, nchanx):
     """Apply the atms limb correction to the brightness temperature data."""
     datasets = datasets.persist()
@@ -156,6 +164,27 @@ def coeff_cums_calc(datasets, channel_idx, fov_idx,
                 amean[nchanx[channel_idx, k], fov_idx, channel_idx])
         coeff_sum = coef + coeff_sum
     return coeff_sum + dmean[channel_idx]
+
+
+def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
+    """Gather data needed for limb correction."""
+    idx = ds_info['channel_index']
+    LOG.info("Starting ATMS Limb Correction...")
+    # transpose bt_data for correction
+    bt_data = bt_data.transpose("Channel", "y", "x")
+
+    sea_bt = get_coeff_by_sfc(coeff_fns['sea'], bt_data, idx)
+    land_bt = get_coeff_by_sfc(coeff_fns['land'], bt_data, idx)
+
+    LOG.info("Finishing limb correction")
+    is_sea = (surf_type_mask == 0)
+    new_data = da.where(is_sea, sea_bt, land_bt)
+
+    bt_corrected = xr.DataArray(new_data, dims=bt_data[idx, :, :].dims,
+                                coords=bt_data[idx, :, :].coords,
+                                attrs=ds_info,
+                                name=bt_data.name)
+    return bt_corrected
 
 
 class MiRSL2ncHandler(BaseFileHandler):
@@ -275,40 +304,6 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return coeff_fn
 
-    def limb_correct_atms_bt(self, bt_data, ds_info):
-        """Gather data needed for limb correction."""
-        idx = ds_info['channel_index']
-        LOG.info("Starting ATMS Limb Correction...")
-        # transpose bt_data for correction
-        bt_data = bt_data.transpose("Channel", "y", "x")
-
-        deps = ds_info['dependencies']
-        if len(deps) != 2:
-            str_ndeps = str(len(deps))
-            msg = ("Expected 2 dependencies for corrected BT product %d", str_ndeps)
-            raise ValueError(msg)
-
-        surf_type_mask = self[deps[1]]
-
-        # get coefficient filenames
-        coeff_fns = self.coeff_filenames
-
-        sea = read_atms_limb_correction_coeffs(coeff_fns['sea'])
-        sea_bt = apply_atms_limb_correction(bt_data, idx, *sea)
-
-        land = read_atms_limb_correction_coeffs(coeff_fns['land'])
-        land_bt = apply_atms_limb_correction(bt_data, idx, *land)
-
-        LOG.info("Finishing limb correction")
-        is_sea = (surf_type_mask == 0)
-        new_data = da.where(is_sea, sea_bt, land_bt)
-
-        bt_corrected = xr.DataArray(new_data, dims=bt_data[idx, :, :].dims,
-                                    coords=bt_data[idx, :, :].coords,
-                                    attrs=ds_info,
-                                    name=bt_data.name)
-        return bt_corrected
-
     def get_metadata(self, ds_info):
         """Get metadata."""
         metadata = {}
@@ -367,7 +362,9 @@ class MiRSL2ncHandler(BaseFileHandler):
                 LOG.info("Limb Correction will not be applied to non-ATMS BTs")
                 data = data[:, :, idx]
             else:
-                data = self.limb_correct_atms_bt(data, ds_info)
+                sfc_type_mask = self['Sfc_type']
+                data = limb_correct_atms_bt(data, sfc_type_mask,
+                                            self.coeff_filenames, ds_info)
                 self.nc = self.nc.merge(data)
         else:
             data = self[ds_id['name']]
@@ -434,10 +431,10 @@ class MiRSL2ncHandler(BaseFileHandler):
             if val.ndim == 2:
                 # only handle 2d variables
                 ds_info = {
-                           'file_type': self.filetype_info['file_type'],
-                           'name': var_name,
-                           'coordinates': ["longitude", "latitude"]
-                          }
+                    'file_type': self.filetype_info['file_type'],
+                    'name': var_name,
+                    'coordinates': ["longitude", "latitude"]
+                }
                 yield True, ds_info
 
     def _available_coordinates(self):
