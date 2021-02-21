@@ -44,7 +44,7 @@ POLO_V = 2
 POLO_H = 3
 
 # number of channels
-# n_channels = 22
+N_CHN = 22
 # number of fields of view
 N_FOV = 96
 
@@ -82,8 +82,8 @@ SENSOR = {"n18": amsu,
           }
 
 
-def read_atms_limb_correction_coeffs(fn):
-    """Read provided limb correction files for atms."""
+def read_atms_limb_correction_coefficients(fn):
+    """Read the limb correction files."""
     if os.path.isfile(fn):
         coeff_str = open(fn, "r").readlines()
     else:
@@ -94,30 +94,29 @@ def read_atms_limb_correction_coeffs(fn):
     # make it a generator
     coeff_str = (line.strip() for line in coeff_str)
 
-    all_coeffs = np.zeros((22, 96, 22), dtype=np.float32)
-    all_amean = np.zeros((22, 96, 22), dtype=np.float32)
-    all_dmean = np.zeros(22, dtype=np.float32)
-    all_nchx = np.zeros(22, dtype=np.int32)
-    all_nchanx = np.zeros((22, 22), dtype=np.int32)
+    all_coeffs = np.zeros((N_CHN, N_FOV, N_CHN), dtype=np.float32)
+    all_amean = np.zeros((N_CHN, N_FOV, N_CHN), dtype=np.float32)
+    all_dmean = np.zeros(N_CHN, dtype=np.float32)
+    all_nchx = np.zeros(N_CHN, dtype=np.int32)
+    all_nchanx = np.zeros((N_CHN, N_CHN), dtype=np.int32)
     all_nchanx[:] = 9999
     # There should be 22 sections
-    for chan_idx in range(22):
+    for chan_idx in range(N_CHN):
         # blank line at the start of each section
         _ = next(coeff_str)
 
         # section header
         _nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
-        # nx = int(nx)  # Question, was this supposed to be used somewhere?
         all_nchx[chan_idx] = nchx = int(nchx)
         all_dmean[chan_idx] = float(dmean)
 
         # coeff locations (indexes to put the future coefficients in)
         locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
-        assert len(locations) == nchx
+        assert(len(locations) == nchx)
         for x in range(nchx):
             all_nchanx[chan_idx, x] = locations[x] - 1
 
-        # Read 'nchx' coefficients for each of 96 FOV (N_FOV).
+        # Read 'nchx' coefficients for each of 96 FOV
         for fov_idx in range(N_FOV):
             # chan_num, fov_num, *coefficients, error
             coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
@@ -133,37 +132,30 @@ def read_atms_limb_correction_coeffs(fn):
 
 def get_coeff_by_sfc(coeff_fn, bt_data, idx):
     """Read coefficients for specific filename (land or sea)."""
-    sfc_coeff = read_atms_limb_correction_coeffs(coeff_fn)
-    correction = apply_atms_limb_correction(bt_data, idx, *sfc_coeff)
-
+    sfc_coeff = read_atms_limb_correction_coefficients(coeff_fn)
+    bt_data = bt_data.persist()
+    correction = da.map_blocks(apply_atms_limb_correction,
+                               bt_data, idx, *sfc_coeff)
     return correction
 
 
-def apply_atms_limb_correction(datasets, channel_idx, dmean, coeffs, amean, nchx, nchanx):
-    """Apply the atms limb correction to the brightness temperature data."""
-    datasets = datasets.persist()
-    ds = datasets[channel_idx]
-    new_ds = np.zeros(ds.shape, dtype=ds.dtype)
-    for fov_idx in range(N_FOV):
-        new_ds[:, fov_idx] = da.map_blocks(coeff_cums_calc,
-                                           datasets, channel_idx,
-                                           fov_idx, dmean, coeffs,
-                                           amean, nchx,
-                                           nchanx, dtype=ds.dtype)
-
-    return new_ds
-
-
-def coeff_cums_calc(datasets, channel_idx, fov_idx,
-                    dmean, coeffs, amean, nchx, nchanx):
+def apply_atms_limb_correction(datasets, channel_idx, dmean,
+                               coeffs, amean, nchx, nchanx):
     """Calculate the correction for each channel."""
-    coeff_sum = np.zeros(datasets.shape[1], dtype=datasets[0].dtype)
-    for k in range(nchx[channel_idx]):
-        coef = coeffs[channel_idx, fov_idx, nchanx[channel_idx, k]] * (
-                datasets[nchanx[channel_idx, k], :, fov_idx] -
-                amean[nchanx[channel_idx, k], fov_idx, channel_idx])
-        coeff_sum = coef + coeff_sum
-    return coeff_sum + dmean[channel_idx]
+    ds = datasets[channel_idx]
+    fov_line_correct = []
+    for fov_idx in range(N_FOV):
+        coeff_sum = xr.DataArray(np.zeros(ds.shape[0],
+                                          dtype=ds.dtype), dims='y')
+        for k in range(nchx[channel_idx]):
+            chn_repeat = nchanx[channel_idx, k]
+            coef = coeffs[channel_idx, fov_idx, chn_repeat] * (
+                   datasets[chn_repeat, :, fov_idx] -
+                   amean[chn_repeat, fov_idx, channel_idx])
+            coeff_sum = da.add(coef, coeff_sum)
+        fov_line_correct.append(da.add(coeff_sum, dmean[channel_idx]))
+    a = da.stack(fov_line_correct, axis=1)
+    return a
 
 
 def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
