@@ -157,8 +157,7 @@ def fake_open_dataset(filename, **kwargs):
     """Create a Dataset similar to reading an actual file with xarray.open_dataset."""
     if filename == AWIPS_FILE:
         return _get_datasets_with_less_attributes()
-    else:
-        return _get_datasets_with_attributes()
+    return _get_datasets_with_attributes()
 
 
 class TestMirsL2_NcReader:
