@@ -663,10 +663,16 @@ class TestSingleBandCompositor(unittest.TestCase):
         # Dataset with extra attributes
         all_valid = self.all_valid
         all_valid.attrs['sensor'] = 'foo'
-        attrs = {'foo': 'bar', 'resolution': 333, 'units': 'K',
-                 'calibration': 'BT', 'wavelength': 10.8}
+        attrs = {
+            'foo': 'bar',
+            'resolution': 333,
+            'units': 'K',
+            'sensor': {'fake_sensor1', 'fake_sensor2'},
+            'calibration': 'BT',
+            'wavelength': 10.8
+        }
         self.comp.attrs['resolution'] = None
-        res = self.comp([self.all_valid], **attrs)
+        res = self.comp([all_valid], **attrs)
         # Verify attributes
         self.assertEqual(res.attrs.get('sensor'), 'foo')
         self.assertTrue('foo' in res.attrs)

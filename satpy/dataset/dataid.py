@@ -678,7 +678,7 @@ class DataQuery:
                         dataid_val = dataid[key]
                     except KeyError:
                         distance += big_distance
-                        break
+                        continue
                     try:
                         distance += dataid_val.distance(val)
                     except AttributeError:
