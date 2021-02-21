@@ -154,8 +154,7 @@ def apply_atms_limb_correction(datasets, channel_idx, dmean,
                    amean[chn_repeat, fov_idx, channel_idx])
             coeff_sum = da.add(coef, coeff_sum)
         fov_line_correct.append(da.add(coeff_sum, dmean[channel_idx]))
-    a = da.stack(fov_line_correct, axis=1)
-    return a
+    return da.stack(fov_line_correct, axis=1)
 
 
 def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
