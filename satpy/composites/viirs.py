@@ -33,31 +33,6 @@ from satpy.utils import get_satpos
 LOG = logging.getLogger(__name__)
 
 
-class VIIRSFog(CompositeBase):
-    """A simple temperature difference composite for showing fog."""
-
-    def __call__(self, projectables, nonprojectables=None, **info):
-        """Create the temperature difference DataArray."""
-        import warnings
-        warnings.warn("VIIRSFog compositor is deprecated, use DifferenceCompositor "
-                      "instead.", DeprecationWarning)
-
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
-
-        p1, p2 = projectables
-        fog = p1 - p2
-        fog.attrs.update(self.attrs)
-        fog.attrs["area"] = p1.attrs["area"]
-        fog.attrs["start_time"] = p1.attrs["start_time"]
-        fog.attrs["end_time"] = p1.attrs["end_time"]
-        fog.attrs["name"] = self.attrs["name"]
-        fog.attrs["wavelength"] = None
-        fog.attrs.setdefault("mode", "L")
-        return fog
-
-
 class ReflectanceCorrector(CompositeBase):
     """Corrected Reflectance (crefl) modifier.
 
