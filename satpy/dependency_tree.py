@@ -181,6 +181,14 @@ class DependencyTree(Tree):
             new_tree.add_child(new_tree._root, c)
         return new_tree
 
+    def update_node_name(self, node, new_name):
+        """Update 'name' property of a node and any related metadata."""
+        old_name = node.name
+        assert old_name in self._all_nodes
+        node.update_name(new_name)
+        self._all_nodes[new_name] = node
+        del self._all_nodes[old_name]
+
     def populate_with_keys(self, dataset_keys: set, query=None):
         """Populate the dependency tree.
 

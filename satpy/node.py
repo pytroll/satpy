@@ -49,6 +49,10 @@ class Node:
         self.children = []
         self.parents = []
 
+    def update_name(self, new_name):
+        """Update 'name' property."""
+        self.name = new_name
+
     @property
     def is_leaf(self):
         """Check if the node is a leaf."""
@@ -134,7 +138,7 @@ class Node:
 
     def trunk(self, unique=True):
         """Get the trunk of the tree starting at this root."""
-        # uniqueness is not correct in `trunk` yet
+        # FIXME: uniqueness is not correct in `trunk` yet
         unique = False
         res = []
         if self.children and self.name is not EMPTY_LEAF_NAME:
@@ -153,6 +157,12 @@ class CompositorNode(Node):
     def __init__(self, compositor):
         """Set up the node."""
         super().__init__(compositor.id, data=(compositor, [], []))
+
+    def update_name(self, new_name):
+        """Update 'name' property and related compositor metadata."""
+        super().update_name(new_name)
+        self.compositor.attrs.update(new_name)
+        self.compositor.attrs['_satpy_id'] = new_name
 
     def add_required_nodes(self, children):
         """Add nodes to the required field."""

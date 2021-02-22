@@ -1269,7 +1269,7 @@ class Scene:
             if comp_node.name in self._wishlist:
                 self._wishlist.remove(comp_node.name)
                 self._wishlist.add(cid)
-            comp_node.name = cid
+            self._dependency_tree.update_node_name(comp_node, cid)
         except IncompatibleAreas:
             LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
             preservable_datasets = set(self._datasets.keys())
