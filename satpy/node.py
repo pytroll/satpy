@@ -89,6 +89,8 @@ class Node:
         for c in self.children:
             c = c.copy(node_cache=node_cache)
             s.add_child(c)
+        if node_cache is not None:
+            node_cache[s.name] = s
         return s
 
     def _copy_name_and_data(self, node_cache=None):
