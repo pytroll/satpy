@@ -185,9 +185,9 @@ class DependencyTree(Tree):
         """Update 'name' property of a node and any related metadata."""
         old_name = node.name
         assert old_name in self._all_nodes
+        del self._all_nodes[old_name]
         node.update_name(new_name)
         self._all_nodes[new_name] = node
-        del self._all_nodes[old_name]
 
     def populate_with_keys(self, dataset_keys: set, query=None):
         """Populate the dependency tree.
