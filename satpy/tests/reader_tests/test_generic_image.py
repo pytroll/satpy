@@ -187,3 +187,18 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue(data.bands.size == 4)
         data = mask_image_data(data)
         self.assertTrue(data.bands.size == 3)
+
+    def test_GenericImageFileHandler_datasetid(self):
+        """Test direct use of the reader."""
+        from satpy.readers.generic_image import GenericImageFileHandler
+        from satpy.readers.generic_image import mask_image_data
+
+        fname = os.path.join(self.base_dir, 'test_rgba.tif')
+        fname_info = {'start_time': self.date}
+        ftype_info = {}
+        reader = GenericImageFileHandler(fname, fname_info, ftype_info)
+
+        foo = make_dataid(name='image-custom')
+        self.assertTrue(reader.file_content)
+        dataset = reader.get_dataset(foo, None)
+        self.assertTrue(isinstance(dataset, xr.DataArray))
