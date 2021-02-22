@@ -398,9 +398,11 @@ class Scene:
         new_scn = self.__class__()
         new_scn.attrs = self.attrs.copy()
         new_scn._dependency_tree = self._dependency_tree.copy()
+        if datasets is None:
+            datasets = self.keys()
 
-        for ds_id in (datasets or self.keys()):
-            # NOTE: Must use `.datasets` or side effects of `__setitem__`
+        for ds_id in datasets:
+            # NOTE: Must use `._datasets` or side effects of `__setitem__`
             #       could hurt us with regards to the wishlist
             new_scn._datasets[ds_id] = self[ds_id]
 
