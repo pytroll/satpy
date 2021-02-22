@@ -60,7 +60,7 @@ class Tree:
                     res.append(sub_child)
         return res
 
-    def trunk(self, nodes=None, unique=True):
+    def trunk(self, nodes=None, unique=True, limit_to=None):
         """Get the trunk nodes of the tree starting at this root.
 
         Args:
@@ -77,7 +77,7 @@ class Tree:
 
         res = list()
         for child_id in nodes:
-            for sub_child in self._all_nodes[child_id].trunk(unique=unique):
+            for sub_child in self._all_nodes[child_id].trunk(unique=unique, limit_to=limit_to):
                 if not unique or sub_child not in res:
                     res.append(sub_child)
         return res

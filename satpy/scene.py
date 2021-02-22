@@ -1195,8 +1195,10 @@ class Scene:
 
     def _generate_composites_from_loaded_datasets(self):
         """Compute all the composites contained in `requirements`."""
-        nodes = set(self._dependency_tree.trunk(nodes=self.missing_datasets)) - set(self._datasets.keys())
-        return self._generate_composites_nodes_from_loaded_datasets(nodes)
+        trunk_nodes = self._dependency_tree.trunk(nodes=self.missing_datasets,
+                                                  limit_to=self._datasets.keys())
+        needed_comp_nodes = set(trunk_nodes) - set(self._datasets.keys())
+        return self._generate_composites_nodes_from_loaded_datasets(needed_comp_nodes)
 
     def _generate_composites_nodes_from_loaded_datasets(self, compositor_nodes):
         """Read (generate) composites."""
