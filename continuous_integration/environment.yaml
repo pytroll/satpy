@@ -34,7 +34,7 @@ dependencies:
   - zarr
   - python-eccodes
   # 2.19.1 seems to cause library linking issues
-  - eccodes!=2.19
+  - eccodes>=2.20
   - geoviews
   - pytest
   - pytest-cov
