@@ -134,8 +134,10 @@ def get_coeff_by_sfc(coeff_fn, bt_data, idx):
     """Read coefficients for specific filename (land or sea)."""
     sfc_coeff = read_atms_limb_correction_coefficients(coeff_fn)
     bt_data = bt_data.persist()
+    c_size = bt_data[idx, :, :].chunks
     correction = da.map_blocks(apply_atms_limb_correction,
-                               bt_data, idx, *sfc_coeff)
+                               bt_data.values, idx, *sfc_coeff,
+                               chunks=c_size)
     return correction
 
 
@@ -143,10 +145,10 @@ def apply_atms_limb_correction(datasets, channel_idx, dmean,
                                coeffs, amean, nchx, nchanx):
     """Calculate the correction for each channel."""
     ds = datasets[channel_idx]
+
     fov_line_correct = []
     for fov_idx in range(N_FOV):
-        coeff_sum = xr.DataArray(np.zeros(ds.shape[0],
-                                          dtype=ds.dtype), dims='y')
+        coeff_sum = np.zeros(ds.shape[0], dtype=ds.dtype)
         for k in range(nchx[channel_idx]):
             chn_repeat = nchanx[channel_idx, k]
             coef = coeffs[channel_idx, fov_idx, chn_repeat] * (
@@ -154,7 +156,7 @@ def apply_atms_limb_correction(datasets, channel_idx, dmean,
                    amean[chn_repeat, fov_idx, channel_idx])
             coeff_sum = da.add(coef, coeff_sum)
         fov_line_correct.append(da.add(coeff_sum, dmean[channel_idx]))
-    return da.stack(fov_line_correct, axis=1)
+    return np.stack(fov_line_correct, axis=1)
 
 
 def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
@@ -175,6 +177,7 @@ def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
                                 coords=bt_data[idx, :, :].coords,
                                 attrs=ds_info,
                                 name=bt_data.name)
+
     return bt_corrected
 
 
