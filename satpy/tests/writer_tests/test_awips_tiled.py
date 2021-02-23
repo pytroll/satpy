@@ -25,6 +25,18 @@ import dask.array as da
 import pytest
 
 
+def _check_production_location(ds):
+    if 'production_site' in ds.attrs:
+        prod_loc_name = 'production_site'
+    elif 'production_location' in ds.attrs:
+        prod_loc_name = 'producton_location'
+    else:
+        return
+
+    if prod_loc_name in ds.attrs:
+        assert len(ds.attrs[prod_loc_name]) == 31
+
+
 def check_required_common_attributes(ds):
     """Check common properties of the created AWIPS tiles for validity."""
     assert 'x' in ds.coords
@@ -50,12 +62,14 @@ def check_required_common_attributes(ds):
                       'number_product_tiles',
                       'product_rows', 'product_columns'):
         assert attr_name in ds.attrs
+    _check_production_location(ds)
 
     for data_arr in ds.data_vars.values():
         if data_arr.ndim == 0:
             # grid mapping variable
             assert 'grid_mapping_name' in data_arr.attrs
             continue
+        assert data_arr.encoding.get('zlib', False)
         assert 'grid_mapping' in data_arr.attrs
         assert data_arr.attrs['grid_mapping'] in ds
 
@@ -517,13 +531,23 @@ class TestAWIPSTiledWriter:
         ['C',
          'F']
     )
-    def test_multivar_numbered_tiles_glm(self, sector):
+    @pytest.mark.parametrize(
+        "extra_kwargs",
+        [
+            {},
+            {'environment_prefix': 'AA'},
+            {'environment_prefix': 'BB', 'filename': '{environment_prefix}_{name}_GLM_T{tile_number:04d}.nc'},
+        ]
+    )
+    def test_multivar_numbered_tiles_glm(self, sector, extra_kwargs):
         """Test creating a tiles with multiple variables."""
         import xarray as xr
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
+        import os
+        os.environ['ORGANIZATION'] = '1' * 50
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
@@ -569,8 +593,10 @@ class TestAWIPSTiledWriter:
         })
 
         w.save_datasets([ds1, ds2, ds3, dqf], sector_id='TEST', source_name="TESTS",
-                        tile_count=(3, 3), template='glm_l2_rad{}'.format(sector.lower()))
-        all_files = glob(os.path.join(self.base_dir, '*_GLM*.nc'))
+                        tile_count=(3, 3), template='glm_l2_rad{}'.format(sector.lower()),
+                        **extra_kwargs)
+        fn_glob = self._get_glm_glob_filename(extra_kwargs)
+        all_files = glob(os.path.join(self.base_dir, fn_glob))
         assert len(all_files) == 9
         for fn in all_files:
             ds = xr.open_dataset(fn, mask_and_scale=False)
@@ -579,3 +605,11 @@ class TestAWIPSTiledWriter:
                 assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
             else:  # 'F'
                 assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    @staticmethod
+    def _get_glm_glob_filename(extra_kwargs):
+        if 'filename' in extra_kwargs:
+            return 'BB*_GLM*.nc'
+        elif 'environment_prefix' in extra_kwargs:
+            return 'AA*_GLM*.nc'
+        return 'DR*_GLM*.nc'

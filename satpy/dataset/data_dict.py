@@ -76,6 +76,7 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
         best (bool): Sort results to get "best" result first
                      (default: True). See `get_best_dataset_key` for details.
         query (DataQuery): filter for the key which can contain for example:
+
             resolution (float, int, or list): Resolution of the dataset in
                                             dataset units (typically
                                             meters). This can also be a
@@ -93,8 +94,8 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
                             desired list of modifiers for one dataset, not
                             a list of possible modifiers.
 
-
-    Returns (list or DataID): Matching key(s)
+    Returns:
+        list or DataID: Matching key(s)
 
     Raises: KeyError if no matching results or if more than one result is
             found when `num_results` is `1`.

@@ -152,7 +152,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
             pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
             pdict['p_id'] = 'FY-4A, 2000m'
         else:
-            pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
+            pdict['a_name'] = self.filename_info['observation_type']+'_4000m'
             pdict['p_id'] = 'FY-4A, 4000m'
 
         pdict['coff'] = pdict['coff'] + 0.5

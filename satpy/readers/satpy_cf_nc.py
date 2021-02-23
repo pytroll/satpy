@@ -27,7 +27,7 @@ There are several readers using the same satpy_cf_nc.py reader.
 * EUMETSAT GAC FDR reader ``avhrr_l1c_eum_gac_fdr_nc``
 
 Generic reader
--------
+--------------
 
 The generic ``satpy_cf_nc`` reader reads files of type:
 
@@ -38,6 +38,7 @@ The generic ``satpy_cf_nc`` reader reads files of type:
 
 Example
 -------
+
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -48,7 +49,6 @@ Here is an example how to read the data in satpy:
     scn = Scene(reader='satpy_cf_nc', filenames=filenames)
     scn.load(['M05'])
     scn['M05']
-
 
 Output:
 
@@ -83,7 +83,7 @@ Notes:
     Available datasets and attributes will depend on the data saved with the cf_writer.
 
 EUMETSAT AVHRR GAC FDR L1C reader
--------
+---------------------------------
 
 The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
 
@@ -94,6 +94,7 @@ The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
 
 Example
 -------
+
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -177,11 +178,14 @@ Output:
         ancillary_variables:                   []
 
 """
-from satpy.readers.file_handlers import BaseFileHandler
-import logging
 import itertools
+import logging
+
 import xarray as xr
+
 from satpy import CHUNK_SIZE
+from satpy.dataset.dataid import WavelengthRange
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -250,14 +254,14 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info['file_type'] = self.filetype_info['file_type']
             ds_info['name'] = var_name
             try:
-                ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
+                ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
             except KeyError:
                 pass
             self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
     def _coordinate_datasets(self, configured_datasets=None):
-        """Add information of coordiante datasets."""
+        """Add information of coordinate datasets."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
         for var_name, val in nc.coords.items():
             ds_info = dict(val.attrs)

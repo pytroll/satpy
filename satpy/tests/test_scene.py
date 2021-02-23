@@ -48,23 +48,6 @@ class TestScene(unittest.TestCase):
         import satpy.scene
         self.assertRaises(ValueError, satpy.scene.Scene, reader='blo', filenames='test.nc')
 
-    def test_init_with_sensor(self):
-        """Test initializing with a sensor."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader
-        with mock.patch('satpy.scene.Scene._create_reader_instances') as cri:
-            cri.return_value = {
-                'fake_reader': FakeReader('fake_reader', sensor_name='fake_sensor'),
-            }
-            scene = satpy.scene.Scene(filenames=['bla'],
-                                      base_dir='bli',
-                                      sensor='fake_sensor')
-            self.assertIsInstance(scene.attrs['sensor'], set)
-            scene = satpy.scene.Scene(filenames=['bla'],
-                                      base_dir='bli',
-                                      sensor=['fake_sensor'])
-            self.assertIsInstance(scene.attrs['sensor'], set)
-
     def test_start_end_times(self):
         """Test start and end times for a scene."""
         import satpy.scene
@@ -76,9 +59,7 @@ class TestScene(unittest.TestCase):
                            end_time=datetime(2017, 1, 1, 1, 0, 0),
                            )
             cri.return_value = {'fake_reader': r}
-            scene = satpy.scene.Scene(filenames=['bla'],
-                                      base_dir='bli',
-                                      sensor='fake_sensor')
+            scene = satpy.scene.Scene(filenames=['bla'])
             self.assertEqual(scene.start_time, r.start_time)
             self.assertEqual(scene.end_time, r.end_time)
 
@@ -95,8 +76,6 @@ class TestScene(unittest.TestCase):
             cri.return_value = {'fake_reader': r}
             reader_kwargs = {'calibration_type': 'gsics'}
             scene = satpy.scene.Scene(filenames=['bla'],
-                                      base_dir='bli',
-                                      sensor='fake_sensor',
                                       filter_parameters={'area': 'euron1'},
                                       reader_kwargs=reader_kwargs)
             self.assertIsNot(reader_kwargs, cri.call_args[1]['reader_kwargs'])
@@ -106,21 +85,13 @@ class TestScene(unittest.TestCase):
     def test_init_alone(self):
         """Test simple initialization."""
         from satpy.scene import Scene
-        from satpy.config import PACKAGE_CONFIG_PATH
         scn = Scene()
-        self.assertEqual(scn._ppp_config_dir, PACKAGE_CONFIG_PATH)
         self.assertFalse(scn._readers, 'Empty scene should not load any readers')
 
     def test_init_no_files(self):
         """Test that providing an empty list of filenames fails."""
         from satpy.scene import Scene
         self.assertRaises(ValueError, Scene, reader='viirs_sdr', filenames=[])
-
-    def test_init_with_ppp_config_dir(self):
-        """Test initializing with a ppp_config_dir."""
-        from satpy.scene import Scene
-        scn = Scene(ppp_config_dir="foo")
-        self.assertEqual(scn._ppp_config_dir, 'foo')
 
     def test_create_reader_instances_with_filenames(self):
         """Test creating a reader providing filenames."""
@@ -135,7 +106,6 @@ class TestScene(unittest.TestCase):
                     filenames=filenames,
                     reader=reader_name,
                     reader_kwargs=None,
-                    ppp_config_dir=mock.ANY
                 )
 
     def test_init_with_empty_filenames(self):
@@ -184,8 +154,7 @@ class TestScene(unittest.TestCase):
         with mock.patch('satpy.scene.load_readers') as findermock:
             findermock.return_value = {}
             Scene(reader=reader, filenames=filenames)
-            findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
-                                               reader=reader,
+            findermock.assert_called_once_with(reader=reader,
                                                filenames=filenames,
                                                reader_kwargs=None,
                                                )
@@ -210,15 +179,11 @@ class TestScene(unittest.TestCase):
             r.select_files_from_pathnames.return_value = filenames
             r.create_filehandlers = mock.MagicMock()
             scene = satpy.scene.Scene(filenames=['bla'],
-                                      base_dir='bli',
-                                      sensor='fake_sensor',
                                       filter_parameters={'area': 'euron1'},
                                       reader_kwargs=reader_kwargs)
             del scene
             self.assertDictEqual(reader_kwargs, r.create_filehandlers.call_args[1]['fh_kwargs'])
             scene = satpy.scene.Scene(filenames=['bla'],
-                                      base_dir='bli',
-                                      sensor='fake_sensor',
                                       reader_kwargs=reader_kwargs2)
             self.assertDictEqual(reader_kwargs, r.create_filehandlers.call_args[1]['fh_kwargs'])
             del scene
@@ -708,7 +673,6 @@ class TestScene(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = Scene(filenames=['bla'],
-                      base_dir='bli',
                       reader='fake_reader')
         # patch the _composite_loader
         scene._composite_loader.compositors = comps
@@ -732,7 +696,6 @@ class TestScene(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = Scene(filenames=['bla'],
-                      base_dir='bli',
                       reader='fake_reader')
         # patch the _composite_loader
         scene._composite_loader.compositors = comps
@@ -755,7 +718,6 @@ class TestScene(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = Scene(filenames=['bla'],
-                      base_dir='bli',
                       reader='fake_reader')
         # patch the _composite_loader
         scene._composite_loader.compositors = comps
@@ -783,7 +745,6 @@ class TestScene(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         self.assertNotIn('comp2', scene.available_composite_names())
 
@@ -802,7 +763,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         self.assertRaises(TypeError, scene.load, 'ds1')
 
@@ -817,7 +777,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         self.assertRaises(KeyError, scene.load, [
                           'im_a_dataset_that_doesnt_exist'])
@@ -833,7 +792,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = Scene(filenames=['bla'],
-                      base_dir='bli',
                       reader='fake_reader')
         scene.load(['ds9_fail_load'])
         loaded_ids = list(scene._datasets.keys())
@@ -859,7 +817,6 @@ class TestSceneLoading(unittest.TestCase):
         cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds1'])
         loaded_ids = list(scene._datasets.keys())
@@ -874,7 +831,6 @@ class TestSceneLoading(unittest.TestCase):
         r = FakeReader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': r}
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds1'])
         loaded_ids = list(scene._datasets.keys())
@@ -903,7 +859,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         self.assertRaises(KeyError, scene.load,
                           [make_dataid(name='ds1', modifiers=('_fake_bad_mod_',))])
@@ -919,7 +874,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds4'])
         loaded_ids = list(scene._datasets.keys())
@@ -937,7 +891,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds5'])
         loaded_ids = list(scene._datasets.keys())
@@ -956,7 +909,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds5'], resolution=1000)
         scene.load(['ds5'], resolution=500)
@@ -978,7 +930,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds5'], resolution=[500, 1000])
         loaded_ids = list(scene._datasets.keys())
@@ -997,7 +948,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load([make_dsq(name='ds5', modifiers=tuple())])
         loaded_ids = list(scene._datasets.keys())
@@ -1021,7 +971,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds5'])
         loaded_ids = list(scene._datasets.keys())
@@ -1040,7 +989,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load([0.22])
         loaded_ids = list(scene._datasets.keys())
@@ -1058,7 +1006,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ds9_fail_load'])
         loaded_ids = list(scene._datasets.keys())
@@ -1075,7 +1022,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp1'])
         loaded_ids = list(scene._datasets.keys())
@@ -1093,7 +1039,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp4'])
         loaded_ids = list(scene._datasets.keys())
@@ -1111,7 +1056,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         comp25 = make_cid(name='comp25', resolution=1000)
         scene[comp25] = 'bla'
@@ -1135,7 +1079,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
 
         scene.load(['comp24', 'comp25'], resolution=500)
@@ -1157,7 +1100,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp5'])
         loaded_ids = list(scene._datasets.keys())
@@ -1175,7 +1117,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp6'])
         loaded_ids = list(scene._datasets.keys())
@@ -1193,7 +1134,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         self.assertRaises(KeyError, scene.load, ['comp8'])
 
@@ -1208,7 +1148,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp9'])
@@ -1227,7 +1166,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp10'])
@@ -1246,7 +1184,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp11'])
@@ -1265,7 +1202,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp12'])
@@ -1284,7 +1220,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp13'])
@@ -1303,7 +1238,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp14'])
@@ -1326,7 +1260,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp15'])
@@ -1348,7 +1281,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp16'])
@@ -1367,7 +1299,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp17'])
@@ -1385,7 +1316,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp18'])
@@ -1421,7 +1351,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp18_2'])
@@ -1460,7 +1389,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
 
         # Check dependency tree nodes
@@ -1496,7 +1424,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp1', 'comp2', 'comp3', 'comp4', 'comp5', 'comp6',
                     'comp7', 'comp9', 'comp10'])
@@ -1514,7 +1441,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp10'])
         scene.load(['comp9'])
@@ -1539,7 +1465,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load([make_dsq(name='ds1', modifiers=('mod1', 'mod2'))])
         loaded_ids = list(scene._datasets.keys())
@@ -1557,7 +1482,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load([
             make_dataid(name='ds1', modifiers=('mod1', 'mod2')),
@@ -1583,7 +1507,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp3'])
         self.assertEqual(r.load.call_count, 1)
@@ -1609,7 +1532,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['comp10'])
         self.assertEqual(r.load.call_count, 1)
@@ -1656,7 +1578,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp20'])
@@ -1675,7 +1596,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp21'])
@@ -1694,7 +1614,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp22'])
@@ -1712,7 +1631,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         scene.load(['ahi_green'])
         loaded_ids = list(scene._datasets.keys())
@@ -1730,7 +1648,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp10'], generate=False)
@@ -1763,7 +1680,6 @@ class TestSceneLoading(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
 
         # Check dependency tree nodes
@@ -1819,7 +1735,6 @@ class TestSceneLoading(unittest.TestCase):
 
         cl.side_effect = _test
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
         # mock the available comps/mods in the compositor loader
         avail_comps = scene.available_composite_ids()
@@ -1849,7 +1764,7 @@ class TestSceneLoading(unittest.TestCase):
         cri.return_value = {'fake_reader': reader}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
         # mock the available comps/mods in the compositor loader
         avail_comps = scene.available_composite_ids()
         # static image => 1
@@ -1882,7 +1797,7 @@ class TestSceneLoading(unittest.TestCase):
         reader = FakeReader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': reader}
         comps, mods = test_composites('fake_sensor')
-        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
         all_comp_ids = scene.available_composite_ids()
         self.assertIn(make_cid(name='static_image'), all_comp_ids)
         available_comp_ids = scene.available_composite_ids()
@@ -1922,7 +1837,6 @@ class TestSceneResampling(unittest.TestCase):
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
 
         scene.load(['comp19'])
@@ -1976,7 +1890,6 @@ class TestSceneResampling(unittest.TestCase):
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
 
         # Set PYTHONHASHSEED to 0 in the interpreter to test as intended (comp26 comes before comp14)
@@ -2017,7 +1930,7 @@ class TestSceneResampling(unittest.TestCase):
         get_area_slices_big.return_value = (slice(0, 6, None), slice(0, 6, None))
 
         # Test that data reduction can be disabled
-        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
         scene['comp19_big'] = xr.DataArray(
@@ -2067,7 +1980,7 @@ class TestSceneResampling(unittest.TestCase):
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
-        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
 
         scene.load(['comp19', 'comp20'])
         scene['comp19'].attrs['area'] = area_def
@@ -2099,7 +2012,7 @@ class TestSceneResampling(unittest.TestCase):
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
-        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
 
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
@@ -2147,7 +2060,6 @@ class TestSceneResampling(unittest.TestCase):
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
         scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
                                   reader='fake_reader')
 
         # it is fine that an optional prereq doesn't exist

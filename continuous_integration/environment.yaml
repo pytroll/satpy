@@ -5,6 +5,8 @@ dependencies:
   - xarray
   - dask
   - distributed
+  - donfig
+  - appdirs
   - toolz
   - Cython
   - sphinx
@@ -31,12 +33,15 @@ dependencies:
   - geoviews
   - zarr
   - python-eccodes
+  # 2.19.1 seems to cause library linking issues
+  - eccodes>=2.20
   - geoviews
   - pytest
   - pytest-cov
   - fsspec
   - pylibtiff
   - python-geotiepoints
+  - pooch
   - pip
   - pip:
     - trollsift

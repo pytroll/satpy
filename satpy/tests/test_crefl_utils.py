@@ -23,6 +23,7 @@ class TestCreflUtils(unittest.TestCase):
     """Test crefl_utils."""
 
     def test_get_atm_variables_abi(self):
+        """Test getting atmospheric variables for ABI."""
         import numpy as np
         from satpy.composites.crefl_utils import get_atm_variables_abi
         sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(0.17690244, 6.123234e-17, 530.61332168, 405.,
