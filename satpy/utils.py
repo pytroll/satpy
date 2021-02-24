@@ -81,10 +81,10 @@ def debug_off():
 def debug(dep_warnings=True):
     """Context manager to temporarily set debugging on.
 
-    Example:
+    Example::
 
-    >>> with satpy.utils.debug():
-    ...     code_here()
+        >>> with satpy.utils.debug():
+        ...     code_here()
 
     Args:
         dep_warnings (Optional[bool]): Switch on deprecation warnings.
@@ -102,6 +102,7 @@ def trace_on():
 
 class _WarningManager:
     """Class to handle switching warnings on and off."""
+
     filt = None
 
 
