@@ -338,6 +338,9 @@ def test_debug_on(caplog):
     debug_off()  # other tests assume debugging is off
     # test that filters were reset
     assert warnings.filters == filts_before
+    with debug():
+        assert warnings.filters != filts_before
+    assert warnings.filters == filts_before
 
 
 def test_logging_on_and_off(caplog):

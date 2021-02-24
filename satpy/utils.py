@@ -66,6 +66,7 @@ def debug_on(dep_warnings=True):
     if dep_warnings:
         dep_warnings_on()
 
+
 def debug_off():
     """Turn debugging logging off.
 
@@ -102,6 +103,8 @@ def trace_on():
 class _WarningManager:
     """Class to handle switching warnings on and off."""
     filt = None
+
+
 _warning_manager = _WarningManager()
 
 
