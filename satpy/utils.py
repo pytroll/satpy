@@ -21,6 +21,7 @@
 import logging
 import os
 import warnings
+import contextlib
 from typing import Mapping
 
 import numpy as np
@@ -65,15 +66,55 @@ def debug_on(dep_warnings=True):
     if dep_warnings:
         dep_warnings_on()
 
+def debug_off():
+    """Turn debugging logging off.
+
+    This disables both debugging logging and the global visibility of
+    deprecation warnings.
+    """
+    logging_off()
+    dep_warnings_off()
+
+
+@contextlib.contextmanager
+def debug(dep_warnings=True):
+    """Context manager to temporarily set debugging on.
+
+    Example:
+
+    >>> with satpy.utils.debug():
+    ...     code_here()
+
+    Args:
+        dep_warnings (Optional[bool]): Switch on deprecation warnings.
+            Defaults to True.
+    """
+    debug_on()
+    yield
+    debug_off()
+
 
 def trace_on():
     """Turn trace logging on."""
     logging_on(TRACE_LEVEL)
 
 
+class _WarningManager:
+    """Class to handle switching warnings on and off."""
+    filt = None
+_warning_manager = _WarningManager()
+
+
 def dep_warnings_on():
     """Switch on deprecation warnings."""
     warnings.filterwarnings("default", category=DeprecationWarning)
+    _warning_manager.filt = warnings.filters[0]
+
+
+def dep_warnings_off():
+    """Switch off deprecation warnings."""
+    if _warning_manager.filt in warnings.filters:
+        warnings.filters.remove(_warning_manager.filt)
 
 
 def logging_on(level=logging.WARNING):

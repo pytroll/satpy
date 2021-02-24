@@ -316,7 +316,7 @@ class TestCheckSatpy(unittest.TestCase):
 
 def test_debug_on(caplog):
     """Test that debug_on is working as expected."""
-    from satpy.utils import debug_on
+    from satpy.utils import debug_on, debug_off, debug
 
     def depwarn():
         logger = logging.getLogger("satpy.silly")
@@ -335,3 +335,22 @@ def test_debug_on(caplog):
     with pytest.warns(DeprecationWarning):
         depwarn()
     assert warnings.filters != filts_before
+    debug_off()  # other tests assume debugging is off
+    # test that filters were reset
+    assert warnings.filters == filts_before
+
+
+def test_logging_on_and_off(caplog):
+    """Test that switching logging on and off works."""
+    from satpy.utils import logging_on, logging_off
+    logger = logging.getLogger("satpy.silly")
+    logging_on()
+    with caplog.at_level(logging.WARNING):
+        logger.debug("I'd like to leave the army please, sir.")
+        logger.warning("Stop that!  It's SILLY.")
+    assert "Stop that!  It's SILLY" in caplog.text
+    assert "I'd like to leave the army please, sir." not in caplog.text
+    logging_off()
+    with caplog.at_level(logging.DEBUG):
+        logger.warning("You've got a nice army base here, Colonel.")
+    assert "You've got a nice army base here, Colonel." not in caplog.text
