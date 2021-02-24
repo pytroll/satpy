@@ -208,13 +208,14 @@ class CompositeBase:
 class DifferenceCompositor(CompositeBase):
     """Make the difference of two data arrays."""
 
-    def __call__(self, projectables, nonprojectables=None, **info):
+    def __call__(self, projectables, nonprojectables=None, **attrs):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
+        info.update(attrs)
 
         proj = projectables[0] - projectables[1]
         proj.attrs = info
