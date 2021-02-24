@@ -19,6 +19,7 @@
 
 import logging
 import os
+import warnings
 
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import CompositorLoader
@@ -221,7 +222,7 @@ class Scene:
         # find the highest/lowest area among the provided
         return compare_func(areas, key=key_func)
 
-    def max_area(self, datasets=None):
+    def finest_area(self, datasets=None):
         """Get highest resolution area for the provided datasets.
 
         Args:
@@ -233,7 +234,20 @@ class Scene:
         """
         return self._compare_areas(datasets=datasets, compare_func=max)
 
-    def min_area(self, datasets=None):
+    def max_area(self, datasets=None):
+        """Get highest resolution area for the provided datasets. Deprecated.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+
+        """
+        warnings.warn("'max_area' is deprecated, use 'finest_area' instead.")
+        return self.finest_area(datasets=datasets)
+
+    def coarsest_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets.
 
         Args:
@@ -244,6 +258,19 @@ class Scene:
 
         """
         return self._compare_areas(datasets=datasets, compare_func=min)
+
+    def min_area(self, datasets=None):
+        """Get lowest resolution area for the provided datasets. Deprecated.
+
+        Args:
+            datasets (iterable): Datasets whose areas will be compared. Can
+                                 be either `xarray.DataArray` objects or
+                                 identifiers to get the DataArrays from the
+                                 current Scene. Defaults to all datasets.
+
+        """
+        warnings.warn("'min_area' is deprecated, use 'coarsest_area' instead.")
+        return self.coarsest_area(datasets=datasets)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
         """Get DataIDs of loadable datasets.
@@ -552,11 +579,11 @@ class Scene:
 
         # get the lowest resolution area, use it as the base of the slice
         # this makes sure that the other areas *should* be a consistent factor
-        min_area = new_scn.min_area()
+        coarsest_area = new_scn.coarsest_area()
         if isinstance(area, str):
             area = get_area_def(area)
-        new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
-            min_area, area, ll_bbox, xy_bbox)
+        new_coarsest_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
+            coarsest_area, area, ll_bbox, xy_bbox)
         new_target_areas = {}
         for src_area, dataset_ids in new_scn.iter_by_area():
             if src_area is None:
@@ -565,9 +592,9 @@ class Scene:
                 continue
 
             y_factor, y_remainder = np.divmod(float(src_area.shape[0]),
-                                              min_area.shape[0])
+                                              coarsest_area.shape[0])
             x_factor, x_remainder = np.divmod(float(src_area.shape[1]),
-                                              min_area.shape[1])
+                                              coarsest_area.shape[1])
             y_factor = int(y_factor)
             x_factor = int(x_factor)
             if y_remainder == 0 and x_remainder == 0:
@@ -684,8 +711,8 @@ class Scene:
             destination_area = get_area_def(destination_area)
         if hasattr(destination_area, 'freeze'):
             try:
-                max_area = new_scn.max_area()
-                destination_area = destination_area.freeze(max_area)
+                finest_area = new_scn.finest_area()
+                destination_area = destination_area.freeze(finest_area)
             except ValueError:
                 raise ValueError("No dataset areas available to freeze "
                                  "DynamicAreaDefinition.")
@@ -755,7 +782,7 @@ class Scene:
         Args:
             destination (AreaDefinition, GridDefinition): area definition to
                 resample to. If not specified then the area returned by
-                `Scene.max_area()` will be used.
+                `Scene.finest_area()` will be used.
             datasets (list): Limit datasets to resample to these specified
                 data arrays. By default all currently loaded
                 datasets are resampled.
@@ -780,7 +807,7 @@ class Scene:
                            if (not datasets) or dsid in datasets]
 
         if destination is None:
-            destination = self.max_area(to_resample_ids)
+            destination = self.finest_area(to_resample_ids)
         new_scn = self.copy(datasets=to_resample_ids)
         # we may have some datasets we asked for but don't exist yet
         new_scn._wishlist = self._wishlist.copy()
