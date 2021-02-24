@@ -193,10 +193,11 @@ logger = logging.getLogger(__name__)
 class SatpyCFFileHandler(BaseFileHandler):
     """File handler for Satpy's CF netCDF files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, numeric_name_prefix='CHANNEL_'):
         """Initialize file handler."""
         super().__init__(filename, filename_info, filetype_info)
         self.engine = None
+        self._numeric_name_prefix = numeric_name_prefix
 
     @property
     def start_time(self):
@@ -253,6 +254,9 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info = dict(val.attrs)
             ds_info['file_type'] = self.filetype_info['file_type']
             ds_info['name'] = var_name
+            ds_info['orig_name'] = var_name
+            if var_name.startswith(self._numeric_name_prefix):
+                ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
             try:
                 ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
             except KeyError:
@@ -275,7 +279,10 @@ class SatpyCFFileHandler(BaseFileHandler):
         logger.debug("Getting data for: %s", ds_id['name'])
         nc = xr.open_dataset(self.filename, engine=self.engine,
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
-        file_key = ds_info.get('file_key', ds_id['name'])
+        name = ds_info.get('orig_name', ds_id['name'])
+        file_key = ds_info.get('file_key', name)
         data = nc[file_key]
+        if name != ds_info['name']:
+            data = data.rename(ds_id['name'])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         return data
