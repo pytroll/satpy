@@ -227,6 +227,12 @@ class SingleBandCompositor(CompositeBase):
     This preserves all the attributes of the dataset it is derived from.
     """
 
+    @staticmethod
+    def _update_missing_metadata(existing_attrs, new_attrs):
+        for key, val in new_attrs.items():
+            if key not in existing_attrs and val is not None:
+                existing_attrs[key] = val
+
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         if len(projectables) != 1:
@@ -234,10 +240,7 @@ class SingleBandCompositor(CompositeBase):
 
         data = projectables[0]
         new_attrs = data.attrs.copy()
-
-        new_attrs.update({key: val
-                          for (key, val) in attrs.items()
-                          if val is not None})
+        self._update_missing_metadata(new_attrs, attrs)
         resolution = new_attrs.get('resolution', None)
         new_attrs.update(self.attrs)
         if resolution is not None:
