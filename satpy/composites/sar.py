@@ -38,6 +38,16 @@ def overlay(top, bottom, maxval=None):
     return res.clip(min=0)
 
 
+def soft_light(top, bottom, maxval):
+    """Apply soft light.
+
+    http://www.pegtop.net/delphi/articles/blendmodes/softlight.htm
+    """
+    a = top / maxval
+    b = bottom / maxval
+    return (2*a*b + a*a * (1 - 2*b)) * maxval
+
+
 class SARIce(GenericCompositor):
     """The SAR Ice composite."""
 
@@ -77,6 +87,20 @@ class SARIceLegacy(GenericCompositor):
         green.attrs = combine_metadata(mhh, mhv)
 
         return super(SARIceLegacy, self).__call__((mhv, green, mhh), *args, **kwargs)
+
+
+class SARIceLog(GenericCompositor):
+    """The SAR Ice composite, using log-scale data."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Create the SAR Ice Log composite."""
+        mhh, mhv = projectables
+        mhh.data = mhh.data.clip(-22)
+        mhv.data = mhv.data.clip(-30)
+        green = green = soft_light(mhh + 100, mhv + 100, 100) - 100
+        green.attrs = combine_metadata(mhh, mhv)
+
+        return super().__call__((mhv, green, mhh), *args, **kwargs)
 
 
 class SARRGB(GenericCompositor):

@@ -279,6 +279,21 @@ enhancements:
       kwargs:
         gamma: [2, 3, 2]
 
+  sar-ice-log:
+    standard_name: sar-ice-log
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-30, -13, -22]
+        max_stretch: [-10, 0, 0 ]
+
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [2, 1.2, 1.5]
+
   sar-ice-legacy:
     standard_name: sar-ice-legacy
     operations:
