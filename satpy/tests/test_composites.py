@@ -267,8 +267,9 @@ class TestDifferenceCompositor(unittest.TestCase):
         """Test that a basic difference composite works."""
         from satpy.composites import DifferenceCompositor
         comp = DifferenceCompositor(name='diff')
-        res = comp((self.ds1, self.ds2))
+        res = comp((self.ds1, self.ds2), standard_name='temperature_difference')
         np.testing.assert_allclose(res.values, -2)
+        assert res.attrs.get('standard_name') == 'temperature_difference'
 
     def test_bad_areas_diff(self):
         """Test that a difference where resolutions are different fails."""
@@ -663,10 +664,16 @@ class TestSingleBandCompositor(unittest.TestCase):
         # Dataset with extra attributes
         all_valid = self.all_valid
         all_valid.attrs['sensor'] = 'foo'
-        attrs = {'foo': 'bar', 'resolution': 333, 'units': 'K',
-                 'calibration': 'BT', 'wavelength': 10.8}
+        attrs = {
+            'foo': 'bar',
+            'resolution': 333,
+            'units': 'K',
+            'sensor': {'fake_sensor1', 'fake_sensor2'},
+            'calibration': 'BT',
+            'wavelength': 10.8
+        }
         self.comp.attrs['resolution'] = None
-        res = self.comp([self.all_valid], **attrs)
+        res = self.comp([all_valid], **attrs)
         # Verify attributes
         self.assertEqual(res.attrs.get('sensor'), 'foo')
         self.assertTrue('foo' in res.attrs)

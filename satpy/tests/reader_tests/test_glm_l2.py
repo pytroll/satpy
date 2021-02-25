@@ -216,8 +216,9 @@ class TestGLML2Reader(unittest.TestCase):
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'OR_GLM-L2-GLMC-M3_G16_s20192862159000_e20192862200000_c20192862200350.nc',
+            'CSPP_CG_GLM-L2-GLMC-M3_G16_s20192862159000_e20192862200000_c20192862200350.nc',
         ])
-        self.assertEqual(len(loadables), 1)
+        self.assertEqual(len(loadables), 2)
         r.create_filehandlers(loadables)
         self.reader = r
 
