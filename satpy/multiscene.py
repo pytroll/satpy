@@ -333,10 +333,10 @@ class MultiScene(object):
                     break
 
                 # save_datasets shouldn't be returning anything
-                for future in future_list:
-                    future.result()
-                    log.info("Finished saving %d scenes", idx)
-                    idx += 1
+                # for future in future_list:
+                future_list.result()
+                log.info("Finished saving %d scenes", idx)
+                idx += 1
                 q.task_done()
 
         input_q = Queue(batch_size if batch_size is not None else 1)
