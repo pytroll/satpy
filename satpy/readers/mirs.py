@@ -130,17 +130,6 @@ def read_atms_limb_correction_coefficients(fn):
     return all_dmean, all_coeffs, all_amean, all_nchx, all_nchanx
 
 
-def get_coeff_by_sfc(coeff_fn, bt_data, idx):
-    """Read coefficients for specific filename (land or sea)."""
-    sfc_coeff = read_atms_limb_correction_coefficients(coeff_fn)
-    bt_data = bt_data.persist()
-    c_size = bt_data[idx, :, :].chunks
-    correction = da.map_blocks(apply_atms_limb_correction,
-                               bt_data.values, idx, *sfc_coeff,
-                               chunks=c_size)
-    return correction
-
-
 def apply_atms_limb_correction(datasets, channel_idx, dmean,
                                coeffs, amean, nchx, nchanx):
     """Calculate the correction for each channel."""
@@ -154,30 +143,39 @@ def apply_atms_limb_correction(datasets, channel_idx, dmean,
             coef = coeffs[channel_idx, fov_idx, chn_repeat] * (
                    datasets[chn_repeat, :, fov_idx] -
                    amean[chn_repeat, fov_idx, channel_idx])
-            coeff_sum = da.add(coef, coeff_sum)
-        fov_line_correct.append(da.add(coeff_sum, dmean[channel_idx]))
+            coeff_sum = np.add(coef, coeff_sum)
+        fov_line_correct.append(np.add(coeff_sum, dmean[channel_idx]))
     return np.stack(fov_line_correct, axis=1)
+
+
+def get_coeff_by_sfc(coeff_fn, bt_data, idx):
+    """Read coefficients for specific filename (land or sea)."""
+    sfc_coeff = read_atms_limb_correction_coefficients(coeff_fn)
+    # transpose bt_data for correction
+    bt_data = bt_data.transpose("Channel", "y", "x")
+    c_size = bt_data[idx, :, :].chunks
+    correction = da.map_blocks(apply_atms_limb_correction,
+                               bt_data.values, idx,
+                               *sfc_coeff, chunks=c_size)
+    return correction
 
 
 def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
     """Gather data needed for limb correction."""
     idx = ds_info['channel_index']
     LOG.info("Starting ATMS Limb Correction...")
-    # transpose bt_data for correction
-    bt_data = bt_data.transpose("Channel", "y", "x")
 
     sea_bt = get_coeff_by_sfc(coeff_fns['sea'], bt_data, idx)
     land_bt = get_coeff_by_sfc(coeff_fns['land'], bt_data, idx)
 
     LOG.info("Finishing limb correction")
     is_sea = (surf_type_mask == 0)
-    new_data = da.where(is_sea, sea_bt, land_bt)
+    new_data = np.where(is_sea, sea_bt, land_bt)
 
     bt_corrected = xr.DataArray(new_data, dims=("y", "x"),
-                                coords=surf_type_mask.coords,
                                 attrs=ds_info,
+                                coords=bt_data.coords,
                                 name=ds_info['name'])
-
     return bt_corrected
 
 
@@ -202,21 +200,19 @@ class MiRSL2ncHandler(BaseFileHandler):
         self.nc = self.nc.rename({"Latitude": "latitude",
                                   "Longitude": "longitude"})
 
-        if not self.nc.coords:
-            self.nc = self.nc.assign_coords(self.new_coords())
-
+        self.nc = self.nc.assign_coords(self.new_coords())
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
 
     def new_coords(self):
         """Define coordinates when file does not use variable attributes."""
-        if not self.nc.coords.keys():
+        if not self.nc.coords:
             # this file did not define variable coordinates
             new_coords = {'latitude': self['latitude'],
                           'longitude': self['longitude']}
         else:
             # let xarray handle coordinates defined by variable attributes.
-            new_coords = self.nc.coords.keys()
+            new_coords = self.nc.coords
         return new_coords
 
     @property
