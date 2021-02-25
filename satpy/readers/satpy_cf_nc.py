@@ -253,8 +253,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         for var_name, val in nc.data_vars.items():
             ds_info = dict(val.attrs)
             ds_info['file_type'] = self.filetype_info['file_type']
-            ds_info['name'] = var_name
-            ds_info['orig_name'] = var_name
+            ds_info['name'] = ds_info['orig_name'] = var_name
             if var_name.startswith(self._numeric_name_prefix):
                 ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
             try:
