@@ -177,7 +177,7 @@ class TestAWIPSTiledWriter:
                  pytest.raises(ValueError, match=r'Either.*tile_count.*'):
                 w.save_datasets([input_data_arr], **save_kwargs)
         else:
-            with dask.config.set(scheduler=CustomScheduler(1)):
+            with dask.config.set(scheduler=CustomScheduler(1 * 2)):  # precompute=*2
                 w.save_datasets([input_data_arr], **save_kwargs)
 
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
