@@ -44,7 +44,7 @@ def ensure_dir(filename):
         os.makedirs(directory)
 
 
-def debug_on(dep_warnings=True):
+def debug_on(deprecation_warnings=True):
     """Turn debugging logging on.
 
     Sets up a StreamHandler to to `sys.stderr` at debug level for all
@@ -56,15 +56,15 @@ def debug_on(dep_warnings=True):
     value.
 
     Args:
-        dep_warnings (Optional[bool]): Switch on deprecation warnings.
+        deprecation_warnings (Optional[bool]): Switch on deprecation warnings.
             Defaults to True.
 
     Returns:
         None
     """
     logging_on(logging.DEBUG)
-    if dep_warnings:
-        dep_warnings_on()
+    if deprecation_warnings:
+        deprecation_warnings_on()
 
 
 def debug_off():
@@ -74,11 +74,11 @@ def debug_off():
     deprecation warnings.
     """
     logging_off()
-    dep_warnings_off()
+    deprecation_warnings_off()
 
 
 @contextlib.contextmanager
-def debug(dep_warnings=True):
+def debug(deprecation_warnings=True):
     """Context manager to temporarily set debugging on.
 
     Example::
@@ -87,10 +87,10 @@ def debug(dep_warnings=True):
         ...     code_here()
 
     Args:
-        dep_warnings (Optional[bool]): Switch on deprecation warnings.
+        deprecation_warnings (Optional[bool]): Switch on deprecation warnings.
             Defaults to True.
     """
-    debug_on()
+    debug_on(deprecation_warnings=deprecation_warnings)
     yield
     debug_off()
 
@@ -109,13 +109,13 @@ class _WarningManager:
 _warning_manager = _WarningManager()
 
 
-def dep_warnings_on():
+def deprecation_warnings_on():
     """Switch on deprecation warnings."""
     warnings.filterwarnings("default", category=DeprecationWarning)
     _warning_manager.filt = warnings.filters[0]
 
 
-def dep_warnings_off():
+def deprecation_warnings_off():
     """Switch off deprecation warnings."""
     if _warning_manager.filt in warnings.filters:
         warnings.filters.remove(_warning_manager.filt)
