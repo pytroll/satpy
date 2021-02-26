@@ -59,6 +59,10 @@ class TestGenericImage(unittest.TestCase):
         a__[:10, :10] = 0
         a__ = da.from_array(a__, chunks=(50, 50))
 
+        r_nan__ = np.random.uniform(0., 1., size=(self.y_size, self.x_size))
+        r_nan__[:10, :10] = np.nan
+        r_nan__ = da.from_array(r_nan__, chunks=(50, 50))
+
         ds_l = xr.DataArray(da.stack([r__]), dims=('bands', 'y', 'x'),
                             attrs={'name': 'test_l',
                                    'start_time': self.date})
@@ -78,6 +82,12 @@ class TestGenericImage(unittest.TestCase):
                                       'start_time': self.date})
         ds_rgba['bands'] = ['R', 'G', 'B', 'A']
 
+        ds_l_nan = xr.DataArray(da.stack([r_nan__]),
+                                dims=('bands', 'y', 'x'),
+                                attrs={'name': 'test_l_nan',
+                                       'start_time': self.date})
+        ds_l_nan['bands'] = ['L']
+
         # Temp dir for the saved images
         self.base_dir = tempfile.mkdtemp()
 
@@ -91,12 +101,18 @@ class TestGenericImage(unittest.TestCase):
         scn['rgb'].attrs['area'] = self.area_def
         scn['rgba'] = ds_rgba
         scn['rgba'].attrs['area'] = self.area_def
+        scn['l_nan'] = ds_l_nan
+        scn['l_nan'].attrs['area'] = self.area_def
 
         # Save the images.  Two images in PNG and two in GeoTIFF
         scn.save_dataset('l', os.path.join(self.base_dir, 'test_l.png'), writer='simple_image')
         scn.save_dataset('la', os.path.join(self.base_dir, '20180101_0000_test_la.png'), writer='simple_image')
         scn.save_dataset('rgb', os.path.join(self.base_dir, '20180101_0000_test_rgb.tif'), writer='geotiff')
         scn.save_dataset('rgba', os.path.join(self.base_dir, 'test_rgba.tif'), writer='geotiff')
+        scn.save_dataset('l_nan', os.path.join(self.base_dir, 'test_l_nan_fillvalue.tif'),
+                         writer='geotiff', fill_value=0)
+        scn.save_dataset('l_nan', os.path.join(self.base_dir, 'test_l_nan_nofillvalue.tif'),
+                         writer='geotiff')
 
         self.scn = scn
 
@@ -154,6 +170,18 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['end_time'], None)
         self.assertEqual(scn['image'].area, self.area_def)
 
+        fname = os.path.join(self.base_dir, 'test_l_nan_fillvalue.tif')
+        scn = Scene(reader='generic_image', filenames=[fname])
+        scn.load(['image'])
+        self.assertEqual(scn['image'].shape, (1, self.y_size, self.x_size))
+        self.assertTrue(np.all(np.isnan(scn['image'].data[0][:10, :10].compute())))
+
+        fname = os.path.join(self.base_dir, 'test_l_nan_nofillvalue.tif')
+        scn = Scene(reader='generic_image', filenames=[fname])
+        scn.load(['image'])
+        self.assertEqual(scn['image'].shape, (1, self.y_size, self.x_size))
+        self.assertTrue(np.all(np.isnan(scn['image'].data[0][:10, :10].compute())))
+
     def test_GenericImageFileHandler(self):
         """Test direct use of the reader."""
         from satpy.readers.generic_image import GenericImageFileHandler
@@ -191,7 +219,6 @@ class TestGenericImage(unittest.TestCase):
     def test_GenericImageFileHandler_datasetid(self):
         """Test direct use of the reader."""
         from satpy.readers.generic_image import GenericImageFileHandler
-        from satpy.readers.generic_image import mask_image_data
 
         fname = os.path.join(self.base_dir, 'test_rgba.tif')
         fname_info = {'start_time': self.date}

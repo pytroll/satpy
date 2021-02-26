@@ -117,4 +117,9 @@ def mask_image_data(data):
                                 for i in range(data.shape[0])])
         data.data = masked_data
         data = data.sel(bands=BANDS[data.bands.size - 1])
+    elif hasattr(data, 'nodatavals') and len(data.nodatavals) > 0:
+        data = data.astype(np.float64)
+        masked_data = da.stack([da.where(data.data[i, :, :] == nodataval, np.nan, data.data[i, :, :])
+                                for i, nodataval in enumerate(data.nodatavals)])
+        data.data = masked_data
     return data
