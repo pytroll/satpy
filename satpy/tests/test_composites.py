@@ -366,12 +366,12 @@ class TestMultiFiller(unittest.TestCase):
         from satpy.composites import MultiFiller
         comp = MultiFiller(name='fill_test')
         a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]))
-        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, 5, 6, 7]))
-        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, 5, 6, 7]))
-        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, np.nan, np.nan, np.nan]))
+        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]))
+        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]))
+        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]))
         e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]))
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
-        res = comp([a, b, c], info={'optional_datasets': [d, e]})
+        res = comp([a, b, c], optional_datasets=[d, e])
         np.testing.assert_allclose(res.data, expected.data)
 
 

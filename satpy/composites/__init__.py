@@ -376,10 +376,10 @@ class MultiFiller(GenericCompositor):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
         filled_projectable = projectables[0]
-        for i, next_projectable in enumerate(projectables, 1):
+        for next_projectable in projectables[1:]:
             filled_projectable = filled_projectable.fillna(next_projectable)
         if 'optional_datasets' in info.keys():
-            for i, next_projectable in enumerate(info['optional_datasets'], 1):
+            for next_projectable in info['optional_datasets']:
                 filled_projectable = filled_projectable.fillna(next_projectable)
 
         return super(MultiFiller, self).__call__([filled_projectable], **info)
