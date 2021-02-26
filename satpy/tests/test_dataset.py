@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,7 +23,9 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from satpy.dataset.dataid import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
+from satpy.dataset.dataid import (DataQuery, DataID,
+                                  WavelengthRange, FrequencyRange,
+                                  ModifierTuple, minimal_default_keys_config)
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -137,9 +139,9 @@ class TestCombineMetadata(unittest.TestCase):
         from numpy import arange, ones
         from xarray import DataArray
         dts = [
-                {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
-                {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
-                {"quality": ones((5, 5,), "?")},
+            {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
+            {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
+            {"quality": ones((5, 5,), "?")},
         ]
         assert "quality" not in combine_metadata(*dts)
         dts2 = [{"quality": DataArray(d["quality"])} for d in dts]
@@ -149,22 +151,22 @@ class TestCombineMetadata(unittest.TestCase):
         assert "quality" not in combine_metadata(*dts3)
         # check cases with repeated arrays
         dts4 = [
-                {"quality": dts[0]["quality"]},
-                {"quality": dts[0]["quality"]},
-                ]
+            {"quality": dts[0]["quality"]},
+            {"quality": dts[0]["quality"]},
+        ]
         assert "quality" in combine_metadata(*dts4)
         dts5 = [
-                {"quality": dts3[0]["quality"]},
-                {"quality": dts3[0]["quality"]},
-                ]
+            {"quality": dts3[0]["quality"]},
+            {"quality": dts3[0]["quality"]},
+        ]
         assert "quality" in combine_metadata(*dts5)
         # check with other types
         dts6 = [
-                DataArray(arange(5), attrs=dts[0]),
-                DataArray(arange(5), attrs=dts[0]),
-                DataArray(arange(5), attrs=dts[1]),
-                object()
-              ]
+            DataArray(arange(5), attrs=dts[0]),
+            DataArray(arange(5), attrs=dts[0]),
+            DataArray(arange(5), attrs=dts[1]),
+            object()
+        ]
         assert "quality" not in combine_metadata(*dts6)
 
     def test_combine_identical_numpy_scalars(self):
@@ -312,20 +314,20 @@ def test_dataid():
     # Check inequality
     default_id_keys_config = {'name': None,
                               'wavelength': {
-                                'type': WavelengthRange,
+                                  'type': WavelengthRange,
                               },
                               'resolution': None,
                               'calibration': {
-                                'enum': [
-                                    'reflectance',
-                                    'brightness_temperature',
-                                    'radiance',
-                                    'counts'
-                                    ]
+                                  'enum': [
+                                      'reflectance',
+                                      'brightness_temperature',
+                                      'radiance',
+                                      'counts'
+                                  ]
                               },
                               'modifiers': {
-                                'default': ModifierTuple(),
-                                'type': ModifierTuple,
+                                  'default': ModifierTuple(),
+                                  'type': ModifierTuple,
                               },
                               }
     assert DataID(default_id_keys_config, wavelength=10) != DataID(default_id_keys_config, name="VIS006")
@@ -527,6 +529,27 @@ class TestIDQueryInteractions(unittest.TestCase):
         dsids, distances = dq.sort_dataids(dids)
         assert distances[0] < distances[1]
         assert distances[1] < distances[2]
+
+
+def test_frequency_range_channel_equality():
+    """Test the frequency range object: check if two bands are 'equal'"""
+    from satpy.dataset.dataid import FrequencyRange
+
+    frqr = FrequencyRange(2, 1)
+    assert None != frqr
+    assert 1.7 == frqr
+    assert 1.2 != frqr
+    assert frqr == (2, 1)
+    assert frqr == (2, 1, 'GHz')
+
+
+def test_frequency_range_channel_containment():
+    """Test the frequency range object: channel containment"""
+    from satpy.dataset.dataid import FrequencyRange
+
+    frqr = FrequencyRange(2, 1)
+    assert 1.7 in frqr
+    assert 2.8 not in frqr
 
 
 def test_wavelength_range():

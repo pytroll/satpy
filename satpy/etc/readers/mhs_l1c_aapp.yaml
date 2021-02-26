@@ -10,8 +10,8 @@ data_identification_keys:
     required: true
   # frequency_stripes:
   #   type: !!python/name:satpy.readers.my_mhs_reader.FrequencyStripes
-  # frequency_range:
-  #   type: !!python/name:satpy.readers.my_mhs_reader.FrequencyRange
+  frequency_range:
+    type: !!python/name:satpy.dataset.dataid.FrequencyRange
   resolution:
   polarization:
     enum:
@@ -29,12 +29,10 @@ data_identification_keys:
 datasets:
     '1':
         name: '1'
-        #wavelength: [89., 2.8]
-        #wavelength_unit: GHz
-        # frequency_range:
-        #   center: 89.
-        #   bandwidth: 2.8
-        #   unit: GHz
+        frequency_range:
+           center: 89.
+           bandwidth: 2.8
+           unit: GHz
           
         polarization: 'V'
         resolution: 16000
@@ -48,8 +46,11 @@ datasets:
         
     '2':
         name: '2'
-        #wavelength: [157, 2.8]
-        #wavelength_unit: GHz
+        frequency_range:
+           center: 157.
+           bandwidth: 2.8
+           unit: GHz
+
         polarization: 'V'
         resolution: 16000
         calibration:
