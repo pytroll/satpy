@@ -1302,7 +1302,7 @@ def _get_flag_value(mask, val):
 
 
 class LongitudeMaskingCompositor(GenericCompositor):
-    """Masks areas outside defined longitudes """
+    """Masks areas outside defined longitudes."""
 
     def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
         """Collect custom configuration values.
