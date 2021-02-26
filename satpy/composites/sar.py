@@ -97,7 +97,7 @@ class SARIceLog(GenericCompositor):
         mhh, mhv = projectables
         mhh = mhh.clip(-40)
         mhv = mhv.clip(-38)
-        green = green = soft_light(mhh + 100, mhv + 100, 100) - 100
+        green = soft_light(mhh + 100, mhv + 100, 100) - 100
         green.attrs = combine_metadata(mhh, mhv)
 
         return super().__call__((mhv, green, mhh), *args, **kwargs)
