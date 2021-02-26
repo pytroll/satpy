@@ -156,7 +156,6 @@ class TestCFReader(unittest.TestCase):
 
     def test_read_prefixed_channels(self):
         """Check channels starting with digit is prefixed and read back correctly."""
-
         scene = self._dataset_for_prefix_testing()
         # Testing with default prefixing
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
@@ -189,7 +188,6 @@ class TestCFReader(unittest.TestCase):
 
     def test_read_prefixed_channels_by_user(self):
         """Check channels starting with digit is prefixed by user and read back correctly."""
-
         scene = self._dataset_for_prefix_testing()
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
@@ -216,7 +214,6 @@ class TestCFReader(unittest.TestCase):
 
     def test_read_prefixed_channels_by_user2(self):
         """Check channels starting with digit is prefixed by user when saving and read back correctly without prefix."""
-
         scene = self._dataset_for_prefix_testing()
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
