@@ -286,13 +286,13 @@ enhancements:
       method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
-        min_stretch: [-30, -13, -22]
-        max_stretch: [-10, 0, 0 ]
+        min_stretch: [-38, -32, -40]
+        max_stretch: [-15, 0, 0 ]
 
     - name: gamma
       method: !!python/name:satpy.enhancements.gamma
       kwargs:
-        gamma: [2, 1.2, 1.5]
+        gamma: [1, 0.5, 1]
 
   sar-ice-legacy:
     standard_name: sar-ice-legacy
@@ -919,3 +919,14 @@ enhancements:
         stretch: crude
         min_stretch: [26.2,  27.4, 243.9]
         max_stretch: [ 0.6, -26.2, 208.5]
+
+  ctth_bw:
+    standard_name: ctth_bw
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0]
+        max_stretch: [15000]
+

@@ -95,8 +95,8 @@ class SARIceLog(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR Ice Log composite."""
         mhh, mhv = projectables
-        mhh = mhh.clip(-22)
-        mhv = mhv.clip(-30)
+        mhh = mhh.clip(-40)
+        mhv = mhv.clip(-38)
         green = green = soft_light(mhh + 100, mhv + 100, 100) - 100
         green.attrs = combine_metadata(mhh, mhv)
 
