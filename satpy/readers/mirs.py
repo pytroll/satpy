@@ -173,9 +173,7 @@ def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
     new_data = np.where(is_sea, sea_bt, land_bt)
 
     bt_corrected = xr.DataArray(new_data, dims=("y", "x"),
-                                attrs=ds_info,
-                                coords=bt_data.coords,
-                                name=ds_info['name'])
+                                attrs=ds_info)
     return bt_corrected
 
 
