@@ -79,7 +79,8 @@ def _get_datasets_with_attributes():
                              'coordinates': "Longitude Latitude",
                              'scale_factor': 0.1,
                              '_FillValue': -999,
-                             'valid_range': [0, 1000]})
+                             'valid_range': [0, 1000]},
+                      dims=('Scanline', 'Field_of_view'))
     sfc_type = xr.DataArray(np.random.randint(0, 4, size=(N_SCANLINE, N_FOV)),
                             attrs={'description': "type of surface:0-ocean," +
                                                   "1-sea ice,2-land,3-snow",
