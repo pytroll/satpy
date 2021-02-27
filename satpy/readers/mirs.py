@@ -198,20 +198,8 @@ class MiRSL2ncHandler(BaseFileHandler):
         self.nc = self.nc.rename({"Latitude": "latitude",
                                   "Longitude": "longitude"})
 
-        self.nc = self.nc.assign_coords(self.new_coords())
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
-
-    def new_coords(self):
-        """Define coordinates when file does not use variable attributes."""
-        if not self.nc.coords:
-            # this file did not define variable coordinates
-            new_coords = {'latitude': self['latitude'],
-                          'longitude': self['longitude']}
-        else:
-            # let xarray handle coordinates defined by variable attributes.
-            new_coords = self.nc.coords
-        return new_coords
 
     @property
     def platform_shortname(self):
@@ -412,32 +400,35 @@ class MiRSL2ncHandler(BaseFileHandler):
             }
             yield True, ds_info
 
+    def _get_ds_info_for_data_arr(self, var_name):
+        ds_info = {
+            'file_type': self.filetype_info['file_type'],
+            'name': var_name,
+            'coordinates': ["longitude", "latitude"]
+        }
+
+        if var_name in ["longitude", "latitude"]:
+            ds_info['standard_name'] = var_name
+        return ds_info
+
+    def _is_2d_yx_data_array(self, data_arr):
+        has_y_dim = data_arr.dims[0] == "y"
+        has_x_dim = data_arr.dims[1] == "x"
+        return has_y_dim and has_x_dim
+
     def _available_new_datasets(self):
         """Metadata for available variables other than BT."""
-        possible_vars = list(self.nc.data_vars.items())
-        for var_name, val in possible_vars:
-            if val.ndim == 2:
-                # only handle 2d variables
-                ds_info = {
-                    'file_type': self.filetype_info['file_type'],
-                    'name': var_name,
-                    'coordinates': ["longitude", "latitude"]
-                }
-                yield True, ds_info
+        possible_vars = list(self.nc.items()) + list(self.nc.coords.items())
+        for var_name, data_arr in possible_vars:
+            if data_arr.ndim != 2:
+                # we don't currently handle non-2D variables
+                continue
+            if not self._is_2d_yx_data_array(data_arr):
+                # we need 'traditional' y/x dimensions currently
+                continue
 
-    def _available_coordinates(self):
-        for var_name, data_arr in list(self.nc.coords.items()):
-            # don't yield ndim == 1, it cannot be displayed.
-            if data_arr.ndim == 2:
-                attrs = data_arr.attrs.copy()
-                ds_info = {
-                    'file_type': self.filetype_info['file_type'],
-                    'name': var_name,
-                    'standard_name': var_name,
-                    'coordinates': ['longitude', 'latitude']
-                }
-                data_arr.attrs = attrs
-                yield True, ds_info
+            ds_info = self._get_ds_info_for_data_arr(var_name)
+            yield True, ds_info
 
     def available_datasets(self, configured_datasets=None):
         """Dynamically discover what variables can be loaded from this file.
@@ -447,9 +438,8 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         """
         yield from self._available_if_this_file_type(configured_datasets)
-        yield from self._available_coordinates()
-        yield from self._available_btemp_datasets()
         yield from self._available_new_datasets()
+        yield from self._available_btemp_datasets()
 
     def __getitem__(self, item):
         """Wrap around `self.nc[item]`.

@@ -20,41 +20,56 @@ file_types:
     file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
     file_patterns:
       - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
+  metop_amsu:
+    file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
+    file_patterns:
       - 'IMG_SX.{platform_shortname}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
 
 datasets:
+  longitude:
+    name: longitude
+    file_type: metop_amsu
+    file_key: Longitude
+    units: degrees
+    standard_name: longitude
+  latitude:
+    name: latitude
+    file_type: metop_amsu
+    file_key: Latitude
+    units: degrees
+    standard_name: latitude
   rain_rate:
     name: RR
+    file_type: metop_amsu
     long_name: rain_rate
     file_key: RR
-    file_type: mirs_atms
     units: mm/hr
     coordinates: [longitude, latitude]
   sea_ice:
     name: SIce
+    file_type: metop_amsu
     long_name: sea_ice
     file_key: SIce
-    file_type: mirs_atms
     coordinates: [longitude, latitude]
     units: "%"
   snow_cover:
     name: Snow
+    file_type: metop_amsu
     long_name: snow_cover
     file_key: Snow
-    file_type: mirs_atms
     coordinates: [longitude, latitude]
     units: '1'
   tpw:
     name: TPW
+    file_type: metop_amsu
     long_name: total_precipitable_water
     file_key: TPW
-    file_type: mirs_atms
     coordinates: [longitude, latitude]
     units: mm
   swe:
     name: SWE
+    file_type: metop_amsu
     long_name: snow_water_equivalence
     file_key: SWE
-    file_type: mirs_atms
     coordinates: [longitude, latitude]
     units: cm
