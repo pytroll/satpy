@@ -48,6 +48,7 @@ from satpy.readers.utils import unzip_file, get_geostationary_mask, \
                                 get_user_calibration_factors, \
                                 apply_rad_correction
 from satpy.readers._geos_area import get_area_extent, get_area_definition
+from satpy._compat import cached_property
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -321,7 +322,6 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         self._data = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self._header = dict([(i, None) for i in AHI_CHANNEL_NAMES])
-        self._area = None
         self.lons = None
         self.lats = None
         self.segment_number = filename_info['segment']
@@ -384,12 +384,10 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Get the dataset."""
         return self.read_band(key, info)
 
-    @property
+    @cached_property
     def area(self):
         """Get AreaDefinition representing this file's data."""
-        if self._area is None:
-            self._area = self._get_area_def()
-        return self._area
+        return self._get_area_def()
 
     def get_area_def(self, dsid):
         """Get the area definition."""
