@@ -1141,6 +1141,13 @@ class BucketAvg(BucketResamplerBase):
 
     def compute(self, data, fill_value=np.nan, skipna=True, **kwargs):
         """Call the resampling."""
+        LOG.debug("Resampling %s", str(data.name))
+
+        if 'mask_all_nan' in kwargs:
+            warnings.warn('Argument mask_all_nan is deprecated.'
+                          'Please update Pyresample and use skipna for missing values handling.'
+                          'Continuing with default skipna=True', DeprecationWarning)
+
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
@@ -1178,6 +1185,12 @@ class BucketSum(BucketResamplerBase):
     def compute(self, data, skipna=True, **kwargs):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
+
+        if 'mask_all_nan' in kwargs:
+            warnings.warn('Argument mask_all_nan is deprecated.'
+                          'Please update Pyresample and use skipna for missing values handling.'
+                          'Continuing with default skipna=True', DeprecationWarning)
+
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
