@@ -23,7 +23,6 @@ import warnings
 import numpy as np
 import dask.array as da
 from datetime import datetime
-from pyresample.geometry import AreaDefinition
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
 
@@ -239,11 +238,8 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         """Test masking of space pixels."""
         nrows = 25
         ncols = 100
-        self.fh._area = AreaDefinition('test', 'test', 'test',
-                                       {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
-                                        'proj': 'geos', 'units': 'm'},
-                                       ncols, nrows,
-                                       [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
+        self.fh.data_info['number_of_columns'] = ncols
+        self.fh.data_info['number_of_lines'] = nrows
         calibrate.return_value = np.ones((nrows, ncols))
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
@@ -280,11 +276,6 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         from satpy import Scene
         nrows = 25
         ncols = 100
-        self.fh._area = AreaDefinition('test', 'test', 'test',
-                                       {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
-                                        'proj': 'geos', 'units': 'm'},
-                                       ncols, nrows,
-                                       [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
         calibrate.return_value = np.ones((nrows, ncols))
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True), \
@@ -292,31 +283,16 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             fh_cls.return_value = self.fh
             self.fh.filename_info['total_segments'] = 1
             self.fh.filename_info['segment'] = 1
+            self.fh.data_info['number_of_columns'] = ncols
+            self.fh.data_info['number_of_lines'] = nrows
             scn = Scene(reader='ahi_hsd', filenames=['HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT'])
             scn.load(['B07'])
             im = scn['B07']
-            # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
-            # is False
+
+            # Make sure space masking worked
             mask = im.to_masked_array().mask
             ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
             self.assertTrue(np.all(mask == ref_mask))
-
-            # Test attributes
-            orb_params_exp = {'projection_longitude': 140.7,
-                              'projection_latitude': 0.,
-                              'projection_altitude': 35785863.0,
-                              'satellite_actual_longitude': 140.66,
-                              'satellite_actual_latitude': 0.03,
-                              'nadir_longitude': 140.67,
-                              'nadir_latitude': 0.04}
-            self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
-            self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
-
-            # Test if masking space pixels disables with appropriate flag
-            self.fh.mask_space = False
-            with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
-                self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
-                mask_space.assert_not_called()
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
