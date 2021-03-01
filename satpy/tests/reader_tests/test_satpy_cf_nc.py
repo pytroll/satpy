@@ -291,7 +291,7 @@ class TestCFReader(unittest.TestCase):
     def test_read_prefixed_channels_by_user_no_prefix(self):
         """Check channels starting with digit is not prefixed by user."""
         scene = self._dataset_for_prefix_testing()
-        filename = 'testingcfwriter2{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+        filename = 'testingcfwriter3{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
         try:
             scene.save_datasets(writer='cf',
