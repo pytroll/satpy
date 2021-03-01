@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy resampling module.
+"""Resampling in Satpy.
 
 Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
@@ -34,7 +34,8 @@ Resampling algorithms
 
     "Resampler", "Description", "Related"
     "nearest", "Nearest Neighbor", :class:`~satpy.resample.KDTreeResampler`
-    "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
+    "ewa", "Elliptical Weighted Averaging", :class:`~pyresample.ewa.DaskEWAResampler`
+    "ewa_legacy", "Elliptical Weighted Averaging (Legacy)", :class:`~pyresample.ewa.LegacyDaskEWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
     "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
     "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.BucketAvg`
@@ -71,13 +72,13 @@ when generating composites between bands of different resolutions.
     >>> new_scn = scn.resample(resampler='native')
 
 By default this resamples to the
-:meth:`highest resolution area <satpy.scene.Scene.max_area>` (smallest footprint per
-pixel) shared between the loaded datasets. You can easily specify the lower
+:meth:`highest resolution area <satpy.scene.Scene.finest_area>` (smallest footprint per
+pixel) shared between the loaded datasets. You can easily specify the lowest
 resolution area:
 
 .. code-block:: python
 
-    >>> new_scn = scn.resample(scn.min_area(), resampler='native')
+    >>> new_scn = scn.resample(scn.coarsest_area(), resampler='native')
 
 Providing an area that is neither the minimum or maximum resolution area
 may work, but behavior is currently undefined.
@@ -151,9 +152,13 @@ try:
     from pyresample.gradient import GradientSearchResampler
 except ImportError:
     GradientSearchResampler = None
+try:
+    from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
+except ImportError:
+    DaskEWAResampler = LegacyDaskEWAResampler = None
 
 from satpy import CHUNK_SIZE
-from satpy.config import config_search_paths, get_config_path
+from satpy._config import config_search_paths, get_config_path
 
 
 LOG = getLogger(__name__)
@@ -607,7 +612,7 @@ class KDTreeResampler(BaseResampler):
         return update_resampled_coords(data, res, self.target_geo_def)
 
 
-class EWAResampler(BaseResampler):
+class _LegacySatpyEWAResampler(BaseResampler):
     """Resample using an elliptical weighted averaging algorithm.
 
     This algorithm does **not** use caching or any externally provided data
@@ -652,8 +657,11 @@ class EWAResampler(BaseResampler):
     """
 
     def __init__(self, source_geo_def, target_geo_def):
-        """Init EWAResampler."""
-        super(EWAResampler, self).__init__(source_geo_def, target_geo_def)
+        """Init _LegacySatpyEWAResampler."""
+        warnings.warn("A new version of pyresample is available. Please "
+                      "upgrade to get access to a newer 'ewa' and "
+                      "'ewa_legacy' resampler.")
+        super(_LegacySatpyEWAResampler, self).__init__(source_geo_def, target_geo_def)
         self.cache = {}
 
     def resample(self, *args, **kwargs):
@@ -666,7 +674,7 @@ class EWAResampler(BaseResampler):
 
         """
         kwargs.setdefault('mask_area', False)
-        return super(EWAResampler, self).resample(*args, **kwargs)
+        return super(_LegacySatpyEWAResampler, self).resample(*args, **kwargs)
 
     def _call_ll2cr(self, lons, lats, target_geo_def, swath_usage=0):
         """Wrap ll2cr() for handling dask delayed calls better."""
@@ -1108,7 +1116,7 @@ class BucketResamplerBase(BaseResampler):
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
 
-        return result
+        return update_resampled_coords(data, result, self.target_geo_def)
 
 
 class BucketAvg(BucketResamplerBase):
@@ -1229,7 +1237,6 @@ class BucketFraction(BucketResamplerBase):
 # TODO: move this to pyresample.resampler
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
-              "ewa": EWAResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
               "gradient_search": GradientSearchResampler,
@@ -1238,6 +1245,11 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "bucket_count": BucketCount,
               "bucket_fraction": BucketFraction,
               }
+if DaskEWAResampler is not None:
+    RESAMPLERS['ewa'] = DaskEWAResampler
+    RESAMPLERS['ewa_legacy'] = LegacyDaskEWAResampler
+else:
+    RESAMPLERS['ewa'] = _LegacySatpyEWAResampler
 
 
 # deepcode ignore PythonSameEvalBinaryExpressiontrue: PRBaseResampler is None only on import errors

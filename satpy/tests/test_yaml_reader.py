@@ -28,6 +28,8 @@ import satpy.readers.yaml_reader as yr
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.dataset import DataQuery
 from satpy.tests.utils import make_dataid
+import xarray as xr
+import numpy as np
 
 
 class FakeFH(BaseFileHandler):
@@ -479,6 +481,76 @@ class TestFileFileYAMLReader(unittest.TestCase):
         proj = self.reader._load_dataset(None, {}, file_handlers)
 
         self.assertIs(proj, xarray.concat.return_value)
+
+
+class TestFileYAMLReaderLoading(unittest.TestCase):
+    """Tests for FileYAMLReader.load."""
+
+    def setUp(self):
+        """Prepare a reader instance with a fake config."""
+        patterns = ['a{something:3s}.bla']
+        res_dict = {'reader': {'name': 'fake',
+                               'sensors': ['canon']},
+                    'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_reader': BaseFileHandler,
+                                              'file_patterns': patterns}},
+                    'datasets': {'ch1': {'name': 'ch01',
+                                         'wavelength': [0.5, 0.6, 0.7],
+                                         'calibration': 'reflectance',
+                                         'file_type': 'ftype1'},
+                                 }}
+
+        self.config = res_dict
+        self.reader = yr.FileYAMLReader(res_dict,
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2),
+                                        })
+        fake_fh = FakeFH(None, None)
+        self.lons = xr.DataArray(np.ones((2, 2)) * 2,
+                                 dims=['y', 'x'],
+                                 attrs={'standard_name': 'longitude',
+                                        'name': 'longitude'})
+        self.lats = xr.DataArray(np.ones((2, 2)) * 2,
+                                 dims=['y', 'x'],
+                                 attrs={'standard_name': 'latitude',
+                                        'name': 'latitude'})
+        self.data = None
+
+        def _assign_array(dsid, *_args, **_kwargs):
+            if dsid['name'] == 'longitude':
+                return self.lons
+            elif dsid['name'] == 'latitude':
+                return self.lats
+
+            return self.data
+
+        fake_fh.get_dataset.side_effect = _assign_array
+        self.reader.file_handlers = {'ftype1': [fake_fh]}
+
+    def test_load_dataset_with_builtin_coords(self):
+        """Test loading a dataset with builtin coordinates."""
+        self.data = xr.DataArray(np.ones((2, 2)),
+                                 coords={'longitude': self.lons,
+                                         'latitude': self.lats},
+                                 dims=['y', 'x'])
+
+        self._check_area_for_ch01()
+
+    def test_load_dataset_with_builtin_coords_in_wrong_order(self):
+        """Test loading a dataset with builtin coordinates in the wrong order."""
+        self.data = xr.DataArray(np.ones((2, 2)),
+                                 coords={'latitude': self.lats,
+                                         'longitude': self.lons},
+                                 dims=['y', 'x'])
+
+        self._check_area_for_ch01()
+
+    def _check_area_for_ch01(self):
+        res = self.reader.load(['ch01'])
+        assert 'area' in res['ch01'].attrs
+        np.testing.assert_array_equal(res['ch01'].attrs['area'].lons, self.lons)
+        np.testing.assert_array_equal(res['ch01'].attrs['area'].lats, self.lats)
 
 
 class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):

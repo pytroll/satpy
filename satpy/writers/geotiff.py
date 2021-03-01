@@ -44,7 +44,7 @@ class GeoTIFFWriter(ImageWriter):
         ...                  tags={'offset': 291.8, 'scale': -0.35})
 
     For performance tips on creating geotiffs quickly and making them smaller
-    see the :doc:`faq`.
+    see the :ref:`faq`.
 
     """
 

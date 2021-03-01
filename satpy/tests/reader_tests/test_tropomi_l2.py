@@ -36,9 +36,10 @@ DEFAULT_BOUND_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1] * 4
 
 
 class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler"""
+    """Swap-in NetCDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         from xarray import DataArray
         dt_s = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         dt_e = filename_info.get('end_time', datetime(2016, 1, 1, 12, 0, 0))
@@ -85,18 +86,20 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
                 file_content['PRODUCT/sulfurdioxide_total_vertical_column'].attrs['_FillValue'] = -999.0
 
         else:
-            assert False
+            raise NotImplementedError("Test data for file types other than "
+                                      "'tropomi_l2' are not supported.")
 
         return file_content
 
 
 class TestTROPOMIL2Reader(unittest.TestCase):
-    """Test TROPOMI L2 Reader"""
+    """Test TROPOMI L2 Reader."""
+
     yaml_file = "tropomi_l2.yaml"
 
     def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
+        """Wrap NetCDF4 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
         from satpy.readers.tropomi_l2 import TROPOMIL2FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -105,7 +108,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -121,7 +124,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_no2(self):
-        """Load NO2 dataset"""
+        """Load NO2 dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.tropomi_l2.netCDF4.Variable', xr.DataArray):
@@ -140,7 +143,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertIn('x', d.dims)
 
     def test_load_so2(self):
-        """Load SO2 dataset"""
+        """Load SO2 dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.tropomi_l2.netCDF4.Variable', xr.DataArray):
@@ -158,7 +161,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertIn('x', d.dims)
 
     def test_load_bounds(self):
-        """Load bounds dataset"""
+        """Load bounds dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.tropomi_l2.netCDF4.Variable', xr.DataArray):

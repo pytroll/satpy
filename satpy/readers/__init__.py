@@ -30,8 +30,7 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          glob_config)
+from satpy._config import config_search_paths, glob_config
 from .yaml_reader import (AbstractYAMLReader,
                           load_yaml_configs as load_yaml_reader_configs)
 
@@ -44,7 +43,7 @@ OLD_READER_NAMES = {
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
-                group_keys=None, ppp_config_dir=None, reader_kwargs=None):
+                group_keys=None, reader_kwargs=None):
     """Group series of files by file pattern information.
 
     By default this will group files by their filename ``start_time``
@@ -74,9 +73,6 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             in YAML), otherwise ``('start_time',)``.  When passing multiple
             readers, passing group_keys is strongly recommended as the
             behaviour without doing so is undefined.
-        ppp_config_dir (str): Root usser configuration directory for Satpy.
-            This will be deprecated in the future, but is here for consistency
-            with other Satpy features.
         reader_kwargs (dict): Additional keyword arguments to pass to reader
             creation.
 
@@ -92,7 +88,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     reader_kwargs = reader_kwargs or {}
 
     reader_files = _assign_files_to_readers(
-            files_to_sort, reader, ppp_config_dir, reader_kwargs)
+            files_to_sort, reader, reader_kwargs)
 
     if reader is None:
         reader = reader_files.keys()
@@ -105,7 +101,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     return [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
 
 
-def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
+def _assign_files_to_readers(files_to_sort, reader_names,
                              reader_kwargs):
     """Assign files to readers.
 
@@ -116,7 +112,6 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
     Args:
         files_to_sort (Collection[str]): Files to assign to readers.
         reader_names (Collection[str]): Readers to consider
-        ppp_config_dir (str):
         reader_kwargs (Mapping):
 
     Returns:
@@ -126,7 +121,7 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
     """
     files_to_sort = set(files_to_sort)
     reader_dict = {}
-    for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
+    for reader_configs in configs_for_reader(reader_names):
         try:
             reader = load_reader(reader_configs, **reader_kwargs)
         except yaml.constructor.ConstructorError:
@@ -246,18 +241,15 @@ def load_reader(reader_configs, **reader_kwargs):
     return AbstractYAMLReader.from_config_files(*reader_configs, **reader_kwargs)
 
 
-def configs_for_reader(reader=None, ppp_config_dir=None):
+def configs_for_reader(reader=None):
     """Generate reader configuration files for one or more readers.
 
     Args:
         reader (Optional[str]): Yield configs only for this reader
-        ppp_config_dir (Optional[str]): Additional configuration directory
-            to search for reader configuration files.
 
     Returns: Generator of lists of configuration files
 
     """
-    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
     if reader is not None:
         if not isinstance(reader, (list, tuple)):
             reader = [reader]
@@ -278,15 +270,14 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
-        reader_configs = glob_config(os.path.join('readers', '*.yaml'),
-                                     *search_paths)
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'))
         config_files = set(reader_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         reader_name = os.path.splitext(config_basename)[0]
         reader_configs = config_search_paths(
-            os.path.join("readers", config_basename), *search_paths)
+            os.path.join("readers", config_basename))
 
         if not reader_configs:
             # either the reader they asked for does not exist
@@ -325,7 +316,7 @@ def available_readers(as_dict=False):
 
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
-                           reader=None, sensor=None, ppp_config_dir=None,
+                           reader=None, sensor=None,
                            filter_parameters=None, reader_kwargs=None,
                            missing_ok=False, fs=None):
     """Find files matching the provided parameters.
@@ -372,8 +363,6 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                         data to load. Defaults to the current directory.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         sensor (str or list): Limit used files by provided sensors.
-        ppp_config_dir (str): The directory containing the configuration
-                              files for Satpy.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
                                   automatically added to this dictionary. Shortcut for
                                   `reader_kwargs['filter_parameters']`.
@@ -390,8 +379,6 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     Returns: Dictionary mapping reader name string to list of filenames
 
     """
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
@@ -402,7 +389,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         filter_parameters['end_time'] = end_time
     reader_kwargs['filter_parameters'] = filter_parameters
 
-    for reader_configs in configs_for_reader(reader, ppp_config_dir):
+    for reader_configs in configs_for_reader(reader):
         try:
             reader_instance = load_reader(reader_configs, **reader_kwargs)
         except (KeyError, IOError, yaml.YAMLError) as err:
@@ -433,8 +420,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     return reader_files
 
 
-def load_readers(filenames=None, reader=None, reader_kwargs=None,
-                 ppp_config_dir=None):
+def load_readers(filenames=None, reader=None, reader_kwargs=None):
     """Create specified readers and assign files to them.
 
     Args:
@@ -447,16 +433,11 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             the keys of ``reader_kwargs`` match exactly the list of strings in
             ``reader`` or the keys of filenames, each reader instance will get its
             own keyword arguments accordingly.
-        ppp_config_dir (str): The directory containing the configuration files for satpy.
 
     Returns: Dictionary mapping reader name to reader instance
 
     """
     reader_instances = {}
-
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
     if not filenames and not reader:
         # used for an empty Scene
         return {}
@@ -480,7 +461,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
 
     (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
 
-    for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
+    for idx, reader_configs in enumerate(configs_for_reader(reader)):
         if isinstance(filenames, dict):
             readers_files = set(filenames[reader[idx]])
         else:
@@ -565,8 +546,14 @@ class FSFile(os.PathLike):
     def __init__(self, file, fs=None):
         """Initialise the FSFile instance.
 
-        *file* can be string or an fsspec.OpenFile instance. In the latter case, the follow argument *fs* has no effect.
-        *fs* can be None or a fsspec filesystem instance.
+        Args:
+            file (str, Pathlike, or OpenFile):
+                String, object implementing the `os.PathLike` protocol, or
+                an `fsspec.OpenFile` instance.  If passed an instance of
+                `fsspec.OpenFile`, the following argument ``fs`` has no
+                effect.
+            fs (fsspec filesystem, optional)
+                Object implementing the fsspec filesystem protocol.
         """
         try:
             self._file = file.path
@@ -577,11 +564,11 @@ class FSFile(os.PathLike):
 
     def __str__(self):
         """Return the string version of the filename."""
-        return self._file
+        return os.fspath(self._file)
 
     def __fspath__(self):
         """Comply with PathLike."""
-        return self._file
+        return os.fspath(self._file)
 
     def __repr__(self):
         """Representation of the object."""

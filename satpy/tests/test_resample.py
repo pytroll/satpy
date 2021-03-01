@@ -23,6 +23,11 @@ import os
 from unittest import mock
 
 try:
+    from pyresample.ewa import LegacyDaskEWAResampler
+except ImportError:
+    LegacyDaskEWAResampler = None
+
+try:
     from pyproj import CRS
 except ImportError:
     CRS = None
@@ -32,13 +37,15 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
                   input_dims=('y', 'x')):
     """Get common data objects used in testing.
 
-    Returns: tuple with the following elements
-        input_data_on_area: DataArray with dimensions as if it is a gridded
-            dataset.
-        input_area_def: AreaDefinition of the above DataArray
-        input_data_on_swath: DataArray with dimensions as if it is a swath.
-        input_swath: SwathDefinition of the above DataArray
-        target_area_def: AreaDefinition to be used as a target for resampling
+    Returns:
+        tuple:
+
+        * input_data_on_area: DataArray with dimensions as if it is a gridded
+          dataset.
+        * input_area_def: AreaDefinition of the above DataArray
+        * input_data_on_swath: DataArray with dimensions as if it is a swath.
+        * input_swath: SwathDefinition of the above DataArray
+        * target_area_def: AreaDefinition to be used as a target for resampling
 
     """
     from xarray import DataArray
@@ -249,6 +256,9 @@ class TestKDTreeResampler(unittest.TestCase):
             shutil.rmtree(the_dir)
 
 
+@unittest.skipIf(LegacyDaskEWAResampler is not None,
+                 "Deprecated EWA resampler is now in pyresample. "
+                 "No need to test in Satpy.")
 class TestEWAResampler(unittest.TestCase):
     """Test EWA resampler class."""
 
@@ -696,8 +706,10 @@ class TestBucketAvg(unittest.TestCase):
         from satpy.resample import BucketAvg
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
+        get_proj_vectors = mock.MagicMock()
+        get_proj_vectors.return_value = ([1, 2, 3, 4, 5],  [1, 2, 3, 4, 5])
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
-        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats, crs=None, get_proj_vectors=get_proj_vectors)
         self.bucket = BucketAvg(self.source_geo_def, self.target_geo_def)
 
     def test_init(self):
@@ -874,8 +886,10 @@ class TestBucketFraction(unittest.TestCase):
         from satpy.resample import BucketFraction
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
+        get_proj_vectors = mock.MagicMock()
+        get_proj_vectors.return_value = ([1, 2, 3, 4, 5],  [1, 2, 3, 4, 5])
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
-        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats, crs=None, get_proj_vectors=get_proj_vectors)
         self.bucket = BucketFraction(self.source_geo_def, self.target_geo_def)
 
     def test_compute(self):

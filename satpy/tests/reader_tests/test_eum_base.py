@@ -22,13 +22,14 @@ from datetime import datetime
 import numpy as np
 from satpy.readers.eum_base import (timecds2datetime, time_cds_short,
                                     time_cds, time_cds_expanded,
-                                    recarray2dict)
+                                    recarray2dict, get_service_mode)
 
 
 class TestMakeTimeCdsDictionary(unittest.TestCase):
+    """Test TestMakeTimeCdsDictionary."""
 
     def test_fun(self):
-
+        """Test function for TestMakeTimeCdsDictionary."""
         # time_cds_short
         tcds = {'Days': 1, 'Milliseconds': 2}
         expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
@@ -46,9 +47,10 @@ class TestMakeTimeCdsDictionary(unittest.TestCase):
 
 
 class TestMakeTimeCdsRecarray(unittest.TestCase):
+    """Test TestMakeTimeCdsRecarray."""
 
     def test_fun(self):
-
+        """Test function for TestMakeTimeCdsRecarray."""
         # time_cds_short
         tcds = np.array([(1, 2)], dtype=np.dtype(time_cds_short))
         expected = datetime(1958, 1, 2, 0, 0, 0, 2000)
@@ -66,9 +68,10 @@ class TestMakeTimeCdsRecarray(unittest.TestCase):
 
 
 class TestRecarray2Dict(unittest.TestCase):
+    """Test TestRecarray2Dict."""
 
     def test_fun(self):
-
+        """Test function for TestRecarray2Dict."""
         # datatype definition
         pat_dt = np.dtype([
             ('TrueRepeatCycleStart', time_cds_expanded),
@@ -90,3 +93,70 @@ class TestRecarray2Dict(unittest.TestCase):
         }
 
         self.assertEqual(recarray2dict(pat), expected)
+
+
+class TestGetServiceMode(unittest.TestCase):
+    """Test the get_service_mode function."""
+
+    def test_get_seviri_service_mode_fes(self):
+        """Test fetching of SEVIRI service mode information for FES."""
+        ssp_lon = 0.0
+        name = 'fes'
+        desc = 'Full Earth Scanning service'
+        res = get_service_mode('seviri', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_seviri_service_mode_rss(self):
+        """Test fetching of SEVIRI service mode information for RSS."""
+        ssp_lon = 9.5
+        name = 'rss'
+        desc = 'Rapid Scanning Service'
+        res = get_service_mode('seviri', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_seviri_service_mode_iodc(self):
+        """Test fetching of SEVIRI service mode information for IODC."""
+        ssp_lon = 41.5
+        name = 'iodc'
+        desc = 'Indian Ocean Data Coverage service'
+        res = get_service_mode('seviri', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_fci_service_mode_fdss(self):
+        """Test fetching of FCI service mode information for FDSS."""
+        ssp_lon = 0.0
+        name = 'fdss'
+        desc = 'Full Disk Scanning Service'
+        res = get_service_mode('fci', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_fci_service_mode_rss(self):
+        """Test fetching of FCI service mode information for RSS."""
+        ssp_lon = 9.5
+        name = 'rss'
+        desc = 'Rapid Scanning Service'
+        res = get_service_mode('fci', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_unknown_lon_service_mode(self):
+        """Test fetching of service mode information for unknown input longitude."""
+        ssp_lon = 13
+        name = 'unknown'
+        desc = 'unknown'
+        res = get_service_mode('fci', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)
+
+    def test_get_unknown_instrument_service_mode(self):
+        """Test fetching of service mode information for unknown input instrument."""
+        ssp_lon = 0
+        name = 'unknown'
+        desc = 'unknown'
+        res = get_service_mode('test', ssp_lon)
+        self.assertEqual(res['service_name'], name)
+        self.assertEqual(res['service_desc'], desc)

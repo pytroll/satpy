@@ -607,7 +607,7 @@ class TestYAMLFiles(unittest.TestCase):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
 
-        from satpy.config import glob_config
+        from satpy._config import glob_config
         from satpy.readers import read_reader_config
         for reader_config in glob_config('readers/*.yaml'):
             reader_fn = os.path.basename(reader_config)
@@ -895,6 +895,13 @@ class TestFSFile(unittest.TestCase):
         """Test that FSFile abides PathLike for filename+fs instances."""
         from satpy.readers import FSFile
         assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
+
+    def test_fsfile_with_pathlike(self):
+        """Test FSFile with path-like object."""
+        from satpy.readers import FSFile
+        from pathlib import Path
+        f = FSFile(Path(self.local_filename))
+        assert str(f) == os.fspath(f) == self.local_filename
 
     def test_fsfile_with_fs_open_file_abides_pathlike(self):
         """Test that FSFile abides PathLike for fsspec OpenFile instances."""

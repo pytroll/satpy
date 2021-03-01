@@ -25,37 +25,12 @@ import dask
 import dask.array as da
 import xarray as xr
 
+import satpy
 from satpy.composites import CompositeBase, GenericCompositor
-from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
 from satpy.utils import get_satpos
 
 LOG = logging.getLogger(__name__)
-
-
-class VIIRSFog(CompositeBase):
-    """A simple temperature difference composite for showing fog."""
-
-    def __call__(self, projectables, nonprojectables=None, **info):
-        """Create the temperature difference DataArray."""
-        import warnings
-        warnings.warn("VIIRSFog compositor is deprecated, use DifferenceCompositor "
-                      "instead.", DeprecationWarning)
-
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
-
-        p1, p2 = projectables
-        fog = p1 - p2
-        fog.attrs.update(self.attrs)
-        fog.attrs["area"] = p1.attrs["area"]
-        fog.attrs["start_time"] = p1.attrs["start_time"]
-        fog.attrs["end_time"] = p1.attrs["end_time"]
-        fog.attrs["name"] = self.attrs["name"]
-        fog.attrs["wavelength"] = None
-        fog.attrs.setdefault("mode", "L")
-        return fog
 
 
 class ReflectanceCorrector(CompositeBase):
@@ -81,7 +56,8 @@ class ReflectanceCorrector(CompositeBase):
         if os.path.exists(dem_filename):
             self.dem_file = dem_filename
         else:
-            self.dem_file = os.path.join(get_environ_ancpath(), dem_filename)
+            self.dem_file = os.path.join(satpy.config.get('data_dir'),
+                                         dem_filename)
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
 

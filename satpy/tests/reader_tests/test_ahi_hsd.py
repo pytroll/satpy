@@ -303,9 +303,11 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
 class TestAHICalibration(unittest.TestCase):
     """Test case for various AHI calibration types."""
+
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
                 return_value=None)
     def setUp(self, *mocks):
+        """Create fake data for testing."""
         self.def_cali = [-0.0037, 15.20]
         self.upd_cali = [-0.0074, 30.40]
         self.bad_cali = [0.0, 0.0]

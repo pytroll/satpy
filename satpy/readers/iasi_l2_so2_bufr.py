@@ -137,7 +137,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
         return '{}'.format(self.metadata['SpacecraftName'])
 
     def get_start_end_date(self):
-        """Gets the first and last date from the bufr file."""
+        """Get the first and last date from the bufr file."""
         fh = open(self.filename, "rb")
         i = 0
         while True:

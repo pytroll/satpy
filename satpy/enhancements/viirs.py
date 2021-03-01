@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Enhancements specific to the VIIRS instrument."""
 from trollimage.colormap import Colormap
 import numpy as np
 from satpy.enhancements import apply_enhancement
