@@ -156,6 +156,30 @@ class TestCFWriter(unittest.TestCase):
             with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['TEST1'][:] == [1, 2, 3]))
 
+    def test_save_dataset_a_digit_prefix_include_attr(self):
+        """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='TEST')
+            with xr.open_dataset(filename) as f:
+                self.assertTrue(np.all(f['TEST1'][:] == [1, 2, 3]))
+                self.assertTrue(f['TEST1'].attrs['original_name'] == '1')
+
+    def test_save_dataset_a_digit_no_prefix_include_attr(self):
+        """Test saving an array to netcdf/cf dataset name starting with a digit with no prefix include orig name."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        scn['1'] = xr.DataArray([1, 2, 3])
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='')
+            with xr.open_dataset(filename) as f:
+                self.assertTrue(np.all(f['1'][:] == [1, 2, 3]))
+                self.assertFalse('original_name' in f['1'].attrs)
+
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
         import xarray as xr

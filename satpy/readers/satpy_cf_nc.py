@@ -253,8 +253,10 @@ class SatpyCFFileHandler(BaseFileHandler):
         for var_name, val in nc.data_vars.items():
             ds_info = dict(val.attrs)
             ds_info['file_type'] = self.filetype_info['file_type']
-            ds_info['name'] = ds_info['orig_name'] = var_name
-            if var_name.startswith(self._numeric_name_prefix):
+            ds_info['name'] = ds_info['nc_store_name'] = var_name
+            if 'original_name' in ds_info:
+                ds_info['name'] = ds_info['original_name']
+            elif self._numeric_name_prefix and var_name.startswith(self._numeric_name_prefix):
                 ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
             try:
                 ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
@@ -278,7 +280,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         logger.debug("Getting data for: %s", ds_id['name'])
         nc = xr.open_dataset(self.filename, engine=self.engine,
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
-        name = ds_info.get('orig_name', ds_id['name'])
+        name = ds_info.get('nc_store_name', ds_id['name'])
         file_key = ds_info.get('file_key', name)
         data = nc[file_key]
         if name != ds_info['name']:

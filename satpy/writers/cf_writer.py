@@ -508,13 +508,14 @@ def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL_'):
     return encoding, other_to_netcdf_kwargs
 
 
-def _handle_dataarray_name(name, numeric_name_prefix):
+def _handle_dataarray_name(original_name, numeric_name_prefix):
+    name = original_name
     if name[0].isdigit():
         if numeric_name_prefix:
-            name = numeric_name_prefix + name
+            name = numeric_name_prefix + original_name
         else:
             warnings.warn('Invalid NetCDF dataset name: {} starts with a digit.'.format(name))
-    return name
+    return original_name, name
 
 
 class CFWriter(Writer):
@@ -522,7 +523,7 @@ class CFWriter(Writer):
 
     @staticmethod
     def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
-              numeric_name_prefix='CHANNEL_'):
+              include_orig_name=False, numeric_name_prefix='CHANNEL_'):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -534,16 +535,19 @@ class CFWriter(Writer):
                 If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
-            numeric_name_prefix (string):
+            include_orig_name (bool):
+                Include the original dataset name in the netcdf variable attributes
+            numeric_name_prefix (str):
                 Prepend dataset name with this if starting with a digit
         """
         if exclude_attrs is None:
             exclude_attrs = []
 
+        original_name = None
         new_data = dataarray.copy()
         if 'name' in new_data.attrs:
             name = new_data.attrs.pop('name')
-            name = _handle_dataarray_name(name, numeric_name_prefix)
+            original_name, name = _handle_dataarray_name(name, numeric_name_prefix)
             new_data = new_data.rename(name)
 
         # Remove _satpy* attributes
@@ -593,6 +597,9 @@ class CFWriter(Writer):
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
 
+        if include_orig_name and numeric_name_prefix and original_name:
+            new_data.attrs['original_name'] = original_name
+
         # Flatten dict-type attributes, if desired
         if flatten_attrs:
             new_data.attrs = flatten_dict(new_data.attrs)
@@ -615,7 +622,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, numeric_name_prefix='CHANNEL_'):
+                          pretty=False, compression=None, include_orig_name=False, numeric_name_prefix='CHANNEL_'):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -640,6 +647,7 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                      exclude_attrs=exclude_attrs, compression=compression,
+                                     include_orig_name=include_orig_name,
                                      numeric_name_prefix=numeric_name_prefix)
                 datas[new_var.name] = new_var
 
@@ -652,7 +660,7 @@ class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
+                      compression=None, include_orig_name=False, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -686,6 +694,10 @@ class CFWriter(Writer):
                 Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
                 This is in turn passed the xarray's `to_netcdf` method:
                 http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
+            include_orig_name (bool).
+                Include the original dataset name as an varaibel attribute in the final netcdf
+            numeric_name_prefix (str):
+                Prefix to add the each variable with name starting with a digit. Use '' or None to leave this out.
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
@@ -743,7 +755,7 @@ class CFWriter(Writer):
             datas, start_times, end_times = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
                 include_lonlats=include_lonlats, pretty=pretty, compression=compression,
-                numeric_name_prefix=numeric_name_prefix)
+                include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
             dataset = xr.Dataset(datas)
             if 'time' in dataset:
                 dataset['time_bnds'] = make_time_bounds(start_times,
