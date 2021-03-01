@@ -135,9 +135,64 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
     def new_unzip(fname):
         """Fake unzipping."""
-        if(fname[-3:] == 'bz2'):
+        if fname[-3:] == 'bz2':
             return fname[:-4]
         return fname
+
+    @staticmethod
+    def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None):
+        if filename_info is None:
+            filename_info = {'segment': 8, 'total_segments': 10}
+        if filetype_info is None:
+            filetype_info = {'file_type': 'hsd_b01'}
+        fh = AHIHSDFileHandler(in_fname, filename_info, filetype_info)
+
+        # Check that the filename is altered for bz2 format files
+        assert in_fname != fh.filename
+
+        fh.proj_info = {
+            'CFAC': 40932549,
+            'COFF': 5500.5,
+            'LFAC': 40932549,
+            'LOFF': 5500.5,
+            'blocklength': 127,
+            'coeff_for_sd': 1737122264.0,
+            'distance_from_earth_center': 42164.0,
+            'earth_equatorial_radius': 6378.137,
+            'earth_polar_radius': 6356.7523,
+            'hblock_number': 3,
+            'req2_rpol2': 1.006739501,
+            'req2_rpol2_req2': 0.0066943844,
+            'resampling_size': 4,
+            'resampling_types': 0,
+            'rpol2_req2': 0.993305616,
+            'spare': '',
+            'sub_lon': 140.7
+        }
+        fh.nav_info = {
+            'SSP_longitude': 140.66,
+            'SSP_latitude': 0.03,
+            'distance_earth_center_to_satellite': 42165.04,
+            'nadir_longitude': 140.67,
+            'nadir_latitude': 0.04
+        }
+        fh.data_info = {
+            'blocklength': 50,
+            'compression_flag_for_data': 0,
+            'hblock_number': 2,
+            'number_of_bits_per_pixel': 16,
+            'number_of_columns': 11000,
+            'number_of_lines': 1100,
+            'spare': ''
+        }
+        fh.basic_info = {
+            'observation_area': np.array(['FLDK']),
+            'observation_start_time': np.array([58413.12523839]),
+            'observation_end_time': np.array([58413.12562439]),
+            'observation_timeline': np.array([300]),
+        }
+        fh.observation_area = fh.basic_info['observation_area']
+        return fh
 
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
@@ -150,56 +205,12 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler('somefile',
-                                       {'segment': 8, 'total_segments': 10},
-                                       filetype_info={'file_type': 'hsd_b01'},
-                                       calib_mode='BAD_MODE')
+                AHIHSDFileHandler('somefile',
+                                  {'segment': 8, 'total_segments': 10},
+                                  filetype_info={'file_type': 'hsd_b01'},
+                                  calib_mode='BAD_MODE')
             in_fname = 'test_file.bz2'
-            fh = AHIHSDFileHandler(in_fname,
-                                   {'segment': 8, 'total_segments': 10},
-                                   filetype_info={'file_type': 'hsd_b01'})
-
-            # Check that the filename is altered for bz2 format files
-            self.assertNotEqual(in_fname, fh.filename)
-
-            fh.proj_info = {'CFAC': 40932549,
-                            'COFF': 5500.5,
-                            'LFAC': 40932549,
-                            'LOFF': 5500.5,
-                            'blocklength': 127,
-                            'coeff_for_sd': 1737122264.0,
-                            'distance_from_earth_center': 42164.0,
-                            'earth_equatorial_radius': 6378.137,
-                            'earth_polar_radius': 6356.7523,
-                            'hblock_number': 3,
-                            'req2_rpol2': 1.006739501,
-                            'req2_rpol2_req2': 0.0066943844,
-                            'resampling_size': 4,
-                            'resampling_types': 0,
-                            'rpol2_req2': 0.993305616,
-                            'spare': '',
-                            'sub_lon': 140.7}
-            fh.nav_info = {'SSP_longitude': 140.66,
-                           'SSP_latitude': 0.03,
-                           'distance_earth_center_to_satellite': 42165.04,
-                           'nadir_longitude': 140.67,
-                           'nadir_latitude': 0.04}
-            fh.data_info = {'blocklength': 50,
-                            'compression_flag_for_data': 0,
-                            'hblock_number': 2,
-                            'number_of_bits_per_pixel': 16,
-                            'number_of_columns': 11000,
-                            'number_of_lines': 1100,
-                            'spare': ''}
-            fh.basic_info = {
-                'observation_area': np.array(['FLDK']),
-                'observation_start_time': np.array([58413.12523839]),
-                'observation_end_time': np.array([58413.12562439]),
-                'observation_timeline': np.array([300]),
-            }
-            fh.observation_area = np2str(fh.basic_info['observation_area'])
-
-            self.fh = fh
+            self.fh = self._create_fake_file_handler(in_fname)
 
     def test_time_properties(self):
         """Test start/end/scheduled time properties."""
@@ -228,15 +239,62 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         """Test masking of space pixels."""
         nrows = 25
         ncols = 100
-        self.fh.area = AreaDefinition('test', 'test', 'test',
-                                      {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
-                                       'proj': 'geos', 'units': 'm'},
-                                      ncols, nrows,
-                                      [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
+        self.fh._area = AreaDefinition('test', 'test', 'test',
+                                       {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
+                                        'proj': 'geos', 'units': 'm'},
+                                       ncols, nrows,
+                                       [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
         calibrate.return_value = np.ones((nrows, ncols))
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             im = self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+            # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
+            # is False
+            mask = im.to_masked_array().mask
+            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
+            self.assertTrue(np.all(mask == ref_mask))
+
+            # Test attributes
+            orb_params_exp = {'projection_longitude': 140.7,
+                              'projection_latitude': 0.,
+                              'projection_altitude': 35785863.0,
+                              'satellite_actual_longitude': 140.66,
+                              'satellite_actual_latitude': 0.03,
+                              'nadir_longitude': 140.67,
+                              'nadir_latitude': 0.04}
+            self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
+            self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
+
+            # Test if masking space pixels disables with appropriate flag
+            self.fh.mask_space = False
+            with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
+                self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+                mask_space.assert_not_called()
+
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
+    def test_scene_loading(self, calibrate, *mocks):
+        """Test masking of space pixels."""
+        from satpy import Scene
+        nrows = 25
+        ncols = 100
+        self.fh._area = AreaDefinition('test', 'test', 'test',
+                                       {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
+                                        'proj': 'geos', 'units': 'm'},
+                                       ncols, nrows,
+                                       [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
+        calibrate.return_value = np.ones((nrows, ncols))
+        m = mock.mock_open()
+        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True), \
+             mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler') as fh_cls:
+            fh_cls.return_value = self.fh
+            self.fh.filename_info['total_segments'] = 1
+            self.fh.filename_info['segment'] = 1
+            scn = Scene(reader='ahi_hsd', filenames=['HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT'])
+            scn.load(['B07'])
+            im = scn['B07']
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask

@@ -321,6 +321,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         self._data = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self._header = dict([(i, None) for i in AHI_CHANNEL_NAMES])
+        self._area = None
         self.lons = None
         self.lats = None
         self.segment_number = filename_info['segment']
@@ -354,7 +355,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def __del__(self):
         """Delete the object."""
-        if (self.is_zipped and os.path.exists(self.filename)):
+        if self.is_zipped and os.path.exists(self.filename):
             os.remove(self.filename)
 
     @property
@@ -383,10 +384,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Get the dataset."""
         return self.read_band(key, info)
 
+    @property
+    def area(self):
+        """Get AreaDefinition representing this file's data."""
+        if self._area is None:
+            self._area = self._get_area_def()
+        return self._area
+
     def get_area_def(self, dsid):
         """Get the area definition."""
         del dsid
+        return self.area
 
+    def _get_area_def(self):
         pdict = {}
         pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
         pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
@@ -408,10 +418,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
         pdict['p_id'] = 'geosh8'
 
-        area = get_area_definition(pdict, aex)
-
-        self.area = area
-        return area
+        return get_area_definition(pdict, aex)
 
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
