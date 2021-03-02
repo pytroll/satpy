@@ -54,25 +54,25 @@ class TestSAFEGRD(unittest.TestCase):
         assert(self.test_fh.noise == self.noisefh)
         self.mocked_rio_open.assert_called()
 
-    def test_read_calibrated_natural(self):
+    @mock.patch('rioxarray.open_rasterio')
+    def test_read_calibrated_natural(self, mocked_rioxarray_open):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        with mock.patch('satpy.readers.sar_c_safe.xr.open_rasterio') as fake_read_band:
-            fake_read_band.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
-            xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
-                                                      calibration=calibration, quantity='natural'), info=dict())
-            np.testing.assert_allclose(xarr, [[np.nan, 2], [5, 10]])
+        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
+        xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
+                                                  calibration=calibration, quantity='natural'), info=dict())
+        np.testing.assert_allclose(xarr, [[np.nan, 2], [5, 10]])
 
-    def test_read_calibrated_dB(self):
+    @mock.patch('rioxarray.open_rasterio')
+    def test_read_calibrated_dB(self, mocked_rioxarray_open):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        with mock.patch('satpy.readers.sar_c_safe.xr.open_rasterio') as fake_read_band:
-            fake_read_band.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
-            xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
-                                                      calibration=calibration, quantity='dB'), info=dict())
-            np.testing.assert_allclose(xarr, [[np.nan, 3.0103], [6.9897, 10]])
+        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
+        xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
+                                                  calibration=calibration, quantity='dB'), info=dict())
+        np.testing.assert_allclose(xarr, [[np.nan, 3.0103], [6.9897, 10]])
 
     def test_read_lon_lats(self):
         """Test reading lons and lats."""
