@@ -166,7 +166,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='TEST')
             with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['TEST1'][:] == [1, 2, 3]))
-                self.assertTrue(f['TEST1'].attrs['original_name'] == '1')
+                self.assertEqual(f['TEST1'].attrs['original_name'], '1')
 
     def test_save_dataset_a_digit_no_prefix_include_attr(self):
         """Test saving an array to netcdf/cf dataset name starting with a digit with no prefix include orig name."""
@@ -178,7 +178,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='')
             with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['1'][:] == [1, 2, 3]))
-                self.assertFalse('original_name' in f['1'].attrs)
+                self.assertNotIn('original_name', f['1'].attrs)
 
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
@@ -382,10 +382,10 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
             with xr.open_dataset(filename, mask_and_scale=False) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [10, 20, 30]))
-                self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
-                self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
+                self.assertEqual(f['test-array'].attrs['scale_factor'], 0.1)
+                self.assertEqual(f['test-array'].attrs['_FillValue'], 3)
                 # check that dtype behave as int8
-                self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
+                self.assertEqual(np.iinfo(f['test-array'][:].dtype).max, 127)
 
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
