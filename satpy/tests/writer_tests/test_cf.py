@@ -74,7 +74,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
+                np.testing.assert_array_equal(f['test-array'][:], [1, 2, 3])
                 expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
@@ -124,9 +124,9 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
-                self.assertTrue(np.all(f['x'][:] == [0, 1, 2]))
-                self.assertTrue(np.all(f['y'][:] == [0]))
+                np.testing.assert_array_equal(f['test-array'][:], [[1, 2, 3]])
+                np.testing.assert_array_equal(f['x'][:], [0, 1, 2])
+                np.testing.assert_array_equal(f['y'][:], [0])
                 self.assertNotIn('crs', f)
                 self.assertNotIn('_FillValue', f['x'].attrs)
                 self.assertNotIn('_FillValue', f['y'].attrs)
@@ -143,7 +143,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['CHANNEL_1'][:] == [1, 2, 3]))
+                np.testing.assert_array_equal(f['CHANNEL_1'][:], [1, 2, 3])
 
     def test_save_dataset_a_digit_prefix(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix."""
@@ -154,7 +154,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', numeric_name_prefix='TEST')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['TEST1'][:] == [1, 2, 3]))
+                np.testing.assert_array_equal(f['TEST1'][:], [1, 2, 3])
 
     def test_save_dataset_a_digit_prefix_include_attr(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
@@ -165,7 +165,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='TEST')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['TEST1'][:] == [1, 2, 3]))
+                np.testing.assert_array_equal(f['TEST1'][:], [1, 2, 3])
                 self.assertEqual(f['TEST1'].attrs['original_name'], '1')
 
     def test_save_dataset_a_digit_no_prefix_include_attr(self):
@@ -177,7 +177,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', include_orig_name=True, numeric_name_prefix='')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(np.all(f['1'][:] == [1, 2, 3]))
+                np.testing.assert_array_equal(f['1'][:], [1, 2, 3])
                 self.assertNotIn('original_name', f['1'].attrs)
 
     def test_ancillary_variables(self):
@@ -252,7 +252,7 @@ class TestCFWriter(unittest.TestCase):
             self.assertSetEqual(set(nc_hrv.variables.keys()), {'HRV', 'y', 'x', 'acq_time'})
             for tst, ref in zip([nc_visir['VIS006'], nc_visir['IR_108'], nc_hrv['HRV']],
                                 [scn['VIS006'], scn['IR_108'], scn['HRV']]):
-                self.assertTrue(np.all(tst.data == ref.data))
+                np.testing.assert_array_equal(tst.data, ref.data)
             nc_root.close()
             nc_visir.close()
             nc_hrv.close()
@@ -381,7 +381,7 @@ class TestCFWriter(unittest.TestCase):
                                        '_FillValue': 3}}
             scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
             with xr.open_dataset(filename, mask_and_scale=False) as f:
-                self.assertTrue(np.all(f['test-array'][:] == [10, 20, 30]))
+                np.testing.assert_array_equal(f['test-array'][:], [10, 20, 30])
                 self.assertEqual(f['test-array'].attrs['scale_factor'], 0.1)
                 self.assertEqual(f['test-array'].attrs['_FillValue'], 3)
                 # check that dtype behave as int8
@@ -531,7 +531,7 @@ class TestCFWriter(unittest.TestCase):
         for key, val1 in d1.items():
             val2 = d2[key]
             if isinstance(val1, np.ndarray):
-                self.assertTrue(np.all(val1 == val2))
+                np.testing.assert_array_equal(val1, val2)
                 self.assertEqual(val1.dtype, val2.dtype)
             else:
                 self.assertEqual(val1, val2)
@@ -586,9 +586,9 @@ class TestCFWriter(unittest.TestCase):
 
         # Test conversion to something cf-compliant
         res = CFWriter.da2cf(arr)
-        self.assertTrue(np.all(res['x'] == arr['x']))
-        self.assertTrue(np.all(res['y'] == arr['y']))
-        self.assertTrue(np.all(res['acq_time'] == arr['acq_time']))
+        np.testing.assert_array_equal(res['x'], arr['x'])
+        np.testing.assert_array_equal(res['y'], arr['y'])
+        np.testing.assert_array_equal(res['acq_time'], arr['acq_time'])
         self.assertDictEqual(res['x'].attrs, {'units': 'm', 'standard_name': 'projection_x_coordinate'})
         self.assertDictEqual(res['y'].attrs, {'units': 'm', 'standard_name': 'projection_y_coordinate'})
         self.assertDictWithArraysEqual(res.attrs, attrs_expected)
@@ -679,8 +679,8 @@ class TestCFWriter(unittest.TestCase):
         # Check that link has been established correctly and 'coordinate' atrribute has been dropped
         self.assertIn('lon', datasets['var1'].coords)
         self.assertIn('lat', datasets['var1'].coords)
-        self.assertTrue(np.all(datasets['var1']['lon'].data == lon))
-        self.assertTrue(np.all(datasets['var1']['lat'].data == lat))
+        np.testing.assert_array_equal(datasets['var1']['lon'].data, lon)
+        np.testing.assert_array_equal(datasets['var1']['lat'].data, lat)
         self.assertNotIn('coordinates', datasets['var1'].attrs)
 
         # There should be no link if there was no 'coordinate' attribute
@@ -706,31 +706,31 @@ class TestCFWriter(unittest.TestCase):
 
         # Test that dataset names are prepended to alternative coordinates
         res = make_alt_coords_unique(datasets)
-        self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
-        self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
+        np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
+        np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
         self.assertNotIn('acq_time', res['var1'].coords)
         self.assertNotIn('acq_time', res['var2'].coords)
 
         # Make sure nothing else is modified
-        self.assertTrue(np.all(res['var1']['x'] == x))
-        self.assertTrue(np.all(res['var1']['y'] == y))
-        self.assertTrue(np.all(res['var2']['x'] == x))
-        self.assertTrue(np.all(res['var2']['y'] == y))
+        np.testing.assert_array_equal(res['var1']['x'], x)
+        np.testing.assert_array_equal(res['var1']['y'], y)
+        np.testing.assert_array_equal(res['var2']['x'], x)
+        np.testing.assert_array_equal(res['var2']['y'], y)
 
         # Coords not unique -> Dataset names must be prepended, even if pretty=True
         with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
             res = make_alt_coords_unique(datasets, pretty=True)
             warn.assert_called()
-            self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
-            self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
+            np.testing.assert_array_equal(res['var1']['var1_acq_time'], time1)
+            np.testing.assert_array_equal(res['var2']['var2_acq_time'], time2)
             self.assertNotIn('acq_time', res['var1'].coords)
             self.assertNotIn('acq_time', res['var2'].coords)
 
         # Coords unique and pretty=True -> Don't modify coordinate names
         datasets['var2']['acq_time'] = ('y', time1)
         res = make_alt_coords_unique(datasets, pretty=True)
-        self.assertTrue(np.all(res['var1']['acq_time'] == time1))
-        self.assertTrue(np.all(res['var2']['acq_time'] == time1))
+        np.testing.assert_array_equal(res['var1']['acq_time'], time1)
+        np.testing.assert_array_equal(res['var2']['acq_time'], time1)
         self.assertNotIn('var1_acq_time', res['var1'].coords)
         self.assertNotIn('var2_acq_time', res['var2'].coords)
 
