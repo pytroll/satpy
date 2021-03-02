@@ -115,18 +115,7 @@ class SAFEXML(BaseFileHandler):
 
     @staticmethod
     def read_azimuth_noise_array(elts):
-        """Read the azimuth noise vectors.
-
-        The azimuth noise is normalized per swath to account for gain
-        differences between the swaths in EW mode.
-
-        This is based on the this reference:
-        J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
-        "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
-        in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
-        pp. 1555-1565, March 2018.
-        doi: 10.1109/TGRS.2017.2765248
-        """
+        """Read the azimuth noise vectors."""
         y = []
         x = []
         data = []
@@ -136,14 +125,26 @@ class SAFEXML(BaseFileHandler):
             lines = elt.find('line').text.split()
             lut = elt.find('noiseAzimuthLut').text.split()
             pixels = [first_pixel, last_pixel]
-            swath = elt.find('swath').text
             corr = 1
-            if swath == 'EW1':
-                corr = 1.5
-            if swath == 'EW4':
-                corr = 1.2
-            if swath == 'EW5':
-                corr = 1.5
+            # This isn't need with newer data (> 2020). When was the change operated?
+            #
+            #         The azimuth noise is normalized per swath to account for gain
+            #         differences between the swaths in EW mode.
+            #
+            #         This is based on the this reference:
+            #         J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
+            #         "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
+            #         in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
+            #         pp. 1555-1565, March 2018.
+            #         doi: 10.1109/TGRS.2017.2765248
+            #
+            # swath = elt.find('swath').text
+            # if swath == 'EW1':
+            #     corr = 1.5
+            # if swath == 'EW4':
+            #     corr = 1.2
+            # if swath == 'EW5':
+            #     corr = 1.5
 
             for pixel in pixels:
                 y += [int(val) for val in lines]
