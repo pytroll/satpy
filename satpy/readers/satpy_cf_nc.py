@@ -283,7 +283,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         name = ds_info.get('nc_store_name', ds_id['name'])
         file_key = ds_info.get('file_key', name)
         data = nc[file_key]
-        if name != ds_info['name']:
+        if name != ds_id['name']:
             data = data.rename(ds_id['name'])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         return data
