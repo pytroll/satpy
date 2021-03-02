@@ -246,18 +246,23 @@ class SatpyCFFileHandler(BaseFileHandler):
         except KeyError:
             pass
 
+    def _assign_ds_info(self, var_name, val):
+        """Assign ds_info."""
+        ds_info = dict(val.attrs)
+        ds_info['file_type'] = self.filetype_info['file_type']
+        ds_info['name'] = ds_info['nc_store_name'] = var_name
+        if 'original_name' in ds_info:
+            ds_info['name'] = ds_info['original_name']
+        elif self._numeric_name_prefix and var_name.startswith(self._numeric_name_prefix):
+            ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
+        return ds_info
+
     def _dynamic_datasets(self):
         """Add information of dynamic datasets."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
         # get dynamic variables known to this file (that we created)
         for var_name, val in nc.data_vars.items():
-            ds_info = dict(val.attrs)
-            ds_info['file_type'] = self.filetype_info['file_type']
-            ds_info['name'] = ds_info['nc_store_name'] = var_name
-            if 'original_name' in ds_info:
-                ds_info['name'] = ds_info['original_name']
-            elif self._numeric_name_prefix and var_name.startswith(self._numeric_name_prefix):
-                ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
+            ds_info = self._assign_ds_info(var_name, val)
             try:
                 ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
             except KeyError:
