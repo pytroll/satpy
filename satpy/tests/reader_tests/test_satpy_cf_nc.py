@@ -104,9 +104,9 @@ class TestCFReader(unittest.TestCase):
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename])
             scn_.load(['image0', 'image1', 'lat'])
-            self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
-            self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
-            self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
+            np.testing.assert_array_equal(scn_['image0'].data, self.scene['image0'].data)
+            np.testing.assert_array_equal(scn_['lat'].data, self.scene['lat'].data)  # lat loaded as dataset
+            np.testing.assert_array_equal(scn_['image0'].coords['lon'], self.scene['lon'].data)  # lon loded as coord
             assert isinstance(scn_['image0'].attrs['wavelength'], WavelengthRange)
         finally:
             with suppress(PermissionError):
@@ -170,18 +170,18 @@ class TestCFReader(unittest.TestCase):
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename])
             scn_.load(['1'])
-            self.assertTrue(np.all(scn_['1'].data == scene['1'].data))
-            self.assertTrue(np.all(scn_['1'].coords['lon'] == scene['lon'].data))  # lon loaded as coord
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loaded as coord
 
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename], reader_kwargs={})
             scn_.load(['1'])
-            self.assertTrue(np.all(scn_['1'].data == scene['1'].data))
-            self.assertTrue(np.all(scn_['1'].coords['lon'] == scene['lon'].data))  # lon loaded as coord
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loaded as coord
 
             # Check that variables starting with a digit is written to filename variable prefixed
             with xr.open_dataset(filename) as ds_disk:
-                self.assertTrue(np.all(ds_disk['CHANNEL_1'].data == scene['1'].data))
+                np.testing.assert_array_equal(ds_disk['CHANNEL_1'].data, scene['1'].data)
         finally:
             with suppress(PermissionError):
                 os.remove(filename)
@@ -203,14 +203,14 @@ class TestCFReader(unittest.TestCase):
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename])
             scn_.load(['1'])
-            self.assertTrue(np.all(scn_['1'].data == scene['1'].data))
-            self.assertTrue(np.all(scn_['1'].coords['lon'] == scene['lon'].data))  # lon loaded as coord
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loaded as coord
 
             self.assertEqual(scn_['1'].attrs['original_name'], '1')
 
             # Check that variables starting with a digit is written to filename variable prefixed
             with xr.open_dataset(filename) as ds_disk:
-                self.assertTrue(np.all(ds_disk['CHANNEL_1'].data == scene['1'].data))
+                np.testing.assert_array_equal(ds_disk['CHANNEL_1'].data, scene['1'].data)
         finally:
             with suppress(PermissionError):
                 os.remove(filename)
@@ -231,12 +231,12 @@ class TestCFReader(unittest.TestCase):
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename], reader_kwargs={'numeric_name_prefix': 'USER'})
             scn_.load(['1'])
-            self.assertTrue(np.all(scn_['1'].data == scene['1'].data))
-            self.assertTrue(np.all(scn_['1'].coords['lon'] == scene['lon'].data))  # lon loded as coord
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loded as coord
 
             # Check that variables starting with a digit is written to filename variable prefixed
             with xr.open_dataset(filename) as ds_disk:
-                self.assertTrue(np.all(ds_disk['USER1'].data == scene['1'].data))
+                np.testing.assert_array_equal(ds_disk['USER1'].data, scene['1'].data)
         finally:
             with suppress(PermissionError):
                 os.remove(filename)
@@ -253,12 +253,13 @@ class TestCFReader(unittest.TestCase):
                                 engine='netcdf4',
                                 flatten_attrs=True,
                                 pretty=True,
+                                include_orig_name=False,
                                 numeric_name_prefix='USER')
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename])
             scn_.load(['USER1'])
-            self.assertTrue(np.all(scn_['USER1'].data == scene['1'].data))
-            self.assertTrue(np.all(scn_['USER1'].coords['lon'] == scene['lon'].data))  # lon loded as coord
+            np.testing.assert_array_equal(scn_['USER1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['USER1'].coords['lon'], scene['lon'].data)  # lon loded as coord
 
         finally:
             with suppress(PermissionError):
@@ -281,8 +282,8 @@ class TestCFReader(unittest.TestCase):
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename])
             scn_.load(['1'])
-            self.assertTrue(np.all(scn_['1'].data == scene['1'].data))
-            self.assertTrue(np.all(scn_['1'].coords['lon'] == scene['lon'].data))  # lon loded as coord
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loded as coord
 
         finally:
             with suppress(PermissionError):
@@ -304,8 +305,8 @@ class TestCFReader(unittest.TestCase):
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename])
             scn_.load(['1'])
-            self.assertTrue(np.all(scn_['1'].data == scene['1'].data))
-            self.assertTrue(np.all(scn_['1'].coords['lon'] == scene['lon'].data))  # lon loded as coord
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loded as coord
 
         finally:
             with suppress(PermissionError):
