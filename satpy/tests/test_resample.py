@@ -27,10 +27,7 @@ try:
 except ImportError:
     LegacyDaskEWAResampler = None
 
-try:
-    from pyproj import CRS
-except ImportError:
-    CRS = None
+from pyproj import CRS
 
 
 def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=None,
@@ -73,9 +70,8 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
         input_shape[0],  # height
         (-1000., -1500., 1000., 1500.))
     ds1.attrs['area'] = source
-    if CRS is not None:
-        crs = CRS.from_string(input_proj_str)
-        ds1 = ds1.assign_coords(crs=crs)
+    crs = CRS.from_string(input_proj_str)
+    ds1 = ds1.assign_coords(crs=crs)
 
     ds2 = ds1.copy()
     input_area_shape = tuple(ds1.sizes[dim] for dim in ds1.dims
@@ -87,9 +83,8 @@ def get_test_data(input_shape=(100, 50), output_shape=(200, 100), output_proj=No
         DataArray(lons, dims=geo_dims),
         DataArray(lats, dims=geo_dims))
     ds2.attrs['area'] = swath_def
-    if CRS is not None:
-        crs = CRS.from_string('+proj=latlong +datum=WGS84 +ellps=WGS84')
-        ds2 = ds2.assign_coords(crs=crs)
+    crs = CRS.from_string('+proj=latlong +datum=WGS84 +ellps=WGS84')
+    ds2 = ds2.assign_coords(crs=crs)
 
     # set up target definition
     output_proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
@@ -303,14 +298,12 @@ class TestEWAResampler(unittest.TestCase):
         self.assertEqual(get_lonlats.call_count, lonlat_calls)
         self.assertIn('y', new_data.coords)
         self.assertIn('x', new_data.coords)
-        if CRS is not None:
-            self.assertIn('crs', new_data.coords)
-            self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-            self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
-            self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-            self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-            if hasattr(target_area, 'crs'):
-                self.assertIs(target_area.crs, new_data.coords['crs'].item())
+        self.assertIn('crs', new_data.coords)
+        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
+        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
+        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
     @mock.patch('satpy.resample.fornav')
     @mock.patch('satpy.resample.ll2cr')
@@ -355,16 +348,14 @@ class TestEWAResampler(unittest.TestCase):
         self.assertIn('y', new_data.coords)
         self.assertIn('x', new_data.coords)
         self.assertIn('bands', new_data.coords)
-        if CRS is not None:
-            self.assertIn('crs', new_data.coords)
-            self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-            self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
-            self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-            self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-            np.testing.assert_equal(new_data.coords['bands'].values,
-                                    ['R', 'G', 'B'])
-            if hasattr(target_area, 'crs'):
-                self.assertIs(target_area.crs, new_data.coords['crs'].item())
+        self.assertIn('crs', new_data.coords)
+        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
+        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
+        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+        np.testing.assert_equal(new_data.coords['bands'].values,
+                                ['R', 'G', 'B'])
+        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
 
 class TestNativeResampler(unittest.TestCase):
@@ -407,14 +398,12 @@ class TestNativeResampler(unittest.TestCase):
         self.assertTrue(np.all(new_data == new_data2))
         self.assertIn('y', new_data.coords)
         self.assertIn('x', new_data.coords)
-        if CRS is not None:
-            self.assertIn('crs', new_data.coords)
-            self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-            self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
-            self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-            self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-            if hasattr(target_area, 'crs'):
-                self.assertIs(target_area.crs, new_data.coords['crs'].item())
+        self.assertIn('crs', new_data.coords)
+        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
+        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
+        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_dims_3d(self):
         """Test expanding native resampling with 3D data."""
@@ -433,14 +422,12 @@ class TestNativeResampler(unittest.TestCase):
         self.assertIn('bands', new_data.coords)
         np.testing.assert_equal(new_data.coords['bands'].values,
                                 ['R', 'G', 'B'])
-        if CRS is not None:
-            self.assertIn('crs', new_data.coords)
-            self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-            self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
-            self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-            self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-            if hasattr(target_area, 'crs'):
-                self.assertIs(target_area.crs, new_data.coords['crs'].item())
+        self.assertIn('crs', new_data.coords)
+        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
+        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
+        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_without_dims(self):
         """Test expanding native resampling with no dimensions specified."""
@@ -453,12 +440,10 @@ class TestNativeResampler(unittest.TestCase):
         self.assertEqual(new_data.shape, (200, 100))
         new_data2 = resampler.resample(ds1.compute())
         self.assertTrue(np.all(new_data == new_data2))
-        if CRS is not None:
-            self.assertIn('crs', new_data.coords)
-            self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-            self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
-            if hasattr(target_area, 'crs'):
-                self.assertIs(target_area.crs, new_data.coords['crs'].item())
+        self.assertIn('crs', new_data.coords)
+        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
+        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_without_dims_4D(self):
         """Test expanding native resampling with 4D data with no dimensions specified."""
@@ -502,14 +487,12 @@ class TestBilinearResampler(unittest.TestCase):
             data, fill_value=fill_value, output_shape=target_area.shape)
         self.assertIn('y', new_data.coords)
         self.assertIn('x', new_data.coords)
-        if CRS is not None:
-            self.assertIn('crs', new_data.coords)
-            self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-            self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
-            self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
-            self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
-            if hasattr(target_area, 'crs'):
-                self.assertIs(target_area.crs, new_data.coords['crs'].item())
+        self.assertIn('crs', new_data.coords)
+        self.assertIsInstance(new_data.coords['crs'].item(), CRS)
+        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
+        self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+        self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
         # Test that the resampling info is tried to read from the disk
         resampler = BilinearResampler(source_swath, target_area)
@@ -601,17 +584,15 @@ class TestCoordinateHelpers(unittest.TestCase):
         self.assertIn('y', new_data_arr.coords)
         self.assertIn('x', new_data_arr.coords)
 
-        if CRS is not None:
-            self.assertIn('units', new_data_arr.coords['y'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['y'].attrs['units'], 'meter')
-            self.assertIn('units', new_data_arr.coords['x'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['x'].attrs['units'], 'meter')
-            self.assertIn('crs', new_data_arr.coords)
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
-            if hasattr(area_def, 'crs'):
-                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
+        self.assertIn('units', new_data_arr.coords['y'].attrs)
+        self.assertEqual(
+            new_data_arr.coords['y'].attrs['units'], 'meter')
+        self.assertIn('units', new_data_arr.coords['x'].attrs)
+        self.assertEqual(
+            new_data_arr.coords['x'].attrs['units'], 'meter')
+        self.assertIn('crs', new_data_arr.coords)
+        self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+        self.assertEqual(area_def.crs, new_data_arr.coords['crs'].item())
 
         # already has coords
         data_arr = xr.DataArray(
@@ -627,11 +608,9 @@ class TestCoordinateHelpers(unittest.TestCase):
         self.assertNotIn('units', new_data_arr.coords['x'].attrs)
         np.testing.assert_equal(new_data_arr.coords['y'], np.arange(2, 202))
 
-        if CRS is not None:
-            self.assertIn('crs', new_data_arr.coords)
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
-            if hasattr(area_def, 'crs'):
-                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
+        self.assertIn('crs', new_data_arr.coords)
+        self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+        self.assertEqual(area_def.crs, new_data_arr.coords['crs'].item())
 
         # lat/lon area
         area_def = AreaDefinition(
@@ -647,17 +626,15 @@ class TestCoordinateHelpers(unittest.TestCase):
         self.assertIn('y', new_data_arr.coords)
         self.assertIn('x', new_data_arr.coords)
 
-        if CRS is not None:
-            self.assertIn('units', new_data_arr.coords['y'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['y'].attrs['units'], 'degrees_north')
-            self.assertIn('units', new_data_arr.coords['x'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['x'].attrs['units'], 'degrees_east')
-            self.assertIn('crs', new_data_arr.coords)
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
-            if hasattr(area_def, 'crs'):
-                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
+        self.assertIn('units', new_data_arr.coords['y'].attrs)
+        self.assertEqual(
+            new_data_arr.coords['y'].attrs['units'], 'degrees_north')
+        self.assertIn('units', new_data_arr.coords['x'].attrs)
+        self.assertEqual(
+            new_data_arr.coords['x'].attrs['units'], 'degrees_east')
+        self.assertIn('crs', new_data_arr.coords)
+        self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+        self.assertEqual(area_def.crs, new_data_arr.coords['crs'].item())
 
     def test_swath_def_coordinates(self):
         """Test coordinates being added with an SwathDefinition."""
@@ -690,12 +667,11 @@ class TestCoordinateHelpers(unittest.TestCase):
         #     new_data_arr.coords['latitude'].attrs['units'], 'degrees_north')
         # self.assertIsInstance(new_data_arr.coords['latitude'].data, da.Array)
 
-        if CRS is not None:
-            self.assertIn('crs', new_data_arr.coords)
-            crs = new_data_arr.coords['crs'].item()
-            self.assertIsInstance(crs, CRS)
-            self.assertIn('longlat', crs.to_proj4())
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+        self.assertIn('crs', new_data_arr.coords)
+        crs = new_data_arr.coords['crs'].item()
+        self.assertIsInstance(crs, CRS)
+        self.assertIn('longlat', crs.to_proj4())
+        self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
 
 
 class TestBucketAvg(unittest.TestCase):
