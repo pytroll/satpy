@@ -41,7 +41,7 @@ from threading import Lock
 
 import numpy as np
 import rasterio
-import xarray as xr
+import rioxarray
 from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
@@ -338,9 +338,8 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = xr.open_rasterio(self.filehandle,
-                                    chunks={'band': 1, 'x': CHUNK_SIZE, 'y': CHUNK_SIZE},
-                                    lock=self.read_lock).squeeze()
+            data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
+
             data = self._calibrate(data, key)
             data.attrs.update(info)
             data.attrs.update({'platform_name': self._mission_id})
