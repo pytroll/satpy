@@ -597,7 +597,7 @@ class CFWriter(Writer):
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
 
-        if include_orig_name and numeric_name_prefix and original_name:
+        if include_orig_name and numeric_name_prefix and original_name and original_name != name:
             new_data.attrs['original_name'] = original_name
 
         # Flatten dict-type attributes, if desired
