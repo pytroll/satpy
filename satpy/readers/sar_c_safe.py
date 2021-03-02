@@ -340,7 +340,7 @@ class SAFEGRD(BaseFileHandler):
         else:
             data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
 
-            data = self._calibrate(data, key)
+            data = self._calibrate_and_denoise(data, key)
             data.attrs.update(info)
             data.attrs.update({'platform_name': self._mission_id})
 
@@ -359,21 +359,37 @@ class SAFEGRD(BaseFileHandler):
 
         return data
 
-    def _calibrate(self, data, key):
-        """Calibrate the data."""
+    def _calibrate_and_denoise(self, data, key):
+        """Calibrate and denoise the data."""
         chunks = CHUNK_SIZE
-        logger.debug('Reading noise data.')
-        noise = self.noise.get_noise_correction(data.shape, chunks=chunks).fillna(0)
-        logger.debug('Reading calibration data.')
-        cal = self.calibration.get_calibration(key['calibration'], data.shape, chunks=chunks)
-        cal_constant = self.calibration.get_calibration_constant()
-        logger.debug('Calibrating.')
+
+        dn = self._get_digital_number(data)
+        dn = self._denoise(dn, chunks)
+        data = self._calibrate(dn, chunks, key)
+
+        return data
+
+    def _get_digital_number(self, data):
+        """Get the digital numbers (uncalibrated data)."""
         data = data.where(data > 0)
         data = data.astype(np.float64)
         dn = data * data
-        data = dn - noise
-        data = ((data + cal_constant) / (cal ** 2)).clip(min=0)
+        return dn
 
+    def _denoise(self, dn, chunks):
+        """Denoise the data."""
+        logger.debug('Reading noise data.')
+        noise = self.noise.get_noise_correction(dn.shape, chunks=chunks).fillna(0)
+        dn = dn - noise
+        return dn
+
+    def _calibrate(self, dn, chunks, key):
+        """Calibrate the data."""
+        logger.debug('Reading calibration data.')
+        cal = self.calibration.get_calibration(key['calibration'], dn.shape, chunks=chunks)
+        cal_constant = self.calibration.get_calibration_constant()
+        logger.debug('Calibrating.')
+        data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
         return data
 
     @lru_cache(maxsize=2)
