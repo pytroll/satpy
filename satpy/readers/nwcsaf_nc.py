@@ -264,11 +264,9 @@ class NcNWCSAF(BaseFileHandler):
         if dsid['name'].endswith('_pal'):
             raise NotImplementedError
 
-        proj_str, area_extent = self._get_projection()
-
+        crs, area_extent = self._get_projection()
+        crs, area_extent = self._ensure_crs_extents_in_meters(crs, area_extent)
         nlines, ncols = self.nc[dsid['name']].shape
-
-        crs, area_extent = self._ensure_crs_extents_in_meters(proj_str, area_extent)
         area = AreaDefinition('some_area_name',
                               "On-the-fly area",
                               'geosmsg',
@@ -280,11 +278,10 @@ class NcNWCSAF(BaseFileHandler):
         return area
 
     @staticmethod
-    def _ensure_crs_extents_in_meters(proj_str, area_extent):
+    def _ensure_crs_extents_in_meters(crs, area_extent):
         """Fix units in Earth shape, satellite altitude and 'units' attribute."""
-        from pyresample.utils import proj4_str_to_dict
-        proj_dict = proj4_str_to_dict(proj_str)
-        if proj_dict.get('units') == 'km':
+        if 'kilo' in crs.axis_info[0].unit_name:
+            proj_dict = crs.to_dict()
             proj_dict["units"] = "m"
             if "a" in proj_dict:
                 proj_dict["a"] *= 1000.
@@ -294,7 +291,8 @@ class NcNWCSAF(BaseFileHandler):
                 proj_dict["R"] *= 1000.
             proj_dict["h"] *= 1000.
             area_extent = tuple([val * 1000. for val in area_extent])
-        return CRS(proj_dict), area_extent
+            crs = CRS.from_dict(proj_dict)
+        return crs, area_extent
 
     def __del__(self):
         """Delete the instance."""
@@ -365,7 +363,8 @@ class NcNWCSAF(BaseFileHandler):
                        float(self.nc.attrs['gdal_xgeo_low_right']) / scale,
                        float(self.nc.attrs['gdal_ygeo_up_left']) / scale)
 
-        return proj_str, area_extent
+        crs = CRS.from_string(proj_str)
+        return crs, area_extent
 
 
 def remove_empties(variable):
