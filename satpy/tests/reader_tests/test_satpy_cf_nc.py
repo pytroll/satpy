@@ -206,7 +206,7 @@ class TestCFReader(unittest.TestCase):
             self.assertTrue(np.all(scn_['1'].data == scene['1'].data))
             self.assertTrue(np.all(scn_['1'].coords['lon'] == scene['lon'].data))  # lon loaded as coord
 
-            self.assertTrue(scn_['1'].attrs['original_name'] == '1')
+            self.assertEqual(scn_['1'].attrs['original_name'], '1')
 
             # Check that variables starting with a digit is written to filename variable prefixed
             with xr.open_dataset(filename) as ds_disk:
