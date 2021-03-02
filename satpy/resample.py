@@ -72,13 +72,13 @@ when generating composites between bands of different resolutions.
     >>> new_scn = scn.resample(resampler='native')
 
 By default this resamples to the
-:meth:`highest resolution area <satpy.scene.Scene.max_area>` (smallest footprint per
-pixel) shared between the loaded datasets. You can easily specify the lower
+:meth:`highest resolution area <satpy.scene.Scene.finest_area>` (smallest footprint per
+pixel) shared between the loaded datasets. You can easily specify the lowest
 resolution area:
 
 .. code-block:: python
 
-    >>> new_scn = scn.resample(scn.min_area(), resampler='native')
+    >>> new_scn = scn.resample(scn.coarsest_area(), resampler='native')
 
 Providing an area that is neither the minimum or maximum resolution area
 may work, but behavior is currently undefined.
