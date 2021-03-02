@@ -523,7 +523,7 @@ class CFWriter(Writer):
 
     @staticmethod
     def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
-              include_orig_name=False, numeric_name_prefix='CHANNEL_'):
+              include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -622,7 +622,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, include_orig_name=False, numeric_name_prefix='CHANNEL_'):
+                          pretty=False, compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -660,7 +660,7 @@ class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, include_orig_name=False, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
+                      compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
