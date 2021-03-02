@@ -387,6 +387,17 @@ class Scene:
         """Get values for the underlying data container."""
         return self._datasets.values()
 
+    def _copy_datasets_and_wishlist(self, new_scn, datasets):
+        for ds_id in datasets:
+            # NOTE: Must use `._datasets` or side effects of `__setitem__`
+            #       could hurt us with regards to the wishlist
+            new_scn._datasets[ds_id] = self[ds_id]
+
+        if not datasets:
+            new_scn._wishlist = self._wishlist.copy()
+        else:
+            new_scn._wishlist = set(ds_id for ds_id in new_scn.keys())
+
     def copy(self, datasets=None):
         """Create a copy of the Scene including dependency information.
 
@@ -400,16 +411,7 @@ class Scene:
         new_scn._dependency_tree = self._dependency_tree.copy()
         if datasets is None:
             datasets = self.keys()
-
-        for ds_id in datasets:
-            # NOTE: Must use `._datasets` or side effects of `__setitem__`
-            #       could hurt us with regards to the wishlist
-            new_scn._datasets[ds_id] = self[ds_id]
-
-        if not datasets:
-            new_scn._wishlist = self._wishlist.copy()
-        else:
-            new_scn._wishlist = set(ds_id for ds_id in new_scn.keys())
+        self._copy_datasets_and_wishlist(new_scn, datasets)
         return new_scn
 
     @property
