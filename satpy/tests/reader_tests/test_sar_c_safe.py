@@ -40,10 +40,11 @@ class TestSAFEGRD(unittest.TestCase):
         self.calfh = mock.MagicMock()
         self.calfh.get_calibration_constant.return_value = 1
         self.calfh.get_calibration.return_value = xr.DataArray(np.ones((2, 2)))
+        self.annotationfh = mock.MagicMock()
 
         self.test_fh = SAFEGRD('S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/measurement/s1a-iw-grd'  # noqa
                                '-vv-20190201t024655-20190201t024720-025730-02dc2a-001.tiff',
-                               filename_info, filetype_info, self.calfh, self.noisefh)
+                               filename_info, filetype_info, self.calfh, self.noisefh, self.annotationfh)
         self.mocked_rio_open = mocked_rio_open
 
     def test_instantiate(self):

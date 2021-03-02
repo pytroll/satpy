@@ -89,6 +89,10 @@ class SAFEXML(BaseFileHandler):
         self.hdr = {}
         if header_file is not None:
             self.hdr = header_file.get_metadata()
+        else:
+            self.hdr = self.get_metadata()
+        self._image_shape = (self.hdr['product']['imageAnnotation']['imageInformation']['numberOfLines'],
+                             self.hdr['product']['imageAnnotation']['imageInformation']['numberOfSamples'])
 
     def get_metadata(self):
         """Convert the xml metadata to dict."""
@@ -211,6 +215,12 @@ class SAFEXML(BaseFileHandler):
         """Load the calibration constant."""
         return float(self.root.find('.//absoluteCalibrationConstant').text)
 
+    @lru_cache(maxsize=10)
+    def get_incidence_angle(self):
+        """Get the incidence angle array."""
+        data_items = self.root.findall(".//geolocationGridPoint")
+        return self.read_xml_array(data_items, 'incidenceAngle')
+
     @property
     def start_time(self):
         """Get the start time."""
@@ -293,7 +303,7 @@ class SAFEGRD(BaseFileHandler):
     block size.
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calfh, noisefh):
+    def __init__(self, filename, filename_info, filetype_info, calfh, noisefh, annotationfh):
         """Init the grd filehandler."""
         super(SAFEGRD, self).__init__(filename, filename_info,
                                       filetype_info)
@@ -307,6 +317,7 @@ class SAFEGRD(BaseFileHandler):
 
         self.calibration = calfh
         self.noise = noisefh
+        self.annotation = annotationfh
         self.read_lock = Lock()
 
         self.filehandle = rasterio.open(self.filename, 'r', sharing=False)
