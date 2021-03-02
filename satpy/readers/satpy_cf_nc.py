@@ -255,6 +255,10 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info['name'] = ds_info['original_name']
         elif self._numeric_name_prefix and var_name.startswith(self._numeric_name_prefix):
             ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
+        try:
+            ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
+        except KeyError:
+            pass
         return ds_info
 
     def _dynamic_datasets(self):
@@ -263,10 +267,6 @@ class SatpyCFFileHandler(BaseFileHandler):
         # get dynamic variables known to this file (that we created)
         for var_name, val in nc.data_vars.items():
             ds_info = self._assign_ds_info(var_name, val)
-            try:
-                ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
-            except KeyError:
-                pass
             self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
