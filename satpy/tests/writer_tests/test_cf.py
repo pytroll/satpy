@@ -458,7 +458,7 @@ class TestCFWriter(unittest.TestCase):
                  'none': None,  # should be dropped
                  'numpy_int': np.uint8(1),
                  'numpy_float': np.float32(1),
-                 'numpy_bool': np.bool(True),
+                 'numpy_bool': True,
                  'numpy_void': np.void(0),
                  'numpy_bytes': np.bytes_('test'),
                  'numpy_string': np.string_('test'),

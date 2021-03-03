@@ -566,7 +566,7 @@ class KDTreeResampler(BaseResampler):
                     cache = np.array(fid[idx_name])
                     if idx_name == 'valid_input_index':
                         # valid input index array needs to be boolean
-                        cache = cache.astype(np.bool)
+                        cache = cache.astype(bool)
                 except ValueError:
                     raise IOError
                 cache = self._apply_cached_index(cache, idx_name)

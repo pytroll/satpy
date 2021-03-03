@@ -384,9 +384,9 @@ class MpefProductHeader(object):
         record = [
             ('MPEF_File_Id', np.int16),
             ('MPEF_Header_Version', np.uint8),
-            ('ManualDissAuthRequest', np.bool),
-            ('ManualDisseminationAuth', np.bool),
-            ('DisseminationAuth', np.bool),
+            ('ManualDissAuthRequest', bool),
+            ('ManualDisseminationAuth', bool),
+            ('DisseminationAuth', bool),
             ('NominalTime', time_cds_short),
             ('ProductQuality', np.uint8),
             ('ProductCompleteness', np.uint8),
@@ -417,7 +417,7 @@ class MpefProductHeader(object):
         record = [
             ('Padding1', 'S2'),
             ('ExpectedImage', time_cds_short),
-            ('ImageReceived', np.bool),
+            ('ImageReceived', bool),
             ('Padding2', 'S1'),
             ('UsedImageStart_Day', np.uint16),
             ('UsedImageStart_Millsec', np.uint32),

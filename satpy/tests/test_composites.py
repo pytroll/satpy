@@ -290,7 +290,7 @@ class TestDayNightCompositor(unittest.TestCase):
         start_time = datetime(2018, 1, 1, 18, 0, 0)
 
         # RGB
-        a = np.zeros((3, 2, 2), dtype=np.float)
+        a = np.zeros((3, 2, 2), dtype=np.float64)
         a[:, 0, 0] = 0.1
         a[:, 0, 1] = 0.2
         a[:, 1, 0] = 0.3
@@ -298,7 +298,7 @@ class TestDayNightCompositor(unittest.TestCase):
         a = da.from_array(a, a.shape)
         self.data_a = xr.DataArray(a, attrs={'test': 'a', 'start_time': start_time},
                                    coords={'bands': bands}, dims=('bands', 'y', 'x'))
-        b = np.zeros((3, 2, 2), dtype=np.float)
+        b = np.zeros((3, 2, 2), dtype=np.float64)
         b[:, 0, 0] = np.nan
         b[:, 0, 1] = 0.25
         b[:, 1, 0] = 0.50
