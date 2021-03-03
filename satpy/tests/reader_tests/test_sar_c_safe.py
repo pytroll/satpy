@@ -277,18 +277,24 @@ annotation_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 
 noise_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 <noise>
-  <noiseRangeVectorList count="67">
+  <noiseRangeVectorList count="3">
     <noiseRangeVector>
       <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
       <line>0</line>
-      <pixel count="5">0 40 80 10470 10473</pixel>
-      <noiseRangeLut count="5">2.727962e+04 2.275054e+04 1.927496e+04 0.000000e+00 0.000000e+00</noiseRangeLut>
+      <pixel count="6">0 2 4 6 8 9</pixel>
+      <noiseRangeLut count="6">0.00000e+00 2.00000e+00 4.00000e+00 6.00000e+00 8.00000e+00 9.00000e+00</noiseRangeLut>
     </noiseRangeVector>
     <noiseRangeVector>
       <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
-      <line>2</line>
-      <pixel count="5">0 41 81 10470 10473</pixel>
-      <noiseRangeLut count="5">2.727962e+04 2.275054e+04 1.927496e+04 0.000000e+00 0.000000e+00</noiseRangeLut>
+      <line>5</line>
+      <pixel count="6">0 2 4 7 8 9</pixel>
+      <noiseRangeLut count="6">0.00000e+00 2.00000e+00 4.00000e+00 7.00000e+00 8.00000e+00 9.00000e+00</noiseRangeLut>
+    </noiseRangeVector>
+    <noiseRangeVector>
+      <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
+      <line>9</line>
+      <pixel count="6">0 2 5 7 8 9</pixel>
+      <noiseRangeLut count="6">0.00000e+00 2.00000e+00 5.00000e+00 7.00000e+00 8.00000e+00 9.00000e+00</noiseRangeLut>
     </noiseRangeVector>
   </noiseRangeVectorList>
   <noiseAzimuthVectorList count="8">
@@ -382,18 +388,21 @@ class TestSAFEXMLNoise(unittest.TestCase):
             ntf.close()
             self.annotation_fh = SAFEXML(self.annotation_filename, mock.MagicMock(), mock.MagicMock())
 
+        with tempfile.NamedTemporaryFile(delete=False) as ntf:
+            self.noise_filename = ntf.name
+            ntf.write(noise_xml)
+            ntf.close()
+            self.noise_fh = SAFEXML(self.noise_filename, mock.MagicMock(), mock.MagicMock(), self.annotation_fh)
+
     def tearDown(self):
         """Tear down the test case."""
         with suppress(PermissionError):
             os.remove(self.annotation_filename)
+        with suppress(PermissionError):
+            os.remove(self.noise_filename)
 
     def test_azimuth_noise_array(self):
         """Test reading the azimuth-noise array."""
-        # Name of the file: 'S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/annotation/'
-        #                   'calibration/noise-s1a-iw-grd-vv-20190201t024655-20190201t024720-025730-02dc2a-001.xml'
-
-        from satpy.readers.sar_c_safe import SAFEXML
-
         expected_data = np.array([[1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                                   [1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                                   [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
@@ -406,13 +415,22 @@ class TestSAFEXMLNoise(unittest.TestCase):
                                   [2, 2, 7, 7, 7, 7, 7, 8, 8, 8],
                                   ])
 
-        with tempfile.NamedTemporaryFile(delete=False) as ntf:
-            filename = ntf.name
-            ntf.write(noise_xml)
-            ntf.close()
-            test_fh = SAFEXML(filename, mock.MagicMock(), mock.MagicMock(), self.annotation_fh)
-            res = test_fh.azimuth_noise_reader.read_azimuth_noise_array()
+        res = self.noise_fh.azimuth_noise_reader.read_azimuth_noise_array()
+        np.testing.assert_array_equal(res, expected_data)
 
-            np.testing.assert_array_equal(res, expected_data)
-        with suppress(PermissionError):
-            os.remove(filename)
+    def test_range_noise_array(self):
+        """Test reading the range-noise array."""
+        expected_data = np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                  ])
+
+        res = self.noise_fh.read_range_noise_array(chunks=5)
+        np.testing.assert_allclose(res, expected_data)
