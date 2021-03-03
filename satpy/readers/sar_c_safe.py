@@ -199,45 +199,45 @@ class AzimuthNoiseReader:
         self.root = ET.parse(filename)
         self.elements = self.root.findall(".//noiseAzimuthVector")
         self._image_shape = shape
+        self.blocks = []
 
     def read_azimuth_noise_array(self, chunks=CHUNK_SIZE):
         """Read the azimuth noise vectors."""
-        blocks = self._read_azimuth_noise_blocks(chunks)
-        populated_array = self._assemble_azimuth_noise_blocks(blocks, chunks)
+        self._read_azimuth_noise_blocks(chunks)
+        populated_array = self._assemble_azimuth_noise_blocks(chunks)
 
         return populated_array
 
     def _read_azimuth_noise_blocks(self, chunks):
         """Read the azimuth noise blocks."""
-        blocks = []
+        self.blocks = []
         for elt in self.elements:
             block = _AzimuthBlock(elt)
             new_arr = block.expand(chunks)
-            blocks.append(new_arr)
-        return blocks
+            self.blocks.append(new_arr)
 
-    def _assemble_azimuth_noise_blocks(self, blocks, chunks):
+    def _assemble_azimuth_noise_blocks(self, chunks):
         """Assemble the azimuth noise blocks into one single array."""
-        slices = self._create_dask_slices_from_blocks(blocks, chunks)
+        slices = self._create_dask_slices_from_blocks(chunks)
         populated_array = da.vstack(slices).rechunk(chunks)
         populated_array = xr.DataArray(populated_array, dims=['y', 'x'],
                                        coords={'x': np.arange(self._image_shape[1]),
                                                'y': np.arange(self._image_shape[0])})
         return populated_array
 
-    def _create_dask_slices_from_blocks(self, blocks, chunks):
+    def _create_dask_slices_from_blocks(self, chunks):
         """Create full-width slices from azimuth noise blocks."""
         current_line = 0
         slices = []
         while current_line < self._image_shape[0]:
-            new_slice = self._create_dask_slice_from_block_line(blocks, current_line, chunks)
+            new_slice = self._create_dask_slice_from_block_line(current_line, chunks)
             slices.append(new_slice)
             current_line += new_slice.shape[0]
         return slices
 
-    def _create_dask_slice_from_block_line(self, blocks, current_line, chunks):
+    def _create_dask_slice_from_block_line(self, current_line, chunks):
         """Create a dask slice from the blocks at the current line."""
-        current_blocks = self._find_blocks_covering_line(blocks, current_line)
+        current_blocks = self._find_blocks_covering_line(current_line)
         current_blocks.sort(key=(lambda x: x.coords['x'][0]))
         next_line = min((arr.coords['y'][-1] for arr in current_blocks))
         current_y = np.arange(current_line, next_line + 1)
@@ -246,11 +246,10 @@ class AzimuthNoiseReader:
         new_slice = da.hstack(dask_pieces)
         return new_slice
 
-    @staticmethod
-    def _find_blocks_covering_line(blocks, current_line):
+    def _find_blocks_covering_line(self, current_line):
         """Find the block covering a given line."""
         current_blocks = []
-        for block in blocks:
+        for block in self.blocks:
             if block.coords['y'][0] <= current_line <= block.coords['y'][-1]:
                 current_blocks.append(block)
         return current_blocks
@@ -350,22 +349,22 @@ class XMLArray:
         self.root = root
         self.list_tag = list_tag
         self.element_tag = element_tag
-        self.data, self.low_res_coords = self.read_xml_array()
+        self.data, self.low_res_coords = self._read_xml_array()
 
     def __call__(self, shape, chunks=None):
         """Generate the full-blown array."""
         return self.interpolate_xml_array(shape, chunks=chunks)
 
-    def read_xml_array(self):
+    def _read_xml_array(self):
         """Read an array from xml."""
         elements = self.get_data_items()
         y = []
         x = []
         data = []
         for elt in elements:
-            newx = elt.find('pixel').text.split()
-            y += [int(elt.find('line').text)] * len(newx)
-            x += [int(val) for val in newx]
+            new_x = elt.find('pixel').text.split()
+            y += [int(elt.find('line').text)] * len(new_x)
+            x += [int(val) for val in new_x]
             data += [float(val)
                      for val in elt.find(self.element_tag).text.split()]
 
