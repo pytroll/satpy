@@ -155,7 +155,7 @@ def get_coeff_by_sfc(coeff_fn, bt_data, idx):
     bt_data = bt_data.transpose("Channel", "y", "x")
     c_size = bt_data[idx, :, :].chunks
     correction = da.map_blocks(apply_atms_limb_correction,
-                               bt_data.values, idx,
+                               bt_data, idx,
                                *sfc_coeff, chunks=c_size)
     return correction
 
