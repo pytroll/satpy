@@ -372,7 +372,7 @@ noise_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 class TestSAFEXMLNoise(unittest.TestCase):
     """Test the SAFE XML Noise file handler."""
 
-    def setUp(self) -> None:
+    def setUp(self):
         """Set up the test case."""
         from satpy.readers.sar_c_safe import SAFEXML
 
@@ -382,7 +382,7 @@ class TestSAFEXMLNoise(unittest.TestCase):
             ntf.close()
             self.annotation_fh = SAFEXML(self.annotation_filename, mock.MagicMock(), mock.MagicMock())
 
-    def tearDown(self) -> None:
+    def tearDown(self):
         """Tear down the test case."""
         with suppress(PermissionError):
             os.remove(self.annotation_filename)
