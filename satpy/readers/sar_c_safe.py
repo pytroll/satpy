@@ -151,12 +151,12 @@ class SAFEXML(BaseFileHandler):
     def read_legacy_noise(self, chunks):
         """Read noise for legacy GRD data."""
         noise = XMLArray(self.root, ".//noiseVector", "noiseLut")
-        return noise(self._image_shape, chunks)
+        return noise.expand(self._image_shape, chunks)
 
     def read_range_noise_array(self, chunks):
         """Read the range-noise array."""
         range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
-        return range_noise(self._image_shape, chunks)
+        return range_noise.expand(self._image_shape, chunks)
 
     @lru_cache(maxsize=10)
     def get_calibration(self, calibration, chunks=None):
@@ -168,17 +168,17 @@ class SAFEXML(BaseFileHandler):
     def _get_calibration_vector(self, calibration_name, chunks):
         """Get the calibration vector."""
         calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
-        return calibration_vector(self._image_shape, chunks=chunks)
+        return calibration_vector.expand(self._image_shape, chunks=chunks)
 
     def get_calibration_constant(self):
         """Load the calibration constant."""
         return float(self.root.find('.//absoluteCalibrationConstant').text)
 
     @lru_cache(maxsize=10)
-    def get_incidence_angle(self):
+    def get_incidence_angle(self, chunks):
         """Get the incidence angle array."""
         incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
-        return incidence_angle
+        return incidence_angle.expand(self._image_shape, chunks=chunks)
 
     @property
     def start_time(self):
@@ -351,7 +351,7 @@ class XMLArray:
         self.element_tag = element_tag
         self.data, self.low_res_coords = self._read_xml_array()
 
-    def __call__(self, shape, chunks=None):
+    def expand(self, shape, chunks=None):
         """Generate the full-blown array."""
         return self.interpolate_xml_array(shape, chunks=chunks)
 
