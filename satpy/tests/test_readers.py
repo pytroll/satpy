@@ -963,4 +963,4 @@ class TestFSFile(unittest.TestCase):
                 FSFile(self.local_filename, zip_fs))
         assert (FSFile(self.local_filename, zip_fs) !=
                 FSFile(self.local_filename))
-        assert FSFile(self.local_filaneme) != FSFile(self.local_filename2)
+        assert FSFile(self.local_filename) != FSFile(self.local_filename2)

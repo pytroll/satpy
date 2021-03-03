@@ -588,6 +588,12 @@ class FSFile(os.PathLike):
         """Implement ordering."""
         return os.fspath(self) < os.fspath(other)
 
+    def __eq__(self, other):
+        """Implement equality comparisons."""
+        return (isinstance(other, FSFile) and
+                self._file == other._file and
+                self._fs == other._fs)
+
 
 def open_file_or_filename(unknown_file_thing):
     """Try to open the *unknown_file_thing*, otherwise return the filename."""
