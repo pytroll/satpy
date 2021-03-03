@@ -1006,7 +1006,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
 
         seg1_area = MagicMock()
-        seg1_area.proj_dict = 'proj_dict'
+        seg1_area.crs = 'some_crs'
         seg1_area.area_extent = [0, 1000, 200, 500]
         seg1_area.shape = [200, 500]
         get_area_def = MagicMock()
@@ -1022,7 +1022,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         res = plsa(file_handlers, dataid)
         self.assertEqual(len(res), 2)
         seg2_extent = (0, 1500, 200, 1000)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 500, 200,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
@@ -1032,7 +1032,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
 
         seg1_area = MagicMock()
-        seg1_area.proj_dict = 'proj_dict'
+        seg1_area.crs = 'some_crs'
         seg1_area.area_extent = [0, 1000, 200, 500]
         seg1_area.shape = [556, 11136]
         get_area_def = MagicMock()
@@ -1053,7 +1053,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 1000+250=1250
         seg2_extent = (0, 1250, 200, 1000)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 11136, 278,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 11136, 278,
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
@@ -1063,7 +1063,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
-        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.crs = 'some_crs'
         seg2_area.area_extent = [0, 1000, 200, 500]
         seg2_area.shape = [200, 500]
         get_area_def = MagicMock()
@@ -1080,7 +1080,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         res = pesa(file_handlers, dataid, area_defs)
         self.assertEqual(len(res), 2)
         seg1_extent = (0, 500, 200, 0)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 500, 200,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
                          seg1_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
@@ -1090,7 +1090,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
-        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.crs = 'some_crs'
         seg2_area.area_extent = [0, 1000, 200, 500]
         seg2_area.shape = [278, 5568]
         get_area_def = MagicMock()
@@ -1112,7 +1112,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 500-250=250
         seg1_extent = (0, 500, 200, 250)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 5568, 139,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 5568, 139,
                          seg1_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 

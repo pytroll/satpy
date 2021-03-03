@@ -575,8 +575,8 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(scene._datasets.keys()), 0)
         self.assertRaises(KeyError, scene.__delitem__, 0.2)
 
-    def test_min_max_area(self):
-        """Test 'min_area' and 'max_area' methods."""
+    def test_coarsest_finest_area(self):
+        """Test 'coarsest_area' and 'finest_area' methods."""
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -612,9 +612,9 @@ class TestScene(unittest.TestCase):
         ds1.attrs['area'] = area_def1
         ds2.attrs['area'] = area_def2
         ds3.attrs['area'] = area_def2
-        self.assertIs(scene.min_area(), area_def1)
-        self.assertIs(scene.max_area(), area_def2)
-        self.assertIs(scene.min_area(['2', '3']), area_def2)
+        self.assertIs(scene.coarsest_area(), area_def1)
+        self.assertIs(scene.finest_area(), area_def2)
+        self.assertIs(scene.coarsest_area(['2', '3']), area_def2)
 
     def test_all_datasets_no_readers(self):
         """Test all datasets with no reader."""
