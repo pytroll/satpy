@@ -94,7 +94,7 @@ def _get_datasets_with_attributes():
                             attrs={'long_name':
                                    "Latitude of the view (-90,90)"},
                             dims=('Scanline', 'Field_of_view'))
-    longitude = xr.DataArray(DEFAULT_LAT.reshape(DEFAULT_2D_SHAPE),
+    longitude = xr.DataArray(DEFAULT_LON.reshape(DEFAULT_2D_SHAPE),
                              attrs={'long_name':
                                     "Longitude of the view (-180,180)"},
                              dims=('Scanline', 'Field_of_view'))
@@ -133,10 +133,12 @@ def _get_datasets_with_less_attributes():
                             dims=('Scanline', 'Field_of_view'))
     latitude = xr.DataArray(DEFAULT_LAT.reshape(DEFAULT_2D_SHAPE),
                             attrs={'long_name':
-                                   "Latitude of the view (-90,90)"})
-    longitude = xr.DataArray(DEFAULT_LAT.reshape(DEFAULT_2D_SHAPE),
+                                   "Latitude of the view (-90,90)"},
+                            dims=('Scanline', 'Field_of_view'))
+    longitude = xr.DataArray(DEFAULT_LON.reshape(DEFAULT_2D_SHAPE),
                              attrs={"long_name":
-                                    "Longitude of the view (-180,180)"})
+                                    "Longitude of the view (-180,180)"},
+                             dims=('Scanline', 'Field_of_view'))
 
     ds_vars = {
         'Freq': FREQ,
@@ -251,7 +253,8 @@ class TestMirsL2_NcReader:
             r.create_filehandlers(loadables)
             loaded_data_arrs = r.load(loadable_ids)
             assert loaded_data_arrs
-            for _data_id, data_arr in loaded_data_arrs.items():
-                self._check_area(data_arr)
+            for data_id, data_arr in loaded_data_arrs.items():
+                if data_id['name'] not in ['latitude', 'longitude']:
+                    self._check_area(data_arr)
                 self._check_fill(data_arr)
                 self._check_attrs(data_arr, platform_name)
