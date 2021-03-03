@@ -88,57 +88,6 @@ def _get_calibration_name(calibration):
     return calibration_name
 
 
-def _build_azimuth_block_from_xml(elt, chunks):
-    """Build an azimuth block from xml data."""
-    first_line, first_pixel, last_line, last_pixel, lines, lut = _get_azimuth_block_parameters_from_xml_element(elt)
-    corr = 1
-    # This isn't needed with newer data (> 2020). When was the change operated?
-    #
-    #         The azimuth noise is normalized per swath to account for gain
-    #         differences between the swaths in EW mode.
-    #
-    #         This is based on the this reference:
-    #         J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
-    #         "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
-    #         in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
-    #         pp. 1555-1565, March 2018.
-    #         doi: 10.1109/TGRS.2017.2765248
-    #
-    # For old data. < 2020
-    # swath = elt.find('swath').text
-    # if swath == 'EW1':
-    #     corr = 1.5
-    # if swath in ['EW4', 'IW3']:
-    #     corr = 1.2
-    # if swath == 'EW5':
-    #     corr = 1.5
-    data = lut * corr
-
-    x_coord = np.arange(first_pixel, last_pixel + 1)
-    y_coord = np.arange(first_line, last_line + 1)
-
-    new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
-               np.interp(y_coord, lines, data)[:, np.newaxis])
-    new_arr = xr.DataArray(new_arr,
-                           dims=['y', 'x'],
-                           coords={'x': x_coord,
-                                   'y': y_coord})
-    return new_arr
-
-
-def _get_azimuth_block_parameters_from_xml_element(elt):
-    """Get the azimuth block parameter from the xml element."""
-    first_pixel = int(elt.find('firstRangeSample').text)
-    last_pixel = int(elt.find('lastRangeSample').text)
-    first_line = int(elt.find('firstAzimuthLine').text)
-    last_line = int(elt.find('lastAzimuthLine').text)
-    lines = elt.find('line').text.split()
-    lines = np.array(lines).astype(int)
-    lut = elt.find('noiseAzimuthLut').text.split()
-    lut = np.array(lut).astype(float)
-    return first_line, first_pixel, last_line, last_pixel, lines, lut
-
-
 class SAFEXML(BaseFileHandler):
     """XML file reader for the SAFE format."""
 
@@ -262,7 +211,8 @@ class AzimuthNoiseReader:
         """Read the azimuth noise blocks."""
         blocks = []
         for elt in self.elements:
-            new_arr = _build_azimuth_block_from_xml(elt, chunks)
+            block = _AzimuthBlock(elt)
+            new_arr = block.expand(chunks)
             blocks.append(new_arr)
         return blocks
 
@@ -322,6 +272,74 @@ def interpolate_slice(slice_rows, slice_cols, interpolator):
     fine_rows = np.arange(slice_rows.start, slice_rows.stop, slice_rows.step)
     fine_cols = np.arange(slice_cols.start, slice_cols.stop, slice_cols.step)
     return interpolator(fine_cols, fine_rows)
+
+
+class _AzimuthBlock:
+
+    def __init__(self, xml_element):
+        self.element = xml_element
+
+    def expand(self, chunks):
+        """Build an azimuth block from xml data."""
+        corr = 1
+        # This isn't needed with newer data (> 2020). When was the change operated?
+        #
+        #         The azimuth noise is normalized per swath to account for gain
+        #         differences between the swaths in EW mode.
+        #
+        #         This is based on the this reference:
+        #         J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
+        #         "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
+        #         in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
+        #         pp. 1555-1565, March 2018.
+        #         doi: 10.1109/TGRS.2017.2765248
+        #
+        # For old data. < 2020
+        # swath = elt.find('swath').text
+        # if swath == 'EW1':
+        #     corr = 1.5
+        # if swath in ['EW4', 'IW3']:
+        #     corr = 1.2
+        # if swath == 'EW5':
+        #     corr = 1.5
+        data = self.lut * corr
+
+        x_coord = np.arange(self.first_pixel, self.last_pixel + 1)
+        y_coord = np.arange(self.first_line, self.last_line + 1)
+
+        new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
+                   np.interp(y_coord, self.lines, data)[:, np.newaxis])
+        new_arr = xr.DataArray(new_arr,
+                               dims=['y', 'x'],
+                               coords={'x': x_coord,
+                                       'y': y_coord})
+        return new_arr
+
+    @property
+    def first_pixel(self):
+        return int(self.element.find('firstRangeSample').text)
+
+    @property
+    def last_pixel(self):
+        return int(self.element.find('lastRangeSample').text)
+
+    @property
+    def first_line(self):
+        return int(self.element.find('firstAzimuthLine').text)
+
+    @property
+    def last_line(self):
+        return int(self.element.find('lastAzimuthLine').text)
+
+    @property
+    def lines(self):
+        lines = self.element.find('line').text.split()
+        return np.array(lines).astype(int)
+
+    @property
+    def lut(self):
+        lut = self.element.find('noiseAzimuthLut').text.split()
+        return np.array(lut).astype(float)
 
 
 class XMLArray:
