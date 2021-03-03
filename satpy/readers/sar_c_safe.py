@@ -90,12 +90,7 @@ def _get_calibration_name(calibration):
 
 def _build_azimuth_block_from_xml(elt, chunks):
     """Build an azimuth block from xml data."""
-    first_pixel = int(elt.find('firstRangeSample').text)
-    last_pixel = int(elt.find('lastRangeSample').text)
-    first_line = int(elt.find('firstAzimuthLine').text)
-    last_line = int(elt.find('lastAzimuthLine').text)
-    lines = elt.find('line').text.split()
-    lut = elt.find('noiseAzimuthLut').text.split()
+    first_line, first_pixel, last_line, last_pixel, lines, lut = _get_azimuth_block_parameters_from_xml_element(elt)
     corr = 1
     # This isn't needed with newer data (> 2020). When was the change operated?
     #
@@ -117,10 +112,11 @@ def _build_azimuth_block_from_xml(elt, chunks):
     #     corr = 1.2
     # if swath == 'EW5':
     #     corr = 1.5
-    data = np.array(lut).astype(float) * corr
-    lines = np.array(lines).astype(int)
+    data = lut * corr
+
     x_coord = np.arange(first_pixel, last_pixel + 1)
     y_coord = np.arange(first_line, last_line + 1)
+
     new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
                np.interp(y_coord, lines, data)[:, np.newaxis])
     new_arr = xr.DataArray(new_arr,
@@ -128,6 +124,19 @@ def _build_azimuth_block_from_xml(elt, chunks):
                            coords={'x': x_coord,
                                    'y': y_coord})
     return new_arr
+
+
+def _get_azimuth_block_parameters_from_xml_element(elt):
+    """Get the azimuth block parameter from the xml element."""
+    first_pixel = int(elt.find('firstRangeSample').text)
+    last_pixel = int(elt.find('lastRangeSample').text)
+    first_line = int(elt.find('firstAzimuthLine').text)
+    last_line = int(elt.find('lastAzimuthLine').text)
+    lines = elt.find('line').text.split()
+    lines = np.array(lines).astype(int)
+    lut = elt.find('noiseAzimuthLut').text.split()
+    lut = np.array(lut).astype(float)
+    return first_line, first_pixel, last_line, last_pixel, lines, lut
 
 
 class SAFEXML(BaseFileHandler):
