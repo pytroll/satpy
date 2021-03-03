@@ -16,13 +16,17 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.sar-c_safe module."""
+import os
+import tempfile
 import unittest
 import unittest.mock as mock
+from contextlib import suppress
+
+import dask.array as da
+import numpy as np
+import xarray as xr
 
 from satpy.dataset import DataQuery
-import dask.array as da
-import xarray as xr
-import numpy as np
 
 
 class TestSAFEGRD(unittest.TestCase):
@@ -36,14 +40,14 @@ class TestSAFEGRD(unittest.TestCase):
                          'polarization': 'vv'}
         filetype_info = 'bla'
         self.noisefh = mock.MagicMock()
-        self.noisefh.get_noise_correction.return_value = xr.DataArray(np.zeros((2, 2)))
+        self.noisefh.get_noise_correction.return_value = xr.DataArray(np.zeros((2, 2)), dims=['y', 'x'])
         self.calfh = mock.MagicMock()
         self.calfh.get_calibration_constant.return_value = 1
-        self.calfh.get_calibration.return_value = xr.DataArray(np.ones((2, 2)))
+        self.calfh.get_calibration.return_value = xr.DataArray(np.ones((2, 2)), dims=['y', 'x'])
         self.annotationfh = mock.MagicMock()
 
-        self.test_fh = SAFEGRD('S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/measurement/s1a-iw-grd'  # noqa
-                               '-vv-20190201t024655-20190201t024720-025730-02dc2a-001.tiff',
+        self.test_fh = SAFEGRD('S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/measurement/'
+                               's1a-iw-grd-vv-20190201t024655-20190201t024720-025730-02dc2a-001.tiff',
                                filename_info, filetype_info, self.calfh, self.noisefh, self.annotationfh)
         self.mocked_rio_open = mocked_rio_open
 
@@ -59,7 +63,7 @@ class TestSAFEGRD(unittest.TestCase):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
+        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])), dims=['y', 'x'])
         xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                   calibration=calibration, quantity='natural'), info=dict())
         np.testing.assert_allclose(xarr, [[np.nan, 2], [5, 10]])
@@ -69,7 +73,7 @@ class TestSAFEGRD(unittest.TestCase):
         """Test the calibration routines."""
         calibration = mock.MagicMock()
         calibration.name = "sigma_nought"
-        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])))
+        mocked_rioxarray_open.return_value = xr.DataArray(da.from_array(np.array([[0, 1], [2, 3]])), dims=['y', 'x'])
         xarr = self.test_fh.get_dataset(DataQuery(name="measurement", polarization="vv",
                                                   calibration=calibration, quantity='dB'), info=dict())
         np.testing.assert_allclose(xarr, [[np.nan, 3.0103], [6.9897, 10]])
@@ -204,3 +208,211 @@ class TestSAFEGRD(unittest.TestCase):
                               2.32142857e-01, 1.36904762e-01, 5.97222222e-02,
                               0.00000000e+00]])
         np.testing.assert_allclose(xarr.values, expected)
+
+
+annotation_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<product>
+  <adsHeader>
+    <missionId>S1B</missionId>
+    <productType>GRD</productType>
+    <polarisation>HH</polarisation>
+    <mode>EW</mode>
+    <swath>EW</swath>
+    <startTime>2020-03-15T05:04:28.137817</startTime>
+    <stopTime>2020-03-15T05:05:32.416171</stopTime>
+    <absoluteOrbitNumber>20698</absoluteOrbitNumber>
+    <missionDataTakeId>160707</missionDataTakeId>
+    <imageNumber>001</imageNumber>
+  </adsHeader>
+  <imageAnnotation>
+    <imageInformation>
+      <productFirstLineUtcTime>2020-03-15T05:04:28.137817</productFirstLineUtcTime>
+      <productLastLineUtcTime>2020-03-15T05:05:32.416171</productLastLineUtcTime>
+      <ascendingNodeTime>2020-03-15T04:33:22.256260</ascendingNodeTime>
+      <anchorTime>2020-03-15T05:04:28.320641</anchorTime>
+      <productComposition>Slice</productComposition>
+      <sliceNumber>1</sliceNumber>
+      <sliceList count="3">
+        <slice>
+          <sliceNumber>1</sliceNumber>
+          <sensingStartTime>2020-03-15T05:04:29.485847</sensingStartTime>
+          <sensingStopTime>2020-03-15T05:05:36.317420</sensingStopTime>
+        </slice>
+        <slice>
+          <sliceNumber>2</sliceNumber>
+          <sensingStartTime>2020-03-15T05:05:30.253413</sensingStartTime>
+          <sensingStopTime>2020-03-15T05:06:34.046608</sensingStopTime>
+        </slice>
+        <slice>
+          <sliceNumber>3</sliceNumber>
+          <sensingStartTime>2020-03-15T05:06:31.020979</sensingStartTime>
+          <sensingStopTime>2020-03-15T05:07:31.775796</sensingStopTime>
+        </slice>
+      </sliceList>
+      <slantRangeTime>4.955163637998161e-03</slantRangeTime>
+      <pixelValue>Detected</pixelValue>
+      <outputPixels>16 bit Unsigned Integer</outputPixels>
+      <rangePixelSpacing>4.000000e+01</rangePixelSpacing>
+      <azimuthPixelSpacing>4.000000e+01</azimuthPixelSpacing>
+      <azimuthTimeInterval>5.998353361537205e-03</azimuthTimeInterval>
+      <azimuthFrequency>3.425601970000000e+02</azimuthFrequency>
+      <numberOfSamples>10</numberOfSamples>
+      <numberOfLines>10</numberOfLines>
+      <zeroDopMinusAcqTime>-1.366569000000000e+00</zeroDopMinusAcqTime>
+      <incidenceAngleMidSwath>3.468272707039038e+01</incidenceAngleMidSwath>
+      <imageStatistics>
+        <outputDataMean>
+          <re>4.873919e+02</re>
+          <im>0.000000e+00</im>
+        </outputDataMean>
+        <outputDataStdDev>
+          <re>2.451083e+02</re>
+          <im>0.000000e+00</im>
+        </outputDataStdDev>
+      </imageStatistics>
+    </imageInformation>
+  </imageAnnotation>
+</product>
+"""
+
+noise_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<noise>
+  <noiseRangeVectorList count="67">
+    <noiseRangeVector>
+      <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
+      <line>0</line>
+      <pixel count="5">0 40 80 10470 10473</pixel>
+      <noiseRangeLut count="5">2.727962e+04 2.275054e+04 1.927496e+04 0.000000e+00 0.000000e+00</noiseRangeLut>
+    </noiseRangeVector>
+    <noiseRangeVector>
+      <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
+      <line>2</line>
+      <pixel count="5">0 41 81 10470 10473</pixel>
+      <noiseRangeLut count="5">2.727962e+04 2.275054e+04 1.927496e+04 0.000000e+00 0.000000e+00</noiseRangeLut>
+    </noiseRangeVector>
+  </noiseRangeVectorList>
+  <noiseAzimuthVectorList count="8">
+    <noiseAzimuthVector>
+      <swath>IW1</swath>
+      <firstAzimuthLine>0</firstAzimuthLine>
+      <firstRangeSample>0</firstRangeSample>
+      <lastAzimuthLine>1</lastAzimuthLine>
+      <lastRangeSample>2</lastRangeSample>
+      <line count="1">0</line>
+      <noiseAzimuthLut count="1">1.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW1</swath>
+      <firstAzimuthLine>2</firstAzimuthLine>
+      <firstRangeSample>0</firstRangeSample>
+      <lastAzimuthLine>9</lastAzimuthLine>
+      <lastRangeSample>1</lastRangeSample>
+      <line count="4">2 4 6 8</line>
+      <noiseAzimuthLut count="4">2.000000e+00 2.000000e+00 2.000000e+00 2.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>2</firstAzimuthLine>
+      <firstRangeSample>2</firstRangeSample>
+      <lastAzimuthLine>4</lastAzimuthLine>
+      <lastRangeSample>4</lastRangeSample>
+      <line count="2">2 4</line>
+      <noiseAzimuthLut count="2">3.000000e+00 3.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>2</firstAzimuthLine>
+      <firstRangeSample>5</firstRangeSample>
+      <lastAzimuthLine>4</lastAzimuthLine>
+      <lastRangeSample>8</lastRangeSample>
+      <line count="2">2 4</line>
+      <noiseAzimuthLut count="2">4.000000e+00 4.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>5</firstAzimuthLine>
+      <firstRangeSample>2</firstRangeSample>
+      <lastAzimuthLine>7</lastAzimuthLine>
+      <lastRangeSample>5</lastRangeSample>
+      <line count="2">5 6</line>
+      <noiseAzimuthLut count="2">5.000000e+00 5.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>5</firstAzimuthLine>
+      <firstRangeSample>6</firstRangeSample>
+      <lastAzimuthLine>7</lastAzimuthLine>
+      <lastRangeSample>9</lastRangeSample>
+      <line count="2">5 6</line>
+      <noiseAzimuthLut count="2">6.000000e+00 6.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>8</firstAzimuthLine>
+      <firstRangeSample>2</firstRangeSample>
+      <lastAzimuthLine>9</lastAzimuthLine>
+      <lastRangeSample>6</lastRangeSample>
+      <line count="1">8</line>
+      <noiseAzimuthLut count="1">7.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>8</firstAzimuthLine>
+      <firstRangeSample>7</firstRangeSample>
+      <lastAzimuthLine>9</lastAzimuthLine>
+      <lastRangeSample>9</lastRangeSample>
+      <line count="1">8</line>
+      <noiseAzimuthLut count="1">8.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+  </noiseAzimuthVectorList>
+</noise>
+"""
+
+
+class TestSAFEXMLNoise(unittest.TestCase):
+    """Test the SAFE XML Noise file handler."""
+
+    def setUp(self) -> None:
+        """Set up the test case."""
+        from satpy.readers.sar_c_safe import SAFEXML
+
+        with tempfile.NamedTemporaryFile(delete=False) as ntf:
+            self.annotation_filename = ntf.name
+            ntf.write(annotation_xml)
+            ntf.close()
+            self.annotation_fh = SAFEXML(self.annotation_filename, mock.MagicMock(), mock.MagicMock())
+
+    def tearDown(self) -> None:
+        """Tear down the test case."""
+        with suppress(PermissionError):
+            os.remove(self.annotation_filename)
+
+    def test_azimuth_noise_array(self):
+        """Test reading the azimuth-noise array."""
+        # Name of the file: 'S1A_IW_GRDH_1SDV_20190201T024655_20190201T024720_025730_02DC2A_AE07.SAFE/annotation/'
+        #                   'calibration/noise-s1a-iw-grd-vv-20190201t024655-20190201t024720-025730-02dc2a-001.xml'
+
+        from satpy.readers.sar_c_safe import SAFEXML
+
+        expected_data = np.array([[1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                                  [1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                                  [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
+                                  [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
+                                  [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
+                                  [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
+                                  [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
+                                  [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
+                                  [2, 2, 7, 7, 7, 7, 7, 8, 8, 8],
+                                  [2, 2, 7, 7, 7, 7, 7, 8, 8, 8],
+                                  ])
+
+        with tempfile.NamedTemporaryFile(delete=False) as ntf:
+            filename = ntf.name
+            ntf.write(noise_xml)
+            ntf.close()
+            test_fh = SAFEXML(filename, mock.MagicMock(), mock.MagicMock(), self.annotation_fh)
+            res = test_fh.read_azimuth_noise_array()
+
+            np.testing.assert_array_equal(res, expected_data)
+        with suppress(PermissionError):
+            os.remove(filename)

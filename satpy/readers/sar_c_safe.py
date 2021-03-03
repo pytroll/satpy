@@ -42,6 +42,7 @@ from threading import Lock
 import numpy as np
 import rasterio
 import rioxarray
+import xarray as xr
 from dask import array as da
 from dask.base import tokenize
 from xarray import DataArray
@@ -72,6 +73,58 @@ def dictify(r, root=True):
         else:
             d[x.tag] = dictify(x, False)
     return d
+
+
+def _get_calibration_name(calibration):
+    """Get the proper calibration name."""
+    calibration_name = calibration.name or 'gamma'
+    if calibration_name == 'sigma_nought':
+        calibration_name = 'sigmaNought'
+    elif calibration_name == 'beta_nought':
+        calibration_name = 'betaNought'
+    return calibration_name
+
+
+def _build_azimuth_block_from_xml(elt, chunks):
+    """Build an azimuth block from xml data."""
+    first_pixel = int(elt.find('firstRangeSample').text)
+    last_pixel = int(elt.find('lastRangeSample').text)
+    first_line = int(elt.find('firstAzimuthLine').text)
+    last_line = int(elt.find('lastAzimuthLine').text)
+    lines = elt.find('line').text.split()
+    lut = elt.find('noiseAzimuthLut').text.split()
+    corr = 1
+    # This isn't needed with newer data (> 2020). When was the change operated?
+    #
+    #         The azimuth noise is normalized per swath to account for gain
+    #         differences between the swaths in EW mode.
+    #
+    #         This is based on the this reference:
+    #         J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
+    #         "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
+    #         in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
+    #         pp. 1555-1565, March 2018.
+    #         doi: 10.1109/TGRS.2017.2765248
+    #
+    # For old data. < 2020
+    # swath = elt.find('swath').text
+    # if swath == 'EW1':
+    #     corr = 1.5
+    # if swath in ['EW4', 'IW3']:
+    #     corr = 1.2
+    # if swath == 'EW5':
+    #     corr = 1.5
+    data = np.array(lut).astype(float) * corr
+    lines = np.array(lines).astype(int)
+    x_coord = np.arange(first_pixel, last_pixel + 1)
+    y_coord = np.arange(first_line, last_line + 1)
+    new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
+               np.interp(y_coord, lines, data)[:, np.newaxis])
+    new_arr = xr.DataArray(new_arr,
+                           dims=['y', 'x'],
+                           coords={'x': x_coord,
+                                   'y': y_coord})
+    return new_arr
 
 
 class SAFEXML(BaseFileHandler):
@@ -113,45 +166,71 @@ class SAFEXML(BaseFileHandler):
 
         return np.asarray(data), (x, y)
 
-    @staticmethod
-    def read_azimuth_noise_array(elts):
+    def read_azimuth_noise_array(self, chunks=CHUNK_SIZE):
         """Read the azimuth noise vectors."""
-        y = []
-        x = []
-        data = []
-        for elt in elts:
-            first_pixel = int(elt.find('firstRangeSample').text)
-            last_pixel = int(elt.find('lastRangeSample').text)
-            lines = elt.find('line').text.split()
-            lut = elt.find('noiseAzimuthLut').text.split()
-            pixels = [first_pixel, last_pixel]
-            corr = 1
-            # This isn't need with newer data (> 2020). When was the change operated?
-            #
-            #         The azimuth noise is normalized per swath to account for gain
-            #         differences between the swaths in EW mode.
-            #
-            #         This is based on the this reference:
-            #         J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
-            #         "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
-            #         in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
-            #         pp. 1555-1565, March 2018.
-            #         doi: 10.1109/TGRS.2017.2765248
-            #
-            # swath = elt.find('swath').text
-            # if swath == 'EW1':
-            #     corr = 1.5
-            # if swath == 'EW4':
-            #     corr = 1.2
-            # if swath == 'EW5':
-            #     corr = 1.5
+        blocks = self._read_azimuth_noise_blocks(chunks)
+        populated_array = self._assemble_azimuth_noise_blocks(blocks, chunks)
 
-            for pixel in pixels:
-                y += [int(val) for val in lines]
-                x += [pixel] * len(lines)
-                data += [float(val) * corr for val in lut]
+        return populated_array
 
-        return np.asarray(data), (x, y)
+    def _read_azimuth_noise_blocks(self, chunks):
+        """Read the azimuth noise blocks."""
+        blocks = []
+        elements = self.root.findall(".//noiseAzimuthVector")
+        for elt in elements:
+            new_arr = _build_azimuth_block_from_xml(elt, chunks)
+            blocks.append(new_arr)
+        return blocks
+
+    def _assemble_azimuth_noise_blocks(self, blocks, chunks):
+        """Assemble the azimuth noise blocks into one single array."""
+        slices = self._create_dask_slices_from_blocks(blocks, chunks)
+        populated_array = da.vstack(slices).rechunk(chunks)
+        populated_array = xr.DataArray(populated_array, dims=['y', 'x'],
+                                       coords={'x': np.arange(self._image_shape[1]),
+                                               'y': np.arange(self._image_shape[0])})
+        return populated_array
+
+    def _create_dask_slices_from_blocks(self, blocks, chunks):
+        """Create full-width slices from azimuth noise blocks."""
+        current_line = 0
+        slices = []
+        while current_line < self._image_shape[0]:
+            new_slice = self._create_dask_slice_from_block_line(blocks, current_line, chunks)
+            slices.append(new_slice)
+            current_line += new_slice.shape[0]
+        return slices
+
+    def _create_dask_slice_from_block_line(self, blocks, current_line, chunks):
+        """Create a dask slice from the blocks at the current line."""
+        current_blocks = self._find_blocks_covering_line(blocks, current_line)
+        current_blocks.sort(key=(lambda x: x.coords['x'][0]))
+        next_line = min((arr.coords['y'][-1] for arr in current_blocks))
+        current_y = np.arange(current_line, next_line + 1)
+        pieces = [arr.sel(y=current_y) for arr in current_blocks]
+        dask_pieces = self._get_padded_dask_pieces(pieces, chunks)
+        new_slice = da.hstack(dask_pieces)
+        return new_slice
+
+    @staticmethod
+    def _find_blocks_covering_line(blocks, current_line):
+        """Find the block covering a given line."""
+        current_blocks = []
+        for block in blocks:
+            if block.coords['y'][0] <= current_line <= block.coords['y'][-1]:
+                current_blocks.append(block)
+        return current_blocks
+
+    def _get_padded_dask_pieces(self, pieces, chunks):
+        """Get the padded pieces of a slice."""
+        last_x = max(arr.coords['x'][-1] for arr in pieces)
+        dask_pieces = [piece.data for piece in pieces]
+        if last_x < self._image_shape[1] - 1:
+            missing_x = np.arange(last_x + 1, self._image_shape[1])
+            missing_y = pieces[-1].coords['y']
+            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
+            dask_pieces.append(new_piece)
+        return dask_pieces
 
     @staticmethod
     def interpolate_xml_array(data, low_res_coords, shape, chunks):
@@ -184,33 +263,45 @@ class SAFEXML(BaseFileHandler):
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
 
     @lru_cache(maxsize=10)
-    def get_noise_correction(self, shape, chunks=None):
+    def get_noise_correction(self, chunks=None):
         """Get the noise correction array."""
-        data_items = self.root.findall(".//noiseVector")
-        data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
-        if not data_items:
-            data_items = self.root.findall(".//noiseRangeVector")
-            data, low_res_coords = self.read_xml_array(data_items, 'noiseRangeLut')
-            range_noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
-            data_items = self.root.findall(".//noiseAzimuthVector")
-            data, low_res_coords = self.read_azimuth_noise_array(data_items)
-            azimuth_noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
+        try:
+            noise = self.read_legacy_noise(chunks)
+        except KeyError:
+            range_noise = self.read_range_noise_array(chunks)
+            azimuth_noise = self.read_azimuth_noise_array(chunks)
             noise = range_noise * azimuth_noise
-        else:
-            noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
+    def read_legacy_noise(self, chunks):
+        """Read noise for legacy GRD data."""
+        data_items = self.root.findall(".//noiseVector")
+        if not data_items:
+            raise KeyError('noiseVector elements not found.')
+        data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
+        noise = self.interpolate_xml_array(data, low_res_coords, self._image_shape, chunks=chunks)
+        return noise
+
+    def read_range_noise_array(self, chunks):
+        """Read the range-noise array."""
+        data_items = self.root.findall(".//noiseRangeVector")
+        data, low_res_coords = self.read_xml_array(data_items, 'noiseRangeLut')
+        range_noise = self.interpolate_xml_array(data, low_res_coords, self._image_shape, chunks=chunks)
+        return range_noise
+
     @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, shape, chunks=None):
+    def get_calibration(self, calibration, chunks=None):
         """Get the calibration array."""
-        calibration_name = calibration.name or 'gamma'
-        if calibration_name == 'sigma_nought':
-            calibration_name = 'sigmaNought'
-        elif calibration_name == 'beta_nought':
-            calibration_name = 'betaNought'
+        calibration_name = _get_calibration_name(calibration)
+        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
+        return calibration_vector
+
+    def _get_calibration_vector(self, calibration_name, chunks):
+        """Get the calibration vector."""
         data_items = self.root.findall(".//calibrationVector")
         data, low_res_coords = self.read_xml_array(data_items, calibration_name)
-        return self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
+        calibration_vector = self.interpolate_xml_array(data, low_res_coords, self._image_shape, chunks=chunks)
+        return calibration_vector
 
     def get_calibration_constant(self):
         """Load the calibration constant."""
@@ -340,7 +431,8 @@ class SAFEGRD(BaseFileHandler):
 
         else:
             data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
-
+            data = data.assign_coords(x=np.arange(len(data.coords['x'])),
+                                      y=np.arange(len(data.coords['y'])))
             data = self._calibrate_and_denoise(data, key)
             data.attrs.update(info)
             data.attrs.update({'platform_name': self._mission_id})
@@ -380,14 +472,14 @@ class SAFEGRD(BaseFileHandler):
     def _denoise(self, dn, chunks):
         """Denoise the data."""
         logger.debug('Reading noise data.')
-        noise = self.noise.get_noise_correction(dn.shape, chunks=chunks).fillna(0)
+        noise = self.noise.get_noise_correction(chunks=chunks).fillna(0)
         dn = dn - noise
         return dn
 
     def _calibrate(self, dn, chunks, key):
         """Calibrate the data."""
         logger.debug('Reading calibration data.')
-        cal = self.calibration.get_calibration(key['calibration'], dn.shape, chunks=chunks)
+        cal = self.calibration.get_calibration(key['calibration'], chunks=chunks)
         cal_constant = self.calibration.get_calibration_constant()
         logger.debug('Calibrating.')
         data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
