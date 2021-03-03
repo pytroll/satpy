@@ -159,24 +159,97 @@ class SAFEXML(BaseFileHandler):
         self._image_shape = (self.hdr['product']['imageAnnotation']['imageInformation']['numberOfLines'],
                              self.hdr['product']['imageAnnotation']['imageInformation']['numberOfSamples'])
 
+        self.azimuth_noise_reader = AzimuthNoiseReader(self.filename, self._image_shape)
+
     def get_metadata(self):
         """Convert the xml metadata to dict."""
         return dictify(self.root.getroot())
 
-    @staticmethod
-    def read_xml_array(elts, variable_name):
-        """Read an array from an xml elements *elts*."""
-        y = []
-        x = []
-        data = []
-        for elt in elts:
-            newx = elt.find('pixel').text.split()
-            y += [int(elt.find('line').text)] * len(newx)
-            x += [int(val) for val in newx]
-            data += [float(val)
-                     for val in elt.find(variable_name).text.split()]
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
 
-        return np.asarray(data), (x, y)
+        xml_items = info['xml_item']
+        xml_tags = info['xml_tag']
+
+        if not isinstance(xml_items, list):
+            xml_items = [xml_items]
+            xml_tags = [xml_tags]
+
+        for xml_item, xml_tag in zip(xml_items, xml_tags):
+            data_items = self.root.findall(".//" + xml_item)
+            if not data_items:
+                continue
+            data, low_res_coords = self.read_xml_array(data_items, xml_tag)
+
+        if key['name'].endswith('squared'):
+            data **= 2
+
+        data = self.interpolate_xml_array(data, low_res_coords, data.shape)
+
+    @lru_cache(maxsize=10)
+    def get_noise_correction(self, chunks=None):
+        """Get the noise correction array."""
+        try:
+            noise = self.read_legacy_noise(chunks)
+        except KeyError:
+            range_noise = self.read_range_noise_array(chunks)
+            azimuth_noise = self.azimuth_noise_reader.read_azimuth_noise_array(chunks)
+            noise = range_noise * azimuth_noise
+        return noise
+
+    def read_legacy_noise(self, chunks):
+        """Read noise for legacy GRD data."""
+        noise = XMLArray(self.root, ".//noiseVector", "noiseLut")
+        return noise(self._image_shape, chunks)
+
+    def read_range_noise_array(self, chunks):
+        """Read the range-noise array."""
+        range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
+        return range_noise(self._image_shape, chunks)
+
+    @lru_cache(maxsize=10)
+    def get_calibration(self, calibration, chunks=None):
+        """Get the calibration array."""
+        calibration_name = _get_calibration_name(calibration)
+        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
+        return calibration_vector
+
+    def _get_calibration_vector(self, calibration_name, chunks):
+        """Get the calibration vector."""
+        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
+        return calibration_vector(self._image_shape, chunks=chunks)
+
+    def get_calibration_constant(self):
+        """Load the calibration constant."""
+        return float(self.root.find('.//absoluteCalibrationConstant').text)
+
+    @lru_cache(maxsize=10)
+    def get_incidence_angle(self):
+        """Get the incidence angle array."""
+        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
+        return incidence_angle
+
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return self._start_time
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return self._end_time
+
+
+class AzimuthNoiseReader:
+    """Class to parse and read azimuth-noise data."""
+
+    def __init__(self, filename, shape):
+        """Set up the azimuth noise reader."""
+        self.root = ET.parse(filename)
+        self.elements = self.root.findall(".//noiseAzimuthVector")
+        self._image_shape = shape
 
     def read_azimuth_noise_array(self, chunks=CHUNK_SIZE):
         """Read the azimuth noise vectors."""
@@ -188,8 +261,7 @@ class SAFEXML(BaseFileHandler):
     def _read_azimuth_noise_blocks(self, chunks):
         """Read the azimuth noise blocks."""
         blocks = []
-        elements = self.root.findall(".//noiseAzimuthVector")
-        for elt in elements:
+        for elt in self.elements:
             new_arr = _build_azimuth_block_from_xml(elt, chunks)
             blocks.append(new_arr)
         return blocks
@@ -244,103 +316,54 @@ class SAFEXML(BaseFileHandler):
             dask_pieces.append(new_piece)
         return dask_pieces
 
-    @staticmethod
-    def interpolate_xml_array(data, low_res_coords, shape, chunks):
-        """Interpolate arbitrary size dataset to a full sized grid."""
-        xpoints, ypoints = low_res_coords
-
-        return interpolate_xarray_linear(xpoints, ypoints, data, shape, chunks=chunks)
-
-    def get_dataset(self, key, info):
-        """Load a dataset."""
-        if self._polarization != key["polarization"]:
-            return
-
-        xml_items = info['xml_item']
-        xml_tags = info['xml_tag']
-
-        if not isinstance(xml_items, list):
-            xml_items = [xml_items]
-            xml_tags = [xml_tags]
-
-        for xml_item, xml_tag in zip(xml_items, xml_tags):
-            data_items = self.root.findall(".//" + xml_item)
-            if not data_items:
-                continue
-            data, low_res_coords = self.read_xml_array(data_items, xml_tag)
-
-        if key['name'].endswith('squared'):
-            data **= 2
-
-        data = self.interpolate_xml_array(data, low_res_coords, data.shape)
-
-    @lru_cache(maxsize=10)
-    def get_noise_correction(self, chunks=None):
-        """Get the noise correction array."""
-        try:
-            noise = self.read_legacy_noise(chunks)
-        except KeyError:
-            range_noise = self.read_range_noise_array(chunks)
-            azimuth_noise = self.read_azimuth_noise_array(chunks)
-            noise = range_noise * azimuth_noise
-        return noise
-
-    def read_legacy_noise(self, chunks):
-        """Read noise for legacy GRD data."""
-        data_items = self.root.findall(".//noiseVector")
-        if not data_items:
-            raise KeyError('noiseVector elements not found.')
-        data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
-        noise = self.interpolate_xml_array(data, low_res_coords, self._image_shape, chunks=chunks)
-        return noise
-
-    def read_range_noise_array(self, chunks):
-        """Read the range-noise array."""
-        data_items = self.root.findall(".//noiseRangeVector")
-        data, low_res_coords = self.read_xml_array(data_items, 'noiseRangeLut')
-        range_noise = self.interpolate_xml_array(data, low_res_coords, self._image_shape, chunks=chunks)
-        return range_noise
-
-    @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, chunks=None):
-        """Get the calibration array."""
-        calibration_name = _get_calibration_name(calibration)
-        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
-        return calibration_vector
-
-    def _get_calibration_vector(self, calibration_name, chunks):
-        """Get the calibration vector."""
-        data_items = self.root.findall(".//calibrationVector")
-        data, low_res_coords = self.read_xml_array(data_items, calibration_name)
-        calibration_vector = self.interpolate_xml_array(data, low_res_coords, self._image_shape, chunks=chunks)
-        return calibration_vector
-
-    def get_calibration_constant(self):
-        """Load the calibration constant."""
-        return float(self.root.find('.//absoluteCalibrationConstant').text)
-
-    @lru_cache(maxsize=10)
-    def get_incidence_angle(self):
-        """Get the incidence angle array."""
-        data_items = self.root.findall(".//geolocationGridPoint")
-        return self.read_xml_array(data_items, 'incidenceAngle')
-
-    @property
-    def start_time(self):
-        """Get the start time."""
-        return self._start_time
-
-    @property
-    def end_time(self):
-        """Get the end time."""
-        return self._end_time
-
 
 def interpolate_slice(slice_rows, slice_cols, interpolator):
     """Interpolate the given slice of the larger array."""
     fine_rows = np.arange(slice_rows.start, slice_rows.stop, slice_rows.step)
     fine_cols = np.arange(slice_cols.start, slice_cols.stop, slice_cols.step)
     return interpolator(fine_cols, fine_rows)
+
+
+class XMLArray:
+    """A proxy for getting xml data as an array."""
+
+    def __init__(self, root, list_tag, element_tag):
+        """Set up the XML array."""
+        self.root = root
+        self.list_tag = list_tag
+        self.element_tag = element_tag
+        self.data, self.low_res_coords = self.read_xml_array()
+
+    def __call__(self, shape, chunks=None):
+        """Generate the full-blown array."""
+        return self.interpolate_xml_array(shape, chunks=chunks)
+
+    def read_xml_array(self):
+        """Read an array from xml."""
+        elements = self.get_data_items()
+        y = []
+        x = []
+        data = []
+        for elt in elements:
+            newx = elt.find('pixel').text.split()
+            y += [int(elt.find('line').text)] * len(newx)
+            x += [int(val) for val in newx]
+            data += [float(val)
+                     for val in elt.find(self.element_tag).text.split()]
+
+        return np.asarray(data), (x, y)
+
+    def get_data_items(self):
+        """Get the data items for this array."""
+        data_items = self.root.findall(self.list_tag)
+        if not data_items:
+            raise KeyError("Can't find data items for xml tag " + self.list_tag)
+        return data_items
+
+    def interpolate_xml_array(self, shape, chunks):
+        """Interpolate arbitrary size dataset to a full sized grid."""
+        xpoints, ypoints = self.low_res_coords
+        return interpolate_xarray_linear(xpoints, ypoints, self.data, shape, chunks=chunks)
 
 
 def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',

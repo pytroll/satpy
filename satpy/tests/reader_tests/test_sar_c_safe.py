@@ -411,7 +411,7 @@ class TestSAFEXMLNoise(unittest.TestCase):
             ntf.write(noise_xml)
             ntf.close()
             test_fh = SAFEXML(filename, mock.MagicMock(), mock.MagicMock(), self.annotation_fh)
-            res = test_fh.read_azimuth_noise_array()
+            res = test_fh.azimuth_noise_reader.read_azimuth_noise_array()
 
             np.testing.assert_array_equal(res, expected_data)
         with suppress(PermissionError):
