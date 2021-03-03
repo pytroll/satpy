@@ -53,10 +53,13 @@ from satpy.readers.file_handlers import BaseFileHandler
 logger = logging.getLogger(__name__)
 
 
-def dictify(r, root=True):
+def dictify(r):
     """Convert an ElementTree into a dict."""
-    if root:
-        return {r.tag: dictify(r, False)}
+    return {r.tag: _dictify(r)}
+
+
+def _dictify(r):
+    """Convert an xml element to dict."""
     d = {}
     if r.text and r.text.strip():
         try:
@@ -69,9 +72,9 @@ def dictify(r, root=True):
     for x in r.findall("./*"):
         if x.tag in d and not isinstance(d[x.tag], list):
             d[x.tag] = [d[x.tag]]
-            d[x.tag].append(dictify(x, False))
+            d[x.tag].append(_dictify(x))
         else:
-            d[x.tag] = dictify(x, False)
+            d[x.tag] = _dictify(x)
     return d
 
 
