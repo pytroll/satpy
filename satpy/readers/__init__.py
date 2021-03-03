@@ -585,11 +585,19 @@ class FSFile(os.PathLike):
             return open(self._file)
 
     def __lt__(self, other):
-        """Implement ordering."""
+        """Implement ordering.
+
+        Ordering is defined by the string representation of the filename,
+        without considering the file system.
+        """
         return os.fspath(self) < os.fspath(other)
 
     def __eq__(self, other):
-        """Implement equality comparisons."""
+        """Implement equality comparisons.
+
+        Two FSFile instances are considered equal if they have the same
+        filename and the same file system.
+        """
         return (isinstance(other, FSFile) and
                 self._file == other._file and
                 self._fs == other._fs)
