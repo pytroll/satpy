@@ -285,8 +285,14 @@ class AzimuthNoiseReader:
 
     def _get_padded_dask_pieces(self, pieces, chunks):
         """Get the padded pieces of a slice."""
+        first_x = min(arr.coords['x'][0] for arr in pieces)
         last_x = max(arr.coords['x'][-1] for arr in pieces)
         dask_pieces = [piece.data for piece in pieces]
+        if first_x > 0:
+            missing_x = np.arange(first_x)
+            missing_y = pieces[0].coords['y']
+            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
+            dask_pieces.insert(0, new_piece)
         if last_x < self._image_shape[1] - 1:
             missing_x = np.arange(last_x + 1, self._image_shape[1])
             missing_y = pieces[-1].coords['y']

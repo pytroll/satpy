@@ -301,9 +301,9 @@ noise_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
     <noiseAzimuthVector>
       <swath>IW1</swath>
       <firstAzimuthLine>0</firstAzimuthLine>
-      <firstRangeSample>0</firstRangeSample>
+      <firstRangeSample>1</firstRangeSample>
       <lastAzimuthLine>1</lastAzimuthLine>
-      <lastRangeSample>2</lastRangeSample>
+      <lastRangeSample>3</lastRangeSample>
       <line count="1">0</line>
       <noiseAzimuthLut count="1">1.000000e+00</noiseAzimuthLut>
     </noiseAzimuthVector>
@@ -403,8 +403,8 @@ class TestSAFEXMLNoise(unittest.TestCase):
 
     def test_azimuth_noise_array(self):
         """Test reading the azimuth-noise array."""
-        expected_data = np.array([[1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-                                  [1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+        expected_data = np.array([[np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                                  [np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                                   [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
                                   [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
                                   [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
