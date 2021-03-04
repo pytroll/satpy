@@ -339,7 +339,6 @@ class _AzimuthBlock:
 
         new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
                    np.interp(y_coord, self.lines, data)[:, np.newaxis])
-        new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks))
         new_arr = xr.DataArray(new_arr,
                                dims=['y', 'x'],
                                coords={'x': x_coord,
