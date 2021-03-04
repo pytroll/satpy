@@ -1250,7 +1250,7 @@ class Scene:
                              areas which would require resampling first.
 
         """
-        if comp_node.name in self._datasets:
+        if self._datasets.contains(comp_node.name):
             # already loaded
             return
 

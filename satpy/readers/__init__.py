@@ -238,6 +238,7 @@ def read_reader_config(config_files, loader=UnsafeLoader):
 
 def load_reader(reader_configs, **reader_kwargs):
     """Import and setup the reader from *reader_info*."""
+    print(reader_configs, reader_kwargs)
     return AbstractYAMLReader.from_config_files(*reader_configs, **reader_kwargs)
 
 

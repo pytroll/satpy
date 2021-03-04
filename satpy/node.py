@@ -165,8 +165,8 @@ class CompositorNode(Node):
     def update_name(self, new_name):
         """Update 'name' property and related compositor metadata."""
         super().update_name(new_name)
-        self.compositor.attrs.update(new_name)
-        self.compositor.attrs['_satpy_id'] = new_name
+        # self.compositor.attrs.update(new_name)
+        # self.compositor.attrs['_satpy_id'] = new_name
 
     def add_required_nodes(self, children):
         """Add nodes to the required field."""
