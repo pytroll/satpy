@@ -192,7 +192,27 @@ class SAFEXML(BaseFileHandler):
 
 
 class AzimuthNoiseReader:
-    """Class to parse and read azimuth-noise data."""
+    """Class to parse and read azimuth-noise data.
+
+    The azimuth noise vector is provided as a series of blocks, each comprised
+    of a column of data to fill the block and a start and finish column number,
+    and a start and finish line.
+    For example, we can see here a (fake) azimuth noise array::
+
+        [[ 1.  1.  1. nan nan nan nan nan nan nan]
+         [ 1.  1.  1. nan nan nan nan nan nan nan]
+         [ 2.  2.  3.  3.  3.  4.  4.  4.  4. nan]
+         [ 2.  2.  3.  3.  3.  4.  4.  4.  4. nan]
+         [ 2.  2.  3.  3.  3.  4.  4.  4.  4. nan]
+         [ 2.  2.  5.  5.  5.  5.  6.  6.  6.  6.]
+         [ 2.  2.  5.  5.  5.  5.  6.  6.  6.  6.]
+         [ 2.  2.  5.  5.  5.  5.  6.  6.  6.  6.]
+         [ 2.  2.  7.  7.  7.  7.  7.  8.  8.  8.]
+         [ 2.  2.  7.  7.  7.  7.  7.  8.  8.  8.]]
+
+    As is shown here, the blocks may not cover the full array, and hence it has
+    to be gap-filled with NaNs.
+    """
 
     def __init__(self, filename, shape):
         """Set up the azimuth noise reader."""
@@ -218,6 +238,13 @@ class AzimuthNoiseReader:
 
     def _assemble_azimuth_noise_blocks(self, chunks):
         """Assemble the azimuth noise blocks into one single array."""
+        # The strategy here is a bit convoluted. The job would be trivial if
+        # performed on regular numpy arrays, but here we want to keep the data
+        # as xarray/dask array as much as possible.
+        # Using a pure xarray approach was tested (with `combine_first`,
+        # `interpolate_na`, etc), but was found to be memory-hungry at the time
+        # of implementation (March 2021). Hence the usage of a custom algorithm,
+        # relying mostly on dask arrays.
         slices = self._create_dask_slices_from_blocks(chunks)
         populated_array = da.vstack(slices).rechunk(chunks)
         populated_array = xr.DataArray(populated_array, dims=['y', 'x'],
@@ -239,15 +266,17 @@ class AzimuthNoiseReader:
         """Create a dask slice from the blocks at the current line."""
         current_blocks = self._find_blocks_covering_line(current_line)
         current_blocks.sort(key=(lambda x: x.coords['x'][0]))
+
         next_line = min((arr.coords['y'][-1] for arr in current_blocks))
         current_y = np.arange(current_line, next_line + 1)
+
         pieces = [arr.sel(y=current_y) for arr in current_blocks]
         dask_pieces = self._get_padded_dask_pieces(pieces, chunks)
         new_slice = da.hstack(dask_pieces)
         return new_slice
 
     def _find_blocks_covering_line(self, current_line):
-        """Find the block covering a given line."""
+        """Find the blocks covering a given line."""
         current_blocks = []
         for block in self.blocks:
             if block.coords['y'][0] <= current_line <= block.coords['y'][-1]:
@@ -274,8 +303,10 @@ def interpolate_slice(slice_rows, slice_cols, interpolator):
 
 
 class _AzimuthBlock:
+    """Implementation of an single azimuth-noise block."""
 
     def __init__(self, xml_element):
+        """Set up the block from an XML element."""
         self.element = xml_element
 
     def expand(self, chunks):
@@ -308,6 +339,7 @@ class _AzimuthBlock:
 
         new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
                    np.interp(y_coord, self.lines, data)[:, np.newaxis])
+        new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks))
         new_arr = xr.DataArray(new_arr,
                                dims=['y', 'x'],
                                coords={'x': x_coord,
