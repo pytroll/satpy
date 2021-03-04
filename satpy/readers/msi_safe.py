@@ -187,7 +187,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         if key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle']:
             elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
             return np.array([[val for val in elt.text.split()] for elt in elts],
-                            dtype=np.float)
+                            dtype=np.float64)
 
         elif key['name'] in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             arrays = []
@@ -195,7 +195,7 @@ class SAFEMSIMDXML(BaseFileHandler):
             for elt in elts:
                 items = elt.findall(info['xml_item'] + '/Values_List/VALUES')
                 arrays.append(np.array([[val for val in item.text.split()] for item in items],
-                                       dtype=np.float))
+                                       dtype=np.float64))
             return np.nanmean(np.dstack(arrays), -1)
         return None
 

@@ -106,7 +106,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter(base_dir=self.base_dir,
-                          enhancement_config=False,
+                          enhance=False,
                           dtype=np.float32)
         w.save_datasets(datasets)
 

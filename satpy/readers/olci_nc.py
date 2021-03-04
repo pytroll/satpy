@@ -86,12 +86,12 @@ class BitFlags(object):
         data = self._value
         if isinstance(data, xr.DataArray):
             data = data.data
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
             res = xr.DataArray(res, coords=self._value.coords,
                                attrs=self._value.attrs,
                                dims=self._value.dims)
         else:
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
         return res
 
 

@@ -495,7 +495,7 @@ def _vis_calibrate(data,
     if calib_type == 'counts':
         return channel
 
-    channel = channel.astype(np.float)
+    channel = channel.astype(np.float64)
 
     if calib_type == 'radiance':
         logger.info("Radiances are not yet supported for " +
@@ -556,7 +556,7 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
 
     # Mask unnaturally low values
     mask &= count != 0
-    count = count.astype(np.float)
+    count = count.astype(np.float64)
 
     k1_ = da.from_array(data['calir'][:, irchn, 0, 0], chunks=LINE_CHUNK) / 1.0e9
     k2_ = da.from_array(data['calir'][:, irchn, 0, 1], chunks=LINE_CHUNK) / 1.0e6

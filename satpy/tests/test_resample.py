@@ -141,7 +141,6 @@ class TestKDTreeResampler(unittest.TestCase):
     def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
                            xr_dset, cnc):
         """Test the kd resampler."""
-        import numpy as np
         import dask.array as da
         from satpy.resample import KDTreeResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
@@ -149,7 +148,7 @@ class TestKDTreeResampler(unittest.TestCase):
         xr_dset.return_value = mock_dset
         resampler = KDTreeResampler(source_swath, target_area)
         resampler.precompute(
-            mask=da.arange(5, chunks=5).astype(np.bool), cache_dir='.')
+            mask=da.arange(5, chunks=5).astype(bool), cache_dir='.')
         xr_resampler.assert_called_once()
         resampler.resampler.get_neighbour_info.assert_called()
         # swath definitions should not be cached
@@ -300,7 +299,7 @@ class TestEWAResampler(unittest.TestCase):
         self.assertIn('x', new_data.coords)
         self.assertIn('crs', new_data.coords)
         self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
         self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
         self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
         self.assertEqual(target_area.crs, new_data.coords['crs'].item())
@@ -350,7 +349,7 @@ class TestEWAResampler(unittest.TestCase):
         self.assertIn('bands', new_data.coords)
         self.assertIn('crs', new_data.coords)
         self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
         self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
         self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
         np.testing.assert_equal(new_data.coords['bands'].values,
@@ -400,7 +399,7 @@ class TestNativeResampler(unittest.TestCase):
         self.assertIn('x', new_data.coords)
         self.assertIn('crs', new_data.coords)
         self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
         self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
         self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
         self.assertEqual(target_area.crs, new_data.coords['crs'].item())
@@ -424,7 +423,7 @@ class TestNativeResampler(unittest.TestCase):
                                 ['R', 'G', 'B'])
         self.assertIn('crs', new_data.coords)
         self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
         self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
         self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
         self.assertEqual(target_area.crs, new_data.coords['crs'].item())
@@ -442,7 +441,7 @@ class TestNativeResampler(unittest.TestCase):
         self.assertTrue(np.all(new_data == new_data2))
         self.assertIn('crs', new_data.coords)
         self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
         self.assertEqual(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_without_dims_4D(self):
@@ -464,7 +463,6 @@ class TestBilinearResampler(unittest.TestCase):
     def test_bil_resampling(self, xr_resampler, create_filename,
                             move_existing_caches):
         """Test the bilinear resampler."""
-        import numpy as np
         import dask.array as da
         import xarray as xr
         from satpy.resample import BilinearResampler
@@ -473,7 +471,7 @@ class TestBilinearResampler(unittest.TestCase):
         # Test that bilinear resampling info calculation is called
         resampler = BilinearResampler(source_swath, target_area)
         resampler.precompute(
-            mask=da.arange(5, chunks=5).astype(np.bool))
+            mask=da.arange(5, chunks=5).astype(bool))
         resampler.resampler.load_resampling_info.assert_not_called()
         resampler.resampler.get_bil_info.assert_called_once()
         resampler.resampler.reset_mock()
@@ -489,7 +487,7 @@ class TestBilinearResampler(unittest.TestCase):
         self.assertIn('x', new_data.coords)
         self.assertIn('crs', new_data.coords)
         self.assertIsInstance(new_data.coords['crs'].item(), CRS)
-        self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+        self.assertIn('lambert', new_data.coords['crs'].item().coordinate_operation.method_name.lower())
         self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
         self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
         self.assertEqual(target_area.crs, new_data.coords['crs'].item())
@@ -670,7 +668,7 @@ class TestCoordinateHelpers(unittest.TestCase):
         self.assertIn('crs', new_data_arr.coords)
         crs = new_data_arr.coords['crs'].item()
         self.assertIsInstance(crs, CRS)
-        self.assertIn('longlat', crs.to_proj4())
+        assert crs.is_geographic
         self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
 
 

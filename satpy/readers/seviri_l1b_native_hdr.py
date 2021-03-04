@@ -64,7 +64,7 @@ class GSDTRecords(object):
     # 16 bytes
     gp_pk_sh1 = [
         ('SubHeaderVersionNo', np.uint8),
-        ('ChecksumFlag', np.bool),
+        ('ChecksumFlag', bool),
         ('Acknowledgement', (np.uint8, 4)),
         ('ServiceType', gp_svce_type),
         ('ServiceSubtype', np.uint8),
@@ -220,11 +220,11 @@ class L15DataHeaderRecord(object):
 
         # 28 bytes
         satellite_operations = [
-            ('LastManoeuvreFlag', np.bool),
+            ('LastManoeuvreFlag', bool),
             ('LastManoeuvreStartTime', time_cds_short),
             ('LastManoeuvreEndTime', time_cds_short),
             ('LastManoeuvreType', np.uint8),
-            ('NextManoeuvreFlag', np.bool),
+            ('NextManoeuvreFlag', bool),
             ('NextManoeuvreStartTime', time_cds_short),
             ('NextManoeuvreEndTime', time_cds_short),
             ('NextManoeuvreType', np.uint8)]
@@ -325,7 +325,7 @@ class L15DataHeaderRecord(object):
             ('RefocusingLines', np.uint16),
             ('RefocusingDirection', np.uint8),
             ('RefocusingPosition', np.uint16),
-            ('ScanRefPosFlag', np.bool),
+            ('ScanRefPosFlag', bool),
             ('ScanRefPosNumber', np.uint16),
             ('ScanRefPosVal', np.float32),
             ('ScanFirstLine', np.uint16),
@@ -333,15 +333,15 @@ class L15DataHeaderRecord(object):
             ('RetraceStartLine', np.uint16)]
 
         decontamination = [
-            ('DecontaminationNow', np.bool),
+            ('DecontaminationNow', bool),
             ('DecontaminationStart', time_cds_short),
             ('DecontaminationEnd', time_cds_short)]
 
         radiometer_operations = [
-            ('LastGainChangeFlag', np.bool),
+            ('LastGainChangeFlag', bool),
             ('LastGainChangeTime', time_cds_short),
             ('Decontamination', decontamination),
-            ('BBCalScheduled', np.bool),
+            ('BBCalScheduled', bool),
             ('BBCalibrationType', np.uint8),
             ('BBFirstLine', np.uint16),
             ('BBLastLine', np.uint16),
@@ -445,12 +445,12 @@ class L15DataHeaderRecord(object):
     def radiometric_processing(self):
         """Get radiometric processing data."""
         rp_summary = [
-            ('RadianceLinearization', (np.bool, 12)),
-            ('DetectorEqualization', (np.bool, 12)),
-            ('OnboardCalibrationResult', (np.bool, 12)),
-            ('MPEFCalFeedback', (np.bool, 12)),
-            ('MTFAdaptation', (np.bool, 12)),
-            ('StrayLightCorrection', (np.bool, 12))]
+            ('RadianceLinearization', (bool, 12)),
+            ('DetectorEqualization', (bool, 12)),
+            ('OnboardCalibrationResult', (bool, 12)),
+            ('MPEFCalFeedback', (bool, 12)),
+            ('MTFAdaptation', (bool, 12)),
+            ('StrayLightCorrection', (bool, 12))]
 
         level_15_image_calibration = [
             ('CalSlope', np.float64),

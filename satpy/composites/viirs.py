@@ -90,7 +90,7 @@ class ReflectanceCorrector(CompositeBase):
             nc = NCDataset(self.dem_file, "r")
             # average elevation is stored as a 16-bit signed integer but with
             # scale factor 1 and offset 0, convert it to float here
-            avg_elevation = nc.variables[self.dem_sds][:].astype(np.float)
+            avg_elevation = nc.variables[self.dem_sds][:].astype(np.float64)
             if isinstance(avg_elevation, np.ma.MaskedArray):
                 avg_elevation = avg_elevation.filled(np.nan)
         else:

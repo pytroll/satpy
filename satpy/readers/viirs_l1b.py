@@ -212,7 +212,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
             data = self[var_path]
             # we get the BT values from a look up table using the scaled radiance integers
-            index_arr = data.data.astype(np.int)
+            index_arr = data.data.astype(int)
             coords = data.coords
             data.data = self[lut_var_path].data[index_arr.ravel()].reshape(data.shape)
             data = data.assign_coords(**coords)

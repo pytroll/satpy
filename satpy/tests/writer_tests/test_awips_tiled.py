@@ -449,14 +449,13 @@ class TestAWIPSTiledWriter:
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True, filename="{Bad Key}.nc")
         area_def = AreaDefinition(
             'test',
             'test',
             'test',
-            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
-                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            ('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+             '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             1000,
             2000,
             (-1000000., -1500000., 1000000., 1500000.),
@@ -486,14 +485,13 @@ class TestAWIPSTiledWriter:
         import xarray as xr
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
             'test',
-            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
-                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            ('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+             '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             100,
             200,
             (-1000., -1500., 1000., 1500.),

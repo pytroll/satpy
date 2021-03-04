@@ -154,7 +154,7 @@ class TestHelpers(unittest.TestCase):
             (-6498000.088960204, -6498000.088960204,
              6502000.089024927, 6502000.089024927))
 
-        mask = hf.get_geostationary_mask(area).astype(np.int).compute()
+        mask = hf.get_geostationary_mask(area).astype(int).compute()
 
         # Check results along a couple of lines
         # a) Horizontal

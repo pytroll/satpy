@@ -276,10 +276,12 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                 x, y, z = self._get_satpos_cart()
 
                 # Transform to geodetic coordinates
-                geocent = pyproj.Proj(proj='geocent')
                 a, b = self.get_earth_radii()
-                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-                lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
+                geocent_crs = pyproj.CRS.from_string('+proj=geocent')
+                latlong_crs = pyproj.CRS.from_string(
+                    '+proj=latlong +a={} +b={} +units=m'.format(a, b))
+                transformer = pyproj.Transformer.from_crs(geocent_crs, latlong_crs)
+                lon, lat, alt = transformer.transform(x, y, z)
             except NoValidOrbitParams as err:
                 logger.warning(err)
                 lon = lat = alt = None
