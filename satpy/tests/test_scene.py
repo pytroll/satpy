@@ -538,8 +538,8 @@ class TestScene:
         del scene['1']
         del scene['3']
         del scene[0.45]
-        assert len(scene._wishlist) == 0
-        assert len(scene._datasets.keys()) == 0
+        assert not scene._wishlist
+        assert not list(scene._datasets.keys())
         pytest.raises(KeyError, scene.__delitem__, 0.2)
 
     def test_coarsest_finest_area(self):
@@ -958,7 +958,7 @@ class TestSceneLoading:
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp15'])
         loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 0
+        assert not loaded_ids
 
     def test_load_comp16(self):
         """Test loading a composite whose opt prereq can't be loaded.
@@ -979,7 +979,7 @@ class TestSceneLoading:
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp17'])
         loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 0
+        assert not loaded_ids
 
     def test_load_comp18(self):
         """Test loading a composite that depends on a incompatible area modified dataset."""
@@ -1221,7 +1221,7 @@ class TestSceneLoading:
         scene._generate_composites_from_loaded_datasets()
         assert any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist)
         assert 'comp10' in scene._datasets
-        assert len(scene.missing_datasets) == 0
+        assert not scene.missing_datasets
 
     def test_modified_with_wl_dep(self):
         """Test modifying a dataset with a modifier with modified deps.
@@ -1528,13 +1528,13 @@ class TestSceneResampling:
         new_scn._generate_composites_from_loaded_datasets()
         assert any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist)
         assert 'comp10' in new_scn
-        assert len(new_scn.missing_datasets) == 0
+        assert not new_scn.missing_datasets
 
         # try generating them right away
         new_scn = scene.resample(area_def)
         assert any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist)
         assert 'comp10' in new_scn
-        assert len(new_scn.missing_datasets) == 0
+        assert not new_scn.missing_datasets
 
 
 class TestSceneSaving(unittest.TestCase):
