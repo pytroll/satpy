@@ -56,7 +56,7 @@ extras_require = {
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
-    'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
+    'sar_c': ['python-geotiepoints >= 1.1.7', 'rasterio', 'rioxarray'],
     'abi_l1b': ['h5netcdf'],
     'seviri_l2_bufr': ['eccodes-python'],
     'seviri_l2_grib': ['eccodes-python'],
