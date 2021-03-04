@@ -141,6 +141,8 @@ import xarray as xr
 import dask
 import dask.array as da
 import zarr
+import pyresample
+from packaging import version
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
@@ -176,6 +178,8 @@ BIL_COORDINATES = {'bilinear_s': ('x1', ),
                    'out_coords_y': ('y2', )}
 
 resamplers_cache = WeakValueDictionary()
+
+PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 
 
 def hash_dict(the_dict, the_hash=None):
@@ -1046,6 +1050,23 @@ class NativeResampler(BaseResampler):
         return update_resampled_coords(data, new_data, target_geo_def)
 
 
+def _get_arg_to_pass_for_skipna_handling(skipna, **kwargs):
+    """Determine if skipna can be passed to the compute functions for the average and sum bucket resampler."""
+    # FIXME this can be removed once Pyresample 1.18.0 is a Satpy requirement
+    if 'mask_all_nan' in kwargs:
+        if PR_USE_SKIPNA:
+            warnings.warn('Argument mask_all_nan is deprecated. Please use skipna for missing values handling. '
+                          'Continuing with default skipna=True, if not provided differently.', DeprecationWarning)
+        else:
+            warnings.warn('Argument mask_all_nan is deprecated.'
+                          'Please update Pyresample and use skipna for missing values handling.',
+                          DeprecationWarning)
+    if PR_USE_SKIPNA:
+        return {'skipna': skipna}
+    else:
+        return {'mask_all_nan': kwargs.get('mask_all_nan', False)}
+
+
 class BucketResamplerBase(BaseResampler):
     """Base class for bucket resampling which implements averaging."""
 
@@ -1078,6 +1099,11 @@ class BucketResamplerBase(BaseResampler):
         Returns (xarray.DataArray): Data resampled to the target area
 
         """
+        if not PR_USE_SKIPNA and 'skipna' in kwargs:
+            raise ValueError('You are trying to set the skipna argument but you are using an old version of'
+                             ' Pyresample that does not support it.'
+                             'Please update Pyresample to 1.18.0 or higher to be able to use this argument.')
+
         self.precompute(**kwargs)
         attrs = data.attrs.copy()
         data_arr = data.data
@@ -1143,21 +1169,18 @@ class BucketAvg(BucketResamplerBase):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
 
-        if 'mask_all_nan' in kwargs:
-            warnings.warn('Argument mask_all_nan is deprecated.'
-                          'Please update Pyresample and use skipna for missing values handling.'
-                          'Continuing with default skipna=True', DeprecationWarning)
+        arg_to_pass = _get_arg_to_pass_for_skipna_handling(skipna, **kwargs)
 
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_average(data[i, :, :],
                                                  fill_value=fill_value,
-                                                 skipna=skipna)
+                                                 **arg_to_pass)
                 results.append(res)
         else:
             res = self.resampler.get_average(data, fill_value=fill_value,
-                                             skipna=skipna)
+                                             **arg_to_pass)
             results.append(res)
 
         return da.stack(results)
@@ -1186,19 +1209,16 @@ class BucketSum(BucketResamplerBase):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
 
-        if 'mask_all_nan' in kwargs:
-            warnings.warn('Argument mask_all_nan is deprecated.'
-                          'Please update Pyresample and use skipna for missing values handling.'
-                          'Continuing with default skipna=True', DeprecationWarning)
+        arg_to_pass = _get_arg_to_pass_for_skipna_handling(skipna, **kwargs)
 
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_sum(data[i, :, :],
-                                             skipna=skipna)
+                                             **arg_to_pass)
                 results.append(res)
         else:
-            res = self.resampler.get_sum(data, skipna=skipna)
+            res = self.resampler.get_sum(data, **arg_to_pass)
             results.append(res)
 
         return da.stack(results)
