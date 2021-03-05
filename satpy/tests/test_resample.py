@@ -879,16 +879,10 @@ class TestBucketSum(unittest.TestCase):
         # 1D data
         data = da.ones((5,))
         res = self._compute_mocked_bucket_sum(data)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            skipna=True)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
         data = da.ones((5, 5))
         res = self._compute_mocked_bucket_sum(data)
-        self.bucket.resampler.get_sum.assert_called_once_with(
-            data,
-            skipna=True)
         self.assertEqual(res.shape, (1, 5, 5))
         # 3D data
         data = da.ones((3, 5, 5))
