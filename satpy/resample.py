@@ -1050,21 +1050,24 @@ class NativeResampler(BaseResampler):
         return update_resampled_coords(data, new_data, target_geo_def)
 
 
-def _get_arg_to_pass_for_skipna_handling(skipna, **kwargs):
+def _get_arg_to_pass_for_skipna_handling(**kwargs):
     """Determine if skipna can be passed to the compute functions for the average and sum bucket resampler."""
     # FIXME this can be removed once Pyresample 1.18.0 is a Satpy requirement
-    if 'mask_all_nan' in kwargs:
-        if PR_USE_SKIPNA:
+
+    if PR_USE_SKIPNA:
+        if 'mask_all_nan' in kwargs:
             warnings.warn('Argument mask_all_nan is deprecated. Please use skipna for missing values handling. '
                           'Continuing with default skipna=True, if not provided differently.', DeprecationWarning)
-        else:
+            kwargs.pop('mask_all_nan')
+    else:
+        if 'mask_all_nan' in kwargs:
             warnings.warn('Argument mask_all_nan is deprecated.'
                           'Please update Pyresample and use skipna for missing values handling.',
                           DeprecationWarning)
-    if PR_USE_SKIPNA:
-        return {'skipna': skipna}
-    else:
-        return {'mask_all_nan': kwargs.get('mask_all_nan', False)}
+        kwargs.setdefault('mask_all_nan', False)
+        kwargs.pop('skipna')
+
+    return kwargs
 
 
 class BucketResamplerBase(BaseResampler):
@@ -1169,18 +1172,18 @@ class BucketAvg(BucketResamplerBase):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
 
-        arg_to_pass = _get_arg_to_pass_for_skipna_handling(skipna, **kwargs)
+        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
 
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_average(data[i, :, :],
                                                  fill_value=fill_value,
-                                                 **arg_to_pass)
+                                                 **kwargs)
                 results.append(res)
         else:
             res = self.resampler.get_average(data, fill_value=fill_value,
-                                             **arg_to_pass)
+                                             **kwargs)
             results.append(res)
 
         return da.stack(results)
@@ -1209,16 +1212,16 @@ class BucketSum(BucketResamplerBase):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
 
-        arg_to_pass = _get_arg_to_pass_for_skipna_handling(skipna, **kwargs)
+        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
 
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_sum(data[i, :, :],
-                                             **arg_to_pass)
+                                             **kwargs)
                 results.append(res)
         else:
-            res = self.resampler.get_sum(data, **arg_to_pass)
+            res = self.resampler.get_sum(data, **kwargs)
             results.append(res)
 
         return da.stack(results)

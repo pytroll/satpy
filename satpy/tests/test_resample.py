@@ -726,24 +726,27 @@ class TestBucketAvg(unittest.TestCase):
         self.assertTrue(self.bucket.resampler)
         bucket.assert_called_once_with(self.target_geo_def, 1, 2)
 
+    def _compute_mocked_bucket_avg(self, data, **kwargs):
+        """Compute the mocked bucket average."""
+        self.bucket.resampler = mock.MagicMock()
+        self.bucket.resampler.get_average.return_value = data
+        res = self.bucket.compute(data, **kwargs)
+        return res
+
     def test_compute(self):
         """Test bucket resampler computation."""
         import dask.array as da
         # 1D data
-        self.bucket.resampler = mock.MagicMock()
         data = da.ones((5,))
-        self.bucket.resampler.get_average.return_value = data
-        res = self.bucket.compute(data, fill_value=2)
+        res = self._compute_mocked_bucket_avg(data, fill_value=2)
         self.bucket.resampler.get_average.assert_called_once_with(
             data,
             fill_value=2,
             skipna=True)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
-        self.bucket.resampler = mock.MagicMock()
         data = da.ones((5, 5))
-        self.bucket.resampler.get_average.return_value = data
-        res = self.bucket.compute(data, fill_value=2)
+        res = self._compute_mocked_bucket_avg(data, fill_value=2)
         self.bucket.resampler.get_average.assert_called_once_with(
             data,
             fill_value=2,
@@ -755,6 +758,60 @@ class TestBucketAvg(unittest.TestCase):
         self.bucket.resampler.get_average.return_value = data[0, :, :]
         res = self.bucket.compute(data, fill_value=2)
         self.assertEqual(res.shape, (3, 5, 5))
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', True)
+    def test_compute_and_use_skipna_handling(self):
+        """Test bucket resampler computation and use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            skipna=True)
+
+        self._compute_mocked_bucket_avg(data, fill_value=2, skipna=False)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            skipna=False)
+
+        self._compute_mocked_bucket_avg(data, fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            skipna=True)
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', False)
+    def test_compute_and_not_use_skipna_handling(self):
+        """Test bucket resampler computation and not use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=True)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=True)
+
+        self._compute_mocked_bucket_avg(data, fill_value=2, mask_all_nan=False)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_avg(data, fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_avg(data, fill_value=2, skipna=True)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
 
     @mock.patch('pyresample.bucket.BucketResampler')
     def test_resample(self, pyresample_bucket):
@@ -812,23 +869,26 @@ class TestBucketSum(unittest.TestCase):
         self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
         self.bucket = BucketSum(self.source_geo_def, self.target_geo_def)
 
+    def _compute_mocked_bucket_sum(self, data, **kwargs):
+        """Compute the mocked bucket sum."""
+        self.bucket.resampler = mock.MagicMock()
+        self.bucket.resampler.get_sum.return_value = data
+        res = self.bucket.compute(data, **kwargs)
+        return res
+
     def test_compute(self):
         """Test sum bucket resampler computation."""
         import dask.array as da
         # 1D data
-        self.bucket.resampler = mock.MagicMock()
         data = da.ones((5,))
-        self.bucket.resampler.get_sum.return_value = data
-        res = self.bucket.compute(data)
+        res = self._compute_mocked_bucket_sum(data)
         self.bucket.resampler.get_sum.assert_called_once_with(
             data,
             skipna=True)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
-        self.bucket.resampler = mock.MagicMock()
         data = da.ones((5, 5))
-        self.bucket.resampler.get_sum.return_value = data
-        res = self.bucket.compute(data)
+        res = self._compute_mocked_bucket_sum(data)
         self.bucket.resampler.get_sum.assert_called_once_with(
             data,
             skipna=True)
@@ -839,6 +899,54 @@ class TestBucketSum(unittest.TestCase):
         self.bucket.resampler.get_sum.return_value = data[0, :, :]
         res = self.bucket.compute(data)
         self.assertEqual(res.shape, (3, 5, 5))
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', True)
+    def test_compute_and_use_skipna_handling(self):
+        """Test bucket resampler computation and use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_sum(data, mask_all_nan=True)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            skipna=True)
+
+        self._compute_mocked_bucket_sum(data, skipna=False)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            skipna=False)
+
+        self._compute_mocked_bucket_sum(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            skipna=True)
+
+    @mock.patch('satpy.resample.PR_USE_SKIPNA', False)
+    def test_compute_and_not_use_skipna_handling(self):
+        """Test bucket resampler computation and not use skipna handling."""
+        import dask.array as da
+        data = da.ones((5,))
+
+        self._compute_mocked_bucket_sum(data, mask_all_nan=True)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            mask_all_nan=True)
+
+        self._compute_mocked_bucket_sum(data, mask_all_nan=False)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_sum(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+
+        self._compute_mocked_bucket_sum(data, fill_value=2, skipna=True)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
 
 
 class TestBucketCount(unittest.TestCase):
