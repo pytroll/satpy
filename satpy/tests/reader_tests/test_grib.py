@@ -341,4 +341,4 @@ class TestGRIBReader:
         dataset = self._get_test_datasets([query_contains, query_not_contains], fake_pygrib)
 
         np.testing.assert_allclose(fake_gribdata(), dataset[query_not_contains].values)
-        np.testing.assert_allclose(fake_gribdata(),dataset[query_contains].values[::-1])
+        np.testing.assert_allclose(fake_gribdata(), dataset[query_contains].values[::-1])
