@@ -29,7 +29,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.aux_download import retrieve
 
 LOG = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 try:
     # try getting setuptools/distribute's version of resource retrieval first
@@ -42,11 +42,6 @@ except ImportError:
 # 'Polo' variable in MiRS files use these values for H/V polarization
 POLO_V = 2
 POLO_H = 3
-
-# number of channels
-N_CHN = 22
-# number of fields of view
-N_FOV = 96
 
 amsu = "amsu-mhs"
 PLATFORMS = {"n18": "NOAA-18",
@@ -82,8 +77,8 @@ SENSOR = {"n18": amsu,
           }
 
 
-def read_atms_limb_correction_coefficients(fn):
-    """Read the limb correction files."""
+def read_atms_coeff_to_string(fn):
+    """Read the coefficients into a string."""
     if os.path.isfile(fn):
         coeff_str = open(fn, "r").readlines()
     else:
@@ -91,20 +86,35 @@ def read_atms_limb_correction_coefficients(fn):
         mod_part, file_part = parts if len(parts) == 2 else ("", parts[0])
         mod_part = mod_part or __package__  # self.__module__
         coeff_str = get_resource_string(mod_part, file_part).decode().split("\n")
+
+    return coeff_str
+
+
+def read_atms_limb_correction_coefficients(fn):
+    """Read the limb correction files."""
+    coeff_str = read_atms_coeff_to_string(fn)
+    # there should be 22 channels and 96 fov in the coefficient file. (read last line and get values)
+    n_chn = (coeff_str[-1].replace("  ", " ").split(" ")[1])
+    n_fov = (coeff_str[-1].replace("  ", " ").split(" ")[2])
+    n_chn = int(n_chn)
+    n_fov = int(n_fov)
+    if n_chn < 22:
+        LOG.warning('Coefficient file has less than 22 channels:  %s' % n_chn)
+    if n_fov < 96:
+        LOG.warning('Coefficient file has less than 96 fov:  %s' % n_fov)
     # make it a generator
     coeff_str = (line.strip() for line in coeff_str)
 
-    all_coeffs = np.zeros((N_CHN, N_FOV, N_CHN), dtype=np.float32)
-    all_amean = np.zeros((N_CHN, N_FOV, N_CHN), dtype=np.float32)
-    all_dmean = np.zeros(N_CHN, dtype=np.float32)
-    all_nchx = np.zeros(N_CHN, dtype=np.int32)
-    all_nchanx = np.zeros((N_CHN, N_CHN), dtype=np.int32)
+    all_coeffs = np.zeros((n_chn, n_fov, n_chn), dtype=np.float32)
+    all_amean = np.zeros((n_chn, n_fov, n_chn), dtype=np.float32)
+    all_dmean = np.zeros(n_chn, dtype=np.float32)
+    all_nchx = np.zeros(n_chn, dtype=np.int32)
+    all_nchanx = np.zeros((n_chn, n_chn), dtype=np.int32)
     all_nchanx[:] = 9999
     # There should be 22 sections
-    for chan_idx in range(N_CHN):
+    for chan_idx in range(n_chn):
         # blank line at the start of each section
         _ = next(coeff_str)
-
         # section header
         _nx, nchx, dmean = [x.strip() for x in next(coeff_str).split(" ") if x]
         all_nchx[chan_idx] = nchx = int(nchx)
@@ -117,12 +127,13 @@ def read_atms_limb_correction_coefficients(fn):
             all_nchanx[chan_idx, x] = locations[x] - 1
 
         # Read 'nchx' coefficients for each of 96 FOV
-        for fov_idx in range(N_FOV):
+        for fov_idx in range(n_fov):
             # chan_num, fov_num, *coefficients, error
             coeff_line_parts = [x.strip() for x in next(coeff_str).split(" ") if x][2:]
             coeffs = [float(x) for x in coeff_line_parts[:nchx]]
             ameans = [float(x) for x in coeff_line_parts[nchx:-1]]
-            # error_val = float(coeff_line_parts[-1])
+            # not used but nice to know the purpose of the last column.
+            # _error_val = float(coeff_line_parts[-1])
             for x in range(nchx):
                 all_coeffs[chan_idx, fov_idx, all_nchanx[chan_idx, x]] = coeffs[x]
                 all_amean[all_nchanx[chan_idx, x], fov_idx, chan_idx] = ameans[x]
@@ -136,7 +147,7 @@ def apply_atms_limb_correction(datasets, channel_idx, dmean,
     ds = datasets[channel_idx]
 
     fov_line_correct = []
-    for fov_idx in range(N_FOV):
+    for fov_idx in range(ds.shape[1]):
         coeff_sum = np.zeros(ds.shape[0], dtype=ds.dtype)
         for k in range(nchx[channel_idx]):
             chn_repeat = nchanx[channel_idx, k]
@@ -174,6 +185,7 @@ def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
 
     bt_corrected = xr.DataArray(new_data, dims=("y", "x"),
                                 attrs=ds_info)
+
     return bt_corrected
 
 
@@ -268,7 +280,7 @@ class MiRSL2ncHandler(BaseFileHandler):
             return self.filename_info.get(key)
 
     @property
-    def coeff_filenames(self):
+    def _get_coeff_filenames(self):
         """Retrieve necessary files for coefficients if needed."""
         coeff_fn = {'sea': None, 'land': None}
         if self.platform_name == "noaa-20":
@@ -340,7 +352,8 @@ class MiRSL2ncHandler(BaseFileHandler):
             else:
                 sfc_type_mask = self['Sfc_type']
                 data = limb_correct_atms_bt(data, sfc_type_mask,
-                                            self.coeff_filenames, ds_info)
+                                            self._get_coeff_filenames,
+                                            ds_info)
                 self.nc = self.nc.merge(data)
         else:
             data = self[ds_id['name']]

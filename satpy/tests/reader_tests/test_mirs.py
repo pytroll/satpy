@@ -59,8 +59,35 @@ END_TIME = datetime(2017, 2, 6, 16, 7, 0)
 def _get_shared_global_attrs():
     attrs = {
         'missing_value': -999.,
+        'coeff_fn': {'sea': 'fake_sea_coeff', 'land': 'fake_land_coeff'}
     }
     return attrs
+
+
+def fake_coeff_from_fn(fn):
+    """Create Fake Coefficients."""
+    ameans = np.random.uniform(261, 267, N_CHANNEL)
+    all_nchx = np.linspace(2, 3, N_CHANNEL, dtype=np.int32)
+
+    coeff_str = []
+    for idx in range(1, N_CHANNEL):
+        nx = idx - 1
+        coeff_str.append('\n')
+        next_line = '   {}  {} {}\n'.format(idx, all_nchx[nx], ameans[nx])
+        coeff_str.append(next_line)
+        for fov in range(1, N_FOV+1):
+            random_coeff = np.random.rand(all_nchx[nx])
+            str_coeff = '  '.join([str(x) for x in random_coeff])
+            random_means = np.random.uniform(261, 267, all_nchx[nx])
+            str_means = ' '.join([str(x) for x in random_means])
+            error_val = np.random.uniform(0, 4)
+            coeffs_line = ' {:>2} {:>2}  {} {}   {}\n'.format(idx, fov,
+                                                              str_coeff,
+                                                              str_means,
+                                                              error_val)
+            coeff_str.append(coeffs_line)
+
+    return coeff_str
 
 
 def _get_datasets_with_attributes():
@@ -251,7 +278,10 @@ class TestMirsL2_NcReader:
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
             r.create_filehandlers(loadables)
-            loaded_data_arrs = r.load(loadable_ids)
+            with mock.patch('satpy.readers.mirs.read_atms_coeff_to_string') as \
+                    fd, mock.patch('satpy.readers.mirs.retrieve'):
+                fd.side_effect = fake_coeff_from_fn
+                loaded_data_arrs = r.load(loadable_ids)
             assert loaded_data_arrs
             for data_id, data_arr in loaded_data_arrs.items():
                 if data_id['name'] not in ['latitude', 'longitude']:
