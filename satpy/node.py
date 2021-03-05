@@ -162,12 +162,6 @@ class CompositorNode(Node):
         """Set up the node."""
         super().__init__(compositor.id, data=(compositor, [], []))
 
-    def update_name(self, new_name):
-        """Update 'name' property and related compositor metadata."""
-        super().update_name(new_name)
-        # self.compositor.attrs.update(new_name)
-        # self.compositor.attrs['_satpy_id'] = new_name
-
     def add_required_nodes(self, children):
         """Add nodes to the required field."""
         self.data[1].extend(children)
@@ -197,6 +191,11 @@ class CompositorNode(Node):
         new_node.add_required_nodes(new_required_nodes)
         new_optional_nodes = [node.copy(node_cache) for node in self.optional_nodes]
         new_node.add_optional_nodes(new_optional_nodes)
+        # `comp.id` uses the compositor's attributes to compute itself
+        # however, this node may have been updated by creation of the
+        # composite. In order to not modify the compositor's attrs, we
+        # overwrite the name here instead.
+        new_node.name = self.name
         return new_node
 
 

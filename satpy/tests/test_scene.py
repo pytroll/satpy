@@ -28,10 +28,22 @@ from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
                                FAKE_FILEHANDLER_START, FAKE_FILEHANDLER_END)
 
 import numpy as np
+import xarray as xr
 import pytest
 
 
 TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
+
+
+def _check_comp19_deps_are_loaded(scene):
+    # comp19 required resampling to produce so we should have its 3 deps
+    # 1. comp13
+    # 2. ds5
+    # 3. ds2
+    loaded_ids = list(scene.keys())
+    assert len(loaded_ids) == 3
+    for name in ('comp13', 'ds5', 'ds2'):
+        assert any(x['name'] == name for x in loaded_ids)
 
 
 class TestScene:
@@ -647,10 +659,11 @@ class TestSceneAvailableDatasets:
         scene = Scene(filenames=['fake1_1.txt'],
                       reader='fake1')
         id_list = scene.all_dataset_ids()
-        num_reader_ds = 20
+        # 20 data products + 6 lon/lat products
+        num_reader_ds = 21 + 6
         assert len(id_list) == num_reader_ds
         id_list = scene.all_dataset_ids(composites=True)
-        assert len(id_list) == num_reader_ds + 28
+        assert len(id_list) == num_reader_ds + 29
 
     def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
@@ -935,7 +948,7 @@ class TestSceneLoading:
         # it is fine that an optional prereq doesn't exist
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp13'])
-        loaded_ids = list(scene._datasets.keys())
+        loaded_ids = list(scene.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp13')
 
@@ -1049,7 +1062,6 @@ class TestSceneLoading:
         assert shared_dep_expected_node is shared_dep_node
         assert shared_dep_expected_node is shared_dep_node2
 
-        # it is fine that an optional prereq doesn't exist
         scene.load(['comp19'])
 
         loaded_ids = list(scene._datasets.keys())
@@ -1313,6 +1325,17 @@ class TestSceneResampling:
         """Return copy of dataset pretending it was resampled."""
         return dataset.copy()
 
+    def _fake_resample_dataset_force_20x20(self, dataset, dest_area, **kwargs):
+        """Return copy of dataset pretending it was resampled to (20, 20) shape."""
+        data = np.zeros((20, 20))
+        attrs = dataset.attrs.copy()
+        attrs['area'] = dest_area
+        return xr.DataArray(
+            data,
+            dims=('y', 'x'),
+            attrs=attrs,
+        )
+
     @mock.patch('satpy.scene.resample_dataset')
     def test_resample_scene_copy(self, rs):
         """Test that the Scene is properly copied during resampling.
@@ -1322,15 +1345,13 @@ class TestSceneResampling:
 
         """
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
-        rs.side_effect = self._fake_resample_dataset
+        rs.side_effect = self._fake_resample_dataset_force_20x20
 
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                    '+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
-        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
 
         scene.load(['comp19'])
         new_scene = scene.resample(area_def)
@@ -1347,10 +1368,16 @@ class TestSceneResampling:
         assert comp13_node.data[1][0] is ds5_node
         pytest.raises(KeyError, scene._dependency_tree.__getitem__, 'new_ds')
 
+        # comp19 required resampling to produce so we should have its 3 deps
+        # 1. comp13
+        # 2. ds5
+        # 3. ds2
+        # Then we loaded ds1 separately so we should have
+        # 4. ds1
         loaded_ids = list(scene.keys())
-        assert len(loaded_ids) == 2
-        assert loaded_ids[0] == make_cid(name='comp19')
-        assert loaded_ids[1] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
+        assert len(loaded_ids) == 4
+        for name in ('comp13', 'ds5', 'ds2', 'ds1'):
+            assert any(x['name'] == name for x in loaded_ids)
 
         loaded_ids = list(new_scene.keys())
         assert len(loaded_ids) == 2
@@ -1391,20 +1418,18 @@ class TestSceneResampling:
     def test_resample_reduce_data_toggle(self, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         import dask.array as da
         import xarray as xr
 
-        rs.side_effect = self._fake_resample_dataset
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        target_area = AreaDefinition('test', 'test', 'test', proj_dict, 4, 4, (-1000., -1500., 1000., 1500.))
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        rs.side_effect = self._fake_resample_dataset_force_20x20
+        proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                    '+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs')
+        target_area = AreaDefinition('test', 'test', 'test', proj_str, 4, 4, (-1000., -1500., 1000., 1500.))
+        area_def = AreaDefinition('test', 'test', 'test', proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
         get_area_slices = area_def.get_area_slices
         get_area_slices.return_value = (slice(0, 3, None), slice(0, 3, None))
-        area_def_big = AreaDefinition('test', 'test', 'test', proj_dict, 10, 10, (-1000., -1500., 1000., 1500.))
+        area_def_big = AreaDefinition('test', 'test', 'test', proj_str, 10, 10, (-1000., -1500., 1000., 1500.))
         area_def_big.get_area_slices = mock.MagicMock()
         get_area_slices_big = area_def_big.get_area_slices
         get_area_slices_big.return_value = (slice(0, 6, None), slice(0, 6, None))
@@ -1469,26 +1494,24 @@ class TestSceneResampling:
     def test_resample_reduce_data(self):
         """Test that the Scene reducing data does not affect final output."""
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                    '+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_str, 20, 20, (-1000., -1500., 1000., 1500.))
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
 
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
         dst_area = AreaDefinition('dst', 'dst', 'dst',
-                                  proj_dict,
-                                  2, 2,
+                                  proj_str,
+                                  20, 20,
                                   (-1000., -1500., 0., 0.),
                                   )
         new_scene1 = scene.resample(dst_area, reduce_data=False)
         new_scene2 = scene.resample(dst_area)
         new_scene3 = scene.resample(dst_area, reduce_data=True)
-        assert new_scene1['comp19'].shape == (2, 2, 3)
-        assert new_scene2['comp19'].shape == (2, 2, 3)
-        assert new_scene3['comp19'].shape == (2, 2, 3)
+        assert new_scene1['comp19'].shape == (20, 20, 3)
+        assert new_scene2['comp19'].shape == (20, 20, 3)
+        assert new_scene3['comp19'].shape == (20, 20, 3)
 
     @mock.patch('satpy.scene.resample_dataset')
     def test_no_generate_comp10(self, rs):
@@ -1535,6 +1558,38 @@ class TestSceneResampling:
         assert any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist)
         assert 'comp10' in new_scn
         assert not new_scn.missing_datasets
+
+    def test_comps_need_resampling_optional_mod_deps(self):
+        """Test that a composite with complex dependencies.
+
+        This is specifically testing the case where a compositor depends on
+        multiple resolution prerequisites which themselves are composites.
+        These sub-composites depend on data with a modifier that only has
+        optional dependencies. This is a very specific use case and is the
+        simplest way to present the problem (so far).
+
+        The general issue is that the Scene loading creates the "ds13"
+        dataset which already has one modifier on it. The "comp27"
+        composite requires resampling so its 4 prerequisites + the
+        requested "ds13" (from the reader which includes mod1 modifier)
+        remain. If the DependencyTree is not copied properly in this
+        situation then the new Scene object will have the composite
+        dependencies without resolution in its dep tree, but have
+        the DataIDs with the resolution in the dataset dictionary.
+        This all results in the Scene trying to regenerate composite
+        dependencies that aren't needed which fail.
+
+        """
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        # should require resampling
+        scene.load(['comp27', 'ds13'])
+        assert 'comp27' not in scene
+        assert 'ds13' in scene
+
+        new_scene = scene.resample(resampler='native')
+        assert len(list(new_scene.keys())) == 2
+        assert 'comp27' in new_scene
+        assert 'ds13' in new_scene
 
 
 class TestSceneSaving(unittest.TestCase):

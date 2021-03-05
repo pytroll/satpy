@@ -19,13 +19,17 @@
 from unittest import mock
 from datetime import datetime
 
+from satpy import Scene
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.composites import GenericCompositor, IncompatibleAreas
 from satpy.modifiers import ModifierBase
 
+from pyresample.geometry import SwathDefinition, BaseDefinition
+from pyresample import create_area_def
 from xarray import DataArray
+import dask.array as da
 import numpy as np
 
 FAKE_FILEHANDLER_START = datetime(2020, 1, 1, 0, 0, 0)
@@ -90,9 +94,6 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
             last dimension for other arrays.
 
     """
-    from xarray import DataArray
-    import dask.array as da
-    import numpy as np
     for key, val in file_content.items():
         da_attrs = {}
         for a in attrs:
@@ -122,8 +123,30 @@ def _filter_datasets(all_ds, names_or_ids):
             yield ds_id
 
 
+def _swath_def_of_data_arrays(rows, cols):
+    return SwathDefinition(
+        DataArray(da.zeros((rows, cols)), dims=('y', 'x')),
+        DataArray(da.zeros((rows, cols)), dims=('y', 'x')),
+    )
+
+
 class FakeModifier(ModifierBase):
     """Act as a modifier that performs different modifications."""
+
+    def _handle_res_change(self, datasets, info):
+        # assume this is used on the 500m version of ds5
+        info['resolution'] = 250
+        rep_data_arr = datasets[0]
+        y_size = rep_data_arr.sizes['y']
+        x_size = rep_data_arr.sizes['x']
+        data = da.zeros((y_size * 2, x_size * 2))
+        if isinstance(rep_data_arr.attrs['area'], SwathDefinition):
+            area = _swath_def_of_data_arrays(y_size * 2, x_size * 2)
+            info['area'] = area
+        else:
+            raise NotImplementedError("'res_change' modifier can't handle "
+                                      "AreaDefinition changes yet.")
+        return data
 
     def __call__(self, datasets, optional_datasets=None, **kwargs):
         """Modify provided data depending on the modifier name and input data."""
@@ -136,17 +159,18 @@ class FakeModifier(ModifierBase):
                         len(optional_datasets))
         resolution = datasets[0].attrs.get('resolution')
         mod_name = self.attrs['modifiers'][-1]
+        data = datasets[0].data
+        i = datasets[0].attrs.copy()
         if mod_name == 'res_change' and resolution is not None:
-            i = datasets[0].attrs.copy()
-            i['resolution'] *= 5
+            data = self._handle_res_change(datasets, i)
         elif 'incomp_areas' in mod_name:
             raise IncompatibleAreas(
                 "Test modifier 'incomp_areas' always raises IncompatibleAreas")
-        else:
-            i = datasets[0].attrs
-        info = datasets[0].attrs.copy()
-        self.apply_modifier_info(i, info)
-        return DataArray(np.ma.MaskedArray(datasets[0]), attrs=info)
+        self.apply_modifier_info(datasets[0].attrs, i)
+        return DataArray(data,
+                         dims=datasets[0].dims,
+                         # coords=datasets[0].coords,
+                         attrs=i)
 
 
 class FakeCompositor(GenericCompositor):
@@ -154,6 +178,9 @@ class FakeCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **kwargs):
         """Produce test compositor data depending on modifiers and input data provided."""
+        projectables = self.match_data_arrays(projectables)
+        if nonprojectables:
+            self.match_data_arrays(nonprojectables)
         info = self.attrs.copy()
         if self.attrs['name'] in ('comp14', 'comp26'):
             # used as a test when composites update the dataset id with
@@ -166,7 +193,9 @@ class FakeCompositor(GenericCompositor):
             raise ValueError("Not enough prerequisite datasets passed")
 
         info.update(kwargs)
-        return DataArray(data=np.arange(75).reshape(5, 5, 3),
+        info['area'] = projectables[0].attrs['area']
+        dim_sizes = projectables[0].sizes
+        return DataArray(data=da.zeros((dim_sizes['y'], dim_sizes['x'], 3)),
                          attrs=info,
                          dims=['y', 'x', 'bands'],
                          coords={'bands': ['R', 'G', 'B']})
@@ -202,11 +231,18 @@ class FakeFileHandler(BaseFileHandler):
             raise KeyError("Can't load '{}' because it is supposed to "
                            "fail.".format(data_id['name']))
         attrs = data_id.to_dict()
+        attrs.update(ds_info)
         attrs['sensor'] = self.filetype_info.get('sensor', 'fake_sensor')
         attrs['platform_name'] = 'fake_platform'
         attrs['start_time'] = self.start_time
         attrs['end_time'] = self.end_time
-        return DataArray(data=np.arange(25).reshape(5, 5),
+        res = attrs.get('resolution', 250)
+        rows = cols = {
+            250: 20,
+            500: 10,
+            1000: 5,
+        }.get(res, 5)
+        return DataArray(data=da.zeros((rows, cols)),
                          attrs=attrs,
                          dims=['y', 'x'])
 
@@ -272,20 +308,15 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     Returns:
         Scene object with datasets corresponding to content_dict.
     """
-    import pyresample
-    import satpy
-    import xarray as xr
     if common_attrs is None:
         common_attrs = {}
-    if daskify:
-        import dask.array
-    sc = satpy.Scene()
+    sc = Scene()
     for (did, arr) in content_dict.items():
         extra_attrs = common_attrs.copy()
-        if isinstance(area, pyresample.geometry.BaseDefinition):
+        if isinstance(area, BaseDefinition):
             extra_attrs["area"] = area
         elif area:
-            extra_attrs["area"] = pyresample.create_area_def(
+            extra_attrs["area"] = create_area_def(
                     "test-area",
                     {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
                      "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
@@ -294,13 +325,13 @@ def make_fake_scene(content_dict, daskify=False, area=True,
                     shape=arr.shape,
                     resolution=1000,
                     center=(0, 0))
-        if isinstance(arr, xr.DataArray):
+        if isinstance(arr, DataArray):
             sc[did] = arr.copy()  # don't change attributes of input
             sc[did].attrs.update(extra_attrs)
         else:
             if daskify:
-                arr = dask.array.from_array(arr)
-            sc[did] = xr.DataArray(
+                arr = da.from_array(arr)
+            sc[did] = DataArray(
                     arr,
                     dims=("y", "x"),
                     attrs=extra_attrs)

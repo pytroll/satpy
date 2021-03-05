@@ -17,11 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Implementation of a dependency tree."""
 
-import numpy as np
+from typing import Optional, Iterable, List
 
+from satpy import DataID
 from satpy.dataset import create_filtered_query, ModifierTuple
 from satpy.dataset.data_dict import TooManyResults, get_key
 from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG, ReaderNode
+
+import numpy as np
+
+IterOfNodes = Iterable[Node]
 
 
 class Tree:
@@ -60,13 +65,17 @@ class Tree:
                     res.append(sub_child)
         return res
 
-    def trunk(self, nodes=None, unique=True, limit_to=None):
+    def trunk(self, nodes: Optional[IterOfNodes] = None,
+              unique: bool = True,
+              limit_to: Optional[List[DataID]] = None):
         """Get the trunk nodes of the tree starting at this root.
 
         Args:
-            nodes (iterable): limit trunk nodes to the names specified or the
+            nodes: limit trunk nodes to the names specified or the
                               children of them that are also trunk nodes.
             unique: only include individual trunk nodes once
+            limit_to: limit children to the nodes with names in this list
+
 
         Returns:
             list of trunk nodes
