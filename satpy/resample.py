@@ -1158,13 +1158,13 @@ class BucketAvg(BucketResamplerBase):
     ----------
     fill_value : float (default: np.nan)
         Fill value to mark missing/invalid values in the input data,
-            as well as in the binned and averaged output data.
+        as well as in the binned and averaged output data.
     skipna : boolean (default: True)
         If True, skips missing values (as marked by NaN or `fill_value`) for the average calculation
-             (similarly to Numpy's `nanmean`). Buckets containing only missing values are set to fill_value.
-            If False, sets the bucket to fill_value if one or more missing values are present in the bucket
-            (similarly to Numpy's `mean`).
-            In both cases, empty buckets are set to `fill_value`.
+        (similarly to Numpy's `nanmean`). Buckets containing only missing values are set to fill_value.
+        If False, sets the bucket to fill_value if one or more missing values are present in the bucket
+        (similarly to Numpy's `mean`).
+        In both cases, empty buckets are set to `fill_value`.
 
     """
 
@@ -1201,10 +1201,10 @@ class BucketSum(BucketResamplerBase):
         Fill value for missing data
     skipna : boolean (default: True)
         If True, skips NaN values for the sum calculation
-                    (similarly to Numpy's `nansum`). Buckets containing only NaN are set to zero.
-                If False, sets the bucket to NaN if one or more NaN values are present in the bucket
-                    (similarly to Numpy's `sum`).
-                In both cases, empty buckets are set to 0.
+        (similarly to Numpy's `nansum`). Buckets containing only NaN are set to zero.
+        If False, sets the bucket to NaN if one or more NaN values are present in the bucket
+        (similarly to Numpy's `sum`).
+        In both cases, empty buckets are set to 0.
 
     """
 
