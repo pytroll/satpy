@@ -742,18 +742,10 @@ class TestBucketAvg(unittest.TestCase):
         # 1D data
         data = da.ones((5,))
         res = self._compute_mocked_bucket_avg(data, fill_value=2)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            skipna=True)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
         data = da.ones((5, 5))
         res = self._compute_mocked_bucket_avg(data, fill_value=2)
-        self.bucket.resampler.get_average.assert_called_once_with(
-            data,
-            fill_value=2,
-            skipna=True)
         self.assertEqual(res.shape, (1, 5, 5))
         # 3D data
         data = da.ones((3, 5, 5))
