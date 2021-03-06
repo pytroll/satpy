@@ -56,14 +56,6 @@ START_TIME = datetime(2017, 2, 6, 16, 1, 0)
 END_TIME = datetime(2017, 2, 6, 16, 7, 0)
 
 
-def _get_shared_global_attrs():
-    attrs = {
-        'missing_value': -999.,
-        'coeff_fn': {'sea': 'fake_sea_coeff', 'land': 'fake_land_coeff'}
-    }
-    return attrs
-
-
 def fake_coeff_from_fn(fn):
     """Create Fake Coefficients."""
     ameans = np.random.uniform(261, 267, N_CHANNEL)
@@ -136,7 +128,7 @@ def _get_datasets_with_attributes():
         'Longitude': longitude
     }
 
-    attrs = _get_shared_global_attrs()
+    attrs = {'missing_value': -999.}
     ds = xr.Dataset(ds_vars, attrs=attrs)
 
     return ds
@@ -177,7 +169,7 @@ def _get_datasets_with_less_attributes():
         'Latitude': latitude
     }
 
-    attrs = _get_shared_global_attrs()
+    attrs = {'missing_value': -999.}
     ds = xr.Dataset(ds_vars, attrs=attrs)
 
     return ds
