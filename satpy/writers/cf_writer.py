@@ -235,25 +235,28 @@ def assert_xy_unique(datas):
 
 
 def link_coords(datas):
-    """Link datasets and coordinates.
+    """Link dataarrays and coordinates.
 
-    If the `coordinates` attribute of a data array links to other datasets in the scene, for example
+    If the `coordinates` attribute of a data array links to other dataarrays in the scene, for example
     `coordinates='lon lat'`, add them as coordinates to the data array and drop that attribute. In the final call to
     `xr.Dataset.to_netcdf()` all coordinate relations will be resolved and the `coordinates` attributes be set
     automatically.
 
     """
-    for ds_name, dataset in datas.items():
-        coords = dataset.attrs.get('coordinates', [])
+    for da_name, data in datas.items():
+        coords = data.attrs.get('coordinates', [])
         if isinstance(coords, str):
             coords = coords.split(' ')
         for coord in coords:
-            if coord not in dataset.coords:
+            if coord not in data.coords:
                 try:
-                    dataset[coord] = datas[coord]
+                    # drop dimension not existed in data
+                    drop_dims = list(set(datas[coord].dims) - set(data.dims))
+                    # assign coordinates
+                    data[coord] = datas[coord].squeeze(drop_dims).drop_vars(drop_dims)
                 except KeyError:
-                    warnings.warn('Coordinate "{}" referenced by dataset {} does not exist, dropping reference.'.format(
-                        coord, ds_name))
+                    warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'.format(
+                        coord, da_name))
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
