@@ -260,7 +260,7 @@ def link_coords(datas):
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
-        dataset.attrs.pop('coordinates', None)
+        data.attrs.pop('coordinates', None)
 
 
 def dataset_is_projection_coords(dataset):
