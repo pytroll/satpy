@@ -255,8 +255,8 @@ def link_coords(datas):
                     # assign coordinates
                     data[coord] = datas[coord].squeeze(drop_dims).drop_vars(drop_dims)
                 except KeyError:
-                    warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'.format(
-                        coord, da_name))
+                    warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'
+                                  .format(coord, da_name))
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
