@@ -65,7 +65,8 @@ class Tree:
                     res.append(sub_child)
         return res
 
-    def trunk(self, nodes: Optional[IterOfNodes] = None,
+    def trunk(self, 
+              nodes: Optional[IterOfNodes] = None,
               unique: bool = True,
               limit_to: Optional[List[DataID]] = None):
         """Get the trunk nodes of the tree starting at this root.
