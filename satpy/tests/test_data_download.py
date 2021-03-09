@@ -210,3 +210,22 @@ class TestDataDownload:
             assert not self.tmpdir.join(comp_file).exists()
             retrieve_all()
             assert self.tmpdir.join(comp_file).exists()
+
+    def test_no_downloads_in_tests(self):
+        """Test that tests aren't allowed to download stuff."""
+        import satpy
+        from satpy.aux_download import register_file, retrieve
+
+        file_registry = {}
+        with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir),
+                              download_aux=True), \
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
+            cache_key = 'myfile.rst'
+            register_file(README_URL, cache_key)
+            assert not self.tmpdir.join(cache_key).exists()
+            pytest.raises(RuntimeError, retrieve, cache_key)
+            # touch the file so it gets created
+            open(self.tmpdir.join(cache_key), 'w').close()
+            # offline downloading should still be allowed
+            with satpy.config.set(download_aux=False):
+                retrieve(cache_key)
