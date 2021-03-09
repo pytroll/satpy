@@ -556,6 +556,10 @@ class CFWriter(Writer):
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
 
+        # convert coordinates into string
+        if 'coordinates' in new_data.attrs and not isinstance(new_data.attrs['coordinates'], str):
+            new_data.attrs['coordinates'] = ' '.join(new_data.attrs['coordinates'])
+
         # Flatten dict-type attributes, if desired
         if flatten_attrs:
             new_data.attrs = flatten_dict(new_data.attrs)
