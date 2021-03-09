@@ -28,8 +28,6 @@ from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencie
 
 import numpy as np
 
-IterOfNodes = Iterable[Node]
-
 
 class Tree:
     """A tree implementation."""
