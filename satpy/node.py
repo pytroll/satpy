@@ -138,7 +138,7 @@ class Node:
                     res.append(sub_child)
         return res
 
-    def trunk(self, unique=True, limit_to=None):
+    def trunk(self, unique=True, limit_children_to=None):
         """Get the trunk of the tree starting at this root."""
         # FIXME: uniqueness is not correct in `trunk` yet
         unique = False
@@ -146,10 +146,10 @@ class Node:
         if self.children and self.name is not EMPTY_LEAF_NAME:
             if self.name is not None:
                 res.append(self)
-            if limit_to is not None and self.name in limit_to:
+            if limit_children_to is not None and self.name in limit_children_to:
                 return res
             for child in self.children:
-                for sub_child in child.trunk(unique=unique, limit_to=limit_to):
+                for sub_child in child.trunk(unique=unique, limit_children_to=limit_children_to):
                     if not unique or sub_child not in res:
                         res.append(sub_child)
         return res

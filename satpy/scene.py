@@ -1177,7 +1177,7 @@ class Scene:
             DatasetDict of loaded datasets
 
         """
-        nodes = self._dependency_tree.leaves(nodes=self.missing_datasets)
+        nodes = self._dependency_tree.leaves(limit_nodes_to=self.missing_datasets)
         return self._read_dataset_nodes_from_storage(nodes, **kwargs)
 
     def _read_dataset_nodes_from_storage(self, reader_nodes, **kwargs):
@@ -1234,8 +1234,8 @@ class Scene:
 
     def _generate_composites_from_loaded_datasets(self):
         """Compute all the composites contained in `requirements`."""
-        trunk_nodes = self._dependency_tree.trunk(nodes=self.missing_datasets,
-                                                  limit_to=self._datasets.keys())
+        trunk_nodes = self._dependency_tree.trunk(limit_nodes_to=self.missing_datasets,
+                                                  limit_children_to=self._datasets.keys())
         needed_comp_nodes = set(self._filter_loaded_datasets_from_trunk_nodes(trunk_nodes))
         return self._generate_composites_nodes_from_loaded_datasets(needed_comp_nodes)
 

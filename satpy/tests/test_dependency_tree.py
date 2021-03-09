@@ -81,8 +81,8 @@ class TestDependencyTree(unittest.TestCase):
 
         # make sure that we can get access to sub-nodes
         c13_id = make_cid(name='comp13')
-        assert self._nodes_equal(self.dependency_tree.trunk(nodes=[c13_id]),
-                                 new_dependency_tree.trunk(nodes=[c13_id]))
+        assert self._nodes_equal(self.dependency_tree.trunk(limit_nodes_to=[c13_id]),
+                                 new_dependency_tree.trunk(limit_nodes_to=[c13_id]))
 
     def test_copy_preserves_unique_empty_node(self):
         """Test that dependency tree copy preserves the uniqueness of the empty node."""
