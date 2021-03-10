@@ -36,13 +36,14 @@ except ImportError:
 class TempFile(object):
     """A temporary filename class."""
 
-    def __init__(self):
+    def __init__(self, suffix=".nc"):
         """Initialize."""
         self.filename = None
+        self.suffix = suffix
 
     def __enter__(self):
         """Enter."""
-        self.handle, self.filename = tempfile.mkstemp()
+        self.handle, self.filename = tempfile.mkstemp(suffix=self.suffix)
         os.close(self.handle)
         return self.filename
 
