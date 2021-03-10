@@ -21,87 +21,93 @@ import os
 import unittest
 from unittest import mock
 
+import satpy
+from satpy import Scene
+from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
+                               make_dsq, spy_decorator,
+                               FAKE_FILEHANDLER_START, FAKE_FILEHANDLER_END)
+
 import numpy as np
+import xarray as xr
 import pytest
 
-from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
-                               make_dsq)
 
-# clear the config dir environment variable so it doesn't interfere
-os.environ.pop("PPP_CONFIG_DIR", None)
+TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
 
 
-class TestScene(unittest.TestCase):
+def _check_comp19_deps_are_loaded(scene):
+    # comp19 required resampling to produce so we should have its 3 deps
+    # 1. comp13
+    # 2. ds5
+    # 3. ds2
+    loaded_ids = list(scene.keys())
+    assert len(loaded_ids) == 3
+    for name in ('comp13', 'ds5', 'ds2'):
+        assert any(x['name'] == name for x in loaded_ids)
+
+
+class TestScene:
     """Test the scene class."""
+
+    def setup_method(self):
+        """Set config_path to point to test 'etc' directory."""
+        self.old_config_path = satpy.config.get('config_path')
+        satpy.config.set(config_path=[TEST_ETC_DIR])
+
+    def teardown_method(self):
+        """Restore previous 'config_path' setting."""
+        satpy.config.set(config_path=self.old_config_path)
 
     def test_init(self):
         """Test scene initialization."""
-        import satpy.scene
         with mock.patch('satpy.scene.Scene._create_reader_instances') as cri:
             cri.return_value = {}
-            satpy.scene.Scene(filenames=['bla'], reader='blo')
+            Scene(filenames=['bla'], reader='blo')
             cri.assert_called_once_with(filenames=['bla'], reader='blo',
                                         reader_kwargs=None)
 
     def test_init_str_filename(self):
         """Test initializing with a single string as filenames."""
-        import satpy.scene
-        self.assertRaises(ValueError, satpy.scene.Scene, reader='blo', filenames='test.nc')
+        pytest.raises(ValueError, Scene, reader='blo', filenames='test.nc')
 
     def test_start_end_times(self):
         """Test start and end times for a scene."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader
-        from datetime import datetime
-        with mock.patch('satpy.scene.Scene._create_reader_instances') as cri:
-            r = FakeReader('fake_reader',
-                           start_time=datetime(2017, 1, 1, 0, 0, 0),
-                           end_time=datetime(2017, 1, 1, 1, 0, 0),
-                           )
-            cri.return_value = {'fake_reader': r}
-            scene = satpy.scene.Scene(filenames=['bla'])
-            self.assertEqual(scene.start_time, r.start_time)
-            self.assertEqual(scene.end_time, r.end_time)
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        assert scene.start_time == FAKE_FILEHANDLER_START
+        assert scene.end_time == FAKE_FILEHANDLER_END
 
     def test_init_preserve_reader_kwargs(self):
         """Test that the initialization preserves the kwargs."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader
-        from datetime import datetime
-        with mock.patch('satpy.scene.Scene._create_reader_instances') as cri:
-            r = FakeReader('fake_reader',
-                           start_time=datetime(2017, 1, 1, 0, 0, 0),
-                           end_time=datetime(2017, 1, 1, 1, 0, 0),
-                           )
-            cri.return_value = {'fake_reader': r}
+        cri = spy_decorator(Scene._create_reader_instances)
+        with mock.patch('satpy.scene.Scene._create_reader_instances', cri):
             reader_kwargs = {'calibration_type': 'gsics'}
-            scene = satpy.scene.Scene(filenames=['bla'],
-                                      filter_parameters={'area': 'euron1'},
-                                      reader_kwargs=reader_kwargs)
-            self.assertIsNot(reader_kwargs, cri.call_args[1]['reader_kwargs'])
-            self.assertEqual(scene.start_time, r.start_time)
-            self.assertEqual(scene.end_time, r.end_time)
+            scene = Scene(filenames=['fake1_1.txt'],
+                          reader='fake1',
+                          filter_parameters={'area': 'euron1'},
+                          reader_kwargs=reader_kwargs)
+            assert reader_kwargs is not cri.mock.call_args[1]['reader_kwargs']
+            assert scene.start_time == FAKE_FILEHANDLER_START
+            assert scene.end_time == FAKE_FILEHANDLER_END
 
     def test_init_alone(self):
         """Test simple initialization."""
         from satpy.scene import Scene
         scn = Scene()
-        self.assertFalse(scn._readers, 'Empty scene should not load any readers')
+        assert not scn._readers, 'Empty scene should not load any readers'
 
     def test_init_no_files(self):
         """Test that providing an empty list of filenames fails."""
         from satpy.scene import Scene
-        self.assertRaises(ValueError, Scene, reader='viirs_sdr', filenames=[])
+        pytest.raises(ValueError, Scene, reader='viirs_sdr', filenames=[])
 
     def test_create_reader_instances_with_filenames(self):
         """Test creating a reader providing filenames."""
-        import satpy.scene
         filenames = ["bla", "foo", "bar"]
         reader_name = None
         with mock.patch('satpy.scene.Scene._compute_metadata_from_readers') as md:
             md.return_value = {'sensor': {'sensor'}}
             with mock.patch('satpy.scene.load_readers') as findermock:
-                satpy.scene.Scene(filenames=filenames)
+                Scene(filenames=filenames)
                 findermock.assert_called_once_with(
                     filenames=filenames,
                     reader=reader_name,
@@ -161,63 +167,40 @@ class TestScene(unittest.TestCase):
 
     def test_create_reader_instances_with_reader_kwargs(self):
         """Test creating a reader instance with reader kwargs."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader
-        from datetime import datetime
-        filenames = ["1", "2", "3"]
+        from satpy.readers.yaml_reader import FileYAMLReader
         reader_kwargs = {'calibration_type': 'gsics'}
         filter_parameters = {'area': 'euron1'}
         reader_kwargs2 = {'calibration_type': 'gsics', 'filter_parameters': filter_parameters}
 
-        with mock.patch('satpy.readers.load_reader') as lr_mock:
-            r = FakeReader('fake_reader',
-                           start_time=datetime(2017, 1, 1, 0, 0, 0),
-                           end_time=datetime(2017, 1, 1, 1, 0, 0),
-                           )
-            lr_mock.return_value = r
-            r.select_files_from_pathnames = mock.MagicMock()
-            r.select_files_from_pathnames.return_value = filenames
-            r.create_filehandlers = mock.MagicMock()
-            scene = satpy.scene.Scene(filenames=['bla'],
-                                      filter_parameters={'area': 'euron1'},
-                                      reader_kwargs=reader_kwargs)
+        rinit = spy_decorator(FileYAMLReader.create_filehandlers)
+        with mock.patch('satpy.readers.yaml_reader.FileYAMLReader.create_filehandlers', rinit):
+            scene = Scene(filenames=['fake1_1.txt'],
+                          reader='fake1',
+                          filter_parameters={'area': 'euron1'},
+                          reader_kwargs=reader_kwargs)
             del scene
-            self.assertDictEqual(reader_kwargs, r.create_filehandlers.call_args[1]['fh_kwargs'])
-            scene = satpy.scene.Scene(filenames=['bla'],
-                                      reader_kwargs=reader_kwargs2)
-            self.assertDictEqual(reader_kwargs, r.create_filehandlers.call_args[1]['fh_kwargs'])
+            assert reader_kwargs == rinit.mock.call_args[1]['fh_kwargs']
+            rinit.mock.reset_mock()
+            scene = Scene(filenames=['fake1_1.txt'],
+                          reader='fake1',
+                          reader_kwargs=reader_kwargs2)
+            assert reader_kwargs == rinit.mock.call_args[1]['fh_kwargs']
             del scene
 
     def test_create_multiple_reader_different_kwargs(self):
         """Test passing different kwargs to different readers."""
-        from satpy.scene import Scene
-        from satpy.tests.utils import FakeReader
-        with mock.patch('satpy.readers.configs_for_reader') as src, \
-                mock.patch("satpy.readers.load_reader") as srl:
-            r1 = FakeReader('strona')
-            r1.select_files_from_pathnames = mock.MagicMock()
-            r1.select_files_from_pathnames.return_value = ["campello monti"]
-            r1.create_filehandlers = mock.MagicMock()
-            r2 = FakeReader('mastallone')
-            r2.select_files_from_pathnames = mock.MagicMock()
-            r2.select_files_from_pathnames.return_value = ["rimella"]
-            r2.create_filehandlers = mock.MagicMock()
-
-            def fake_lr(reader_configs, **reader_kwargs):
-                if reader_configs == ["/fake/strona.yaml"]:
-                    return r1
-                elif reader_configs == ["/fake/mastallone.yaml"]:
-                    return r2
-                raise RuntimeError("Test is broken")  # pragma: no cover
-            srl.side_effect = fake_lr
-            src.return_value = [["/fake/strona.yaml"], ["/fake/mastallone.yaml"]]
-            Scene(filenames={"strona": ["campello monti"],
-                             "mastallone": ["rimella"]},
-                  reader_kwargs={"strona": {"mouth": "omegna"},
-                                 "mastallone": {"mouth": "varallo"}})
-            srl.assert_has_calls([
-                    mock.call(["/fake/strona.yaml"], mouth="omegna"),
-                    mock.call(["/fake/mastallone.yaml"], mouth="varallo")])
+        from satpy.readers import load_reader
+        with satpy.config.set(config_path=[TEST_ETC_DIR]), \
+             mock.patch.object(satpy.readers, 'load_reader', wraps=load_reader) as lr:
+            Scene(filenames={"fake1_1ds": ["fake1_1ds_1.txt"],
+                             "fake2_1ds": ["fake2_1ds_1.txt"]},
+                  reader_kwargs={
+                      "fake1_1ds": {"mouth": "omegna"},
+                      "fake2_1ds": {"mouth": "varallo"}
+                  })
+            lr.assert_has_calls([
+                    mock.call([os.path.join(TEST_ETC_DIR, 'readers', 'fake1_1ds.yaml')], mouth="omegna"),
+                    mock.call([os.path.join(TEST_ETC_DIR, 'readers', 'fake2_1ds.yaml')], mouth="varallo")])
 
     def test_iter(self):
         """Test iteration over the scene."""
@@ -228,7 +211,7 @@ class TestScene(unittest.TestCase):
         scene["2"] = DataArray(np.arange(5))
         scene["3"] = DataArray(np.arange(5))
         for x in scene:
-            self.assertIsInstance(x, DataArray)
+            assert isinstance(x, DataArray)
 
     def test_iter_by_area_swath(self):
         """Test iterating by area on a swath."""
@@ -243,16 +226,16 @@ class TestScene(unittest.TestCase):
         for area_obj, ds_list in scene.iter_by_area():
             ds_list_names = set(ds['name'] for ds in ds_list)
             if area_obj is sd:
-                self.assertSetEqual(ds_list_names, {'1', '2'})
+                assert ds_list_names == {'1', '2'}
             else:
-                self.assertIsNone(area_obj)
-                self.assertSetEqual(ds_list_names, {'3'})
+                assert area_obj is None
+                assert ds_list_names == {'3'}
 
     def test_bad_setitem(self):
         """Test setting an item wrongly."""
         from satpy import Scene
         scene = Scene()
-        self.assertRaises(ValueError, scene.__setitem__, '1', np.arange(5))
+        pytest.raises(ValueError, scene.__setitem__, '1', np.arange(5))
 
     def test_setitem(self):
         """Test setting an item."""
@@ -262,8 +245,8 @@ class TestScene(unittest.TestCase):
         scene = Scene()
         scene["1"] = ds1 = xr.DataArray(np.arange(5))
         expected_id = make_cid(**ds1.attrs)
-        self.assertSetEqual(set(scene._datasets.keys()), {expected_id})
-        self.assertSetEqual(set(scene._wishlist), {expected_id})
+        assert set(scene._datasets.keys()) == {expected_id}
+        assert set(scene._wishlist) == {expected_id}
 
         did = make_dataid(name='oranges')
         scene[did] = ds1
@@ -284,12 +267,12 @@ class TestScene(unittest.TestCase):
         scene["1"] = ds1 = DataArray(np.arange(5))
         scene["2"] = ds2 = DataArray(np.arange(5))
         scene["3"] = ds3 = DataArray(np.arange(5))
-        self.assertIs(scene['1'], ds1)
-        self.assertIs(scene['2'], ds2)
-        self.assertIs(scene['3'], ds3)
-        self.assertRaises(KeyError, scene.__getitem__, '4')
-        self.assertIs(scene.get('3'), ds3)
-        self.assertIs(scene.get('4'), None)
+        assert scene['1'] is ds1
+        assert scene['2'] is ds2
+        assert scene['3'] is ds3
+        pytest.raises(KeyError, scene.__getitem__, '4')
+        assert scene.get('3') is ds3
+        assert scene.get('4') is None
 
     def test_getitem_modifiers(self):
         """Test __getitem__ with names and modifiers."""
@@ -301,8 +284,8 @@ class TestScene(unittest.TestCase):
         scene['1'] = ds1_m0 = DataArray(np.arange(5))
         scene[make_dataid(name='1', modifiers=('mod1',))
               ] = ds1_m1 = DataArray(np.arange(5))
-        self.assertIs(scene['1'], ds1_m0)
-        self.assertEqual(len(list(scene.keys())), 2)
+        assert scene['1'] is ds1_m0
+        assert len(list(scene.keys())) == 2
 
         scene = Scene()
         scene['1'] = ds1_m0 = DataArray(np.arange(5))
@@ -310,19 +293,19 @@ class TestScene(unittest.TestCase):
               ] = ds1_m1 = DataArray(np.arange(5))
         scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
               ] = ds1_m2 = DataArray(np.arange(5))
-        self.assertIs(scene['1'], ds1_m0)
-        self.assertEqual(len(list(scene.keys())), 3)
+        assert scene['1'] is ds1_m0
+        assert len(list(scene.keys())) == 3
 
         scene = Scene()
         scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
               ] = ds1_m2 = DataArray(np.arange(5))
         scene[make_dataid(name='1', modifiers=('mod1',))
               ] = ds1_m1 = DataArray(np.arange(5))
-        self.assertIs(scene['1'], ds1_m1)
-        self.assertIs(scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))], ds1_m2)
-        self.assertRaises(KeyError, scene.__getitem__,
-                          make_dataid(name='1', modifiers=tuple()))
-        self.assertEqual(len(list(scene.keys())), 2)
+        assert scene['1'] is ds1_m1
+        assert scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))] is ds1_m2
+        pytest.raises(KeyError, scene.__getitem__,
+                      make_dataid(name='1', modifiers=tuple()))
+        assert len(list(scene.keys())) == 2
 
     def test_getitem_slices(self):
         """Test __getitem__ with slices."""
@@ -369,22 +352,22 @@ class TestScene(unittest.TestCase):
         new_scn2 = scene2[2:5, 2:8]
         for new_scn in [new_scn1, new_scn2]:
             # datasets without an area don't get sliced
-            self.assertTupleEqual(new_scn['1'].shape, (5, 10))
-            self.assertTupleEqual(new_scn['2'].shape, (5, 10))
+            assert new_scn['1'].shape == (5, 10)
+            assert new_scn['2'].shape == (5, 10)
 
-        self.assertTupleEqual(new_scn1['3'].shape, (3, 6))
-        self.assertIn('area', new_scn1['3'].attrs)
-        self.assertTupleEqual(new_scn1['3'].attrs['area'].shape, (3, 6))
-        self.assertTupleEqual(new_scn1['3a'].shape, (3, 6))
+        assert new_scn1['3'].shape == (3, 6)
+        assert 'area' in new_scn1['3'].attrs
+        assert new_scn1['3'].attrs['area'].shape == (3, 6)
+        assert new_scn1['3a'].shape == (3, 6)
         a_var = new_scn1['3a'].attrs['ancillary_variables'][0]
-        self.assertTupleEqual(a_var.shape, (3, 6))
+        assert a_var.shape == (3, 6)
 
-        self.assertTupleEqual(new_scn2['4'].shape, (3, 6))
-        self.assertIn('area', new_scn2['4'].attrs)
-        self.assertTupleEqual(new_scn2['4'].attrs['area'].shape, (3, 6))
-        self.assertTupleEqual(new_scn2['4a'].shape, (3, 6))
+        assert new_scn2['4'].shape == (3, 6)
+        assert 'area' in new_scn2['4'].attrs
+        assert new_scn2['4'].attrs['area'].shape == (3, 6)
+        assert new_scn2['4a'].shape == (3, 6)
         a_var = new_scn2['4a'].attrs['ancillary_variables'][0]
-        self.assertTupleEqual(a_var.shape, (3, 6))
+        assert a_var.shape == (3, 6)
 
     def test_crop(self):
         """Test the crop method."""
@@ -435,43 +418,39 @@ class TestScene(unittest.TestCase):
              area_extent[2] - 10000., area_extent[3] - 500000.)
         )
         new_scn1 = scene1.crop(crop_area)
-        self.assertIn('1', new_scn1)
-        self.assertIn('2', new_scn1)
-        self.assertIn('3', new_scn1)
-        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['3'].shape, (3380, 3708))
-        self.assertTupleEqual(new_scn1['4'].shape, (1690, 1854))
+        assert '1' in new_scn1
+        assert '2' in new_scn1
+        assert '3' in new_scn1
+        assert new_scn1['1'].shape == (y_size, x_size)
+        assert new_scn1['2'].shape == (y_size, x_size)
+        assert new_scn1['3'].shape == (3380, 3708)
+        assert new_scn1['4'].shape == (1690, 1854)
 
         # by lon/lat bbox
         new_scn1 = scene1.crop(ll_bbox=(-20., -5., 0, 0))
-        self.assertIn('1', new_scn1)
-        self.assertIn('2', new_scn1)
-        self.assertIn('3', new_scn1)
-        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['3'].shape, (184, 714))
-        self.assertTupleEqual(new_scn1['4'].shape, (92, 357))
+        assert '1' in new_scn1
+        assert '2' in new_scn1
+        assert '3' in new_scn1
+        assert new_scn1['1'].shape == (y_size, x_size)
+        assert new_scn1['2'].shape == (y_size, x_size)
+        assert new_scn1['3'].shape == (184, 714)
+        assert new_scn1['4'].shape == (92, 357)
 
         # by x/y bbox
         new_scn1 = scene1.crop(xy_bbox=(-200000., -100000., 0, 0))
-        self.assertIn('1', new_scn1)
-        self.assertIn('2', new_scn1)
-        self.assertIn('3', new_scn1)
-        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(new_scn1['3'].shape, (36, 70))
-        self.assertTupleEqual(new_scn1['4'].shape, (18, 35))
+        assert '1' in new_scn1
+        assert '2' in new_scn1
+        assert '3' in new_scn1
+        assert new_scn1['1'].shape == (y_size, x_size)
+        assert new_scn1['2'].shape == (y_size, x_size)
+        assert new_scn1['3'].shape == (36, 70)
+        assert new_scn1['4'].shape == (18, 35)
 
     def test_crop_epsg_crs(self):
         """Test the crop method when source area uses an EPSG code."""
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        try:
-            from pyproj import CRS  # noqa
-        except ImportError:
-            self.skipTest("Test requires pyproj 2.0+")
 
         scene1 = Scene()
         area_extent = (699960.0, 5390220.0, 809760.0, 5500020.0)
@@ -488,8 +467,8 @@ class TestScene(unittest.TestCase):
                                 attrs={'area': area_def})
         # by x/y bbox
         new_scn1 = scene1.crop(xy_bbox=(719695.7781587119, 5427887.407618969, 725068.1609052602, 5433708.364368956))
-        self.assertIn('1', new_scn1)
-        self.assertTupleEqual(new_scn1['1'].shape, (198, 182))
+        assert '1' in new_scn1
+        assert new_scn1['1'].shape == (198, 182)
 
     def test_crop_rgb(self):
         """Test the crop method on multi-dimensional data."""
@@ -527,12 +506,12 @@ class TestScene(unittest.TestCase):
 
         # by lon/lat bbox
         new_scn1 = scene1.crop(ll_bbox=(-20., -5., 0, 0))
-        self.assertIn('1', new_scn1)
-        self.assertIn('2', new_scn1)
-        self.assertIn('bands', new_scn1['1'].dims)
-        self.assertIn('bands', new_scn1['2'].dims)
-        self.assertTupleEqual(new_scn1['1'].shape, (3, 184, 714))
-        self.assertTupleEqual(new_scn1['2'].shape, (92, 3, 357))
+        assert '1' in new_scn1
+        assert '2' in new_scn1
+        assert 'bands' in new_scn1['1'].dims
+        assert 'bands' in new_scn1['2'].dims
+        assert new_scn1['1'].shape == (3, 184, 714)
+        assert new_scn1['2'].shape == (92, 3, 357)
 
     def test_contains(self):
         """Test contains."""
@@ -541,10 +520,10 @@ class TestScene(unittest.TestCase):
         scene = Scene()
         scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
                                                     '_satpy_id_keys': default_id_keys_config})
-        self.assertTrue('1' in scene)
-        self.assertTrue(0.15 in scene)
-        self.assertFalse('2' in scene)
-        self.assertFalse(0.31 in scene)
+        assert '1' in scene
+        assert 0.15 in scene
+        assert '2' not in scene
+        assert 0.31 not in scene
 
         scene = Scene()
         scene['blueberry'] = DataArray(np.arange(5))
@@ -571,9 +550,9 @@ class TestScene(unittest.TestCase):
         del scene['1']
         del scene['3']
         del scene[0.45]
-        self.assertEqual(len(scene._wishlist), 0)
-        self.assertEqual(len(scene._datasets.keys()), 0)
-        self.assertRaises(KeyError, scene.__delitem__, 0.2)
+        assert not scene._wishlist
+        assert not list(scene._datasets.keys())
+        pytest.raises(KeyError, scene.__delitem__, 0.2)
 
     def test_coarsest_finest_area(self):
         """Test 'coarsest_area' and 'finest_area' methods."""
@@ -612,232 +591,172 @@ class TestScene(unittest.TestCase):
         ds1.attrs['area'] = area_def1
         ds2.attrs['area'] = area_def2
         ds3.attrs['area'] = area_def2
-        self.assertIs(scene.coarsest_area(), area_def1)
-        self.assertIs(scene.finest_area(), area_def2)
-        self.assertIs(scene.coarsest_area(['2', '3']), area_def2)
+        assert scene.coarsest_area() is area_def1
+        assert scene.finest_area() is area_def2
+        assert scene.coarsest_area(['2', '3']) is area_def2
 
     def test_all_datasets_no_readers(self):
         """Test all datasets with no reader."""
         from satpy import Scene
         scene = Scene()
-        self.assertRaises(KeyError, scene.all_dataset_ids, reader_name='fake')
+        pytest.raises(KeyError, scene.all_dataset_ids, reader_name='fake')
         id_list = scene.all_dataset_ids()
-        self.assertListEqual(id_list, [])
+        assert id_list == []
         # no sensors are loaded so we shouldn't get any comps either
         id_list = scene.all_dataset_ids(composites=True)
-        self.assertListEqual(id_list, [])
+        assert id_list == []
 
     def test_all_dataset_names_no_readers(self):
         """Test all dataset names with no reader."""
         from satpy import Scene
         scene = Scene()
-        self.assertRaises(KeyError, scene.all_dataset_names, reader_name='fake')
+        pytest.raises(KeyError, scene.all_dataset_names, reader_name='fake')
         name_list = scene.all_dataset_names()
-        self.assertListEqual(name_list, [])
+        assert name_list == []
         # no sensors are loaded so we shouldn't get any comps either
         name_list = scene.all_dataset_names(composites=True)
-        self.assertListEqual(name_list, [])
+        assert name_list == []
 
     def test_available_dataset_no_readers(self):
         """Test the available datasets without a reader."""
         from satpy import Scene
         scene = Scene()
-        self.assertRaises(
+        pytest.raises(
             KeyError, scene.available_dataset_ids, reader_name='fake')
         name_list = scene.available_dataset_ids()
-        self.assertListEqual(name_list, [])
+        assert name_list == []
         # no sensors are loaded so we shouldn't get any comps either
         name_list = scene.available_dataset_ids(composites=True)
-        self.assertListEqual(name_list, [])
+        assert name_list == []
 
     def test_available_dataset_names_no_readers(self):
         """Test the available dataset names without a reader."""
         from satpy import Scene
         scene = Scene()
-        self.assertRaises(
+        pytest.raises(
             KeyError, scene.available_dataset_names, reader_name='fake')
         name_list = scene.available_dataset_names()
-        self.assertListEqual(name_list, [])
+        assert name_list == []
         # no sensors are loaded so we shouldn't get any comps either
         name_list = scene.available_dataset_names(composites=True)
-        self.assertListEqual(name_list, [])
+        assert name_list == []
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_all_datasets_one_reader(self, cri, cl):
+
+class TestSceneAvailableDatasets:
+    """Test the Scene's handling of various dependencies."""
+
+    def setup_method(self):
+        """Set config_path to point to test 'etc' directory."""
+        self.old_config_path = satpy.config.get('config_path')
+        satpy.config.set(config_path=[TEST_ETC_DIR])
+
+    def teardown_method(self):
+        """Restore previous 'config_path' setting."""
+        satpy.config.set(config_path=self.old_config_path)
+
+    def test_all_datasets_one_reader(self):
         """Test all datasets for one reader."""
-        from satpy import Scene
-        from satpy.tests.utils import FakeReader, test_composites
-        r = FakeReader('fake_reader', 'fake_sensor')
-        cri.return_value = {'fake_reader': r}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = Scene(filenames=['bla'],
-                      reader='fake_reader')
-        # patch the _composite_loader
-        scene._composite_loader.compositors = comps
-        scene._composite_loader.modifiers = mods
+        scene = Scene(filenames=['fake1_1.txt'],
+                      reader='fake1')
         id_list = scene.all_dataset_ids()
-        self.assertEqual(len(id_list), len(r.all_ids))
+        # 20 data products + 6 lon/lat products
+        num_reader_ds = 21 + 6
+        assert len(id_list) == num_reader_ds
         id_list = scene.all_dataset_ids(composites=True)
-        self.assertEqual(len(id_list),
-                         len(r.all_ids) + 30)
+        assert len(id_list) == num_reader_ds + 29
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_all_datasets_multiple_reader(self, cri, cl):
+    def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
-        from satpy import Scene
-        from satpy.tests.utils import FakeReader, test_composites
-        r = FakeReader('fake_reader', 'fake_sensor', datasets=['ds1'])
-        r2 = FakeReader(
-            'fake_reader2', 'fake_sensor2', datasets=['ds2'])
-        cri.return_value = {'fake_reader': r, 'fake_reader2': r2}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = Scene(filenames=['bla'],
-                      reader='fake_reader')
-        # patch the _composite_loader
-        scene._composite_loader.compositors = comps
-        scene._composite_loader.modifiers = mods
+        scene = Scene(filenames={'fake1_1ds': ['fake1_1ds_1.txt'],
+                                 'fake2_1ds': ['fake2_1ds_1.txt']})
         id_list = scene.all_dataset_ids()
-        self.assertEqual(len(id_list), 2)
+        assert len(id_list) == 2
         id_list = scene.all_dataset_ids(composites=True)
         # ds1 and ds2 => 2
         # composites that use these two datasets => 11
-        self.assertEqual(len(id_list), 2 + 11)
+        assert len(id_list) == 2 + 11
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_available_datasets_one_reader(self, cri, cl):
+    def test_available_datasets_one_reader(self):
         """Test the available datasets for one reader."""
-        from satpy import Scene
-        from satpy.tests.utils import FakeReader, test_composites
-        r = FakeReader('fake_reader', 'fake_sensor', datasets=['ds1'])
-        cri.return_value = {'fake_reader': r}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = Scene(filenames=['bla'],
-                      reader='fake_reader')
-        # patch the _composite_loader
-        scene._composite_loader.compositors = comps
-        scene._composite_loader.modifiers = mods
+        scene = Scene(filenames=['fake1_1ds_1.txt'],
+                      reader='fake1_1ds')
         id_list = scene.available_dataset_ids()
-        self.assertEqual(len(id_list), 1)
+        assert len(id_list) == 1
         id_list = scene.available_dataset_ids(composites=True)
         # ds1, comp1, comp14, comp16, static_image, comp26
-        self.assertEqual(len(id_list), 6)
+        assert len(id_list) == 6
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_available_composite_ids_missing_available(self, cri, cl):
+    def test_available_composite_ids_missing_available(self):
         """Test available_composite_ids when a composites dep is missing."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-
-        # only the 500m is available
-        available_datasets = ['ds1']
-        cri.return_value = {
-            'fake_reader': FakeReader(
-                'fake_reader', 'fake_sensor',
-                available_datasets=available_datasets),
-        }
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-        self.assertNotIn('comp2', scene.available_composite_names())
+        scene = Scene(filenames=['fake1_1ds_1.txt'],
+                      reader='fake1_1ds')
+        assert 'comp2' not in scene.available_composite_names()
 
 
-class TestSceneLoading(unittest.TestCase):
+class TestSceneLoading:
     """Test the Scene objects `.load` method."""
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_str(self, cri, cl):
+    def setup_method(self):
+        """Set config_path to point to test 'etc' directory."""
+        self.old_config_path = satpy.config.get('config_path')
+        satpy.config.set(config_path=[TEST_ETC_DIR])
+
+    def teardown_method(self):
+        """Restore previous 'config_path' setting."""
+        satpy.config.set(config_path=self.old_config_path)
+
+    def test_load_str(self):
         """Test passing a string to Scene.load."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-        self.assertRaises(TypeError, scene.load, 'ds1')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        pytest.raises(TypeError, scene.load, 'ds1')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_no_exist(self, cri, cl):
+    def test_load_no_exist(self):
         """Test loading a dataset that doesn't exist."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-        self.assertRaises(KeyError, scene.load, [
-                          'im_a_dataset_that_doesnt_exist'])
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        pytest.raises(KeyError, scene.load, ['im_a_dataset_that_doesnt_exist'])
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_no_exist2(self, cri, cl):
+    def test_load_no_exist2(self):
         """Test loading a dataset that doesn't exist then another load."""
-        from satpy.tests.utils import FakeReader, test_composites
-        from satpy import Scene
-        r = FakeReader('fake_reader', 'fake_sensor')
-        cri.return_value = {'fake_reader': r}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = Scene(filenames=['bla'],
-                      reader='fake_reader')
-        scene.load(['ds9_fail_load'])
-        loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 0)
-        r.load.assert_called_once_with(
-            set([make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2))]))
+        from satpy.readers.yaml_reader import FileYAMLReader
+        load_mock = spy_decorator(FileYAMLReader.load)
+        with mock.patch.object(FileYAMLReader, 'load', load_mock):
+            lmock = load_mock.mock
+            scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+            scene.load(['ds9_fail_load'])
+            loaded_ids = list(scene._datasets.keys())
+            assert len(loaded_ids) == 0
+            lmock.assert_called_once_with(
+                set([make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2))]))
 
-        scene.load(['ds1'])
-        loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(r.load.call_count, 2)
-        # most recent call should have only been ds1
-        r.load.assert_called_with(set([make_dataid(name='ds1',
-                                                   resolution=250,
-                                                   calibration='reflectance',
-                                                   modifiers=tuple())]))
-        self.assertEqual(len(loaded_ids), 1)
+            scene.load(['ds1'])
+            loaded_ids = list(scene._datasets.keys())
+            assert lmock.call_count == 2
+            # most recent call should have only been ds1
+            lmock.assert_called_with(set([
+                make_dataid(name='ds1', resolution=250,
+                            calibration='reflectance', modifiers=tuple())]))
+            assert len(loaded_ids) == 1
 
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds1_no_comps(self, cri):
+    def test_load_ds1_no_comps(self):
         """Test loading one dataset with no loaded compositors."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds1'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
 
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds1_load_twice(self, cri):
+    def test_load_ds1_load_twice(self):
         """Test loading one dataset with no loaded compositors."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader
-        r = FakeReader('fake_reader', 'fake_sensor')
-        cri.return_value = {'fake_reader': r}
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        from satpy.readers.yaml_reader import FileYAMLReader
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds1'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
 
-        with mock.patch.object(r, 'load') as m:
+        load_mock = spy_decorator(FileYAMLReader.load)
+        with mock.patch.object(FileYAMLReader, 'load', load_mock):
+            lmock = load_mock.mock
             scene.load(['ds1'])
             loaded_ids = list(scene._datasets.keys())
             assert len(loaded_ids) == 1
@@ -845,479 +764,240 @@ class TestSceneLoading(unittest.TestCase):
                                                 resolution=250,
                                                 calibration='reflectance',
                                                 modifiers=tuple())
-            self.assertFalse(
-                m.called, "Reader.load was called again when loading something that's already loaded")
+            assert not lmock.called, ("Reader.load was called again when "
+                                      "loading something that's already "
+                                      "loaded")
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds1_unknown_modifier(self, cri, cl):
+    def test_load_ds1_unknown_modifier(self):
         """Test loading one dataset with no loaded compositors."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-        self.assertRaises(KeyError, scene.load,
-                          [make_dataid(name='ds1', modifiers=('_fake_bad_mod_',))])
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        pytest.raises(KeyError, scene.load,
+                      [make_dataid(name='ds1', modifiers=('_fake_bad_mod_',))])
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds4_cal(self, cri, cl):
+    def test_load_ds4_cal(self):
         """Test loading a dataset that has two calibration variations."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds4'])
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0]['calibration'], 'reflectance')
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0]['calibration'] == 'reflectance'
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds5_best_resolution(self, cri, cl):
+    def test_load_ds5_best_resolution(self):
         """Test loading a dataset has multiple resolutions available."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
         scene.load(['ds5'])
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0]['name'], 'ds5')
-        self.assertEqual(loaded_ids[0]['resolution'], 250)
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0]['name'] == 'ds5'
+        assert loaded_ids[0]['resolution'] == 250
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds5_multiple_resolution(self, cri, cl):
+    def test_load_ds5_multiple_resolution(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds5'], resolution=1000)
         scene.load(['ds5'], resolution=500)
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
-        self.assertEqual(loaded_ids[0]['name'], 'ds5')
-        self.assertEqual(loaded_ids[0]['resolution'], 500)
-        self.assertEqual(loaded_ids[1]['name'], 'ds5')
-        self.assertEqual(loaded_ids[1]['resolution'], 1000)
+        assert len(loaded_ids) == 2
+        assert loaded_ids[0]['name'] == 'ds5'
+        assert loaded_ids[0]['resolution'] == 500
+        assert loaded_ids[1]['name'] == 'ds5'
+        assert loaded_ids[1]['resolution'] == 1000
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds5_resolution_list(self, cri, cl):
+    def test_load_ds5_resolution_list(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds5'], resolution=[500, 1000])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'ds5'
         assert loaded_ids[0]['resolution'] == 500
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds5_empty_modifiers(self, cri, cl):
+    def test_load_ds5_empty_modifiers(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load([make_dsq(name='ds5', modifiers=tuple())])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'ds5'
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds5_missing_best_resolution(self, cri, cl):
+    def test_load_ds5_missing_best_resolution(self):
         """Test loading a dataset that has multiple resolutions but the best isn't available."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-
         # only the 500m is available
-        available_datasets = [make_dataid(name='ds5', resolution=500)]
-        cri.return_value = {
-            'fake_reader': FakeReader(
-                'fake_reader', 'fake_sensor', datasets=['ds5'],
-                available_datasets=available_datasets),
-        }
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds5'])
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0]['name'], 'ds5')
-        self.assertEqual(loaded_ids[0]['resolution'], 500)
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0]['name'] == 'ds5'
+        assert loaded_ids[0]['resolution'] == 500
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds6_wl(self, cri, cl):
+    def test_load_ds6_wl(self):
         """Test loading a dataset by wavelength."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load([0.22])
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0]['name'], 'ds6')
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0]['name'] == 'ds6'
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_ds9_fail_load(self, cri, cl):
+    def test_load_ds9_fail_load(self):
         """Test loading a dataset that will fail during load."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ds9_fail_load'])
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 0)
+        assert len(loaded_ids) == 0
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp1(self, cri, cl):
+    def test_load_comp1(self):
         """Test loading a composite with one required prereq."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp1'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp1')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp4(self, cri, cl):
+    def test_load_comp4(self):
         """Test loading a composite that depends on a composite."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp4'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp4')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_multiple_resolutions(self, cri, cl):
+    def test_load_multiple_resolutions(self):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         comp25 = make_cid(name='comp25', resolution=1000)
         scene[comp25] = 'bla'
         scene.load(['comp25'], resolution=500)
 
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
-        self.assertEqual(loaded_ids[0]['name'], 'comp25')
-        self.assertEqual(loaded_ids[0]['resolution'], 500)
-        self.assertEqual(loaded_ids[1]['name'], 'comp25')
-        self.assertEqual(loaded_ids[1]['resolution'], 1000)
+        assert len(loaded_ids) == 2
+        assert loaded_ids[0]['name'] == 'comp25'
+        assert loaded_ids[0]['resolution'] == 500
+        assert loaded_ids[1]['name'] == 'comp25'
+        assert loaded_ids[1]['resolution'] == 1000
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_same_subcomposite(self, cri, cl):
+    def test_load_same_subcomposite(self):
         """Test loading a composite and one of it's subcomposites at the same time."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp24', 'comp25'], resolution=500)
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
-        self.assertEqual(loaded_ids[0]['name'], 'comp24')
-        self.assertEqual(loaded_ids[0]['resolution'], 500)
-        self.assertEqual(loaded_ids[1]['name'], 'comp25')
-        self.assertEqual(loaded_ids[1]['resolution'], 500)
+        assert len(loaded_ids) == 2
+        assert loaded_ids[0]['name'] == 'comp24'
+        assert loaded_ids[0]['resolution'] == 500
+        assert loaded_ids[1]['name'] == 'comp25'
+        assert loaded_ids[1]['resolution'] == 500
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp5(self, cri, cl):
+    def test_load_comp5(self):
         """Test loading a composite that has an optional prerequisite."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp5'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp5')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp6(self, cri, cl):
+    def test_load_comp6(self):
         """Test loading a composite that has an optional composite prerequisite."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp6'])
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 1)
+        assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp6')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp8(self, cri, cl):
+    def test_load_comp8(self):
         """Test loading a composite that has a non-existent prereq."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-        self.assertRaises(KeyError, scene.load, ['comp8'])
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        pytest.raises(KeyError, scene.load, ['comp8'])
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp9(self, cri, cl):
+    def test_load_comp9(self):
         """Test loading a composite that has a non-existent optional prereq."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp9'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp9')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp10(self, cri, cl):
+    def test_load_comp10(self):
         """Test loading a composite that depends on a modified dataset."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp10'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp10')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp11(self, cri, cl):
+    def test_load_comp11(self):
         """Test loading a composite that depends all wavelengths."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp11'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp11')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp12(self, cri, cl):
+    def test_load_comp12(self):
         """Test loading a composite that depends all wavelengths that get modified."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp12'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp12')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp13(self, cri, cl):
+    def test_load_comp13(self):
         """Test loading a composite that depends on a modified dataset where the resolution changes."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp13'])
-        loaded_ids = list(scene._datasets.keys())
+        loaded_ids = list(scene.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp13')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp14(self, cri, cl):
+    def test_load_comp14(self):
         """Test loading a composite that updates the DataID during generation."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp14'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'comp14'
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp15(self, cri, cl):
+    def test_load_comp15(self):
         """Test loading a composite whose prerequisites can't be loaded.
 
         Note that the prereq exists in the reader, but fails in loading.
 
         """
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp15'])
         loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 0
+        assert not loaded_ids
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp16(self, cri, cl):
+    def test_load_comp16(self):
         """Test loading a composite whose opt prereq can't be loaded.
 
         Note that the prereq exists in the reader, but fails in loading
 
         """
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp16'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'comp16'
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp17(self, cri, cl):
+    def test_load_comp17(self):
         """Test loading a composite that depends on a composite that won't load."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp17'])
         loaded_ids = list(scene._datasets.keys())
-        assert len(loaded_ids) == 0
+        assert not loaded_ids
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp18(self, cri, cl):
+    def test_load_comp18(self):
         """Test loading a composite that depends on a incompatible area modified dataset."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
         scene.load(['comp18'])
         loaded_ids = list(scene._datasets.keys())
         # depends on:
@@ -1326,33 +1006,22 @@ class TestSceneLoading(unittest.TestCase):
         #   ds5 (mod1, incomp_areas)
         # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
         # for the incomp_areas modifier
-        self.assertEqual(len(loaded_ids), 4)  # the 1 dependencies
-        self.assertIn('ds3', scene._datasets)
-        self.assertIn(make_dataid(name='ds4', calibration='reflectance',
-                                  modifiers=('mod1', 'mod3')),
-                      scene._datasets)
-        self.assertIn(make_dataid(name='ds5', resolution=250,
-                                  modifiers=('mod1',)),
-                      scene._datasets)
+        assert len(loaded_ids) == 4  # the 1 dependencies
+        assert 'ds3' in scene._datasets
+        assert make_dataid(name='ds4', calibration='reflectance',
+                           modifiers=('mod1', 'mod3')) in scene._datasets
+        assert make_dataid(name='ds5', resolution=250,
+                           modifiers=('mod1',)) in scene._datasets
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp18_2(self, cri, cl):
+    def test_load_comp18_2(self):
         """Test loading a composite that depends on a incompatible area modified dataset.
 
         Specifically a modified dataset where the modifier has optional
         dependencies.
 
         """
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
         scene.load(['comp18_2'])
         loaded_ids = list(scene._datasets.keys())
         # depends on:
@@ -1361,19 +1030,15 @@ class TestSceneLoading(unittest.TestCase):
         #   ds5 (mod1, incomp_areas_opt)
         # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
         # and ds2 for the incomp_areas_opt modifier
-        self.assertEqual(len(loaded_ids), 5)  # the 1 dependencies
-        self.assertIn('ds3', scene._datasets)
-        self.assertIn('ds2', scene._datasets)
-        self.assertIn(make_dataid(name='ds4', calibration='reflectance',
-                                  modifiers=('mod1', 'mod3')),
-                      scene._datasets)
-        self.assertIn(make_dataid(name='ds5', resolution=250,
-                                  modifiers=('mod1',)),
-                      scene._datasets)
+        assert len(loaded_ids) == 5  # the 1 dependencies
+        assert 'ds3' in scene._datasets
+        assert 'ds2' in scene._datasets
+        assert make_dataid(name='ds4', calibration='reflectance',
+                           modifiers=('mod1', 'mod3')) in scene._datasets
+        assert make_dataid(name='ds5', resolution=250,
+                           modifiers=('mod1',)) in scene._datasets
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp19(self, cri, cl):
+    def test_load_comp19(self):
         """Test loading a composite that shares a dep with a dependency.
 
         More importantly test that loading a dependency that depends on
@@ -1382,18 +1047,9 @@ class TestSceneLoading(unittest.TestCase):
         that the Node in the dependency tree is the exact same node.
 
         """
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
-
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene._dependency_tree.populate_with_keys({'comp19'})
 
         this_node = scene._dependency_tree['comp19']
@@ -1403,45 +1059,26 @@ class TestSceneLoading(unittest.TestCase):
         # comp13 node
         shared_dep_node = scene._dependency_tree['comp13'].data[1][0]
         shared_dep_node2 = this_node.data[1][0]
-        self.assertIs(shared_dep_expected_node, shared_dep_node)
-        self.assertIs(shared_dep_expected_node, shared_dep_node2)
+        assert shared_dep_expected_node is shared_dep_node
+        assert shared_dep_expected_node is shared_dep_node2
 
-        # it is fine that an optional prereq doesn't exist
         scene.load(['comp19'])
 
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp19')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_multiple_comps(self, cri, cl):
+    def test_load_multiple_comps(self):
         """Test loading multiple composites."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp1', 'comp2', 'comp3', 'comp4', 'comp5', 'comp6',
                     'comp7', 'comp9', 'comp10'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 9
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_multiple_comps_separate(self, cri, cl):
+    def test_load_multiple_comps_separate(self):
         """Test loading multiple composites, one at a time."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp10'])
         scene.load(['comp9'])
         scene.load(['comp7'])
@@ -1454,217 +1091,151 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 9
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_modified(self, cri, cl):
+    def test_load_modified(self):
         """Test loading a modified dataset."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load([make_dsq(name='ds1', modifiers=('mod1', 'mod2'))])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_multiple_modified(self, cri, cl):
+    def test_load_multiple_modified(self):
         """Test loading multiple modified datasets."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load([
             make_dataid(name='ds1', modifiers=('mod1', 'mod2')),
             make_dataid(name='ds2', modifiers=('mod2', 'mod1')),
         ])
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
+        assert len(loaded_ids) == 2
         for i in loaded_ids:
             if i['name'] == 'ds1':
-                self.assertTupleEqual(i['modifiers'], ('mod1', 'mod2'))
+                assert i['modifiers'] == ('mod1', 'mod2')
             else:
-                self.assertEqual(i['name'], 'ds2')
-                self.assertTupleEqual(i['modifiers'], ('mod2', 'mod1'))
+                assert i['name'] == 'ds2'
+                assert i['modifiers'] == ('mod2', 'mod1')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_dataset_after_composite(self, cri, cl):
+    def test_load_dataset_after_composite(self):
         """Test load composite followed by other datasets."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        r = FakeReader('fake_reader', 'fake_sensor')
-        cri.return_value = {'fake_reader': r}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-        scene.load(['comp3'])
-        self.assertEqual(r.load.call_count, 1)
-        scene.load(['ds1'])
-        self.assertEqual(r.load.call_count, 2)
-        scene.load(['ds1'])
-        # we should only load from the file twice
-        self.assertEqual(r.load.call_count, 2)
-        # we should only generate the composite once
-        self.assertEqual(comps['fake_sensor'][
-                         'comp3'].side_effect.call_count, 1)
-        loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
+        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.tests.utils import FakeCompositor
+        load_mock = spy_decorator(FileYAMLReader.load)
+        comp_mock = spy_decorator(FakeCompositor.__call__)
+        with mock.patch.object(FileYAMLReader, 'load', load_mock),\
+                mock.patch.object(FakeCompositor, '__call__', comp_mock):
+            lmock = load_mock.mock
+            scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+            scene.load(['comp3'])
+            assert lmock.call_count == 1
+            scene.load(['ds1'])
+            assert lmock.call_count == 2
+            scene.load(['ds1'])
+            # we should only load from the file twice
+            assert lmock.call_count == 2
+            # we should only generate the composite once
+            assert comp_mock.mock.call_count == 1
+            loaded_ids = list(scene._datasets.keys())
+            assert len(loaded_ids) == 2
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_dataset_after_composite2(self, cri, cl):
+    def test_load_dataset_after_composite2(self):
         """Test load complex composite followed by other datasets."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        r = FakeReader('fake_reader', 'fake_sensor')
-        cri.return_value = {'fake_reader': r}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
-        scene.load(['comp10'])
-        self.assertEqual(r.load.call_count, 1)
-        loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 1)
-        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
-                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
-            scene.load(['ds1'])
-            self.assertEqual(r.load.call_count, 2)
+        from satpy.readers.yaml_reader import FileYAMLReader
+        from satpy.tests.utils import FakeCompositor, FakeModifier
+        load_mock = spy_decorator(FileYAMLReader.load)
+        comp_mock = spy_decorator(FakeCompositor.__call__)
+        mod_mock = spy_decorator(FakeModifier.__call__)
+        with mock.patch.object(FileYAMLReader, 'load', load_mock), \
+             mock.patch.object(FakeCompositor, '__call__', comp_mock), \
+             mock.patch.object(FakeModifier, '__call__', mod_mock):
+            lmock = load_mock.mock
+            scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+            scene.load(['comp10'])
+            assert lmock.call_count == 1
             loaded_ids = list(scene._datasets.keys())
-            self.assertEqual(len(loaded_ids), 2)
-            # this is the unmodified ds1
-            self.assertIn(make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()),
-                          loaded_ids)
-            # m.assert_called_once_with(set([scene._dependency_tree['ds1']]))
-            m.assert_called_once_with(set())
-        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
-                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
-            scene.load(['ds1'])
-            self.assertEqual(r.load.call_count, 2)
+            assert len(loaded_ids) == 1
+            with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                                   wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
+                scene.load(['ds1'])
+                assert lmock.call_count == 2
+                loaded_ids = list(scene._datasets.keys())
+                assert len(loaded_ids) == 2
+                # this is the unmodified ds1
+                assert make_dataid(
+                    name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()
+                ) in loaded_ids
+                # m.assert_called_once_with(set([scene._dependency_tree['ds1']]))
+                m.assert_called_once_with(set())
+            with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                                   wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
+                scene.load(['ds1'])
+                assert lmock.call_count == 2
+                loaded_ids = list(scene._datasets.keys())
+                assert len(loaded_ids) == 2
+                # this is the unmodified ds1
+                assert make_dataid(
+                    name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()
+                ) in loaded_ids
+                m.assert_called_once_with(set())
+            # we should only generate the comp10 composite once but comp2 was also generated
+            assert comp_mock.mock.call_count == 1 + 1
+            # Create the modded ds1 at comp10, then load the umodified version
+            # again
+            assert mod_mock.mock.call_count == 1
             loaded_ids = list(scene._datasets.keys())
-            self.assertEqual(len(loaded_ids), 2)
-            # this is the unmodified ds1
-            self.assertIn(make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()),
-                          loaded_ids)
-            m.assert_called_once_with(set())
-        # we should only generate the composite once
-        self.assertEqual(comps['fake_sensor'][
-                         'comp10'].side_effect.call_count, 1)
-        # Create the modded ds1 at comp10, then load the numodified version
-        # again
-        self.assertEqual(comps['fake_sensor']['ds1']._call_mock.call_count, 1)
-        loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
+            assert len(loaded_ids) == 2
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp20(self, cri, cl):
+    def test_load_comp20(self):
         """Test loading composite with optional modifier dependencies."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp20'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp20')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp21(self, cri, cl):
+    def test_load_comp21(self):
         """Test loading composite with bad optional modifier dependencies."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp21'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp21')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp22(self, cri, cl):
+    def test_load_comp22(self):
         """Test loading composite with only optional modifier dependencies."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp22'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp22')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_green(self, cri, cl):
+    def test_load_green(self):
         """Test loading ahi_green."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader('fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['ahi_green'])
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='ahi_green')
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_no_generate_comp10(self, cri, cl):
+    def test_no_generate_comp10(self):
         """Test generating a composite after loading."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp10'], generate=False)
-        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist))
-        self.assertNotIn('comp10', scene._datasets)
+        assert any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist)
+        assert 'comp10' not in scene._datasets
         # two dependencies should have been loaded
-        self.assertEqual(len(scene._datasets), 2)
-        self.assertEqual(len(scene.missing_datasets), 1)
+        assert len(scene._datasets) == 2
+        assert len(scene.missing_datasets) == 1
 
         scene._generate_composites_from_loaded_datasets()
-        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist))
-        self.assertIn('comp10', scene._datasets)
-        self.assertEqual(len(scene.missing_datasets), 0)
+        assert any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist)
+        assert 'comp10' in scene._datasets
+        assert not scene.missing_datasets
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_modified_with_wl_dep(self, cri, cl):
+    def test_modified_with_wl_dep(self):
         """Test modifying a dataset with a modifier with modified deps.
 
         More importantly test that loading the modifiers dependency at the
@@ -1672,21 +1243,14 @@ class TestSceneLoading(unittest.TestCase):
         nodes are unique and that DataIDs.
 
         """
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
         from satpy.dataset.dataid import WavelengthRange
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
 
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
         ds1_mod_id = make_dsq(name='ds1', modifiers=('mod_wl',))
         ds3_mod_id = make_dsq(name='ds3', modifiers=('mod_wl',))
 
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene._dependency_tree.populate_with_keys({ds1_mod_id, ds3_mod_id})
 
         ds1_mod_node = scene._dependency_tree[ds1_mod_id]
@@ -1696,148 +1260,98 @@ class TestSceneLoading(unittest.TestCase):
         # mod_wl depends on the this node:
         ds6_modded_node = scene._dependency_tree[make_dataid(name='ds6', modifiers=('mod1',))]
         # this dep should be full qualified with name and wavelength
-        self.assertIsNotNone(ds6_modded_node.name['name'])
+        assert ds6_modded_node.name['name'] is not None
         assert isinstance(ds6_modded_node.name['wavelength'], WavelengthRange)
         # the node should be shared between everything that uses it
-        self.assertIs(ds1_mod_dep_node, ds3_mod_dep_node)
-        self.assertIs(ds1_mod_dep_node, ds6_modded_node)
+        assert ds1_mod_dep_node is ds3_mod_dep_node
+        assert ds1_mod_dep_node is ds6_modded_node
 
         # it is fine that an optional prereq doesn't exist
         scene.load([ds1_mod_id, ds3_mod_id])
 
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
-        self.assertIn(ds1_mod_id, scene._datasets)
-        self.assertIn(ds3_mod_id, scene._datasets)
+        assert len(loaded_ids) == 2
+        assert ds1_mod_id in scene._datasets
+        assert ds3_mod_id in scene._datasets
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors', autospec=True)
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_comp11_and_23(self, cri, cl):
+    def test_load_comp11_and_23(self):
         """Test loading two composites that depend on similar wavelengths."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        from satpy import DatasetDict
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-
-        def _test(self, sensor_names):
-            if not self.compositors:
-                self.compositors = comps
-                self.modifiers = mods
-            new_comps = {}
-            new_mods = {}
-            for sn in sensor_names:
-                new_comps[sn] = DatasetDict(
-                    self.compositors[sn].copy())
-                new_mods[sn] = self.modifiers[sn].copy()
-            return new_comps, new_mods
-
-        cl.side_effect = _test
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         # mock the available comps/mods in the compositor loader
         avail_comps = scene.available_composite_ids()
-        self.assertIn(make_cid(name='comp11'), avail_comps)
-        self.assertIn(make_cid(name='comp23'), avail_comps)
+        assert make_cid(name='comp11') in avail_comps
+        assert make_cid(name='comp23') in avail_comps
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp11', 'comp23'])
         comp11_node = scene._dependency_tree['comp11']
         comp23_node = scene._dependency_tree['comp23']
-        self.assertEqual(comp11_node.data[1][-1].name['name'], 'ds10')
-        self.assertEqual(comp23_node.data[1][0].name['name'], 'ds8')
+        assert comp11_node.data[1][-1].name['name'] == 'ds10'
+        assert comp23_node.data[1][0].name['name'] == 'ds8'
         loaded_ids = list(scene._datasets.keys())
-        self.assertEqual(len(loaded_ids), 2)
-        self.assertIn('comp11', scene)
-        self.assertIn('comp23', scene)
+        assert len(loaded_ids) == 2
+        assert 'comp11' in scene
+        assert 'comp23' in scene
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors', autospec=True)
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_load_too_many(self, cri, cl):
+    def test_load_too_many(self):
         """Test dependency tree if too many reader keys match."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        datasets = [make_dataid(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
-                    make_dataid(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
-        reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets,
-                            filter_datasets=False)
-        cri.return_value = {'fake_reader': reader}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
-        # mock the available comps/mods in the compositor loader
+        scene = Scene(filenames=['fake3_1.txt'], reader='fake3')
         avail_comps = scene.available_composite_ids()
         # static image => 1
-        self.assertEqual(len(avail_comps), 1)
-        self.assertRaises(KeyError, scene.load, [0.21])
+        assert len(avail_comps) == 1
+        pytest.raises(KeyError, scene.load, [0.21])
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors', autospec=True)
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_available_comps_no_deps(self, cri, cl):
+    def test_available_comps_no_deps(self):
         """Test Scene available composites when composites don't have a dependency."""
-        from satpy.tests.utils import FakeReader, test_composites
-        import satpy.scene
-        from satpy import DatasetDict
-
-        def _test(self, sensor_names):
-            if not self.compositors:
-                self.compositors = comps
-                self.modifiers = mods
-            new_comps = {}
-            new_mods = {}
-            for sn in sensor_names:
-                new_comps[sn] = DatasetDict(
-                    self.compositors[sn].copy())
-                new_mods[sn] = self.modifiers[sn].copy()
-            return new_comps, new_mods
-
-        # fancy magic to make sure the CompositorLoader thinks it has comps
-        cl.side_effect = _test
-
-        reader = FakeReader('fake_reader', 'fake_sensor')
-        cri.return_value = {'fake_reader': reader}
-        comps, mods = test_composites('fake_sensor')
-        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         all_comp_ids = scene.available_composite_ids()
-        self.assertIn(make_cid(name='static_image'), all_comp_ids)
+        assert make_cid(name='static_image') in all_comp_ids
         available_comp_ids = scene.available_composite_ids()
-        self.assertIn(make_cid(name='static_image'), available_comp_ids)
+        assert make_cid(name='static_image') in available_comp_ids
 
 
-class TestSceneResampling(unittest.TestCase):
+class TestSceneResampling:
     """Test resampling a Scene to another Scene object."""
+
+    def setup_method(self):
+        """Set config_path to point to test 'etc' directory."""
+        self.old_config_path = satpy.config.get('config_path')
+        satpy.config.set(config_path=[TEST_ETC_DIR])
+
+    def teardown_method(self):
+        """Restore previous 'config_path' setting."""
+        satpy.config.set(config_path=self.old_config_path)
 
     def _fake_resample_dataset(self, dataset, dest_area, **kwargs):
         """Return copy of dataset pretending it was resampled."""
         return dataset.copy()
 
+    def _fake_resample_dataset_force_20x20(self, dataset, dest_area, **kwargs):
+        """Return copy of dataset pretending it was resampled to (20, 20) shape."""
+        data = np.zeros((20, 20))
+        attrs = dataset.attrs.copy()
+        attrs['area'] = dest_area
+        return xr.DataArray(
+            data,
+            dims=('y', 'x'),
+            attrs=attrs,
+        )
+
     @mock.patch('satpy.scene.resample_dataset')
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_resample_scene_copy(self, cri, cl, rs):
+    def test_resample_scene_copy(self, rs):
         """Test that the Scene is properly copied during resampling.
 
         The Scene that is created as a copy of the original Scene should not
         be able to affect the original Scene object.
 
         """
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        rs.side_effect = self._fake_resample_dataset
+        rs.side_effect = self._fake_resample_dataset_force_20x20
 
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                    '+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
 
         scene.load(['comp19'])
         new_scene = scene.resample(area_def)
@@ -1850,14 +1364,20 @@ class TestSceneResampling(unittest.TestCase):
         ds5_node = scene._dependency_tree[ds5_mod_id]
         comp13_node = scene._dependency_tree['comp13']
 
-        self.assertIs(comp13_node.data[1][0], comp19_node.data[1][0])
-        self.assertIs(comp13_node.data[1][0], ds5_node)
-        self.assertRaises(KeyError, scene._dependency_tree.__getitem__, 'new_ds')
+        assert comp13_node.data[1][0] is comp19_node.data[1][0]
+        assert comp13_node.data[1][0] is ds5_node
+        pytest.raises(KeyError, scene._dependency_tree.__getitem__, 'new_ds')
 
+        # comp19 required resampling to produce so we should have its 3 deps
+        # 1. comp13
+        # 2. ds5
+        # 3. ds2
+        # Then we loaded ds1 separately so we should have
+        # 4. ds1
         loaded_ids = list(scene.keys())
-        assert len(loaded_ids) == 2
-        assert loaded_ids[0] == make_cid(name='comp19')
-        assert loaded_ids[1] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
+        assert len(loaded_ids) == 4
+        for name in ('comp13', 'ds5', 'ds2', 'ds1'):
+            assert any(x['name'] == name for x in loaded_ids)
 
         loaded_ids = list(new_scene.keys())
         assert len(loaded_ids) == 2
@@ -1865,72 +1385,57 @@ class TestSceneResampling(unittest.TestCase):
         assert loaded_ids[1] == make_cid(name='new_ds')
 
     @mock.patch('satpy.scene.resample_dataset')
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_resample_scene_preserves_requested_dependencies(self, cri, cl, rs):
+    def test_resample_scene_preserves_requested_dependencies(self, rs):
         """Test that the Scene is properly copied during resampling.
 
         The Scene that is created as a copy of the original Scene should not
         be able to affect the original Scene object.
 
         """
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        rs.side_effect = self._fake_resample_dataset
 
+        rs.side_effect = self._fake_resample_dataset
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
 
         # Set PYTHONHASHSEED to 0 in the interpreter to test as intended (comp26 comes before comp14)
         scene.load(['comp26', 'comp14'], generate=False)
         scene.resample(area_def, unload=True)
         new_scene_2 = scene.resample(area_def, unload=True)
 
+        assert 'comp14' not in scene
+        assert 'comp26' not in scene
         assert 'comp14' in new_scene_2
+        assert 'comp26' in new_scene_2
+        assert 'ds1' not in new_scene_2  # unloaded
 
     @mock.patch('satpy.scene.resample_dataset')
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_resample_reduce_data_toggle(self, cri, cl, rs):
+    def test_resample_reduce_data_toggle(self, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         import dask.array as da
         import xarray as xr
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        rs.side_effect = self._fake_resample_dataset
 
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        target_area = AreaDefinition('test', 'test', 'test', proj_dict, 4, 4, (-1000., -1500., 1000., 1500.))
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        rs.side_effect = self._fake_resample_dataset_force_20x20
+        proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                    '+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs')
+        target_area = AreaDefinition('test', 'test', 'test', proj_str, 4, 4, (-1000., -1500., 1000., 1500.))
+        area_def = AreaDefinition('test', 'test', 'test', proj_str, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
         get_area_slices = area_def.get_area_slices
         get_area_slices.return_value = (slice(0, 3, None), slice(0, 3, None))
-        area_def_big = AreaDefinition('test', 'test', 'test', proj_dict, 10, 10, (-1000., -1500., 1000., 1500.))
+        area_def_big = AreaDefinition('test', 'test', 'test', proj_str, 10, 10, (-1000., -1500., 1000., 1500.))
         area_def_big.get_area_slices = mock.MagicMock()
         get_area_slices_big = area_def_big.get_area_slices
         get_area_slices_big.return_value = (slice(0, 6, None), slice(0, 6, None))
 
         # Test that data reduction can be disabled
-        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
         scene['comp19_big'] = xr.DataArray(
@@ -1951,36 +1456,27 @@ class TestSceneResampling(unittest.TestCase):
             ds_walker.return_value = test_order
             slice_data.side_effect = orig_slice_data
             scene.resample(target_area, reduce_data=False)
-            self.assertFalse(slice_data.called)
-            self.assertFalse(get_area_slices.called)
+            assert not slice_data.called
+            assert not get_area_slices.called
             scene.resample(target_area)
-            self.assertTrue(slice_data.called_once)
-            self.assertTrue(get_area_slices.called_once)
+            assert slice_data.called_once
+            assert get_area_slices.called_once
             scene.resample(target_area, reduce_data=True)
             # 2 times for each dataset
             # once for default (reduce_data=True)
             # once for kwarg forced to `True`
-            self.assertEqual(slice_data.call_count, 2 * 3)
-            self.assertTrue(get_area_slices.called_once)
+            assert slice_data.call_count == 2 * 3
+            assert get_area_slices.called_once
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_resample_ancillary(self, cri, cl):
+    def test_resample_ancillary(self):
         """Test that the Scene reducing data does not affect final output."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
-        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
 
         scene.load(['comp19', 'comp20'])
         scene['comp19'].attrs['area'] = area_def
@@ -1993,56 +1489,37 @@ class TestSceneResampling(unittest.TestCase):
                                   (-1000., -1500., 0., 0.),
                                   )
         new_scene = scene.resample(dst_area)
-        self.assertIs(new_scene['comp20'], new_scene['comp19'].attrs['ancillary_variables'][0])
+        assert new_scene['comp20'] is new_scene['comp19'].attrs['ancillary_variables'][0]
 
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_resample_reduce_data(self, cri, cl):
+    def test_resample_reduce_data(self):
         """Test that the Scene reducing data does not affect final output."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
-        scene = satpy.scene.Scene(filenames=['bla'], reader='fake_reader')
+        proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                    '+lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_str, 20, 20, (-1000., -1500., 1000., 1500.))
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
 
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
         dst_area = AreaDefinition('dst', 'dst', 'dst',
-                                  proj_dict,
-                                  2, 2,
+                                  proj_str,
+                                  20, 20,
                                   (-1000., -1500., 0., 0.),
                                   )
         new_scene1 = scene.resample(dst_area, reduce_data=False)
         new_scene2 = scene.resample(dst_area)
         new_scene3 = scene.resample(dst_area, reduce_data=True)
-        self.assertTupleEqual(new_scene1['comp19'].shape, (2, 2, 3))
-        self.assertTupleEqual(new_scene2['comp19'].shape, (2, 2, 3))
-        self.assertTupleEqual(new_scene3['comp19'].shape, (2, 2, 3))
+        assert new_scene1['comp19'].shape == (20, 20, 3)
+        assert new_scene2['comp19'].shape == (20, 20, 3)
+        assert new_scene3['comp19'].shape == (20, 20, 3)
 
     @mock.patch('satpy.scene.resample_dataset')
-    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_no_generate_comp10(self, cri, cl, rs):
+    def test_no_generate_comp10(self, rs):
         """Test generating a composite after loading."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        rs.side_effect = self._fake_resample_dataset
 
+        rs.side_effect = self._fake_resample_dataset
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
@@ -2055,37 +1532,64 @@ class TestSceneResampling(unittest.TestCase):
             400,
             (-1000., -1500., 1000., 1500.),
         )
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  reader='fake_reader')
 
         # it is fine that an optional prereq doesn't exist
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         scene.load(['comp10'], generate=False)
-        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist))
-        self.assertNotIn('comp10', scene)
+        assert any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist)
+        assert 'comp10' not in scene
         # two dependencies should have been loaded
-        self.assertEqual(len(scene._datasets), 2)
-        self.assertEqual(len(scene.missing_datasets), 1)
+        assert len(scene._datasets) == 2
+        assert len(scene.missing_datasets) == 1
 
         new_scn = scene.resample(area_def, generate=False)
-        self.assertNotIn('comp10', scene)
+        assert 'comp10' not in scene
         # two dependencies should have been loaded
-        self.assertEqual(len(scene._datasets), 2)
-        self.assertEqual(len(scene.missing_datasets), 1)
+        assert len(scene._datasets) == 2
+        assert len(scene.missing_datasets) == 1
 
         new_scn._generate_composites_from_loaded_datasets()
-        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist))
-        self.assertIn('comp10', new_scn)
-        self.assertEqual(len(new_scn.missing_datasets), 0)
+        assert any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist)
+        assert 'comp10' in new_scn
+        assert not new_scn.missing_datasets
 
         # try generating them right away
         new_scn = scene.resample(area_def)
-        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist))
-        self.assertIn('comp10', new_scn)
-        self.assertEqual(len(new_scn.missing_datasets), 0)
+        assert any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist)
+        assert 'comp10' in new_scn
+        assert not new_scn.missing_datasets
+
+    def test_comps_need_resampling_optional_mod_deps(self):
+        """Test that a composite with complex dependencies.
+
+        This is specifically testing the case where a compositor depends on
+        multiple resolution prerequisites which themselves are composites.
+        These sub-composites depend on data with a modifier that only has
+        optional dependencies. This is a very specific use case and is the
+        simplest way to present the problem (so far).
+
+        The general issue is that the Scene loading creates the "ds13"
+        dataset which already has one modifier on it. The "comp27"
+        composite requires resampling so its 4 prerequisites + the
+        requested "ds13" (from the reader which includes mod1 modifier)
+        remain. If the DependencyTree is not copied properly in this
+        situation then the new Scene object will have the composite
+        dependencies without resolution in its dep tree, but have
+        the DataIDs with the resolution in the dataset dictionary.
+        This all results in the Scene trying to regenerate composite
+        dependencies that aren't needed which fail.
+
+        """
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        # should require resampling
+        scene.load(['comp27', 'ds13'])
+        assert 'comp27' not in scene
+        assert 'ds13' in scene
+
+        new_scene = scene.resample(resampler='native')
+        assert len(list(new_scene.keys())) == 2
+        assert 'comp27' in new_scene
+        assert 'ds13' in new_scene
 
 
 class TestSceneSaving(unittest.TestCase):
@@ -2119,13 +1623,11 @@ class TestSceneSaving(unittest.TestCase):
         scn = Scene()
         scn['test'] = ds1
         scn.save_datasets(base_dir=self.base_dir)
-        self.assertTrue(os.path.isfile(
-            os.path.join(self.base_dir, 'test_20180101_000000.tif')))
+        assert os.path.isfile(os.path.join(self.base_dir, 'test_20180101_000000.tif'))
 
     def test_save_datasets_by_ext(self):
         """Save a dataset using 'save_datasets' with 'filename'."""
         from satpy.scene import Scene
-        from satpy.tests.utils import spy_decorator
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -2143,8 +1645,7 @@ class TestSceneSaving(unittest.TestCase):
         with mock.patch.object(PillowWriter, 'save_image', save_image_mock):
             scn.save_datasets(base_dir=self.base_dir, filename='{name}.png')
         save_image_mock.mock.assert_called_once()
-        self.assertTrue(os.path.isfile(
-            os.path.join(self.base_dir, 'test.png')))
+        assert os.path.isfile(os.path.join(self.base_dir, 'test.png'))
 
     def test_save_datasets_bad_writer(self):
         """Save a dataset using 'save_datasets' and a bad writer."""
@@ -2160,23 +1661,23 @@ class TestSceneSaving(unittest.TestCase):
         )
         scn = Scene()
         scn['test'] = ds1
-        self.assertRaises(ValueError,
-                          scn.save_datasets,
-                          writer='_bad_writer_',
-                          base_dir=self.base_dir)
+        pytest.raises(ValueError,
+                      scn.save_datasets,
+                      writer='_bad_writer_',
+                      base_dir=self.base_dir)
 
     def test_save_datasets_missing_wishlist(self):
         """Calling 'save_datasets' with no valid datasets."""
         from satpy.scene import Scene
         scn = Scene()
         scn._wishlist.add(make_cid(name='true_color'))
-        self.assertRaises(RuntimeError,
-                          scn.save_datasets,
-                          writer='geotiff',
-                          base_dir=self.base_dir)
-        self.assertRaises(KeyError,
-                          scn.save_datasets,
-                          datasets=['no_exist'])
+        pytest.raises(RuntimeError,
+                      scn.save_datasets,
+                      writer='geotiff',
+                      base_dir=self.base_dir)
+        pytest.raises(KeyError,
+                      scn.save_datasets,
+                      datasets=['no_exist'])
 
     def test_save_dataset_default(self):
         """Save a dataset using 'save_dataset'."""
@@ -2193,8 +1694,7 @@ class TestSceneSaving(unittest.TestCase):
         scn = Scene()
         scn['test'] = ds1
         scn.save_dataset('test', base_dir=self.base_dir)
-        self.assertTrue(os.path.isfile(
-            os.path.join(self.base_dir, 'test_20180101_000000.tif')))
+        assert os.path.isfile(os.path.join(self.base_dir, 'test_20180101_000000.tif'))
 
 
 class TestSceneConversions(unittest.TestCase):
@@ -2216,7 +1716,7 @@ class TestSceneConversions(unittest.TestCase):
                                          'area': area})
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
-        self.assertIsNotNone(gv_obj)
+        assert gv_obj is not None
 
     def test_geoviews_basic_with_swath(self):
         """Test converting a Scene to geoviews with a SwathDefinition."""
@@ -2234,7 +1734,7 @@ class TestSceneConversions(unittest.TestCase):
                                          'area': area})
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
-        self.assertIsNotNone(gv_obj)
+        assert gv_obj is not None
 
 
 class TestSceneAggregation(unittest.TestCase):
@@ -2281,12 +1781,12 @@ class TestSceneAggregation(unittest.TestCase):
         return scene1
 
     def _check_aggregation_results(self, expected_aggregated_shape, scene1, scene2, x_size, y_size):
-        self.assertIs(scene1['1'], scene2['1'])
-        self.assertIs(scene1['2'], scene2['2'])
+        assert scene1['1'] is scene2['1']
+        assert scene1['2'] is scene2['2']
         np.testing.assert_allclose(scene2['3'].data, 4)
-        self.assertTupleEqual(scene2['1'].shape, (y_size, x_size))
-        self.assertTupleEqual(scene2['2'].shape, (y_size, x_size))
-        self.assertTupleEqual(scene2['3'].shape, expected_aggregated_shape)
+        assert scene2['1'].shape == (y_size, x_size)
+        assert scene2['2'].shape == (y_size, x_size)
+        assert scene2['3'].shape == expected_aggregated_shape
         assert 'standard_name' in scene2['4'].attrs
         assert scene2['4'].attrs['standard_name'] == 'backscatter'
 

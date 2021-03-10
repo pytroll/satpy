@@ -25,7 +25,7 @@ from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import CompositorLoader
 from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
-from satpy.node import MissingDependencies, ReaderNode, CompositorNode
+from satpy.node import MissingDependencies, ReaderNode, CompositorNode, Node
 from satpy.dependency_tree import DependencyTree
 from satpy.readers import load_readers
 from satpy.dataset import DatasetDict
@@ -416,6 +416,17 @@ class Scene:
         """Get values for the underlying data container."""
         return self._datasets.values()
 
+    def _copy_datasets_and_wishlist(self, new_scn, datasets):
+        for ds_id in datasets:
+            # NOTE: Must use `._datasets` or side effects of `__setitem__`
+            #       could hurt us with regards to the wishlist
+            new_scn._datasets[ds_id] = self[ds_id]
+
+        if not datasets:
+            new_scn._wishlist = self._wishlist.copy()
+        else:
+            new_scn._wishlist = set(ds_id for ds_id in new_scn.keys())
+
     def copy(self, datasets=None):
         """Create a copy of the Scene including dependency information.
 
@@ -427,16 +438,9 @@ class Scene:
         new_scn = self.__class__()
         new_scn.attrs = self.attrs.copy()
         new_scn._dependency_tree = self._dependency_tree.copy()
-
-        for ds_id in (datasets or self.keys()):
-            # NOTE: Must use `.datasets` or side effects of `__setitem__`
-            #       could hurt us with regards to the wishlist
-            new_scn._datasets[ds_id] = self[ds_id]
-
-        if not datasets:
-            new_scn._wishlist = self._wishlist.copy()
-        else:
-            new_scn._wishlist = set(ds_id for ds_id in new_scn.keys())
+        if datasets is None:
+            datasets = self.keys()
+        self._copy_datasets_and_wishlist(new_scn, datasets)
         return new_scn
 
     @property
@@ -1173,7 +1177,7 @@ class Scene:
             DatasetDict of loaded datasets
 
         """
-        nodes = self._dependency_tree.leaves(nodes=self.missing_datasets)
+        nodes = self._dependency_tree.leaves(limit_nodes_to=self.missing_datasets)
         return self._read_dataset_nodes_from_storage(nodes, **kwargs)
 
     def _read_dataset_nodes_from_storage(self, reader_nodes, **kwargs):
@@ -1221,10 +1225,19 @@ class Scene:
         if unload:
             self.unload(keepables=keepables)
 
+    def _filter_loaded_datasets_from_trunk_nodes(self, trunk_nodes):
+        loaded_data_ids = self._datasets.keys()
+        for trunk_node in trunk_nodes:
+            if trunk_node.name in loaded_data_ids:
+                continue
+            yield trunk_node
+
     def _generate_composites_from_loaded_datasets(self):
         """Compute all the composites contained in `requirements`."""
-        nodes = set(self._dependency_tree.trunk(nodes=self.missing_datasets)) - set(self._datasets.keys())
-        return self._generate_composites_nodes_from_loaded_datasets(nodes)
+        trunk_nodes = self._dependency_tree.trunk(limit_nodes_to=self.missing_datasets,
+                                                  limit_children_to=self._datasets.keys())
+        needed_comp_nodes = set(self._filter_loaded_datasets_from_trunk_nodes(trunk_nodes))
+        return self._generate_composites_nodes_from_loaded_datasets(needed_comp_nodes)
 
     def _generate_composites_nodes_from_loaded_datasets(self, compositor_nodes):
         """Read (generate) composites."""
@@ -1233,18 +1246,18 @@ class Scene:
             self._generate_composite(node, keepables)
         return keepables
 
-    def _generate_composite(self, comp_node, keepables):
+    def _generate_composite(self, comp_node: Node, keepables: set):
         """Collect all composite prereqs and create the specified composite.
 
         Args:
-            comp_node (Node): Composite Node to generate a Dataset for
-            keepables (set): `set` to update if any datasets are needed
-                             when generation is continued later. This can
-                             happen if generation is delayed to incompatible
-                             areas which would require resampling first.
+            comp_node: Composite Node to generate a Dataset for
+            keepables: `set` to update if any datasets are needed
+                       when generation is continued later. This can
+                       happen if generation is delayed to incompatible
+                       areas which would require resampling first.
 
         """
-        if comp_node.name in self._datasets:
+        if self._datasets.contains(comp_node.name):
             # already loaded
             return
 
@@ -1289,7 +1302,8 @@ class Scene:
 
         try:
             composite = compositor(prereq_datasets,
-                                   optional_datasets=optional_datasets)
+                                   optional_datasets=optional_datasets,
+                                   **comp_node.name.to_dict())
             cid = DataID.new_id_from_dataarray(composite)
             self._datasets[cid] = composite
 
@@ -1297,7 +1311,7 @@ class Scene:
             if comp_node.name in self._wishlist:
                 self._wishlist.remove(comp_node.name)
                 self._wishlist.add(cid)
-            comp_node.name = cid
+            self._dependency_tree.update_node_name(comp_node, cid)
         except IncompatibleAreas:
             LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
             preservable_datasets = set(self._datasets.keys())
@@ -1337,6 +1351,8 @@ class Scene:
                     and isinstance(prereq_node, CompositorNode):
                 self._generate_composite(prereq_node, keepables)
 
+            # composite generation may have updated the DataID
+            prereq_id = prereq_node.name
             if prereq_node is self._dependency_tree.empty_node:
                 # empty sentinel node - no need to load it
                 continue
