@@ -221,6 +221,11 @@ class DifferenceCompositor(CompositeBase):
         proj.attrs = info
         return proj
 
+    def hps_difference_compositor_dummy(self):
+        """Here HP will add his suggested method... """
+        pass
+
+
 
 class SingleBandCompositor(CompositeBase):
     """Basic single-band composite builder.
