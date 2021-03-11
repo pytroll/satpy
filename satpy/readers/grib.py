@@ -294,9 +294,9 @@ class GRIBFileHandler(BaseFileHandler):
 
         for key in key_dicts:
             if key_dicts[key] in msg.keys():
-                ds_info.update({key: msg[key_dicts[key]]})
+                ds_info[key] = msg[key_dicts[key]]
             else:
-                ds_info.update({key: 'unknown'})
+                ds_info[key] = 'unknown'
 
         return ds_info
 
