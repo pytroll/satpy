@@ -554,57 +554,6 @@ class TestScene:
         assert not list(scene._datasets.keys())
         pytest.raises(KeyError, scene.__delitem__, 0.2)
 
-    def test_coarsest_finest_area(self):
-        """Test 'coarsest_area' and 'finest_area' methods."""
-        from satpy import Scene
-        from xarray import DataArray
-        from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
-        scene = Scene()
-        scene["1"] = ds1 = DataArray(np.arange(10).reshape((2, 5)),
-                                     attrs={'wavelength': (0.1, 0.2, 0.3)})
-        scene["2"] = ds2 = DataArray(np.arange(40).reshape((4, 10)),
-                                     attrs={'wavelength': (0.4, 0.5, 0.6)})
-        scene["3"] = ds3 = DataArray(np.arange(40).reshape((4, 10)),
-                                     attrs={'wavelength': (0.7, 0.8, 0.9)})
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        area_def1 = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            100,
-            200,
-            (-1000., -1500., 1000., 1500.),
-        )
-        area_def2 = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            200,
-            400,
-            (-1000., -1500., 1000., 1500.),
-        )
-        ds1.attrs['area'] = area_def1
-        ds2.attrs['area'] = area_def2
-        ds3.attrs['area'] = area_def2
-        assert scene.coarsest_area() is area_def1
-        assert scene.finest_area() is area_def2
-        assert scene.coarsest_area(['2', '3']) is area_def2
-
-        # test logic for flipped areas
-        area_def1_flipped = area_def1.copy(area_extent=tuple([-1*ae for ae in area_def1.area_extent]))
-        area_def2_flipped = area_def2.copy(area_extent=tuple([-1*ae for ae in area_def2.area_extent]))
-        ds1.attrs['area'] = area_def1_flipped
-        ds2.attrs['area'] = area_def2_flipped
-        ds3.attrs['area'] = area_def2_flipped
-        assert scene.coarsest_area() is area_def1_flipped
-        assert scene.finest_area() is area_def2_flipped
-        assert scene.coarsest_area(['2', '3']) is area_def2_flipped
-
     def test_all_datasets_no_readers(self):
         """Test all datasets with no reader."""
         from satpy import Scene
@@ -650,6 +599,70 @@ class TestScene:
         # no sensors are loaded so we shouldn't get any comps either
         name_list = scene.available_dataset_names(composites=True)
         assert name_list == []
+
+
+class TestFinestCoarsestArea:
+    """Test the Scene logic for finding the finest and coarsest area."""
+
+    def setup_method(self):
+        """Set common variables."""
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        self.scene = Scene()
+        self.scene["1"] = DataArray(np.arange(10).reshape((2, 5)),
+                                    attrs={'wavelength': (0.1, 0.2, 0.3)})
+        self.ds1 = self.scene["1"]
+
+        self.scene["2"] = DataArray(np.arange(40).reshape((4, 10)),
+                                    attrs={'wavelength': (0.4, 0.5, 0.6)})
+        self.ds2 = self.scene["2"]
+
+        self.scene["3"] = DataArray(np.arange(40).reshape((4, 10)),
+                                    attrs={'wavelength': (0.7, 0.8, 0.9)})
+        self.ds3 = self.scene["3"]
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        self.area_def1 = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+        self.area_def2 = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            200,
+            400,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+    def test_coarsest_finest_area_upright_area(self):
+        """Test 'coarsest_area' and 'finest_area' methods for upright areas."""
+        self.ds1.attrs['area'] = self.area_def1
+        self.ds2.attrs['area'] = self.area_def2
+        self.ds3.attrs['area'] = self.area_def2
+        assert self.scene.coarsest_area() is self.area_def1
+        assert self.scene.finest_area() is self.area_def2
+        assert self.scene.coarsest_area(['2', '3']) is self.area_def2
+
+    def test_coarsest_finest_area_flipped_area(self):
+        """Test 'coarsest_area' and 'finest_area' methods for flipped areas with negative pixel sizes."""
+        area_def1_flipped = self.area_def1.copy(area_extent=tuple([-1*ae for ae in self.area_def1.area_extent]))
+        area_def2_flipped = self.area_def2.copy(area_extent=tuple([-1*ae for ae in self.area_def2.area_extent]))
+        self.ds1.attrs['area'] = area_def1_flipped
+        self.ds2.attrs['area'] = area_def2_flipped
+        self.ds3.attrs['area'] = area_def2_flipped
+        assert self.scene.coarsest_area() is area_def1_flipped
+        assert self.scene.finest_area() is area_def2_flipped
+        assert self.scene.coarsest_area(['2', '3']) is area_def2_flipped
 
 
 class TestSceneAvailableDatasets:
