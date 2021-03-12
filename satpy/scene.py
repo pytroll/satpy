@@ -214,7 +214,7 @@ class Scene:
                                  "projections.")
 
             def key_func(ds):
-                return 1. / ds.pixel_size_x
+                return 1. / abs(ds.pixel_size_x)
         else:
             def key_func(ds):
                 return ds.shape
