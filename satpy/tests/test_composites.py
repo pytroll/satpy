@@ -359,6 +359,23 @@ class TestFillingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='B').data, blue.data)
 
 
+class TestMultiFiller(unittest.TestCase):
+    """Test case for the MultiFiller compositor."""
+
+    def test_fill(self):
+        """Test filling."""
+        from satpy.composites import MultiFiller
+        comp = MultiFiller(name='fill_test')
+        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]))
+        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]))
+        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]))
+        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]))
+        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]))
+        expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
+        res = comp([a, b, c], optional_datasets=[d, e])
+        np.testing.assert_allclose(res.data, expected.data)
+
+
 class TestLuminanceSharpeningCompositor(unittest.TestCase):
     """Test luminance sharpening compositor."""
 
@@ -1406,3 +1423,36 @@ class TestInferMode(unittest.TestCase):
         from satpy.composites import GenericCompositor
         arr = xr.DataArray(np.ones((5, 5)), dims=('x', 'y'))
         assert GenericCompositor.infer_mode(arr) == 'L'
+
+
+class TestLongitudeMaskingCompositor(unittest.TestCase):
+    """Test case for the LongitudeMaskingCompositor compositor."""
+
+    def test_masking(self):
+        """Test longitude masking."""
+        from satpy.composites import LongitudeMaskingCompositor
+
+        area = mock.MagicMock()
+        lons = np.array([-180., -100., -50., 0., 50., 100., 180.])
+        area.get_lonlats = mock.MagicMock(return_value=[lons, []])
+        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]), attrs={'area': area})
+
+        comp = LongitudeMaskingCompositor(name='test', lon_min=-40., lon_max=120.)
+        expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, np.nan]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
+
+        comp = LongitudeMaskingCompositor(name='test', lon_min=-40.)
+        expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, 7]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
+
+        comp = LongitudeMaskingCompositor(name='test', lon_max=120.)
+        expected = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, np.nan]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
+
+        comp = LongitudeMaskingCompositor(name='test', lon_min=120., lon_max=-40.)
+        expected = xr.DataArray(np.array([1, 2, 3, np.nan, np.nan, np.nan, 7]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
