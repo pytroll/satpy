@@ -1238,7 +1238,7 @@ class AWIPSTiledWriter(Writer):
         if self.fix_awips:
             warnings.warn("'fix_awips' flag no longer has any effect and is "
                           "deprecated. Modern versions of AWIPS should not "
-                          "require this hack.")
+                          "require this hack.", DeprecationWarning)
             self.fix_awips = False
 
     @property
