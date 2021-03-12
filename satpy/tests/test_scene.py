@@ -595,6 +595,16 @@ class TestScene:
         assert scene.finest_area() is area_def2
         assert scene.coarsest_area(['2', '3']) is area_def2
 
+        # test logic for flipped areas
+        area_def1_flipped = area_def1.copy(area_extent=tuple([-1*ae for ae in area_def1.area_extent]))
+        area_def2_flipped = area_def2.copy(area_extent=tuple([-1*ae for ae in area_def2.area_extent]))
+        ds1.attrs['area'] = area_def1_flipped
+        ds2.attrs['area'] = area_def2_flipped
+        ds3.attrs['area'] = area_def2_flipped
+        assert scene.coarsest_area() is area_def1_flipped
+        assert scene.finest_area() is area_def2_flipped
+        assert scene.coarsest_area(['2', '3']) is area_def2_flipped
+
     def test_all_datasets_no_readers(self):
         """Test all datasets with no reader."""
         from satpy import Scene
