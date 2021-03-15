@@ -244,16 +244,14 @@ def link_coords(datas):
 
     """
     for da_name, data in datas.items():
-        coords = data.attrs.get('coordinates', [])
-        if isinstance(coords, str):
-            coords = coords.split(' ')
-        for coord in coords:
+        declared_coordinates = data.attrs.get('coordinates', [])
+        if isinstance(declared_coordinates, str):
+            declared_coordinates = declared_coordinates.split(' ')
+        for coord in declared_coordinates:
             if coord not in data.coords:
                 try:
-                    # drop dimension not existed in data
-                    drop_dims = list(set(datas[coord].dims) - set(data.dims))
-                    # assign coordinates
-                    data[coord] = datas[coord].squeeze(drop_dims).drop_vars(drop_dims)
+                    dimensions_not_in_data = list(set(datas[coord].dims) - set(data.dims))
+                    data[coord] = datas[coord].squeeze(dimensions_not_in_data, drop=True)
                 except KeyError:
                     warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'
                                   .format(coord, da_name))
