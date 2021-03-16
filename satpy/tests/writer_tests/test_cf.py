@@ -621,11 +621,14 @@ class TestCFWriter(unittest.TestCase):
 
         data = [[1, 2], [3, 4]]
         lon = np.zeros((2, 2))
+        lon2 = np.zeros((1, 2, 2))
         lat = np.ones((2, 2))
         datasets = {
             'var1': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon lat'}),
             'var2': xr.DataArray(data=data, dims=('y', 'x')),
+            'var3': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon2 lat'}),
             'lon': xr.DataArray(data=lon, dims=('y', 'x')),
+            'lon2': xr.DataArray(data=lon2, dims=('time', 'y', 'x')),
             'lat': xr.DataArray(data=lat, dims=('y', 'x'))
         }
 
@@ -641,6 +644,9 @@ class TestCFWriter(unittest.TestCase):
         # There should be no link if there was no 'coordinate' attribute
         self.assertNotIn('lon', datasets['var2'].coords)
         self.assertNotIn('lat', datasets['var2'].coords)
+
+        # The time dimension should be dropped
+        self.assertNotIn('time', datasets['var3'].coords)
 
     def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
