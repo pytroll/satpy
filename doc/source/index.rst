@@ -276,7 +276,7 @@ the base Satpy installation.
       - `mirs`
       - Beta
     * - MIMIC Total Precipitable Water Product Reader in NetCDF format
-      - mimic_TPW2_nc
+      - mimicTPW2_comp
       - Beta
 
 Indices and tables
