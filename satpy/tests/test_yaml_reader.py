@@ -686,8 +686,11 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         )
 
         dummy_ds_xr = xr.DataArray(original_array,
-                                   dims=('y', 'x'),
-                                   attrs={'area': area_def})
+                                   coords={'y': np.arange(2),
+                                           'x': np.arange(3),
+                                           'time': ("y", np.arange(2))},
+                                   attrs={'area': area_def},
+                                   dims=('y', 'x'))
         # assign the dummy xr as return for the super _load_dataset_with_area method
         ldwa.return_value = dummy_ds_xr
 
@@ -695,6 +698,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords)
         np.testing.assert_equal(res.values, original_array)
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check wrong input
         with self.assertRaises(ValueError):
@@ -704,11 +710,17 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords, 'native')
         np.testing.assert_equal(res.values, original_array)
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check upright orientation, nothing should change since area is already upright
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, original_array)
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check that left-right image is flipped correctly
         dummy_ds_xr.attrs['area'] = area_def.copy(area_extent=(1500, -1000, -1500, 1000))
@@ -716,6 +728,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.fliplr(original_array))
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.flip(np.arange(3)))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check that upside down image is flipped correctly
         dummy_ds_xr.attrs['area'] = area_def.copy(area_extent=(-1500, 1000, 1500, -1000))
@@ -723,6 +738,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.flipud(original_array))
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.flip(np.arange(2)))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.flip(np.arange(2)))
 
         # check different projection than geos, nothing should be changed
         area_def = AreaDefinition(
@@ -778,6 +796,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
 
         dummy_ds_xr = xr.DataArray(original_array,
                                    dims=('y', 'x'),
+                                   coords={'y': np.arange(4),
+                                           'x': np.arange(3),
+                                           'time': ("y", np.arange(4))},
                                    attrs={'area': StackedAreaDefinition(area_def0, area_def1)})
 
         # check that left-right image is flipped correctly
@@ -788,6 +809,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.values, np.fliplr(original_array))
         np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[0])
         np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[1])
+        np.testing.assert_equal(res.coords['y'], np.arange(4))
+        np.testing.assert_equal(res.coords['x'], np.flip(np.arange(3)))
+        np.testing.assert_equal(res.coords['time'], np.arange(4))
 
         # check that upside down image is flipped correctly
         dummy_ds_xr.attrs['area'].defs[0] = area_def0.copy(area_extent=(-1500, 1000, 1500, -1000))
@@ -798,6 +822,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         # note that the order of the stacked areadefs is flipped here, as expected
         np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[0])
         np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[1])
+        np.testing.assert_equal(res.coords['y'], np.flip(np.arange(4)))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.flip(np.arange(4)))
 
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):
