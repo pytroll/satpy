@@ -232,8 +232,8 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                                                           msg_variable_length_headers,
                                                           msg_text_headers))
         self.prologue = {}
+        self.satpos = None
         self.read_prologue()
-        self.satpos = self._get_satpos()
 
         service = filename_info['service']
         if service == '':
@@ -254,23 +254,25 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
             else:
                 self.prologue.update(recarray2dict(impf))
 
-    def _get_satpos(self):
+    def get_satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
 
         Evaluate orbit polynomials at the start time of the scan.
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        a, b = self.get_earth_radii()
-        return get_satpos_safe(
-            orbit_polynomials=self.prologue['SatelliteStatus']['Orbit'][
-                'OrbitPolynomial'],
-            time=self.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
-                'TrueRepeatCycleStart'],
-            semi_major_axis=a,
-            semi_minor_axis=b,
-            logger=logger
-        )
+        if self.satpos is None:
+            a, b = self.get_earth_radii()
+            self.satpos = get_satpos_safe(
+                orbit_polynomials=self.prologue['SatelliteStatus']['Orbit'][
+                    'OrbitPolynomial'],
+                time=self.prologue['ImageAcquisition'][
+                    'PlannedAcquisitionTime']['TrueRepeatCycleStart'],
+                semi_major_axis=a,
+                semi_minor_axis=b,
+                logger=logger
+            )
+        return self.satpos
 
     def get_earth_radii(self):
         """Get earth radii from prologue.
@@ -388,7 +390,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self.prologue_.satpos
+        actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
         self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0

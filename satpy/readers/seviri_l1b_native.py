@@ -87,6 +87,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.header = {}
         self.mda = {}
         self.trailer = {}
+        self.satpos = None
 
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
@@ -94,7 +95,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
-        self.satpos = self._get_satpos()
 
     @property
     def start_time(self):
@@ -441,7 +441,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             'offset_corrected']
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self.satpos
+        actual_lon, actual_lat, actual_alt = self._get_satpos()
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -577,14 +577,16 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        return get_satpos_safe(
-            orbit_polynomials=self.header['15_DATA_HEADER']['SatelliteStatus'][
-                'Orbit']['OrbitPolynomial'],
-            time=self.start_time,
-            semi_major_axis=self.mda['projection_parameters']['a'],
-            semi_minor_axis=self.mda['projection_parameters']['b'],
-            logger=logger
-        )
+        if self.satpos is None:
+            self.satpos = get_satpos_safe(
+                orbit_polynomials=self.header['15_DATA_HEADER'][
+                    'SatelliteStatus']['Orbit']['OrbitPolynomial'],
+                time=self.start_time,
+                semi_major_axis=self.mda['projection_parameters']['a'],
+                semi_minor_axis=self.mda['projection_parameters']['b'],
+                logger=logger
+            )
+        return self.satpos
 
 
 class ImageBoundaries:
