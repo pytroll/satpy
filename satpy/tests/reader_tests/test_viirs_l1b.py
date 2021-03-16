@@ -74,6 +74,13 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             file_content['/attr/OrbitNumber'] = file_content.pop('/attr/orbit_number')
             file_content['geolocation_data/latitude'] = DEFAULT_LAT_DATA
             file_content['geolocation_data/longitude'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/solar_zenith'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/solar_azimuth'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/sensor_zenith'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/sensor_azimuth'] = DEFAULT_LON_DATA
+            if file_type.endswith('d'):
+                file_content['geolocation_data/lunar_zenith'] = DEFAULT_LON_DATA
+                file_content['geolocation_data/lunar_azimuth'] = DEFAULT_LON_DATA
         elif file_type == 'vl1bm':
             file_content['observation_data/M01'] = DEFAULT_FILE_DATA
             file_content['observation_data/M02'] = DEFAULT_FILE_DATA
@@ -121,6 +128,8 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 file_content[k + '/attr/units'] = 'degrees_east'
             elif k.endswith('latitude'):
                 file_content[k + '/attr/units'] = 'degrees_north'
+            elif k.endswith('zenith') or k.endswith('azimuth'):
+                file_content[k + '/attr/units'] = 'degrees'
             file_content[k + '/attr/valid_min'] = 0
             file_content[k + '/attr/valid_max'] = 65534
             file_content[k + '/attr/_FillValue'] = 65535
@@ -260,6 +269,29 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
             self.assertEqual(v.attrs['units'], 'W m-2 sr-1')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+
+    def test_load_dnb_angles(self):
+        """Test loading all DNB angle datasets."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'VL1BD_snpp_d20161130_t012400_c20161130054822.nc',
+            'VGEOD_snpp_d20161130_t012400_c20161130054822.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['dnb_solar_zenith_angle',
+                           'dnb_solar_azimuth_angle',
+                           'dnb_satellite_zenith_angle',
+                           'dnb_satellite_azimuth_angle',
+                           'dnb_lunar_zenith_angle',
+                           'dnb_lunar_azimuth_angle',
+                           ])
+        self.assertEqual(len(datasets), 6)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'degrees')
             self.assertEqual(v.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
