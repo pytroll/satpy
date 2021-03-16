@@ -272,6 +272,12 @@ the base Satpy installation.
     * - AMSR2 level 2 GAASP in NetCDF4 format
       - `amsr2_l2_gaasp`
       - Beta
+    * - MiRS level 2 Precipitation and Surface Products (IMG) in NetCDF4 format
+      - `mirs`
+      - Beta
+    * - MIMIC Total Precipitable Water Product Reader in NetCDF format
+      - mimicTPW2_comp
+      - Beta
 
 Indices and tables
 ==================
