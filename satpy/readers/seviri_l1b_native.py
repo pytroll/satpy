@@ -44,8 +44,7 @@ from satpy.readers.seviri_base import (
     SEVIRICalibrationHandler, CHANNEL_NAMES, SATNUM, dec10216,
     VISIR_NUM_COLUMNS, VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
     create_coef_dict, pad_data_horizontally, pad_data_vertically,
-    add_scanline_acq_time, get_cds_time, NoValidOrbitParams,
-    SatelliteLocatorFactory
+    add_scanline_acq_time, get_cds_time, get_satpos_safe
 )
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
@@ -88,7 +87,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.header = {}
         self.mda = {}
         self.trailer = {}
-        self.satpos = None
 
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
@@ -96,6 +94,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
+        self.satpos = self._get_satpos()
 
     @property
     def start_time(self):
@@ -442,7 +441,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             'offset_corrected']
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self._get_satpos()
+        actual_lon, actual_lat, actual_alt = self.satpos
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -576,28 +575,16 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         Evaluate orbit polynomials at the start time of the scan.
 
-        TODO: Factorize once #1457 is merged.
-
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        if self.satpos is None:
-            a = self.mda['projection_parameters']['a']
-            b = self.mda['projection_parameters']['b']
-            time = self.start_time
-            factory = SatelliteLocatorFactory(
-                self.header['15_DATA_HEADER']['SatelliteStatus']['Orbit'][
-                    'OrbitPolynomial']
-            )
-            sat_locator = factory.get_satellite_locator(time)
-            try:
-                lon, lat, alt = sat_locator.get_satpos_geodetic(time, a, b)
-            except NoValidOrbitParams as err:
-                logger.warning(err)
-                lon = lat = alt = None
-
-            # Cache results
-            self.satpos = lon, lat, alt
-        return self.satpos
+        return get_satpos_safe(
+            orbit_polynomials=self.header['15_DATA_HEADER']['SatelliteStatus'][
+                'Orbit']['OrbitPolynomial'],
+            time=self.start_time,
+            semi_major_axis=self.mda['projection_parameters']['a'],
+            semi_minor_axis=self.mda['projection_parameters']['b'],
+            logger=logger
+        )
 
 
 class ImageBoundaries:

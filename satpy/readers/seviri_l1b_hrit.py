@@ -141,7 +141,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
 from satpy.readers.seviri_base import (
     CHANNEL_NAMES, SATNUM, SEVIRICalibrationHandler, get_cds_time,
     HRV_NUM_COLUMNS, pad_data_horizontally, create_coef_dict,
-    SatelliteLocatorFactory, NoValidOrbitParams, add_scanline_acq_time
+    get_satpos_safe, add_scanline_acq_time
 )
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
@@ -233,7 +233,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                                                           msg_text_headers))
         self.prologue = {}
         self.read_prologue()
-        self.satpos = None
+        self.satpos = self._get_satpos()
 
         service = filename_info['service']
         if service == '':
@@ -254,32 +254,23 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
             else:
                 self.prologue.update(recarray2dict(impf))
 
-    def get_satpos(self):
+    def _get_satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
 
         Evaluate orbit polynomials at the start time of the scan.
 
-        TODO: Factorize once #1457 is merged.
-
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        if self.satpos is None:
-            a, b = self.get_earth_radii()
-            time = self.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
-                'TrueRepeatCycleStart']
-            factory = SatelliteLocatorFactory(
-                self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
-            )
-            sat_locator = factory.get_satellite_locator(time)
-            try:
-                lon, lat, alt = sat_locator.get_satpos_geodetic(time, a, b)
-            except NoValidOrbitParams as err:
-                logger.warning(err)
-                lon = lat = alt = None
-
-            # Cache results
-            self.satpos = lon, lat, alt
-        return self.satpos
+        a, b = self.get_earth_radii()
+        return get_satpos_safe(
+            orbit_polynomials=self.prologue['SatelliteStatus']['Orbit'][
+                'OrbitPolynomial'],
+            time=self.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
+                'TrueRepeatCycleStart'],
+            semi_major_axis=a,
+            semi_minor_axis=b,
+            logger=logger
+        )
 
     def get_earth_radii(self):
         """Get earth radii from prologue.
@@ -397,7 +388,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
+        actual_lon, actual_lat, actual_alt = self.prologue_.satpos
         self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0

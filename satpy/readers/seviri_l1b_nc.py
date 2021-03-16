@@ -27,8 +27,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, SATNUM,
                                        get_cds_time, add_scanline_acq_time,
-                                       SatelliteLocatorFactory,
-                                       NoValidOrbitParams)
+                                       get_satpos_safe)
 from satpy.readers.eum_base import get_service_mode
 
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
@@ -56,9 +55,9 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.nc = None
         self.mda = {}
-        self.satpos = None
         self.reference = datetime.datetime(1958, 1, 1)
         self._read_file()
+        self.satpos = self._get_satpos()
 
     @property
     def start_time(self):
@@ -176,7 +175,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset.attrs.update(dataset_info)
         dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         dataset.attrs['sensor'] = 'seviri'
-        actual_lon, actual_lat, actual_alt = self._get_satpos()
+        actual_lon, actual_lat, actual_alt = self.satpos
         dataset.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
             'projection_latitude': 0.,
@@ -319,40 +318,30 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
         Evaluate orbit polynomials at the start time of the scan.
 
-        TODO: Factorize once #1457 is merged.
-
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        if self.satpos is None:
-            a = self.mda['projection_parameters']['a']
-            b = self.mda['projection_parameters']['b']
-            time = self.start_time
-            start_times_poly = get_cds_time(
-                days=self.nc['orbit_polynomial_start_time_day'].values,
-                msecs=self.nc['orbit_polynomial_start_time_msec'].values
-            )
-            end_times_poly = get_cds_time(
-                days=self.nc['orbit_polynomial_end_time_day'].values,
-                msecs=self.nc['orbit_polynomial_end_time_msec'].values
-            )
-            orbit_polynomial = {
-                'StartTime': np.array([start_times_poly]),
-                'EndTime': np.array([end_times_poly]),
-                'X': self.nc['orbit_polynomial_x'].values,
-                'Y': self.nc['orbit_polynomial_y'].values,
-                'Z': self.nc['orbit_polynomial_z'].values,
-            }
-            factory = SatelliteLocatorFactory(orbit_polynomial)
-            sat_locator = factory.get_satellite_locator(time)
-            try:
-                lon, lat, alt = sat_locator.get_satpos_geodetic(time, a, b)
-            except NoValidOrbitParams as err:
-                logger.warning(err)
-                lon = lat = alt = None
-
-            # Cache results
-            self.satpos = lon, lat, alt
-        return self.satpos
+        start_times_poly = get_cds_time(
+            days=self.nc['orbit_polynomial_start_time_day'].values,
+            msecs=self.nc['orbit_polynomial_start_time_msec'].values
+        )
+        end_times_poly = get_cds_time(
+            days=self.nc['orbit_polynomial_end_time_day'].values,
+            msecs=self.nc['orbit_polynomial_end_time_msec'].values
+        )
+        orbit_polynomials = {
+            'StartTime': np.array([start_times_poly]),
+            'EndTime': np.array([end_times_poly]),
+            'X': self.nc['orbit_polynomial_x'].values,
+            'Y': self.nc['orbit_polynomial_y'].values,
+            'Z': self.nc['orbit_polynomial_z'].values,
+        }
+        return get_satpos_safe(
+            orbit_polynomials=orbit_polynomials,
+            time=self.start_time,
+            semi_major_axis=self.mda['projection_parameters']['a'],
+            semi_minor_axis=self.mda['projection_parameters']['b'],
+            logger=logger
+        )
 
     def _get_earth_model(self):
         return int(self.nc.attrs['type_of_earth_model'], 16)

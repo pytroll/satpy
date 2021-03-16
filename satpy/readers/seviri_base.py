@@ -598,74 +598,100 @@ class NoValidOrbitParams(Exception):
     pass
 
 
-class SatelliteLocator:
-    """Compute the satellite position."""
+class OrbitPolynomial:
+    """Polynomial encoding the satellite position.
 
-    def __init__(self, orbit_polynomial):
-        """Initialize the satellite locator.
+    Satellite position as a function of time is encoded in the coefficients
+    of an 8th-order Chebyshev polynomial.
+    """
 
-        Args:
-            orbit_polynomial: Satellite coordinates as a function of time
-                encoded in the coefficients of an 8th-order Chebyshev
-                polynomial.
-                {'X': x_coefs,
-                'Y': y_coefs,
-                'Z': z_coefs,
-                'StartTime': coefs_valid_from,
-                'EndTime': coefs_valid_to}
-        """
-        self.orbit_polynomial = orbit_polynomial
+    def __init__(self, x_coefs, y_coefs, z_coefs, start_time, end_time):
+        """Initialize the polynomial."""
+        self.x_coefs = x_coefs
+        self.y_coefs = y_coefs
+        self.z_coefs = z_coefs
+        self.start_time = start_time
+        self.end_time = end_time
 
-    def get_satpos_cart(self, time):
+    def evaluate(self, time):
         """Get satellite position in earth-centered cartesion coordinates.
 
-        The coordinates are obtained by evalutaing the orbit polynomials at the
-        given timestamp.
+        Args:
+            time: Timestamp where to evaluate the polynomial
+
+        Returns:
+            x, y, z in meters
         """
-        tstart = self.orbit_polynomial['StartTime']
-        tend = self.orbit_polynomial['EndTime']
+        tstart = self.start_time
+        tend = self.end_time
         domain = [np.datetime64(tstart).astype('int64'),
                   np.datetime64(tend).astype('int64')]
         time = np.datetime64(time).astype('int64')
-        x = chebyshev(coefs=self.orbit_polynomial['X'], time=time,
-                      domain=domain)
-        y = chebyshev(coefs=self.orbit_polynomial['Y'], time=time,
-                      domain=domain)
-        z = chebyshev(coefs=self.orbit_polynomial['Z'], time=time,
-                      domain=domain)
+        x = chebyshev(coefs=self.x_coefs, time=time, domain=domain)
+        y = chebyshev(coefs=self.y_coefs, time=time, domain=domain)
+        z = chebyshev(coefs=self.z_coefs, time=time, domain=domain)
         return x * 1000, y * 1000, z * 1000  # km -> m
 
-    def get_satpos_geodetic(self, time, a, b):
-        """Get satellite position in geodetic coordinates.
 
-        Returns:
-            Longitude [deg east], Latitude [deg north] and Altitude [m]
-        """
-        x, y, z = self.get_satpos_cart(time)
-        geocent = pyproj.CRS(proj='geocent', a=a, b=b, units='m')
-        latlong = pyproj.CRS(proj='latlong', a=a, b=b, units='m')
-        transformer = pyproj.Transformer.from_crs(geocent, latlong)
-        lon, lat, alt = transformer.transform(x, y, z)
-        return lon, lat, alt
+def get_satpos(orbit_polynomial, time, semi_major_axis, semi_minor_axis):
+    """Get satellite position in geodetic coordinates.
 
+    Args:
+        orbit_polynomial: Orbit polynomial instance
+        time: Timestamp where to evaluate the polynomial
+        semi_major_axis: Semi-major axis of the ellipsoid
+        semi_minor_axis: Semi-minor axis of the ellipsoid
 
-class SatelliteLocatorFactory:
-    """Factory for the SatelliteLocator class.
-
-    Finds the matching orbit polynomial from a list of polynomials and creates
-    a SatelliteLocator instance.
+    Returns:
+        Longitude [deg east], Latitude [deg north] and Altitude [m]
     """
+    x, y, z = orbit_polynomial.evaluate(time)
+    geocent = pyproj.CRS(
+        proj='geocent', a=semi_major_axis, b=semi_minor_axis, units='m'
+    )
+    latlong = pyproj.CRS(
+        proj='latlong', a=semi_major_axis, b=semi_minor_axis, units='m'
+    )
+    transformer = pyproj.Transformer.from_crs(geocent, latlong)
+    lon, lat, alt = transformer.transform(x, y, z)
+    return lon, lat, alt
+
+
+def get_satpos_safe(orbit_polynomials, time, semi_major_axis, semi_minor_axis,
+                    logger):
+    """Safely find orbit polynomial and compute satellite position.
+
+    Returns None and logs a warning if there is no valid orbit polynomial.
+    """
+    poly_finder = OrbitPolynomialFinder(orbit_polynomials)
+    try:
+        orbit_polynomial = poly_finder.get_orbit_polynomial(time)
+        lon, lat, alt = get_satpos(
+            orbit_polynomial=orbit_polynomial,
+            time=time,
+            semi_major_axis=semi_major_axis,
+            semi_minor_axis=semi_minor_axis
+        )
+    except NoValidOrbitParams as err:
+        logger.warning(err)
+        lon = lat = alt = None
+    return lon, lat, alt
+
+
+class OrbitPolynomialFinder:
+    """Find orbit polynomial for a given timestamp."""
 
     def __init__(self, orbit_polynomials):
-        """Initialize the factory.
+        """Initialize with the given candidates.
 
         Args:
-            orbit_polynomials: Dictionary of orbit polynomials
+            orbit_polynomials: Dictionary of orbit polynomials as found in
+                SEVIRI L1B files:
                 {'X': x_polynomials,
-                'Y': y_polynomials,
-                'Z': z_polynomials,
-                'StartTime': polynomials_valid_from,
-                'EndTime': polynomials_valid_to}
+                 'Y': y_polynomials,
+                 'Z': z_polynomials,
+                 'StartTime': polynomials_valid_from,
+                 'EndTime': polynomials_valid_to}
         """
         self.orbit_polynomials = orbit_polynomials
         # Left/right boundaries of time intervals for which the polynomials are
@@ -675,12 +701,7 @@ class SatelliteLocatorFactory:
         self.valid_to = orbit_polynomials['EndTime'][0, :].astype(
             'datetime64[us]')
 
-    def get_satellite_locator(self, time, max_delta=6):
-        """Get satellite locator for the given time."""
-        orbit_polynomial = self._get_orbit_polynomial(time, max_delta)
-        return SatelliteLocator(orbit_polynomial)
-
-    def _get_orbit_polynomial(self, time, max_delta):
+    def get_orbit_polynomial(self, time, max_delta=6):
         """Get orbit polynomial valid for the given time.
 
         Orbit polynomials are only valid for certain time intervals. Find the
@@ -711,14 +732,13 @@ class SatelliteLocatorFactory:
                 'match.'.format(time)
             )
             match = self._get_closest_interval(time, max_delta)
-        orbit_polynomial = {
-            'X': self.orbit_polynomials['X'][match],
-            'Y': self.orbit_polynomials['Y'][match],
-            'Z': self.orbit_polynomials['Z'][match],
-            'StartTime': self.valid_from[match],
-            'EndTime': self.valid_to[match],
-        }
-        return orbit_polynomial
+        return OrbitPolynomial(
+            x_coefs=self.orbit_polynomials['X'][match],
+            y_coefs=self.orbit_polynomials['Y'][match],
+            z_coefs=self.orbit_polynomials['Z'][match],
+            start_time=self.valid_from[match],
+            end_time=self.valid_to[match]
+        )
 
     def _get_enclosing_interval(self, time):
         """Find interval enclosing the given timestamp."""
