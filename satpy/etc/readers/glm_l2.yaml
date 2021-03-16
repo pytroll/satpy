@@ -48,3 +48,9 @@ datasets:
   total_energy:
     name: total_energy
     file_type: glm_l2_imagery
+  minimum_event_energy:
+    name: minimum_event_energy
+    file_type: glm_l2_imagery
+  event_flash_fraction:
+    name: event_flash_fraction
+    file_type: glm_l2_imagery

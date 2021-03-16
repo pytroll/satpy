@@ -7,6 +7,22 @@ enhancements:
         kwargs:
           palettes:
             - {colors: ylorrd, min_value: 0, max_value: 20}
+  event_flash_fraction:
+    name: event_flash_fraction
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylorrd, min_value: 0, max_value: 0.1}
+  total_energy:
+    name: total_energy
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: purples, min_value: 0, max_value: 0.00001, reverse: True} # nJ
   # Requires C14 from ABI
   c14_flash_extent_density:
     standard_name: c14_flash_extent_density
@@ -17,6 +33,13 @@ enhancements:
           stretch: crude
           min_stretch: [0, 0, 0]
           max_stretch: [1, 1, 1]
+  # c14_total_energy:
+  #   standard_name: c14_total_energy
+  #   operations:
+  #     - name: gamma
+  #       method: !!python/name:satpy.enhancements.gamma
+  #       kwargs:
+  #         gamma: [1.4, 1, 1]
   c14_yellow_lightning:
     standard_name: c14_yellow_lightning
     operations:
