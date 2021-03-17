@@ -18,6 +18,7 @@
 """Test the MSG common (native and hrit format) functionionalities."""
 
 from datetime import datetime
+import logging
 import pytest
 import unittest
 
@@ -27,8 +28,8 @@ import dask.array as da
 
 from satpy.readers.seviri_base import (
     dec10216, chebyshev, get_cds_time, get_padding_area, pad_data_horizontally,
-    pad_data_vertically, SatelliteLocator, SatelliteLocatorFactory,
-    NoValidOrbitParams
+    pad_data_vertically, get_satpos, get_satpos_safe, OrbitPolynomial,
+    NoValidOrbitParams, OrbitPolynomialFinder
 )
 from satpy import CHUNK_SIZE
 
@@ -213,55 +214,69 @@ ORBIT_POLYNOMIALS_INVALID = {
     'Y': [3, 4],
     'Z': [5, 6],
 }
-ORBIT_POLYNOMIAL = {
-    'StartTime': datetime(2006, 1, 1, 12),
-    'EndTime': datetime(2006, 1, 1, 18),
-    'X': np.array([8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
-                   -2.70135453e-01, -3.84364650e-02, 8.48718433e-03,
-                   7.70548174e-04, -1.44262718e-04]),
-    'Y': np.array([-5.21170255e+03, 5.12998948e+00, -1.33370453e+00,
-                   -3.09634144e-01, 6.18232793e-02, 7.50505681e-03,
-                   -1.35131011e-03, -1.12054405e-04]),
-    'Z': np.array([-6.51293855e+02, 1.45830459e+02, 5.61379400e+01,
-                   -3.90970565e+00, -7.38137565e-01, 3.06131644e-02,
-                   3.82892428e-03, -1.12739309e-04])
-}
 
 
-class TestSatelliteLocator:
+class TestSatellitePosition:
     """Test locating the satellite."""
+
+    @pytest.fixture
+    def orbit_polynomial(self):
+        """Get an orbit polynomial for testing."""
+        return OrbitPolynomial(
+            start_time=datetime(2006, 1, 1, 12),
+            end_time=datetime(2006, 1, 1, 18),
+            x_coefs=np.array([8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
+                              -2.70135453e-01, -3.84364650e-02, 8.48718433e-03,
+                              7.70548174e-04, -1.44262718e-04]),
+            y_coefs=np.array([-5.21170255e+03, 5.12998948e+00, -1.33370453e+00,
+                              -3.09634144e-01, 6.18232793e-02, 7.50505681e-03,
+                              -1.35131011e-03, -1.12054405e-04]),
+            z_coefs=np.array([-6.51293855e+02, 1.45830459e+02, 5.61379400e+01,
+                              -3.90970565e+00, -7.38137565e-01, 3.06131644e-02,
+                              3.82892428e-03, -1.12739309e-04])
+        )
 
     @pytest.fixture
     def time(self):
         """Get scan timestamp for testing."""
         return datetime(2006, 1, 1, 12, 15, 9, 304888)
 
-    @pytest.fixture
-    def locator(self):
-        """Create satellite locator."""
-        return SatelliteLocator(ORBIT_POLYNOMIAL)
-
-    def test_get_satpos_cart(self, locator, time):
+    def test_eval_polynomial(self, orbit_polynomial, time):
         """Test getting the position in cartesian coordinates."""
-        x, y, z = locator.get_satpos_cart(time)
+        x, y, z = orbit_polynomial.evaluate(time)
         np.testing.assert_allclose(
             [x, y, z],
             [42078421.37095518, -2611352.744615312, -419828.9699940758]
         )
 
-    def test_get_satpos_geodetic(self, locator, time):
+    def test_get_satpos(self, orbit_polynomial, time):
         """Test getting the position in geodetic coordinates."""
-        lon, lat, alt = locator.get_satpos_geodetic(
-            time, a=6378169.00, b=6356583.80
+        lon, lat, alt = get_satpos(
+            orbit_polynomial=orbit_polynomial,
+            time=time,
+            semi_major_axis=6378169.00,
+            semi_minor_axis=6356583.80
         )
         np.testing.assert_allclose(
             [lon, lat, alt],
             [-3.55117540817073, -0.5711243456528018, 35783296.150123544]
         )
 
+    def test_get_satpos_safe(self, time):
+        """Test safely getting the satellite position."""
+        logger = logging.getLogger()
+        lon, lat, alt = get_satpos_safe(
+            orbit_polynomials=ORBIT_POLYNOMIALS_INVALID,
+            time=time,
+            semi_major_axis=1,
+            semi_minor_axis=2,
+            logger=logger
+        )
+        assert (lon, lat, alt) == (None, None, None)
 
-class TestSatelliteLocatorFactory:
-    """Unit tests for satellite locator factory."""
+
+class TestOrbitPolynomialFinder:
+    """Unit tests for orbit polynomial finder."""
 
     @pytest.mark.parametrize(
         ('orbit_polynomials', 'time', 'orbit_polynomial_exp'),
@@ -270,50 +285,47 @@ class TestSatelliteLocatorFactory:
             (
                 ORBIT_POLYNOMIALS_SYNTH,
                 datetime(2005, 12, 31, 12, 15),
-                {
-                    'StartTime': np.datetime64('2005-12-31 12:00'),
-                    'EndTime': np.datetime64('2005-12-31 18:00'),
-                    'X': 2.0,
-                    'Y': 2.1,
-                    'Z': 2.2
-                },
+                OrbitPolynomial(
+                    x_coefs=2.0,
+                    y_coefs=2.1,
+                    z_coefs=2.2,
+                    start_time=np.datetime64('2005-12-31 12:00'),
+                    end_time=np.datetime64('2005-12-31 18:00')
+                )
             ),
             # No interval enclosing the given timestamp, but closest interval
             # not too far away
             (
                     ORBIT_POLYNOMIALS_SYNTH,
                     datetime(2006, 1, 1, 12, 15),
-                    {
-                        'StartTime': np.datetime64('2006-01-01 10:00'),
-                        'EndTime': np.datetime64('2006-01-01 12:00'),
-                        'X': 3.0,
-                        'Y': 3.1,
-                        'Z': 3.2
-                    },
+                    OrbitPolynomial(
+                        x_coefs=3.0,
+                        y_coefs=3.1,
+                        z_coefs=3.2,
+                        start_time=np.datetime64('2006-01-01 10:00'),
+                        end_time=np.datetime64('2006-01-01 12:00')
+                    )
             ),
             # Overlapping intervals
             (
                     ORBIT_POLYNOMIALS_SYNTH,
                     datetime(2006, 1, 3, 12, 15),
-                    {
-                        'StartTime': np.datetime64('2006-01-03 10:00'),
-                        'EndTime': np.datetime64('2006-01-03 18:00'),
-                        'X': 8.0,
-                        'Y': 8.1,
-                        'Z': 8.2
-                    },
+                    OrbitPolynomial(
+                        x_coefs=8.0,
+                        y_coefs=8.1,
+                        z_coefs=8.2,
+                        start_time=np.datetime64('2006-01-03 10:00'),
+                        end_time=np.datetime64('2006-01-03 18:00')
+                    )
             ),
         ]
     )
-    def test_get_satellite_locator(self, orbit_polynomials, time,
-                                   orbit_polynomial_exp):
+    def test_get_orbit_polynomial(self, orbit_polynomials, time,
+                                  orbit_polynomial_exp):
         """Test getting the satellite locator."""
-        factory = SatelliteLocatorFactory(orbit_polynomials)
-        locator = factory.get_satellite_locator(time=time)
-        np.testing.assert_equal(
-            locator.orbit_polynomial,
-            orbit_polynomial_exp
-        )
+        finder = OrbitPolynomialFinder(orbit_polynomials)
+        orbit_polynomial = finder.get_orbit_polynomial(time=time)
+        assert orbit_polynomial == orbit_polynomial_exp
 
     @pytest.mark.parametrize(
         ('orbit_polynomials', 'time'),
@@ -325,8 +337,8 @@ class TestSatelliteLocatorFactory:
             (ORBIT_POLYNOMIALS_INVALID, datetime(2006, 1, 1, 12, 15))
         ]
     )
-    def test_get_satellite_locator_exceptions(self, orbit_polynomials, time):
+    def test_get_orbit_polynomial_exceptions(self, orbit_polynomials, time):
         """Test exceptions thrown while getting the satellite locator."""
-        factory = SatelliteLocatorFactory(orbit_polynomials)
+        finder = OrbitPolynomialFinder(orbit_polynomials)
         with pytest.raises(NoValidOrbitParams):
-            factory.get_satellite_locator(time=time)
+            finder.get_orbit_polynomial(time=time)

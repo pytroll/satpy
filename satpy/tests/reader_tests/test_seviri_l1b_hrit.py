@@ -29,7 +29,6 @@ import xarray as xr
 
 from satpy.readers.seviri_l1b_hrit import (
     HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
-    NoValidOrbitParams
 )
 from satpy.tests.utils import make_dataid
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
@@ -254,23 +253,6 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         # Make sure _get_raw_mda() doesn't modify the original dictionary
         self.assertIn('loff', self.reader.mda)
 
-    @mock.patch(
-        'satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.get_satpos'
-    )
-    def test_get_header(self, get_satpos):
-        """Test getting the header."""
-        # Make sure that the actual satellite position is only included if
-        # available
-        get_satpos.return_value = None, None, None
-        reader = setup.get_fake_file_handler(
-            start_time=datetime(1900, 1, 1),
-            nlines=3712,
-            ncols=3712,
-            projection_longitude=0
-        )
-        self.assertNotIn('satellite_actual_longitude',
-                         reader.mda['orbital_parameters'])
-
 
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     """Test the HRIT prologue file handler."""
@@ -300,20 +282,6 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
                                    ext_calib_coefs={},
                                    mda_max_array_size=123,
                                    calib_mode='nominal')
-
-    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler._get_satpos_cart')
-    def test_get_satpos(self, get_satpos_cart):
-        """Test satellite position in spherical coordinates."""
-        # Test cache
-        self.reader.get_satpos()
-        self.assertEqual(get_satpos_cart.call_count, 1)
-
-        # No valid coefficients
-        self.reader.satpos = None  # reset cache
-        get_satpos_cart.side_effect = NoValidOrbitParams
-        self.reader.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
-            'TrueRepeatCycleStart'] = datetime(2000, 1, 1)
-        self.assertTupleEqual(self.reader.get_satpos(), (None, None, None))
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.utils.reduce_mda')
     def test_reduce(self, reduce_mda):

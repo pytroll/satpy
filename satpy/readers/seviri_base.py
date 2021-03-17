@@ -622,22 +622,30 @@ class OrbitPolynomial:
         Returns:
             x, y, z in meters
         """
-        tstart = self.start_time
-        tend = self.end_time
-        domain = [np.datetime64(tstart).astype('int64'),
-                  np.datetime64(tend).astype('int64')]
+        domain = [np.datetime64(self.start_time).astype('int64'),
+                  np.datetime64(self.end_time).astype('int64')]
         time = np.datetime64(time).astype('int64')
         x = chebyshev(coefs=self.x_coefs, time=time, domain=domain)
         y = chebyshev(coefs=self.y_coefs, time=time, domain=domain)
         z = chebyshev(coefs=self.z_coefs, time=time, domain=domain)
         return x * 1000, y * 1000, z * 1000  # km -> m
 
+    def __eq__(self, other):
+        """Test equality of two orbit polynomials."""
+        return (
+            np.array_equal(self.x_coefs, other.x_coefs) and
+            np.array_equal(self.y_coefs, other.y_coefs) and
+            np.array_equal(self.z_coefs, other.z_coefs) and
+            self.start_time == other.start_time and
+            self.end_time == other.end_time
+        )
+
 
 def get_satpos(orbit_polynomial, time, semi_major_axis, semi_minor_axis):
     """Get satellite position in geodetic coordinates.
 
     Args:
-        orbit_polynomial: Orbit polynomial instance
+        orbit_polynomial: OrbitPolynomial instance
         time: Timestamp where to evaluate the polynomial
         semi_major_axis: Semi-major axis of the ellipsoid
         semi_minor_axis: Semi-minor axis of the ellipsoid
