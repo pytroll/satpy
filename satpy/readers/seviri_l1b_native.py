@@ -432,33 +432,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         dataset = self.calibrate(xarr, dataset_id)
         self._add_scanline_acq_time(dataset, dataset_id)
-        dataset.attrs['units'] = dataset_info['units']
-        dataset.attrs['wavelength'] = dataset_info['wavelength']
-        dataset.attrs['standard_name'] = dataset_info['standard_name']
-        dataset.attrs['platform_name'] = self.mda['platform_name']
-        dataset.attrs['sensor'] = 'seviri'
-        dataset.attrs['georef_offset_corrected'] = self.mda[
-            'offset_corrected']
-
-        # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self.satpos
-        orbital_parameters = {
-            'projection_longitude': self.mda['projection_parameters'][
-                'ssp_longitude'],
-            'projection_latitude': 0.,
-            'projection_altitude': self.mda['projection_parameters']['h'],
-            'satellite_nominal_longitude': self.header['15_DATA_HEADER'][
-                'SatelliteStatus']['SatelliteDefinition'][
-                'NominalLongitude'],
-            'satellite_nominal_latitude': 0.0
-        }
-        if actual_lon is not None:
-            orbital_parameters.update({
-                'satellite_actual_longitude': actual_lon,
-                'satellite_actual_latitude': actual_lat,
-                'satellite_actual_altitude': actual_alt
-            })
-        dataset.attrs['orbital_parameters'] = orbital_parameters
+        self._update_attrs(dataset, dataset_info)
 
         if self.fill_disk and not (dataset_id['name'] != 'HRV' and self.mda['is_full_disk']):
             padder = Padder(dataset_id,
@@ -569,6 +543,34 @@ class NativeMSGFileHandler(BaseFileHandler):
             return self.dask_array['visir']['acq_time']
         i = self.mda['channel_list'].index(dataset_id['name'])
         return self.dask_array['visir']['acq_time'][:, i].compute()
+
+    def _update_attrs(self, dataset, dataset_info):
+        """Update dataset attributes."""
+        dataset.attrs['units'] = dataset_info['units']
+        dataset.attrs['wavelength'] = dataset_info['wavelength']
+        dataset.attrs['standard_name'] = dataset_info['standard_name']
+        dataset.attrs['platform_name'] = self.mda['platform_name']
+        dataset.attrs['sensor'] = 'seviri'
+        dataset.attrs['georef_offset_corrected'] = self.mda[
+            'offset_corrected']
+        actual_lon, actual_lat, actual_alt = self.satpos
+        orbital_parameters = {
+            'projection_longitude': self.mda['projection_parameters'][
+                'ssp_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': self.mda['projection_parameters']['h'],
+            'satellite_nominal_longitude': self.header['15_DATA_HEADER'][
+                'SatelliteStatus']['SatelliteDefinition'][
+                'NominalLongitude'],
+            'satellite_nominal_latitude': 0.0
+        }
+        if actual_lon is not None:
+            orbital_parameters.update({
+                'satellite_actual_longitude': actual_lon,
+                'satellite_actual_latitude': actual_lat,
+                'satellite_actual_altitude': actual_alt
+            })
+        dataset.attrs['orbital_parameters'] = orbital_parameters
 
     @cached_property
     def satpos(self):
