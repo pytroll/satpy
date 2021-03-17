@@ -519,11 +519,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         add_scanline_acq_time(dataset, acq_time)
 
     def _get_acq_time_hrv(self):
-        """Get raw acquisition time for HRV channel.
-
-        TODO: Duplicates code from get_dataset in order to avoid conflicts
-              with #1438. Should be refactored once that is merged.
-        """
+        """Get raw acquisition time for HRV channel."""
         tline = self.dask_array['hrv']['acq_time']
         tline0 = tline[:, 0]
         tline1 = tline[:, 1]
@@ -532,11 +528,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             self.mda['hrv_number_of_lines']).compute()
 
     def _get_acq_time_visir(self, dataset_id):
-        """Get raw acquisition time for VIS/IR channels.
-
-        TODO: Duplicates code from get_dataset in order to avoid conflicts
-              with #1438. Should be refactored once that is merged.
-        """
+        """Get raw acquisition time for VIS/IR channels."""
         # Check if there is only 1 channel in the list as a change
         # is needed in the arrray assignment ie channl id is not present
         if len(self.mda['channel_list']) == 1:
