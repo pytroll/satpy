@@ -23,6 +23,7 @@ import logging
 import numpy as np
 import xarray as xr
 
+from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, SATNUM,
@@ -57,7 +58,6 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.mda = {}
         self.reference = datetime.datetime(1958, 1, 1)
         self._read_file()
-        self.satpos = None
 
     @property
     def start_time(self):
@@ -175,7 +175,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset.attrs.update(dataset_info)
         dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         dataset.attrs['sensor'] = 'seviri'
-        actual_lon, actual_lat, actual_alt = self._get_satpos()
+        actual_lon, actual_lat, actual_alt = self.satpos
         dataset.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
             'projection_latitude': 0.,
@@ -313,38 +313,36 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         msecs = self.nc[msec_key].isel(channels_vis_ir_dim=band_idx)
         return days, msecs
 
-    def _get_satpos(self):
+    @cached_property
+    def satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
 
         Evaluate orbit polynomials at the start time of the scan.
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        if self.satpos is None:
-            start_times_poly = get_cds_time(
-                days=self.nc['orbit_polynomial_start_time_day'].values,
-                msecs=self.nc['orbit_polynomial_start_time_msec'].values
-            )
-            end_times_poly = get_cds_time(
-                days=self.nc['orbit_polynomial_end_time_day'].values,
-                msecs=self.nc['orbit_polynomial_end_time_msec'].values
-            )
-            orbit_polynomials = {
-                'StartTime': np.array([start_times_poly]),
-                'EndTime': np.array([end_times_poly]),
-                'X': self.nc['orbit_polynomial_x'].values,
-                'Y': self.nc['orbit_polynomial_y'].values,
-                'Z': self.nc['orbit_polynomial_z'].values,
-            }
-            print(orbit_polynomials['X'].shape)
-            self.satpos = get_satpos_safe(
-                orbit_polynomials=orbit_polynomials,
-                time=self.start_time,
-                semi_major_axis=self.mda['projection_parameters']['a'],
-                semi_minor_axis=self.mda['projection_parameters']['b'],
-                logger=logger
-            )
-        return self.satpos
+        start_times_poly = get_cds_time(
+            days=self.nc['orbit_polynomial_start_time_day'].values,
+            msecs=self.nc['orbit_polynomial_start_time_msec'].values
+        )
+        end_times_poly = get_cds_time(
+            days=self.nc['orbit_polynomial_end_time_day'].values,
+            msecs=self.nc['orbit_polynomial_end_time_msec'].values
+        )
+        orbit_polynomials = {
+            'StartTime': np.array([start_times_poly]),
+            'EndTime': np.array([end_times_poly]),
+            'X': self.nc['orbit_polynomial_x'].values,
+            'Y': self.nc['orbit_polynomial_y'].values,
+            'Z': self.nc['orbit_polynomial_z'].values,
+        }
+        return get_satpos_safe(
+            orbit_polynomials=orbit_polynomials,
+            time=self.start_time,
+            semi_major_axis=self.mda['projection_parameters']['a'],
+            semi_minor_axis=self.mda['projection_parameters']['b'],
+            logger=logger
+        )
 
     def _get_earth_model(self):
         return int(self.nc.attrs['type_of_earth_model'], 16)

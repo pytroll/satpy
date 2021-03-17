@@ -36,6 +36,7 @@ from satpy import CHUNK_SIZE
 
 from pyresample import geometry
 
+from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import (
     recarray2dict, get_service_mode, time_cds_short
@@ -87,7 +88,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.header = {}
         self.mda = {}
         self.trailer = {}
-        self.satpos = None
 
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
@@ -441,7 +441,7 @@ class NativeMSGFileHandler(BaseFileHandler):
             'offset_corrected']
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self._get_satpos()
+        actual_lon, actual_lat, actual_alt = self.satpos
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -570,23 +570,22 @@ class NativeMSGFileHandler(BaseFileHandler):
         i = self.mda['channel_list'].index(dataset_id['name'])
         return self.dask_array['visir']['acq_time'][:, i].compute()
 
-    def _get_satpos(self):
+    @cached_property
+    def satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
 
         Evaluate orbit polynomials at the start time of the scan.
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        if self.satpos is None:
-            self.satpos = get_satpos_safe(
-                orbit_polynomials=self.header['15_DATA_HEADER'][
-                    'SatelliteStatus']['Orbit']['OrbitPolynomial'],
-                time=self.start_time,
-                semi_major_axis=self.mda['projection_parameters']['a'],
-                semi_minor_axis=self.mda['projection_parameters']['b'],
-                logger=logger
-            )
-        return self.satpos
+        return get_satpos_safe(
+            orbit_polynomials=self.header['15_DATA_HEADER'][
+                'SatelliteStatus']['Orbit']['OrbitPolynomial'],
+            time=self.start_time,
+            semi_major_axis=self.mda['projection_parameters']['a'],
+            semi_minor_axis=self.mda['projection_parameters']['b'],
+            logger=logger
+        )
 
 
 class ImageBoundaries:

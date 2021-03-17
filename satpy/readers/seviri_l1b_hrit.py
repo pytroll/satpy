@@ -133,6 +133,7 @@ import xarray as xr
 
 from pyresample import geometry
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
 import satpy.readers.utils as utils
 from satpy.readers.eum_base import recarray2dict, time_cds_short, get_service_mode
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
@@ -232,7 +233,6 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                                                           msg_variable_length_headers,
                                                           msg_text_headers))
         self.prologue = {}
-        self.satpos = None
         self.read_prologue()
 
         service = filename_info['service']
@@ -254,25 +254,24 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
             else:
                 self.prologue.update(recarray2dict(impf))
 
-    def get_satpos(self):
+    @cached_property
+    def satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
 
         Evaluate orbit polynomials at the start time of the scan.
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        if self.satpos is None:
-            a, b = self.get_earth_radii()
-            self.satpos = get_satpos_safe(
-                orbit_polynomials=self.prologue['SatelliteStatus']['Orbit'][
-                    'OrbitPolynomial'],
-                time=self.prologue['ImageAcquisition'][
-                    'PlannedAcquisitionTime']['TrueRepeatCycleStart'],
-                semi_major_axis=a,
-                semi_minor_axis=b,
-                logger=logger
-            )
-        return self.satpos
+        a, b = self.get_earth_radii()
+        return get_satpos_safe(
+            orbit_polynomials=self.prologue['SatelliteStatus']['Orbit'][
+                'OrbitPolynomial'],
+            time=self.prologue['ImageAcquisition'][
+                'PlannedAcquisitionTime']['TrueRepeatCycleStart'],
+            semi_major_axis=a,
+            semi_minor_axis=b,
+            logger=logger
+        )
 
     def get_earth_radii(self):
         """Get earth radii from prologue.
@@ -390,7 +389,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
+        actual_lon, actual_lat, actual_alt = self.prologue_.satpos
         self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
