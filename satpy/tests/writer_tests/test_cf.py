@@ -646,7 +646,7 @@ class TestCFWriter(unittest.TestCase):
         self.assertNotIn('lon', datasets['var2'].coords)
         self.assertNotIn('lat', datasets['var2'].coords)
 
-        # The not existed dimension or coordinate should be dropped
+        # The non-existant dimension or coordinate should be dropped
         self.assertNotIn('time', datasets['var3'].coords)
         self.assertNotIn('not_exist', datasets['var4'].coords)
 
