@@ -48,6 +48,7 @@ from satpy.readers.utils import unzip_file, get_geostationary_mask, \
                                 get_user_calibration_factors, \
                                 apply_rad_correction
 from satpy.readers._geos_area import get_area_extent, get_area_definition
+from satpy._compat import cached_property
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -259,10 +260,14 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     Alternative AHI calibrations are also available, such as GSICS
     coefficients. As such, you can supply custom per-channel correction
-    by setting calib_mode='custom' and passing correction factors via:
-       user_calibration={'chan': ['slope': slope, 'offset': offset]}
+    by setting calib_mode='custom' and passing correction factors via::
+
+        user_calibration={'chan': ['slope': slope, 'offset': offset]}
+
     Where slo and off are per-channel slope and offset coefficients defined by::
-     rad_leo = (rad_geo - off) / slo
+
+        rad_leo = (rad_geo - off) / slo
+
     If you do not have coefficients for a particular band, then by default the
     slope will be set to 1 .and the offset to 0.::
 
@@ -286,9 +291,11 @@ class AHIHSDFileHandler(BaseFileHandler):
     converting digital number into radiance via Rad = DN * gain + offset are
     also possible. To supply your own factors, supply a user calibration dict
     using `type: 'DN'` as follows::
+
         calib_dict = {'B07': {'slope': 0.0037, 'offset': 18.5},
                       'B14': {'slope': -0.002, 'offset': 22.8},
                       'type': 'DN'}
+
     You can also explicitly select radiance correction with `'type': 'RAD'`
     but this is not necessary as it is the default option if you supply your
     own correction coefficients.
@@ -348,7 +355,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def __del__(self):
         """Delete the object."""
-        if (self.is_zipped and os.path.exists(self.filename)):
+        if self.is_zipped and os.path.exists(self.filename):
             os.remove(self.filename)
 
     @property
@@ -377,10 +384,17 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Get the dataset."""
         return self.read_band(key, info)
 
+    @cached_property
+    def area(self):
+        """Get AreaDefinition representing this file's data."""
+        return self._get_area_def()
+
     def get_area_def(self, dsid):
         """Get the area definition."""
         del dsid
+        return self.area
 
+    def _get_area_def(self):
         pdict = {}
         pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
         pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
@@ -402,14 +416,11 @@ class AHIHSDFileHandler(BaseFileHandler):
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
         pdict['p_id'] = 'geosh8'
 
-        area = get_area_definition(pdict, aex)
-
-        self.area = area
-        return area
+        return get_area_definition(pdict, aex)
 
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
-        if (fp_.tell() + offset != fpos):
+        if fp_.tell() + offset != fpos:
             warnings.warn("Actual "+block+" header size does not match expected")
         return
 

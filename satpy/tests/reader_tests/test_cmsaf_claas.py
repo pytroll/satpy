@@ -104,7 +104,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 @pytest.fixture
 def reader():
     """Return reader for CMSAF CLAAS-2."""
-    from satpy.config import config_search_paths
+    from satpy._config import config_search_paths
     from satpy.readers import load_reader
 
     reader_configs = config_search_paths(

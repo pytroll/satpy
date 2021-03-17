@@ -32,6 +32,7 @@ class TestAHIGriddedArea(unittest.TestCase):
     """Test the AHI gridded reader definition."""
 
     def setUp(self):
+        """Create fake data for testing."""
         self.FULLDISK_SIZES = {0.005: {'x_size': 24000,
                                        'y_size': 24000},
                                0.01: {'x_size': 12000,
@@ -71,7 +72,6 @@ class TestAHIGriddedArea(unittest.TestCase):
 
     def test_area_def(self):
         """Check that a valid full disk area is produced."""
-
         good_area = AreaDefinition('gridded_himawari',
                                    'A gridded Himawari area',
                                    'longlat',
@@ -85,7 +85,7 @@ class TestAHIGriddedArea(unittest.TestCase):
         self.assertEqual(tmp_fh.area, good_area)
 
     def test_bad_area(self):
-        """"Ensure an error is raised for an usupported area."""
+        """Ensure an error is raised for an usupported area."""
         tmp_fh = self.make_fh('ext.01')
         tmp_fh.areaname = 'scanning'
         with self.assertRaises(NotImplementedError):
@@ -111,7 +111,7 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_l1b_gridded_bin.os.path.exists')
     @mock.patch('satpy.readers.ahi_l1b_gridded_bin.np.loadtxt')
     def test_calibrate(self, np_loadtxt, os_exist, get_luts):
-        """Test the calibration modes of AHI using the LUTs"""
+        """Test the calibration modes of AHI using the LUTs."""
         load_return = np.squeeze(np.dstack([np.arange(0, 2048, 1),
                                             np.arange(0, 120, 0.05859375)]))
 
@@ -150,6 +150,7 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
 
 class TestAHIGriddedFileHandler(unittest.TestCase):
     """Test case for the file reading."""
+
     def new_unzip(fname):
         """Fake unzipping."""
         if fname[-3:] == 'bz2':

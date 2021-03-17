@@ -290,9 +290,9 @@ of satpy and its dependencies are installed. Satpy drags in a few packages as
 dependencies per default, but each reader and writer has it's own dependencies
 which can be unfortunately easy to miss when just doing a regular `pip install`.
 To check the missing dependencies for the readers and writers, a utility
-function called `check_satpy` can be used:
+function called :func:`~satpy.utils.check_satpy` can be used:
 
-  >>> from satpy.config import check_satpy
+  >>> from satpy.utils import check_satpy
   >>> check_satpy()
 
 Due to the way Satpy works, producing as many datasets as possible, there are

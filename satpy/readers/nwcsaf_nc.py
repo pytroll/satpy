@@ -30,7 +30,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from pyresample.utils import get_area_def
+from pyresample.geometry import AreaDefinition
+from pyproj import CRS
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
@@ -263,43 +264,42 @@ class NcNWCSAF(BaseFileHandler):
         if dsid['name'].endswith('_pal'):
             raise NotImplementedError
 
-        proj_str, area_extent = self._get_projection()
-
+        crs, area_extent = self._get_projection()
+        crs, area_extent = self._ensure_crs_extents_in_meters(crs, area_extent)
         nlines, ncols = self.nc[dsid['name']].shape
-
-        area = self._ensure_area_def_is_in_meters(
-            get_area_def('some_area_name',
-                         "On-the-fly area",
-                         'geosmsg',
-                         proj_str,
-                         ncols,
-                         nlines,
-                         area_extent))
+        area = AreaDefinition('some_area_name',
+                              "On-the-fly area",
+                              'geosmsg',
+                              crs,
+                              ncols,
+                              nlines,
+                              area_extent)
 
         return area
 
     @staticmethod
-    def _ensure_area_def_is_in_meters(area_definition):
+    def _ensure_crs_extents_in_meters(crs, area_extent):
         """Fix units in Earth shape, satellite altitude and 'units' attribute."""
-        if area_definition.proj_dict["units"] == "km":
-            proj_dict = area_definition.proj_dict.copy()
-            from pyresample.geometry import AreaDefinition
-
+        if 'kilo' in crs.axis_info[0].unit_name:
+            proj_dict = crs.to_dict()
             proj_dict["units"] = "m"
-            proj_dict["a"] *= 1000.
+            if "a" in proj_dict:
+                proj_dict["a"] *= 1000.
+            if "b" in proj_dict:
+                proj_dict["b"] *= 1000.
+            if "R" in proj_dict:
+                proj_dict["R"] *= 1000.
             proj_dict["h"] *= 1000.
-            area_extent = tuple([val * 1000. for val in area_definition.area_extent])
-            return AreaDefinition(area_definition.area_id, area_definition.description,
-                                  area_definition.proj_id, proj_dict,
-                                  area_definition.width, area_definition.height, area_extent)
-        return area_definition
+            area_extent = tuple([val * 1000. for val in area_extent])
+            crs = CRS.from_dict(proj_dict)
+        return crs, area_extent
 
     def __del__(self):
         """Delete the instance."""
         if self._unzipped:
             try:
                 os.remove(self._unzipped)
-            except (IOError, OSError):
+            except OSError:
                 pass
 
     @property
@@ -363,7 +363,8 @@ class NcNWCSAF(BaseFileHandler):
                        float(self.nc.attrs['gdal_xgeo_low_right']) / scale,
                        float(self.nc.attrs['gdal_ygeo_up_left']) / scale)
 
-        return proj_str, area_extent
+        crs = CRS.from_string(proj_str)
+        return crs, area_extent
 
 
 def remove_empties(variable):

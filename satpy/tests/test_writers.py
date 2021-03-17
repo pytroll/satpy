@@ -21,6 +21,7 @@ import shutil
 import unittest
 import warnings
 
+import pytest
 import numpy as np
 import xarray as xr
 from trollimage.colormap import greys
@@ -309,15 +310,6 @@ sensor_name: visir/test_sensor2
                 {os.path.abspath(self.ENH_FN2),
                  os.path.abspath(self.ENH_ENH_FN2)})
 
-    def test_deprecated_enhance_with_file_specified(self):
-        """Test enhancing an image when config file is specified."""
-        from satpy.writers import get_enhanced_image
-        from xarray import DataArray
-        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
-                       dims=['y', 'x'])
-        get_enhanced_image(ds, enhancement_config_file=self.ENH_ENH_FN)
-
     def test_no_enhance(self):
         """Test turning off enhancements."""
         from satpy.writers import get_enhanced_image
@@ -410,7 +402,7 @@ class TestYAMLFiles(unittest.TestCase):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
 
-        from satpy.config import glob_config
+        from satpy._config import glob_config
         from satpy.writers import read_writer_config
         for writer_config in glob_config('writers/*.yaml'):
             writer_fn = os.path.basename(writer_config)
@@ -559,10 +551,10 @@ class TestComputeWriterResults(unittest.TestCase):
         self.assertTrue(os.path.isfile(fname2))
 
 
-class TestBaseWriter(unittest.TestCase):
+class TestBaseWriter:
     """Test the base writer class."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up tests."""
         import tempfile
         from datetime import datetime
@@ -573,16 +565,22 @@ class TestBaseWriter(unittest.TestCase):
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+            attrs={
+                'name': 'test',
+                'start_time': datetime(2018, 1, 1, 0, 0, 0),
+                'sensor': 'fake_sensor',
+            }
         )
+        ds2 = ds1.copy()
+        ds2.attrs['sensor'] = {'fake_sensor1', 'fake_sensor2'}
         self.scn = Scene()
         self.scn['test'] = ds1
+        self.scn['test2'] = ds2
 
         # Temp dir
         self.base_dir = tempfile.mkdtemp()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Remove the temporary directory created for a test."""
         try:
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -592,29 +590,38 @@ class TestBaseWriter(unittest.TestCase):
     def test_save_dataset_static_filename(self):
         """Test saving a dataset with a static filename specified."""
         self.scn.save_datasets(base_dir=self.base_dir, filename='geotiff.tif')
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, 'geotiff.tif')))
+        assert os.path.isfile(os.path.join(self.base_dir, 'geotiff.tif'))
 
-    def test_save_dataset_dynamic_filename(self):
+    @pytest.mark.parametrize(
+        ('fmt_fn', 'exp_fns'),
+        [
+            ('geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif',
+             ['geotiff_test_20180101_000000.tif', 'geotiff_test2_20180101_000000.tif']),
+            ('geotiff_{name}_{sensor}.tif',
+             ['geotiff_test_fake_sensor.tif', 'geotiff_test2_fake_sensor1-fake_sensor2.tif']),
+        ]
+    )
+    def test_save_dataset_dynamic_filename(self, fmt_fn, exp_fns):
         """Test saving a dataset with a format filename specified."""
-        fmt_fn = 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif'
-        exp_fn = 'geotiff_test_20180101_000000.tif'
         self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+        for exp_fn in exp_fns:
+            exp_path = os.path.join(self.base_dir, exp_fn)
+            assert os.path.isfile(exp_path)
 
     def test_save_dataset_dynamic_filename_with_dir(self):
         """Test saving a dataset with a format filename that includes a directory."""
         fmt_fn = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif')
         exp_fn = os.path.join('20180101', 'geotiff_test_20180101_000000.tif')
         self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+        assert os.path.isfile(os.path.join(self.base_dir, exp_fn))
 
         # change the filename pattern but keep the same directory
         fmt_fn2 = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H}.tif')
         exp_fn2 = os.path.join('20180101', 'geotiff_test_20180101_00.tif')
         self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn2)
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn2)))
+        assert os.path.isfile(os.path.join(self.base_dir, exp_fn2))
         # the original file should still exist
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+        assert os.path.isfile(os.path.join(self.base_dir, exp_fn))
 
 
 class TestOverlays(unittest.TestCase):

@@ -44,8 +44,7 @@ class TestNcNWCSAF(unittest.TestCase):
         self.scn = NcNWCSAF('filename', {}, {})
 
     def test_sensor_name(self):
-        """Test that the correct sensor name is being set"""
-
+        """Test that the correct sensor name is being set."""
         self.scn.set_platform_and_sensor(platform_name='Metop-B')
         self.assertEqual(self.scn.sensor, set(['avhrr-3']))
         self.assertEqual(self.scn.sensor_names, set(['avhrr-3']))

@@ -22,6 +22,7 @@ from weakref import WeakValueDictionary
 
 import numpy as np
 import dask.array as da
+import xarray as xr
 
 from satpy.modifiers import ModifierBase
 from satpy.utils import get_satpos
@@ -149,8 +150,8 @@ class PSPAtmosphericalCorrection(ModifierBase):
                                             band.attrs['sensor'])
 
         atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
-        proj = band - atm_corr
-        proj.attrs = band.attrs
+        proj = xr.DataArray(atm_corr, attrs=band.attrs,
+                            dims=band.dims, coords=band.coords)
         self.apply_modifier_info(band, proj)
 
         return proj

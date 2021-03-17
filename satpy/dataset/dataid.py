@@ -160,6 +160,37 @@ class WavelengthRange(wlklass):
             return cls(*wl)
         return wl
 
+    def to_cf(self):
+        """Serialize for cf export."""
+        return str(self)
+
+    @classmethod
+    def from_cf(cls, blob):
+        """Return a WavelengthRange from a cf blob."""
+        try:
+            obj = cls._read_cf_from_string_export(blob)
+        except TypeError:
+            obj = cls._read_cf_from_string_list(blob)
+        return obj
+
+    @classmethod
+    def _read_cf_from_string_export(cls, blob):
+        """Read blob as a string created by `to_cf`."""
+        pattern = "{central:f} {unit:s} ({min:f}-{max:f} {unit2:s})"
+        from trollsift import Parser
+        parser = Parser(pattern)
+        res_dict = parser.parse(blob)
+        res_dict.pop('unit2')
+        obj = cls(**res_dict)
+        return obj
+
+    @classmethod
+    def _read_cf_from_string_list(cls, blob):
+        """Read blob as a list of strings (legacy formatting)."""
+        min_wl, central_wl, max_wl, unit = blob
+        obj = cls(float(min_wl), float(central_wl), float(max_wl), unit)
+        return obj
+
 
 class ModifierTuple(tuple):
     """A tuple holder for modifiers."""
@@ -246,7 +277,7 @@ class DataID(dict):
     def __init__(self, id_keys, **keyval_dict):
         """Init the DataID.
 
-        The *id_keys* dictionary has to be formed as described in :doc:`satpy_internals`.
+        The *id_keys* dictionary has to be formed as described in :doc:`../dev_guide/satpy_internals`.
         The other keyword arguments are values to be assigned to the keys. Note that
         `None` isn't a valid value and will simply be ignored.
         """
@@ -647,7 +678,7 @@ class DataQuery:
                         dataid_val = dataid[key]
                     except KeyError:
                         distance += big_distance
-                        break
+                        continue
                     try:
                         distance += dataid_val.distance(val)
                     except AttributeError:

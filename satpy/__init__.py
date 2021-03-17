@@ -18,12 +18,7 @@
 """Satpy Package initializer."""
 
 import os
-from pkg_resources import get_distribution, DistributionNotFound
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    # package is not installed
-    pass
+from satpy.version import version as __version__  # noqa
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
@@ -35,5 +30,6 @@ from satpy.readers import (find_files_and_readers,  # noqa
 from satpy.writers import available_writers  # noqa
 from satpy.scene import Scene  # noqa
 from satpy.multiscene import MultiScene  # noqa
+from satpy._config import config  # noqa
 
 log = get_logger('satpy')

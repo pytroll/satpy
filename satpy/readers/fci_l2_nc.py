@@ -37,6 +37,8 @@ SSP_DEFAULT = 0.0
 
 
 class FciL2CommonFunctions(object):
+    """Shared operations for file handlers."""
+
     @property
     def _start_time(self):
         try:

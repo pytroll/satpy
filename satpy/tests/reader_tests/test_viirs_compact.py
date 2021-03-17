@@ -17,11 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_compact module."""
 
-import numpy as np
-import unittest
-import h5py
-import tempfile
 import os
+import tempfile
+import unittest
+from contextlib import suppress
+
+import h5py
+import numpy as np
 
 
 class TestCompact(unittest.TestCase):
@@ -2435,30 +2437,48 @@ class TestCompact(unittest.TestCase):
             h5f.attrs[attr] = val
         h5f.close()
 
-    def test_get_dataset(self):
-        """Retrieve datasets from a DNB file."""
+        self.client = None
+
+    def _dataset_iterator(self):
         from satpy.readers.viirs_compact import VIIRSCompactFileHandler
         from satpy.tests.utils import make_dataid
 
         filename_info = {}
         filetype_info = {'file_type': 'compact_dnb'}
-        dsid = make_dataid(name='DNB', calibration='radiance')
         test = VIIRSCompactFileHandler(self.filename, filename_info, filetype_info)
-        ds = test.get_dataset(dsid, {})
-        self.assertEqual(ds.shape, (752, 4064))
-        self.assertEqual(ds.dtype, np.float32)
-        self.assertEqual(ds.attrs['rows_per_scan'], 16)
 
+        dsid = make_dataid(name='DNB', calibration='radiance')
+        ds1 = test.get_dataset(dsid, {})
         dsid = make_dataid(name='longitude_dnb')
-        ds = test.get_dataset(dsid, {'standard_name': 'longitude'})
-        self.assertEqual(ds.shape, (752, 4064))
-        self.assertEqual(ds.dtype, np.float32)
-        self.assertEqual(ds.compute().shape, (752, 4064))
-        self.assertEqual(ds.attrs['rows_per_scan'], 16)
+        ds2 = test.get_dataset(dsid, {'standard_name': 'longitude'})
+        dsid = make_dataid(name='latitude_dnb')
+        ds3 = test.get_dataset(dsid, {'standard_name': 'latitude'})
+        dsid = make_dataid(name='solar_zenith_angle')
+        ds4 = test.get_dataset(dsid, {'standard_name': 'solar_zenith_angle'})
+
+        for ds in [ds1, ds2, ds3, ds4]:
+            yield ds
+
+    def test_get_dataset(self):
+        """Retrieve datasets from a DNB file."""
+        for ds in self._dataset_iterator():
+            self.assertEqual(ds.shape, (752, 4064))
+            self.assertEqual(ds.dtype, np.float32)
+            self.assertEqual(ds.compute().shape, (752, 4064))
+            self.assertEqual(ds.attrs['rows_per_scan'], 16)
+
+    def test_distributed(self):
+        """Check that distributed computations work."""
+        from dask.distributed import Client
+        self.client = Client()
+
+        for ds in self._dataset_iterator():
+            # Check that the computation is running fine.
+            self.assertEqual(ds.compute().shape, (752, 4064))
 
     def tearDown(self):
         """Destroy."""
-        try:
+        with suppress(OSError):
             os.remove(self.filename)
-        except OSError:
-            pass
+        with suppress(AttributeError):
+            self.client.close()

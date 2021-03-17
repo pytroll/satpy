@@ -37,9 +37,10 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler"""
+    """Swap-in NetCDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         sat, inst = {
             'VIIRS_NPP': ('NPP', 'VIIRS'),
@@ -96,12 +97,13 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
 
 class TestACSPOReader(unittest.TestCase):
-    """Test ACSPO Reader"""
+    """Test ACSPO Reader."""
+
     yaml_file = "acspo.yaml"
 
     def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler"""
-        from satpy.config import config_search_paths
+        """Wrap NetCDF4 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
         from satpy.readers.acspo import ACSPOFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -110,7 +112,7 @@ class TestACSPOReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -126,7 +128,7 @@ class TestACSPOReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_every_dataset(self):
-        """Test loading all datasets"""
+        """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([

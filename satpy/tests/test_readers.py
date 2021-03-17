@@ -607,7 +607,7 @@ class TestYAMLFiles(unittest.TestCase):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
 
-        from satpy.config import glob_config
+        from satpy._config import glob_config
         from satpy.readers import read_reader_config
         for reader_config in glob_config('readers/*.yaml'):
             reader_fn = os.path.basename(reader_config)
@@ -896,6 +896,13 @@ class TestFSFile(unittest.TestCase):
         from satpy.readers import FSFile
         assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
 
+    def test_fsfile_with_pathlike(self):
+        """Test FSFile with path-like object."""
+        from satpy.readers import FSFile
+        from pathlib import Path
+        f = FSFile(Path(self.local_filename))
+        assert str(f) == os.fspath(f) == self.local_filename
+
     def test_fsfile_with_fs_open_file_abides_pathlike(self):
         """Test that FSFile abides PathLike for fsspec OpenFile instances."""
         from satpy.readers import FSFile
@@ -945,3 +952,15 @@ class TestFSFile(unittest.TestCase):
         sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
         expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
         assert sorted_filenames == expected_filenames
+
+    def test_equality(self):
+        """Test that FSFile compares equal when it should."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        assert FSFile(self.local_filename) == FSFile(self.local_filename)
+        assert (FSFile(self.local_filename, zip_fs) ==
+                FSFile(self.local_filename, zip_fs))
+        assert (FSFile(self.local_filename, zip_fs) !=
+                FSFile(self.local_filename))
+        assert FSFile(self.local_filename) != FSFile(self.local_filename2)

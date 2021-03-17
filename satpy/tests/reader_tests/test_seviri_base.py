@@ -128,7 +128,7 @@ class SeviriBaseTest(unittest.TestCase):
     def test_get_padding_area_float():
         """Test padding area generator for floats."""
         shape = (10, 10)
-        dtype = np.float
+        dtype = np.float64
         res = get_padding_area(shape, dtype)
         expected = da.full(shape, np.nan, dtype=dtype, chunks=CHUNK_SIZE)
         np.testing.assert_array_equal(res, expected)
@@ -137,7 +137,7 @@ class SeviriBaseTest(unittest.TestCase):
     def test_get_padding_area_int():
         """Test padding area generator for integers."""
         shape = (10, 10)
-        dtype = np.int
+        dtype = np.int64
         res = get_padding_area(shape, dtype)
         expected = da.full(shape, 0, dtype=dtype, chunks=CHUNK_SIZE)
         np.testing.assert_array_equal(res, expected)

@@ -46,7 +46,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         """Set up the test."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
         # uses a UUID to avoid permission conflicts during execution of tests in parallel
-        self.test_file_name = TEST_FILE + str(uuid.uuid1())
+        self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
 
         with Dataset(self.test_file_name, 'w') as nc:
             # Add global attributes
