@@ -615,7 +615,6 @@ class FSFile(os.PathLike):
         Returns the hash, computed from the hash of the filename and the hash
         of the filesystem.
         """
-
         return hash(self._file) ^ hash(self._fs)
 
 
