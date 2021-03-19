@@ -346,7 +346,7 @@ def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
     """
     assert sorted(attrs) == sorted(attrs_exp), "Different set of keys"
     for key in attrs_exp:
-        err_msg = "Attribute {} does not match expectaion".format(key)
+        err_msg = "Attribute {} does not match expectation".format(key)
         if isinstance(attrs[key], dict):
             assert_attrs_equal(attrs[key], attrs_exp[key])
         try:
