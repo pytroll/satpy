@@ -29,7 +29,7 @@ from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
     TestFileHandlerCalibrationBase
 )
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import make_dataid, assert_attrs_equal
 
 
 def to_cds_time(time):
@@ -237,32 +237,36 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         res = file_handler.get_dataset(dataset_id, dataset_info)
 
         # Test scanline acquisition times
-        xr.testing.assert_allclose(
-            res['acq_time'].drop_vars('acq_time'),
-            xr.DataArray(
-                [datetime(1958, 1, 2, 0, 0, 2),
-                 datetime(1958, 1, 2, 0, 0, 1)],
-                dims='y'
-            )
+        expected = self._get_expected(
+            channel=channel,
+            calibration=calibration,
+            calib_mode='NOMINAL',
+            use_ext_coefs=False
         )
+        expected.attrs = {
+            'orbital_parameters': {
+                'satellite_actual_longitude': -3.541742131915741,
+                'satellite_actual_latitude': -0.5203765167594427,
+                'satellite_actual_altitude': 35783419.16135868,
+                'satellite_nominal_longitude': -3.5,
+                'satellite_nominal_latitude': 0.0,
+                'projection_longitude': 0.0,
+                'projection_latitude': 0.0,
+                'projection_altitude': 35785831.0
+            },
+            'georef_offset_corrected': True,
+            'platform_name': 'Meteosat-11',
+            'sensor': 'seviri',
+            'units': 'units',
+            'wavelength': 'wavelength',
+            'standard_name': 'standard_name'
+        }
+        expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
+                                      np.datetime64('1958-01-02 00:00:02')])
+        expected = expected[::-1]  # reader flips data upside down
+        xr.testing.assert_allclose(res, expected)
 
-        # Test attributes
-        orb_params = res.attrs['orbital_parameters']
-        assert orb_params['projection_longitude'] == 0.0
-        assert orb_params['projection_latitude'] == 0.0
-        assert orb_params['projection_altitude'] == 35785831.0
-        assert orb_params['satellite_nominal_longitude'] == -3.5
-        assert orb_params['satellite_nominal_latitude'] == 0.0
-        assert orb_params['satellite_actual_longitude'] == pytest.approx(
-            -3.541742131915741
-        )
-        assert orb_params['satellite_actual_latitude'] == pytest.approx(
-            -0.5203765167594427
-        )
-        assert orb_params['satellite_actual_altitude'] == pytest.approx(
-            35783419.16135868
-        )
-        assert res.attrs['georef_offset_corrected'] is True
-        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor",
-                       "add_offset", "valid_min", "valid_max"]
-        assert not any([k in res.attrs.keys() for k in strip_attrs])
+        for key in ['sun_earth_distance_correction_applied',
+                    'sun_earth_distance_correction_factor']:
+            res.attrs.pop(key, None)
+        assert_attrs_equal(res.attrs, expected.attrs, tolerance=1e-4)
