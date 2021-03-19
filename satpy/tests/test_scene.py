@@ -120,6 +120,20 @@ class TestScene:
         filenames = []
         Scene(filenames=filenames)
 
+    def test_init_with_fsfile(self):
+        """Test initialisation with FSFile objects."""
+        from satpy.readers import FSFile
+
+        # We should not mock _create_reader_instances here, because in
+        # https://github.com/pytroll/satpy/issues/1605 satpy fails with
+        # TypeError within that method if passed an FSFile instance.
+        # Instead rely on the ValueError # that satpy raises if no readers
+        # are found.
+
+        fsf = FSFile("dummy")
+        with pytest.raises(ValueError):
+            Scene(filenames=[fsf], reader=[])
+
     # TODO: Rewrite this test for the 'find_files_and_readers' function
     # def test_create_reader_instances_with_sensor(self):
     #     import satpy.scene
