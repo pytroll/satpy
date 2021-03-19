@@ -344,7 +344,8 @@ def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
     Walks dictionary recursively. Numerical attributes are compared with
     the given tolerance.
     """
-    assert sorted(attrs) == sorted(attrs_exp), "Different set of keys"
+    keys_diff = set(attrs).difference(set(attrs_exp))
+    assert not keys_diff, "Different set of keys: {}".format(keys_diff)
     for key in attrs_exp:
         err_msg = "Attribute {} does not match expectation".format(key)
         if isinstance(attrs[key], dict):
