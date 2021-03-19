@@ -49,6 +49,7 @@ from satpy.readers.seviri_base import (
 )
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
+from satpy.readers.utils import reduce_mda
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 
 logger = logging.getLogger('native_msg')
@@ -74,7 +75,8 @@ class NativeMSGFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None):
+                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None,
+                 mda_max_array_size=100):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
@@ -83,6 +85,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.fill_disk = fill_disk
+        self.mda_max_array_size = mda_max_array_size
 
         # Declare required variables.
         self.header = {}
@@ -563,6 +566,9 @@ class NativeMSGFileHandler(BaseFileHandler):
                 'satellite_actual_altitude': actual_alt
             })
         dataset.attrs['orbital_parameters'] = orbital_parameters
+        dataset.attrs['raw_metadata'] = reduce_mda(
+            self.header, max_size=self.mda_max_array_size
+        )
 
     @cached_property
     def satpos(self):
