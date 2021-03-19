@@ -1148,6 +1148,7 @@ class TestNativeMSGDataset:
             fh.fill_disk = False
             fh.calib_mode = 'NOMINAL'
             fh.ext_calib_coefs = {}
+            fh.mda_max_array_size = 100
             return fh
 
     def test_get_dataset(self, file_handler):
@@ -1194,12 +1195,8 @@ class TestNativeMSGDataset:
                                       np.datetime64('1958-01-02 00:00:03'),
                                       np.datetime64('1958-01-02 00:00:04')])
         xr.testing.assert_equal(dataset, expected)
-
-        # TODO: Raw metadata?
-        # self.assertIn('raw_metadata', attrs)
-        # attrs.pop('raw_metadata')
-        # attrs_exp.pop('raw_metadata')
-        # assert_attrs_equal(attrs, attrs_exp)
+        assert 'raw_metadata' in dataset.attrs
+        dataset.attrs.pop('raw_metadata')
         assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
 
 
