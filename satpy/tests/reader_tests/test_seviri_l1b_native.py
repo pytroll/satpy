@@ -1209,7 +1209,7 @@ class TestNativeMSGDataset:
         # attrs.pop('raw_metadata')
         # attrs_exp.pop('raw_metadata')
         # assert_attrs_equal(attrs, attrs_exp)
-        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-6)
+        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
 
 
 class TestNativeMSGPadder(unittest.TestCase):

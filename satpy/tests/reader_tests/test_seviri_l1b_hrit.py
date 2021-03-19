@@ -47,7 +47,7 @@ class TestHRITMSGBase(unittest.TestCase):
         # Raw metadata: Check existence only
         self.assertIn('raw_metadata', attrs)
         attrs.pop('raw_metadata')
-        assert_attrs_equal(attrs, attrs_exp)
+        assert_attrs_equal(attrs, attrs_exp, tolerance=1e-4)
 
 
 class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
