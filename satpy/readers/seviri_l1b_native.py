@@ -72,6 +72,11 @@ class NativeMSGFileHandler(BaseFileHandler):
         scene = satpy.Scene(filenames,
                             reader='seviri_l1b_native',
                             reader_kwargs={'fill_disk': False})
+
+    **Metadata**
+
+    See :mod:`satpy.readers.seviri_base`.
+
     """
 
     def __init__(self, filename, filename_info, filetype_info,

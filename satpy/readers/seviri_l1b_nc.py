@@ -47,6 +47,10 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     calibration coefficients available in the netCDF files and therefore there
     is no `calib_mode` argument.
 
+    **Metadata**
+
+    See :mod:`satpy.readers.seviri_base`.
+
     """
 
     def __init__(self, filename, filename_info, filetype_info,

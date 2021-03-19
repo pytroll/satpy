@@ -100,24 +100,6 @@ Output:
         modifiers:                ()
         ancillary_variables:      []
 
-* The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
-  centre.
-* You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
-  :class:`satpy.readers.seviri_base`.
-* The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header. By default,
-  arrays with more than 100 elements are excluded in order to limit memory usage. This threshold can be adjusted,
-  see :class:`HRITMSGFileHandler`.
-* The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
-  by acquisition time:
-
-  .. code-block:: python
-
-      import pandas as pd
-      mi = pd.MultiIndex.from_arrays([scn['IR_108']['y'].data, scn['IR_108']['acq_time'].data],
-                                     names=('y_coord', 'time'))
-      scn['IR_108']['y'] = mi
-      scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
-
 .. _MSG Level 1.5 Image Data Format Description:
     https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
 
@@ -332,15 +314,6 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     See :mod:`satpy.readers.seviri_base`.
 
-    **Raw Metadata**
-
-    By default, arrays with more than 100 elements are excluded from the raw reader metadata to
-    limit memory usage. This threshold can be adjusted using the `mda_max_array_size` keyword
-    argument::
-
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'mda_max_array_size': 1000})
 
     **Padding of the HRV channel**
 
@@ -351,6 +324,10 @@ class HRITMSGFileHandler(HRITFileHandler):
         scene = satpy.Scene(filenames,
                             reader='seviri_l1b_hrit',
                             reader_kwargs={'fill_hrv': False})
+
+    **Metadata**
+
+    See :mod:`satpy.readers.seviri_base`.
 
     """
 

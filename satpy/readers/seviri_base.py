@@ -106,6 +106,37 @@ removed on a per-channel basis using
 :func:`satpy.readers.utils.remove_earthsun_distance_correction`.
 
 
+Metadata
+^^^^^^^^
+
+The SEVIRI L1.5 readers provide the following metadata:
+
+* The ``orbital_parameters`` attribute provides the nominal and actual satellite
+  position, as well as the projection centre. See the `Metadata` section in
+  the :doc:`../readers` chapter for more information.
+* The ``raw_metadata`` attribute provides raw metadata from the file header
+  (HRIT and Native format). By default, arrays with more than 100 elements are
+  excluded to limit memory usage. This threshold can be adjusted using the
+  ``mda_max_array_size`` reader keyword argument:
+
+  .. code-block:: python
+
+       scene = satpy.Scene(filenames,
+                          reader='seviri_l1b_hrit/native',
+                          reader_kwargs={'mda_max_array_size': 1000})
+
+* The ``acq_time`` coordinate provides the mean acquisition time for each
+  scanline. Use a ``MultiIndex`` to enable selection by acquisition time:
+
+  .. code-block:: python
+
+      import pandas as pd
+      mi = pd.MultiIndex.from_arrays([scn['IR_108']['y'].data, scn['IR_108']['acq_time'].data],
+                                     names=('y_coord', 'time'))
+      scn['IR_108']['y'] = mi
+      scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
+
+
 References:
     - `MSG Level 1.5 Image Data Format Description`_
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
@@ -694,12 +725,16 @@ class OrbitPolynomialFinder:
 
         Args:
             orbit_polynomials: Dictionary of orbit polynomials as found in
-                SEVIRI L1B files:
-                {'X': x_polynomials,
-                 'Y': y_polynomials,
-                 'Z': z_polynomials,
-                 'StartTime': polynomials_valid_from,
-                 'EndTime': polynomials_valid_to}
+                               SEVIRI L1B files:
+
+                               .. code-block:: python
+
+                                   {'X': x_polynomials,
+                                    'Y': y_polynomials,
+                                    'Z': z_polynomials,
+                                    'StartTime': polynomials_valid_from,
+                                    'EndTime': polynomials_valid_to}
+
         """
         self.orbit_polynomials = orbit_polynomials
         # Left/right boundaries of time intervals for which the polynomials are
@@ -716,7 +751,7 @@ class OrbitPolynomialFinder:
         polynomial, whose corresponding interval encloses the given timestamp.
         If there are multiple enclosing intervals, use the most recent one.
         If there is no enclosing interval, find the interval whose centre is
-        closest to the given timestamp (but not more than max_delta hours
+        closest to the given timestamp (but not more than ``max_delta`` hours
         apart).
 
         Why are there gaps between those intervals? Response from EUM:
