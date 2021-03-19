@@ -30,7 +30,7 @@ import xarray as xr
 from satpy.readers.seviri_l1b_hrit import (
     HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
 )
-from satpy.tests.utils import make_dataid
+from satpy.tests.utils import make_dataid, assert_attrs_equal
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
     TestFileHandlerCalibrationBase
 )
@@ -44,26 +44,10 @@ class TestHRITMSGBase(unittest.TestCase):
         """Assert equality of dataset attributes."""
         attrs = copy.deepcopy(attrs)
         attrs_exp = copy.deepcopy(attrs_exp)
-        # Test attributes (just check if raw metadata is there and then remove
-        # it before checking the remaining attributes)
+        # Raw metadata: Check existence only
         self.assertIn('raw_metadata', attrs)
         attrs.pop('raw_metadata')
-        self._assert_orb_params_close(
-            attrs.pop('orbital_parameters'),
-            attrs_exp.pop('orbital_parameters')
-        )
-        self.assertDictEqual(attrs, attrs_exp)
-
-    def _assert_orb_params_close(self, orb, orb_exp):
-        """Check that orbital parameters are approx. equal."""
-        self.assertListEqual(list(orb.keys()), list(orb_exp.keys()))
-        for key in orb.keys():
-            np.testing.assert_allclose(
-                orb[key],
-                orb_exp[key],
-                err_msg='Orbital parameter {} does not match '
-                        'expectation'.format(key)
-            )
+        assert_attrs_equal(attrs, attrs_exp)
 
 
 class TestHRITMSGFileHandlerHRV(TestHRITMSGBase):
