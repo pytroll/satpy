@@ -370,6 +370,22 @@ class Filler(GenericCompositor):
         return super(Filler, self).__call__([filled_projectable], **info)
 
 
+class MultiFiller(GenericCompositor):
+    """Fix holes in projectable 1 with data from the next projectables."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        filled_projectable = projectables[0]
+        for next_projectable in projectables[1:]:
+            filled_projectable = filled_projectable.fillna(next_projectable)
+        if 'optional_datasets' in info.keys():
+            for next_projectable in info['optional_datasets']:
+                filled_projectable = filled_projectable.fillna(next_projectable)
+
+        return super(MultiFiller, self).__call__([filled_projectable], **info)
+
+
 class RGBCompositor(GenericCompositor):
     """Make a composite from three color bands (deprecated)."""
 
@@ -1284,3 +1300,38 @@ def _get_flag_value(mask, val):
     index = flag_meanings.index(val)
 
     return flag_values[index]
+
+
+class LongitudeMaskingCompositor(GenericCompositor):
+    """Masks areas outside defined longitudes."""
+
+    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            lon_min (float): lower longitude limit
+            lon_max (float): upper longitude limit
+        """
+        self.lon_min = lon_min
+        self.lon_max = lon_max
+        if self.lon_min is None and self.lon_max is None:
+            raise ValueError("Masking conditions not defined. \
+                At least lon_min or lon_max has to be specified.")
+        if not self.lon_min:
+            self.lon_min = -180.
+        if not self.lon_max:
+            self.lon_max = 180.
+        super(LongitudeMaskingCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectable = projectables[0]
+        lons, lats = projectable.attrs["area"].get_lonlats()
+
+        if self.lon_max > self.lon_min:
+            lon_min_max = np.logical_and(lons >= self.lon_min, lons <= self.lon_max)
+        else:
+            lon_min_max = np.logical_or(lons >= self.lon_min, lons <= self.lon_max)
+
+        masked_projectable = projectable.where(lon_min_max)
+        return super(LongitudeMaskingCompositor, self).__call__([masked_projectable], **info)
