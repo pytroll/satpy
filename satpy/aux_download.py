@@ -333,7 +333,7 @@ class DataDownloadMixin:
                              known_hash=known_hash)
 
 
-def retrieve_all_cmd():
+def retrieve_all_cmd(argv=None):
     """Call 'retrieve_all' function from console script 'satpy_retrieve_all'."""
     import argparse
     parser = argparse.ArgumentParser(description="Download auxiliary data files used by Satpy.")
@@ -354,13 +354,13 @@ def retrieve_all_cmd():
                         help="Limit searching to these writers. If specified "
                              "with no arguments, no writer files will be "
                              "downloaded.")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO)
 
     if args.data_dir is None:
         args.data_dir = satpy.config.get('data_dir')
 
-    with satpy.config.set(datA_dir=args.data_dir):
+    with satpy.config.set(data_dir=args.data_dir):
         retrieve_all(readers=args.readers, writers=args.writers,
                      composite_sensors=args.composite_sensors)
