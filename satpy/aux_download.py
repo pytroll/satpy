@@ -361,6 +361,6 @@ def retrieve_all_cmd():
     if args.data_dir is None:
         args.data_dir = satpy.config.get('data_dir')
 
-    with satpy.config.set(datA_dir=args.data_dir):
+    with satpy.config.set(data_dir=args.data_dir):
         retrieve_all(readers=args.readers, writers=args.writers,
                      composite_sensors=args.composite_sensors)
