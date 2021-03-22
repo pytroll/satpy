@@ -978,4 +978,4 @@ class TestFSFile(unittest.TestCase):
         # make sure each name/fs-combi has its own hash
         assert len({hash(FSFile(fn, fs))
                     for fn in {self.local_filename, self.local_filename2}
-                    for fs in {None, lfs, zfs, cfs}}) == 2*4
+                    for fs in [None, lfs, zfs, cfs]}) == 2*4

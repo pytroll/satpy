@@ -22,6 +22,7 @@ import os
 import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
+import pickle
 
 import yaml
 
@@ -616,9 +617,9 @@ class FSFile(os.PathLike):
         of the filesystem.
         """
         try:
-            fshash = hash(self._fs.to_json())
-        except (AttributeError, NotImplementedError, TypeError):
             fshash = hash(self._fs)
+        except TypeError:  # fsspec < 0.8.8
+            fshash = hash(pickle.dumps(self._fs))
         return hash(self._file) ^ fshash
 
 
