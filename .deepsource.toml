@@ -1,0 +1,15 @@
+version = 1
+
+test_patterns = ["satpy/tests/**"]
+
+exclude_patterns = [
+    "satpy/etc/**",
+    "satpy/demo/**"
+]
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+  [analyzers.meta]
+  runtime_version = "3.x.x"

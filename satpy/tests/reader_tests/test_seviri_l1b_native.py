@@ -511,7 +511,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         """Test the derivation of the available channel list."""
         available_chs = get_available_channels(TEST1_HEADER_CHNLIST)
         trues = ['WV_062', 'WV_073', 'IR_108', 'VIS006', 'VIS008', 'IR_120']
-        for bandname in AVAILABLE_CHANNELS.keys():
+        for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
             else:
@@ -519,14 +519,14 @@ class TestNativeMSGFileHandler(unittest.TestCase):
 
         available_chs = get_available_channels(TEST2_HEADER_CHNLIST)
         trues = ['VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV']
-        for bandname in AVAILABLE_CHANNELS.keys():
+        for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
             else:
                 self.assertFalse(available_chs[bandname])
 
         available_chs = get_available_channels(TEST3_HEADER_CHNLIST)
-        for bandname in AVAILABLE_CHANNELS.keys():
+        for bandname in AVAILABLE_CHANNELS:
             self.assertTrue(available_chs[bandname])
 
 

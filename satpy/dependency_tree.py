@@ -107,7 +107,8 @@ class Tree:
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
         if self.contains(child.name):
-            assert self._all_nodes[child.name] is child
+            if self._all_nodes[child.name] is not child:
+                raise RuntimeError
         if child is self.empty_node:
             # No need to store "empty" nodes
             return
@@ -202,7 +203,8 @@ class DependencyTree(Tree):
     def update_node_name(self, node, new_name):
         """Update 'name' property of a node and any related metadata."""
         old_name = node.name
-        assert old_name in self._all_nodes
+        if old_name not in self._all_nodes:
+            raise RuntimeError
         del self._all_nodes[old_name]
         node.update_name(new_name)
         self._all_nodes[new_name] = node
