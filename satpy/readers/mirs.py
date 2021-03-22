@@ -198,11 +198,10 @@ class MiRSL2ncHandler(BaseFileHandler):
     behavior, use the keyword argument limb_correction=False
 
 
-        from satpy import Scene, find_files_and_readers
+    from satpy import Scene, find_files_and_readers
 
-        filenames = find_files_and_readers(base_dir, reader="mirs")
-        scene = satpy.Scene(filenames,
-                            reader_kwargs={'limb_correction': False})
+    filenames = find_files_and_readers(base_dir, reader="mirs")
+    scene = Scene(filenames, reader_kwargs={'limb_correction': False})
 
     """
 
