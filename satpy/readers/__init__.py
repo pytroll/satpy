@@ -618,7 +618,7 @@ class FSFile(os.PathLike):
         """
         try:
             fshash = hash(self._fs)
-        except TypeError:  # fsspec < 0.8.8
+        except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
             fshash = hash(pickle.dumps(self._fs))
         return hash(self._file) ^ fshash
 
