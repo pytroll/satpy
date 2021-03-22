@@ -82,7 +82,7 @@ def fake_coeff_from_fn(fn):
     return coeff_str
 
 
-def _get_datasets_with_attributes():
+def _get_datasets_with_attributes(**kwargs):
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
     bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
@@ -91,7 +91,8 @@ def _get_datasets_with_attributes():
                              'coordinates': "Longitude Latitude Freq",
                              'scale_factor': 0.01,
                              '_FillValue': -999,
-                             'valid_range': [0, 50000]})
+                             'valid_range': [0, 50000]},
+                      dims=('Scanline', 'Field_of_view', 'Channel'))
     rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV)),
                       attrs={'long_name': "Rain Rate (mm/hr)",
                              'units': "mm/hr",
@@ -275,8 +276,14 @@ class TestMirsL2_NcReader:
                 fd.side_effect = fake_coeff_from_fn
                 loaded_data_arrs = r.load(loadable_ids)
             assert loaded_data_arrs
+
             for data_id, data_arr in loaded_data_arrs.items():
                 if data_id['name'] not in ['latitude', 'longitude']:
                     self._check_area(data_arr)
                 self._check_fill(data_arr)
                 self._check_attrs(data_arr, platform_name)
+
+                if data_arr.attrs['sensor'] == 'atms':
+                    fd.assert_called()
+                else:
+                    fd.assert_not_called()
