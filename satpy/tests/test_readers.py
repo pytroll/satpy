@@ -964,3 +964,18 @@ class TestFSFile(unittest.TestCase):
         assert (FSFile(self.local_filename, zip_fs) !=
                 FSFile(self.local_filename))
         assert FSFile(self.local_filename) != FSFile(self.local_filename2)
+
+    def test_hash(self):
+        """Test that FSFile hashing behaves sanely."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        from fsspec.implementations.local import LocalFileSystem
+        from fsspec.implementations.cached import CachingFileSystem
+
+        lfs = LocalFileSystem()
+        zfs = ZipFileSystem(self.zip_name)
+        cfs = CachingFileSystem(fs=lfs)
+        # make sure each name/fs-combi has its own hash
+        assert len({hash(FSFile(fn, fs))
+                    for fn in {self.local_filename, self.local_filename2}
+                    for fs in {None, lfs, zfs, cfs}}) == 2*4
