@@ -617,7 +617,7 @@ class FSFile(os.PathLike):
         """
         try:
             fshash = hash(self._fs.to_json())
-        except AttributeError:
+        except (AttributeError, NotImplementedError):
             fshash = hash(self._fs)
         return hash(self._file) ^ fshash
 
