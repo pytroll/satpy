@@ -1156,6 +1156,8 @@ def test_header_type(file_content, exp_header_size):
         is_full_disk=True,
         is_rapid_scan=0
     )
+    if file_content == b'foobar':
+        header.pop('15_SECONDARY_PRODUCT_HEADER')
     with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
             mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
             mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
