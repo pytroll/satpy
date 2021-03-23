@@ -229,3 +229,20 @@ class TestDataDownload:
             # offline downloading should still be allowed
             with satpy.config.set(download_aux=False):
                 retrieve(cache_key)
+
+    def test_download_script(self):
+        """Test basic functionality of the download script."""
+        from satpy.aux_download import retrieve_all_cmd
+        import satpy
+        file_registry = {}
+        file_urls = {}
+        with satpy.config.set(config_path=[self.tmpdir]), \
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry), \
+             mock.patch('satpy.aux_download._FILE_URLS', file_urls), \
+             mock.patch('satpy.aux_download.find_registerable_files'):
+            comp_file = 'composites/README.rst'
+            file_registry[comp_file] = None
+            file_urls[comp_file] = README_URL
+            assert not self.tmpdir.join(comp_file).exists()
+            retrieve_all_cmd(argv=["--data-dir", str(self.tmpdir)])
+            assert self.tmpdir.join(comp_file).exists()
