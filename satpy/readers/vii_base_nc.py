@@ -103,7 +103,11 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
-
+        try:
+            variable = variable.rename({'num_pixels': 'x', 'num_lines': 'y'})
+        except ValueError:
+            pass
+        variable.transpose('y', 'x')
         return variable
 
     @staticmethod
