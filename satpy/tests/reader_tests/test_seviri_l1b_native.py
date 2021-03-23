@@ -35,7 +35,7 @@ from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
     TestFileHandlerCalibrationBase
 )
 from satpy.tests.reader_tests.test_seviri_base import (
-    ORBIT_POLYNOMIALS
+    ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
 )
 from satpy.tests.utils import make_dataid, assert_attrs_equal
 
@@ -1198,6 +1198,24 @@ class TestNativeMSGDataset:
         assert 'raw_metadata' in dataset.attrs
         dataset.attrs.pop('raw_metadata')
         assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_satpos_no_valid_orbit_polynomial(self, file_handler):
+        """Test satellite position if there is no valid orbit polynomial."""
+        file_handler.header['15_DATA_HEADER']['SatelliteStatus'][
+            'Orbit']['OrbitPolynomial'] = ORBIT_POLYNOMIALS_INVALID
+        dataset_id = make_dataid(
+            name='VIS006',
+            resolution=3000,
+            calibration='counts'
+        )
+        dataset_info = {
+            'units': '1',
+            'wavelength': (1, 2, 3),
+            'standard_name': 'counts'
+        }
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'satellite_actual_longitude' not in res.attrs[
+            'orbital_parameters']
 
 
 class TestNativeMSGPadder(unittest.TestCase):

@@ -18,7 +18,6 @@
 """Test the MSG common (native and hrit format) functionionalities."""
 
 from datetime import datetime
-import logging
 import pytest
 import unittest
 
@@ -28,8 +27,8 @@ import dask.array as da
 
 from satpy.readers.seviri_base import (
     dec10216, chebyshev, get_cds_time, get_padding_area, pad_data_horizontally,
-    pad_data_vertically, get_satpos, get_satpos_safe, OrbitPolynomial,
-    NoValidOrbitParams, OrbitPolynomialFinder
+    pad_data_vertically, get_satpos, OrbitPolynomial, NoValidOrbitParams,
+    OrbitPolynomialFinder
 )
 from satpy import CHUNK_SIZE
 
@@ -261,18 +260,6 @@ class TestSatellitePosition:
             [lon, lat, alt],
             [-3.55117540817073, -0.5711243456528018, 35783296.150123544]
         )
-
-    def test_get_satpos_safe(self, time):
-        """Test safely getting the satellite position."""
-        logger = logging.getLogger()
-        lon, lat, alt = get_satpos_safe(
-            orbit_polynomials=ORBIT_POLYNOMIALS_INVALID,
-            time=time,
-            semi_major_axis=1,
-            semi_minor_axis=2,
-            logger=logger
-        )
-        assert (lon, lat, alt) == (None, None, None)
 
 
 class TestOrbitPolynomialFinder:

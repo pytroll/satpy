@@ -45,7 +45,8 @@ from satpy.readers.seviri_base import (
     SEVIRICalibrationHandler, CHANNEL_NAMES, SATNUM, dec10216,
     VISIR_NUM_COLUMNS, VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
     create_coef_dict, pad_data_horizontally, pad_data_vertically,
-    add_scanline_acq_time, get_cds_time, get_satpos_safe
+    add_scanline_acq_time, get_cds_time, OrbitPolynomialFinder, get_satpos,
+    NoValidOrbitParams
 )
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
@@ -553,7 +554,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         dataset.attrs['sensor'] = 'seviri'
         dataset.attrs['georef_offset_corrected'] = self.mda[
             'offset_corrected']
-        actual_lon, actual_lat, actual_alt = self.satpos
         orbital_parameters = {
             'projection_longitude': self.mda['projection_parameters'][
                 'ssp_longitude'],
@@ -564,12 +564,15 @@ class NativeMSGFileHandler(BaseFileHandler):
                 'NominalLongitude'],
             'satellite_nominal_latitude': 0.0
         }
-        if actual_lon is not None:
+        try:
+            actual_lon, actual_lat, actual_alt = self.satpos
             orbital_parameters.update({
                 'satellite_actual_longitude': actual_lon,
                 'satellite_actual_latitude': actual_lat,
                 'satellite_actual_altitude': actual_alt
             })
+        except NoValidOrbitParams as err:
+            logger.warning(err)
         dataset.attrs['orbital_parameters'] = orbital_parameters
         dataset.attrs['raw_metadata'] = reduce_mda(
             self.header, max_size=self.mda_max_array_size
@@ -583,13 +586,14 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        return get_satpos_safe(
-            orbit_polynomials=self.header['15_DATA_HEADER'][
-                'SatelliteStatus']['Orbit']['OrbitPolynomial'],
+        poly_finder = OrbitPolynomialFinder(self.header['15_DATA_HEADER'][
+            'SatelliteStatus']['Orbit']['OrbitPolynomial'])
+        orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
+        return get_satpos(
+            orbit_polynomial=orbit_polynomial,
             time=self.start_time,
             semi_major_axis=self.mda['projection_parameters']['a'],
-            semi_minor_axis=self.mda['projection_parameters']['b'],
-            logger=logger
+            semi_minor_axis=self.mda['projection_parameters']['b']
         )
 
 

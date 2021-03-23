@@ -31,6 +31,7 @@ from satpy.readers.seviri_l1b_hrit import (
     HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
 )
 from satpy.tests.utils import make_dataid, assert_attrs_equal
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
     TestFileHandlerCalibrationBase
 )
@@ -155,11 +156,12 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
         """Set up the hrit file handler for testing."""
         self.start_time = datetime(2016, 3, 3, 0, 0)
         self.nlines = 464
+        self.ncols = 3712
         self.projection_longitude = 9.5
         self.reader = setup.get_fake_file_handler(
             start_time=self.start_time,
             nlines=self.nlines,
-            ncols=3712,
+            ncols=self.ncols,
             projection_longitude=self.projection_longitude
         )
 
@@ -202,28 +204,27 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset(self, calibrate, parent_get_dataset):
         """Test getting the dataset."""
+        data = xr.DataArray(
+            data=np.zeros((self.nlines, self.ncols)),
+            dims=('y', 'x')
+        )
+        parent_get_dataset.return_value = mock.MagicMock()
+        calibrate.return_value = data
+
         key = make_dataid(name='VIS006', calibration='reflectance')
         info = setup.get_fake_dataset_info()
-
-        parent_get_dataset.return_value = mock.MagicMock()
-        calibrate.return_value = xr.DataArray(
-            data=np.zeros((self.reader.mda['number_of_lines'],
-                           self.reader.mda['number_of_columns'])),
-            dims=('y', 'x'))
-
         res = self.reader.get_dataset(key, info)
 
         # Test method calls
-        parent_get_dataset.assert_called_with(key, info)
-        calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
-
+        expected = data.copy()
+        expected['acq_time'] = (
+            'y',
+            setup.get_acq_time_exp(self.start_time, self.nlines)
+        )
+        xr.testing.assert_equal(res, expected)
         self.assert_attrs_equal(
             res.attrs,
             setup.get_attrs_exp(self.projection_longitude)
-        )
-        np.testing.assert_equal(
-            res['acq_time'],
-            setup.get_acq_time_exp(self.start_time, self.nlines)
         )
 
     def test_get_raw_mda(self):
@@ -236,6 +237,20 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
 
         # Make sure _get_raw_mda() doesn't modify the original dictionary
         self.assertIn('loff', self.reader.mda)
+
+    def test_satpos_no_valid_orbit_polynomial(self):
+        """Test satellite position if there is no valid orbit polynomial."""
+        reader = setup.get_fake_file_handler(
+            start_time=self.start_time,
+            nlines=self.nlines,
+            ncols=self.ncols,
+            projection_longitude=self.projection_longitude,
+            orbit_polynomials=ORBIT_POLYNOMIALS_INVALID
+        )
+        self.assertNotIn(
+            'satellite_actual_longitude',
+            reader.mda['orbital_parameters']
+        )
 
 
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):

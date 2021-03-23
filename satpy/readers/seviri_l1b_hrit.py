@@ -126,7 +126,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
 from satpy.readers.seviri_base import (
     CHANNEL_NAMES, SATNUM, SEVIRICalibrationHandler, get_cds_time,
     HRV_NUM_COLUMNS, pad_data_horizontally, create_coef_dict,
-    get_satpos_safe, add_scanline_acq_time
+    OrbitPolynomialFinder, get_satpos, NoValidOrbitParams,
+    add_scanline_acq_time
 )
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
@@ -247,14 +248,16 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         a, b = self.get_earth_radii()
-        return get_satpos_safe(
-            orbit_polynomials=self.prologue['SatelliteStatus']['Orbit'][
-                'OrbitPolynomial'],
-            time=self.prologue['ImageAcquisition'][
-                'PlannedAcquisitionTime']['TrueRepeatCycleStart'],
+        start_time = self.prologue['ImageAcquisition'][
+            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        poly_finder = OrbitPolynomialFinder(self.prologue['SatelliteStatus'][
+            'Orbit']['OrbitPolynomial'])
+        orbit_polynomial = poly_finder.get_orbit_polynomial(start_time)
+        return get_satpos(
+            orbit_polynomial=orbit_polynomial,
+            time=start_time,
             semi_major_axis=a,
             semi_minor_axis=b,
-            logger=logger
         )
 
     def get_earth_radii(self):
@@ -368,14 +371,16 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self.prologue_.satpos
         self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
-        if actual_lon is not None:
+        try:
+            actual_lon, actual_lat, actual_alt = self.prologue_.satpos
             self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
             self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
             self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
+        except NoValidOrbitParams as err:
+            logger.warning(err)
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][

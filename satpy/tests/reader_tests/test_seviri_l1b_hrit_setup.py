@@ -48,9 +48,10 @@ def get_new_read_prologue(prologue):
     return new_read_prologue
 
 
-def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0):
+def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
+                          orbit_polynomials=ORBIT_POLYNOMIALS):
     """Create a mocked SEVIRI HRIT file handler."""
-    prologue = get_fake_prologue(projection_longitude)
+    prologue = get_fake_prologue(projection_longitude, orbit_polynomials)
     mda = get_fake_mda(nlines=nlines, ncols=ncols, start_time=start_time)
     filename_info = get_fake_filename_info(start_time)
     epilogue = get_fake_epilogue()
@@ -87,7 +88,7 @@ def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0):
         return reader
 
 
-def get_fake_prologue(projection_longitude):
+def get_fake_prologue(projection_longitude, orbit_polynomials):
     """Create a fake HRIT prologue."""
     return {
          "SatelliteStatus": {
@@ -96,7 +97,7 @@ def get_fake_prologue(projection_longitude):
                  "NominalLongitude": -3.5
              },
              'Orbit': {
-                 'OrbitPolynomial': ORBIT_POLYNOMIALS,
+                 'OrbitPolynomial': orbit_polynomials,
              }
          },
          'GeometricProcessing': {

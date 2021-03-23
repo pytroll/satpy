@@ -696,27 +696,6 @@ def get_satpos(orbit_polynomial, time, semi_major_axis, semi_minor_axis):
     return lon, lat, alt
 
 
-def get_satpos_safe(orbit_polynomials, time, semi_major_axis, semi_minor_axis,
-                    logger):
-    """Safely find orbit polynomial and compute satellite position.
-
-    Returns None and logs a warning if there is no valid orbit polynomial.
-    """
-    poly_finder = OrbitPolynomialFinder(orbit_polynomials)
-    try:
-        orbit_polynomial = poly_finder.get_orbit_polynomial(time)
-        lon, lat, alt = get_satpos(
-            orbit_polynomial=orbit_polynomial,
-            time=time,
-            semi_major_axis=semi_major_axis,
-            semi_minor_axis=semi_minor_axis
-        )
-    except NoValidOrbitParams as err:
-        logger.warning(err)
-        lon = lat = alt = None
-    return lon, lat, alt
-
-
 class OrbitPolynomialFinder:
     """Find orbit polynomial for a given timestamp."""
 

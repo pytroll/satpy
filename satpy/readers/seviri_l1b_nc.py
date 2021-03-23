@@ -28,7 +28,8 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, SATNUM,
                                        get_cds_time, add_scanline_acq_time,
-                                       get_satpos_safe)
+                                       OrbitPolynomialFinder, get_satpos,
+                                       NoValidOrbitParams)
 from satpy.readers.eum_base import get_service_mode
 
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
@@ -179,7 +180,6 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         dataset.attrs.update(dataset_info)
         dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         dataset.attrs['sensor'] = 'seviri'
-        actual_lon, actual_lat, actual_alt = self.satpos
         dataset.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
             'projection_latitude': 0.,
@@ -189,12 +189,15 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             ),
             'satellite_nominal_latitude': 0.0,
         }
-        if actual_lon is not None:
+        try:
+            actual_lon, actual_lat, actual_alt = self.satpos
             dataset.attrs['orbital_parameters'].update({
                 'satellite_actual_longitude': actual_lon,
                 'satellite_actual_latitude': actual_lat,
                 'satellite_actual_altitude': actual_alt,
             })
+        except NoValidOrbitParams as err:
+            logger.warning(err)
         dataset.attrs['georef_offset_corrected'] = self._get_earth_model() == 2
 
         # remove attributes from original file which don't apply anymore
@@ -340,12 +343,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             'Y': self.nc['orbit_polynomial_y'].values,
             'Z': self.nc['orbit_polynomial_z'].values,
         }
-        return get_satpos_safe(
-            orbit_polynomials=orbit_polynomials,
+        poly_finder = OrbitPolynomialFinder(orbit_polynomials)
+        orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
+        return get_satpos(
+            orbit_polynomial=orbit_polynomial,
             time=self.start_time,
             semi_major_axis=self.mda['projection_parameters']['a'],
             semi_minor_axis=self.mda['projection_parameters']['b'],
-            logger=logger
         )
 
     def _get_earth_model(self):

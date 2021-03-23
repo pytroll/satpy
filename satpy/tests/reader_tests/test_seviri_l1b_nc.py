@@ -270,3 +270,18 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                     'sun_earth_distance_correction_factor']:
             res.attrs.pop(key, None)
         assert_attrs_equal(res.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_satpos_no_valid_orbit_polynomial(self, file_handler):
+        """Test satellite position if there is no valid orbit polynomial."""
+        dataset_id = make_dataid(name='VIS006', calibration='counts')
+        dataset_info = {
+            'nc_key': 'VIS006',
+            'units': 'units',
+            'wavelength': 'wavelength',
+            'standard_name': 'standard_name'
+        }
+        file_handler.nc['orbit_polynomial_start_time_day'] = 0
+        file_handler.nc['orbit_polynomial_end_time_day'] = 0
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'satellite_actual_longitude' not in res.attrs[
+            'orbital_parameters']
