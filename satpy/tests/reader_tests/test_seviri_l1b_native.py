@@ -18,6 +18,7 @@
 """Unittesting the Native SEVIRI reader."""
 
 from datetime import datetime
+import os
 import unittest
 from unittest import mock
 
@@ -1246,3 +1247,32 @@ class TestNativeMSGPadder(unittest.TestCase):
         """Test padder for FES HRV data."""
         calculated, expected = self.prepare_padder(TEST_PADDER_FES_HRV)
         np.testing.assert_array_equal(calculated, expected)
+
+
+class TestNativeMSGFilenames:
+    """Test identification of Native format filenames."""
+
+    @pytest.fixture
+    def reader(self):
+        """Return reader for SEVIRI Native format."""
+        from satpy._config import config_search_paths
+        from satpy.readers import load_reader
+
+        reader_configs = config_search_paths(
+            os.path.join("readers", "seviri_l1b_native.yaml"))
+        reader = load_reader(reader_configs)
+        return reader
+
+    def test_file_pattern(self, reader):
+        """Test file pattern matching."""
+        filenames = [
+            # Valid
+            "MSG2-SEVI-MSG15-0100-NA-20080219094242.289000000Z",
+            "MSG2-SEVI-MSG15-0201-NA-20080219094242.289000000Z",
+            "MSG2-SEVI-MSG15-0301-NA-20080219094242.289000000Z-123456.nat",
+            "MSG2-SEVI-MSG15-0401-NA-20080219094242.289000000Z-20201231181545-123456.nat",
+            # Invalid
+            "MSG2-SEVI-MSG15-010-NA-20080219094242.289000000Z",
+        ]
+        files = reader.select_files_from_pathnames(filenames)
+        assert len(files) == 4
