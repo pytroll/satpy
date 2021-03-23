@@ -23,6 +23,22 @@ enhancements:
         kwargs:
           palettes:
             - {colors: purples, min_value: 0, max_value: 0.00001, reverse: True} # nJ
+  minimum_event_energy:
+    name: minimum_event_energy
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: purples, min_value: 0, max_value: 0.00001, reverse: True} # nJ
+  minimum_flash_area:
+    name: minimum_flash_area
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylgnbu, min_value: 60, max_value: 2000} # km^2
   # Requires C14 from ABI
   c14_flash_extent_density:
     standard_name: c14_flash_extent_density
