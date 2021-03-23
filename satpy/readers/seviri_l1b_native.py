@@ -540,7 +540,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         # Check if there is only 1 channel in the list as a change
         # is needed in the arrray assignment ie channl id is not present
         if len(self.mda['channel_list']) == 1:
-            return self.dask_array['visir']['acq_time']
+            return self.dask_array['visir']['acq_time'].compute()
         i = self.mda['channel_list'].index(dataset_id['name'])
         return self.dask_array['visir']['acq_time'][:, i].compute()
 
