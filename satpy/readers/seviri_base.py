@@ -651,7 +651,7 @@ class OrbitPolynomial:
             time: Timestamp where to evaluate the polynomial
 
         Returns:
-            x, y, z in meters
+            Earth-centered cartesion coordinates (x, y, z) in meters
         """
         domain = [np.datetime64(self.start_time).astype('int64'),
                   np.datetime64(self.end_time).astype('int64')]
