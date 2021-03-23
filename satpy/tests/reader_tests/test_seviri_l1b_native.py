@@ -665,11 +665,13 @@ class TestNativeMSGArea(unittest.TestCase):
         trailer = self.create_test_trailer(is_rapid_scan)
         expected_area_def = test_dict['expected_area_def']
 
-        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header') as _has_archive_header, \
-                mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
                 mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
-                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+                mock.patch(
+                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
+                ) as _has_archive_header:
             _has_archive_header.return_value = True
             fromfile.return_value = header
             recarray2dict.side_effect = (lambda x: x)
@@ -956,11 +958,13 @@ class TestNativeMSGArea(unittest.TestCase):
         trailer = self.create_test_trailer(is_rapid_scan)
         expected_is_roi = test_dict['is_roi']
 
-        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header') as _has_archive_header, \
-                mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
                 mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
                 mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
-                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+                mock.patch(
+                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
+                ) as _has_archive_header:
             _has_archive_header.return_value = True
             fromfile.return_value = header
             recarray2dict.side_effect = (lambda x: x)
