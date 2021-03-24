@@ -224,15 +224,17 @@ class TestSatellitePosition:
         return OrbitPolynomial(
             start_time=datetime(2006, 1, 1, 12),
             end_time=datetime(2006, 1, 1, 18),
-            x_coefs=np.array([8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
-                              -2.70135453e-01, -3.84364650e-02, 8.48718433e-03,
-                              7.70548174e-04, -1.44262718e-04]),
-            y_coefs=np.array([-5.21170255e+03, 5.12998948e+00, -1.33370453e+00,
-                              -3.09634144e-01, 6.18232793e-02, 7.50505681e-03,
-                              -1.35131011e-03, -1.12054405e-04]),
-            z_coefs=np.array([-6.51293855e+02, 1.45830459e+02, 5.61379400e+01,
-                              -3.90970565e+00, -7.38137565e-01, 3.06131644e-02,
-                              3.82892428e-03, -1.12739309e-04])
+            coefs=(
+                np.array([8.41607082e+04, 2.94319260e+00, 9.86748617e-01,
+                          -2.70135453e-01, -3.84364650e-02, 8.48718433e-03,
+                          7.70548174e-04, -1.44262718e-04]),
+                np.array([-5.21170255e+03, 5.12998948e+00, -1.33370453e+00,
+                          -3.09634144e-01, 6.18232793e-02, 7.50505681e-03,
+                          -1.35131011e-03, -1.12054405e-04]),
+                np.array([-6.51293855e+02, 1.45830459e+02, 5.61379400e+01,
+                          -3.90970565e+00, -7.38137565e-01, 3.06131644e-02,
+                          3.82892428e-03, -1.12739309e-04])
+            )
         )
 
     @pytest.fixture
@@ -273,9 +275,7 @@ class TestOrbitPolynomialFinder:
                 ORBIT_POLYNOMIALS_SYNTH,
                 datetime(2005, 12, 31, 12, 15),
                 OrbitPolynomial(
-                    x_coefs=2.0,
-                    y_coefs=2.1,
-                    z_coefs=2.2,
+                    coefs=(2.0, 2.1, 2.2),
                     start_time=np.datetime64('2005-12-31 12:00'),
                     end_time=np.datetime64('2005-12-31 18:00')
                 )
@@ -286,9 +286,7 @@ class TestOrbitPolynomialFinder:
                     ORBIT_POLYNOMIALS_SYNTH,
                     datetime(2006, 1, 1, 12, 15),
                     OrbitPolynomial(
-                        x_coefs=3.0,
-                        y_coefs=3.1,
-                        z_coefs=3.2,
+                        coefs=(3.0, 3.1, 3.2),
                         start_time=np.datetime64('2006-01-01 10:00'),
                         end_time=np.datetime64('2006-01-01 12:00')
                     )
@@ -298,9 +296,7 @@ class TestOrbitPolynomialFinder:
                     ORBIT_POLYNOMIALS_SYNTH,
                     datetime(2006, 1, 3, 12, 15),
                     OrbitPolynomial(
-                        x_coefs=8.0,
-                        y_coefs=8.1,
-                        z_coefs=8.2,
+                        coefs=(8.0, 8.1, 8.2),
                         start_time=np.datetime64('2006-01-03 10:00'),
                         end_time=np.datetime64('2006-01-03 18:00')
                     )

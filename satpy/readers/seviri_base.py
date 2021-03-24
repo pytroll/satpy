@@ -636,11 +636,9 @@ class OrbitPolynomial:
     of an 8th-order Chebyshev polynomial.
     """
 
-    def __init__(self, x_coefs, y_coefs, z_coefs, start_time, end_time):
+    def __init__(self, coefs, start_time, end_time):
         """Initialize the polynomial."""
-        self.x_coefs = x_coefs
-        self.y_coefs = y_coefs
-        self.z_coefs = z_coefs
+        self.x_coefs, self.y_coefs, self.z_coefs = coefs
         self.start_time = start_time
         self.end_time = end_time
 
@@ -755,9 +753,11 @@ class OrbitPolynomialFinder:
             )
             match = self._get_closest_interval(time, max_delta)
         return OrbitPolynomial(
-            x_coefs=self.orbit_polynomials['X'][match],
-            y_coefs=self.orbit_polynomials['Y'][match],
-            z_coefs=self.orbit_polynomials['Z'][match],
+            coefs=(
+                self.orbit_polynomials['X'][match],
+                self.orbit_polynomials['Y'][match],
+                self.orbit_polynomials['Z'][match]
+            ),
             start_time=self.valid_from[match],
             end_time=self.valid_to[match]
         )
@@ -783,11 +783,10 @@ class OrbitPolynomialFinder:
         threshold_diff = np.timedelta64(threshold, 'h')
         if abs(intervals_centre[closest_match] - time) < threshold_diff:
             return closest_match
-        else:
-            raise NoValidOrbitParams(
-                'Unable to find orbit coefficients valid for {} +/- {}'
-                'hours'.format(time, threshold)
-            )
+        raise NoValidOrbitParams(
+            'Unable to find orbit coefficients valid for {} +/- {}'
+            'hours'.format(time, threshold)
+        )
 
 
 def calculate_area_extent(area_dict):
