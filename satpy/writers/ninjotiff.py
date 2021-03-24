@@ -90,23 +90,44 @@ logger = logging.getLogger(__name__)
 
 
 def convert_units(dataset, in_unit, out_unit):
-    """Convert units of *dataset*."""
-    from pint import UnitRegistry
+    """Convert units of *dataset*.
 
-    ureg = UnitRegistry()
-    # Commented because buggy: race condition ?
-    # ureg.define("degree_Celsius = degC = Celsius = C = CELSIUS")
-    in_unit = ureg.parse_expression(in_unit, False)
-    if out_unit in ['CELSIUS', 'C', 'Celsius', 'celsius']:
-        dest_unit = ureg.degC
-    else:
-        dest_unit = ureg.parse_expression(out_unit, False)
-    data = ureg.Quantity(dataset, in_unit)
-    attrs = dataset.attrs
-    dataset = data.to(dest_unit).magnitude
-    dataset.attrs = attrs
-    dataset.attrs["units"] = out_unit
-    return dataset
+    Convert dataset units for the benefit of writing NinJoTIFF.  The main
+    background here is that NinJoTIFF would like brightness temperatures in °C,
+    but satellinge data files are in K.  For simplicity of implementation, this
+    function can only convert from °C to K.
+
+    This function will convert input data from °C to K and write the new unit
+    in the ``"units"`` attribute.  When output and input units are equal, it
+    returns the input dataset.
+
+    Args:
+        dataset (xarray DataArray):
+            Dataarray for which to convert the units.
+        in_unit (str):
+            Unit for input data.
+        out_unit (str):
+            Unit for output data.
+
+    Returns:
+        dataset, possibly with new units.
+    """
+    if in_unit == out_unit:
+        return dataset
+
+    if in_unit.lower() in {"k", "kelvin"} and out_unit.lower() in {"c", "celsius"}:
+        new_dataset = dataset + 273.15
+        new_dataset.attrs["units"] = out_unit
+        return new_dataset
+
+    # Other cases not implemented.  Creating a quantity from a pint array
+    # doesn't work (TypeError: Quantity cannot wrap upcast type
+    # xarray.DataArray).  Working on the values may cause further bugs and
+    # dask-compatibility.  I don't know if anyone is using this function to
+    # convert between non-temperature units.
+    raise ValueError(
+            "NinJoTIFF unit conversion only implemented between K and C, not "
+            f"between {in_unit!s} and {out_unit!s}")
 
 
 class NinjoTIFFWriter(ImageWriter):

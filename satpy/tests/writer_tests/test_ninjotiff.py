@@ -21,6 +21,7 @@ import sys
 import unittest
 from unittest import mock
 
+import pytest
 import numpy as np
 import xarray as xr
 
@@ -90,9 +91,29 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         from satpy.writers.ninjotiff import convert_units
         # ensure that converting from % to itself does not change the data
         sc = make_fake_scene(
-                {"VIS006": np.arange(25).reshape(5, 5)},
+                {"VIS006": np.arange(25, dtype="f4").reshape(5, 5)},
                 common_attrs={"units": "%"})
         ds_in = sc["VIS006"]
         ds_out = convert_units(ds_in, "%", "%")
         np.testing.assert_array_equal(ds_in, ds_out)
         assert ds_in.attrs == ds_out.attrs
+
+        # test converting between °C and K
+        sc = make_fake_scene(
+                {"IR108": np.arange(25, dtype="f4").reshape(5, 5)},
+                common_attrs={"units": "K"})
+        ds_in = sc["IR108"]
+        for out_unit in ("C", "CELSIUS"):
+            ds_out = convert_units(ds_in, "K", out_unit)
+            np.testing.assert_array_almost_equal(ds_in + 273.15, ds_out)
+            assert ds_in.attrs != ds_out.attrs
+            assert ds_out.attrs["units"] == out_unit
+
+        # test arbitrary different conversion
+        sc = make_fake_scene(
+                {"rain_rate": np.arange(25, dtype="f8").reshape(5, 5)},
+                common_attrs={"units": "millimeter/hour"})
+
+        ds_in = sc["rain_rate"]
+        with pytest.raises(ValueError):
+            convert_units(ds_in, "millimeter/hour", "m/s")
