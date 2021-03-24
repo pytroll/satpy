@@ -63,6 +63,14 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             logger.warning("Cached longitude and/or latitude datasets are not correctly defined in YAML file")
             self.longitude, self.latitude = None, None
 
+    def _standardize_dims(self, variable):
+        """Standardize dims to y, x."""
+        if 'num_pixels' in variable.dims:
+            variable = variable.rename({'num_pixels': 'x', 'num_lines': 'y'})
+        if variable.dims[0] == 'x':
+            variable = variable.transpose('y', 'x')
+        return variable
+
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using file_key in dataset_info."""
         var_key = dataset_info['file_key']
@@ -103,11 +111,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
-        try:
-            variable = variable.rename({'num_pixels': 'x', 'num_lines': 'y'})
-        except ValueError:
-            pass
-        variable = variable.transpose('y', 'x')
+        variable = self._standardize_dims(variable)
         return variable
 
     @staticmethod
