@@ -18,22 +18,23 @@
 """Composite classes for the VIIRS instrument."""
 
 import logging
-import os
+import warnings
 
 import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
 
-import satpy
 from satpy.composites import CompositeBase, GenericCompositor
+from satpy.modifiers import ModifierBase
 from satpy.dataset import combine_metadata
 from satpy.utils import get_satpos
+from satpy.aux_download import DataDownloadMixin, retrieve
 
 LOG = logging.getLogger(__name__)
 
 
-class ReflectanceCorrector(CompositeBase):
+class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     """Corrected Reflectance (crefl) modifier.
 
     Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
@@ -45,21 +46,31 @@ class ReflectanceCorrector(CompositeBase):
         If `dem_filename` can't be found or opened then correction is done
         assuming TOA or sealevel options.
 
-        :param dem_filename: path to the ancillary 'averaged heights' file
-                             default: CMGDEM.hdf
-                             environment override: os.path.join(<SATPY_ANCPATH>, <CREFL_ANCFILENAME>)
-        :param dem_sds: variable name to load from the ancillary file
+        Args:
+            dem_filename (str): DEPRECATED
+            url (str): URL or local path to the Digital Elevation Model (DEM)
+                HDF4 file. If unset (None or empty string), then elevation
+                is assumed to be 0 everywhere.
+            known_hash (str): Optional SHA256 checksum to verify the download
+                of ``url``.
+            dem_sds (str): Name of the variable in the elevation file to load.
+
         """
-        dem_filename = kwargs.pop("dem_filename",
-                                  os.environ.get("CREFL_ANCFILENAME",
-                                                 "CMGDEM.hdf"))
-        if os.path.exists(dem_filename):
-            self.dem_file = dem_filename
-        else:
-            self.dem_file = os.path.join(satpy.config.get('data_dir'),
-                                         dem_filename)
+        dem_filename = kwargs.pop("dem_filename", None)
+        if dem_filename is not None:
+            warnings.warn("'dem_filename' for 'ReflectanceCorrector' is "
+                          "deprecated. Use 'url' instead.", DeprecationWarning)
+
         self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
+        self.url = kwargs.pop('url', None)
+        self.known_hash = kwargs.pop('known_hash', None)
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
+        self.dem_cache_key = None
+        if self.url:
+            reg_files = self.register_data_files([{
+                'url': self.url, 'known_hash': self.known_hash}
+            ])
+            self.dem_cache_key = reg_files[0]
 
     def __call__(self, datasets, optional_datasets, **info):
         """Create modified DataArray object by applying the crefl algorithm."""
@@ -82,12 +93,13 @@ class ReflectanceCorrector(CompositeBase):
         refl_data = datasets[0]
         if refl_data.attrs.get("rayleigh_corrected"):
             return refl_data
-        if os.path.isfile(self.dem_file):
+        if self.dem_cache_key is not None:
             LOG.debug("Loading CREFL averaged elevation information from: %s",
-                      self.dem_file)
+                      self.dem_cache_key)
+            local_filename = retrieve(self.dem_cache_key)
             from netCDF4 import Dataset as NCDataset
             # HDF4 file, NetCDF library needs to be compiled with HDF4 support
-            nc = NCDataset(self.dem_file, "r")
+            nc = NCDataset(local_filename, "r")
             # average elevation is stored as a 16-bit signed integer but with
             # scale factor 1 and offset 0, convert it to float here
             avg_elevation = nc.variables[self.dem_sds][:].astype(np.float64)
@@ -98,8 +110,7 @@ class ReflectanceCorrector(CompositeBase):
 
         from satpy.composites.crefl_utils import run_crefl, get_coefficients
 
-        percent = refl_data.attrs["units"] == "%"
-
+        is_percent = refl_data.attrs["units"] == "%"
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
                                         refl_data.attrs["resolution"])
@@ -114,11 +125,11 @@ class ReflectanceCorrector(CompositeBase):
                             solar_aa,
                             solar_za,
                             avg_elevation=avg_elevation,
-                            percent=percent,
+                            percent=is_percent,
                             use_abi=use_abi)
         info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
-        factor = 100. if percent else 1.
+        factor = 100. if is_percent else 1.
         results = results * factor
         results.attrs = info
         self.apply_modifier_info(refl_data, results)
