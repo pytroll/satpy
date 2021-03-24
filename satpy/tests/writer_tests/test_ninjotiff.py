@@ -85,8 +85,8 @@ class TestNinjoTIFFWriter(unittest.TestCase):
                < nt.save.mock_calls[0][2]['ch_max_measurement_unit'])
         assert(ret == nt.save.return_value)
 
-    def test_convert_units(self):
-        """Test that unit conversions work as expected."""
+    def test_convert_units_self(self):
+        """Test that unit conversion to themselves do nothing."""
         from ..utils import make_fake_scene
         from satpy.writers.ninjotiff import convert_units
         # ensure that converting from % to itself does not change the data
@@ -98,7 +98,11 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         np.testing.assert_array_equal(ds_in, ds_out)
         assert ds_in.attrs == ds_out.attrs
 
+    def test_convert_units_temp(self):
+        """Test that temperature unit conversions works as expected."""
         # test converting between °C and K
+        from ..utils import make_fake_scene
+        from satpy.writers.ninjotiff import convert_units
         sc = make_fake_scene(
                 {"IR108": np.arange(25, dtype="f4").reshape(5, 5)},
                 common_attrs={"units": "K"})
@@ -109,11 +113,15 @@ class TestNinjoTIFFWriter(unittest.TestCase):
             assert ds_in.attrs != ds_out.attrs
             assert ds_out.attrs["units"] == out_unit
 
+    def test_convert_units_other(self):
+        """Test that other unit conversions are not implemented."""
         # test arbitrary different conversion
+        from ..utils import make_fake_scene
+        from satpy.writers.ninjotiff import convert_units
         sc = make_fake_scene(
                 {"rain_rate": np.arange(25, dtype="f8").reshape(5, 5)},
                 common_attrs={"units": "millimeter/hour"})
 
         ds_in = sc["rain_rate"]
-        with pytest.raises(ValueError):
+        with pytest.raises(NotImplementedError):
             convert_units(ds_in, "millimeter/hour", "m/s")

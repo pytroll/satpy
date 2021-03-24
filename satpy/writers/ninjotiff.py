@@ -94,10 +94,10 @@ def convert_units(dataset, in_unit, out_unit):
 
     Convert dataset units for the benefit of writing NinJoTIFF.  The main
     background here is that NinJoTIFF would like brightness temperatures in °C,
-    but satellinge data files are in K.  For simplicity of implementation, this
-    function can only convert from °C to K.
+    but satellite data files are in K.  For simplicity of implementation, this
+    function can only convert from K to °C.
 
-    This function will convert input data from °C to K and write the new unit
+    This function will convert input data from K to °C and write the new unit
     in the ``"units"`` attribute.  When output and input units are equal, it
     returns the input dataset.
 
@@ -120,12 +120,10 @@ def convert_units(dataset, in_unit, out_unit):
         new_dataset.attrs["units"] = out_unit
         return new_dataset
 
-    # Other cases not implemented.  Creating a quantity from a pint array
-    # doesn't work (TypeError: Quantity cannot wrap upcast type
-    # xarray.DataArray).  Working on the values may cause further bugs and
-    # dask-compatibility.  I don't know if anyone is using this function to
-    # convert between non-temperature units.
-    raise ValueError(
+    # Other units not implemented.  Before Satpy 0.16.1 there was a
+    # non-working implementation based on pint here.
+
+    raise NotImplementedError(
             "NinJoTIFF unit conversion only implemented between K and C, not "
             f"between {in_unit!s} and {out_unit!s}")
 
