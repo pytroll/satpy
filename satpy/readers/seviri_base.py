@@ -767,7 +767,7 @@ class OrbitPolynomialFinder:
                 'No orbit polynomial valid for {}. Using closest '
                 'match.'.format(time)
             )
-            match = self._get_closest_interval(time, max_delta)
+            match = self._get_closest_interval_within(time, max_delta)
         return OrbitPolynomial(
             coefs=(
                 self.orbit_polynomials['X'][match],
@@ -789,20 +789,38 @@ class OrbitPolynomialFinder:
         most_recent = np.argmax(self.valid_from[enclosing])
         return enclosing[most_recent]
 
-    def _get_closest_interval(self, time, threshold):
-        """Find interval closest to the given timestamp."""
-        intervals_centre = self.valid_from + 0.5 * (
-                self.valid_to - self.valid_from
-        )
-        diffs_us = (time - intervals_centre).astype('i8')
-        closest_match = np.argmin(np.fabs(diffs_us))
+    def _get_closest_interval_within(self, time, threshold):
+        """Find interval closest to the given timestamp within a given distance.
+
+        Args:
+            time: Timestamp of interest
+            threshold: Maximum distance between timestamp and interval center
+
+        Returns:
+            Index of closest interval
+        """
+        closest_match, distance = self._get_closest_interval(time)
         threshold_diff = np.timedelta64(threshold, 'h')
-        if abs(intervals_centre[closest_match] - time) < threshold_diff:
+        if distance < threshold_diff:
             return closest_match
         raise NoValidOrbitParams(
             'Unable to find orbit coefficients valid for {} +/- {}'
             'hours'.format(time, threshold)
         )
+
+    def _get_closest_interval(self, time):
+        """Find interval closest to the given timestamp.
+
+        Returns:
+            Index of closest interval, distance from its center
+        """
+        intervals_centre = self.valid_from + 0.5 * (
+                self.valid_to - self.valid_from
+        )
+        diffs_us = (time - intervals_centre).astype('i8')
+        closest_match = np.argmin(np.fabs(diffs_us))
+        distance = abs(intervals_centre[closest_match] - time)
+        return closest_match, distance
 
 
 def calculate_area_extent(area_dict):
