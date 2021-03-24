@@ -80,6 +80,7 @@ The metadata to provide to the writer can also be stored in a configuration file
 import logging
 
 import numpy as np
+import xarray as xr
 
 import pyninjotiff.ninjotiff as nt
 from satpy.writers import ImageWriter
@@ -116,7 +117,8 @@ def convert_units(dataset, in_unit, out_unit):
         return dataset
 
     if in_unit.lower() in {"k", "kelvin"} and out_unit.lower() in {"c", "celsius"}:
-        new_dataset = dataset + 273.15
+        with xr.set_options(keep_attrs=True):
+            new_dataset = dataset + 273.15
         new_dataset.attrs["units"] = out_unit
         return new_dataset
 

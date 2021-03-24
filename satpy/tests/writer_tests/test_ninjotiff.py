@@ -112,6 +112,9 @@ class TestNinjoTIFFWriter(unittest.TestCase):
             np.testing.assert_array_almost_equal(ds_in + 273.15, ds_out)
             assert ds_in.attrs != ds_out.attrs
             assert ds_out.attrs["units"] == out_unit
+        # test that keys aren't lost
+        assert ds_out.attrs.keys() - ds_in.attrs.keys() <= {"units"}
+        assert ds_in.attrs.keys() <= ds_out.attrs.keys()
 
     def test_convert_units_other(self):
         """Test that other unit conversions are not implemented."""
