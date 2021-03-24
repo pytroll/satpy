@@ -21,6 +21,7 @@ import sys
 import unittest
 from unittest import mock
 
+import numpy as np
 import xarray as xr
 
 
@@ -82,3 +83,16 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         assert(nt.save.mock_calls[0][2]['ch_min_measurement_unit']
                < nt.save.mock_calls[0][2]['ch_max_measurement_unit'])
         assert(ret == nt.save.return_value)
+
+    def test_convert_units(self):
+        """Test that unit conversions work as expected."""
+        from ..utils import make_fake_scene
+        from satpy.writers.ninjotiff import convert_units
+        # ensure that converting from % to itself does not change the data
+        sc = make_fake_scene(
+                {"VIS006": np.arange(25).reshape(5, 5)},
+                common_attrs={"units": "%"})
+        ds_in = sc["VIS006"]
+        ds_out = convert_units(ds_in, "%", "%")
+        np.testing.assert_array_equal(ds_in, ds_out)
+        assert ds_in.attrs == ds_out.attrs
