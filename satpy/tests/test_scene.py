@@ -20,6 +20,8 @@
 import os
 import unittest
 from unittest import mock
+import string
+import random
 
 import satpy
 from satpy import Scene
@@ -130,7 +132,9 @@ class TestScene:
         # Instead rely on the ValueError that satpy raises if no readers
         # are found.
 
-        fsf = FSFile("dummy")
+        # Choose random filename that doesn't exist.  Not using tempfile here,
+        # because tempfile creates files and we don't want that here.
+        fsf = FSFile("".join(random.choices(string.printable, k=50)))
         with pytest.raises(ValueError, match="No supported files found"):
             Scene(filenames=[fsf], reader=[])
 
