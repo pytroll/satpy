@@ -56,15 +56,15 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         self.assertDictEqual(ntw.tags, ninjo_tags)
 
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
-    @mock.patch('satpy.writers.ninjotiff.convert_units')
     @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
-    def test_dataset(self, uconv, iwsd):
+    def test_dataset(self, iwsd):
         """Test saving a dataset."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
         dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
-        ntw.save_dataset(dataset, physic_unit='CELSIUS')
-        uconv.assert_called_once_with(dataset, 'K', 'CELSIUS')
+        with mock.patch('satpy.writers.ninjotiff.convert_units') as uconv:
+            ntw.save_dataset(dataset, physic_unit='CELSIUS')
+            uconv.assert_called_once_with(dataset, 'K', 'CELSIUS')
         self.assertEqual(iwsd.call_count, 1)
 
     @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
