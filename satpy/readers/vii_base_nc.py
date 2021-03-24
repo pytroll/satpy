@@ -107,7 +107,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             variable = variable.rename({'num_pixels': 'x', 'num_lines': 'y'})
         except ValueError:
             pass
-        variable.transpose('y', 'x')
+        variable = variable.transpose('y', 'x')
         return variable
 
     @staticmethod
