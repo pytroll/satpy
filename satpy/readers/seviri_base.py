@@ -623,6 +623,26 @@ def chebyshev(coefs, time, domain):
     return Chebyshev(coefs, domain=domain)(time) - 0.5 * coefs[0]
 
 
+def chebyshev_3d(coefs, time, domain):
+    """Evaluate Chebyshev Polynomials for three dimensions (x, y, z).
+
+    Expects the three coefficient sets to be defined in the same domain.
+
+    Args:
+        coefs: (x, y, z) coefficient sets.
+        time: See :func:`chebyshev`
+        domain: See :func:`chebyshev`
+
+    Returns:
+        Polynomials evaluated in (x, y, z) dimension.
+    """
+    x_coefs, y_coefs, z_coefs = coefs
+    x = chebyshev(x_coefs, time, domain)
+    y = chebyshev(y_coefs, time, domain)
+    z = chebyshev(z_coefs, time, domain)
+    return x, y, z
+
+
 class NoValidOrbitParams(Exception):
     """Exception when validOrbitParameters are missing."""
 
@@ -638,7 +658,7 @@ class OrbitPolynomial:
 
     def __init__(self, coefs, start_time, end_time):
         """Initialize the polynomial."""
-        self.x_coefs, self.y_coefs, self.z_coefs = coefs
+        self.coefs = coefs
         self.start_time = start_time
         self.end_time = end_time
 
@@ -654,17 +674,13 @@ class OrbitPolynomial:
         domain = [np.datetime64(self.start_time).astype('int64'),
                   np.datetime64(self.end_time).astype('int64')]
         time = np.datetime64(time).astype('int64')
-        x = chebyshev(coefs=self.x_coefs, time=time, domain=domain)
-        y = chebyshev(coefs=self.y_coefs, time=time, domain=domain)
-        z = chebyshev(coefs=self.z_coefs, time=time, domain=domain)
+        x, y, z = chebyshev_3d(self.coefs, time, domain)
         return x * 1000, y * 1000, z * 1000  # km -> m
 
     def __eq__(self, other):
         """Test equality of two orbit polynomials."""
         return (
-            np.array_equal(self.x_coefs, other.x_coefs) and
-            np.array_equal(self.y_coefs, other.y_coefs) and
-            np.array_equal(self.z_coefs, other.z_coefs) and
+            np.array_equal(self.coefs, np.array(other.coefs)) and
             self.start_time == other.start_time and
             self.end_time == other.end_time
         )
