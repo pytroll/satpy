@@ -48,8 +48,10 @@ from satpy.readers.seviri_base import (
     add_scanline_acq_time, get_cds_time, OrbitPolynomialFinder, get_satpos,
     NoValidOrbitParams
 )
-from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
-                                                 native_trailer)
+from satpy.readers.seviri_l1b_native_hdr import (
+    GSDTRecords, get_native_header, native_trailer,
+    DEFAULT_15_SECONDARY_PRODUCT_HEADER
+)
 from satpy.readers.utils import reduce_mda
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 
@@ -100,10 +102,17 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
+        self.header_type = get_native_header(self._has_archive_header())
         self._read_header()
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
+
+    def _has_archive_header(self):
+        """Check whether the file includes an ASCII archive header."""
+        ascii_startswith = b'FormatName                  : NATIVE'
+        with open(self.filename, mode='rb') as istream:
+            return istream.read(36) == ascii_startswith
 
     @property
     def start_time(self):
@@ -172,7 +181,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         """Get the memory map for the SEVIRI data."""
         with open(self.filename) as fp:
             data_dtype = self._get_data_dtype()
-            hdr_size = native_header.itemsize
+            hdr_size = self.header_type.itemsize
 
             return np.memmap(fp, dtype=data_dtype,
                              shape=(self.mda['number_of_lines'],),
@@ -181,9 +190,14 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _read_header(self):
         """Read the header info."""
         data = np.fromfile(self.filename,
-                           dtype=native_header, count=1)
+                           dtype=self.header_type, count=1)
 
         self.header.update(recarray2dict(data))
+
+        if '15_SECONDARY_PRODUCT_HEADER' not in self.header:
+            # No archive header, that means we have a complete file
+            # including all channels.
+            self.header['15_SECONDARY_PRODUCT_HEADER'] = DEFAULT_15_SECONDARY_PRODUCT_HEADER
 
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
@@ -263,7 +277,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _read_trailer(self):
 
-        hdr_size = native_header.itemsize
+        hdr_size = self.header_type.itemsize
         data_size = (self._get_data_dtype().itemsize *
                      self.mda['number_of_lines'])
 
