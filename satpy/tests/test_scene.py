@@ -20,6 +20,8 @@
 import os
 import unittest
 from unittest import mock
+import string
+import random
 
 import satpy
 from satpy import Scene
@@ -119,6 +121,22 @@ class TestScene:
         from satpy.scene import Scene
         filenames = []
         Scene(filenames=filenames)
+
+    def test_init_with_fsfile(self):
+        """Test initialisation with FSFile objects."""
+        from satpy.readers import FSFile
+
+        # We should not mock _create_reader_instances here, because in
+        # https://github.com/pytroll/satpy/issues/1605 satpy fails with
+        # TypeError within that method if passed an FSFile instance.
+        # Instead rely on the ValueError that satpy raises if no readers
+        # are found.
+
+        # Choose random filename that doesn't exist.  Not using tempfile here,
+        # because tempfile creates files and we don't want that here.
+        fsf = FSFile("".join(random.choices(string.printable, k=50)))
+        with pytest.raises(ValueError, match="No supported files found"):
+            Scene(filenames=[fsf], reader=[])
 
     # TODO: Rewrite this test for the 'find_files_and_readers' function
     # def test_create_reader_instances_with_sensor(self):
