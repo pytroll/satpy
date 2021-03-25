@@ -56,6 +56,7 @@ class GenericImageFileHandler(BaseFileHandler):
         self.finfo['filename'] = self.filename
         self.file_content = {}
         self.area = None
+        self.dataset_name = None
         self.read()
 
     def read(self):
@@ -82,7 +83,8 @@ class GenericImageFileHandler(BaseFileHandler):
             logger.warning(err)
 
         data.attrs = attrs
-        self.file_content['image'] = data
+        self.dataset_name = 'image'
+        self.file_content[self.dataset_name] = data
 
     def get_area_def(self, dsid):
         """Get area definition of the image."""
@@ -102,8 +104,9 @@ class GenericImageFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-        logger.debug("Reading 'image' (ignoring provided key %s).", key)
-        return self.file_content['image']
+        ds_name = self.dataset_name if self.dataset_name else key['name']
+        logger.debug("Reading '%s.'", ds_name)
+        return self.file_content[ds_name]
 
 
 def mask_image_data(data):
