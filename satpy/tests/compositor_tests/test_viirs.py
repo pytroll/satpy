@@ -20,6 +20,7 @@
 import unittest
 from unittest import mock
 
+import pytest
 import dask.array as da
 import numpy as np
 from pyresample.geometry import AreaDefinition
@@ -313,7 +314,7 @@ class TestReflectanceCorrectorModifier:
         import numpy as np
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy.tests.utils import make_dsq
-        ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
+        ref_cor = ReflectanceCorrector(optional_prerequisites=[
             make_dsq(name='satellite_azimuth_angle'),
             make_dsq(name='satellite_zenith_angle'),
             make_dsq(name='solar_azimuth_angle'),
@@ -389,7 +390,7 @@ class TestReflectanceCorrectorModifier:
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
         from satpy.tests.utils import make_dsq
-        ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
+        ref_cor = ReflectanceCorrector(optional_prerequisites=[
             make_dsq(name='satellite_azimuth_angle'),
             make_dsq(name='satellite_zenith_angle'),
             make_dsq(name='solar_azimuth_angle'),
@@ -475,7 +476,7 @@ class TestReflectanceCorrectorModifier:
         solaa_did = make_dsq(name='solar_azimuth_angle')
         solza_did = make_dsq(name='solar_zenith_angle')
         ref_cor = ReflectanceCorrector(
-            dem_filename='_fake.hdf', optional_prerequisites=[sataa_did, satza_did, solaa_did, solza_did], name='1',
+            optional_prerequisites=[sataa_did, satza_did, solaa_did, solza_did], name='1',
             prerequisites=[], wavelength=(0.62, 0.645, 0.67), resolution=250, calibration='reflectance',
             modifiers=('sunz_corrected', 'rayleigh_corrected_crefl'), sensor='modis')
         assert ref_cor.attrs['modifiers'] == ('sunz_corrected', 'rayleigh_corrected_crefl')
@@ -536,3 +537,91 @@ class TestReflectanceCorrectorModifier:
         assert data.shape == (5, 10)
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [24.641586, 50.431692, 69.315375])
+
+    def test_reflectance_corrector_bad_prereqs(self):
+        """Test ReflectanceCorrector modifier with wrong number of inputs."""
+        from satpy.composites.viirs import ReflectanceCorrector
+        ref_cor = ReflectanceCorrector("test")
+        pytest.raises(ValueError, ref_cor, [1], [2, 3, 4])
+        pytest.raises(ValueError, ref_cor, [1, 2, 3, 4], [])
+        pytest.raises(ValueError, ref_cor, [], [1, 2, 3, 4])
+
+    def test_crefl_viirs_dem(self, tmpdir):
+        """Test using the modifier with a DEM file."""
+        import xarray as xr
+        import dask.array as da
+        import numpy as np
+        import datetime
+        from satpy.composites.viirs import ReflectanceCorrector
+        from satpy.tests.utils import make_dsq
+        ref_cor = ReflectanceCorrector(
+            url='CMGDEM.hdf',
+            optional_prerequisites=[
+                make_dsq(name='satellite_azimuth_angle'),
+                make_dsq(name='satellite_zenith_angle'),
+                make_dsq(name='solar_azimuth_angle'),
+                make_dsq(name='solar_zenith_angle')
+            ],
+            name='I01', prerequisites=[], wavelength=(0.6, 0.64, 0.68),
+            resolution=371, calibration='reflectance',
+            modifiers=('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband'),
+            sensor='viirs')
+        area, refl = self.data_area_ref_corrector()
+
+        def make_xarray(file_key, name, standard_name, wavelength=None, units='degrees', calibration=None,
+                        file_type=('gitco', 'gimgo')):
+            return xr.DataArray(refl, dims=('y', 'x'),
+                                attrs={
+                                    'start_orbit': 1708, 'end_orbit': 1708, 'wavelength': wavelength, 'level': None,
+                                    'modifiers': None, 'calibration': calibration, 'file_key': file_key,
+                                    'resolution': 371, 'file_type': file_type, 'name': name,
+                                    'standard_name': standard_name, 'platform_name': 'Suomi-NPP',
+                                    'polarization': None, 'sensor': 'viirs', 'units': units,
+                                    'start_time': datetime.datetime(2012, 2, 25, 18, 1, 24, 570942),
+                                    'end_time': datetime.datetime(2012, 2, 25, 18, 11, 21, 175760), 'area': area,
+                                    'ancillary_variables': []
+                                })
+
+        c01 = make_xarray(None, 'I01', 'toa_bidirectional_reflectance', wavelength=(0.6, 0.64, 0.68), units='%',
+                          calibration='reflectance', file_type='svi01')
+        c02 = make_xarray('All_Data/{file_group}_All/SatelliteAzimuthAngle', 'satellite_azimuth_angle',
+                          'sensor_azimuth_angle')
+        c03 = make_xarray('All_Data/{file_group}_All/SatelliteZenithAngle', 'satellite_zenith_angle',
+                          'sensor_zenith_angle')
+        c04 = make_xarray('All_Data/{file_group}_All/SolarAzimuthAngle', 'solar_azimuth_angle',
+                          'solar_azimuth_angle')
+        c05 = make_xarray('All_Data/{file_group}_All/SolarZenithAngle', 'solar_zenith_angle',
+                          'solar_zenith_angle')
+        with mock.patch('satpy.composites.viirs.retrieve') as rmock:
+            dem_fn = str(tmpdir.join('CMGDEM.hdf'))
+            rmock.return_value = dem_fn
+            from netCDF4 import Dataset
+            nc = Dataset(dem_fn, 'w')
+            nc.createDimension('y', 10)
+            nc.createDimension('x', 10)
+            dem_var = nc.createVariable('averaged elevation', np.float32,
+                                        ('y', 'x'))
+            dem_var[:] = 0
+            res = ref_cor([c01], [c02, c03, c04, c05])
+
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['wavelength'] == (0.6, 0.64, 0.68)
+        assert res.attrs['modifiers'] == ('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband')
+        assert res.attrs['calibration'] == 'reflectance'
+        assert res.attrs['resolution'] == 371
+        assert res.attrs['file_type'] == 'svi01'
+        assert res.attrs['name'] == 'I01'
+        assert res.attrs['standard_name'] == 'toa_bidirectional_reflectance'
+        assert res.attrs['platform_name'] == 'Suomi-NPP'
+        assert res.attrs['sensor'] == 'viirs'
+        assert res.attrs['units'] == '%'
+        assert res.attrs['start_time'] == datetime.datetime(2012, 2, 25, 18, 1, 24, 570942)
+        assert res.attrs['end_time'] == datetime.datetime(2012, 2, 25, 18, 11, 21, 175760)
+        assert res.attrs['area'] == area
+        assert res.attrs['ancillary_variables'] == []
+        data = res.values
+        assert abs(np.mean(data) - 40.7578684169142) < 1e-10
+        assert data.shape == (5, 10)
+        unique = np.unique(data)
+        np.testing.assert_allclose(unique, [25.20341702519979, 52.38819447051263, 75.79089653845898])
