@@ -25,6 +25,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+import satpy
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.aux_download import DataDownloadMixin
@@ -1041,10 +1042,19 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
     def _get_cache_filename_and_url(filename, url):
         if filename is not None:
             filename = os.path.expanduser(os.path.expandvars(filename))
+
+            if not os.path.isabs(filename):
+                data_dir = satpy.config.get('data_dir')
+                filename = os.path.join(data_dir, filename)
+                if not os.path.exists(filename):
+                    raise ValueError('Can not find image {} for '
+                                     'StaticImageCompositor'.format(filename))
+
         if url is not None:
             url = os.path.expandvars(url)
             if filename is None:
                 filename = os.path.basename(url)
+
         if url is None and (filename is None or not os.path.isabs(filename)):
             raise ValueError("StaticImageCompositor needs a remote 'url' "
                              "or absolute path to 'filename'.")
