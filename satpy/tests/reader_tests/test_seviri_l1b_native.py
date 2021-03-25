@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
+import os
 import unittest
 from unittest import mock
 
@@ -664,19 +665,23 @@ class TestNativeMSGArea(unittest.TestCase):
         trailer = self.create_test_trailer(is_rapid_scan)
         expected_area_def = test_dict['expected_area_def']
 
-        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+                mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+                mock.patch(
+                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
+                ) as _has_archive_header:
+            _has_archive_header.return_value = True
             fromfile.return_value = header
-            with mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict:
-                recarray2dict.side_effect = (lambda x: x)
-                with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap:
-                    _get_memmap.return_value = np.arange(3)
-                    with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
-                        fh = NativeMSGFileHandler(None, {}, None)
-                        fh.fill_disk = fill_disk
-                        fh.header = header
-                        fh.trailer = trailer
-                        fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
-                        calc_area_def = fh.get_area_def(dataset_id)
+            recarray2dict.side_effect = (lambda x: x)
+            _get_memmap.return_value = np.arange(3)
+            fh = NativeMSGFileHandler(None, {}, None)
+            fh.fill_disk = fill_disk
+            fh.header = header
+            fh.trailer = trailer
+            fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
+            calc_area_def = fh.get_area_def(dataset_id)
 
         return (calc_area_def, expected_area_def)
 
@@ -953,17 +958,21 @@ class TestNativeMSGArea(unittest.TestCase):
         trailer = self.create_test_trailer(is_rapid_scan)
         expected_is_roi = test_dict['is_roi']
 
-        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+                mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+                mock.patch(
+                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
+                ) as _has_archive_header:
+            _has_archive_header.return_value = True
             fromfile.return_value = header
-            with mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict:
-                recarray2dict.side_effect = (lambda x: x)
-                with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap:
-                    _get_memmap.return_value = np.arange(3)
-                    with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
-                        fh = NativeMSGFileHandler(None, {}, None)
-                        fh.header = header
-                        fh.trailer = trailer
-                        calc_is_roi = fh.is_roi()
+            recarray2dict.side_effect = (lambda x: x)
+            _get_memmap.return_value = np.arange(3)
+            fh = NativeMSGFileHandler(None, {}, None)
+            fh.header = header
+            fh.trailer = trailer
+            calc_is_roi = fh.is_roi()
 
         return (calc_is_roi, expected_is_roi)
 
@@ -1101,3 +1110,62 @@ class TestNativeMSGPadder(unittest.TestCase):
         """Test padder for FES HRV data."""
         calculated, expected = self.prepare_padder(TEST_PADDER_FES_HRV)
         np.testing.assert_array_equal(calculated, expected)
+
+
+class TestNativeMSGFilenames:
+    """Test identification of Native format filenames."""
+
+    @pytest.fixture
+    def reader(self):
+        """Return reader for SEVIRI Native format."""
+        from satpy._config import config_search_paths
+        from satpy.readers import load_reader
+
+        reader_configs = config_search_paths(
+            os.path.join("readers", "seviri_l1b_native.yaml"))
+        reader = load_reader(reader_configs)
+        return reader
+
+    def test_file_pattern(self, reader):
+        """Test file pattern matching."""
+        filenames = [
+            # Valid
+            "MSG2-SEVI-MSG15-0100-NA-20080219094242.289000000Z",
+            "MSG2-SEVI-MSG15-0201-NA-20080219094242.289000000Z",
+            "MSG2-SEVI-MSG15-0301-NA-20080219094242.289000000Z-123456.nat",
+            "MSG2-SEVI-MSG15-0401-NA-20080219094242.289000000Z-20201231181545-123456.nat",
+            # Invalid
+            "MSG2-SEVI-MSG15-010-NA-20080219094242.289000000Z",
+        ]
+        files = reader.select_files_from_pathnames(filenames)
+        assert len(files) == 4
+
+
+@pytest.mark.parametrize(
+    'file_content,exp_header_size',
+    [
+        (b'FormatName                  : NATIVE', 450400),  # with ascii header
+        (b'foobar', 445286),  # without ascii header
+    ]
+)
+def test_header_type(file_content, exp_header_size):
+    """Test identification of the file header type."""
+    header = TestNativeMSGArea.create_test_header(
+        dataset_id=make_dataid(name='VIS006', resolution=3000),
+        earth_model=1,
+        is_full_disk=True,
+        is_rapid_scan=0
+    )
+    if file_content == b'foobar':
+        header.pop('15_SECONDARY_PRODUCT_HEADER')
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+            mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+            mock.patch("builtins.open", mock.mock_open(read_data=file_content)):
+        fromfile.return_value = header
+        recarray2dict.side_effect = (lambda x: x)
+        _get_memmap.return_value = np.arange(3)
+        fh = NativeMSGFileHandler('myfile', {}, None)
+        assert fh.header_type.itemsize == exp_header_size
+        assert '15_SECONDARY_PRODUCT_HEADER' in fh.header

@@ -8,7 +8,7 @@ reader:
 file_types:
     SLSTRB:
         file_reader: !!python/name:satpy.readers.slstr_l2.SLSTRL2FileHandler
-        file_patterns: ['{dt1:%Y%m%d%H%M%S}-{generating_centre:3s}-{type_id:3s}_GHRSST-SSTskin-SLSTR{something:1s}-{dt2:%Y%m%d%H%M%S}-{version}.nc',
+        file_patterns: ['{start_time:%Y%m%d%H%M%S}-{generating_centre:3s}-{type_id:3s}_GHRSST-SSTskin-SLSTR{something:1s}-{end_time:%Y%m%d%H%M%S}-{version}.nc',
         '{mission_id:3s}_SL_{processing_level:1s}_WST____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3.tar']
 
 datasets:

@@ -68,7 +68,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
 
         if out is None:
             out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
+            out.mask = np.zeros(shape, dtype=bool)
 
         out.data[:] = np.require(self[var_path][0][::-1], dtype=dtype)
         valid_min = self[var_path + '/attr/valid_min']

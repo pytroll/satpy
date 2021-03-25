@@ -952,3 +952,30 @@ class TestFSFile(unittest.TestCase):
         sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
         expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
         assert sorted_filenames == expected_filenames
+
+    def test_equality(self):
+        """Test that FSFile compares equal when it should."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        assert FSFile(self.local_filename) == FSFile(self.local_filename)
+        assert (FSFile(self.local_filename, zip_fs) ==
+                FSFile(self.local_filename, zip_fs))
+        assert (FSFile(self.local_filename, zip_fs) !=
+                FSFile(self.local_filename))
+        assert FSFile(self.local_filename) != FSFile(self.local_filename2)
+
+    def test_hash(self):
+        """Test that FSFile hashing behaves sanely."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        from fsspec.implementations.local import LocalFileSystem
+        from fsspec.implementations.cached import CachingFileSystem
+
+        lfs = LocalFileSystem()
+        zfs = ZipFileSystem(self.zip_name)
+        cfs = CachingFileSystem(fs=lfs)
+        # make sure each name/fs-combi has its own hash
+        assert len({hash(FSFile(fn, fs))
+                    for fn in {self.local_filename, self.local_filename2}
+                    for fs in [None, lfs, zfs, cfs]}) == 2*4

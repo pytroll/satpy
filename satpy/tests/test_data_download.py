@@ -210,3 +210,39 @@ class TestDataDownload:
             assert not self.tmpdir.join(comp_file).exists()
             retrieve_all()
             assert self.tmpdir.join(comp_file).exists()
+
+    def test_no_downloads_in_tests(self):
+        """Test that tests aren't allowed to download stuff."""
+        import satpy
+        from satpy.aux_download import register_file, retrieve
+
+        file_registry = {}
+        with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir),
+                              download_aux=True), \
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
+            cache_key = 'myfile.rst'
+            register_file(README_URL, cache_key)
+            assert not self.tmpdir.join(cache_key).exists()
+            pytest.raises(RuntimeError, retrieve, cache_key)
+            # touch the file so it gets created
+            open(self.tmpdir.join(cache_key), 'w').close()
+            # offline downloading should still be allowed
+            with satpy.config.set(download_aux=False):
+                retrieve(cache_key)
+
+    def test_download_script(self):
+        """Test basic functionality of the download script."""
+        from satpy.aux_download import retrieve_all_cmd
+        import satpy
+        file_registry = {}
+        file_urls = {}
+        with satpy.config.set(config_path=[self.tmpdir]), \
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry), \
+             mock.patch('satpy.aux_download._FILE_URLS', file_urls), \
+             mock.patch('satpy.aux_download.find_registerable_files'):
+            comp_file = 'composites/README.rst'
+            file_registry[comp_file] = None
+            file_urls[comp_file] = README_URL
+            assert not self.tmpdir.join(comp_file).exists()
+            retrieve_all_cmd(argv=["--data-dir", str(self.tmpdir)])
+            assert self.tmpdir.join(comp_file).exists()

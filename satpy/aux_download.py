@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 _FILE_REGISTRY = {}
 _FILE_URLS = {}
+RUNNING_TESTS = False
 
 
 def register_file(url, filename, component_type=None, known_hash=None):
@@ -81,6 +82,11 @@ def _retrieve_offline(data_dir, cache_key):
     return local_file
 
 
+def _should_download(cache_key):
+    """Check if we're running tests and can download this file."""
+    return not RUNNING_TESTS or 'README' in cache_key
+
+
 def retrieve(cache_key, pooch_kwargs=None):
     """Download and cache the file associated with the provided ``cache_key``.
 
@@ -103,6 +109,10 @@ def retrieve(cache_key, pooch_kwargs=None):
     path = satpy.config.get('data_dir')
     if not satpy.config.get('download_aux'):
         return _retrieve_offline(path, cache_key)
+    if not _should_download(cache_key):
+        raise RuntimeError("Auxiliary data download is not allowed during "
+                           "tests. Mock the appropriate components of your "
+                           "tests to not need the 'retrieve' function.")
     # reuse data directory as the default URL where files can be downloaded from
     pooch_obj = pooch.create(path, path, registry=_FILE_REGISTRY,
                              urls=_FILE_URLS)
@@ -323,7 +333,7 @@ class DataDownloadMixin:
                              known_hash=known_hash)
 
 
-def retrieve_all_cmd():
+def retrieve_all_cmd(argv=None):
     """Call 'retrieve_all' function from console script 'satpy_retrieve_all'."""
     import argparse
     parser = argparse.ArgumentParser(description="Download auxiliary data files used by Satpy.")
@@ -344,13 +354,13 @@ def retrieve_all_cmd():
                         help="Limit searching to these writers. If specified "
                              "with no arguments, no writer files will be "
                              "downloaded.")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO)
 
     if args.data_dir is None:
         args.data_dir = satpy.config.get('data_dir')
 
-    with satpy.config.set(datA_dir=args.data_dir):
+    with satpy.config.set(data_dir=args.data_dir):
         retrieve_all(readers=args.readers, writers=args.writers,
                      composite_sensors=args.composite_sensors)
