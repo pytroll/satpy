@@ -17,9 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
-import unittest
-from unittest import mock
 from datetime import datetime
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -29,107 +28,146 @@ from satpy.readers.seviri_l1b_nc import NCSEVIRIFileHandler
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
     TestFileHandlerCalibrationBase
 )
-from satpy.tests.utils import make_dataid
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
+from satpy.tests.utils import make_dataid, assert_attrs_equal
 
 
-def new_read_file(instance):
-    """Fake read file."""
-    new_ds = xr.Dataset({'ch4': (['num_rows_vis_ir', 'num_columns_vis_ir'], np.random.random((2, 2))),
-                         'planned_chan_processing': (["channels_dim"], np.ones(12, dtype=np.int8) * 2)},
-                        coords={'num_rows_vis_ir': [1, 2], 'num_columns_vis_ir': [1, 2]})
-    # dataset attrs
-    attrs = {'comment': 'comment', 'long_name': 'long_name', 'nc_key': 'ch4', 'scale_factor': np.float64(1.0),
-             'add_offset': np.float64(1.0), 'valid_min': np.float64(1.0), 'valid_max': np.float64(1.0)}
-    new_ds['ch4'].attrs = attrs
-
-    # global attrs
-    new_ds.attrs['satellite_id'] = '324'
-
-    instance.nc = new_ds
-
-    instance.mda['projection_parameters'] = {'a': 1,
-                                             'b': 1,
-                                             'h': 35785831.00,
-                                             'ssp_longitude': 0}
+def to_cds_time(time):
+    """Convert datetime to (days, msecs) since 1958-01-01."""
+    if isinstance(time, datetime):
+        time = np.datetime64(time)
+    t0 = np.datetime64('1958-01-01 00:00')
+    delta = time - t0
+    days = (delta / np.timedelta64(1, 'D')).astype(int)
+    msecs = delta / np.timedelta64(1, 'ms') - days * 24 * 3600 * 1E3
+    return days, msecs
 
 
-class TestNCSEVIRIFileHandler(unittest.TestCase):
-    """Tester for the file handler."""
+class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
+    """Unit tests for SEVIRI netCDF reader."""
 
-    def setUp(self):
-        """Set up the test case."""
-        start_time = datetime(2016, 3, 3, 0, 0)
-        with mock.patch.object(NCSEVIRIFileHandler, '_read_file', new=new_read_file):
-            self.reader = NCSEVIRIFileHandler(
-                'filename',
-                {'platform_shortname': 'MSG3',
-                 'start_time': start_time,
-                 'service': 'MSG'},
-                {'filetype': 'info'})
-            self.reader.deltaSt = start_time
+    def _get_fake_dataset(self, counts):
+        """Create a fake dataset."""
+        acq_time_day = np.repeat([1, 1], 11).reshape(2, 11)
+        acq_time_msec = np.repeat([1000, 2000], 11).reshape(2, 11)
+        orbit_poly_start_day, orbit_poly_start_msec = to_cds_time(
+            np.array([datetime(2019, 12, 31, 18),
+                      datetime(2019, 12, 31, 22)],
+                     dtype='datetime64')
+        )
+        orbit_poly_end_day, orbit_poly_end_msec = to_cds_time(
+            np.array([datetime(2019, 12, 31, 22),
+                      datetime(2020, 1, 1, 2)],
+                     dtype='datetime64')
+        )
+        counts = counts.rename({
+            'y': 'num_rows_vis_ir',
+            'x': 'num_columns_vis_ir'
+        })
+        scan_time_days, scan_time_msecs = to_cds_time(self.scan_time)
+        ds = xr.Dataset(
+            {
+                'VIS006': counts.copy(),
+                'IR_108': counts.copy(),
+                'HRV': (('num_rows_hrv', 'num_columns_hrv'), [[1, 2, 3],
+                                                              [4, 5, 6],
+                                                              [7, 8, 9]]),
+                'planned_chan_processing': self.radiance_types,
+                'channel_data_visir_data_l10_line_mean_acquisition_time_day': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    acq_time_day
+                ),
+                'channel_data_visir_data_l10_line_mean_acquisition_msec': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    acq_time_msec
+                ),
+                'orbit_polynomial_x': (
+                    ('orbit_polynomial_dim_row',
+                     'orbit_polynomial_dim_col'),
+                    ORBIT_POLYNOMIALS['X'][0:2]
+                ),
+                'orbit_polynomial_y': (
+                    ('orbit_polynomial_dim_row',
+                     'orbit_polynomial_dim_col'),
+                    ORBIT_POLYNOMIALS['Y'][0:2]
+                ),
+                'orbit_polynomial_z': (
+                    ('orbit_polynomial_dim_row',
+                     'orbit_polynomial_dim_col'),
+                    ORBIT_POLYNOMIALS['Z'][0:2]
+                ),
+                'orbit_polynomial_start_time_day': (
+                    'orbit_polynomial_dim_row',
+                    orbit_poly_start_day
+                ),
+                'orbit_polynomial_start_time_msec': (
+                    'orbit_polynomial_dim_row',
+                    orbit_poly_start_msec
+                ),
+                'orbit_polynomial_end_time_day': (
+                    'orbit_polynomial_dim_row',
+                    orbit_poly_end_day
+                ),
+                'orbit_polynomial_end_time_msec': (
+                    'orbit_polynomial_dim_row',
+                    orbit_poly_end_msec
+                ),
+            },
+            attrs={
+                'equatorial_radius': 6378.169,
+                'north_polar_radius': 6356.5838,
+                'south_polar_radius': 6356.5838,
+                'longitude_of_SSP': 0.0,
+                'nominal_longitude': -3.5,
+                'satellite_id': self.platform_id,
+                'true_repeat_cycle_start_day': scan_time_days,
+                'true_repeat_cycle_start_mi_sec': scan_time_msecs,
+                'planned_repeat_cycle_end_day': scan_time_days,
+                'planned_repeat_cycle_end_mi_sec': scan_time_msecs,
+                'north_most_line': 3712,
+                'east_most_pixel': 1,
+                'west_most_pixel': 3712,
+                'south_most_line': 1,
+                'vis_ir_column_dir_grid_step': 3.0004032,
+                'vis_ir_line_dir_grid_step': 3.0004032,
+                'type_of_earth_model': '0x02',
+            }
+        )
+        ds['VIS006'].attrs.update({
+            'scale_factor': self.gains_nominal[0],
+            'add_offset': self.offsets_nominal[0]
+        })
+        ds['IR_108'].attrs.update({
+            'scale_factor': self.gains_nominal[8],
+            'add_offset': self.offsets_nominal[8],
+        })
 
-    def test_get_dataset_remove_attrs(self):
-        """Test getting the hrv dataset."""
-        dataset_id = make_dataid(name='IR_039', calibration='counts')
-        dataset_info = {'nc_key': 'ch4', 'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
+        # Add some attributes so that the reader can strip them
+        strip_attrs = {
+            'comment': None,
+            'long_name': None,
+            'valid_min': None,
+            'valid_max': None
+        }
+        for name in ['VIS006', 'IR_108']:
+            ds[name].attrs.update(strip_attrs)
 
-        res = self.reader.get_dataset(dataset_id, dataset_info)
-
-        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
-        self.assertFalse(any([k in res.attrs.keys() for k in strip_attrs]))
-
-
-class TestCalibration(TestFileHandlerCalibrationBase):
-    """Unit tests for calibration."""
+        return ds
 
     @pytest.fixture(name='file_handler')
     def file_handler(self, counts):
         """Create a mocked file handler."""
         with mock.patch(
-            'satpy.readers.seviri_l1b_nc.NCSEVIRIFileHandler.__init__',
-            return_value=None
+            'satpy.readers.seviri_l1b_nc.xr.open_dataset',
+            return_value=self._get_fake_dataset(counts)
         ):
-            # Create dataset and set calibration coefficients
-            ds = xr.Dataset(
-                {
-                    'VIS006': counts.copy(),
-                    'IR_108': counts.copy(),
-                    'planned_chan_processing': self.radiance_types,
-                },
-                attrs={
-                    'satellite_id': self.platform_id
-                }
+            return NCSEVIRIFileHandler(
+                'filename',
+                {'platform_shortname': 'MSG3',
+                 'start_time': self.scan_time,
+                 'service': 'MSG'},
+                {'filetype': 'info'}
             )
-            ds['VIS006'].attrs.update({
-                'scale_factor': self.gains_nominal[0],
-                'add_offset': self.offsets_nominal[0]
-            })
-            ds['IR_108'].attrs.update({
-                'scale_factor': self.gains_nominal[8],
-                'add_offset': self.offsets_nominal[8],
-            })
-
-            # Add some attributes so that the reader can strip them
-            strip_attrs = {
-                'comment': None,
-                'long_name': None,
-                'valid_min': None,
-                'valid_max': None
-            }
-            for name in ['VIS006', 'IR_108']:
-                ds[name].attrs.update(strip_attrs)
-
-            # Create file handler
-            fh = NCSEVIRIFileHandler()
-            fh.nc = ds
-            fh.deltaSt = self.scan_time
-            fh.mda = {
-                'projection_parameters': {
-                    'ssp_longitude': 0,
-                    'h': 12345
-                }
-            }
-            return fh
 
     @pytest.mark.parametrize(
         ('channel', 'calibration', 'use_ext_coefs'),
@@ -162,6 +200,10 @@ class TestCalibration(TestFileHandlerCalibrationBase):
             self, file_handler, channel, calibration, use_ext_coefs
     ):
         """Test the calibration."""
+        file_handler.nc = file_handler.nc.rename({
+            'num_rows_vis_ir': 'y',
+            'num_columns_vis_ir': 'x'
+        })
         external_coefs = self.external_coefs if use_ext_coefs else {}
         expected = self._get_expected(
             channel=channel,
@@ -171,16 +213,75 @@ class TestCalibration(TestFileHandlerCalibrationBase):
         )
         fh = file_handler
         fh.ext_calib_coefs = external_coefs
-
-        dataset_info = {
-            'nc_key': channel
-        }
         dataset_id = make_dataid(name=channel, calibration=calibration)
 
-        res = fh.get_dataset(dataset_id, dataset_info)
-
-        # Flip dataset to achieve compatibility with other SEVIRI readers.
-        # FUTURE: Remove if flipping has been disabled.
-        res = res.isel(y=slice(None, None, -1))
-
+        res = fh.calibrate(fh.nc[channel], dataset_id)
         xr.testing.assert_allclose(res, expected)
+
+    @pytest.mark.parametrize(
+        ('channel', 'calibration'),
+        [
+            ('VIS006', 'reflectance'),
+            ('IR_108', 'brightness_temperature')
+         ]
+    )
+    def test_get_dataset(self, file_handler, channel, calibration):
+        """Test getting the dataset."""
+        dataset_id = make_dataid(name=channel, calibration=calibration)
+        dataset_info = {
+            'nc_key': channel,
+            'units': 'units',
+            'wavelength': 'wavelength',
+            'standard_name': 'standard_name'
+        }
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+
+        # Test scanline acquisition times
+        expected = self._get_expected(
+            channel=channel,
+            calibration=calibration,
+            calib_mode='NOMINAL',
+            use_ext_coefs=False
+        )
+        expected.attrs = {
+            'orbital_parameters': {
+                'satellite_actual_longitude': -3.541742131915741,
+                'satellite_actual_latitude': -0.5203765167594427,
+                'satellite_actual_altitude': 35783419.16135868,
+                'satellite_nominal_longitude': -3.5,
+                'satellite_nominal_latitude': 0.0,
+                'projection_longitude': 0.0,
+                'projection_latitude': 0.0,
+                'projection_altitude': 35785831.0
+            },
+            'georef_offset_corrected': True,
+            'platform_name': 'Meteosat-11',
+            'sensor': 'seviri',
+            'units': 'units',
+            'wavelength': 'wavelength',
+            'standard_name': 'standard_name'
+        }
+        expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
+                                      np.datetime64('1958-01-02 00:00:02')])
+        expected = expected[::-1]  # reader flips data upside down
+        xr.testing.assert_allclose(res, expected)
+
+        for key in ['sun_earth_distance_correction_applied',
+                    'sun_earth_distance_correction_factor']:
+            res.attrs.pop(key, None)
+        assert_attrs_equal(res.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_satpos_no_valid_orbit_polynomial(self, file_handler):
+        """Test satellite position if there is no valid orbit polynomial."""
+        dataset_id = make_dataid(name='VIS006', calibration='counts')
+        dataset_info = {
+            'nc_key': 'VIS006',
+            'units': 'units',
+            'wavelength': 'wavelength',
+            'standard_name': 'standard_name'
+        }
+        file_handler.nc['orbit_polynomial_start_time_day'] = 0
+        file_handler.nc['orbit_polynomial_end_time_day'] = 0
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'satellite_actual_longitude' not in res.attrs[
+            'orbital_parameters']

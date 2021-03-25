@@ -17,16 +17,26 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI netcdf format reader."""
 
+import datetime
+import logging
+
+import numpy as np
+import xarray as xr
+
+from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
-                                       CHANNEL_NAMES, SATNUM)
+                                       CHANNEL_NAMES, SATNUM,
+                                       get_cds_time, add_scanline_acq_time,
+                                       OrbitPolynomialFinder, get_satpos,
+                                       NoValidOrbitParams)
 from satpy.readers.eum_base import get_service_mode
-import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy import CHUNK_SIZE
 
-import datetime
+
+logger = logging.getLogger('nc_msg')
 
 
 class NCSEVIRIFileHandler(BaseFileHandler):
@@ -37,6 +47,10 @@ class NCSEVIRIFileHandler(BaseFileHandler):
     See :mod:`satpy.readers.seviri_base`. Note that there is only one set of
     calibration coefficients available in the netCDF files and therefore there
     is no `calib_mode` argument.
+
+    **Metadata**
+
+    See :mod:`satpy.readers.seviri_base`.
 
     """
 
@@ -96,6 +110,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         self.east = int(self.nc.attrs['east_most_pixel'])
         self.west = int(self.nc.attrs['west_most_pixel'])
         self.south = int(self.nc.attrs['south_most_line'])
+        self.platform_id = int(self.nc.attrs['satellite_id'])
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
@@ -113,30 +128,15 @@ class NCSEVIRIFileHandler(BaseFileHandler):
                 pass
 
         dataset = self.nc[dataset_info['nc_key']]
-        dataset.attrs.update(dataset_info)
-        self.platform_id = int(self.nc.attrs['satellite_id'])
 
         # Correct for the scan line order
+        # TODO: Move _add_scanline_acq_time() call to the end of the method
+        #       once flipping is removed.
+        self._add_scanline_acq_time(dataset, dataset_id)
         dataset = dataset.sel(y=slice(None, None, -1))
 
-        # Calibrate the data as needed
         dataset = self.calibrate(dataset, dataset_id)
-
-        # Update dataset attributes
-        dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
-        dataset.attrs.update(dataset_info)
-        dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
-        dataset.attrs['sensor'] = 'seviri'
-        dataset.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
-            'projection_latitude': 0.,
-            'projection_altitude': self.mda['projection_parameters']['h']}
-
-        # remove attributes from original file which don't apply anymore
-        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
-        for a in strip_attrs:
-            dataset.attrs.pop(a)
-
+        self._update_attrs(dataset, dataset_info)
         return dataset
 
     def calibrate(self, dataset, dataset_id):
@@ -173,6 +173,37 @@ class NCSEVIRIFileHandler(BaseFileHandler):
             },
             'radiance_type': self.nc['planned_chan_processing'].values[band_idx]
         }
+
+    def _update_attrs(self, dataset, dataset_info):
+        """Update dataset attributes."""
+        dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
+        dataset.attrs.update(dataset_info)
+        dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
+        dataset.attrs['sensor'] = 'seviri'
+        dataset.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': self.mda['projection_parameters']['h'],
+            'satellite_nominal_longitude': float(
+                self.nc.attrs['nominal_longitude']
+            ),
+            'satellite_nominal_latitude': 0.0,
+        }
+        try:
+            actual_lon, actual_lat, actual_alt = self.satpos
+            dataset.attrs['orbital_parameters'].update({
+                'satellite_actual_longitude': actual_lon,
+                'satellite_actual_latitude': actual_lat,
+                'satellite_actual_altitude': actual_alt,
+            })
+        except NoValidOrbitParams as err:
+            logger.warning(err)
+        dataset.attrs['georef_offset_corrected'] = self._get_earth_model() == 2
+
+        # remove attributes from original file which don't apply anymore
+        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
+        for a in strip_attrs:
+            dataset.attrs.pop(a)
 
     def get_area_def(self, dataset_id):
         """Get the area def.
@@ -244,7 +275,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         # check for Earth model as this affects the north-south and
         # west-east offsets
         # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-        earth_model = int(self.nc.attrs['type_of_earth_model'], 16)
+        earth_model = self._get_earth_model()
         if earth_model == 2:
             ns_offset = 0  # north +ve
             we_offset = 0  # west +ve
@@ -263,6 +294,66 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         area_extent = (ll_c, ll_l, ur_c, ur_l)
 
         return area_extent
+
+    def _add_scanline_acq_time(self, dataset, dataset_id):
+        if dataset_id['name'] == 'HRV':
+            # TODO: Enable once HRV reading has been fixed.
+            return
+            # days, msecs = self._get_acq_time_hrv()
+        else:
+            days, msecs = self._get_acq_time_visir(dataset_id)
+        acq_time = get_cds_time(days.values, msecs.values)
+        add_scanline_acq_time(dataset, acq_time)
+
+    def _get_acq_time_hrv(self):
+        day_key = 'channel_data_hrv_data_l10_line_mean_acquisition_time_day'
+        msec_key = 'channel_data_hrv_data_l10_line_mean_acquisition_msec'
+        days = self.nc[day_key].isel(channels_hrv_dim=0)
+        msecs = self.nc[msec_key].isel(channels_hrv_dim=0)
+        return days, msecs
+
+    def _get_acq_time_visir(self, dataset_id):
+        band_idx = list(CHANNEL_NAMES.values()).index(dataset_id['name'])
+        day_key = 'channel_data_visir_data_l10_line_mean_acquisition_time_day'
+        msec_key = 'channel_data_visir_data_l10_line_mean_acquisition_msec'
+        days = self.nc[day_key].isel(channels_vis_ir_dim=band_idx)
+        msecs = self.nc[msec_key].isel(channels_vis_ir_dim=band_idx)
+        return days, msecs
+
+    @cached_property
+    def satpos(self):
+        """Get actual satellite position in geodetic coordinates (WGS-84).
+
+        Evaluate orbit polynomials at the start time of the scan.
+
+        Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
+        """
+        start_times_poly = get_cds_time(
+            days=self.nc['orbit_polynomial_start_time_day'].values,
+            msecs=self.nc['orbit_polynomial_start_time_msec'].values
+        )
+        end_times_poly = get_cds_time(
+            days=self.nc['orbit_polynomial_end_time_day'].values,
+            msecs=self.nc['orbit_polynomial_end_time_msec'].values
+        )
+        orbit_polynomials = {
+            'StartTime': np.array([start_times_poly]),
+            'EndTime': np.array([end_times_poly]),
+            'X': self.nc['orbit_polynomial_x'].values,
+            'Y': self.nc['orbit_polynomial_y'].values,
+            'Z': self.nc['orbit_polynomial_z'].values,
+        }
+        poly_finder = OrbitPolynomialFinder(orbit_polynomials)
+        orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
+        return get_satpos(
+            orbit_polynomial=orbit_polynomial,
+            time=self.start_time,
+            semi_major_axis=self.mda['projection_parameters']['a'],
+            semi_minor_axis=self.mda['projection_parameters']['b'],
+        )
+
+    def _get_earth_model(self):
+        return int(self.nc.attrs['type_of_earth_model'], 16)
 
 
 class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
