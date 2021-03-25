@@ -560,7 +560,7 @@ class KDTreeResampler(BaseResampler):
 
         filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
                                                mask=mask_name, **kwargs)
-        for idx_name in NN_COORDINATES.keys():
+        for idx_name in NN_COORDINATES:
             if mask_name in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask_name][idx_name], idx_name)
@@ -605,7 +605,7 @@ class KDTreeResampler(BaseResampler):
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
         return {attr_name: getattr(self.resampler, attr_name)
-                for attr_name in NN_COORDINATES.keys()}
+                for attr_name in NN_COORDINATES}
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
