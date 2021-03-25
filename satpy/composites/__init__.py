@@ -1057,6 +1057,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
         if url is None and (filename is None or not os.path.isabs(filename)):
             raise ValueError("StaticImageCompositor needs a remote 'url' "
+                             "or just a 'filename' without path, "
                              "or absolute path to 'filename'.")
         return filename, url
 
