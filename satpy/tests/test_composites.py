@@ -990,10 +990,13 @@ class TestStaticImageCompositor(unittest.TestCase):
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
         self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
 
-        # Filename without environment variable, use default environment variable SATPY_DATA_DIR
-        os.environ["SATPY_DATA_DIR"] = "/path/to/image"
-        comp = StaticImageCompositor("name", filename="foo.tif")
-        self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
+        # Filename without path, use default data_dir from config
+        import satpy
+        satpy.config.set(data_dir="/path/to/image")
+        with mock.patch('os.path.exists') as exists:
+            exists.return_value = True
+            comp = StaticImageCompositor("name", filename="foo.tif")
+            self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
 
 def _enhance2dataset(dataset, convert_p=False):
     """Mock the enhance2dataset to return the original data."""
