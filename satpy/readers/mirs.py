@@ -122,7 +122,7 @@ def read_atms_limb_correction_coefficients(fn):
 
         # coeff locations (indexes to put the future coefficients in)
         locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
-        if (len(locations) != nchx):
+        if len(locations) != nchx:
             raise RuntimeError
         for x in range(nchx):
             all_nchanx[chan_idx, x] = locations[x] - 1
