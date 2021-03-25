@@ -5,7 +5,7 @@ modifiers:
     modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
     known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
-    optional_prerequisites:
+    prerequisites:
     - name: satellite_azimuth_angle
       resolution: 742
     - name: satellite_zenith_angle
@@ -19,7 +19,7 @@ modifiers:
     modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
     known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
-    optional_prerequisites:
+    prerequisites:
     - name: satellite_azimuth_angle
       resolution: 371
     - name: satellite_zenith_angle
