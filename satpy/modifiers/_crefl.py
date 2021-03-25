@@ -36,7 +36,8 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, dem_filename=None, dem_sds="averaged elevation",
+                 url=None, known_hash=None, **kwargs):
         """Initialize the compositor with values from the user or from the configuration file.
 
         If `dem_filename` can't be found or opened then correction is done
@@ -52,52 +53,54 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
             dem_sds (str): Name of the variable in the elevation file to load.
 
         """
-        dem_filename = kwargs.pop("dem_filename", None)
         if dem_filename is not None:
             warnings.warn("'dem_filename' for 'ReflectanceCorrector' is "
                           "deprecated. Use 'url' instead.", DeprecationWarning)
 
-        self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
-        self.url = kwargs.pop('url', None)
-        self.known_hash = kwargs.pop('known_hash', None)
         super(ReflectanceCorrector, self).__init__(*args, **kwargs)
-        self.dem_cache_key = None
-        if self.url:
-            reg_files = self.register_data_files([{
-                'url': self.url, 'known_hash': self.known_hash}
-            ])
-            self.dem_cache_key = reg_files[0]
+        self.dem_sds = dem_sds
+        self.url = url
+        self.known_hash = known_hash
+        self.dem_cache_key = self._get_registered_dem_cache_key()
+
+    def _get_registered_dem_cache_key(self):
+        if not self.url:
+            return
+        reg_files = self.register_data_files([{
+            'url': self.url, 'known_hash': self.known_hash}
+        ])
+        return reg_files[0]
 
     def __call__(self, datasets, optional_datasets, **info):
         """Create modified DataArray object by applying the crefl algorithm."""
-        from satpy.composites.crefl_utils import run_crefl, get_coefficients
-
-        datasets = self._get_data_and_angles(datasets, optional_datasets)
-        refl_data, sensor_aa, sensor_za, solar_aa, solar_za = datasets
-        avg_elevation = self._get_average_elevation()
-        is_percent = refl_data.attrs["units"] == "%"
+        from satpy.composites.crefl_utils import get_coefficients
+        refl_data, *angles = self._get_data_and_angles(datasets, optional_datasets)
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
                                         refl_data.attrs["resolution"])
-        use_abi = refl_data.attrs['sensor'] == 'abi'
+        results = self._call_crefl(refl_data, coefficients, angles)
+        info.update(refl_data.attrs)
+        info["rayleigh_corrected"] = True
+        results.attrs = info
+        self.apply_modifier_info(refl_data, results)
+        return results
+
+    def _call_crefl(self, refl_data, coefficients, angles):
+        from satpy.composites.crefl_utils import run_crefl
+        avg_elevation = self._get_average_elevation()
         lons, lats = refl_data.attrs['area'].get_lonlats(chunks=refl_data.chunks)
+        is_percent = refl_data.attrs["units"] == "%"
+        use_abi = refl_data.attrs['sensor'] == 'abi'
         results = run_crefl(refl_data,
                             coefficients,
                             lons,
                             lats,
-                            sensor_aa,
-                            sensor_za,
-                            solar_aa,
-                            solar_za,
+                            *angles,
                             avg_elevation=avg_elevation,
                             percent=is_percent,
                             use_abi=use_abi)
-        info.update(refl_data.attrs)
-        info["rayleigh_corrected"] = True
         factor = 100. if is_percent else 1.
         results = results * factor
-        results.attrs = info
-        self.apply_modifier_info(refl_data, results)
         return results
 
     def _get_average_elevation(self):
@@ -118,41 +121,47 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         return avg_elevation
 
     def _get_data_and_angles(self, datasets, optional_datasets):
+        angles = self._extract_angle_data_arrays(datasets, optional_datasets)
+        angles = [xr.DataArray(dask_arr, dims=('y', 'x')) for dask_arr in angles]
+        return [datasets[0]] + angles
+
+    def _extract_angle_data_arrays(self, datasets, optional_datasets):
         all_datasets = datasets + optional_datasets
         if len(all_datasets) == 1:
             vis = self.match_data_arrays(datasets)[0]
-            sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
-        elif len(all_datasets) == 5:
-            vis, sensor_aa, sensor_za, solar_aa, solar_za = self.match_data_arrays(
+            return self.get_angles(vis)
+        if len(all_datasets) == 5:
+            vis, *angles = self.match_data_arrays(
                 datasets + optional_datasets)
             # get the dask array underneath
-            sensor_aa = sensor_aa.data
-            sensor_za = sensor_za.data
-            solar_aa = solar_aa.data
-            solar_za = solar_za.data
-        else:
-            raise ValueError("Not sure how to handle provided dependencies. "
-                             "Either all 4 angles must be provided or none of "
-                             "of them.")
-
-        # angles must be xarrays
-        sensor_aa = xr.DataArray(sensor_aa, dims=['y', 'x'])
-        sensor_za = xr.DataArray(sensor_za, dims=['y', 'x'])
-        solar_aa = xr.DataArray(solar_aa, dims=['y', 'x'])
-        solar_za = xr.DataArray(solar_za, dims=['y', 'x'])
-        refl_data = datasets[0]
-        return refl_data, sensor_aa, sensor_za, solar_aa, solar_za
+            return [data_arr.data for data_arr in angles]
+        raise ValueError("Not sure how to handle provided dependencies. "
+                         "Either all 4 angles must be provided or none of "
+                         "of them.")
 
     def get_angles(self, vis):
         """Get sun and satellite angles to use in crefl calculations."""
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        from pyorbital.orbital import get_observer_look
+        lons, lats = self._get_valid_lonlats(vis)
+        sun_angles = self._get_sun_angles(vis, lons, lats)
+        sat_angles = self._get_sensor_angles(vis, lons, lats)
+        # sata, satz, suna, sunz
+        return sat_angles + sun_angles
+
+    def _get_valid_lonlats(self, vis):
         lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
         lons = da.where(lons >= 1e30, np.nan, lons)
         lats = da.where(lats >= 1e30, np.nan, lats)
+        return lons, lats
+
+    def _get_sun_angles(self, vis, lons, lats):
+        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+        return suna, sunz
+
+    def _get_sensor_angles(self, vis, lons, lats):
+        from pyorbital.orbital import get_observer_look
         sat_lon, sat_lat, sat_alt = get_satpos(vis)
         sata, satel = get_observer_look(
             sat_lon,
@@ -161,4 +170,4 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
             vis.attrs['start_time'],
             lons, lats, 0)
         satz = 90 - satel
-        return sata, satz, suna, sunz
+        return sata, satz
