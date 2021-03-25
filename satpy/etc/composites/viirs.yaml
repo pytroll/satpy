@@ -2,7 +2,7 @@ sensor_name: visir/viirs
 
 modifiers:
   rayleigh_corrected_crefl:
-    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
     url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
     known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
     prerequisites:
@@ -16,7 +16,7 @@ modifiers:
       resolution: 742
 
   rayleigh_corrected_crefl_iband:
-    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
     url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
     known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
     prerequisites:

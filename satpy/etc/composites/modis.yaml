@@ -1,7 +1,7 @@
 sensor_name: visir/modis
 modifiers:
   rayleigh_corrected_crefl:
-    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
     url: "https://www.ssec.wisc.edu/~davidh/polar2grid/modis_crefl/tbase.hdf"
     known_hash: "sha256:ed5183cddce905361c1cac8ae6e3a447212875ea421a05747751efe76f8a068e"
     prerequisites:
