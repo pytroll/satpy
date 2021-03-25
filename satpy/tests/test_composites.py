@@ -998,6 +998,7 @@ class TestStaticImageCompositor(unittest.TestCase):
             comp = StaticImageCompositor("name", filename="foo.tif")
             self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
 
+
 def _enhance2dataset(dataset, convert_p=False):
     """Mock the enhance2dataset to return the original data."""
     return dataset
