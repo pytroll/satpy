@@ -46,6 +46,9 @@ class NC_ABI_L1B(NC_ABI_BASE):
         elif key['calibration'] == 'brightness_temperature':
             logger.debug("Calibrating to brightness temperatures")
             res = self._ir_calibrate(radiances)
+        elif key['calibration'] == 'counts':
+            logger.debug("Calibrating to raw counts")
+            res = self.nc['Rad'].copy()
         elif key['calibration'] != 'radiance':
             raise ValueError("Unknown calibration '{}'".format(key['calibration']))
         else:
