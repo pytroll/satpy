@@ -161,7 +161,7 @@ def reinhard(img, saturation=1.25, luminosity=1, **kwargs):
 
         # reinhard
         white = 2.4
-        default_luminosity = (1 + 1 / white)
+        default_luminosity = (1 + luma / (white ** 2))
         res = res / (1 + res) * default_luminosity * luminosity
 
         # srgb gamma
