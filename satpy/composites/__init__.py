@@ -1012,7 +1012,8 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
                 ``url`` is provided and ``filename`` is not then the
                 ``filename`` will be guessed from the ``url``.
                 If ``url`` is not provided, then it is assumed ``filename``
-                refers to a local file with an absolute path.
+                refers to a local file. If the ``filename`` does not come with
+                an absolute path, ``data_dir`` will be used as the directory path.
                 Environment variables are expanded.
             url (str): URL to remote file. When the composite is created the
                 file will be downloaded and cached in Satpy's ``data_dir``.
@@ -1024,6 +1025,24 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             area (str): Name of area definition for the image.  Optional
                 for images with built-in area definitions (geotiff).
 
+        Use cases:
+            1. url + no filename:
+               Satpy determines the filename based on the filename in the URL,
+               then downloads the URL,  and saves it to <data_dir>/<filename>.
+               If the file already exists and known_hash is also provided, then the pooch
+               library compares the hash of the file to the known_hash. If it does not
+               match, then the URL is re-downloaded. If it matches then no download.
+            2. url + relative filename:
+               Same as 1 but filename is already provided so download goes to
+               <data_dir>/<filename>. Same hashing behavior. This does not check for an
+               absolute path.
+            3. No url + absolute filename:
+               No download, filename is passed directly to generic_image reader. No hashing
+               is done.
+            4. No url + relative filename:
+               Check if <data_dir>/<filename> exists. If it does then make filename an
+               absolute path. If it doesn't, then keep it as is and let the exception at
+               the bottom of the method get raised.
         """
         filename, url = self._get_cache_filename_and_url(filename, url)
         self._cache_filename = filename
@@ -1040,25 +1059,26 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
     @staticmethod
     def _get_cache_filename_and_url(filename, url):
-        if filename is not None:
+        data_dir = satpy.config.get('data_dir')
+
+        if filename:
             filename = os.path.expanduser(os.path.expandvars(filename))
 
-            if not os.path.isabs(filename):
-                data_dir = satpy.config.get('data_dir')
-                filename = os.path.join(data_dir, filename)
-                if not os.path.exists(filename):
-                    raise ValueError('Can not find image {} for '
-                                     'StaticImageCompositor'.format(filename))
-
-        if url is not None:
+        if url:
             url = os.path.expandvars(url)
-            if filename is None:
+            if not filename:
                 filename = os.path.basename(url)
+        else:
+            if filename and not os.path.isabs(filename):
+                if os.path.exists(os.path.join(data_dir, filename)):
+                    filename = os.path.join(data_dir, filename)
 
-        if url is None and (filename is None or not os.path.isabs(filename)):
-            raise ValueError("StaticImageCompositor needs a remote 'url' "
-                             "or just a 'filename' without path, "
-                             "or absolute path to 'filename'.")
+        if (url and os.path.isabs(filename)) or \
+           (not url and (not filename or not os.path.isabs(filename))):
+            raise ValueError("StaticImageCompositor needs a remote 'url', "
+                             "or absolute path to 'filename', "
+                             "or an existing 'filename' relative to Satpy's 'data_dir'.")
+
         return filename, url
 
     def register_data_files(self, data_files):
