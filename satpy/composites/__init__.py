@@ -1059,18 +1059,19 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
     @staticmethod
     def _get_cache_filename_and_url(filename, url):
-        if filename:
-            filename = os.path.expanduser(os.path.expandvars(filename))
-
         if url:
             url = os.path.expandvars(url)
             if not filename:
                 filename = os.path.basename(url)
-        elif filename and not os.path.isabs(filename):
-            data_dir = satpy.config.get('data_dir')
-            path = os.path.join(data_dir, filename)
-            if os.path.exists(path):
-                filename = path
+        else:
+            if filename:
+                filename = os.path.expanduser(os.path.expandvars(filename))
+
+                if not os.path.isabs(filename):
+                    data_dir = satpy.config.get('data_dir')
+                    path = os.path.join(data_dir, filename)
+                    if os.path.exists(path):
+                        filename = path
 
         if (url and os.path.isabs(filename)) or \
            (not url and (not filename or not os.path.isabs(filename))):
