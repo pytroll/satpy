@@ -914,10 +914,6 @@ class TestStaticImageCompositor(unittest.TestCase):
         with self.assertRaises(ValueError):
             StaticImageCompositor("name")
 
-        # No absolute filename and no URL
-        with self.assertRaises(ValueError):
-            StaticImageCompositor("name", filename="foo.tif")
-
         # No area defined
         comp = StaticImageCompositor("name", filename="/foo.tif")
         self.assertEqual(comp._cache_filename, "/foo.tif")
@@ -935,7 +931,10 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
+        import satpy
         from satpy.composites import StaticImageCompositor
+
+        satpy.config.set(data_dir="/path/to/image")
         remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
@@ -990,9 +989,11 @@ class TestStaticImageCompositor(unittest.TestCase):
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
         self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
 
-        # Filename without path, use default data_dir from config
-        import satpy
-        satpy.config.set(data_dir="/path/to/image")
+        # URL and filename without absolute path
+        comp = StaticImageCompositor("name", url=remote_tif, filename="bar.tif")
+        self.assertEqual(comp._cache_filename, "bar.tif")
+
+        # No URL, filename without absolute path, use default data_dir from config
         with mock.patch('os.path.exists') as exists:
             exists.return_value = True
             comp = StaticImageCompositor("name", filename="foo.tif")
