@@ -1028,12 +1028,12 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         Use cases:
             1. url + no filename:
                Satpy determines the filename based on the filename in the URL,
-               then downloads the URL,  and saves it to <data_dir>/<filename>.
+               then downloads the URL, and saves it to <data_dir>/<filename>.
                If the file already exists and known_hash is also provided, then the pooch
                library compares the hash of the file to the known_hash. If it does not
                match, then the URL is re-downloaded. If it matches then no download.
             2. url + relative filename:
-               Same as 1 but filename is already provided so download goes to
+               Same as case 1 but filename is already provided so download goes to
                <data_dir>/<filename>. Same hashing behavior. This does not check for an
                absolute path.
             3. No url + absolute filename:
@@ -1059,19 +1059,18 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
     @staticmethod
     def _get_cache_filename_and_url(filename, url):
+        if filename:
+            filename = os.path.expanduser(os.path.expandvars(filename))
+
         if url:
             url = os.path.expandvars(url)
             if not filename:
                 filename = os.path.basename(url)
-        else:
-            if filename:
-                filename = os.path.expanduser(os.path.expandvars(filename))
-
-                if not os.path.isabs(filename):
-                    data_dir = satpy.config.get('data_dir')
-                    path = os.path.join(data_dir, filename)
-                    if os.path.exists(path):
-                        filename = path
+        elif filename and not os.path.isabs(filename):
+            data_dir = satpy.config.get('data_dir')
+            path = os.path.join(data_dir, filename)
+            if os.path.exists(path):
+                filename = path
 
         if (url and os.path.isabs(filename)) or \
            (not url and (not filename or not os.path.isabs(filename))):
