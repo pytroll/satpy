@@ -140,6 +140,69 @@ def cira_stretch(img, **kwargs):
     return apply_enhancement(img.data, func)
 
 
+def reinhard(img, saturation=1.25, luminosity=1, **kwargs):
+    """Stretch method based on the Reinhard algorithm.
+
+    Luminosity has default value 1. Less is darker.
+    Saturation has default value 1.25. Less is grayer.
+
+    Credits Gregory Ivanov
+    https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/tonemapped_natural_color
+    """
+    sun_color_adjustment = np.array([1, 0.939, 0.779])[:, np.newaxis, np.newaxis] ** .2
+    with xr.set_options(keep_attrs=True):
+        res = img.data / 100 * sun_color_adjustment
+        # gain
+        gain = 1.5
+        res = res * gain
+        # saturate
+        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.722
+        res = (luma + (res - luma) * saturation).clip(0)
+
+        # reinhard
+        white = 2.4
+        default_luminosity = (1 + 1 / white)
+        res = res / (1 + res) * default_luminosity * luminosity
+
+        # srgb gamma
+        res.data = da.where(res.data < 0.0031308, res.data * 12.92, 1.055 * res.data ** 0.41666 - 0.055)
+        img.data = res
+
+    return img.data
+
+
+def luma_reinhard(img, saturation=1.25, **kwargs):
+    """Stretch method based on the Reinhard algorithm, using luminance only.
+
+    Saturation has default value 1.25. Less is grayer.
+
+    Credits Gregory Ivanov
+    https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/tonemapped_natural_color
+    """
+    sun_color_adjustment = np.array([1, 0.939, 0.779])[:, np.newaxis, np.newaxis] ** .2
+    with xr.set_options(keep_attrs=True):
+        res = img.data / 100 * sun_color_adjustment
+        # gain
+        gain = 1.5
+        res = res * gain
+        # saturate
+        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.722
+        saturation = 1.25
+        res = (luma + (res - luma) * saturation).clip(0)
+
+        # reinhard
+        white = 2.5
+        res_luma = (luma / (1 + luma)) * (1 + luma/(white**2))
+        coef = res_luma / luma
+        res = res * coef
+
+        # srgb gamma
+        res.data = da.where(res.data < 0.0031308, res.data * 12.92, 1.055 * res.data ** 0.41666 - 0.055)
+        img.data = res
+
+    return img.data
+
+
 def _lookup_delayed(luts, band_data):
     # can't use luts.__getitem__ for some reason
     return luts[band_data]
