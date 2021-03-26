@@ -1059,14 +1059,6 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
 
     @staticmethod
     def _get_cache_filename_and_url(filename, url):
-        """ """
-        def _check_valid_filename_url(filename, url):
-            if (url and os.path.isabs(filename)) or \
-               (not url and (not filename or not os.path.isabs(filename))):
-                raise ValueError("StaticImageCompositor needs a remote 'url', "
-                                 "or absolute path to 'filename', "
-                                 "or an existing 'filename' relative to Satpy's 'data_dir'.")
-
         if filename:
             filename = os.path.expanduser(os.path.expandvars(filename))
 
@@ -1081,7 +1073,10 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             if not filename:
                 filename = os.path.basename(url)
 
-        _check_valid_filename_url(filename, url)
+        if not url and (not filename or not os.path.isabs(filename)):
+            raise ValueError("StaticImageCompositor needs a remote 'url', "
+                             "or absolute path to 'filename', "
+                             "or an existing 'filename' relative to Satpy's 'data_dir'.")
 
         return filename, url
 
