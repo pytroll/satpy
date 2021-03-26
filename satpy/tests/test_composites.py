@@ -991,12 +991,14 @@ class TestStaticImageCompositor(unittest.TestCase):
 
         # URL and filename without absolute path
         comp = StaticImageCompositor("name", url=remote_tif, filename="bar.tif")
+        self.assertEqual(comp._url, remote_tif)
         self.assertEqual(comp._cache_filename, "bar.tif")
 
         # No URL, filename without absolute path, use default data_dir from config
         with mock.patch('os.path.exists') as exists:
             exists.return_value = True
             comp = StaticImageCompositor("name", filename="foo.tif")
+            self.assertEqual(comp._url, None)
             self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
 
 
