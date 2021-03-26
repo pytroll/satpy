@@ -146,6 +146,9 @@ def reinhard(img, saturation=1.25, luminosity=1, **kwargs):
     Luminosity has default value 1. Less is darker.
     Saturation has default value 1.25. Less is grayer.
 
+    Reinhard, Erik, Michael Stark, Peter Shirley, and James Ferwerda:
+    ‘Photographic Tone Reproduction for Digital Images’, n.d., 10.
+
     Credits Gregory Ivanov
     https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/tonemapped_natural_color
     """
@@ -175,6 +178,9 @@ def luma_reinhard(img, saturation=1.25, **kwargs):
     """Stretch method based on the Reinhard algorithm, using luminance only.
 
     Saturation has default value 1.25. Less is grayer.
+
+    Reinhard, Erik, Michael Stark, Peter Shirley, and James Ferwerda:
+    ‘Photographic Tone Reproduction for Digital Images’, n.d., 10.
 
     Credits Gregory Ivanov
     https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/tonemapped_natural_color
