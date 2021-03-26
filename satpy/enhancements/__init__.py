@@ -156,7 +156,7 @@ def reinhard(img, saturation=1.25, luminosity=1, **kwargs):
         gain = 1.5
         res = res * gain
         # saturate
-        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.722
+        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.0722
         res = (luma + (res - luma) * saturation).clip(0)
 
         # reinhard
@@ -186,7 +186,7 @@ def luma_reinhard(img, saturation=1.25, **kwargs):
         gain = 1.5
         res = res * gain
         # saturate
-        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.722
+        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.0722
         saturation = 1.25
         res = (luma + (res - luma) * saturation).clip(0)
 
