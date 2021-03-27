@@ -27,6 +27,7 @@ import xarray as xr
 
 AWIPS_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"
 NPP_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r6_npp_s201702061601000_e201702061607000_c202012201658410.nc"
+N20_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_n20_s201702061601000_e201702061607000_c202012201658410.nc"
 OTHER_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_gpm_s201702061601000_e201702061607000_c202010080001310.nc"
 
 EXAMPLE_FILES = [AWIPS_FILE, NPP_MIRS_L2_SWATH, OTHER_MIRS_L2_SWATH]
@@ -260,6 +261,7 @@ class TestMirsL2_NcReader:
         [
             ([AWIPS_FILE], TEST_VARS, "metop-a"),
             ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
             ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
         ]
     )
@@ -289,14 +291,15 @@ class TestMirsL2_NcReader:
                     fd.assert_not_called()
 
     @pytest.mark.parametrize(
-        ("filenames", "loadable_ids", "platform_name"),
+        ("filenames", "loadable_ids"),
         [
-            ([AWIPS_FILE], TEST_VARS, "metop-a"),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
+            ([AWIPS_FILE], TEST_VARS),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS),
+            ([N20_MIRS_L2_SWATH], TEST_VARS),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS),
         ]
     )
-    def test_kwarg_load(self, filenames, loadable_ids, platform_name):
+    def test_kwarg_load(self, filenames, loadable_ids):
         """Test the limb_correction kwarg when filehandler is loaded."""
         from satpy.readers import load_reader
         with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
