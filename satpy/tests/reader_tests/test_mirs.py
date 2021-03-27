@@ -287,3 +287,28 @@ class TestMirsL2_NcReader:
                     fd.assert_called()
                 else:
                     fd.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("filenames", "loadable_ids", "platform_name"),
+        [
+            ([AWIPS_FILE], TEST_VARS, "metop-a"),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
+        ]
+    )
+    def test_kwarg_load(self, filenames, loadable_ids, platform_name):
+        """Test the limb_correction kwarg when filehandler is loaded."""
+        from satpy.readers import load_reader
+        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
+            od.side_effect = fake_open_dataset
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames(filenames)
+            r.create_filehandlers(loadables, fh_kwargs={"limb_correction": False})
+
+            with mock.patch('satpy.readers.mirs.read_atms_coeff_to_string') as \
+                    fd, mock.patch('satpy.readers.mirs.retrieve'):
+                fd.side_effect = fake_coeff_from_fn
+                loaded_data_arrs = r.load(loadable_ids)
+            assert loaded_data_arrs
+
+            fd.assert_not_called()
