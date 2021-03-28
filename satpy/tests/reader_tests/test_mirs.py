@@ -257,22 +257,28 @@ class TestMirsL2_NcReader:
         assert attrs['end_time'] == END_TIME
 
     @pytest.mark.parametrize(
-        ("filenames", "loadable_ids", "platform_name"),
+        ("filenames", "loadable_ids", "platform_name", "reader_kw"),
         [
-            ([AWIPS_FILE], TEST_VARS, "metop-a"),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
-            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
+            ([AWIPS_FILE], TEST_VARS, "metop-a", None),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp", None),
+            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20", None),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm", None),
+
+            ([AWIPS_FILE], TEST_VARS, "metop-a", {"limb_correction": False}),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp", {"limb_correction": False}),
+            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20", {"limb_correction": False}),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm", {"limb_correction": False}),
         ]
     )
-    def test_basic_load(self, filenames, loadable_ids, platform_name):
+    def test_basic_load(self, filenames, loadable_ids,
+                        platform_name, reader_kw):
         """Test that variables are loaded properly."""
         from satpy.readers import load_reader
         with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
-            r.create_filehandlers(loadables)
+            r.create_filehandlers(loadables,  fh_kwargs=reader_kw)
             with mock.patch('satpy.readers.mirs.read_atms_coeff_to_string') as \
                     fd, mock.patch('satpy.readers.mirs.retrieve'):
                 fd.side_effect = fake_coeff_from_fn
@@ -285,33 +291,11 @@ class TestMirsL2_NcReader:
                 self._check_fill(data_arr)
                 self._check_attrs(data_arr, platform_name)
 
-                if data_arr.attrs['sensor'] == 'atms':
-                    fd.assert_called()
-                else:
+                if reader_kw and not reader_kw['limb_correction']:
                     fd.assert_not_called()
-
-    @pytest.mark.parametrize(
-        ("filenames", "loadable_ids"),
-        [
-            ([AWIPS_FILE], TEST_VARS),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS),
-            ([N20_MIRS_L2_SWATH], TEST_VARS),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS),
-        ]
-    )
-    def test_kwarg_load(self, filenames, loadable_ids):
-        """Test the limb_correction kwarg when filehandler is loaded."""
-        from satpy.readers import load_reader
-        with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
-            od.side_effect = fake_open_dataset
-            r = load_reader(self.reader_configs)
-            loadables = r.select_files_from_pathnames(filenames)
-            r.create_filehandlers(loadables, fh_kwargs={"limb_correction": False})
-
-            with mock.patch('satpy.readers.mirs.read_atms_coeff_to_string') as \
-                    fd, mock.patch('satpy.readers.mirs.retrieve'):
-                fd.side_effect = fake_coeff_from_fn
-                loaded_data_arrs = r.load(loadable_ids)
-            assert loaded_data_arrs
-
-            fd.assert_not_called()
+                else:
+                    sensor = data_arr.attrs['sensor']
+                    if sensor == 'atms':
+                        fd.assert_called()
+                    else:
+                        fd.assert_not_called()
