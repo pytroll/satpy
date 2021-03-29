@@ -934,7 +934,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         import satpy
         from satpy.composites import StaticImageCompositor
 
-        satpy.config.set(data_dir="/path/to/image")
+        satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
         remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
