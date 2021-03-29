@@ -140,6 +140,54 @@ def cira_stretch(img, **kwargs):
     return apply_enhancement(img.data, func)
 
 
+def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):
+    """Stretch method based on the Reinhard algorithm, using luminance.
+
+    Args:
+        saturation: Saturation enhancement factor. Less is grayer. Neutral is 1.
+        white: the reflectance luminance to set to white (in %).
+
+
+    Reinhard, Erik & Stark, Michael & Shirley, Peter & Ferwerda, James. (2002).
+    Photographic Tone Reproduction For Digital Images. ACM Transactions on Graphics.
+    :doi: `21. 10.1145/566654.566575`
+    """
+    with xr.set_options(keep_attrs=True):
+        # scale the data to [0, 1] interval
+        rgb = img.data / 100
+        white /= 100
+
+        # extract color components
+        r = rgb.sel(bands='R').data
+        g = rgb.sel(bands='G').data
+        b = rgb.sel(bands='B').data
+
+        # saturate
+        luma = _compute_luminance_from_rgb(r, g, b)
+        rgb = (luma + (rgb - luma) * saturation).clip(0)
+
+        # reinhard
+        reinhard_luma = (luma / (1 + luma)) * (1 + luma/(white**2))
+        coef = reinhard_luma / luma
+        rgb = rgb * coef
+
+        # srgb gamma
+        rgb.data = _srgb_gamma(rgb.data)
+        img.data = rgb
+
+    return img.data
+
+
+def _compute_luminance_from_rgb(r, g, b):
+    """Compute the luminance of the image."""
+    return r * 0.2126 + g * 0.7152 + b * 0.0722
+
+
+def _srgb_gamma(arr):
+    """Apply the srgb gamma."""
+    return da.where(arr < 0.0031308, arr * 12.92, 1.055 * arr ** 0.41666 - 0.055)
+
+
 def _lookup_delayed(luts, band_data):
     # can't use luts.__getitem__ for some reason
     return luts[band_data]

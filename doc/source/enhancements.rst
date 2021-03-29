@@ -66,6 +66,19 @@ crefl_scaling
 cira_stretch
 ------------
 
+Logarithmic stretch based on a cira recipe.
+
+reinhard_to_srgb
+----------------
+
+Stretch method based on the Reinhard algorithm, using luminance.
+
+The function includes conversion to sRGB colorspace.
+
+    Reinhard, Erik & Stark, Michael & Shirley, Peter & Ferwerda, James. (2002).
+    Photographic Tone Reproduction For Digital Images. ACM Transactions on Graphics.
+    :doi: `21. 10.1145/566654.566575`
+
 lookup
 ------
 
