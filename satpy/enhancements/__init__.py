@@ -140,73 +140,52 @@ def cira_stretch(img, **kwargs):
     return apply_enhancement(img.data, func)
 
 
-def reinhard(img, saturation=1.25, luminosity=1, **kwargs):
-    """Stretch method based on the Reinhard algorithm.
+def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):
+    """Stretch method based on the Reinhard algorithm, using luminance.
 
-    Luminosity has default value 1. Less is darker.
-    Saturation has default value 1.25. Less is grayer.
+    Args:
+        saturation: Saturation enhancement factor. Less is grayer. Neutral is 1.
+        white: the reflectance luminance to set to white (in %).
 
-    Reinhard, Erik, Michael Stark, Peter Shirley, and James Ferwerda:
-    ‘Photographic Tone Reproduction for Digital Images’, n.d., 10.
 
-    Credits Gregory Ivanov
-    https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/tonemapped_natural_color
+    Reinhard, Erik & Stark, Michael & Shirley, Peter & Ferwerda, James. (2002).
+    Photographic Tone Reproduction For Digital Images. ACM Transactions on Graphics.
+    :doi: `21. 10.1145/566654.566575`
     """
-    sun_color_adjustment = np.array([1, 0.939, 0.779])[:, np.newaxis, np.newaxis] ** .2
     with xr.set_options(keep_attrs=True):
-        res = img.data / 100 * sun_color_adjustment
-        # gain
-        gain = 1.5
-        res = res * gain
+        # scale the data to [0, 1] interval
+        rgb = img.data / 100
+        white /= 100
+
+        # extract color components
+        r = rgb.sel(bands='R').data
+        g = rgb.sel(bands='G').data
+        b = rgb.sel(bands='B').data
+
         # saturate
-        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.0722
-        res = (luma + (res - luma) * saturation).clip(0)
+        luma = _compute_luminance_from_rgb(r, g, b)
+        rgb = (luma + (rgb - luma) * saturation).clip(0)
 
         # reinhard
-        white = 2.4
-        default_luminosity = (1 + luma / (white ** 2))
-        res = res / (1 + res) * default_luminosity * luminosity
+        reinhard_luma = (luma / (1 + luma)) * (1 + luma/(white**2))
+        coef = reinhard_luma / luma
+        rgb = rgb * coef
 
         # srgb gamma
-        res.data = da.where(res.data < 0.0031308, res.data * 12.92, 1.055 * res.data ** 0.41666 - 0.055)
-        img.data = res
+        rgb.data = _srgb_gamma(rgb.data)
+        img.data = rgb
 
     return img.data
 
 
-def luma_reinhard(img, saturation=1.25, **kwargs):
-    """Stretch method based on the Reinhard algorithm, using luminance only.
+def _compute_luminance_from_rgb(r, g, b):
+    """Compute the luminance of the image."""
+    return r * 0.2126 + g * 0.7152 + b * 0.0722
 
-    Saturation has default value 1.25. Less is grayer.
 
-    Reinhard, Erik, Michael Stark, Peter Shirley, and James Ferwerda:
-    ‘Photographic Tone Reproduction for Digital Images’, n.d., 10.
-
-    Credits Gregory Ivanov
-    https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/tonemapped_natural_color
-    """
-    sun_color_adjustment = np.array([1, 0.939, 0.779])[:, np.newaxis, np.newaxis] ** .2
-    with xr.set_options(keep_attrs=True):
-        res = img.data / 100 * sun_color_adjustment
-        # gain
-        gain = 1.5
-        res = res * gain
-        # saturate
-        luma = res.sel(bands='R').data * 0.2126 + res.sel(bands='G').data * 0.7152 + res.sel(bands='B').data * 0.0722
-        saturation = 1.25
-        res = (luma + (res - luma) * saturation).clip(0)
-
-        # reinhard
-        white = 2.5
-        res_luma = (luma / (1 + luma)) * (1 + luma/(white**2))
-        coef = res_luma / luma
-        res = res * coef
-
-        # srgb gamma
-        res.data = da.where(res.data < 0.0031308, res.data * 12.92, 1.055 * res.data ** 0.41666 - 0.055)
-        img.data = res
-
-    return img.data
+def _srgb_gamma(arr):
+    """Apply the srgb gamma."""
+    return da.where(arr < 0.0031308, arr * 12.92, 1.055 * arr ** 0.41666 - 0.055)
 
 
 def _lookup_delayed(luts, band_data):

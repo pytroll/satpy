@@ -68,30 +68,16 @@ class TestEnhancementStretch(unittest.TestCase):
 
     def test_reinhard(self):
         """Test the reinhard algorithm."""
-        from satpy.enhancements import reinhard
-        expected = np.array([[[np.nan, 0., 0., 0.87470856, 0.99428697],
-                              [1.04370489, 1.07085066, 1.08803526, 1.09989758, 1.10858066]],
+        from satpy.enhancements import reinhard_to_srgb
+        expected = np.array([[[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
 
-                             [[np.nan, 0., 0., 0.87124838, 0.99180807],
-                              [1.04180364, 1.06931363, 1.08674673, 1.0987889, 1.10760799]],
+                             [[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
 
-                             [[np.nan, 0., 0., 0.86073148, 0.98420293],
-                              [1.03594516, 1.06456543, 1.08275961, 1.09535428, 1.10459215]]])
-        self._test_enhancement(reinhard, self.rgb, expected)
-
-    def test_luma_reinhard(self):
-        """Test the reinhard algorithm for luminance."""
-        from satpy.enhancements import luma_reinhard
-        expected = np.array([[[np.nan, -0., 0., 0.71725512, 0.8695631],
-                              [0.97627342, 1.06477928, 1.14258941, 1.21299763, 1.27782253]],
-
-                             [[np.nan, -0., 0., 0.7112939, 0.86242619],
-                              [0.96831278, 1.05613545, 1.13334494, 1.20320966, 1.26753417]],
-
-                             [[np.nan, -0., 0., 0.69365932, 0.84131363],
-
-                              [0.94476347, 1.03056509, 1.10599778, 1.17425472, 1.23709894]]])
-        self._test_enhancement(luma_reinhard, self.rgb, expected)
+                             [[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]]])
+        self._test_enhancement(reinhard_to_srgb, self.rgb, expected)
 
     def test_lookup(self):
         """Test the lookup enhancement function."""
