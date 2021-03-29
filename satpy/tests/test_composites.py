@@ -999,7 +999,8 @@ class TestStaticImageCompositor(unittest.TestCase):
             exists.return_value = True
             comp = StaticImageCompositor("name", filename="foo.tif")
             self.assertEqual(comp._url, None)
-            self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
+            self.assertEqual(comp._cache_filename,
+                             os.path.join(os.path.sep, 'path', 'to', 'image', 'foo.tif'))
 
 
 def _enhance2dataset(dataset, convert_p=False):
