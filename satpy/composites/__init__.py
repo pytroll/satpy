@@ -1075,8 +1075,7 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             url = os.path.expandvars(url)
             if not filename:
                 filename = os.path.basename(url)
-
-        if not url and (not filename or not os.path.isabs(filename)):
+        elif not filename or not os.path.isabs(filename):
             raise ValueError("StaticImageCompositor needs a remote 'url', "
                              "or absolute path to 'filename', "
                              "or an existing 'filename' relative to Satpy's 'data_dir'.")
