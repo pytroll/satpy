@@ -294,11 +294,8 @@ class TestMirsL2_NcReader:
                 self._check_fill(data_arr)
                 self._check_attrs(data_arr, platform_name)
 
-                if reader_kw and not reader_kw['limb_correction']:
-                    fd.assert_not_called()
+                sensor = data_arr.attrs['sensor']
+                if reader_kw.get('limb_correction', True) and sensor == 'atms':
+                    fd.assert_called()
                 else:
-                    sensor = data_arr.attrs['sensor']
-                    if sensor == 'atms':
-                        fd.assert_called()
-                    else:
-                        fd.assert_not_called()
+                    fd.assert_not_called()
