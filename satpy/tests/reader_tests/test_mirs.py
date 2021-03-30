@@ -287,8 +287,6 @@ class TestMirsL2_NcReader:
             assert loaded_data_arrs
 
             for data_id, data_arr in loaded_data_arrs.items():
-                sensor = data_arr.attrs['sensor']
-
                 if data_id['name'] not in ['latitude', 'longitude']:
                     self._check_area(data_arr)
                 self._check_fill(data_arr)
