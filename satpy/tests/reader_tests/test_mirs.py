@@ -27,6 +27,7 @@ import xarray as xr
 
 AWIPS_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"
 NPP_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r6_npp_s201702061601000_e201702061607000_c202012201658410.nc"
+N20_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_n20_s201702061601000_e201702061607000_c202012201658410.nc"
 OTHER_MIRS_L2_SWATH = "NPR-MIRS-IMG_v11r4_gpm_s201702061601000_e201702061607000_c202010080001310.nc"
 
 EXAMPLE_FILES = [AWIPS_FILE, NPP_MIRS_L2_SWATH, OTHER_MIRS_L2_SWATH]
@@ -82,7 +83,7 @@ def fake_coeff_from_fn(fn):
     return coeff_str
 
 
-def _get_datasets_with_attributes():
+def _get_datasets_with_attributes(**kwargs):
     """Represent files with two resolution of variables in them (ex. OCEAN)."""
     bt = xr.DataArray(np.linspace(1830, 3930, N_SCANLINE * N_FOV * N_CHANNEL).
                       reshape(N_SCANLINE, N_FOV, N_CHANNEL),
@@ -91,7 +92,8 @@ def _get_datasets_with_attributes():
                              'coordinates': "Longitude Latitude Freq",
                              'scale_factor': 0.01,
                              '_FillValue': -999,
-                             'valid_range': [0, 50000]})
+                             'valid_range': [0, 50000]},
+                      dims=('Scanline', 'Field_of_view', 'Channel'))
     rr = xr.DataArray(np.random.randint(100, 500, size=(N_SCANLINE, N_FOV)),
                       attrs={'long_name': "Rain Rate (mm/hr)",
                              'units': "mm/hr",
@@ -259,24 +261,39 @@ class TestMirsL2_NcReader:
         [
             ([AWIPS_FILE], TEST_VARS, "metop-a"),
             ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
+
+            ([AWIPS_FILE], TEST_VARS, "metop-a"),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
             ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
         ]
     )
-    def test_basic_load(self, filenames, loadable_ids, platform_name):
+    @pytest.mark.parametrize('reader_kw', [{}, {'limb_correction': False}])
+    def test_basic_load(self, filenames, loadable_ids,
+                        platform_name, reader_kw):
         """Test that variables are loaded properly."""
         from satpy.readers import load_reader
         with mock.patch('satpy.readers.mirs.xr.open_dataset') as od:
             od.side_effect = fake_open_dataset
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames(filenames)
-            r.create_filehandlers(loadables)
+            r.create_filehandlers(loadables,  fh_kwargs=reader_kw)
             with mock.patch('satpy.readers.mirs.read_atms_coeff_to_string') as \
                     fd, mock.patch('satpy.readers.mirs.retrieve'):
                 fd.side_effect = fake_coeff_from_fn
                 loaded_data_arrs = r.load(loadable_ids)
             assert loaded_data_arrs
+
             for data_id, data_arr in loaded_data_arrs.items():
                 if data_id['name'] not in ['latitude', 'longitude']:
                     self._check_area(data_arr)
                 self._check_fill(data_arr)
                 self._check_attrs(data_arr, platform_name)
+
+                sensor = data_arr.attrs['sensor']
+                if reader_kw.get('limb_correction', True) and sensor == 'atms':
+                    fd.assert_called()
+                else:
+                    fd.assert_not_called()
