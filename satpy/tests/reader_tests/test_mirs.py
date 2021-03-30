@@ -257,19 +257,20 @@ class TestMirsL2_NcReader:
         assert attrs['end_time'] == END_TIME
 
     @pytest.mark.parametrize(
-        ("filenames", "loadable_ids", "platform_name", "reader_kw"),
+        ("filenames", "loadable_ids", "platform_name"),
         [
-            ([AWIPS_FILE], TEST_VARS, "metop-a", None),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp", None),
-            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20", None),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm", None),
+            ([AWIPS_FILE], TEST_VARS, "metop-a"),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
 
-            ([AWIPS_FILE], TEST_VARS, "metop-a", {"limb_correction": False}),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp", {"limb_correction": False}),
-            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20", {"limb_correction": False}),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm", {"limb_correction": False}),
+            ([AWIPS_FILE], TEST_VARS, "metop-a"),
+            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
+            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
+            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
         ]
     )
+    @pytest.mark.parametrize('reader_kw', [{}, {'limb_correction': False}])
     def test_basic_load(self, filenames, loadable_ids,
                         platform_name, reader_kw):
         """Test that variables are loaded properly."""
@@ -286,6 +287,8 @@ class TestMirsL2_NcReader:
             assert loaded_data_arrs
 
             for data_id, data_arr in loaded_data_arrs.items():
+                sensor = data_arr.attrs['sensor']
+
                 if data_id['name'] not in ['latitude', 'longitude']:
                     self._check_area(data_arr)
                 self._check_fill(data_arr)
