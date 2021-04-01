@@ -156,7 +156,7 @@ class SAFEMSIMDXML(BaseFileHandler):
 
     @staticmethod
     def _do_interp(minterp, xcoord, ycoord):
-        interp_points2 = np.vstack((xcoord.ravel(), ycoord.ravel()))
+        interp_points2 = np.vstack((ycoord.ravel(), xcoord.ravel()))
         res = minterp(interp_points2)
         return res.reshape(xcoord.shape)
 
@@ -176,8 +176,8 @@ class SAFEMSIMDXML(BaseFileHandler):
         minterp = MultilinearInterpolator(smin, smax, orders)
         minterp.set_values(da.atleast_2d(angles.ravel()))
 
-        x = da.arange(rows, dtype=angles.dtype, chunks=CHUNK_SIZE) / (rows-1) * (angles.shape[0] - 1)
-        y = da.arange(cols, dtype=angles.dtype, chunks=CHUNK_SIZE) / (cols-1) * (angles.shape[1] - 1)
+        y = da.arange(rows, dtype=angles.dtype, chunks=CHUNK_SIZE) / (rows-1) * (angles.shape[0] - 1)
+        x = da.arange(cols, dtype=angles.dtype, chunks=CHUNK_SIZE) / (cols-1) * (angles.shape[1] - 1)
         xcoord, ycoord = da.meshgrid(x, y)
         return da.map_blocks(self._do_interp, minterp, xcoord, ycoord, dtype=angles.dtype, chunks=xcoord.chunks)
 
@@ -209,6 +209,8 @@ class SAFEMSIMDXML(BaseFileHandler):
         darr = DataArray(angles, dims=['y', 'x'])
         darr = darr.bfill('x')
         darr = darr.ffill('x')
+        darr = darr.bfill('y')
+        darr = darr.ffill('y')
         angles = darr.data
 
         res = self.interpolate_angles(angles, key['resolution'])
