@@ -336,3 +336,27 @@ def make_fake_scene(content_dict, daskify=False, area=True,
                     dims=("y", "x"),
                     attrs=extra_attrs)
     return sc
+
+
+def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
+    """Test that attributes are equal.
+
+    Walks dictionary recursively. Numerical attributes are compared with
+    the given relative tolerance.
+    """
+    keys_diff = set(attrs).difference(set(attrs_exp))
+    assert not keys_diff, "Different set of keys: {}".format(keys_diff)
+    for key in attrs_exp:
+        err_msg = "Attribute {} does not match expectation".format(key)
+        if isinstance(attrs[key], dict):
+            assert_attrs_equal(attrs[key], attrs_exp[key], tolerance)
+        else:
+            try:
+                np.testing.assert_allclose(
+                    attrs[key],
+                    attrs_exp[key],
+                    rtol=tolerance,
+                    err_msg=err_msg
+                )
+            except TypeError:
+                assert attrs[key] == attrs_exp[key], err_msg

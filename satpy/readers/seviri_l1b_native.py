@@ -36,16 +36,23 @@ from satpy import CHUNK_SIZE
 
 from pyresample import geometry
 
+from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import recarray2dict, get_service_mode
+from satpy.readers.eum_base import (
+    recarray2dict, get_service_mode, time_cds_short
+)
 from satpy.readers.seviri_base import (
     SEVIRICalibrationHandler, CHANNEL_NAMES, SATNUM, dec10216,
     VISIR_NUM_COLUMNS, VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
-    create_coef_dict, pad_data_horizontally,
-    pad_data_vertically
+    create_coef_dict, pad_data_horizontally, pad_data_vertically,
+    add_scanline_acq_time, get_cds_time, OrbitPolynomialFinder, get_satpos,
+    NoValidOrbitParams
 )
-from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
-                                                 native_trailer)
+from satpy.readers.seviri_l1b_native_hdr import (
+    GSDTRecords, get_native_header, native_trailer,
+    DEFAULT_15_SECONDARY_PRODUCT_HEADER
+)
+from satpy.readers.utils import reduce_mda
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 
 logger = logging.getLogger('native_msg')
@@ -68,10 +75,16 @@ class NativeMSGFileHandler(BaseFileHandler):
         scene = satpy.Scene(filenames,
                             reader='seviri_l1b_native',
                             reader_kwargs={'fill_disk': False})
+
+    **Metadata**
+
+    See :mod:`satpy.readers.seviri_base`.
+
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None):
+                 calib_mode='nominal', fill_disk=False, ext_calib_coefs=None,
+                 mda_max_array_size=100):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
@@ -80,6 +93,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.fill_disk = fill_disk
+        self.mda_max_array_size = mda_max_array_size
 
         # Declare required variables.
         self.header = {}
@@ -88,10 +102,17 @@ class NativeMSGFileHandler(BaseFileHandler):
 
         # Read header, prepare dask-array, read trailer and initialize image boundaries
         # Available channels are known only after the header has been read
+        self.header_type = get_native_header(self._has_archive_header())
         self._read_header()
         self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
         self.image_boundaries = ImageBoundaries(self.header, self.trailer, self.mda)
+
+    def _has_archive_header(self):
+        """Check whether the file includes an ASCII archive header."""
+        ascii_startswith = b'FormatName                  : NATIVE'
+        with open(self.filename, mode='rb') as istream:
+            return istream.read(36) == ascii_startswith
 
     @property
     def start_time(self):
@@ -134,7 +155,7 @@ class NativeMSGFileHandler(BaseFileHandler):
                 ("time", (np.uint16, 5)),
                 ("lineno", np.uint32),
                 ("chan_id", np.uint8),
-                ("acq_time", (np.uint16, 3)),
+                ("acq_time", time_cds_short),
                 ("line_validity", np.uint8),
                 ("line_rquality", np.uint8),
                 ("line_gquality", np.uint8),
@@ -160,7 +181,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         """Get the memory map for the SEVIRI data."""
         with open(self.filename) as fp:
             data_dtype = self._get_data_dtype()
-            hdr_size = native_header.itemsize
+            hdr_size = self.header_type.itemsize
 
             return np.memmap(fp, dtype=data_dtype,
                              shape=(self.mda['number_of_lines'],),
@@ -169,9 +190,14 @@ class NativeMSGFileHandler(BaseFileHandler):
     def _read_header(self):
         """Read the header info."""
         data = np.fromfile(self.filename,
-                           dtype=native_header, count=1)
+                           dtype=self.header_type, count=1)
 
         self.header.update(recarray2dict(data))
+
+        if '15_SECONDARY_PRODUCT_HEADER' not in self.header:
+            # No archive header, that means we have a complete file
+            # including all channels.
+            self.header['15_SECONDARY_PRODUCT_HEADER'] = DEFAULT_15_SECONDARY_PRODUCT_HEADER
 
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
@@ -184,6 +210,8 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.platform_id = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
         self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
+        self.mda['offset_corrected'] = data15hd['GeometricProcessing'][
+            'EarthModel']['TypeOfEarthModel'] == 2
 
         equator_radius = data15hd['GeometricProcessing'][
                              'EarthModel']['EquatorialRadius'] * 1000.
@@ -249,7 +277,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def _read_trailer(self):
 
-        hdr_size = native_header.itemsize
+        hdr_size = self.header_type.itemsize
         data_size = (self._get_data_dtype().itemsize *
                      self.mda['number_of_lines'])
 
@@ -426,15 +454,8 @@ class NativeMSGFileHandler(BaseFileHandler):
             return None
 
         dataset = self.calibrate(xarr, dataset_id)
-        dataset.attrs['units'] = dataset_info['units']
-        dataset.attrs['wavelength'] = dataset_info['wavelength']
-        dataset.attrs['standard_name'] = dataset_info['standard_name']
-        dataset.attrs['platform_name'] = self.mda['platform_name']
-        dataset.attrs['sensor'] = 'seviri'
-        dataset.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
-            'projection_latitude': 0.,
-            'projection_altitude': self.mda['projection_parameters']['h']}
+        self._add_scanline_acq_time(dataset, dataset_id)
+        self._update_attrs(dataset, dataset_info)
 
         if self.fill_disk and not (dataset_id['name'] != 'HRV' and self.mda['is_full_disk']):
             padder = Padder(dataset_id,
@@ -509,6 +530,84 @@ class NativeMSGFileHandler(BaseFileHandler):
             ),
             ext_coefs=self.ext_calib_coefs.get(channel_name, {}),
             radiance_type=radiance_types[band_idx]
+        )
+
+    def _add_scanline_acq_time(self, dataset, dataset_id):
+        """Add scanline acquisition time to the given dataset."""
+        if dataset_id['name'] == 'HRV':
+            tline = self._get_acq_time_hrv()
+        else:
+            tline = self._get_acq_time_visir(dataset_id)
+        acq_time = get_cds_time(days=tline['Days'], msecs=tline['Milliseconds'])
+        add_scanline_acq_time(dataset, acq_time)
+
+    def _get_acq_time_hrv(self):
+        """Get raw acquisition time for HRV channel."""
+        tline = self.dask_array['hrv']['acq_time']
+        tline0 = tline[:, 0]
+        tline1 = tline[:, 1]
+        tline2 = tline[:, 2]
+        return da.stack((tline0, tline1, tline2), axis=1).reshape(
+            self.mda['hrv_number_of_lines']).compute()
+
+    def _get_acq_time_visir(self, dataset_id):
+        """Get raw acquisition time for VIS/IR channels."""
+        # Check if there is only 1 channel in the list as a change
+        # is needed in the arrray assignment ie channl id is not present
+        if len(self.mda['channel_list']) == 1:
+            return self.dask_array['visir']['acq_time'].compute()
+        i = self.mda['channel_list'].index(dataset_id['name'])
+        return self.dask_array['visir']['acq_time'][:, i].compute()
+
+    def _update_attrs(self, dataset, dataset_info):
+        """Update dataset attributes."""
+        dataset.attrs['units'] = dataset_info['units']
+        dataset.attrs['wavelength'] = dataset_info['wavelength']
+        dataset.attrs['standard_name'] = dataset_info['standard_name']
+        dataset.attrs['platform_name'] = self.mda['platform_name']
+        dataset.attrs['sensor'] = 'seviri'
+        dataset.attrs['georef_offset_corrected'] = self.mda[
+            'offset_corrected']
+        orbital_parameters = {
+            'projection_longitude': self.mda['projection_parameters'][
+                'ssp_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': self.mda['projection_parameters']['h'],
+            'satellite_nominal_longitude': self.header['15_DATA_HEADER'][
+                'SatelliteStatus']['SatelliteDefinition'][
+                'NominalLongitude'],
+            'satellite_nominal_latitude': 0.0
+        }
+        try:
+            actual_lon, actual_lat, actual_alt = self.satpos
+            orbital_parameters.update({
+                'satellite_actual_longitude': actual_lon,
+                'satellite_actual_latitude': actual_lat,
+                'satellite_actual_altitude': actual_alt
+            })
+        except NoValidOrbitParams as err:
+            logger.warning(err)
+        dataset.attrs['orbital_parameters'] = orbital_parameters
+        dataset.attrs['raw_metadata'] = reduce_mda(
+            self.header, max_size=self.mda_max_array_size
+        )
+
+    @cached_property
+    def satpos(self):
+        """Get actual satellite position in geodetic coordinates (WGS-84).
+
+        Evaluate orbit polynomials at the start time of the scan.
+
+        Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
+        """
+        poly_finder = OrbitPolynomialFinder(self.header['15_DATA_HEADER'][
+            'SatelliteStatus']['Orbit']['OrbitPolynomial'])
+        orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
+        return get_satpos(
+            orbit_polynomial=orbit_polynomial,
+            time=self.start_time,
+            semi_major_axis=self.mda['projection_parameters']['a'],
+            semi_minor_axis=self.mda['projection_parameters']['b']
         )
 
 

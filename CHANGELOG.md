@@ -1,3 +1,44 @@
+## Version 0.27.0 (2021/03/26)
+
+### Issues Closed
+
+* [Issue 1616](https://github.com/pytroll/satpy/issues/1616) - Thermal channels NinJoTIFF writing fail with AttributeError due to lost attributes ([PR 1617](https://github.com/pytroll/satpy/pull/1617))
+* [Issue 1614](https://github.com/pytroll/satpy/issues/1614) - Saving AAPP-processed NOAA HRPT to NinJoTIFF fails with AttributeError ([PR 1615](https://github.com/pytroll/satpy/pull/1615))
+* [Issue 1608](https://github.com/pytroll/satpy/issues/1608) - SEVIRI L1.5 native reader does not support files not including 0100 in the file name ([PR 1609](https://github.com/pytroll/satpy/pull/1609))
+* [Issue 1605](https://github.com/pytroll/satpy/issues/1605) - Reading FSFile fails with TypeError ([PR 1606](https://github.com/pytroll/satpy/pull/1606))
+* [Issue 1604](https://github.com/pytroll/satpy/issues/1604) - group_files does not support FSFile objects (TypeError: unhasshable type 'FSFile') ([PR 1606](https://github.com/pytroll/satpy/pull/1606))
+* [Issue 1493](https://github.com/pytroll/satpy/issues/1493) - Failed to save tropomi nc file with specific variables loaded ([PR 1588](https://github.com/pytroll/satpy/pull/1588))
+
+In this release 6 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1617](https://github.com/pytroll/satpy/pull/1617) - Fix ninjotiff convert units attributes ([1616](https://github.com/pytroll/satpy/issues/1616))
+* [PR 1615](https://github.com/pytroll/satpy/pull/1615) - Fix and improve unit conversion when writing NinJoTIFF ([1614](https://github.com/pytroll/satpy/issues/1614))
+* [PR 1613](https://github.com/pytroll/satpy/pull/1613) - Standardize vii dims
+* [PR 1610](https://github.com/pytroll/satpy/pull/1610) - Fix auxiliary download script not using provided data directory
+* [PR 1609](https://github.com/pytroll/satpy/pull/1609) - Fix file pattern matching in SEVIRI Native reader ([1608](https://github.com/pytroll/satpy/issues/1608))
+* [PR 1606](https://github.com/pytroll/satpy/pull/1606) - Make FSFile hashable again ([1605](https://github.com/pytroll/satpy/issues/1605), [1604](https://github.com/pytroll/satpy/issues/1604))
+* [PR 1603](https://github.com/pytroll/satpy/pull/1603) - Update slstr_l2.yaml
+* [PR 1600](https://github.com/pytroll/satpy/pull/1600) - When setting `upper_right_corner` make sure that all dataset coordinates are flipped
+* [PR 1588](https://github.com/pytroll/satpy/pull/1588) - Bugfix of link_coords ([1493](https://github.com/pytroll/satpy/issues/1493))
+
+#### Features added
+
+* [PR 1618](https://github.com/pytroll/satpy/pull/1618) - Update VIIRS/MODIS ReflecanceCorrector modifier to download DEM data at runtime
+* [PR 1612](https://github.com/pytroll/satpy/pull/1612) - Add support for SEVIRI Native files without archive header
+* [PR 1602](https://github.com/pytroll/satpy/pull/1602) - Fix missing VIIRS SDR DNB solar and lunar azimuth angle datasets
+* [PR 1468](https://github.com/pytroll/satpy/pull/1468) - Harmonize SEVIRI auxiliary data
+
+#### Documentation changes
+
+* [PR 1599](https://github.com/pytroll/satpy/pull/1599) - Add MiRS and mimicTPW2_comp readers to sphinx documentation
+
+In this release 14 pull requests were closed.
+
+
 ## Version 0.26.0 (2021/03/15)
 
 ### Issues Closed

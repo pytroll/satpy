@@ -25,6 +25,7 @@ import dask.array as da
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
+from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
 from satpy.utils import get_satpos
 
 logger = logging.getLogger(__name__)

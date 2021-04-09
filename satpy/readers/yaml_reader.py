@@ -1039,15 +1039,9 @@ def _get_target_scene_orientation(upper_right_corner):
 
     'NE' corresponds to target_eastright and target_northup being True.
     """
-    if upper_right_corner in ['NW', 'NE']:
-        target_northup = True
-    else:
-        target_northup = False
+    target_northup = upper_right_corner in ['NW', 'NE']
 
-    if upper_right_corner in ['NE', 'SE']:
-        target_eastright = True
-    else:
-        target_eastright = False
+    target_eastright = upper_right_corner in ['NE', 'SE']
 
     return target_eastright, target_northup
 

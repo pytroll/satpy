@@ -66,6 +66,19 @@ class TestEnhancementStretch(unittest.TestCase):
             [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]])
         self._test_enhancement(cira_stretch, self.ch1, expected)
 
+    def test_reinhard(self):
+        """Test the reinhard algorithm."""
+        from satpy.enhancements import reinhard_to_srgb
+        expected = np.array([[[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
+
+                             [[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
+
+                             [[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]]])
+        self._test_enhancement(reinhard_to_srgb, self.rgb, expected)
+
     def test_lookup(self):
         """Test the lookup enhancement function."""
         from satpy.enhancements import lookup
