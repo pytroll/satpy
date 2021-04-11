@@ -29,10 +29,18 @@ README_URL = "https://raw.githubusercontent.com/pytroll/satpy/master/README.rst"
 
 def _setup_custom_composite_config(base_dir):
     from satpy.composites import StaticImageCompositor
+    from satpy.modifiers.atmosphere import ReflectanceCorrector
     composite_config = base_dir.mkdir("composites").join("visir.yaml")
     with open(composite_config, 'w') as comp_file:
         yaml.dump({
             "sensor_name": "visir",
+            "modifiers": {
+                "test_modifier": {
+                    "modifier": ReflectanceCorrector,
+                    "url": README_URL,
+                    "known_hash": None,
+                },
+            },
             "composites": {
                 "test_static": {
                     "compositor": StaticImageCompositor,
@@ -103,6 +111,13 @@ def _get_comp_find_conditions(comp_sensors, found_files):
     return comp_cond
 
 
+def _get_mod_find_conditions(comp_sensors, found_files):
+    mod_cond = 'modifiers/README.rst' in found_files
+    if comp_sensors is not None and not comp_sensors:
+        mod_cond = not mod_cond
+    return mod_cond
+
+
 class TestDataDownload:
     """Test basic data downloading functionality."""
 
@@ -135,6 +150,8 @@ class TestDataDownload:
             assert w_cond2
             comp_cond = _get_comp_find_conditions(comp_sensors, found_files)
             assert comp_cond
+            mod_cond = _get_mod_find_conditions(comp_sensors, found_files)
+            assert mod_cond
 
     def test_limited_find_registerable(self):
         """Test that find_registerable doesn't find anything when limited."""
