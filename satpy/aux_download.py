@@ -203,8 +203,12 @@ def _find_registerable_files_compositors(sensors=None):
 
 def _register_modifier_files(composite_loader):
     for mod_sensor_dict in composite_loader.modifiers.values():
-        for mod_cls, mod_props in mod_sensor_dict.values():
-            mod_cls(**mod_props)
+        for mod_name, (mod_cls, mod_props) in mod_sensor_dict.items():
+            try:
+                mod_cls(**mod_props)
+            except (ValueError, RuntimeError):
+                logger.error("Could not initialize modifier '%s' for "
+                             "auxiliary download registration.", mod_name)
 
 
 def _find_registerable_files_readers(readers=None):
