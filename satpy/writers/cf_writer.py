@@ -691,24 +691,8 @@ class CFWriter(Writer):
             # Groups are not CF-1.7 compliant
             if 'Conventions' not in root.attrs:
                 root.attrs['Conventions'] = CF_VERSION
-
-            datas, start_times, end_times = self._collect_datasets(
-                datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression)
-            dataset = xr.Dataset(datas)
-            if 'time' in dataset:
-                dataset['time_bnds'] = make_time_bounds(start_times,
-                                                        end_times)
-                dataset['time'].attrs['bounds'] = "time_bnds"
-                dataset['time'].attrs['standard_name'] = "time"
-            else:
-                logger.warning('No time dimension in datasets, skipping time bounds creation.')
-
-            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs)
-            dataset = root.merge(dataset)
-            res = dataset.to_netcdf(filename, engine=engine, mode='w', encoding=encoding,
-                                    **other_to_netcdf_kwargs)
-            return res
+            # Write all datasets to the file root without creating a group
+            groups_ = {None: datasets}
         else:
             # User specified a group assignment using dataset names. Collect the corresponding datasets.
             groups_ = defaultdict(list)
@@ -720,24 +704,31 @@ class CFWriter(Writer):
 
             written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
-            # Write datasets to groups (appending to the file; group=None means no group)
-            for group_name, group_datasets in groups_.items():
-                # XXX: Should we combine the info of all datasets?
-                datas, start_times, end_times = self._collect_datasets(
-                    group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                    include_lonlats=include_lonlats, pretty=pretty, compression=compression)
-                dataset = xr.Dataset(datas)
-                if 'time' in dataset:
-                    dataset['time_bnds'] = make_time_bounds(start_times,
-                                                            end_times)
-                    dataset['time'].attrs['bounds'] = "time_bnds"
-                    dataset['time'].attrs['standard_name'] = "time"
-                else:
-                    grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
-                    logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
+        # Write datasets to groups (appending to the file; group=None means no group)
+        for group_name, group_datasets in groups_.items():
+            # XXX: Should we combine the info of all datasets?
+            datas, start_times, end_times = self._collect_datasets(
+                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
+                include_lonlats=include_lonlats, pretty=pretty, compression=compression)
+            dataset = xr.Dataset(datas)
+            if 'time' in dataset:
+                dataset['time_bnds'] = make_time_bounds(start_times,
+                                                        end_times)
+                dataset['time'].attrs['bounds'] = "time_bnds"
+                dataset['time'].attrs['standard_name'] = "time"
+            else:
+                grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
+                logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-                encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs)
+            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs)
+
+            if groups is None:
+                dataset = root.merge(dataset)
+                written = dataset.to_netcdf(filename, engine=engine, mode='w', encoding=encoding,
+                                            **other_to_netcdf_kwargs)
+            else:
                 res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                         **other_to_netcdf_kwargs)
                 written.append(res)
-            return written
+
+        return written
