@@ -86,36 +86,32 @@ writer:
 """.format(README_URL, README_URL))
 
 
-def _get_reader_find_conditions(readers, found_files):
+def _assert_reader_files_downloaded(readers, found_files):
     r_cond1 = 'readers/README.rst' in found_files
     r_cond2 = 'readers/README2.rst' in found_files
     if readers is not None and not readers:
-        r_cond1 = not r_cond1
-        r_cond2 = not r_cond2
-    return r_cond1, r_cond2
+        assert not r_cond1
+        assert not r_cond2
 
 
-def _get_writer_find_conditions(writers, found_files):
+def _assert_writer_files_downloaded(writers, found_files):
     w_cond1 = 'writers/README.rst' in found_files
     w_cond2 = 'writers/README2.rst' in found_files
     if writers is not None and not writers:
-        w_cond1 = not w_cond1
-        w_cond2 = not w_cond2
-    return w_cond1, w_cond2
+        assert not w_cond1
+        assert not w_cond2
 
 
-def _get_comp_find_conditions(comp_sensors, found_files):
+def _assert_comp_files_downloaded(comp_sensors, found_files):
     comp_cond = 'composites/README.rst' in found_files
     if comp_sensors is not None and not comp_sensors:
-        comp_cond = not comp_cond
-    return comp_cond
+        assert not comp_cond
 
 
-def _get_mod_find_conditions(comp_sensors, found_files):
+def _assert_mod_files_downloaded(comp_sensors, found_files):
     mod_cond = 'modifiers/README.rst' in found_files
     if comp_sensors is not None and not comp_sensors:
-        mod_cond = not mod_cond
-    return mod_cond
+        assert not mod_cond
 
 
 class TestDataDownload:
@@ -142,16 +138,10 @@ class TestDataDownload:
                 composite_sensors=comp_sensors,
             )
 
-            r_cond1, r_cond2 = _get_reader_find_conditions(readers, found_files)
-            assert r_cond1
-            assert r_cond2
-            w_cond1, w_cond2 = _get_writer_find_conditions(writers, found_files)
-            assert w_cond1
-            assert w_cond2
-            comp_cond = _get_comp_find_conditions(comp_sensors, found_files)
-            assert comp_cond
-            mod_cond = _get_mod_find_conditions(comp_sensors, found_files)
-            assert mod_cond
+            _assert_reader_files_downloaded(readers, found_files)
+            _assert_writer_files_downloaded(writers, found_files)
+            _assert_comp_files_downloaded(comp_sensors, found_files)
+            _assert_mod_files_downloaded(comp_sensors, found_files)
 
     def test_limited_find_registerable(self):
         """Test that find_registerable doesn't find anything when limited."""
