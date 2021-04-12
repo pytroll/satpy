@@ -22,9 +22,25 @@ from unittest import mock
 import pytest
 import yaml
 
+from satpy.modifiers import ModifierBase
+from satpy.aux_download import DataDownloadMixin
+
 pooch = pytest.importorskip("pooch")
 
 README_URL = "https://raw.githubusercontent.com/pytroll/satpy/master/README.rst"
+
+
+class UnfriendlyModifier(ModifierBase, DataDownloadMixin):
+    """Fake modifier that raises an exception in __init__."""
+
+    def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
+        """Raise an exception if we weren't provided any prerequisites."""
+        if not prerequisites or len(prerequisites) != 1:
+            raise ValueError("Unexpected number of prereqs")
+        super().__init__(name, prerequisites, optional_prerequisites, **kwargs)
+        self.register_data_files({'url': kwargs['url'],
+                                  'filename': kwargs['filename'],
+                                  'known_hash': kwargs['known_hash']})
 
 
 def _setup_custom_composite_config(base_dir):
@@ -40,6 +56,12 @@ def _setup_custom_composite_config(base_dir):
                     "url": README_URL,
                     "known_hash": None,
                 },
+                "unfriendly_modifier": {
+                    "modifier": UnfriendlyModifier,
+                    "url": README_URL,
+                    "filename": "unfriendly.rst",
+                    "known_hash": None,
+                }
             },
             "composites": {
                 "test_static": {
@@ -90,28 +112,36 @@ def _assert_reader_files_downloaded(readers, found_files):
     r_cond1 = 'readers/README.rst' in found_files
     r_cond2 = 'readers/README2.rst' in found_files
     if readers is not None and not readers:
-        assert not r_cond1
-        assert not r_cond2
+        r_cond1 = not r_cond1
+        r_cond2 = not r_cond2
+    assert r_cond1
+    assert r_cond2
 
 
 def _assert_writer_files_downloaded(writers, found_files):
     w_cond1 = 'writers/README.rst' in found_files
     w_cond2 = 'writers/README2.rst' in found_files
     if writers is not None and not writers:
-        assert not w_cond1
-        assert not w_cond2
+        w_cond1 = not w_cond1
+        w_cond2 = not w_cond2
+    assert w_cond1
+    assert w_cond2
 
 
 def _assert_comp_files_downloaded(comp_sensors, found_files):
     comp_cond = 'composites/README.rst' in found_files
     if comp_sensors is not None and not comp_sensors:
-        assert not comp_cond
+        comp_cond = not comp_cond
+    assert comp_cond
 
 
 def _assert_mod_files_downloaded(comp_sensors, found_files):
     mod_cond = 'modifiers/README.rst' in found_files
+    unfriendly_cond = 'modifiers/unfriendly.rst' in found_files
     if comp_sensors is not None and not comp_sensors:
-        assert not mod_cond
+        mod_cond = not mod_cond
+    assert mod_cond
+    assert not unfriendly_cond
 
 
 class TestDataDownload:
