@@ -23,17 +23,11 @@ import s3fs
 class HimawariHSD:
     """Benchmark Himawari HSD reading."""
 
-    timeout = 120
-    data_files = [  # 'HS_H08_20210409_0800_B01_FLDK_R10_S0110.DAT.bz2',
-                  # 'HS_H08_20210409_0800_B01_FLDK_R10_S0210.DAT.bz2',
-                  'HS_H08_20210409_0800_B01_FLDK_R10_S0310.DAT.bz2',
-                  'HS_H08_20210409_0800_B01_FLDK_R10_S0410.DAT.bz2',
-                  # 'HS_H08_20210409_0800_B01_FLDK_R10_S0510.DAT.bz2',
-                  # 'HS_H08_20210409_0800_B01_FLDK_R10_S0610.DAT.bz2',
-                  # 'HS_H08_20210409_0800_B01_FLDK_R10_S0710.DAT.bz2',
-                  # 'HS_H08_20210409_0800_B01_FLDK_R10_S0810.DAT.bz2',
-                  # 'HS_H08_20210409_0800_B01_FLDK_R10_S0910.DAT.bz2',
-                  # 'HS_H08_20210409_0800_B01_FLDK_R10_S1010.DAT.bz2'
+    timeout = 360
+    data_files = ['HS_H08_20210409_0800_B01_FLDK_R10_S0410.DAT.bz2',
+                  'HS_H08_20210409_0800_B02_FLDK_R10_S0410.DAT.bz2',
+                  'HS_H08_20210409_0800_B03_FLDK_R05_S0410.DAT.bz2',
+                  'HS_H08_20210409_0800_B04_FLDK_R10_S0410.DAT.bz2',
                   ]
 
     def setup_cache(self):
@@ -48,12 +42,48 @@ class HimawariHSD:
         """Time the loading of one channel."""
         from satpy import Scene
         scn = Scene(filenames=self.data_files, reader='ahi_hsd')
-        scn.load(['B01'])
+        scn.load(['B01'], pad_data=False)
         scn['B01'].compute()
 
     def peakmem_load_one_channel(self):
         """Check peak memory usage of loading one channel."""
         from satpy import Scene
         scn = Scene(filenames=self.data_files, reader='ahi_hsd')
-        scn.load(['B01'])
+        scn.load(['B01'], pad_data=False)
         scn['B01'].compute()
+
+    def time_load_true_color(self):
+        """Time the loading of the generation of true_color_nocorr."""
+        composite = "true_color_nocorr"
+        from satpy import Scene
+        scn = Scene(filenames=self.data_files, reader='ahi_hsd')
+        scn.load([composite], pad_data=False)
+        lscn = scn.resample(resampler='native')
+        lscn[composite].compute()
+
+    def peakmem_load_true_color(self):
+        """Check peak memory usage of the generation of true_color_nocorr."""
+        composite = "true_color_nocorr"
+        from satpy import Scene
+        scn = Scene(filenames=self.data_files, reader='ahi_hsd')
+        scn.load([composite], pad_data=False)
+        lscn = scn.resample(resampler='native')
+        lscn[composite].compute()
+
+    def time_save_true_color_nocorr_to_geotiff(self):
+        """Time the generation and saving of true_color_nocorr."""
+        composite = "true_color_nocorr"
+        from satpy import Scene
+        scn = Scene(filenames=self.data_files, reader='ahi_hsd')
+        scn.load([composite], pad_data=False)
+        lscn = scn.resample(resampler='native')
+        lscn.save_dataset(composite, filename='test.tif', tiled=True)
+
+    def peakmem_save_true_color_to_geotiff(self):
+        """Check peak memory usage of the generation and saving of true_color_nocorr."""
+        composite = "true_color_nocorr"
+        from satpy import Scene
+        scn = Scene(filenames=self.data_files, reader='ahi_hsd')
+        scn.load([composite], pad_data=False)
+        lscn = scn.resample(resampler='native')
+        lscn.save_dataset(composite, filename='test.tif', tiled=True)
