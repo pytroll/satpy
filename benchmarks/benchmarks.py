@@ -18,12 +18,13 @@
 """Benchmark satpy."""
 
 import s3fs
+from pyspectral.utils import download_rsr, download_luts
 
 
 class HimawariHSD:
     """Benchmark Himawari HSD reading."""
 
-    timeout = 360
+    timeout = 600
     data_files = ['HS_H08_20210409_0800_B01_FLDK_R10_S0410.DAT.bz2',
                   'HS_H08_20210409_0800_B02_FLDK_R10_S0410.DAT.bz2',
                   'HS_H08_20210409_0800_B03_FLDK_R05_S0410.DAT.bz2',
@@ -37,6 +38,14 @@ class HimawariHSD:
         for filename in self.data_files:
             to_get = 'noaa-himawari8/AHI-L1b-FLDK/2021/04/09/0800/' + filename
             self.fs.get_file(to_get, filename)
+
+        download_rsr()
+        download_luts(aerosol_type='rayleigh_only')
+
+    def setup(self):
+        """Set up the benchmarks."""
+        import satpy
+        satpy.CHUNK_SIZE = 2048
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""
@@ -53,8 +62,8 @@ class HimawariHSD:
         scn['B01'].compute()
 
     def time_load_true_color(self):
-        """Time the loading of the generation of true_color_nocorr."""
-        composite = "true_color_nocorr"
+        """Time the loading of the generation of true_color."""
+        composite = "true_color"
         from satpy import Scene
         scn = Scene(filenames=self.data_files, reader='ahi_hsd')
         scn.load([composite], pad_data=False)
@@ -62,8 +71,8 @@ class HimawariHSD:
         lscn[composite].compute()
 
     def peakmem_load_true_color(self):
-        """Check peak memory usage of the generation of true_color_nocorr."""
-        composite = "true_color_nocorr"
+        """Check peak memory usage of the generation of true_color."""
+        composite = "true_color"
         from satpy import Scene
         scn = Scene(filenames=self.data_files, reader='ahi_hsd')
         scn.load([composite], pad_data=False)
