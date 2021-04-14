@@ -198,6 +198,17 @@ def _find_registerable_files_compositors(sensors=None):
         sensors = composite_loader.all_composite_sensors()
     if sensors:
         composite_loader.load_compositors(sensors)
+    _register_modifier_files(composite_loader)
+
+
+def _register_modifier_files(composite_loader):
+    for mod_sensor_dict in composite_loader.modifiers.values():
+        for mod_name, (mod_cls, mod_props) in mod_sensor_dict.items():
+            try:
+                mod_cls(**mod_props)
+            except (ValueError, RuntimeError):
+                logger.error("Could not initialize modifier '%s' for "
+                             "auxiliary download registration.", mod_name)
 
 
 def _find_registerable_files_readers(readers=None):
@@ -296,6 +307,8 @@ class DataDownloadMixin:
         'reader': 'readers',
         'writer': 'writers',
         'composit': 'composites',
+        'modifi': 'modifiers',
+        'corr': 'modifiers',
     }
 
     @property
