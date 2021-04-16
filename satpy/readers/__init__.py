@@ -581,9 +581,9 @@ class FSFile(os.PathLike):
         This is read-only.
         """
         try:
-            return self._fs.open(self._file)
+            return self._fs.open(self._file, mode="rb")
         except AttributeError:
-            return open(self._file)
+            return open(self._file, mode="rb")
 
     def __lt__(self, other):
         """Implement ordering.

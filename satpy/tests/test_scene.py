@@ -138,6 +138,20 @@ class TestScene:
         with pytest.raises(ValueError, match="No supported files found"):
             Scene(filenames=[fsf], reader=[])
 
+    def test_fsfile_bytes(self, tmp_path):
+        """Test that FSFile opens files in bytes mode."""
+        from satpy.readers import FSFile
+
+        name = tmp_path / "OR_ABI-L1b-RadF-M6C14_G16_s19000010000000_e19000010005000_c20403662359590.nc"
+        fsf = FSFile(name)
+        with pytest.raises(FileNotFoundError):
+            Scene(filenames=[fsf], reader=["abi_l1b"])
+        name.touch()
+        # Raises a ValueError if opened in bytes mode, a TypeError if opened in
+        # text mode.
+        with pytest.raises(ValueError, match="cannot guess the engine"):
+            Scene(filenames=[fsf], reader=["abi_l1b"])
+
     # TODO: Rewrite this test for the 'find_files_and_readers' function
     # def test_create_reader_instances_with_sensor(self):
     #     import satpy.scene
