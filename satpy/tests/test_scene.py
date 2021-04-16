@@ -152,6 +152,13 @@ class TestScene:
         with pytest.raises(ValueError, match="cannot guess the engine"):
             Scene(filenames=[fsf], reader=["abi_l1b"])
 
+        # test that it's also true when passing a fs instance
+        from fsspec.implementations.local import LocalFileSystem
+        lfs = LocalFileSystem()
+        fsf = FSFile(name, fs=lfs)
+        with pytest.raises(ValueError, match="cannot guess the engine"):
+            Scene(filenames=[fsf], reader=["abi_l1b"])
+
     # TODO: Rewrite this test for the 'find_files_and_readers' function
     # def test_create_reader_instances_with_sensor(self):
     #     import satpy.scene
