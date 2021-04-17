@@ -167,8 +167,25 @@ class TestCombineMetadata(unittest.TestCase):
               ]
         assert "quality" not in combine_metadata(*dts6)
 
+    def test_combine_lists(self):
+        """Test combine metadata with different types of lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 4]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert res['prerequisites'] == [1, 2, 3, 4]
+
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': []},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
     def test_combine_identical_numpy_scalars(self):
-        """Test combining idendical fill values."""
+        """Test combining identical fill values."""
         from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
         assert combine_metadata(*test_metadata) == {'_FillValue': 42}
