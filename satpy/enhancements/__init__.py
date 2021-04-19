@@ -17,10 +17,14 @@
 """Enhancements."""
 
 import numpy as np
+from numpy.typing import ArrayLike
 import xarray as xr
 import dask
 import dask.array as da
+from trollimage.xrimage import XRImage
+from numbers import Number
 import logging
+import warnings
 
 LOG = logging.getLogger(__name__)
 
@@ -41,7 +45,7 @@ def invert(img, *args):
 
 
 def apply_enhancement(data, func, exclude=None, separate=False,
-                      pass_dask=False):
+                      pass_dask=False, func_kwargs=None):
     """Apply `func` to the provided data.
 
     Args:
@@ -52,12 +56,15 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         separate (bool): Apply `func` one band at a time. Default is False.
         pass_dask (bool): Pass the underlying dask array instead of the
                           xarray.DataArray.
+        func_kwargs (dict): Additional kwargs to send to the provided func.
 
     """
     attrs = data.attrs
     bands = data.coords['bands'].values
     if exclude is None:
         exclude = ['A'] if 'A' in bands else []
+    if func_kwargs is None:
+        func_kwargs = {}
 
     if separate:
         data_arrs = []
@@ -71,10 +78,10 @@ def apply_enhancement(data, func, exclude=None, separate=False,
             if pass_dask:
                 dims = band_data.dims
                 coords = band_data.coords
-                d_arr = func(band_data.data, index=idx)
+                d_arr = func(band_data.data, index=idx, **func_kwargs)
                 band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
             else:
-                band_data = func(band_data, index=idx)
+                band_data = func(band_data, index=idx, **func_kwargs)
             data_arrs.append(band_data)
             # we assume that the func can add attrs
             attrs.update(band_data.attrs)
@@ -88,10 +95,10 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         if pass_dask:
             dims = band_data.dims
             coords = band_data.coords
-            d_arr = func(band_data.data)
+            d_arr = func(band_data.data, **func_kwargs)
             band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
         else:
-            band_data = func(band_data)
+            band_data = func(band_data, **func_kwargs)
 
         attrs.update(band_data.attrs)
         # combine the new data with the excluded data
@@ -106,6 +113,7 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 def crefl_scaling(img, **kwargs):
     """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
+    warnings.warn("'crefl_scaling' is deprecated, use 'interp_scaling' instead.", DeprecationWarning)
 
     def func(band_data, index=None):
         idx = np.array(kwargs['idx']) / 255
@@ -118,6 +126,65 @@ def crefl_scaling(img, **kwargs):
         return band_data
 
     return apply_enhancement(img.data, func, separate=True)
+
+
+def interp_scaling(
+        img: XRImage,
+        xp: ArrayLike,
+        fp: ArrayLike,
+        coordinate_divisor: Number = None,
+        **kwargs):
+    """Apply 1D linear interpolation.
+
+    This uses :func:`numpy.interp` mapped over the provided dask array chunks.
+
+    Args:
+        img: Image data to be scaled. It is assumed the data is already
+            normalized between 0 and 1.
+        xp: X coordinates of the image data points used for interpolation.
+            This is passed directly to :func:`numpy.interp`.
+        fp: Y coordinate of the output image data poitns used for
+            interpolation. This is passed directly to :func:`numpy.interp`.
+        coordinate_divisor: Divide ``xp`` and ``fp`` by this value before
+            passing using for interpolation. This is a convenience to make
+            matching normalized image data to interp coordinates or to avoid
+            floating point precision errors in YAML configuration files.
+            If not provided, ``xp`` and ``fp`` will not be modified.
+
+    Examples:
+        YAML example:
+
+        .. code-block:: yaml
+
+              true_color_linear_interpolation:
+                sensor: abi
+                standard_name: true_color
+                operations:
+                - name: reflectance_range
+                  method: !!python/name:satpy.enhancements.stretch
+                  kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
+                - name: Linear interpolation
+                  method: !!python/name:satpy.enhancements.interp_scaling
+                  kwargs:
+                   xp: [0., 25., 55., 100., 255.]
+                   fp: [0., 90., 140., 175., 255.]
+                   coordinate_divisor: 255
+
+    """
+    LOG.debug("Applying the interp_scaling")
+    if coordinate_divisor is not None:
+        xp = np.asarray(xp) / coordinate_divisor
+        fp = np.asarray(fp) / coordinate_divisor
+
+    def func(band_data, xp, fp, index=None):
+        # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
+        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=xp, fp=fp), 0, 1),
+                                 coords=band_data.coords, dims=band_data.dims, name=band_data.name,
+                                 attrs=band_data.attrs)
+        return band_data
+
+    return apply_enhancement(img.data, func, separate=True,
+                             func_kwargs={'xp': xp, 'fp': fp})
 
 
 def cira_stretch(img, **kwargs):

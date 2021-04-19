@@ -63,6 +63,12 @@ invert
 crefl_scaling
 -------------
 
+interp_scaling
+--------------
+
+Use :func:`numpy.interp` to linearly interpolate data to a new range. See
+:func:`satpy.enhancements.interp_scaling` for more information and examples.
+
 cira_stretch
 ------------
 

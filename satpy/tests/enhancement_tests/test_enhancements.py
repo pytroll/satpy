@@ -141,6 +141,20 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(crefl_scaling, self.ch2, expected, idx=[0., 25., 55., 100., 255.],
                                sc=[0., 90., 140., 175., 255.])
 
+    def test_interp_scaling(self):
+        """Test the interp_scaling enhancement function."""
+        from satpy.enhancements import interp_scaling
+        expected = np.array([[
+            [np.nan, 0., 0., 0.44378, 0.631734],
+            [0.737562, 0.825041, 0.912521, 1., 1.]]])
+        self._test_enhancement(interp_scaling,
+                               self.ch2 / 100.0,
+                               expected,
+                               xp=[0., 25., 55., 100., 255.],
+                               fp=[0., 90., 140., 175., 255.],
+                               coordinate_divisor=255,
+                               )
+
     def test_btemp_threshold(self):
         """Test applying the cira_stretch."""
         from satpy.enhancements import btemp_threshold
