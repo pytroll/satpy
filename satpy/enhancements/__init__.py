@@ -25,6 +25,7 @@ from trollimage.xrimage import XRImage
 from numbers import Number
 import logging
 import warnings
+from functools import partial
 
 LOG = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def invert(img, *args):
 
 
 def apply_enhancement(data, func, exclude=None, separate=False,
-                      pass_dask=False, func_kwargs=None):
+                      pass_dask=False):
     """Apply `func` to the provided data.
 
     Args:
@@ -56,15 +57,12 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         separate (bool): Apply `func` one band at a time. Default is False.
         pass_dask (bool): Pass the underlying dask array instead of the
                           xarray.DataArray.
-        func_kwargs (dict): Additional kwargs to send to the provided func.
 
     """
     attrs = data.attrs
     bands = data.coords['bands'].values
     if exclude is None:
         exclude = ['A'] if 'A' in bands else []
-    if func_kwargs is None:
-        func_kwargs = {}
 
     if separate:
         data_arrs = []
@@ -78,10 +76,10 @@ def apply_enhancement(data, func, exclude=None, separate=False,
             if pass_dask:
                 dims = band_data.dims
                 coords = band_data.coords
-                d_arr = func(band_data.data, index=idx, **func_kwargs)
+                d_arr = func(band_data.data, index=idx)
                 band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
             else:
-                band_data = func(band_data, index=idx, **func_kwargs)
+                band_data = func(band_data, index=idx)
             data_arrs.append(band_data)
             # we assume that the func can add attrs
             attrs.update(band_data.attrs)
@@ -95,10 +93,10 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         if pass_dask:
             dims = band_data.dims
             coords = band_data.coords
-            d_arr = func(band_data.data, **func_kwargs)
+            d_arr = func(band_data.data)
             band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
         else:
-            band_data = func(band_data, **func_kwargs)
+            band_data = func(band_data)
 
         attrs.update(band_data.attrs)
         # combine the new data with the excluded data
@@ -114,18 +112,8 @@ def crefl_scaling(img, **kwargs):
     """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
     warnings.warn("'crefl_scaling' is deprecated, use 'interp_scaling' instead.", DeprecationWarning)
-
-    def func(band_data, index=None):
-        idx = np.array(kwargs['idx']) / 255
-        sc = np.array(kwargs['sc']) / 255
-        band_data *= .01
-        # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
-        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=idx, fp=sc), 0, 1),
-                                 coords=band_data.coords, dims=band_data.dims, name=band_data.name,
-                                 attrs=band_data.attrs)
-        return band_data
-
-    return apply_enhancement(img.data, func, separate=True)
+    img.data.data = img.data.data / 100
+    return interp_scaling(img, xp=kwargs['idx'], fp=kwargs['sc'], coordinate_divisor=255)
 
 
 def interp_scaling(
@@ -141,9 +129,9 @@ def interp_scaling(
     Args:
         img: Image data to be scaled. It is assumed the data is already
             normalized between 0 and 1.
-        xp: X coordinates of the image data points used for interpolation.
+        xp: Input values of the image data points used for interpolation.
             This is passed directly to :func:`numpy.interp`.
-        fp: Y coordinate of the output image data poitns used for
+        fp: Target values of the output image data points used for
             interpolation. This is passed directly to :func:`numpy.interp`.
         coordinate_divisor: Divide ``xp`` and ``fp`` by this value before
             passing using for interpolation. This is a convenience to make
@@ -183,8 +171,8 @@ def interp_scaling(
                                  attrs=band_data.attrs)
         return band_data
 
-    return apply_enhancement(img.data, func, separate=True,
-                             func_kwargs={'xp': xp, 'fp': fp})
+    func_with_kwargs = partial(func, xp=xp, fp=fp)
+    return apply_enhancement(img.data, func_with_kwargs, separate=True)
 
 
 def cira_stretch(img, **kwargs):
