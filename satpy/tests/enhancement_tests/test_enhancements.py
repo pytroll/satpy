@@ -142,12 +142,12 @@ class TestEnhancementStretch(unittest.TestCase):
                                sc=[0., 90., 140., 175., 255.])
 
     def test_interp_scaling(self):
-        """Test the interp_scaling enhancement function."""
-        from satpy.enhancements import interp_scaling
+        """Test the piecewise_linear_stretch enhancement function."""
+        from satpy.enhancements import piecewise_linear_stretch
         expected = np.array([[
             [np.nan, 0., 0., 0.44378, 0.631734],
             [0.737562, 0.825041, 0.912521, 1., 1.]]])
-        self._test_enhancement(interp_scaling,
+        self._test_enhancement(piecewise_linear_stretch,
                                self.ch2 / 100.0,
                                expected,
                                xp=[0., 25., 55., 100., 255.],

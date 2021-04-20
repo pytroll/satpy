@@ -111,12 +111,12 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 def crefl_scaling(img, **kwargs):
     """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
-    warnings.warn("'crefl_scaling' is deprecated, use 'interp_scaling' instead.", DeprecationWarning)
+    warnings.warn("'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.", DeprecationWarning)
     img.data.data = img.data.data / 100
-    return interp_scaling(img, xp=kwargs['idx'], fp=kwargs['sc'], coordinate_divisor=255)
+    return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], coordinate_divisor=255)
 
 
-def interp_scaling(
+def piecewise_linear_stretch(
         img: XRImage,
         xp: ArrayLike,
         fp: ArrayLike,
@@ -129,9 +129,9 @@ def interp_scaling(
     Args:
         img: Image data to be scaled. It is assumed the data is already
             normalized between 0 and 1.
-        xp: Input values of the image data points used for interpolation.
-            This is passed directly to :func:`numpy.interp`.
-        fp: Target values of the output image data points used for
+        xp: Input reference values of the image data points used for
+            interpolation. This is passed directly to :func:`numpy.interp`.
+        fp: Target reference values of the output image data points used for
             interpolation. This is passed directly to :func:`numpy.interp`.
         coordinate_divisor: Divide ``xp`` and ``fp`` by this value before
             passing using for interpolation. This is a convenience to make
@@ -152,14 +152,14 @@ def interp_scaling(
                   method: !!python/name:satpy.enhancements.stretch
                   kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
                 - name: Linear interpolation
-                  method: !!python/name:satpy.enhancements.interp_scaling
+                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
                   kwargs:
                    xp: [0., 25., 55., 100., 255.]
                    fp: [0., 90., 140., 175., 255.]
                    coordinate_divisor: 255
 
     """
-    LOG.debug("Applying the interp_scaling")
+    LOG.debug("Applying the piecewise_linear_stretch")
     if coordinate_divisor is not None:
         xp = np.asarray(xp) / coordinate_divisor
         fp = np.asarray(fp) / coordinate_divisor

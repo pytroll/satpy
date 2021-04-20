@@ -63,11 +63,13 @@ invert
 crefl_scaling
 -------------
 
-interp_scaling
---------------
+Deprecated. Use 'piecewise_linear_stretch' instead.
+
+piecewise_linear_stretch
+------------------------
 
 Use :func:`numpy.interp` to linearly interpolate data to a new range. See
-:func:`satpy.enhancements.interp_scaling` for more information and examples.
+:func:`satpy.enhancements.piecewise_linear_stretch` for more information and examples.
 
 cira_stretch
 ------------
