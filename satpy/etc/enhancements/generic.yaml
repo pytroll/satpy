@@ -28,7 +28,7 @@ enhancements:
         method: !!python/name:satpy.enhancements.stretch
         kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
       - name: linear interpolation
-        method: !!python/name:satpy.enhancements.interp_scaling
+        method: !!python/name:satpy.enhancements.piecewise_linear_stretch
         kwargs:
         # Polar2Grid's "Preferred" scaling
          xp: [0., 25., 55., 100., 255.]

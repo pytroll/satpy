@@ -141,7 +141,7 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(crefl_scaling, self.ch2, expected, idx=[0., 25., 55., 100., 255.],
                                sc=[0., 90., 140., 175., 255.])
 
-    def test_interp_scaling(self):
+    def test_piecewise_linear_stretch(self):
         """Test the piecewise_linear_stretch enhancement function."""
         from satpy.enhancements import piecewise_linear_stretch
         expected = np.array([[
