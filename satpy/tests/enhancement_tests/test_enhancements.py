@@ -152,7 +152,7 @@ class TestEnhancementStretch(unittest.TestCase):
                                expected,
                                xp=[0., 25., 55., 100., 255.],
                                fp=[0., 90., 140., 175., 255.],
-                               coordinate_divisor=255,
+                               reference_divisor=255,
                                )
 
     def test_btemp_threshold(self):

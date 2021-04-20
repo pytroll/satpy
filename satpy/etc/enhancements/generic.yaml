@@ -33,7 +33,7 @@ enhancements:
         # Polar2Grid's "Preferred" scaling
          xp: [0., 25., 55., 100., 255.]
          fp: [0., 90., 140., 175., 255.]
-         coordinate_divisor: 255
+         reference_divisor: 255
   overview_default:
     standard_name: overview
     operations:
