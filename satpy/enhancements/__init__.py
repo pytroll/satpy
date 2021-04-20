@@ -134,7 +134,7 @@ def piecewise_linear_stretch(
         fp: Target reference values of the output image data points used for
             interpolation. This is passed directly to :func:`numpy.interp`.
         reference_scale_factor: Divide ``xp`` and ``fp`` by this value before
-            passing using for interpolation. This is a convenience to make
+            using them for interpolation. This is a convenience to make
             matching normalized image data to interp coordinates or to avoid
             floating point precision errors in YAML configuration files.
             If not provided, ``xp`` and ``fp`` will not be modified.
