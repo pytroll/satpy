@@ -121,7 +121,7 @@ def piecewise_linear_stretch(
         xp: ArrayLike,
         fp: ArrayLike,
         coordinate_divisor: Number = None,
-        **kwargs):
+        **kwargs) -> xr.DataArray:
     """Apply 1D linear interpolation.
 
     This uses :func:`numpy.interp` mapped over the provided dask array chunks.
