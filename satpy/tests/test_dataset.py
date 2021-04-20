@@ -167,8 +167,8 @@ class TestCombineMetadata(unittest.TestCase):
               ]
         assert "quality" not in combine_metadata(*dts6)
 
-    def test_combine_lists(self):
-        """Test combine metadata with different types of lists."""
+    def test_combine_lists_identical(self):
+        """Test combine metadata with identical lists."""
         from satpy.dataset.metadata import combine_metadata
         metadatas = [
             {'prerequisites': [1, 2, 3, 4]},
@@ -177,9 +177,29 @@ class TestCombineMetadata(unittest.TestCase):
         res = combine_metadata(*metadatas)
         assert res['prerequisites'] == [1, 2, 3, 4]
 
+    def test_combine_lists_same_size_diff_values(self):
+        """Test combine metadata with lists with different values."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 5]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+    def test_combine_lists_different_size(self):
+        """Test combine metadata with different size lists."""
+        from satpy.dataset.metadata import combine_metadata
         metadatas = [
             {'prerequisites': [1, 2, 3, 4]},
             {'prerequisites': []},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3]},
         ]
         res = combine_metadata(*metadatas)
         assert 'prerequisites' not in res
