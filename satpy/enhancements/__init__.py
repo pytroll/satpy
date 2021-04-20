@@ -113,14 +113,14 @@ def crefl_scaling(img, **kwargs):
     LOG.debug("Applying the crefl_scaling")
     warnings.warn("'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.", DeprecationWarning)
     img.data.data = img.data.data / 100
-    return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], reference_divisor=255)
+    return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], reference_scale_factor=255)
 
 
 def piecewise_linear_stretch(
         img: XRImage,
         xp: ArrayLike,
         fp: ArrayLike,
-        reference_divisor: Number = None,
+        reference_scale_factor: Number = None,
         **kwargs) -> xr.DataArray:
     """Apply 1D linear interpolation.
 
@@ -133,7 +133,7 @@ def piecewise_linear_stretch(
             interpolation. This is passed directly to :func:`numpy.interp`.
         fp: Target reference values of the output image data points used for
             interpolation. This is passed directly to :func:`numpy.interp`.
-        reference_divisor: Divide ``xp`` and ``fp`` by this value before
+        reference_scale_factor: Divide ``xp`` and ``fp`` by this value before
             passing using for interpolation. This is a convenience to make
             matching normalized image data to interp coordinates or to avoid
             floating point precision errors in YAML configuration files.
@@ -156,13 +156,13 @@ def piecewise_linear_stretch(
                   kwargs:
                    xp: [0., 25., 55., 100., 255.]
                    fp: [0., 90., 140., 175., 255.]
-                   reference_divisor: 255
+                   reference_scale_factor: 255
 
     """
     LOG.debug("Applying the piecewise_linear_stretch")
-    if reference_divisor is not None:
-        xp = np.asarray(xp) / reference_divisor
-        fp = np.asarray(fp) / reference_divisor
+    if reference_scale_factor is not None:
+        xp = np.asarray(xp) / reference_scale_factor
+        fp = np.asarray(fp) / reference_scale_factor
 
     def func(band_data, xp, fp, index=None):
         # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
