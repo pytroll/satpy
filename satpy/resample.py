@@ -1117,6 +1117,7 @@ class BucketResamplerBase(BaseResampler):
             dims = ('y', 'x')
         else:
             dims = data.dims
+        LOG.debug("Resampling %s", str(data.name))
         result = self.compute(data_arr, **kwargs)
         coords = {}
         if 'bands' in data.coords:
@@ -1169,9 +1170,16 @@ class BucketAvg(BucketResamplerBase):
     """
 
     def compute(self, data, fill_value=np.nan, skipna=True, **kwargs):
-        """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
+        """Call the resampling.
 
+        Args:
+            data (numpy.Array, dask.Array): Data to be resampled
+            fill_value (numpy.nan, int): fill_value. Defaults to numpy.nan
+            skipna (boolean): Skip NA's. Default `True`
+
+        Returns:
+            dask.Array
+        """
         kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
 
         results = []
@@ -1210,8 +1218,6 @@ class BucketSum(BucketResamplerBase):
 
     def compute(self, data, skipna=True, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
-
         kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
 
         results = []
@@ -1237,7 +1243,6 @@ class BucketCount(BucketResamplerBase):
 
     def compute(self, data, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
         results = []
         if data.ndim == 3:
             for _i in range(data.shape[0]):
@@ -1260,7 +1265,6 @@ class BucketFraction(BucketResamplerBase):
 
     def compute(self, data, fill_value=np.nan, categories=None, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
         if data.ndim > 2:
             raise ValueError("BucketFraction not implemented for 3D datasets")
 
