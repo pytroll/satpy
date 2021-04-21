@@ -13,9 +13,9 @@ reader:
 file_types:
   native_msg:
     file_reader: !!python/name:satpy.readers.seviri_l1b_native.NativeMSGFileHandler
-    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{processing_time:%Y%m%d%H%M%S}-{order_id:s}.nat',
-                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat',
-                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{end_time:%Y%m%d%H%M%S.%f}000Z'
+    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{processing_time:%Y%m%d%H%M%S}-{order_id:s}.nat',
+                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat',
+                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-{base_algorithm_version:4s}-NA-{end_time:%Y%m%d%H%M%S.%f}000Z'
                     ]
     # Note: the end_time value in the SEVIRI native filenames is officially called Nominal Image Time (SNIT field in
     # the 15_MAIN_PRODUCT_HEADER) marking the time where the product is defined to be valid. This time always matches

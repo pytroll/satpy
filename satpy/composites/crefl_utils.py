@@ -417,7 +417,7 @@ def run_crefl(refl, coeffs,
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
         LOG.debug("No average elevation information provided in CREFL")
-        # height = np.zeros(lon.shape, dtype=np.float)
+        # height = np.zeros(lon.shape, dtype=np.float64)
         height = 0.
     else:
         LOG.debug("Using average elevation information provided to CREFL")

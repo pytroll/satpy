@@ -190,7 +190,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
                                      mock.MagicMock(),
                                      mock.MagicMock()).sensor_name
 
-            for sat in sensor_list.keys():
+            for sat in sensor_list:
                 file_data['/attr/Sensors'] = sensor_list[sat]
                 plat, sens = _run_target()
                 self.assertEqual(plat, sat)

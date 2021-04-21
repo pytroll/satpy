@@ -1039,15 +1039,9 @@ def _get_target_scene_orientation(upper_right_corner):
 
     'NE' corresponds to target_eastright and target_northup being True.
     """
-    if upper_right_corner in ['NW', 'NE']:
-        target_northup = True
-    else:
-        target_northup = False
+    target_northup = upper_right_corner in ['NW', 'NE']
 
-    if upper_right_corner in ['NE', 'SE']:
-        target_eastright = True
-    else:
-        target_eastright = False
+    target_eastright = upper_right_corner in ['NE', 'SE']
 
     return target_eastright, target_northup
 
@@ -1076,10 +1070,10 @@ def _flip_dataset_data_and_area_extents(dataset, area_extents_to_update, flip_di
     """Flip the data and area extents array for a dataset."""
     logger.info("Flipping Dataset {} {}.".format(dataset.attrs.get('name', 'unknown_name'), flip_direction))
     if flip_direction == 'upsidedown':
-        dataset.data = dataset.data[::-1, :]
+        dataset = dataset[::-1, :]
         area_extents_to_update[:, [1, 3]] = area_extents_to_update[:, [3, 1]]
     elif flip_direction == 'leftright':
-        dataset.data = dataset.data[:, ::-1]
+        dataset = dataset[:, ::-1]
         area_extents_to_update[:, [0, 2]] = area_extents_to_update[:, [2, 0]]
     else:
         raise ValueError("Flip direction not recognized. Should be either 'upsidedown' or 'leftright'.")
@@ -1260,7 +1254,7 @@ def _pad_later_segments_area(file_handlers, dsid):
             new_ur_y = area.area_extent[1]
             fill_extent = (area.area_extent[0], new_ll_y,
                            area.area_extent[2], new_ur_y)
-            area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
+            area = AreaDefinition('fill', 'fill', 'fill', area.crs,
                                   seg_size[1], new_height_px,
                                   fill_extent)
 
@@ -1276,7 +1270,6 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
                           fh in file_handlers]
     area = file_handlers[0].get_area_def(dsid)
     seg_size = area.shape
-    proj_dict = area.proj_dict
     padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
 
     for segment in range(available_segments[0] - 1, 0, -1):
@@ -1289,7 +1282,7 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
         fill_extent = (area.area_extent[0], new_ll_y,
                        area.area_extent[2], new_ur_y)
         area = AreaDefinition('fill', 'fill', 'fill',
-                              proj_dict,
+                              area.crs,
                               seg_size[1], new_height_px,
                               fill_extent)
         area_defs[segment] = area

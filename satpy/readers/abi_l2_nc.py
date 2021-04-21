@@ -46,7 +46,7 @@ class NC_ABI_L2(NC_ABI_BASE):
                                'units': _units,
                                'satellite_latitude': float(self.nc['nominal_satellite_subpoint_lat']),
                                'satellite_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
-                               'satellite_altitude': float(self.nc['nominal_satellite_height'])})
+                               'satellite_altitude': float(self.nc['nominal_satellite_height']) * 1000.})
 
         variable.attrs.update(key.to_dict())
 
