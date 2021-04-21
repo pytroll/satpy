@@ -140,7 +140,8 @@ def piecewise_linear_stretch(
             If not provided, ``xp`` and ``fp`` will not be modified.
 
     Examples:
-        YAML example:
+        This example YAML uses a 'crude' stretch to pre-scale the RGB data
+        and then uses reference points in a 0-255 range.
 
         .. code-block:: yaml
 
@@ -157,6 +158,22 @@ def piecewise_linear_stretch(
                    xp: [0., 25., 55., 100., 255.]
                    fp: [0., 90., 140., 175., 255.]
                    reference_scale_factor: 255
+
+        This example YAML does the same as the above on the C02 channel, but
+        the interpolation reference points are already adjusted for the input
+        reflectance (%) data and the output range (0 to 1).
+
+        .. code-block:: yaml
+
+              c02_linear_interpolation:
+                sensor: abi
+                standard_name: C02
+                operations:
+                - name: Linear interpolation
+                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+                  kwargs:
+                   xp: [0., 9.8039, 21.5686, 39.2157, 100.]
+                   fp: [0., 0.3529, 0.5490, 0.6863, 1.0]
 
     """
     LOG.debug("Applying the piecewise_linear_stretch")
