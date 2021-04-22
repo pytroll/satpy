@@ -177,5 +177,5 @@ def _all_list_of_arrays_equal(array_lists):
 def _all_values_equal(values):
     try:
         return _pairwise_all(nan_allclose, values)
-    except TypeError:
+    except (ValueError, TypeError):
         return _pairwise_all(eq, values)

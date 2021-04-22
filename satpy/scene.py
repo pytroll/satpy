@@ -697,8 +697,10 @@ class Scene:
         """Slice the data to reduce it."""
         slice_x, slice_y = slices
         dataset = dataset.isel(x=slice_x, y=slice_y)
-        assert ('x', source_area.width) in dataset.sizes.items()
-        assert ('y', source_area.height) in dataset.sizes.items()
+        if ('x', source_area.width) not in dataset.sizes.items():
+            raise RuntimeError
+        if ('y', source_area.height) not in dataset.sizes.items():
+            raise RuntimeError
         dataset.attrs['area'] = source_area
 
         return dataset

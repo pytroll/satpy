@@ -315,7 +315,7 @@ def save_test_data(path):
 
             buf = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
 
-            for key in m.keys():
+            for key in m:
                 val = m[key]
 
                 if np.isscalar(val):

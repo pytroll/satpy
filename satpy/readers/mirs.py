@@ -122,7 +122,8 @@ def read_atms_limb_correction_coefficients(fn):
 
         # coeff locations (indexes to put the future coefficients in)
         locations = [int(x.strip()) for x in next(coeff_str).split(" ") if x]
-        assert(len(locations) == nchx)
+        if len(locations) != nchx:
+            raise RuntimeError
         for x in range(nchx):
             all_nchanx[chan_idx, x] = locations[x] - 1
 
@@ -190,13 +191,28 @@ def limb_correct_atms_bt(bt_data, surf_type_mask, coeff_fns, ds_info):
 
 
 class MiRSL2ncHandler(BaseFileHandler):
-    """MiRS handler for NetCDF4 files using xarray."""
+    """MiRS handler for NetCDF4 files using xarray.
 
-    def __init__(self, filename, filename_info, filetype_info):
+    The MiRS retrieval algorithm runs on multiple
+    sensors.  For the ATMS sensors, a limb correction
+    is applied by default.  In order to change that
+    behavior, use the keyword argument ``limb_correction=False``::
+
+
+        from satpy import Scene, find_files_and_readers
+
+        filenames = find_files_and_readers(base_dir, reader="mirs")
+        scene = Scene(filenames, reader_kwargs={'limb_correction': False})
+
+    """
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 limb_correction=True):
         """Init method."""
         super(MiRSL2ncHandler, self).__init__(filename,
                                               filename_info,
-                                              filetype_info)
+                                              filetype_info,
+                                              )
 
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
@@ -212,6 +228,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         self.platform_name = self._get_platform_name
         self.sensor = self._get_sensor
+        self.limb_correction = limb_correction
 
     @property
     def platform_shortname(self):
@@ -346,15 +363,15 @@ class MiRSL2ncHandler(BaseFileHandler):
             data = self['BT']
             data = data.rename(new_name_or_name_dict=ds_info["name"])
 
-            if self.sensor.lower() != "atms":
-                LOG.info("Limb Correction will not be applied to non-ATMS BTs")
-                data = data[:, :, idx]
-            else:
+            if self.sensor.lower() == "atms" and self.limb_correction:
                 sfc_type_mask = self['Sfc_type']
                 data = limb_correct_atms_bt(data, sfc_type_mask,
                                             self._get_coeff_filenames,
                                             ds_info)
                 self.nc = self.nc.merge(data)
+            else:
+                LOG.info("No Limb Correction applied.")
+                data = data[:, :, idx]
         else:
             data = self[ds_id['name']]
 
