@@ -17,7 +17,6 @@
 """Enhancements."""
 
 import numpy as np
-from numpy.typing import ArrayLike
 import xarray as xr
 import dask
 import dask.array as da
@@ -26,6 +25,12 @@ from numbers import Number
 import logging
 import warnings
 from functools import partial
+
+try:
+    from numpy.typing import ArrayLike
+except ImportError:
+    # numpy <1.20
+    ArrayLike = np.ndarray
 
 LOG = logging.getLogger(__name__)
 
