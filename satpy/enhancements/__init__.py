@@ -25,12 +25,7 @@ from numbers import Number
 import logging
 import warnings
 from functools import partial
-
-try:
-    from numpy.typing import ArrayLike
-except ImportError:
-    # numpy <1.20
-    ArrayLike = np.ndarray
+from satpy._compat import ArrayLike
 
 LOG = logging.getLogger(__name__)
 
