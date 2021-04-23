@@ -38,6 +38,9 @@ BANDS = {1: ['L'],
          3: ['R', 'G', 'B'],
          4: ['R', 'G', 'B', 'A']}
 
+NODATA_HANDLING_FILLVALUE = 'fill_value'
+NODATA_HANDLING_NANMASK = 'nan_mask'
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,12 +79,6 @@ class GenericImageFileHandler(BaseFileHandler):
         # Rename bands to [R, G, B, A], or a subset of those
         data['bands'] = BANDS[data.bands.size]
 
-        # Mask data if alpha channel is present
-        try:
-            data = mask_image_data(data)
-        except ValueError as err:
-            logger.warning(err)
-
         data.attrs = attrs
         self.dataset_name = 'image'
         self.file_content[self.dataset_name] = data
@@ -106,11 +103,24 @@ class GenericImageFileHandler(BaseFileHandler):
         """Get a dataset from the file."""
         ds_name = self.dataset_name if self.dataset_name else key['name']
         logger.debug("Reading '%s.'", ds_name)
-        return self.file_content[ds_name]
+        data = self.file_content[ds_name]
+
+        # Mask data if necessary
+        try:
+            data = mask_image_data(data, info)
+        except ValueError as err:
+            logger.warning(err)
+
+        return data
 
 
-def mask_image_data(data):
-    """Mask image data if alpha channel is present."""
+def mask_image_data(data, info=None):
+    """
+    Mask image data if alpha channel is present or
+    dataset 'nodata_handling' is set to 'nan_mask'.
+    In the latter case even integer data is converted
+    to float32 and masked with np.nan.
+    ."""
     if data.bands.size in (2, 4):
         if not np.issubdtype(data.dtype, np.integer):
             raise ValueError("Only integer datatypes can be used as a mask.")
@@ -121,8 +131,23 @@ def mask_image_data(data):
         data.data = masked_data
         data = data.sel(bands=BANDS[data.bands.size - 1])
     elif hasattr(data, 'nodatavals') and data.nodatavals:
-        data = data.astype(np.float64)
-        masked_data = da.stack([da.where(data.data[i, :, :] == nodataval, np.nan, data.data[i, :, :])
-                                for i, nodataval in enumerate(data.nodatavals)])
-        data.data = masked_data
+        try:
+            nodata_handling = info['nodata_handling'] if info else NODATA_HANDLING_FILLVALUE
+        except KeyError:
+            nodata_handling = NODATA_HANDLING_FILLVALUE
+        if nodata_handling == NODATA_HANDLING_NANMASK:
+            # data converted to float and masked with np.nan
+            data = data.astype(np.float32)
+            masked_data = da.stack([da.where(data.data[i, :, :] == nodataval, np.nan, data.data[i, :, :])
+                                    for i, nodataval in enumerate(data.nodatavals)])
+            data.data = masked_data
+            data.attrs['_FillValue'] = np.nan
+        elif nodata_handling == NODATA_HANDLING_FILLVALUE:
+            # keep data as it is but set _FillValue attribute to provided
+            # nodatavalue (first one as it has to be the same for all bands at least
+            # in GeoTiff, see GDAL gtiff driver documentation)
+            fill_value = data.nodatavals[0]
+            if np.issubdtype(data.dtype, np.integer):
+                fill_value = int(fill_value)
+            data.attrs['_FillValue'] = fill_value
     return data

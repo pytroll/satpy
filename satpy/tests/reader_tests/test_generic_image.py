@@ -174,7 +174,7 @@ class TestGenericImage(unittest.TestCase):
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
         self.assertEqual(scn['image'].shape, (1, self.y_size, self.x_size))
-        self.assertTrue(np.all(np.isnan(scn['image'].data[0][:10, :10].compute())))
+        self.assertTrue(np.sum(scn['image'].data[0][:10, :10].compute()) == 0)
 
         fname = os.path.join(self.base_dir, 'test_l_nan_nofillvalue.tif')
         scn = Scene(reader='generic_image', filenames=[fname])
@@ -229,3 +229,32 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue(reader.file_content)
         dataset = reader.get_dataset(foo, None)
         self.assertTrue(isinstance(dataset, xr.DataArray))
+
+    def test_GenericImageFileHandler_nodata(self):
+        """Test nodata handling with direct use of the reader."""
+        from satpy.readers.generic_image import GenericImageFileHandler
+
+        fname = os.path.join(self.base_dir, 'test_l_nan_fillvalue.tif')
+        fname_info = {'start_time': self.date}
+        ftype_info = {}
+        reader = GenericImageFileHandler(fname, fname_info, ftype_info)
+
+        foo = make_dataid(name='image-custom')
+        self.assertTrue(reader.file_content)
+        info = {'nodata_handling': 'nan_mask'}
+        dataset = reader.get_dataset(foo, info)
+        self.assertTrue(isinstance(dataset, xr.DataArray))
+        self.assertTrue(np.all(np.isnan(dataset.data[0][:10, :10].compute())))
+        self.assertTrue(np.isnan(dataset.attrs['_FillValue']))
+
+        info = {'nodata_handling': 'fill_value'}
+        dataset = reader.get_dataset(foo, info)
+        self.assertTrue(isinstance(dataset, xr.DataArray))
+        self.assertTrue(np.sum(dataset.data[0][:10, :10].compute()) == 0)
+        self.assertEqual(dataset.attrs['_FillValue'], 0)
+
+        # default same as 'nodata_handling': 'fill_value'
+        dataset = reader.get_dataset(foo, None)
+        self.assertTrue(isinstance(dataset, xr.DataArray))
+        self.assertTrue(np.sum(dataset.data[0][:10, :10].compute()) == 0)
+        self.assertEqual(dataset.attrs['_FillValue'], 0)
