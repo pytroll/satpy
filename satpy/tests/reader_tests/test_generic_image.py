@@ -174,7 +174,7 @@ class TestGenericImage(unittest.TestCase):
         scn = Scene(reader='generic_image', filenames=[fname])
         scn.load(['image'])
         self.assertEqual(scn['image'].shape, (1, self.y_size, self.x_size))
-        self.assertTrue(np.sum(scn['image'].data[0][:10, :10].compute()) == 0)
+        self.assertEqual(np.sum(scn['image'].data[0][:10, :10].compute()), 0)
 
         fname = os.path.join(self.base_dir, 'test_l_nan_nofillvalue.tif')
         scn = Scene(reader='generic_image', filenames=[fname])
@@ -250,11 +250,11 @@ class TestGenericImage(unittest.TestCase):
         info = {'nodata_handling': 'fill_value'}
         dataset = reader.get_dataset(foo, info)
         self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertTrue(np.sum(dataset.data[0][:10, :10].compute()) == 0)
+        self.assertEqual(np.sum(dataset.data[0][:10, :10].compute()), 0)
         self.assertEqual(dataset.attrs['_FillValue'], 0)
 
         # default same as 'nodata_handling': 'fill_value'
         dataset = reader.get_dataset(foo, None)
         self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertTrue(np.sum(dataset.data[0][:10, :10].compute()) == 0)
+        self.assertEqual(np.sum(dataset.data[0][:10, :10].compute()), 0)
         self.assertEqual(dataset.attrs['_FillValue'], 0)
