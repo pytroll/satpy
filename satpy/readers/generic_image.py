@@ -115,12 +115,13 @@ class GenericImageFileHandler(BaseFileHandler):
 
 
 def mask_image_data(data, info=None):
-    """
-    Mask image data if alpha channel is present or
+    """Mask image data if necessary.
+
+    Masking is done if alpha channel is present or
     dataset 'nodata_handling' is set to 'nan_mask'.
     In the latter case even integer data is converted
     to float32 and masked with np.nan.
-    ."""
+    """
     if data.bands.size in (2, 4):
         if not np.issubdtype(data.dtype, np.integer):
             raise ValueError("Only integer datatypes can be used as a mask.")
