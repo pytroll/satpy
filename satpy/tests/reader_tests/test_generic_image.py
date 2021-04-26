@@ -149,7 +149,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(np.sum(np.isnan(data)), 100)
 
     def test_geotiff_scene(self):
-        """Test reading PNG images via satpy.Scene()."""
+        """Test reading TIFF images via satpy.Scene()."""
         from satpy import Scene
 
         fname = os.path.join(self.base_dir, '20180101_0000_test_rgb.tif')
@@ -169,6 +169,10 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['start_time'], None)
         self.assertEqual(scn.attrs['end_time'], None)
         self.assertEqual(scn['image'].area, self.area_def)
+
+    def test_geotiff_scene_nan(self):
+        """Test reading TIFF images originally containing NaN values via satpy.Scene()."""
+        from satpy import Scene
 
         fname = os.path.join(self.base_dir, 'test_l_nan_fillvalue.tif')
         scn = Scene(reader='generic_image', filenames=[fname])
