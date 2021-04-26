@@ -24,7 +24,7 @@ If nodata values are present (and rasterio is able to read them), it
 will be preserved as attribute ``_FillValue`` in the returned dataset.
 In case that nodata values should be used to mask pixels (that have
 equal values) with np.nan, it has to be enabled in the reader yaml
-file (key ``nodata_handling`` per dataset with value ``nan_mask``).
+file (key ``nodata_handling`` per dataset with value ``"nan_mask"``).
 """
 
 import logging
