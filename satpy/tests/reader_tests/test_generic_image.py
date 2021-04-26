@@ -189,7 +189,6 @@ class TestGenericImage(unittest.TestCase):
     def test_GenericImageFileHandler(self):
         """Test direct use of the reader."""
         from satpy.readers.generic_image import GenericImageFileHandler
-        from satpy.readers.generic_image import mask_image_data
 
         fname = os.path.join(self.base_dir, 'test_rgba.tif')
         fname_info = {'start_time': self.date}
@@ -212,13 +211,35 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue('transform' in dataset.attrs)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
-        # Test masking of floats
+    def test_GenericImageFileHandler_masking_only_integer(self):
+        """Test direct use of the reader."""
+        from satpy.readers.generic_image import GenericImageFileHandler
+
+        class FakeGenericImageFileHandler(GenericImageFileHandler):
+
+            def __init__(self, filename, filename_info, filetype_info, file_content, **kwargs):
+                """Get fake file content from 'get_test_content'."""
+                if GenericImageFileHandler is object:
+                    raise ImportError("Base 'GenericImageFileHandler' could not be "
+                                      "imported.")
+                super(GenericImageFileHandler, self).__init__(filename, filename_info, filetype_info)
+                self.file_content = file_content
+                self.dataset_name = None
+                self.file_content.update(kwargs)
+
         data = self.scn['rgba']
-        self.assertRaises(ValueError, mask_image_data, data / 255.)
+
+        # do nothing if not integer
+        float_data = data / 255.
+        reader = FakeGenericImageFileHandler("dummy", {}, {}, {"image": float_data})
+        self.assertTrue(reader.get_dataset(make_dataid(name='image'), {}) is float_data)
+
+        # masking if integer
         data = data.astype(np.uint32)
         self.assertTrue(data.bands.size == 4)
-        data = mask_image_data(data)
-        self.assertTrue(data.bands.size == 3)
+        reader = FakeGenericImageFileHandler("dummy", {}, {}, {"image": data})
+        ret_data = reader.get_dataset(make_dataid(name='image'), {})
+        self.assertTrue(ret_data.bands.size == 3)
 
     def test_GenericImageFileHandler_datasetid(self):
         """Test direct use of the reader."""
@@ -258,7 +279,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(dataset.attrs['_FillValue'], 0)
 
         # default same as 'nodata_handling': 'fill_value'
-        dataset = reader.get_dataset(foo, None)
+        dataset = reader.get_dataset(foo, {})
         self.assertTrue(isinstance(dataset, xr.DataArray))
         self.assertEqual(np.sum(dataset.data[0][:10, :10].compute()), 0)
         self.assertEqual(dataset.attrs['_FillValue'], 0)
