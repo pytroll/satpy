@@ -16,6 +16,7 @@ at the pages listed below.
     custom_reader
     plugins
     satpy_internals
+    aux_data
 
 Coding guidelines
 =================

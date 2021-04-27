@@ -1,4 +1,3 @@
----
 enhancements:
 
   scat_wind_speed:
@@ -9,3 +8,14 @@ enhancements:
         kwargs:
           palettes:
             - {colors: spectral, min_value: 0, max_value: 25}
+
+  soil_moisture:
+    standard_name: soil_moisture
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: rdbu, min_value: 0, max_value: 100}
+
+

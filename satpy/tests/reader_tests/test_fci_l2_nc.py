@@ -75,7 +75,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             two_layers_dataset[0, :, :] = np.ones((100, 10))
             two_layers_dataset[1, :, :] = 2 * np.ones((100, 10))
 
-            mtg_geos_projection = nc.createVariable('mtg_geos_projection', np.int, dimensions=())
+            mtg_geos_projection = nc.createVariable('mtg_geos_projection', int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 10.0
             mtg_geos_projection.semi_major_axis = 6378137.
             mtg_geos_projection.semi_minor_axis = 6356752.
@@ -368,6 +368,7 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
             os.remove(TEST_ERROR_FILE)
 
     def test_errors(self):
+        """Test that certain properties cause errors."""
         self.assertRaises(TypeError, self.error_reader._start_time,
                           datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=30, second=40))
@@ -402,7 +403,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             x.standard_name = 'projection_y_coordinate'
             y[:] = np.arange(1)
 
-            mtg_geos_projection = nc_byte.createVariable('mtg_geos_projection', np.int, dimensions=())
+            mtg_geos_projection = nc_byte.createVariable('mtg_geos_projection', int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 10.0
             mtg_geos_projection.semi_major_axis = 6378137.
             mtg_geos_projection.semi_minor_axis = 6356752.
@@ -433,7 +434,6 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
 
     def test_byte_extraction(self):
         """Test the execution of the get_dataset function."""
-
         # Value of 1 is expected to be returned for this test
         dataset = self.byte_reader.get_dataset(None,
                                                {'file_key': 'cloud_mask_test_flag',

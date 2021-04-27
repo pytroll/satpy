@@ -63,7 +63,7 @@ polarization::
 
 Or multiple calibrations::
 
-    >>> scn.load([0.6, 10.8], calibrations=['brightness_temperature', 'radiance'])
+    >>> scn.load([0.6, 10.8], calibration=['brightness_temperature', 'radiance'])
 
 In the above case Satpy will load whatever dataset is available and matches
 the specified parameters. So the above ``load`` call would load the ``0.6``

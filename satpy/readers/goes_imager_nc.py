@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS.
+
 Also handles GOES 15 data in netCDF format reformated by Eumetsat
 
 GOES Imager netCDF files contain geolocated detector counts. If ordering via
@@ -39,7 +40,7 @@ assignment however cannot be reconstructed properly. This is where an
 approximation has to be applied (see below).
 
 Calibration
-============
+===========
 
 Calibration is performed according to [VIS] and [IR], but with an average
 calibration coefficient applied to all detectors in a certain channel. The
@@ -162,7 +163,6 @@ Channel Diff  Unit
 ======= ===== ====
 
 References:
-
 - [GVAR] https://goes.gsfc.nasa.gov/text/GVARRDL98.pdf
 - [BOOK-N] https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf
 - [BOOK-I] https://goes.gsfc.nasa.gov/text/databook/databook.pdf
@@ -172,7 +172,7 @@ References:
 - [SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
 - [SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 
-Eumetsat formated netCDF data:
+Eumetsat formatted netCDF data:
 
 The main differences are:
 
@@ -963,7 +963,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         """Delete."""
         try:
             self.nc.close()
-        except (AttributeError, IOError, OSError):
+        except (AttributeError, OSError):
             pass
 
     def available_datasets(self, configured_datasets=None):
@@ -1348,7 +1348,7 @@ def test_coefs(ir_url, vis_url):
     """
     reader = GOESCoefficientReader(ir_url=ir_url, vis_url=vis_url)
 
-    for platform in CALIB_COEFS.keys():
+    for platform in CALIB_COEFS:
         for channel, coefs in CALIB_COEFS[platform].items():
             coefs_expected = reader.get_coefs(platform=platform,
                                               channel=channel)

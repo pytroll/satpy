@@ -20,28 +20,7 @@
 import os
 import unittest
 from unittest import mock
-
-
-class TestCheckSatpy(unittest.TestCase):
-    """Test the 'check_satpy' function."""
-
-    def test_basic_check_satpy(self):
-        """Test 'check_satpy' basic functionality."""
-        from satpy.config import check_satpy
-        check_satpy()
-
-    def test_specific_check_satpy(self):
-        """Test 'check_satpy' with specific features provided."""
-        from satpy.config import check_satpy
-        with mock.patch('satpy.config.print') as print_mock:
-            check_satpy(readers=['viirs_sdr'], extras=('cartopy', '__fake'))
-            checked_fake = False
-            for call in print_mock.mock_calls:
-                if len(call[1]) > 0 and '__fake' in call[1][0]:
-                    self.assertNotIn('ok', call[1][1])
-                    checked_fake = True
-            self.assertTrue(checked_fake, "Did not find __fake module "
-                                          "mentioned in checks")
+import pytest
 
 
 class TestBuiltinAreas(unittest.TestCase):
@@ -115,7 +94,7 @@ class TestBuiltinAreas(unittest.TestCase):
 class TestPluginsConfigs(unittest.TestCase):
     """Test that plugins are working."""
 
-    @mock.patch('satpy.config.pkg_resources.iter_entry_points')
+    @mock.patch('satpy._config.pkg_resources.iter_entry_points')
     def test_get_plugin_configs(self, iter_entry_points):
         """Check that the plugin configs are looked for."""
         import pkg_resources
@@ -124,6 +103,81 @@ class TestPluginsConfigs(unittest.TestCase):
         ep.dist.module_path = os.path.join(os.path.sep + 'bla', 'bla')
         iter_entry_points.return_value = [ep]
 
-        from satpy.config import get_entry_points_config_dirs
-        dirs = get_entry_points_config_dirs('satpy.composites')
-        self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])
+        import satpy
+        from satpy._config import get_entry_points_config_dirs
+        # don't let user env vars affect results
+        with satpy.config.set(config_path=[]):
+            dirs = get_entry_points_config_dirs('satpy.composites')
+            self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])
+
+
+class TestConfigObject:
+    """Test basic functionality of the central config object."""
+
+    def test_custom_config_file(self):
+        """Test adding a custom configuration file using SATPY_CONFIG."""
+        import tempfile
+        import yaml
+        from importlib import reload
+        import satpy
+        my_config_dict = {
+            'cache_dir': "/path/to/cache",
+        }
+        try:
+            with tempfile.NamedTemporaryFile(mode='w+t', suffix='.yaml', delete=False) as tfile:
+                yaml.dump(my_config_dict, tfile)
+                tfile.close()
+                with mock.patch.dict('os.environ', {'SATPY_CONFIG': tfile.name}):
+                    reload(satpy._config)
+                    reload(satpy)
+                    assert satpy.config.get('cache_dir') == '/path/to/cache'
+        finally:
+            os.remove(tfile.name)
+
+    def test_deprecated_env_vars(self):
+        """Test that deprecated variables are mapped to new config."""
+        from importlib import reload
+        import satpy
+        old_vars = {
+            'PPP_CONFIG_DIR': '/my/ppp/config/dir',
+            'SATPY_ANCPATH': '/my/ancpath',
+        }
+
+        with mock.patch.dict('os.environ', old_vars):
+            reload(satpy._config)
+            reload(satpy)
+            assert satpy.config.get('data_dir') == '/my/ancpath'
+            assert satpy.config.get('config_path') == ['/my/ppp/config/dir']
+
+    def test_config_path_multiple(self):
+        """Test that multiple config paths are accepted."""
+        from importlib import reload
+        import satpy
+        old_vars = {
+            'SATPY_CONFIG_PATH': '/my/configs1:/my/configs2:/my/configs3',
+        }
+
+        with mock.patch.dict('os.environ', old_vars):
+            reload(satpy._config)
+            reload(satpy)
+            assert satpy.config.get('config_path') == ['/my/configs1',
+                                                       '/my/configs2',
+                                                       '/my/configs3']
+
+    def test_bad_str_config_path(self):
+        """Test that a str config path isn't allowed."""
+        from importlib import reload
+        import satpy
+        old_vars = {
+            'SATPY_CONFIG_PATH': '/my/configs1',
+        }
+
+        # single path from env var still works
+        with mock.patch.dict('os.environ', old_vars):
+            reload(satpy._config)
+            reload(satpy)
+            assert satpy.config.get('config_path') == ['/my/configs1']
+
+        # strings are not allowed, lists are
+        with satpy.config.set(config_path='/single/string/paths/are/bad'):
+            pytest.raises(ValueError, satpy._config.get_config_path_safe)

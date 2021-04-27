@@ -281,5 +281,5 @@ class SCMIFileHandler(BaseFileHandler):
         """Delete the instance."""
         try:
             self.nc.close()
-        except (IOError, OSError):
+        except OSError:
             pass

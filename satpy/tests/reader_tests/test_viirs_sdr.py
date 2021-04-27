@@ -180,7 +180,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     @staticmethod
     def _add_geolocation_info_to_file_content(file_content, filename, data_var_prefix):
-        if filename[:5] in ['GMODO', 'GIMGO']:
+        is_dnb = filename[:5] not in ['GMODO', 'GIMGO']
+        if not is_dnb:
             lon_data = np.linspace(15, 55, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
             lat_data = np.linspace(55, 75, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
         else:
@@ -197,7 +198,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             file_content[k] = lon_data
             file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
             file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-        for k in ["SolarZenithAngle"]:
+
+        angles = ['SolarZenithAngle',
+                  'SolarAzimuthAngle',
+                  'SatelliteZenithAngle',
+                  'SatelliteAzimuthAngle']
+        if is_dnb:
+            angles += ['LunarZenithAngle', 'LunarAzimuthAngle']
+        for k in angles:
             k = data_var_prefix + "/" + k
             file_content[k] = lon_data  # close enough to SZA
             file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
@@ -293,7 +301,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -590,8 +598,13 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
         r.create_filehandlers(loadables, {'include_factors': False})
-        ds = r.load(['dnb_solar_zenith_angle'])
-        self.assertEqual(len(ds), 1)
+        ds = r.load(['dnb_solar_zenith_angle',
+                     'dnb_solar_azimuth_angle',
+                     'dnb_satellite_zenith_angle',
+                     'dnb_satellite_azimuth_angle',
+                     'dnb_lunar_zenith_angle',
+                     'dnb_lunar_azimuth_angle'])
+        self.assertEqual(len(ds), 6)
         for d in ds.values():
             self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['units'], 'degrees')
@@ -794,7 +807,7 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library

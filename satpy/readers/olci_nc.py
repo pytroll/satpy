@@ -86,12 +86,12 @@ class BitFlags(object):
         data = self._value
         if isinstance(data, xr.DataArray):
             data = data.data
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
             res = xr.DataArray(res, coords=self._value.coords,
                                attrs=self._value.attrs,
                                dims=self._value.dims)
         else:
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
         return res
 
 
@@ -305,7 +305,7 @@ class NCOLCILowResData(BaseFileHandler):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 
@@ -378,7 +378,7 @@ class NCOLCIAngles(NCOLCILowResData):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 

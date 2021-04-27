@@ -179,7 +179,7 @@ def test_1258(fake_open_dataset):
 
     scene = Scene(abi_file_list, reader='abi_l1b')
     scene.load(['true_color_nocorr', 'C04'], calibration='radiance')
-    resampled_scene = scene.resample(scene.min_area(), resampler='native')
+    resampled_scene = scene.resample(scene.coarsest_area(), resampler='native')
     assert len(resampled_scene.keys()) == 2
 
 

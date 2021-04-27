@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Utilities for merging metadata from various sources."""
 
 from collections.abc import Collection
 from datetime import datetime
@@ -176,5 +177,5 @@ def _all_list_of_arrays_equal(array_lists):
 def _all_values_equal(values):
     try:
         return _pairwise_all(nan_allclose, values)
-    except TypeError:
+    except (ValueError, TypeError):
         return _pairwise_all(eq, values)

@@ -113,7 +113,6 @@ class TestSLSTRReader(TestSLSTRL1B):
     @mock.patch('satpy.readers.slstr_l1b.xr')
     def test_instantiate(self, xr_):
         """Test initialization of file handlers."""
-
         xr_.open_dataset.return_value = self.fake_dataset
 
         good_start = datetime.strptime(self.start_time,
@@ -179,6 +178,7 @@ class TestSLSTRCalibration(TestSLSTRL1B):
 
     @mock.patch('satpy.readers.slstr_l1b.xr')
     def test_radiance_calibration(self, xr_):
+        """Test radiance calibration steps."""
         from satpy.readers.slstr_l1b import CHANCALIB_FACTORS
         xr_.open_dataset.return_value = self.fake_dataset
 

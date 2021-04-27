@@ -44,7 +44,7 @@ class GeoTIFFWriter(ImageWriter):
         ...                  tags={'offset': 291.8, 'scale': -0.35})
 
     For performance tips on creating geotiffs quickly and making them smaller
-    see the :doc:`faq`.
+    see the :ref:`faq`.
 
     """
 
@@ -178,7 +178,7 @@ class GeoTIFFWriter(ImageWriter):
 
         # Update global GDAL options with these specific ones
         gdal_options = self.gdal_options.copy()
-        for k in kwargs.keys():
+        for k in kwargs:
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
         if fill_value is None:

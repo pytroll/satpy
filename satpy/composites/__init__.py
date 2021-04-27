@@ -25,9 +25,10 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.config import get_environ_ancpath
+import satpy
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
+from satpy.aux_download import DataDownloadMixin
 from satpy.writers import get_enhanced_image
 
 
@@ -208,13 +209,14 @@ class CompositeBase:
 class DifferenceCompositor(CompositeBase):
     """Make the difference of two data arrays."""
 
-    def __call__(self, projectables, nonprojectables=None, **info):
+    def __call__(self, projectables, nonprojectables=None, **attrs):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
+        info.update(attrs)
 
         proj = projectables[0] - projectables[1]
         proj.attrs = info
@@ -227,6 +229,12 @@ class SingleBandCompositor(CompositeBase):
     This preserves all the attributes of the dataset it is derived from.
     """
 
+    @staticmethod
+    def _update_missing_metadata(existing_attrs, new_attrs):
+        for key, val in new_attrs.items():
+            if key not in existing_attrs and val is not None:
+                existing_attrs[key] = val
+
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         if len(projectables) != 1:
@@ -234,10 +242,7 @@ class SingleBandCompositor(CompositeBase):
 
         data = projectables[0]
         new_attrs = data.attrs.copy()
-
-        new_attrs.update({key: val
-                          for (key, val) in attrs.items()
-                          if val is not None})
+        self._update_missing_metadata(new_attrs, attrs)
         resolution = new_attrs.get('resolution', None)
         new_attrs.update(self.attrs)
         if resolution is not None:
@@ -366,6 +371,22 @@ class Filler(GenericCompositor):
         return super(Filler, self).__call__([filled_projectable], **info)
 
 
+class MultiFiller(GenericCompositor):
+    """Fix holes in projectable 1 with data from the next projectables."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        filled_projectable = projectables[0]
+        for next_projectable in projectables[1:]:
+            filled_projectable = filled_projectable.fillna(next_projectable)
+        if 'optional_datasets' in info.keys():
+            for next_projectable in info['optional_datasets']:
+                filled_projectable = filled_projectable.fillna(next_projectable)
+
+        return super(MultiFiller, self).__call__([filled_projectable], **info)
+
+
 class RGBCompositor(GenericCompositor):
     """Make a composite from three color bands (deprecated)."""
 
@@ -386,8 +407,9 @@ class ColormapCompositor(GenericCompositor):
 
         Colormaps come in different forms, but they are all supposed to have
         color values between 0 and 255. The following cases are considered:
+
         - Palettes comprised of only a list on colors. If *dtype* is uint8,
-          the values of the colormap are the enumaration of the colors.
+          the values of the colormap are the enumeration of the colors.
           Otherwise, the colormap values will be spread evenly from the min
           to the max of the valid_range provided in `info`.
         - Palettes that have a palette_meanings attribute. The palette meanings
@@ -971,45 +993,116 @@ class NaturalEnh(GenericCompositor):
                                                 *args, **kwargs)
 
 
-class StaticImageCompositor(GenericCompositor):
+class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
     """A compositor that loads a static image from disk.
 
-    If the filename passed to this compositor is not valid then
-    the SATPY_ANCPATH environment variable will be checked to see
-    if the image is located there
+    Environment variables in the filename are automatically expanded.
 
-    Environment variables in the filename are automatically expanded
     """
 
-    def __init__(self, name, filename=None, area=None, **kwargs):
+    def __init__(self, name, filename=None, url=None, known_hash=None, area=None,
+                 **kwargs):
         """Collect custom configuration values.
 
         Args:
-            filename (str): Filename of the image to load, environment
-                            variables are expanded
+            filename (str): Name to use when storing and referring to the file
+                in the ``data_dir`` cache. If ``url`` is provided (preferred),
+                then this is used as the filename in the cache and will be
+                appended to ``<data_dir>/composites/<class_name>/``. If
+                ``url`` is provided and ``filename`` is not then the
+                ``filename`` will be guessed from the ``url``.
+                If ``url`` is not provided, then it is assumed ``filename``
+                refers to a local file. If the ``filename`` does not come with
+                an absolute path, ``data_dir`` will be used as the directory path.
+                Environment variables are expanded.
+            url (str): URL to remote file. When the composite is created the
+                file will be downloaded and cached in Satpy's ``data_dir``.
+                Environment variables are expanded.
+            known_hash (str or None): Hash of the remote file used to verify
+                a successful download. If not provided then the download will
+                not be verified. See :func:`satpy.aux_download.register_file`
+                for more information.
             area (str): Name of area definition for the image.  Optional
-                        for images with built-in area definitions (geotiff)
+                for images with built-in area definitions (geotiff).
 
+        Use cases:
+            1. url + no filename:
+               Satpy determines the filename based on the filename in the URL,
+               then downloads the URL, and saves it to <data_dir>/<filename>.
+               If the file already exists and known_hash is also provided, then the pooch
+               library compares the hash of the file to the known_hash. If it does not
+               match, then the URL is re-downloaded. If it matches then no download.
+            2. url + relative filename:
+               Same as case 1 but filename is already provided so download goes to
+               <data_dir>/<filename>. Same hashing behavior. This does not check for an
+               absolute path.
+            3. No url + absolute filename:
+               No download, filename is passed directly to generic_image reader. No hashing
+               is done.
+            4. No url + relative filename:
+               Check if <data_dir>/<filename> exists. If it does then make filename an
+               absolute path. If it doesn't, then keep it as is and let the exception at
+               the bottom of the method get raised.
         """
-        if filename is None:
-            raise ValueError("No image configured for static image compositor")
-        self.filename = os.path.expandvars(filename)
+        filename, url = self._get_cache_filename_and_url(filename, url)
+        self._cache_filename = filename
+        self._url = url
+        self._known_hash = known_hash
         self.area = None
         if area is not None:
             from satpy.resample import get_area_def
             self.area = get_area_def(area)
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
+        cache_keys = self.register_data_files([])
+        self._cache_key = cache_keys[0]
+
+    @staticmethod
+    def _check_relative_filename(filename):
+        data_dir = satpy.config.get('data_dir')
+        path = os.path.join(data_dir, filename)
+
+        return path if os.path.exists(path) else filename
+
+    def _get_cache_filename_and_url(self, filename, url):
+        if filename:
+            filename = os.path.expanduser(os.path.expandvars(filename))
+
+            if not os.path.isabs(filename) and not url:
+                filename = self._check_relative_filename(filename)
+
+        if url:
+            url = os.path.expandvars(url)
+            if not filename:
+                filename = os.path.basename(url)
+        elif not filename or not os.path.isabs(filename):
+            raise ValueError("StaticImageCompositor needs a remote 'url', "
+                             "or absolute path to 'filename', "
+                             "or an existing 'filename' relative to Satpy's 'data_dir'.")
+
+        return filename, url
+
+    def register_data_files(self, data_files):
+        """Tell Satpy about files we may want to download."""
+        if os.path.isabs(self._cache_filename):
+            return [None]
+        return super().register_data_files([{
+            'url': self._url,
+            'known_hash': self._known_hash,
+            'filename': self._cache_filename,
+        }])
+
+    def _retrieve_data_file(self):
+        from satpy.aux_download import retrieve
+        if os.path.isabs(self._cache_filename):
+            return self._cache_filename
+        return retrieve(self._cache_key)
 
     def __call__(self, *args, **kwargs):
         """Call the compositor."""
         from satpy import Scene
-        # Check if filename exists, if not then try from SATPY_ANCPATH
-        if not os.path.isfile(self.filename):
-            tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
-            if os.path.isfile(tmp_filename):
-                self.filename = tmp_filename
-        scn = Scene(reader='generic_image', filenames=[self.filename])
+        local_file = self._retrieve_data_file()
+        scn = Scene(reader='generic_image', filenames=[local_file])
         scn.load(['image'])
         img = scn['image']
         # use compositor parameters as extra metadata
@@ -1095,18 +1188,19 @@ class MaskingCompositor(GenericCompositor):
             conditions (list): list of three items determining the masking
                                settings.
 
-        Each condition in *conditions* consists of of three items:
+        Each condition in *conditions* consists of three items:
+
         - `method`: Numpy method name.  The following are supported
-           operations: `less`, `less_equal`, `equal`, `greater_equal`,
-           `greater`, `not_equal`, `isnan`, `isfinite`, `isinf`,
-          `isneginf`, `isposinf`
+            operations: `less`, `less_equal`, `equal`, `greater_equal`,
+            `greater`, `not_equal`, `isnan`, `isfinite`, `isinf`,
+            `isneginf`, or `isposinf`.
         - `value`: threshold value of the *mask* applied with the
-          operator.  Can be a string, in which case the corresponding
-          value will be determined from `flag_meanings` and
-          `flag_values` attributes of the mask.
-          NOTE: the `value` should not be given to 'is*` methods.
+            operator.  Can be a string, in which case the corresponding
+            value will be determined from `flag_meanings` and
+            `flag_values` attributes of the mask.
+            NOTE: the `value` should not be given to 'is*` methods.
         - `transparency`: transparency from interval [0 ... 100] used
-          for the method/threshold. Value of 100 is fully transparent.
+            for the method/threshold. Value of 100 is fully transparent.
 
         Example::
 
@@ -1121,6 +1215,7 @@ class MaskingCompositor(GenericCompositor):
           >>> compositor = MaskingCompositor("masking compositor",
                                              transparency=transparency)
           >>> result = compositor([data, mask])
+
 
         This will set transparency of `data` based on the values in
         the `mask` dataset.  Locations where `mask` has values of `0`
@@ -1237,3 +1332,38 @@ def _get_flag_value(mask, val):
     index = flag_meanings.index(val)
 
     return flag_values[index]
+
+
+class LongitudeMaskingCompositor(GenericCompositor):
+    """Masks areas outside defined longitudes."""
+
+    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            lon_min (float): lower longitude limit
+            lon_max (float): upper longitude limit
+        """
+        self.lon_min = lon_min
+        self.lon_max = lon_max
+        if self.lon_min is None and self.lon_max is None:
+            raise ValueError("Masking conditions not defined. \
+                At least lon_min or lon_max has to be specified.")
+        if not self.lon_min:
+            self.lon_min = -180.
+        if not self.lon_max:
+            self.lon_max = 180.
+        super(LongitudeMaskingCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectable = projectables[0]
+        lons, lats = projectable.attrs["area"].get_lonlats()
+
+        if self.lon_max > self.lon_min:
+            lon_min_max = np.logical_and(lons >= self.lon_min, lons <= self.lon_max)
+        else:
+            lon_min_max = np.logical_or(lons >= self.lon_min, lons <= self.lon_max)
+
+        masked_projectable = projectable.where(lon_min_max)
+        return super(LongitudeMaskingCompositor, self).__call__([masked_projectable], **info)

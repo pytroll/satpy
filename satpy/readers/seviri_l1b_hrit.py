@@ -100,24 +100,8 @@ Output:
         modifiers:                ()
         ancillary_variables:      []
 
-
-* The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
-  centre.
-* You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
-  :class:`satpy.readers.seviri_base`.
-* The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header. By default,
-  arrays with more than 100 elements are excluded in order to limit memory usage. This threshold can be adjusted,
-  see :class:`HRITMSGFileHandler`.
-* The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
-  by acquisition time:
-
-  .. code-block:: python
-
-      import pandas as pd
-      mi = pd.MultiIndex.from_arrays([scn['IR_108']['y'].data, scn['IR_108']['acq_time'].data],
-                                     names=('y_coord', 'time'))
-      scn['IR_108']['y'] = mi
-      scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
+.. _MSG Level 1.5 Image Data Format Description:
+    https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
 
 """
 
@@ -129,21 +113,22 @@ from datetime import datetime
 
 import dask.array as da
 import numpy as np
-import pyproj
 import xarray as xr
 
 from pyresample import geometry
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
 import satpy.readers.utils as utils
 from satpy.readers.eum_base import recarray2dict, time_cds_short, get_service_mode
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
-
-from satpy.readers.seviri_base import (CHANNEL_NAMES, SATNUM,
-                                       SEVIRICalibrationHandler,
-                                       chebyshev, get_cds_time, HRV_NUM_COLUMNS,
-                                       pad_data_horizontally, create_coef_dict)
+from satpy.readers.seviri_base import (
+    CHANNEL_NAMES, SATNUM, SEVIRICalibrationHandler, get_cds_time,
+    HRV_NUM_COLUMNS, pad_data_horizontally, create_coef_dict,
+    OrbitPolynomialFinder, get_satpos, NoValidOrbitParams,
+    add_scanline_acq_time
+)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
 from satpy.readers._geos_area import get_area_extent, get_area_definition, get_geos_area_naming
@@ -202,12 +187,6 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
 
-class NoValidOrbitParams(Exception):
-    """Exception when validOrbitParameters are missing."""
-
-    pass
-
-
 class HRITMSGPrologueEpilogueBase(HRITFileHandler):
     """Base reader for prologue and epilogue files."""
 
@@ -240,7 +219,6 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                                                           msg_text_headers))
         self.prologue = {}
         self.read_prologue()
-        self.satpos = None
 
         service = filename_info['service']
         if service == '':
@@ -261,100 +239,26 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
             else:
                 self.prologue.update(recarray2dict(impf))
 
-    def get_satpos(self):
+    @cached_property
+    def satpos(self):
         """Get actual satellite position in geodetic coordinates (WGS-84).
+
+        Evaluate orbit polynomials at the start time of the scan.
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
-        if self.satpos is None:
-            logger.debug("Computing actual satellite position")
-
-            try:
-                # Get satellite position in cartesian coordinates
-                x, y, z = self._get_satpos_cart()
-
-                # Transform to geodetic coordinates
-                geocent = pyproj.Proj(proj='geocent')
-                a, b = self.get_earth_radii()
-                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
-                lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
-            except NoValidOrbitParams as err:
-                logger.warning(err)
-                lon = lat = alt = None
-
-            # Cache results
-            self.satpos = lon, lat, alt
-
-        return self.satpos
-
-    def _get_satpos_cart(self):
-        """Determine satellite position in earth-centered cartesion coordinates.
-
-        The coordinates as a function of time are encoded in the coefficients of an 8th-order Chebyshev polynomial.
-        In the prologue there is one set of coefficients for each coordinate (x, y, z). The coordinates are obtained by
-        evalutaing the polynomials at the start time of the scan.
-
-        Returns: x, y, z [m]
-        """
-        orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
-
-        # Find Chebyshev coefficients for the start time of the scan
-        coef_idx = self._find_orbit_coefs()
-        tstart = orbit_polynomial['StartTime'][0, coef_idx]
-        tend = orbit_polynomial['EndTime'][0, coef_idx]
-
-        # Obtain cartesian coordinates (x, y, z) of the satellite by evaluating the Chebyshev polynomial at the
-        # start time of the scan. Express timestamps in microseconds since 1970-01-01 00:00.
-        time = self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        time64 = np.datetime64(time).astype('int64')
-        domain = [np.datetime64(tstart).astype('int64'),
-                  np.datetime64(tend).astype('int64')]
-        x = chebyshev(coefs=orbit_polynomial['X'][coef_idx], time=time64, domain=domain)
-        y = chebyshev(coefs=orbit_polynomial['Y'][coef_idx], time=time64, domain=domain)
-        z = chebyshev(coefs=orbit_polynomial['Z'][coef_idx], time=time64, domain=domain)
-
-        return x*1000, y*1000, z*1000  # km -> m
-
-    def _find_orbit_coefs(self):
-        """Find orbit coefficients for the start time of the scan.
-
-        The header entry SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients, each
-        of them valid for a certain time interval. Find the coefficients which are valid for the
-        start time of the scan.
-
-        A manoeuvre is a discontinuity in the orbit parameters. The flight dynamic algorithms are
-        not made to interpolate over the time-span of the manoeuvre; hence we have elements
-        describing the orbit before a manoeuvre and a new set of elements describing the orbit after
-        the manoeuvre. The flight dynamic products are created so that there is an intentional gap
-        at the time of the manoeuvre. Also the two pre-manoeuvre elements may overlap. But the
-        overlap is not of an issue as both sets of elements describe the same pre-manoeuvre orbit
-        (with negligible variations).
-
-        Returns: Corresponding index in the coefficient list.
-
-        """
-        time = np.datetime64(self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart'])
-        intervals_tstart = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['StartTime'][0].astype(
-            'datetime64[us]')
-        intervals_tend = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['EndTime'][0].astype(
-            'datetime64[us]')
-        try:
-            # Find index of interval enclosing the nominal timestamp of the scan. If there are
-            # multiple enclosing intervals, use the most recent one.
-            enclosing = np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0]
-            most_recent = np.argmax(intervals_tstart[enclosing])
-            return enclosing[most_recent]
-        except ValueError:
-            # No enclosing interval. Instead, find the interval whose centre is closest to the scan's timestamp
-            # (but not more than 6 hours apart)
-            intervals_centre = intervals_tstart + 0.5 * (intervals_tend - intervals_tstart)
-            diffs_us = (time - intervals_centre).astype('i8')
-            closest_match = np.argmin(np.fabs(diffs_us))
-            if abs(intervals_centre[closest_match] - time) < np.timedelta64(6, 'h'):
-                logger.warning('No orbit coefficients valid for {}. Using closest match.'.format(time))
-                return closest_match
-            else:
-                raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
+        a, b = self.get_earth_radii()
+        start_time = self.prologue['ImageAcquisition'][
+            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        poly_finder = OrbitPolynomialFinder(self.prologue['SatelliteStatus'][
+            'Orbit']['OrbitPolynomial'])
+        orbit_polynomial = poly_finder.get_orbit_polynomial(start_time)
+        return get_satpos(
+            orbit_polynomial=orbit_polynomial,
+            time=start_time,
+            semi_major_axis=a,
+            semi_minor_axis=b,
+        )
 
     def get_earth_radii(self):
         """Get earth radii from prologue.
@@ -413,15 +317,6 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     See :mod:`satpy.readers.seviri_base`.
 
-    **Raw Metadata**
-
-    By default, arrays with more than 100 elements are excluded from the raw reader metadata to
-    limit memory usage. This threshold can be adjusted using the `mda_max_array_size` keyword
-    argument::
-
-        scene = satpy.Scene(filenames,
-                            reader='seviri_l1b_hrit',
-                            reader_kwargs={'mda_max_array_size': 1000})
 
     **Padding of the HRV channel**
 
@@ -432,6 +327,10 @@ class HRITMSGFileHandler(HRITFileHandler):
         scene = satpy.Scene(filenames,
                             reader='seviri_l1b_hrit',
                             reader_kwargs={'fill_hrv': False})
+
+    **Metadata**
+
+    See :mod:`satpy.readers.seviri_base`.
 
     """
 
@@ -472,14 +371,16 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
         # Orbital parameters
-        actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
         self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
-        if actual_lon is not None:
+        try:
+            actual_lon, actual_lat, actual_alt = self.prologue_.satpos
             self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
             self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
             self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
+        except NoValidOrbitParams as err:
+            logger.warning(err)
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][
@@ -623,29 +524,8 @@ class HRITMSGFileHandler(HRITFileHandler):
         res = self.calibrate(res, key['calibration'])
         if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
-
-        res.attrs['units'] = info['units']
-        res.attrs['wavelength'] = info['wavelength']
-        res.attrs['standard_name'] = info['standard_name']
-        res.attrs['platform_name'] = self.platform_name
-        res.attrs['sensor'] = 'seviri'
-        res.attrs['satellite_longitude'] = self.mda[
-            'projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = self.mda[
-            'projection_parameters']['SSP_latitude']
-        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
-        res.attrs['orbital_parameters'] = {
-            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
-            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
-            'projection_altitude': self.mda['projection_parameters']['h']}
-        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
-        res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
-        res.attrs['raw_metadata'] = self._get_raw_mda()
-
-        # Add scanline timestamps as additional y-coordinate
-        res.coords['acq_time'] = ('y', self._get_timestamps())
-        res.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
-
+        self._update_attrs(res, info)
+        self._add_scanline_acq_time(res)
         return res
 
     def pad_hrv_data(self, res):
@@ -721,10 +601,31 @@ class HRITMSGFileHandler(HRITFileHandler):
 
         return raw_mda
 
-    def _get_timestamps(self):
-        """Read scanline timestamps from the segment header."""
+    def _add_scanline_acq_time(self, dataset):
+        """Add scanline acquisition time to the given dataset."""
         tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
-        return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+        acq_time = get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+        add_scanline_acq_time(dataset, acq_time)
+
+    def _update_attrs(self, res, info):
+        """Update dataset attributes."""
+        res.attrs['units'] = info['units']
+        res.attrs['wavelength'] = info['wavelength']
+        res.attrs['standard_name'] = info['standard_name']
+        res.attrs['platform_name'] = self.platform_name
+        res.attrs['sensor'] = 'seviri'
+        res.attrs['satellite_longitude'] = self.mda[
+            'projection_parameters']['SSP_longitude']
+        res.attrs['satellite_latitude'] = self.mda[
+            'projection_parameters']['SSP_latitude']
+        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
+            'projection_altitude': self.mda['projection_parameters']['h']}
+        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
+        res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
+        res.attrs['raw_metadata'] = self._get_raw_mda()
 
     def _get_calib_coefs(self, channel_name):
         """Get coefficients for calibration from counts to radiance."""

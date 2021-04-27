@@ -41,6 +41,7 @@ The following people have made contributions to this project:
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
+- [Aronne Merrelli (aronnem)](https://github.com/aronnem)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)
