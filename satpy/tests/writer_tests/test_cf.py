@@ -87,8 +87,7 @@ class TestCFWriter(unittest.TestCase):
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
-        with mock.patch('satpy.writers.cf_writer.xr.Dataset') as xrdataset,\
-                mock.patch('satpy.writers.cf_writer.make_time_bounds'):
+        with mock.patch('satpy.writers.cf_writer.xr.Dataset') as xrdataset:
             scn['test-array'] = xr.DataArray([1, 2, 3],
                                              attrs=dict(start_time=start_time,
                                                         end_time=end_time,
@@ -279,91 +278,6 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f['time'], scn['test-array']['time'])
-                bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
-                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
-
-    def test_bounds(self):
-        """Test setting time bounds."""
-        from satpy import Scene
-        import xarray as xr
-        scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
-        test_array = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
-        scn['test-array'] = xr.DataArray(test_array,
-                                         dims=['x', 'y', 'time'],
-                                         coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                         attrs=dict(start_time=start_time,
-                                                    end_time=end_time))
-        with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf')
-            # Check decoded time coordinates & bounds
-            with xr.open_dataset(filename, decode_cf=True) as f:
-                bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
-                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
-                self.assertEqual(f['time'].attrs['bounds'], 'time_bnds')
-
-            # Check raw time coordinates & bounds
-            with xr.open_dataset(filename, decode_cf=False) as f:
-                np.testing.assert_almost_equal(f['time_bnds'], [[-0.0034722, 0.0069444]])
-
-        # User-specified time encoding should have preference
-        with TempFile() as filename:
-            time_units = 'seconds since 2018-01-01'
-            scn.save_datasets(filename=filename, encoding={'time': {'units': time_units}},
-                              writer='cf')
-            with xr.open_dataset(filename, decode_cf=False) as f:
-                np.testing.assert_array_equal(f['time_bnds'], [[12909600, 12910500]])
-
-    def test_bounds_minimum(self):
-        """Test minimum bounds."""
-        from satpy import Scene
-        import xarray as xr
-        scn = Scene()
-        start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
-        end_timeA = datetime(2018, 5, 30, 10, 20)
-        start_timeB = datetime(2018, 5, 30, 10, 3)
-        end_timeB = datetime(2018, 5, 30, 10, 15)  # expected to be used
-        test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
-        test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
-        scn['test-arrayA'] = xr.DataArray(test_arrayA,
-                                          dims=['x', 'y', 'time'],
-                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                          attrs=dict(start_time=start_timeA,
-                                                     end_time=end_timeA))
-        scn['test-arrayB'] = xr.DataArray(test_arrayB,
-                                          dims=['x', 'y', 'time'],
-                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                          attrs=dict(start_time=start_timeB,
-                                                     end_time=end_timeB))
-        with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf')
-            with xr.open_dataset(filename, decode_cf=True) as f:
-                bounds_exp = np.array([[start_timeA, end_timeB]], dtype='datetime64[m]')
-                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
-
-    def test_bounds_missing_time_info(self):
-        """Test time bounds generation in case of missing time."""
-        from satpy import Scene
-        import xarray as xr
-        scn = Scene()
-        start_timeA = datetime(2018, 5, 30, 10, 0)
-        end_timeA = datetime(2018, 5, 30, 10, 15)
-        test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
-        test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
-        scn['test-arrayA'] = xr.DataArray(test_arrayA,
-                                          dims=['x', 'y', 'time'],
-                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                          attrs=dict(start_time=start_timeA,
-                                                     end_time=end_timeA))
-        scn['test-arrayB'] = xr.DataArray(test_arrayB,
-                                          dims=['x', 'y', 'time'],
-                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
-        with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf')
-            with xr.open_dataset(filename, decode_cf=True) as f:
-                bounds_exp = np.array([[start_timeA, end_timeA]], dtype='datetime64[m]')
-                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
     def test_encoding_kwarg(self):
         """Test 'encoding' keyword argument."""
@@ -627,13 +541,11 @@ class TestCFWriter(unittest.TestCase):
 
         # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(datasets, include_lonlats=True)
+        datas = writer._collect_datasets(datasets, include_lonlats=True)
 
         # Test results
         self.assertEqual(len(datas), 3)
         self.assertEqual(set(datas.keys()), {'var1', 'var2', 'geos'})
-        self.assertListEqual(start_times, [None, tstart, None])
-        self.assertListEqual(end_times, [None, tend, None])
         var1 = datas['var1']
         var2 = datas['var2']
         self.assertEqual(var1.name, 'var1')
@@ -1147,8 +1059,8 @@ class TestCFWriterData(unittest.TestCase):
 
         # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(self.datasets_list, include_lonlats=True)
-        datas2, start_times, end_times = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
+        datas = writer._collect_datasets(self.datasets_list, include_lonlats=True)
+        datas2 = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
         # Test results
 
         self.assertEqual(len(datas), 5)
@@ -1234,10 +1146,8 @@ class EncodingUpdateTest(unittest.TestCase):
                                    'bar': {'chunksizes': (1, 1, 1)},
                                    'time': {'_FillValue': None,
                                             'calendar': 'proleptic_gregorian',
-                                            'units': 'days since 2009-07-01 12:15:00'},
-                                   'time_bnds': {'_FillValue': None,
-                                                 'calendar': 'proleptic_gregorian',
-                                                 'units': 'days since 2009-07-01 12:15:00'}})
+                                            'units': 'days since 2009-07-01 12:15:00'}}
+                             )
 
         # User-defined encoding may not be altered
         self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})
