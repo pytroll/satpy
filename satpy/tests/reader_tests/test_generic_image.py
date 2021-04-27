@@ -205,7 +205,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(reader.start_time, self.date)
         self.assertEqual(reader.end_time, self.date)
 
-        dataset = reader.get_dataset(foo, None)
+        dataset = reader.get_dataset(foo, {})
         self.assertTrue(isinstance(dataset, xr.DataArray))
         self.assertTrue('crs' in dataset.attrs)
         self.assertTrue('transform' in dataset.attrs)
@@ -252,7 +252,7 @@ class TestGenericImage(unittest.TestCase):
 
         foo = make_dataid(name='image-custom')
         self.assertTrue(reader.file_content)
-        dataset = reader.get_dataset(foo, None)
+        dataset = reader.get_dataset(foo, {})
         self.assertTrue(isinstance(dataset, xr.DataArray))
 
     def test_GenericImageFileHandler_nodata(self):

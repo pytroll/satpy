@@ -116,6 +116,8 @@ class GenericImageFileHandler(BaseFileHandler):
         except ValueError as err:
             logger.warning(err)
 
+        data.attrs.update(key.to_dict())
+        data.attrs.update(info)
         return data
 
 
