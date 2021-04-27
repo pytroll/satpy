@@ -459,9 +459,6 @@ def _set_default_time_encoding(encoding, dataset):
         default = CFDatetimeCoder().encode(xr.DataArray(dtnp64))
         time_enc = {'units': default.attrs['units'], 'calendar': default.attrs['calendar']}
         time_enc.update(encoding.get('time', {}))
-        bounds_enc = {'units': time_enc['units'],
-                      'calendar': time_enc['calendar'],
-                      '_FillValue': None}
         encoding['time'] = time_enc
 
 
