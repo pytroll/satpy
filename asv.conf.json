@@ -7,7 +7,7 @@
     "project": "satpy",
 
     // The project's homepage
-    "project_url": "http://pytroll.org/",
+    "project_url": "https://github.com/pytroll/satpy",
 
     // The URL or local path of the source code repository for the
     // project being benchmarked

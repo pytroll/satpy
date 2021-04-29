@@ -54,9 +54,10 @@ import os
 import logging
 
 LOG = logging.getLogger(__name__)
+SATPY_DEMO_DATA_DIR = os.environ.get('SATPY_DEMO_DATA_DIR', '.')
 
 
-def get_us_midlatitude_cyclone_abi(base_dir='.', method=None, force=False):
+def get_us_midlatitude_cyclone_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, force=False):
     """Get GOES-16 ABI (CONUS sector) data from 2019-03-14 00:00Z.
 
     Args:
@@ -86,7 +87,7 @@ def get_us_midlatitude_cyclone_abi(base_dir='.', method=None, force=False):
     return filenames
 
 
-def get_hurricane_florence_abi(base_dir='.', method=None, force=False,
+def get_hurricane_florence_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, force=False,
                                channels=None, num_frames=10):
     """Get GOES-16 ABI (Meso sector) data from 2018-09-11 13:00Z to 17:00Z.
 
@@ -142,3 +143,34 @@ def get_hurricane_florence_abi(base_dir='.', method=None, force=False,
     num_frames = int((actual_slice[1] - actual_slice[0]) / actual_slice[2])
     assert len(filenames) == len(channels) * num_frames, "Not all files could be downloaded"
     return filenames
+
+
+def download_h8_data(base_dir=SATPY_DEMO_DATA_DIR,
+                     channels=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+                     segments=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)):
+    """Download Himawari 8 data."""
+    import s3fs
+    channel_resolution = {1: 10,
+                          2: 10,
+                          3: 5,
+                          4: 10}
+    data_files = []
+    for channel in channels:
+        for segment in segments:
+            resolution = channel_resolution.get(channel, 20)
+            data_files.append(f"HS_H08_20210409_0800_B{channel:02d}_FLDK_R{resolution:02d}_S{segment:02d}10.DAT.bz2")
+
+    subdir = os.path.join(base_dir, 'ahi_hsd', '20210409_0800_random')
+    os.makedirs(subdir, exist_ok=True)
+    fs = s3fs.S3FileSystem(anon=True)
+
+    result = []
+    for filename in data_files:
+        destination_filename = os.path.join(subdir, filename)
+        result.append(destination_filename)
+        if os.path.exists(destination_filename):
+            continue
+        to_get = 'noaa-himawari8/AHI-L1b-FLDK/2021/04/09/0800/' + filename
+        fs.get_file(to_get, destination_filename)
+
+    return result
