@@ -219,9 +219,6 @@ class TestGenericImage(unittest.TestCase):
 
             def __init__(self, filename, filename_info, filetype_info, file_content, **kwargs):
                 """Get fake file content from 'get_test_content'."""
-                if GenericImageFileHandler is object:
-                    raise ImportError("Base 'GenericImageFileHandler' could not be "
-                                      "imported.")
                 super(GenericImageFileHandler, self).__init__(filename, filename_info, filetype_info)
                 self.file_content = file_content
                 self.dataset_name = None
