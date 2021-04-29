@@ -83,6 +83,17 @@ The benchmarks can be run using::
 
     asv run
 
+These are pretty computation intensive, and shouldn't be run unless you want to
+diagnose some performance issue for example.
+
+Once the benchmarks have run, you can use::
+
+    asv publish
+    asv preview
+
+to have a look at the results. Again, have a look at the `asv` documentation for
+more information.
+
 Documentation
 =============
 
