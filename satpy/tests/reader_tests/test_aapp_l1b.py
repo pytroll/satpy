@@ -165,6 +165,17 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
                     2020, 1, 8, 8, 23, 15, 225000)
             assert fh.end_time == datetime.datetime(
                     2020, 1, 8, 8, 23, 15, 556000)
+            # test that attributes for 3a/3b are set as expected
+            ch3a = fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+            ch3b = fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
+            assert ch3a.attrs["start_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
+            assert ch3b.attrs["start_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert ch3a.attrs["end_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
+            assert ch3b.attrs["end_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 389000)
 
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):
