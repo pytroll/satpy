@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -152,6 +152,19 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             key = make_dataid(name='latitude')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
+
+    def test_times(self):
+        """Test start time and end time are as expected."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            assert fh.start_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert fh.end_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
 
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):

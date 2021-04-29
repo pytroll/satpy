@@ -113,19 +113,21 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             activated[channel_name] = bool(status >> bit & 1)
         return activated
 
+    def _get_time_for_idx(self, idx):
+        """Get the time for the observation at scanline(s) idx."""
+        return datetime(self._data['scnlinyr'][idx], 1, 1) + timedelta(
+            days=int(self._data['scnlindy'][idx]) - 1,
+            milliseconds=int(self._data['scnlintime'][idx]))
+
     @property
     def start_time(self):
         """Get the time of the first observation."""
-        return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][0]) - 1,
-            milliseconds=int(self._data['scnlintime'][0]))
+        return self._get_time_for_idx(0)
 
     @property
     def end_time(self):
         """Get the time of the final observation."""
-        return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][-1]) - 1,
-            milliseconds=int(self._data['scnlintime'][-1]))
+        return self._get_time_for_idx(-1)
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
