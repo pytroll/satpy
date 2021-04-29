@@ -171,3 +171,27 @@ class TestGCPUtils(unittest.TestCase):
         """Test that 'gcsfs' is required."""
         from satpy.demo._google_cloud_platform import get_bucket_files
         self.assertRaises(RuntimeError, get_bucket_files, '*.nc', '.')
+
+
+class TestAHIDemoDownload(unittest.TestCase):
+    """Test the AHI demo data download."""
+
+    def test_ahi_full_download(self,):
+        """Test that the himawari download works as expected."""
+        import sys
+        s3fs = mock.MagicMock()
+        with mock.patch.dict(sys.modules, {'s3fs': s3fs}):
+            from satpy.demo import download_typhoon_surigae_ahi
+            from tempfile import gettempdir
+            files = download_typhoon_surigae_ahi(base_dir=gettempdir())
+            assert len(files) == 160
+
+    def test_ahi_partial_download(self,):
+        """Test that the himawari download works as expected."""
+        import sys
+        s3fs = mock.MagicMock()
+        with mock.patch.dict(sys.modules, {'s3fs': s3fs}):
+            from satpy.demo import download_typhoon_surigae_ahi
+            from tempfile import gettempdir
+            files = download_typhoon_surigae_ahi(base_dir=gettempdir(), segments=[4, 9], channels=[1, 2, 3])
+            assert len(files) == 6
