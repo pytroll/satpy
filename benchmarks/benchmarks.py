@@ -28,17 +28,17 @@ class HimawariHSD:
 
     def setup_cache(self):
         """Fetch the data files."""
-        from satpy.demo import download_h8_data
-        download_h8_data(channels=[1, 2, 3, 4], segments=[4])
+        from satpy.demo import download_typhoon_surigae_ahi
+        download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 
     def setup(self):
         """Set up the benchmarks."""
         import satpy
-        from satpy.demo import download_h8_data
+        from satpy.demo import download_typhoon_surigae_ahi
         # This just returns the filenames, as the data already is downloaded above
-        self.data_files = download_h8_data(channels=[1, 2, 3, 4], segments=[4])
+        self.data_files = download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
         satpy.CHUNK_SIZE = 2048
 
     def time_load_one_channel(self):

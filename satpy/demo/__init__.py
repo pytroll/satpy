@@ -145,10 +145,13 @@ def get_hurricane_florence_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, force=
     return filenames
 
 
-def download_h8_data(base_dir=SATPY_DEMO_DATA_DIR,
-                     channels=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
-                     segments=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)):
-    """Download Himawari 8 data."""
+def download_typhoon_surigae_ahi(base_dir=SATPY_DEMO_DATA_DIR,
+                                 channels=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
+                                 segments=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)):
+    """Download Himawari 8 data.
+
+    This scene shows the Typhoon Surigae.
+    """
     import s3fs
     channel_resolution = {1: 10,
                           2: 10,
@@ -158,9 +161,9 @@ def download_h8_data(base_dir=SATPY_DEMO_DATA_DIR,
     for channel in channels:
         for segment in segments:
             resolution = channel_resolution.get(channel, 20)
-            data_files.append(f"HS_H08_20210409_0800_B{channel:02d}_FLDK_R{resolution:02d}_S{segment:02d}10.DAT.bz2")
+            data_files.append(f"HS_H08_20210417_0500_B{channel:02d}_FLDK_R{resolution:02d}_S{segment:02d}10.DAT.bz2")
 
-    subdir = os.path.join(base_dir, 'ahi_hsd', '20210409_0800_random')
+    subdir = os.path.join(base_dir, 'ahi_hsd', '20210417_0500_random')
     os.makedirs(subdir, exist_ok=True)
     fs = s3fs.S3FileSystem(anon=True)
 
@@ -170,7 +173,7 @@ def download_h8_data(base_dir=SATPY_DEMO_DATA_DIR,
         result.append(destination_filename)
         if os.path.exists(destination_filename):
             continue
-        to_get = 'noaa-himawari8/AHI-L1b-FLDK/2021/04/09/0800/' + filename
+        to_get = 'noaa-himawari8/AHI-L1b-FLDK/2021/04/17/0500/' + filename
         fs.get_file(to_get, destination_filename)
 
     return result
