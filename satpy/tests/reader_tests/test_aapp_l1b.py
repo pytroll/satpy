@@ -29,6 +29,15 @@ from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
 from satpy.tests.utils import make_dataid
 
 
+class FakeAVHRRAAPPL1BFile(AVHRRAAPPL1BFile):
+    """Version that mocks the actual reading.
+
+    Work in progress.
+    """
+
+    pass
+
+
 class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
     """Test the filehandler."""
 
@@ -190,6 +199,24 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             ch3a = fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
             ch3b = fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
+
+    def test_load(self):
+        """Test that loading via loader works and retains attributes."""
+        yaml_file = "avhrr_l1b_aapp.yaml"
+
+        from satpy._config import config_search_paths
+        self.reader_configs = config_search_paths(os.path.join('readers', yaml_file))
+
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            "hrpt_noaa19_20210423_1411_62891.l1b"])
+        # I need to add a mock here, now it just fails with FileNotFoundError
+        r.create_filehandlers(loadables)
+        r.load(["3a", "3b"])
+        # TODO: test that start_time and end_time are still what I want them to
+        # be, and not overwritten by _load_dataset_data
+        raise NotImplementedError()
 
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):
