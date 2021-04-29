@@ -7,6 +7,7 @@ composites:
     - name: '3'
     - name: '4'
     - name: '5'
+    standard_name: rgb_color1
 
   rgb_color2:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -14,6 +15,7 @@ composites:
     - name: '5'
     - name: '4'
     - name: '3'
+    standard_name: rgb_color2
 
   rgb_color3:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -52,3 +54,4 @@ composites:
     - name: '1'
     - name: '2'
     - name: '3'
+    standard_name: rgb_color5
