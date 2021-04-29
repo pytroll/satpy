@@ -249,6 +249,11 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         Get a dictionary with the keys "start_time" and "end_time" for either
         channel 3a or channel 3b.  The argument ``name`` should be either "3a"
         or "3b".
+
+        If the desired channel is not present, return the empty dictionary.
+        Although normally one should not expect this code to be reached for a
+        channel that isn't present, sometimes data files claim to have all
+        channels present but the corresponding bits aren't set consistently.
         """
         if name == "3a":
             mask = self._is3a
@@ -257,10 +262,13 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         else:
             raise ValueError(f"Invalid name for channel 3.  Expected 3a or 3b, got {name!s}")
         idx = mask.nonzero()[0].compute()
-        return {
-                "start_time": self._get_time_for_idx(idx[0]),
-                "end_time": self._get_time_for_idx(idx[-1]),
-                }
+        if len(idx) > 0:
+            return {
+                    "start_time": self._get_time_for_idx(idx[0]),
+                    "end_time": self._get_time_for_idx(idx[-1]),
+                    }
+        else:
+            return {}
 
     def calibrate(self,
                   dataset_id,

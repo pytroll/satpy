@@ -177,6 +177,20 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             assert ch3b.attrs["end_time"] == datetime.datetime(
                     2020, 1, 8, 8, 23, 15, 389000)
 
+        # Test that it handles gently a case where both bits are set BUT
+        # one of them doesn't have data.  This happens sometimes.
+        altheader = self._header.copy()
+        altheader['statchrecnb'][:] = 1
+        altdata = self._data.copy()
+        altdata['scnlinbit'][2] = -16383
+        with tempfile.TemporaryFile() as tmpfile:
+            altheader.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            altdata.tofile(tmpfile)
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            ch3a = fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+            ch3b = fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
+
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):
     """Test the filehandler when channel 3a is missing."""
@@ -274,6 +288,28 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
                     assert status is False
                 else:
                     assert status is True
+
+    def test_times(self):
+        """Test start time and end time are as expected."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            assert fh.start_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert fh.end_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
+            # test that attributes for 3a/3b are set as expected and neither
+            # request fails
+            ch3a = fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+            ch3b = fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
+            assert ch3a is None
+            assert ch3b.attrs["start_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert ch3b.attrs["end_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
 
 
 class TestNegativeCalibrationSlope(unittest.TestCase):
