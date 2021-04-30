@@ -421,11 +421,7 @@ class Scene:
             # NOTE: Must use `._datasets` or side effects of `__setitem__`
             #       could hurt us with regards to the wishlist
             new_scn._datasets[ds_id] = self[ds_id]
-
-        if not datasets:
-            new_scn._wishlist = self._wishlist.copy()
-        else:
-            new_scn._wishlist = set(ds_id for ds_id in new_scn.keys())
+        new_scn._wishlist = self._wishlist.copy()
 
     def copy(self, datasets=None):
         """Create a copy of the Scene including dependency information.
@@ -810,14 +806,9 @@ class Scene:
                 arguments.
 
         """
-        to_resample_ids = [dsid for (dsid, dataset) in self._datasets.items()
-                           if (not datasets) or dsid in datasets]
-
         if destination is None:
-            destination = self.finest_area(to_resample_ids)
-        new_scn = self.copy(datasets=to_resample_ids)
-        # we may have some datasets we asked for but don't exist yet
-        new_scn._wishlist = self._wishlist.copy()
+            destination = self.finest_area(datasets)
+        new_scn = self.copy(datasets=datasets)
         self._resampled_scene(new_scn, destination, resampler=resampler,
                               reduce_data=reduce_data, **resample_kwargs)
 

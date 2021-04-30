@@ -26,3 +26,10 @@ except ImportError:
     def cached_property(func):
         """Port back functools.cached_property."""
         return property(lru_cache(maxsize=None)(func))
+
+
+try:
+    from numpy.typing import ArrayLike  # noqa
+except ImportError:
+    # numpy <1.20
+    from numpy import ndarray as ArrayLike  # noqa
