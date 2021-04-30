@@ -125,8 +125,8 @@ class BaseFileHandler(metaclass=ABCMeta):
         except KeyError:
             pass
 
-        new_dict.update(combined_info)
-        return new_dict
+        combined_info.update(new_dict)
+        return combined_info
 
     @property
     def start_time(self):
