@@ -1,0 +1,43 @@
+enhancements:
+
+  rgb_color1:
+    standard_name: rgb_color1
+    operations:
+    - name: inverse
+      method: !!python/name:satpy.enhancements.invert
+      args:
+      - [true, true, true]
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: linear}
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs: {gamma: 1.2}
+
+  rgb_color2:
+    standard_name: rgb_color2
+    operations:
+    - name: inverse
+      method: !!python/name:satpy.enhancements.invert
+      args:
+      - [true, true, true]
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: linear}
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs: {gamma: 1.2}
+
+  rgb_color5:
+    standard_name: rgb_color5
+    operations:
+    - name: inverse
+      method: !!python/name:satpy.enhancements.invert
+      args:
+      - [true, true, true]
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: linear}
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs: {gamma: 1.2}
