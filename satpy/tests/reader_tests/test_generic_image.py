@@ -207,8 +207,8 @@ class TestGenericImage(unittest.TestCase):
 
         dataset = reader.get_dataset(foo, {})
         self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertTrue('crs' in dataset.attrs)
-        self.assertTrue('transform' in dataset.attrs)
+        self.assertIn('crs', dataset.attrs)
+        self.assertIn('transform', dataset.attrs)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
     def test_GenericImageFileHandler_masking_only_integer(self):
@@ -229,14 +229,14 @@ class TestGenericImage(unittest.TestCase):
         # do nothing if not integer
         float_data = data / 255.
         reader = FakeGenericImageFileHandler("dummy", {}, {}, {"image": float_data})
-        self.assertTrue(reader.get_dataset(make_dataid(name='image'), {}) is float_data)
+        self.assertIs(reader.get_dataset(make_dataid(name='image'), {}), float_data)
 
         # masking if integer
         data = data.astype(np.uint32)
-        self.assertTrue(data.bands.size == 4)
+        self.assertEqual(data.bands.size, 4)
         reader = FakeGenericImageFileHandler("dummy", {}, {}, {"image": data})
         ret_data = reader.get_dataset(make_dataid(name='image'), {})
-        self.assertTrue(ret_data.bands.size == 3)
+        self.assertEqual(ret_data.bands.size, 3)
 
     def test_GenericImageFileHandler_datasetid(self):
         """Test direct use of the reader."""
@@ -248,9 +248,9 @@ class TestGenericImage(unittest.TestCase):
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
 
         foo = make_dataid(name='image-custom')
-        self.assertTrue(reader.file_content)
+        self.assertTrue(reader.file_content, 'file_content should be set')
         dataset = reader.get_dataset(foo, {})
-        self.assertTrue(isinstance(dataset, xr.DataArray))
+        self.assertTrue(isinstance(dataset, xr.DataArray), 'dataset should be a xr.DataArray')
 
     def test_GenericImageFileHandler_nodata(self):
         """Test nodata handling with direct use of the reader."""
@@ -262,21 +262,21 @@ class TestGenericImage(unittest.TestCase):
         reader = GenericImageFileHandler(fname, fname_info, ftype_info)
 
         foo = make_dataid(name='image-custom')
-        self.assertTrue(reader.file_content)
+        self.assertTrue(reader.file_content, 'file_content should be set')
         info = {'nodata_handling': 'nan_mask'}
         dataset = reader.get_dataset(foo, info)
-        self.assertTrue(isinstance(dataset, xr.DataArray))
-        self.assertTrue(np.all(np.isnan(dataset.data[0][:10, :10].compute())))
-        self.assertTrue(np.isnan(dataset.attrs['_FillValue']))
+        self.assertTrue(isinstance(dataset, xr.DataArray), 'dataset should be a xr.DataArray')
+        self.assertTrue(np.all(np.isnan(dataset.data[0][:10, :10].compute())), 'values should be np.nan')
+        self.assertTrue(np.isnan(dataset.attrs['_FillValue']), '_FillValue should be np.nan')
 
         info = {'nodata_handling': 'fill_value'}
         dataset = reader.get_dataset(foo, info)
-        self.assertTrue(isinstance(dataset, xr.DataArray))
+        self.assertTrue(isinstance(dataset, xr.DataArray), 'dataset should be a xr.DataArray')
         self.assertEqual(np.sum(dataset.data[0][:10, :10].compute()), 0)
         self.assertEqual(dataset.attrs['_FillValue'], 0)
 
         # default same as 'nodata_handling': 'fill_value'
         dataset = reader.get_dataset(foo, {})
-        self.assertTrue(isinstance(dataset, xr.DataArray))
+        self.assertTrue(isinstance(dataset, xr.DataArray), 'dataset should be a xr.DataArray')
         self.assertEqual(np.sum(dataset.data[0][:10, :10].compute()), 0)
         self.assertEqual(dataset.attrs['_FillValue'], 0)

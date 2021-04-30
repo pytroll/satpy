@@ -139,20 +139,25 @@ def _mask_image_data(data, info):
         data.data = masked_data
         data = data.sel(bands=BANDS[data.bands.size - 1])
     elif hasattr(data, 'nodatavals') and data.nodatavals:
-        nodata_handling = info.get('nodata_handling', NODATA_HANDLING_FILLVALUE)
-        if nodata_handling == NODATA_HANDLING_NANMASK:
-            # data converted to float and masked with np.nan
-            data = data.astype(np.float32)
-            masked_data = da.stack([da.where(data.data[i, :, :] == nodataval, np.nan, data.data[i, :, :])
-                                    for i, nodataval in enumerate(data.nodatavals)])
-            data.data = masked_data
-            data.attrs['_FillValue'] = np.nan
-        elif nodata_handling == NODATA_HANDLING_FILLVALUE:
-            # keep data as it is but set _FillValue attribute to provided
-            # nodatavalue (first one as it has to be the same for all bands at least
-            # in GeoTiff, see GDAL gtiff driver documentation)
-            fill_value = data.nodatavals[0]
-            if np.issubdtype(data.dtype, np.integer):
-                fill_value = int(fill_value)
-            data.attrs['_FillValue'] = fill_value
+        data = _handle_nodatavals(data, info.get('nodata_handling', NODATA_HANDLING_FILLVALUE))
+    return data
+
+
+def _handle_nodatavals(data, nodata_handling):
+    """Mask data with np.nan or only set 'attr_FillValue'."""
+    if nodata_handling == NODATA_HANDLING_NANMASK:
+        # data converted to float and masked with np.nan
+        data = data.astype(np.float32)
+        masked_data = da.stack([da.where(data.data[i, :, :] == nodataval, np.nan, data.data[i, :, :])
+                                for i, nodataval in enumerate(data.nodatavals)])
+        data.data = masked_data
+        data.attrs['_FillValue'] = np.nan
+    elif nodata_handling == NODATA_HANDLING_FILLVALUE:
+        # keep data as it is but set _FillValue attribute to provided
+        # nodatavalue (first one as it has to be the same for all bands at least
+        # in GeoTiff, see GDAL gtiff driver documentation)
+        fill_value = data.nodatavals[0]
+        if np.issubdtype(data.dtype, np.integer):
+            fill_value = int(fill_value)
+        data.attrs['_FillValue'] = fill_value
     return data
