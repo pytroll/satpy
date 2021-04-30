@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface for BaseFileHandlers."""
 
+import statistics
+
 from abc import ABCMeta
 
 import numpy as np
@@ -96,7 +98,7 @@ class BaseFileHandler(metaclass=ABCMeta):
 
         new_dict = self._combine(all_infos, min, 'start_time', 'start_orbit')
         new_dict.update(self._combine(all_infos, max, 'end_time', 'end_orbit'))
-        new_dict.update(self._combine(all_infos, np.mean,
+        new_dict.update(self._combine(all_infos, statistics.mean,
                                       'satellite_longitude',
                                       'satellite_latitude',
                                       'satellite_altitude'))
@@ -114,7 +116,7 @@ class BaseFileHandler(metaclass=ABCMeta):
                     'satellite_nominal_longitude', 'satellite_nominal_latitude',
                     'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
                     'nadir_longitude', 'nadir_latitude']
-            orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
+            orb_params_comb.update(self._combine(orb_params, statistics.mean, *keys))
             new_dict['orbital_parameters'] = orb_params_comb
 
         try:
