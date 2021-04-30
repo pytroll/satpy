@@ -29,15 +29,6 @@ from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
 from satpy.tests.utils import make_dataid
 
 
-class FakeAVHRRAAPPL1BFile(AVHRRAAPPL1BFile):
-    """Version that mocks the actual reading.
-
-    Work in progress.
-    """
-
-    pass
-
-
 class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
     """Test the filehandler."""
 
@@ -202,21 +193,29 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
 
     def test_load(self):
         """Test that loading via loader works and retains attributes."""
-        yaml_file = "avhrr_l1b_aapp.yaml"
-
         from satpy._config import config_search_paths
-        self.reader_configs = config_search_paths(os.path.join('readers', yaml_file))
-
         from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            "hrpt_noaa19_20210423_1411_62891.l1b"])
-        # I need to add a mock here, now it just fails with FileNotFoundError
-        r.create_filehandlers(loadables)
-        r.load(["3a", "3b"])
-        # TODO: test that start_time and end_time are still what I want them to
-        # be, and not overwritten by _load_dataset_data
-        raise NotImplementedError()
+        with tempfile.TemporaryDirectory() as td:
+            nm = os.path.join(td, "hrpt_noaa19_20210423_1411_62891.l1b")
+            with open(nm, "wb") as tmpfile:
+                self._header.tofile(tmpfile)
+                tmpfile.seek(22016, 0)
+                self._data.tofile(tmpfile)
+                yaml_file = "avhrr_l1b_aapp.yaml"
+
+                reader_configs = config_search_paths(os.path.join('readers', yaml_file))
+                r = load_reader(reader_configs)
+                loadables = r.select_files_from_pathnames([nm])
+                r.create_filehandlers(loadables)
+                ds = r.load(["3a", "3b"])
+                assert ds["3a"].attrs["start_time"] == datetime.datetime(
+                        2020, 1, 8, 8, 23, 15, 556000)
+                assert ds["3b"].attrs["start_time"] == datetime.datetime(
+                        2020, 1, 8, 8, 23, 15, 225000)
+                assert ds["3a"].attrs["end_time"] == datetime.datetime(
+                        2020, 1, 8, 8, 23, 15, 556000)
+                assert ds["3b"].attrs["end_time"] == datetime.datetime(
+                        2020, 1, 8, 8, 23, 15, 389000)
 
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):
