@@ -248,9 +248,17 @@ class TestMirsL2_NcReader:
             assert data_arr.dtype.type == np.float64
 
     @staticmethod
-    def _check_valid_range(data_arr):
+    def _check_valid_range(filename, data_arr):
         # valid_range is popped out of data_arr.attrs when it is applied
         assert 'valid_range' not in data_arr.attrs
+        var_name = data_arr.attrs["name"]
+        data = fake_open_dataset(filename)
+        if "btemp" in var_name:
+            data = data['BT']
+            if "valid_range" in data.attrs:
+                valid_range = data.attrs["valid_range"]
+                assert data_arr.data.min() > valid_range[0]
+                assert data_arr.data.max() < valid_range[1]
 
     @staticmethod
     def _check_attrs(data_arr, platform_name):
@@ -295,7 +303,7 @@ class TestMirsL2_NcReader:
                 if data_id['name'] not in ['latitude', 'longitude']:
                     self._check_area(data_arr)
                 self._check_fill(data_arr)
-                self._check_valid_range(data_arr)
+                self._check_valid_range(filenames[0], data_arr)
                 self._check_attrs(data_arr, platform_name)
 
                 sensor = data_arr.attrs['sensor']
