@@ -356,6 +356,17 @@ class MiRSL2ncHandler(BaseFileHandler):
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
         return data_arr, attrs
 
+    def _apply_valid_range(self, data_arr, attrs):
+        # handle valid_range
+        valid_range = attrs.pop('valid_range', None)
+        if valid_range is not None:
+            valid_min, valid_max = valid_range
+
+            if valid_min is not None and valid_max is not None:
+                data_arr = data_arr.where((data_arr >= valid_min) &
+                                          (data_arr <= valid_max))
+        return data_arr, attrs
+
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
         if 'dependencies' in ds_info.keys():
@@ -483,6 +494,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         attrs = data.attrs.copy()
         data, attrs = self._scale_data(data, attrs)
         data, attrs = self._fill_data(data, attrs)
+        data, attrs = self._apply_valid_range(data, attrs)
 
         # 'Freq' dimension causes issues in other processing
         if 'Freq' in data.coords:
