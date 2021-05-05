@@ -508,3 +508,69 @@ composites:
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+  _vis06:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: vis06
+    prerequisites:
+      - name: VIS006
+        modifiers: [sunz_corrected]
+
+  _hrv:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv
+    prerequisites:
+      - name: HRV
+        modifiers: [sunz_corrected]
+
+  _vis06_filled_hrv:
+    compositor: !!python/name:satpy.composites.Filler
+    standard_name: vis06_filled_hrv
+    prerequisites:
+    - _hrv
+    - _vis06
+
+  _ir108:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: ir108
+    prerequisites:
+      - name: IR_108
+
+  _vis_with_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: vis_with_ir
+    lim_low: 85.0
+    lim_high: 88.0
+    prerequisites:
+      - _vis06_filled_hrv
+      - _ir108
+
+  vis_with_ir_cloud_overlay:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    standard_name: vis_with_ir_cloud_overlay
+    prerequisites:
+    - _vis_with_ir
+    - ct
+    # Default is opaque (transparency = 0)
+    conditions:
+      - method: equal
+        value: Cloud-free_land
+        transparency: 100
+      - method: equal
+        value: Cloud-free_sea
+        transparency: 100
+      - method: equal
+        value: Snow_over_land
+        transparency: 100
+      - method: equal
+        value: Sea_ice
+        transparency: 100
+      - method: equal
+        value: Fractional_clouds
+        transparency: 45
+      - method: equal
+        value: High_semitransparent_thin_clouds
+        transparency: 50
+      - method: equal
+        value: High_semitransparent_above_snow_ice
+        transparency: 60
