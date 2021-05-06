@@ -25,4 +25,100 @@ file_types:
     file_patterns:
       - 'IMG_SX.{platform_shortname}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
 
-datasets: {}
+datasets: 
+  longitude:
+    name: longitude
+    file_type: metop_amsu
+    file_key: Longitude
+    default_units: degrees
+    standard_name: longitude
+  latitude:
+    name: latitude
+    file_type: metop_amsu
+    file_key: Latitude
+    default_units: degrees
+    standard_name: latitude
+  rain_rate:
+    name: RR
+    long_name: rain_rate
+    file_key: RR
+    file_type: metop_amsu
+    scale_factor: 0.1
+    _FillValue: -99.9
+    default_units: mm/hr
+    coordinates: [longitude, latitude]
+  mask:
+    name: Sfc_type
+    file_key:  Sfc_type
+    file_type: metop_amsu
+    description: Surface Type:0-ocean,1-sea ice,2-land,3-snow
+    default_units: 1
+    coordinates: [longitude, latitude]
+  sea_ice:
+    name: SIce
+    long_name: sea_ice
+    file_key: SIce
+    file_type: metop_amsu
+    default_units: "%"
+    coordinates: [longitude, latitude]
+  snow_cover:
+    name: Snow
+    long_name: snow_cover
+    file_key: Snow
+    file_type: metop_amsu
+    default_units: '1'
+    coordinates: [longitude, latitude]
+  total_precipitable_water:
+    name: TPW
+    long_name: total_precipitable_water
+    file_key: TPW
+    file_type: metop_amsu
+    scale_factor: 0.1
+    _FillValue: -99.9
+    default_units: mm
+    coordinates: [longitude, latitude]
+  swe:
+    name: SWE
+    long_name: snow_water_equivalence
+    file_key: SWE
+    file_type: metop_amsu
+    scale_factor: 0.01
+    _FillValue: -999s
+    default_units: cm
+    coordinates: [longitude, latitude]
+  cloud_liquid_water:
+    name: CLW
+    long_name: Cloud liquid Water
+    file_key: CLW
+    file_type: metop_amsu
+    scale_factor: 0.01
+    _FillValue: -999s
+    default_units: mm
+    coordinates: [longitude, latitude]
+  skin_temperature:
+    name: TSkin
+    long_name: Skin Temperature
+    file_key: TSkin
+    file_type: metop_amsu
+    scale_factor: 0.01
+    _FillValue: -999s
+    default_units: K
+    coordinates: [longitude, latitude]
+  snow_fall_rate:
+    name: SFR
+    file_key: SFR
+    file_type: metop_amsu
+    long_name: Snow Fall Rate
+    scale_factor: 0.01
+    _FillValue: -999s
+    default_units: mm/hr
+    coordinates: [longitude, latitude]
+  brightness_temperature:
+    name: BT
+    file_key: BT
+    file_type: metop_amsu
+    long_name: brightness_temperature
+    scale_factor: 0.01
+    _FillValue: -999s
+    description: Channel Brightness Temperature for every channel
+    default_units: K

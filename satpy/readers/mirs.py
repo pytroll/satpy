@@ -334,22 +334,25 @@ class MiRSL2ncHandler(BaseFileHandler):
         return np.nan
 
     @staticmethod
-    def _scale_data(data_arr, attrs):
+    def _scale_data(data_arr, attrs, scale_factor):
         # handle scaling
         # take special care for integer/category fields
-        scale_factor = attrs.pop('scale_factor', 1.)
+
         add_offset = attrs.pop('add_offset', 0.)
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
         return data_arr, attrs
 
-    def _fill_data(self, data_arr, attrs):
+    def _fill_data(self, data_arr, attrs, scale_factor):
+
         try:
             global_attr_fill = self.nc.missing_value
         except AttributeError:
             global_attr_fill = None
         fill_value = attrs.pop('_FillValue', global_attr_fill)
+
+        fill_value = fill_value * scale_factor
 
         fill_out = self._nan_for_dtype(data_arr.dtype)
         if fill_value is not None:
@@ -386,7 +389,9 @@ class MiRSL2ncHandler(BaseFileHandler):
         else:
             data = self[ds_id['name']]
 
-        data.attrs = self.get_metadata(ds_info)
+        data, attrs = self.apply_attributes(data, ds_info)
+        data.attrs = self.get_metadata(attrs)
+
         return data
 
     def _available_if_this_file_type(self, configured_datasets):
@@ -482,6 +487,22 @@ class MiRSL2ncHandler(BaseFileHandler):
         yield from self._available_new_datasets()
         yield from self._available_btemp_datasets()
 
+    def apply_attributes(self, data, ds_info):
+        """Combine attributes from file and yaml and apply.
+
+        File attributes should take precedence over yaml if both are present
+
+        """
+        attrs = data.attrs.copy()
+        # let file attributes take precedence
+        ds_info.update(attrs)
+        scale_factor = attrs.pop('scale_factor', 1.)
+        data, attrs = self._scale_data(data, ds_info, scale_factor)
+        data, attrs = self._fill_data(data, ds_info, scale_factor)
+        data, attrs = self._apply_valid_range(data, ds_info)
+
+        return data, ds_info
+
     def __getitem__(self, item):
         """Wrap around `self.nc[item]`.
 
@@ -491,10 +512,6 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         """
         data = self.nc[item]
-        attrs = data.attrs.copy()
-        data, attrs = self._scale_data(data, attrs)
-        data, attrs = self._fill_data(data, attrs)
-        data, attrs = self._apply_valid_range(data, attrs)
 
         # 'Freq' dimension causes issues in other processing
         if 'Freq' in data.coords:
