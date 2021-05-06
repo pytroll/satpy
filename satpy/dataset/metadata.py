@@ -50,10 +50,7 @@ def combine_metadata(*metadata_objects, average_times=True):
         return info_dicts[0].copy()
 
     shared_keys = _shared_keys(info_dicts)
-    try:
-        shared_keys.remove('raw_metadata')
-    except KeyError:
-        pass
+    shared_keys.discard('raw_metadata')
 
     return _combine_shared_info(shared_keys, info_dicts, average_times)
 
