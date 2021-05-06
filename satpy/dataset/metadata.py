@@ -33,7 +33,8 @@ def combine_metadata(*metadata_objects, average_times=True):
     in them and consisting of datetime objects will be averaged. This
     is to handle cases where data were observed at almost the same time
     but not exactly.  In the interest of time, lazy arrays are compared by
-    object identity rather than by their contents.
+    object identity rather than by their contents. Raw dataset metadata
+    are excluded as well.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
@@ -49,6 +50,10 @@ def combine_metadata(*metadata_objects, average_times=True):
         return info_dicts[0].copy()
 
     shared_keys = _shared_keys(info_dicts)
+    try:
+        shared_keys.remove('raw_metadata')
+    except KeyError:
+        pass
 
     return _combine_shared_info(shared_keys, info_dicts, average_times)
 
