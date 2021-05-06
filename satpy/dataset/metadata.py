@@ -34,7 +34,7 @@ def combine_metadata(*metadata_objects, average_times=True):
     is to handle cases where data were observed at almost the same time
     but not exactly.  In the interest of time, lazy arrays are compared by
     object identity rather than by their contents. Raw dataset metadata
-    are excluded as well.
+    (`raw_metadata` attribute) are excluded as well.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
