@@ -8,7 +8,7 @@ from satpy.utils import lonlat2xyz, xyz2lonlat, get_satpos
 from scipy.signal import convolve
 import xarray as xr
 
-from .. import projection
+import projection
 
 
 def parallax_correct(sat_lon, sat_lat, sat_alt, lon, lat, height):
