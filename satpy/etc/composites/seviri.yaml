@@ -376,6 +376,14 @@ composites:
     - IR_108
     standard_name: overview
 
+  green_snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: IR_016
+    - name: VIS006
+    - name: IR_108
+    standard_name: green_snow
+
   colorized_ir_clouds:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
