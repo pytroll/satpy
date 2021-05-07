@@ -134,7 +134,7 @@ composites:
     - 12.0
     standard_name: cloudtop
 
-  convection:
+  severe_storms:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -149,7 +149,7 @@ composites:
       prerequisites:
         - 1.6
         - 0.6
-    standard_name: convection
+    standard_name: severe_storms
 
   snow:
     compositor: !!python/name:satpy.composites.GenericCompositor

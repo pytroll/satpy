@@ -1,0 +1,34 @@
+enhancements:
+      
+  # EUMETrain recipe for the SEVIRI "Severe Storms RGB"
+  # http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+  # https://www.eumetsat.int/website/home/Images/EUMETViewImageService/index.html
+  # PDF_RGB_QUICK_GUIDE_SEV_STORMS.pdf
+  severe_storms_default:
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-35, -5, -75]
+        max_stretch: [5, 60, 25]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.0, 0.5, 1.0]
+    standard_name: severe_storms
+
+  severe_storms_high_latitudes:
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-35, 0, -75]
+        max_stretch: [5, 40, 25]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.0, 0.5, 1.0]
+    standard_name: severe_storms_high_latitudes
+
