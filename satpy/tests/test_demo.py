@@ -174,7 +174,7 @@ class TestGCPUtils(unittest.TestCase):
         self.assertRaises(RuntimeError, get_bucket_files, '*.nc', '.')
 
 
-class TestAHIDemoDownload(unittest.TestCase):
+class TestAHIDemoDownload:
     """Test the AHI demo data download."""
 
     @mock.patch.dict(sys.modules, {'s3fs': mock.MagicMock()})
