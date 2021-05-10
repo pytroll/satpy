@@ -90,7 +90,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         """Remove the previously created test file."""
         # First delete the reader, forcing the file to be closed if still open
         del self.reader
-        # Then can safely remove it from the system
+        # Then we can safely remove the file from the system
         with suppress(OSError):
             os.remove(self.test_file)
 
