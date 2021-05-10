@@ -36,7 +36,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        self.test_file = str(uuid.uuid4())
+        self.test_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.test_file, 'w') as nc:
             # Create dimensions
             nc.createDimension('number_of_columns', 10)
@@ -197,7 +197,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        self.seg_test_file = str(uuid.uuid4())
+        self.seg_test_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.seg_test_file, 'w') as nc:
             # Create dimensions
             nc.createDimension('number_of_FoR_cols', 10)
@@ -310,7 +310,7 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        self.test_error_file = str(uuid.uuid4())
+        self.test_error_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.test_error_file, 'w') as nc_err:
             # Create dimensions
             nc_err.createDimension('number_of_FoR_cols', 10)
@@ -385,7 +385,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        self.test_byte_file = str(uuid.uuid4())
+        self.test_byte_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.test_byte_file, 'w') as nc_byte:
             # Create dimensions
             nc_byte.createDimension('number_of_columns', 1)
