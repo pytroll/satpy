@@ -52,12 +52,12 @@ To use these functions, do:
 
 import os
 import logging
+from satpy import config
 
 LOG = logging.getLogger(__name__)
-SATPY_DEMO_DATA_DIR = os.environ.get('SATPY_DEMO_DATA_DIR', '.')
 
 
-def get_us_midlatitude_cyclone_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, force=False):
+def get_us_midlatitude_cyclone_abi(base_dir=None, method=None, force=False):
     """Get GOES-16 ABI (CONUS sector) data from 2019-03-14 00:00Z.
 
     Args:
@@ -72,6 +72,7 @@ def get_us_midlatitude_cyclone_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, fo
     Total size: ~110MB
 
     """
+    base_dir = base_dir or config.get('demo_data_dir', '.')
     if method is None:
         method = 'gcsfs'
     if method not in ['gcsfs']:
@@ -87,7 +88,7 @@ def get_us_midlatitude_cyclone_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, fo
     return filenames
 
 
-def get_hurricane_florence_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, force=False,
+def get_hurricane_florence_abi(base_dir=None, method=None, force=False,
                                channels=None, num_frames=10):
     """Get GOES-16 ABI (Meso sector) data from 2018-09-11 13:00Z to 17:00Z.
 
@@ -111,6 +112,7 @@ def get_hurricane_florence_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, force=
     Total size (240 frames, all channels): ~3.5GB
 
     """
+    base_dir = base_dir or config.get('demo_data_dir', '.')
     if channels is None:
         channels = range(1, 17)
     if method is None:
@@ -145,7 +147,7 @@ def get_hurricane_florence_abi(base_dir=SATPY_DEMO_DATA_DIR, method=None, force=
     return filenames
 
 
-def download_typhoon_surigae_ahi(base_dir=SATPY_DEMO_DATA_DIR,
+def download_typhoon_surigae_ahi(base_dir=None,
                                  channels=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16),
                                  segments=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)):
     """Download Himawari 8 data.
@@ -153,6 +155,7 @@ def download_typhoon_surigae_ahi(base_dir=SATPY_DEMO_DATA_DIR,
     This scene shows the Typhoon Surigae.
     """
     import s3fs
+    base_dir = base_dir or config.get('demo_data_dir', '.')
     channel_resolution = {1: 10,
                           2: 10,
                           3: 5,
