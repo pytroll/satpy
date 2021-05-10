@@ -248,6 +248,13 @@ class TestMirsL2_NcReader:
             assert data_arr.dtype.type == np.float64
 
     @staticmethod
+    def _check_valid_range(data_arr, test_valid_range):
+        # valid_range is popped out of data_arr.attrs when it is applied
+        assert 'valid_range' not in data_arr.attrs
+        assert data_arr.data.min() >= test_valid_range[0]
+        assert data_arr.data.max() <= test_valid_range[1]
+
+    @staticmethod
     def _check_attrs(data_arr, platform_name):
         attrs = data_arr.attrs
         assert 'scale_factor' not in attrs
@@ -286,11 +293,19 @@ class TestMirsL2_NcReader:
                 loaded_data_arrs = r.load(loadable_ids)
             assert loaded_data_arrs
 
-            for data_id, data_arr in loaded_data_arrs.items():
-                if data_id['name'] not in ['latitude', 'longitude']:
+            test_data = fake_open_dataset(filenames[0])
+            for _data_id, data_arr in loaded_data_arrs.items():
+                var_name = data_arr.attrs["name"]
+                if var_name not in ['latitude', 'longitude']:
                     self._check_area(data_arr)
                 self._check_fill(data_arr)
                 self._check_attrs(data_arr, platform_name)
+
+                input_fake_data = test_data['BT'] if "btemp" in var_name \
+                    else test_data[var_name]
+                if "valid_range" in input_fake_data.attrs:
+                    valid_range = input_fake_data.attrs["valid_range"]
+                    self._check_valid_range(data_arr, valid_range)
 
                 sensor = data_arr.attrs['sensor']
                 if reader_kw.get('limb_correction', True) and sensor == 'atms':

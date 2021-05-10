@@ -28,7 +28,7 @@ General-use compositor code dealing with visible or infrared satellite
 data can be put in a configuration file called ``visir.yaml``. Composites
 that are specific to an instrument can be placed in YAML config files named
 accordingly (e.g., ``seviri.yaml`` or ``viirs.yaml``). See the
-`satpy repository <https://github.com/pytroll/satpy/tree/master/satpy/etc/composites>`_
+`satpy repository <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_
 for more examples.
 
 GenericCompositor
