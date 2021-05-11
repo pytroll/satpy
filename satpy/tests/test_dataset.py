@@ -250,7 +250,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}},
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': np.array([1, 2, 3])}},
                        {'_FillValue': np.nan,
                         'valid_range': np.array([0., 0.00032], dtype=np.float32),
                         'ancillary_variables': ['cpp_status_flag',
@@ -259,7 +260,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}})
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': np.array([2, 3, 4])}})
 
         expected = {'_FillValue': np.nan,
                     'valid_range': np.array([0., 0.00032], dtype=np.float32),

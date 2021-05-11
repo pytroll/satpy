@@ -44,7 +44,7 @@ enhancements:
       - name: gamma
         method: !!python/name:satpy.enhancements.gamma
         kwargs:
-          gamma: [1.4, 1, 1]
+          gamma: [0.4, 1, 1]
 
   cira_day_convection:
     standard_name: cira_day_convection
