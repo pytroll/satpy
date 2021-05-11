@@ -309,7 +309,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return coeff_fn
 
-    def get_metadata(self, ds_info):
+    def update_metadata(self, ds_info):
         """Get metadata."""
         metadata = {}
         metadata.update(ds_info)
@@ -334,41 +334,59 @@ class MiRSL2ncHandler(BaseFileHandler):
         return np.nan
 
     @staticmethod
-    def _scale_data(data_arr, attrs, scale_factor):
-        # handle scaling
-        # take special care for integer/category fields
-
-        add_offset = attrs.pop('add_offset', 0.)
+    def _scale_data(data_arr, scale_factor, add_offset):
+        """Scale data, if needed."""
         scaling_needed = not (scale_factor == 1 and add_offset == 0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
-        return data_arr, attrs
+        return data_arr
 
-    def _fill_data(self, data_arr, attrs, scale_factor):
-
-        try:
-            global_attr_fill = self.nc.missing_value
-        except AttributeError:
-            global_attr_fill = None
-        fill_value = attrs.pop('_FillValue', global_attr_fill)
-
-        fill_value = fill_value * scale_factor
-
-        fill_out = self._nan_for_dtype(data_arr.dtype)
+    def _fill_data(self, data_arr, fill_value, scale_factor, add_offset):
+        """Fill missing data with NaN."""
         if fill_value is not None:
+            fill_value = self._scale_data(fill_value, scale_factor, add_offset)
+            fill_out = self._nan_for_dtype(data_arr.dtype)
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
-        return data_arr, attrs
+        return data_arr
 
-    def _apply_valid_range(self, data_arr, attrs):
-        # handle valid_range
+    def _apply_valid_range(self, data_arr, attrs, scale_factor, add_offset):
+        """Get and apply valid_range."""
         valid_range = attrs.pop('valid_range', None)
         if valid_range is not None:
             valid_min, valid_max = valid_range
+            valid_min = self._scale_data(valid_min, scale_factor, add_offset)
+            valid_max = self._scale_data(valid_max, scale_factor, add_offset)
 
             if valid_min is not None and valid_max is not None:
                 data_arr = data_arr.where((data_arr >= valid_min) &
                                           (data_arr <= valid_max))
         return data_arr, attrs
+
+    def apply_attributes(self, data, ds_info):
+        """Combine attributes from file and yaml and apply.
+
+        File attributes should take precedence over yaml if both are present
+
+        """
+        # let file metadata take precedence over ds_info from yaml,
+        # but if yaml has more to offer, include it here.
+        ds_info.update(data.attrs)
+
+        try:
+            global_attr_fill = self.nc.missing_value
+        except AttributeError:
+            global_attr_fill = 1.0
+
+        scale = ds_info.pop('scale_factor', 1.0)
+        offset = ds_info.pop('add_offset', 0.)
+        fill_value = ds_info.pop("_FillValue", global_attr_fill)
+
+        data = self._scale_data(data, scale, offset)
+        data = self._fill_data(data, fill_value, scale, offset)
+        data, combined_metadata = self._apply_valid_range(data, ds_info, scale, offset)
+        data.attrs = self.update_metadata(combined_metadata)
+
+        return data
 
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
@@ -389,12 +407,12 @@ class MiRSL2ncHandler(BaseFileHandler):
         else:
             data = self[ds_id['name']]
 
-        data, attrs = self.apply_attributes(data, ds_info)
-        data.attrs = self.get_metadata(attrs)
+        data = self.apply_attributes(data, ds_info)
 
         return data
 
     def _available_if_this_file_type(self, configured_datasets):
+        handled_vars = set()
         for is_avail, ds_info in (configured_datasets or []):
             if is_avail is not None:
                 # some other file handler said it has this dataset
@@ -402,7 +420,10 @@ class MiRSL2ncHandler(BaseFileHandler):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
+            if self.file_type_matches(ds_info['file_type']):
+                handled_vars.add(ds_info['name'])
             yield self.file_type_matches(ds_info['file_type']), ds_info
+        yield from self._available_new_datasets(handled_vars)
 
     def _count_channel_repeat_number(self):
         """Count channel/polarization pair repetition."""
@@ -462,10 +483,12 @@ class MiRSL2ncHandler(BaseFileHandler):
         has_x_dim = data_arr.dims[1] == "x"
         return has_y_dim and has_x_dim
 
-    def _available_new_datasets(self):
+    def _available_new_datasets(self, handled_vars):
         """Metadata for available variables other than BT."""
         possible_vars = list(self.nc.items()) + list(self.nc.coords.items())
         for var_name, data_arr in possible_vars:
+            if var_name in handled_vars:
+                continue
             if data_arr.ndim != 2:
                 # we don't currently handle non-2D variables
                 continue
@@ -484,24 +507,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         """
         yield from self._available_if_this_file_type(configured_datasets)
-        yield from self._available_new_datasets()
         yield from self._available_btemp_datasets()
-
-    def apply_attributes(self, data, ds_info):
-        """Combine attributes from file and yaml and apply.
-
-        File attributes should take precedence over yaml if both are present
-
-        """
-        attrs = data.attrs.copy()
-        # let file attributes take precedence
-        ds_info.update(attrs)
-        scale_factor = attrs.pop('scale_factor', 1.)
-        data, attrs = self._scale_data(data, ds_info, scale_factor)
-        data, attrs = self._fill_data(data, ds_info, scale_factor)
-        data, attrs = self._apply_valid_range(data, ds_info)
-
-        return data, ds_info
 
     def __getitem__(self, item):
         """Wrap around `self.nc[item]`.
