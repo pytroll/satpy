@@ -17,8 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """test file handler baseclass."""
 
+import json
 import unittest
 from unittest import mock
+
 import numpy as np
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -131,6 +133,12 @@ class TestBaseFileHandler(unittest.TestCase):
                                       'nadir_latitude': 1.5,
                                       'only_in_1': False,
                                       'only_in_2': True}}
+        res = self.fh.combine_info([info1, info2])
+        self.assertDictEqual(res, exp)
+
+        # As a string, like from satpy_nc_cf reader
+        info1['orbital_parameters'] = json.dumps(info1['orbital_parameters'])
+        info2['orbital_parameters'] = json.dumps(info2['orbital_parameters'])
         res = self.fh.combine_info([info1, info2])
         self.assertDictEqual(res, exp)
 
