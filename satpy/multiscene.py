@@ -29,7 +29,7 @@ import xarray as xr
 
 from satpy.dataset import DataID, combine_metadata
 from satpy.scene import Scene
-from satpy.writers import get_enhanced_image
+from satpy.writers import get_enhanced_image, split_results
 
 try:
     import imageio
@@ -333,10 +333,10 @@ class MultiScene(object):
                     break
 
                 # save_datasets shouldn't be returning anything
-                # for future in future_list:
-                future_list.result()
-                log.info("Finished saving %d scenes", idx)
-                idx += 1
+                for future in future_list:
+                    future.result()
+                    log.info("Finished saving %d scenes", idx)
+                    idx += 1
                 q.task_done()
 
         input_q = Queue(batch_size if batch_size is not None else 1)
@@ -345,7 +345,8 @@ class MultiScene(object):
 
         for scene in scenes_iter:
             delayed = scene.save_datasets(compute=False, **kwargs)
-            if isinstance(delayed, (list, tuple)) and len(delayed) == 2:
+            sources, targets, _ = split_results(delayed)
+            if len(sources) > 0:
                 # TODO Make this work for (source, target) datasets
                 # given a target, source combination
                 raise NotImplementedError("Distributed save_datasets does not support writers "
