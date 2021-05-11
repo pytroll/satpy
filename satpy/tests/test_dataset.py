@@ -167,8 +167,45 @@ class TestCombineMetadata(unittest.TestCase):
               ]
         assert "quality" not in combine_metadata(*dts6)
 
+    def test_combine_lists_identical(self):
+        """Test combine metadata with identical lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 4]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert res['prerequisites'] == [1, 2, 3, 4]
+
+    def test_combine_lists_same_size_diff_values(self):
+        """Test combine metadata with lists with different values."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 5]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+    def test_combine_lists_different_size(self):
+        """Test combine metadata with different size lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': []},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
     def test_combine_identical_numpy_scalars(self):
-        """Test combining idendical fill values."""
+        """Test combining identical fill values."""
         from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
         assert combine_metadata(*test_metadata) == {'_FillValue': 42}
@@ -213,7 +250,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}},
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': np.array([1, 2, 3])}},
                        {'_FillValue': np.nan,
                         'valid_range': np.array([0., 0.00032], dtype=np.float32),
                         'ancillary_variables': ['cpp_status_flag',
@@ -222,7 +260,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}})
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': np.array([2, 3, 4])}})
 
         expected = {'_FillValue': np.nan,
                     'valid_range': np.array([0., 0.00032], dtype=np.float32),

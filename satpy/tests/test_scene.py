@@ -1378,7 +1378,11 @@ class TestSceneResampling:
         )
 
     @mock.patch('satpy.scene.resample_dataset')
-    def test_resample_scene_copy(self, rs):
+    @pytest.mark.parametrize('datasets', [
+        None,
+        ('comp13', 'ds5', 'ds2'),
+    ])
+    def test_resample_scene_copy(self, rs, datasets):
         """Test that the Scene is properly copied during resampling.
 
         The Scene that is created as a copy of the original Scene should not
@@ -1395,7 +1399,7 @@ class TestSceneResampling:
         scene = Scene(filenames=['fake1_1.txt', 'fake1_highres_1.txt'], reader='fake1')
 
         scene.load(['comp19'])
-        new_scene = scene.resample(area_def)
+        new_scene = scene.resample(area_def, datasets=datasets)
         new_scene['new_ds'] = new_scene['comp19'].copy()
 
         scene.load(['ds1'])
