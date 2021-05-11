@@ -18,7 +18,6 @@
 """Interface for BaseFileHandlers."""
 
 from abc import ABCMeta
-import json
 
 import numpy as np
 from pyresample.geometry import SwathDefinition
@@ -64,7 +63,6 @@ class BaseFileHandler(metaclass=ABCMeta):
     @staticmethod
     def _combine(infos, func, *keys):
         res = {}
-        infos = [_str2dict(i) for i in infos]
         for key in keys:
             if key in infos[0]:
                 res[key] = func([i[key] for i in infos])
@@ -110,7 +108,7 @@ class BaseFileHandler(metaclass=ABCMeta):
             # Collect all available keys
             orb_params_comb = {}
             for d in orb_params:
-                orb_params_comb.update(_str2dict(d))
+                orb_params_comb.update(d)
 
             # Average known keys
             keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
@@ -257,10 +255,3 @@ class BaseFileHandler(metaclass=ABCMeta):
                 yield is_avail, ds_info
                 continue
             yield self.file_type_matches(ds_info['file_type']), ds_info
-
-
-def _str2dict(val):
-    """Convert string to dictionary."""
-    if isinstance(val, str):
-        val = json.loads(val)
-    return val
