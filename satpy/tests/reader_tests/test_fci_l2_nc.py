@@ -36,6 +36,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
+        # Create unique filenames to prevent race conditions when tests are run in parallel
         self.test_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.test_file, 'w') as nc:
             # Create dimensions
