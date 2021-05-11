@@ -458,7 +458,7 @@ class MiRSL2ncHandler(BaseFileHandler):
                 'file_type': self.filetype_info['file_type'],
                 'name': new_name,
                 'description': desc_bt,
-                'units': 'K',
+                'units': 'Kelvin',
                 'channel_index': idx,
                 'frequency': "{}GHz".format(normal_f),
                 'polarization': normal_p,

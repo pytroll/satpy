@@ -52,7 +52,7 @@ datasets:
     file_key:  Sfc_type
     file_type: metop_amsu
     description: Surface Type:0-ocean,1-sea ice,2-land,3-snow
-    units: 1
+    units: "1"
     coordinates: [longitude, latitude]
   sea_ice:
     name: SIce
@@ -102,7 +102,7 @@ datasets:
     file_type: metop_amsu
     scale_factor: 0.01
     _FillValue: -999
-    units: K
+    units: Kelvin
     coordinates: [longitude, latitude]
   snow_fall_rate:
     name: SFR
@@ -121,4 +121,4 @@ datasets:
     scale_factor: 0.01
     _FillValue: -999
     description: Channel Brightness Temperature for every channel
-    units: K
+    units: Kelvin
