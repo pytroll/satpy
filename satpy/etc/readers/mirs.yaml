@@ -40,6 +40,7 @@ datasets:
     standard_name: latitude
   rain_rate:
     name: RR
+    description: Rain Rate
     long_name: rain_rate
     file_key: RR
     file_type: metop_amsu
@@ -49,13 +50,14 @@ datasets:
     coordinates: [longitude, latitude]
   mask:
     name: Sfc_type
-    file_key:  Sfc_type
-    file_type: metop_amsu
+type of surface:0-ocean,1-sea ice,2-land,3-snow")    file_key:  Sfc_type
+    file_type: me"Channel Brightness Temperature for every channel", units="K")top_amsu
     description: Surface Type:0-ocean,1-sea ice,2-land,3-snow
     units: "1"
     coordinates: [longitude, latitude]
   sea_ice:
     name: SIce
+    description: Sea Ice
     long_name: sea_ice
     file_key: SIce
     file_type: metop_amsu
@@ -63,6 +65,7 @@ datasets:
     coordinates: [longitude, latitude]
   snow_cover:
     name: Snow
+    description: Snow Cover
     long_name: snow_cover
     file_key: Snow
     file_type: metop_amsu
@@ -70,6 +73,7 @@ datasets:
     coordinates: [longitude, latitude]
   total_precipitable_water:
     name: TPW
+    description: Total Precipitable Water
     long_name: total_precipitable_water
     file_key: TPW
     file_type: metop_amsu
@@ -79,6 +83,7 @@ datasets:
     coordinates: [longitude, latitude]
   swe:
     name: SWE
+    description: Snow Water Equivalence
     long_name: snow_water_equivalence
     file_key: SWE
     file_type: metop_amsu
@@ -88,6 +93,7 @@ datasets:
     coordinates: [longitude, latitude]
   cloud_liquid_water:
     name: CLW
+    description: Cloud Liquid Water
     long_name: Cloud liquid Water
     file_key: CLW
     file_type: metop_amsu
@@ -97,6 +103,7 @@ datasets:
     coordinates: [longitude, latitude]
   skin_temperature:
     name: TSkin
+    description: skin temperature
     long_name: Skin Temperature
     file_key: TSkin
     file_type: metop_amsu
@@ -106,6 +113,7 @@ datasets:
     coordinates: [longitude, latitude]
   snow_fall_rate:
     name: SFR
+    description: snow fall rate
     file_key: SFR
     file_type: metop_amsu
     long_name: Snow Fall Rate
