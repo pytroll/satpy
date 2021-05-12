@@ -157,7 +157,7 @@ def _dict_equal(d1, d2):
     """
     if not (isinstance(d1, dict) and isinstance(d2, dict)):
         return False
-    if not d1.keys() == d2.keys():
+    if d1.keys() != d2.keys():
         return False
     for key in d1.keys():
         if isinstance(d1[key], dict) and isinstance(d2[key], dict):
