@@ -105,7 +105,11 @@ def _are_values_combinable(values):
     """Check if the *values* can be combined."""
     if _contain_dicts(values):
         return _all_dicts_equal(values)
-    elif _contain_arrays(values):
+    return _all_non_dicts_equal(values)
+
+
+def _all_non_dicts_equal(values):
+    if _contain_arrays(values):
         return _all_arrays_equal(values)
     elif _contain_collections_of_arrays(values):
         # in the real world, the `ancillary_variables` attribute may be
@@ -163,9 +167,7 @@ def _dict_equal(d1, d2):
         if isinstance(d1[key], dict) and isinstance(d2[key], dict):
             return _dict_equal(d1[key], d2[key])
         value_pair = [d1[key], d2[key]]
-        if _contain_arrays(value_pair):
-            return _all_arrays_equal(value_pair)
-        return _all_values_equal(value_pair)
+        return _all_non_dicts_equal(value_pair)
 
 
 def _pairwise_all(func, values):
