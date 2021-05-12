@@ -33,8 +33,7 @@ def combine_metadata(*metadata_objects, average_times=True):
     in them and consisting of datetime objects will be averaged. This
     is to handle cases where data were observed at almost the same time
     but not exactly.  In the interest of time, lazy arrays are compared by
-    object identity rather than by their contents. Raw dataset metadata
-    (`raw_metadata` attribute) are excluded as well.
+    object identity rather than by their contents.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
@@ -50,7 +49,6 @@ def combine_metadata(*metadata_objects, average_times=True):
         return info_dicts[0].copy()
 
     shared_keys = _shared_keys(info_dicts)
-    shared_keys.discard('raw_metadata')
 
     return _combine_shared_info(shared_keys, info_dicts, average_times)
 
@@ -105,7 +103,9 @@ def average_datetimes(datetime_list):
 
 def _are_values_combinable(values):
     """Check if the *values* can be combined."""
-    if _contain_arrays(values):
+    if _contain_dicts(values):
+        return _all_dicts_equal(values)
+    elif _contain_arrays(values):
         return _all_arrays_equal(values)
     elif _contain_collections_of_arrays(values):
         # in the real world, the `ancillary_variables` attribute may be
@@ -127,6 +127,10 @@ def _is_array(val):
     return hasattr(val, "__array__") and not np.isscalar(val)
 
 
+def _contain_dicts(values):
+    return any(isinstance(value, dict) for value in values)
+
+
 nan_allclose = partial(np.allclose, equal_nan=True)
 
 
@@ -139,6 +143,29 @@ def _all_arrays_equal(arrays):
         return _all_identical(arrays)
     else:
         return _pairwise_all(nan_allclose, arrays)
+
+
+def _all_dicts_equal(dicts):
+    return _pairwise_all(_dict_equal, dicts)
+
+
+def _dict_equal(d1, d2):
+    """Check that two dictionaries are equal.
+
+    Nested dictionaries are walked recursively. Array type values are compared
+    approximately, other types are checked for identity.
+    """
+    if not (isinstance(d1, dict) and isinstance(d2, dict)):
+        return False
+    if not d1.keys() == d2.keys():
+        return False
+    for key in d1.keys():
+        if isinstance(d1[key], dict) and isinstance(d2[key], dict):
+            return _dict_equal(d1[key], d2[key])
+        value_pair = [d1[key], d2[key]]
+        if _contain_arrays(value_pair):
+            return _all_arrays_equal(value_pair)
+        return _all_values_equal(value_pair)
 
 
 def _pairwise_all(func, values):

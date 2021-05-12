@@ -240,6 +240,52 @@ class TestCombineMetadata(unittest.TestCase):
         result = combine_metadata(*test_metadata)
         assert 'valid_range' not in result
 
+    def test_combine_dicts_close(self):
+        """Test combination of dictionaries whose values are close."""
+        from satpy.dataset.metadata import combine_metadata
+        raw_mda = {
+            'a': 1,
+            'b': 'foo',
+            'c': [1, 2, 3],
+            'd': {
+                'e': np.str('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3])
+            }
+        }
+        raw_mda_close = {
+            'a': 1 + 1E-12,
+            'b': 'foo',
+            'c': np.array([1, 2, 3]) + 1E-12,
+            'd': {
+                'e': np.str('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3]) + 1E-12
+            }
+        }
+
+        test_metadata = [raw_mda, raw_mda_close]
+        result = combine_metadata(*test_metadata)
+        assert result == raw_mda
+
+    def test_combine_dicts_different(self):
+        """Test combination of dictionaries differing in various ways."""
+        from satpy.dataset.metadata import combine_metadata
+        raw_mda = {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'foo'}
+        a_diff = {'a': np.array([1, 2, 3]), 'd': 123}
+        b_diff = {'a': {'b': np.array([4, 5, 6]), 'c': 1.0}, 'd': 'foo'}
+        c_diff = {'a': {'b': np.array([1, 2, 3]), 'c': 2.0}, 'd': 'foo'}
+        d_diff = {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'bar'}
+        type_diff = np.array([1, 2, 3])
+        b_type_diff = {'a': {'b': 'baz', 'c': 1.0}, 'd': 'foo'}
+        c_type_diff = {'a': {'b': np.array([1, 2, 3]), 'c': 'baz'}, 'd': 'foo'}
+        d_type_diff = {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 1.0}
+
+        test_metadata = [raw_mda, a_diff, b_diff, c_diff, d_diff, type_diff,
+                         b_type_diff, c_type_diff, d_type_diff]
+        result = combine_metadata(*test_metadata)
+        assert not result
+
     def test_combine_real_world_mda(self):
         """Test with real data."""
         mda_objects = ({'_FillValue': np.nan,
@@ -251,7 +297,7 @@ class TestCombineMetadata(unittest.TestCase):
                                                 '-'],
                         'platform_name': 'NOAA-20',
                         'sensor': {'viirs'},
-                        'raw_metadata': {'foo': np.array([1, 2, 3])}},
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}},
                        {'_FillValue': np.nan,
                         'valid_range': np.array([0., 0.00032], dtype=np.float32),
                         'ancillary_variables': ['cpp_status_flag',
@@ -261,7 +307,7 @@ class TestCombineMetadata(unittest.TestCase):
                                                 '-'],
                         'platform_name': 'NOAA-20',
                         'sensor': {'viirs'},
-                        'raw_metadata': {'foo': np.array([2, 3, 4])}})
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}})
 
         expected = {'_FillValue': np.nan,
                     'valid_range': np.array([0., 0.00032], dtype=np.float32),
@@ -271,12 +317,15 @@ class TestCombineMetadata(unittest.TestCase):
                                             'cpp_reff_pal',
                                             '-'],
                     'platform_name': 'NOAA-20',
-                    'sensor': {'viirs'}}
+                    'sensor': {'viirs'},
+                    'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}}
 
         from satpy.dataset.metadata import combine_metadata
         result = combine_metadata(*mda_objects)
         assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
         assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
+        np.testing.assert_equal(result.pop('raw_metadata'),
+                                expected.pop('raw_metadata'))
         assert result == expected
 
     def test_combine_one_metadata_object(self):
