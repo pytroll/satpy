@@ -20,10 +20,6 @@ file_types:
     file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
     file_patterns:
       - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
-  mirs_gpm:
-      file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
-      file_patterns:
-          - 'NPR-MIRS-IMG_v{version}_{platform_shortname:gpm}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
   metop_amsu:
     file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
     file_patterns:
@@ -33,7 +29,7 @@ datasets:
   longitude:
     name: longitude
     long_name: Longitude of the view (-180,180)
-    file_type: [ metop_amsu, mirs_atms, mirs_gpm ]
+    file_type: [ metop_amsu, mirs_atms ]
     file_key: Longitude
     units: degrees
     _FillValue: -999.
@@ -42,7 +38,7 @@ datasets:
   latitude:
     name: latitude
     long_name: Latitude of the view (-90,90)
-    file_type: [ metop_amsu, mirs_atms, mirs_gpm ]
+    file_type: [ metop_amsu, mirs_atms ]
     file_key: Latitude
     _FillValue: -999.
     valid_range: [-90., 90.]
