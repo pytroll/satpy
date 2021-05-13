@@ -341,18 +341,20 @@ class MultiScene(object):
 
         input_q = Queue(batch_size if batch_size is not None else 1)
         load_thread = Thread(target=load_data, args=(input_q,))
+        # set threads to daemon so they are killed if error is raised from main thread
+        load_thread.daemon = True
         load_thread.start()
 
         for scene in scenes_iter:
-            delayed = scene.save_datasets(compute=False, **kwargs)
-            sources, targets, _ = split_results(delayed)
+            delayeds = scene.save_datasets(compute=False, **kwargs)
+            sources, targets, delayeds = split_results(delayeds)
             if len(sources) > 0:
                 # TODO Make this work for (source, target) datasets
                 # given a target, source combination
                 raise NotImplementedError("Distributed save_datasets does not support writers "
                                           "that return (source, target) combinations at this time. Use "
                                           "the non-distributed save_datasets instead.")
-            future = client.compute(delayed)
+            future = client.compute(delayeds)
             input_q.put(future)
         input_q.put(None)
 
