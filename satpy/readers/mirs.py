@@ -349,9 +349,8 @@ class MiRSL2ncHandler(BaseFileHandler):
             data_arr = data_arr.where(data_arr != fill_value, fill_out)
         return data_arr
 
-    def _apply_valid_range(self, data_arr, attrs, scale_factor, add_offset):
+    def _apply_valid_range(self, data_arr, valid_range, scale_factor, add_offset):
         """Get and apply valid_range."""
-        valid_range = attrs.pop('valid_range', None)
         if valid_range is not None:
             valid_min, valid_max = valid_range
             valid_min = self._scale_data(valid_min, scale_factor, add_offset)
@@ -360,7 +359,7 @@ class MiRSL2ncHandler(BaseFileHandler):
             if valid_min is not None and valid_max is not None:
                 data_arr = data_arr.where((data_arr >= valid_min) &
                                           (data_arr <= valid_max))
-        return data_arr, attrs
+        return data_arr
 
     def apply_attributes(self, data, ds_info):
         """Combine attributes from file and yaml and apply.
@@ -368,31 +367,37 @@ class MiRSL2ncHandler(BaseFileHandler):
         File attributes should take precedence over yaml if both are present
 
         """
-        # let file metadata take precedence over ds_info from yaml,
-        # but if yaml has more to offer, include it here.
-        ds_info.update(data.attrs)
-
         try:
             global_attr_fill = self.nc.missing_value
         except AttributeError:
             global_attr_fill = 1.0
 
+        # let file metadata take precedence over ds_info from yaml,
+        # but if yaml has more to offer, include it here, but fix
+        # units.
+        ds_info.update(data.attrs)
+
         scale = ds_info.pop('scale_factor', 1.0)
         offset = ds_info.pop('add_offset', 0.)
         fill_value = ds_info.pop("_FillValue", global_attr_fill)
+        valid_range = ds_info.pop('valid_range', None)
+
+        units_convert = {"Kelvin": "K"}
+        data_unit = ds_info['units']
+        ds_info['units'] = units_convert.get(data_unit, data_unit)
 
         data = self._scale_data(data, scale, offset)
         data = self._fill_data(data, fill_value, scale, offset)
-        data, combined_metadata = self._apply_valid_range(data, ds_info, scale, offset)
-        data.attrs = self.update_metadata(combined_metadata)
+        data = self._apply_valid_range(data, valid_range, scale, offset)
 
-        return data
+        return data, ds_info
 
     def get_dataset(self, ds_id, ds_info):
         """Get datasets."""
         if 'dependencies' in ds_info.keys():
             idx = ds_info['channel_index']
             data = self['BT']
+            data, ds_info = self.apply_attributes(data, ds_info)
             data = data.rename(new_name_or_name_dict=ds_info["name"])
 
             if self.sensor.lower() == "atms" and self.limb_correction:
@@ -406,8 +411,9 @@ class MiRSL2ncHandler(BaseFileHandler):
                 data = data[:, :, idx]
         else:
             data = self[ds_id['name']]
+            data, ds_info = self.apply_attributes(data, ds_info)
 
-        data = self.apply_attributes(data, ds_info)
+        data.attrs = self.update_metadata(ds_info)
 
         return data
 
@@ -458,7 +464,8 @@ class MiRSL2ncHandler(BaseFileHandler):
                 'file_type': self.filetype_info['file_type'],
                 'name': new_name,
                 'description': desc_bt,
-                'units': 'Kelvin',
+                'units': 'K',
+                'scale_factor': self.nc['BT'].attrs['scale_factor'],
                 'channel_index': idx,
                 'frequency': "{}GHz".format(normal_f),
                 'polarization': normal_p,
@@ -473,9 +480,6 @@ class MiRSL2ncHandler(BaseFileHandler):
             'name': var_name,
             'coordinates': ["longitude", "latitude"]
         }
-
-        if var_name in ["longitude", "latitude"]:
-            ds_info['standard_name'] = var_name
         return ds_info
 
     def _is_2d_yx_data_array(self, data_arr):

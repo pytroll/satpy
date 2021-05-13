@@ -50,8 +50,8 @@ POLO = xr.DataArray([2, 2, 3], dims='Channel',
 DS_IDS = ['RR', 'longitude', 'latitude']
 TEST_VARS = ['btemp_88v1', 'btemp_88v2',
              'btemp_22h', 'RR', 'Sfc_type']
-DEFAULT_UNITS = {'btemp_88v1': 'Kelvin', 'btemp_88v2': 'Kelvin',
-                 'btemp_22h': 'Kelvin', 'RR': 'mm/hr', 'Sfc_type': "1"}
+DEFAULT_UNITS = {'btemp_88v1': 'K', 'btemp_88v2': 'K',
+                 'btemp_22h': 'K', 'RR': 'mm/hr', 'Sfc_type': "1"}
 PLATFORM = {"M2": "metop-a", "NPP": "npp", "GPM": "gpm"}
 SENSOR = {"m2": "amsu-mhs", "npp": "atms", "gpm": "GPI"}
 
@@ -134,7 +134,7 @@ def _get_datasets_with_attributes(**kwargs):
 
     attrs = {'missing_value': -999.}
     ds = xr.Dataset(ds_vars, attrs=attrs)
-
+    ds = ds.assign_coords({"Freq": FREQ, "Latitude": latitude, "Longitude": longitude})
     return ds
 
 
@@ -175,7 +175,7 @@ def _get_datasets_with_less_attributes():
 
     attrs = {'missing_value': -999.}
     ds = xr.Dataset(ds_vars, attrs=attrs)
-
+    ds = ds.assign_coords({"Freq": FREQ, "Latitude": latitude, "Longitude": longitude})
     return ds
 
 
@@ -257,6 +257,11 @@ class TestMirsL2_NcReader:
         assert data_arr.data.max() <= test_valid_range[1]
 
     @staticmethod
+    def _check_fill_value(data_arr, test_fill_value):
+        assert '_FillValue' not in data_arr.attrs
+        assert test_fill_value not in data_arr.data
+
+    @staticmethod
     def _check_attrs(data_arr, platform_name):
         attrs = data_arr.attrs
         assert 'scale_factor' not in attrs
@@ -268,11 +273,6 @@ class TestMirsL2_NcReader:
     @pytest.mark.parametrize(
         ("filenames", "loadable_ids", "platform_name"),
         [
-            ([METOP_FILE], TEST_VARS, "metop-a"),
-            ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
-            ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
-            ([OTHER_MIRS_L2_SWATH], TEST_VARS, "gpm"),
-
             ([METOP_FILE], TEST_VARS, "metop-a"),
             ([NPP_MIRS_L2_SWATH], TEST_VARS, "npp"),
             ([N20_MIRS_L2_SWATH], TEST_VARS, "noaa-20"),
@@ -308,6 +308,9 @@ class TestMirsL2_NcReader:
                 if "valid_range" in input_fake_data.attrs:
                     valid_range = input_fake_data.attrs["valid_range"]
                     self._check_valid_range(data_arr, valid_range)
+                if "_FillValue" in input_fake_data.attrs:
+                    fill_value = input_fake_data.attrs["_FillValue"]
+                    self._check_fill_value(data_arr, fill_value)
 
                 sensor = data_arr.attrs['sensor']
                 if reader_kw.get('limb_correction', True) and sensor == 'atms':

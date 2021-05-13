@@ -20,6 +20,10 @@ file_types:
     file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
     file_patterns:
       - 'NPR-MIRS-IMG_v{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
+  mirs_gpm:
+      file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
+      file_patterns:
+          - 'NPR-MIRS-IMG_v{version}_{platform_shortname:gpm}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
   metop_amsu:
     file_reader: !!python/name:satpy.readers.mirs.MiRSL2ncHandler
     file_patterns:
@@ -28,14 +32,20 @@ file_types:
 datasets: 
   longitude:
     name: longitude
-    file_type: metop_amsu
+    long_name: Longitude of the view (-180,180)
+    file_type: [ metop_amsu, mirs_atms, mirs_gpm ]
     file_key: Longitude
     units: degrees
+    _FillValue: -999.
+    valid_range: [ -180., 180. ]
     standard_name: longitude
   latitude:
     name: latitude
-    file_type: metop_amsu
+    long_name: Latitude of the view (-90,90)
+    file_type: [ metop_amsu, mirs_atms, mirs_gpm ]
     file_key: Latitude
+    _FillValue: -999.
+    valid_range: [-90., 90.]
     units: degrees
     standard_name: latitude
   rain_rate:
@@ -50,8 +60,8 @@ datasets:
     coordinates: [longitude, latitude]
   mask:
     name: Sfc_type
-type of surface:0-ocean,1-sea ice,2-land,3-snow")    file_key:  Sfc_type
-    file_type: me"Channel Brightness Temperature for every channel", units="K")top_amsu
+    file_key:  Sfc_type
+    file_type:  metop_amsu
     description: Surface Type:0-ocean,1-sea ice,2-land,3-snow
     units: "1"
     coordinates: [longitude, latitude]
@@ -109,7 +119,7 @@ type of surface:0-ocean,1-sea ice,2-land,3-snow")    file_key:  Sfc_type
     file_type: metop_amsu
     scale_factor: 0.01
     _FillValue: -999
-    units: Kelvin
+    units: K
     coordinates: [longitude, latitude]
   snow_fall_rate:
     name: SFR
@@ -121,12 +131,3 @@ type of surface:0-ocean,1-sea ice,2-land,3-snow")    file_key:  Sfc_type
     _FillValue: -999
     units: mm/hr
     coordinates: [longitude, latitude]
-  brightness_temperature:
-    name: BT
-    file_key: BT
-    file_type: metop_amsu
-    long_name: brightness_temperature
-    scale_factor: 0.01
-    _FillValue: -999
-    description: Channel Brightness Temperature for every channel
-    units: Kelvin
