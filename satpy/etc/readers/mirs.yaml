@@ -127,3 +127,14 @@ datasets:
     _FillValue: -999
     units: mm/hr
     coordinates: [longitude, latitude]
+  bt:
+    name: BT
+    file_key: BT
+    file_type: [ metop_amsu, mirs_atms ]
+    description: Channel Brightness Temperature for every channel
+    long_name: Channel Temperature (K)
+    units: K
+    scale_factor: 0.01
+    _FillValue: -999
+    valid_range: [0, 50000]
+    standard_name: brightness_temperature
