@@ -129,7 +129,6 @@ datasets:
     coordinates: [longitude, latitude]
   bt:
     name: BT
-    file_key: BT
     file_type: [ metop_amsu, mirs_atms ]
     description: Channel Brightness Temperature for every channel
     long_name: Channel Temperature (K)
