@@ -48,6 +48,7 @@ from satpy.readers.utils import unzip_file, get_geostationary_mask, \
                                 get_user_calibration_factors, \
                                 apply_rad_correction
 from satpy.readers._geos_area import get_area_extent, get_area_definition
+from satpy._compat import cached_property
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -354,7 +355,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def __del__(self):
         """Delete the object."""
-        if (self.is_zipped and os.path.exists(self.filename)):
+        if self.is_zipped and os.path.exists(self.filename):
             os.remove(self.filename)
 
     @property
@@ -383,10 +384,17 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Get the dataset."""
         return self.read_band(key, info)
 
+    @cached_property
+    def area(self):
+        """Get AreaDefinition representing this file's data."""
+        return self._get_area_def()
+
     def get_area_def(self, dsid):
         """Get the area definition."""
         del dsid
+        return self.area
 
+    def _get_area_def(self):
         pdict = {}
         pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
         pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
@@ -408,14 +416,11 @@ class AHIHSDFileHandler(BaseFileHandler):
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
         pdict['p_id'] = 'geosh8'
 
-        area = get_area_definition(pdict, aex)
-
-        self.area = area
-        return area
+        return get_area_definition(pdict, aex)
 
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
-        if (fp_.tell() + offset != fpos):
+        if fp_.tell() + offset != fpos:
             warnings.warn("Actual "+block+" header size does not match expected")
         return
 

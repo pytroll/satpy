@@ -66,6 +66,19 @@ class TestEnhancementStretch(unittest.TestCase):
             [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]])
         self._test_enhancement(cira_stretch, self.ch1, expected)
 
+    def test_reinhard(self):
+        """Test the reinhard algorithm."""
+        from satpy.enhancements import reinhard_to_srgb
+        expected = np.array([[[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
+
+                             [[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]],
+
+                             [[np.nan, 0., 0., 0.93333793, 1.29432402],
+                              [1.55428709, 1.76572249, 1.94738635, 2.10848544, 2.25432809]]])
+        self._test_enhancement(reinhard_to_srgb, self.rgb, expected)
+
     def test_lookup(self):
         """Test the lookup enhancement function."""
         from satpy.enhancements import lookup
@@ -127,6 +140,20 @@ class TestEnhancementStretch(unittest.TestCase):
             [0.737562, 0.825041, 0.912521, 1., 1.]]])
         self._test_enhancement(crefl_scaling, self.ch2, expected, idx=[0., 25., 55., 100., 255.],
                                sc=[0., 90., 140., 175., 255.])
+
+    def test_piecewise_linear_stretch(self):
+        """Test the piecewise_linear_stretch enhancement function."""
+        from satpy.enhancements import piecewise_linear_stretch
+        expected = np.array([[
+            [np.nan, 0., 0., 0.44378, 0.631734],
+            [0.737562, 0.825041, 0.912521, 1., 1.]]])
+        self._test_enhancement(piecewise_linear_stretch,
+                               self.ch2 / 100.0,
+                               expected,
+                               xp=[0., 25., 55., 100., 255.],
+                               fp=[0., 90., 140., 175., 255.],
+                               reference_scale_factor=255,
+                               )
 
     def test_btemp_threshold(self):
         """Test applying the cira_stretch."""

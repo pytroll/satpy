@@ -22,17 +22,47 @@ from unittest import mock
 import pytest
 import yaml
 
+from satpy.modifiers import ModifierBase
+from satpy.aux_download import DataDownloadMixin
+
 pooch = pytest.importorskip("pooch")
 
-README_URL = "https://raw.githubusercontent.com/pytroll/satpy/master/README.rst"
+README_URL = "https://raw.githubusercontent.com/pytroll/satpy/main/README.rst"
+
+
+class UnfriendlyModifier(ModifierBase, DataDownloadMixin):
+    """Fake modifier that raises an exception in __init__."""
+
+    def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
+        """Raise an exception if we weren't provided any prerequisites."""
+        if not prerequisites or len(prerequisites) != 1:
+            raise ValueError("Unexpected number of prereqs")
+        super().__init__(name, prerequisites, optional_prerequisites, **kwargs)
+        self.register_data_files({'url': kwargs['url'],
+                                  'filename': kwargs['filename'],
+                                  'known_hash': kwargs['known_hash']})
 
 
 def _setup_custom_composite_config(base_dir):
     from satpy.composites import StaticImageCompositor
+    from satpy.modifiers.atmosphere import ReflectanceCorrector
     composite_config = base_dir.mkdir("composites").join("visir.yaml")
     with open(composite_config, 'w') as comp_file:
         yaml.dump({
             "sensor_name": "visir",
+            "modifiers": {
+                "test_modifier": {
+                    "modifier": ReflectanceCorrector,
+                    "url": README_URL,
+                    "known_hash": None,
+                },
+                "unfriendly_modifier": {
+                    "modifier": UnfriendlyModifier,
+                    "url": README_URL,
+                    "filename": "unfriendly.rst",
+                    "known_hash": None,
+                }
+            },
             "composites": {
                 "test_static": {
                     "compositor": StaticImageCompositor,
@@ -78,29 +108,40 @@ writer:
 """.format(README_URL, README_URL))
 
 
-def _get_reader_find_conditions(readers, found_files):
+def _assert_reader_files_downloaded(readers, found_files):
     r_cond1 = 'readers/README.rst' in found_files
     r_cond2 = 'readers/README2.rst' in found_files
     if readers is not None and not readers:
         r_cond1 = not r_cond1
         r_cond2 = not r_cond2
-    return r_cond1, r_cond2
+    assert r_cond1
+    assert r_cond2
 
 
-def _get_writer_find_conditions(writers, found_files):
+def _assert_writer_files_downloaded(writers, found_files):
     w_cond1 = 'writers/README.rst' in found_files
     w_cond2 = 'writers/README2.rst' in found_files
     if writers is not None and not writers:
         w_cond1 = not w_cond1
         w_cond2 = not w_cond2
-    return w_cond1, w_cond2
+    assert w_cond1
+    assert w_cond2
 
 
-def _get_comp_find_conditions(comp_sensors, found_files):
+def _assert_comp_files_downloaded(comp_sensors, found_files):
     comp_cond = 'composites/README.rst' in found_files
     if comp_sensors is not None and not comp_sensors:
         comp_cond = not comp_cond
-    return comp_cond
+    assert comp_cond
+
+
+def _assert_mod_files_downloaded(comp_sensors, found_files):
+    mod_cond = 'modifiers/README.rst' in found_files
+    unfriendly_cond = 'modifiers/unfriendly.rst' in found_files
+    if comp_sensors is not None and not comp_sensors:
+        mod_cond = not mod_cond
+    assert mod_cond
+    assert not unfriendly_cond
 
 
 class TestDataDownload:
@@ -127,14 +168,10 @@ class TestDataDownload:
                 composite_sensors=comp_sensors,
             )
 
-            r_cond1, r_cond2 = _get_reader_find_conditions(readers, found_files)
-            assert r_cond1
-            assert r_cond2
-            w_cond1, w_cond2 = _get_writer_find_conditions(writers, found_files)
-            assert w_cond1
-            assert w_cond2
-            comp_cond = _get_comp_find_conditions(comp_sensors, found_files)
-            assert comp_cond
+            _assert_reader_files_downloaded(readers, found_files)
+            _assert_writer_files_downloaded(writers, found_files)
+            _assert_comp_files_downloaded(comp_sensors, found_files)
+            _assert_mod_files_downloaded(comp_sensors, found_files)
 
     def test_limited_find_registerable(self):
         """Test that find_registerable doesn't find anything when limited."""
@@ -209,4 +246,40 @@ class TestDataDownload:
             file_urls[comp_file] = README_URL
             assert not self.tmpdir.join(comp_file).exists()
             retrieve_all()
+            assert self.tmpdir.join(comp_file).exists()
+
+    def test_no_downloads_in_tests(self):
+        """Test that tests aren't allowed to download stuff."""
+        import satpy
+        from satpy.aux_download import register_file, retrieve
+
+        file_registry = {}
+        with satpy.config.set(config_path=[self.tmpdir], data_dir=str(self.tmpdir),
+                              download_aux=True), \
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry):
+            cache_key = 'myfile.rst'
+            register_file(README_URL, cache_key)
+            assert not self.tmpdir.join(cache_key).exists()
+            pytest.raises(RuntimeError, retrieve, cache_key)
+            # touch the file so it gets created
+            open(self.tmpdir.join(cache_key), 'w').close()
+            # offline downloading should still be allowed
+            with satpy.config.set(download_aux=False):
+                retrieve(cache_key)
+
+    def test_download_script(self):
+        """Test basic functionality of the download script."""
+        from satpy.aux_download import retrieve_all_cmd
+        import satpy
+        file_registry = {}
+        file_urls = {}
+        with satpy.config.set(config_path=[self.tmpdir]), \
+             mock.patch('satpy.aux_download._FILE_REGISTRY', file_registry), \
+             mock.patch('satpy.aux_download._FILE_URLS', file_urls), \
+             mock.patch('satpy.aux_download.find_registerable_files'):
+            comp_file = 'composites/README.rst'
+            file_registry[comp_file] = None
+            file_urls[comp_file] = README_URL
+            assert not self.tmpdir.join(comp_file).exists()
+            retrieve_all_cmd(argv=["--data-dir", str(self.tmpdir)])
             assert self.tmpdir.join(comp_file).exists()

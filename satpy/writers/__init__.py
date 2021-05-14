@@ -392,8 +392,8 @@ def add_decorate(orig, fill_value=None, **decorate):
     return img
 
 
-def get_enhanced_image(dataset, enhance=None, enhancement_config_file=None,
-                       overlay=None, decorate=None, fill_value=None):
+def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
+                       fill_value=None):
     """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
 
     Args:
@@ -406,7 +406,6 @@ def get_enhanced_image(dataset, enhance=None, enhancement_config_file=None,
             `False` so that no enhancments are performed. This can also
             be an instance of the :class:`~satpy.writers.Enhancer` class
             if further custom enhancement is needed.
-        enhancement_config_file (str): Deprecated.
         overlay (dict): Options for image overlays. See :func:`add_overlay`
             for available options.
         decorate (dict): Options for decorating the image. See
@@ -426,16 +425,12 @@ def get_enhanced_image(dataset, enhance=None, enhancement_config_file=None,
         instead.
 
     """
-    if enhancement_config_file is not None:
-        warnings.warn("'enhancement_config_file' has been deprecated. Pass an instance of the "
-                      "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
-
     if enhance is False:
         # no enhancement
         enhancer = None
     elif enhance is None or enhance is True:
         # default enhancement
-        enhancer = Enhancer(enhancement_config_file)
+        enhancer = Enhancer()
     else:
         # custom enhancer
         enhancer = enhance
@@ -632,6 +627,11 @@ class Writer(Plugin, DataDownloadMixin):
             file_pattern = self.file_pattern
         return parser.Parser(file_pattern) if file_pattern else None
 
+    @staticmethod
+    def _prepare_metadata_for_filename_formatting(attrs):
+        if isinstance(attrs.get('sensor'), set):
+            attrs['sensor'] = '-'.join(sorted(attrs['sensor']))
+
     def get_filename(self, **kwargs):
         """Create a filename where output data will be saved.
 
@@ -642,6 +642,7 @@ class Writer(Plugin, DataDownloadMixin):
         """
         if self.filename_parser is None:
             raise RuntimeError("No filename pattern or specific filename provided")
+        self._prepare_metadata_for_filename_formatting(kwargs)
         output_filename = self.filename_parser.compose(kwargs)
         dirname = os.path.dirname(output_filename)
         if dirname and not os.path.isdir(dirname):
@@ -734,7 +735,7 @@ class Writer(Plugin, DataDownloadMixin):
 class ImageWriter(Writer):
     """Base writer for image file formats."""
 
-    def __init__(self, name=None, filename=None, base_dir=None, enhance=None, enhancement_config=None, **kwargs):
+    def __init__(self, name=None, filename=None, base_dir=None, enhance=None, **kwargs):
         """Initialize image writer object.
 
         Args:
@@ -763,7 +764,6 @@ class ImageWriter(Writer):
                 `False` so that no enhancments are performed. This can also
                 be an instance of the :class:`~satpy.writers.Enhancer` class
                 if further custom enhancement is needed.
-            enhancement_config (str): Deprecated.
 
             kwargs (dict): Additional keyword arguments to pass to the
                 :class:`~satpy.writer.Writer` base class.
@@ -776,17 +776,12 @@ class ImageWriter(Writer):
 
         """
         super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
-        if enhancement_config is not None:
-            warnings.warn("'enhancement_config' has been deprecated. Pass an instance of the "
-                          "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
-        else:
-            enhancement_config = self.info.get("enhancement_config", None)
-
         if enhance is False:
             # No enhancement
             self.enhancer = False
         elif enhance is None or enhance is True:
             # default enhancement
+            enhancement_config = self.info.get("enhancement_config", None)
             self.enhancer = Enhancer(enhancement_config_file=enhancement_config)
         else:
             # custom enhancer

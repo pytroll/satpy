@@ -18,156 +18,16 @@
 """Composite classes for the VIIRS instrument."""
 
 import logging
-import os
 
 import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
 
-import satpy
 from satpy.composites import CompositeBase, GenericCompositor
 from satpy.dataset import combine_metadata
-from satpy.utils import get_satpos
 
 LOG = logging.getLogger(__name__)
-
-
-class VIIRSFog(CompositeBase):
-    """A simple temperature difference composite for showing fog."""
-
-    def __call__(self, projectables, nonprojectables=None, **info):
-        """Create the temperature difference DataArray."""
-        import warnings
-        warnings.warn("VIIRSFog compositor is deprecated, use DifferenceCompositor "
-                      "instead.", DeprecationWarning)
-
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
-
-        p1, p2 = projectables
-        fog = p1 - p2
-        fog.attrs.update(self.attrs)
-        fog.attrs["area"] = p1.attrs["area"]
-        fog.attrs["start_time"] = p1.attrs["start_time"]
-        fog.attrs["end_time"] = p1.attrs["end_time"]
-        fog.attrs["name"] = self.attrs["name"]
-        fog.attrs["wavelength"] = None
-        fog.attrs.setdefault("mode", "L")
-        return fog
-
-
-class ReflectanceCorrector(CompositeBase):
-    """Corrected Reflectance (crefl) modifier.
-
-    Uses a python rewrite of the C CREFL code written for VIIRS and MODIS.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the compositor with values from the user or from the configuration file.
-
-        If `dem_filename` can't be found or opened then correction is done
-        assuming TOA or sealevel options.
-
-        :param dem_filename: path to the ancillary 'averaged heights' file
-                             default: CMGDEM.hdf
-                             environment override: os.path.join(<SATPY_ANCPATH>, <CREFL_ANCFILENAME>)
-        :param dem_sds: variable name to load from the ancillary file
-        """
-        dem_filename = kwargs.pop("dem_filename",
-                                  os.environ.get("CREFL_ANCFILENAME",
-                                                 "CMGDEM.hdf"))
-        if os.path.exists(dem_filename):
-            self.dem_file = dem_filename
-        else:
-            self.dem_file = os.path.join(satpy.config.get('data_dir'),
-                                         dem_filename)
-        self.dem_sds = kwargs.pop("dem_sds", "averaged elevation")
-        super(ReflectanceCorrector, self).__init__(*args, **kwargs)
-
-    def __call__(self, datasets, optional_datasets, **info):
-        """Create modified DataArray object by applying the crefl algorithm."""
-        if not optional_datasets or len(optional_datasets) != 4:
-            vis = self.match_data_arrays([datasets[0]])[0]
-            sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
-        else:
-            vis, sensor_aa, sensor_za, solar_aa, solar_za = self.match_data_arrays(
-                datasets + optional_datasets)
-            # get the dask array underneath
-            sensor_aa = sensor_aa.data
-            sensor_za = sensor_za.data
-            solar_aa = solar_aa.data
-            solar_za = solar_za.data
-        # angles must be xarrays
-        sensor_aa = xr.DataArray(sensor_aa, dims=['y', 'x'])
-        sensor_za = xr.DataArray(sensor_za, dims=['y', 'x'])
-        solar_aa = xr.DataArray(solar_aa, dims=['y', 'x'])
-        solar_za = xr.DataArray(solar_za, dims=['y', 'x'])
-        refl_data = datasets[0]
-        if refl_data.attrs.get("rayleigh_corrected"):
-            return refl_data
-        if os.path.isfile(self.dem_file):
-            LOG.debug("Loading CREFL averaged elevation information from: %s",
-                      self.dem_file)
-            from netCDF4 import Dataset as NCDataset
-            # HDF4 file, NetCDF library needs to be compiled with HDF4 support
-            nc = NCDataset(self.dem_file, "r")
-            # average elevation is stored as a 16-bit signed integer but with
-            # scale factor 1 and offset 0, convert it to float here
-            avg_elevation = nc.variables[self.dem_sds][:].astype(np.float)
-            if isinstance(avg_elevation, np.ma.MaskedArray):
-                avg_elevation = avg_elevation.filled(np.nan)
-        else:
-            avg_elevation = None
-
-        from satpy.composites.crefl_utils import run_crefl, get_coefficients
-
-        percent = refl_data.attrs["units"] == "%"
-
-        coefficients = get_coefficients(refl_data.attrs["sensor"],
-                                        refl_data.attrs["wavelength"],
-                                        refl_data.attrs["resolution"])
-        use_abi = vis.attrs['sensor'] == 'abi'
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.chunks)
-        results = run_crefl(refl_data,
-                            coefficients,
-                            lons,
-                            lats,
-                            sensor_aa,
-                            sensor_za,
-                            solar_aa,
-                            solar_za,
-                            avg_elevation=avg_elevation,
-                            percent=percent,
-                            use_abi=use_abi)
-        info.update(refl_data.attrs)
-        info["rayleigh_corrected"] = True
-        factor = 100. if percent else 1.
-        results = results * factor
-        results.attrs = info
-        self.apply_modifier_info(refl_data, results)
-        return results
-
-    def get_angles(self, vis):
-        """Get sun and satellite angles to use in crefl calculations."""
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        from pyorbital.orbital import get_observer_look
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz, suna, sunz
 
 
 class HistogramDNB(CompositeBase):

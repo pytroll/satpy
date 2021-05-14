@@ -49,6 +49,10 @@ class Node:
         self.children = []
         self.parents = []
 
+    def update_name(self, new_name):
+        """Update 'name' property."""
+        self.name = new_name
+
     @property
     def is_leaf(self):
         """Check if the node is a leaf."""
@@ -85,6 +89,8 @@ class Node:
         for c in self.children:
             c = c.copy(node_cache=node_cache)
             s.add_child(c)
+        if node_cache is not None:
+            node_cache[s.name] = s
         return s
 
     def _copy_name_and_data(self, node_cache=None):
@@ -132,16 +138,18 @@ class Node:
                     res.append(sub_child)
         return res
 
-    def trunk(self, unique=True):
+    def trunk(self, unique=True, limit_children_to=None):
         """Get the trunk of the tree starting at this root."""
-        # uniqueness is not correct in `trunk` yet
+        # FIXME: uniqueness is not correct in `trunk` yet
         unique = False
         res = []
         if self.children and self.name is not EMPTY_LEAF_NAME:
             if self.name is not None:
                 res.append(self)
+            if limit_children_to is not None and self.name in limit_children_to:
+                return res
             for child in self.children:
-                for sub_child in child.trunk(unique=unique):
+                for sub_child in child.trunk(unique=unique, limit_children_to=limit_children_to):
                     if not unique or sub_child not in res:
                         res.append(sub_child)
         return res
@@ -183,6 +191,11 @@ class CompositorNode(Node):
         new_node.add_required_nodes(new_required_nodes)
         new_optional_nodes = [node.copy(node_cache) for node in self.optional_nodes]
         new_node.add_optional_nodes(new_optional_nodes)
+        # `comp.id` uses the compositor's attributes to compute itself
+        # however, this node may have been updated by creation of the
+        # composite. In order to not modify the compositor's attrs, we
+        # overwrite the name here instead.
+        new_node.name = self.name
         return new_node
 
 

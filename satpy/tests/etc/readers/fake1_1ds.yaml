@@ -1,0 +1,16 @@
+reader:
+  name: fake1_1ds
+  description: Fake reader used for easier testing with only one dataset
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [fake_sensor]
+datasets:
+  ds1:
+    name: ds1
+    resolution: 250
+    calibration: "reflectance"
+    file_type: fake_file1
+file_types:
+  fake_file1:
+    file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
+    file_patterns: ['fake1_1ds_{file_idx:d}.txt']
+    sensor: fake_sensor

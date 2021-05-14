@@ -28,6 +28,7 @@ import numpy.testing
 import pyresample.geometry
 import xarray as xr
 from satpy.readers import utils as hf
+from pyproj import CRS
 
 
 class TestHelpers(unittest.TestCase):
@@ -35,38 +36,33 @@ class TestHelpers(unittest.TestCase):
 
     def test_lonlat_from_geos(self):
         """Get lonlats from geos."""
+        import pyproj
         geos_area = mock.MagicMock()
         lon_0 = 0
         h = 35785831.00
-        geos_area.proj_dict = {'a': 6378169.00,
-                               'b': 6356583.80,
-                               'h': h,
-                               'lon_0': lon_0}
+        geos_area.crs = CRS({
+            'a': 6378169.00,
+            'b': 6356583.80,
+            'h': h,
+            'lon_0': lon_0,
+            'proj': 'geos'})
 
-        expected = np.array((lon_0, 0))
-
-        import pyproj
-        proj = pyproj.Proj(proj='geos', **geos_area.proj_dict)
-
+        proj = pyproj.Proj(geos_area.crs)
         expected = proj(0, 0, inverse=True)
-
         np.testing.assert_allclose(expected,
                                    hf._lonlat_from_geos_angle(0, 0, geos_area))
 
         expected = proj(0, 1000000, inverse=True)
-
         np.testing.assert_allclose(expected,
                                    hf._lonlat_from_geos_angle(0, 1000000 / h,
                                                               geos_area))
 
         expected = proj(1000000, 0, inverse=True)
-
         np.testing.assert_allclose(expected,
                                    hf._lonlat_from_geos_angle(1000000 / h, 0,
                                                               geos_area))
 
         expected = proj(2000000, -2000000, inverse=True)
-
         np.testing.assert_allclose(expected,
                                    hf._lonlat_from_geos_angle(2000000 / h,
                                                               -2000000 / h,
@@ -75,15 +71,14 @@ class TestHelpers(unittest.TestCase):
     def test_get_geostationary_bbox(self):
         """Get the geostationary bbox."""
         geos_area = mock.MagicMock()
-        del geos_area.crs
         lon_0 = 0
-        geos_area.proj_dict = {
+        geos_area.crs = CRS({
             'proj': 'geos',
             'lon_0': lon_0,
             'a': 6378169.00,
             'b': 6356583.80,
             'h': 35785831.00,
-            'units': 'm'}
+            'units': 'm'})
         geos_area.area_extent = [-5500000., -5500000., 5500000., 5500000.]
 
         lon, lat = hf.get_geostationary_bounding_box(geos_area, 20)
@@ -107,8 +102,7 @@ class TestHelpers(unittest.TestCase):
     def test_get_geostationary_angle_extent(self):
         """Get max geostationary angles."""
         geos_area = mock.MagicMock()
-        del geos_area.crs
-        geos_area.proj_dict = {
+        proj_dict = {
             'proj': 'geos',
             'sweep': 'x',
             'lon_0': -89.5,
@@ -116,28 +110,29 @@ class TestHelpers(unittest.TestCase):
             'b': 6356583.80,
             'h': 35785831.00,
             'units': 'm'}
-
+        geos_area.crs = CRS(proj_dict)
         expected = (0.15185342867090912, 0.15133555510297725)
         np.testing.assert_allclose(expected,
                                    hf.get_geostationary_angle_extent(geos_area))
 
-        geos_area.proj_dict['a'] = 1000.0
-        geos_area.proj_dict['b'] = 1000.0
-        geos_area.proj_dict['h'] = np.sqrt(2) * 1000.0 - 1000.0
-
+        proj_dict['a'] = 1000.0
+        proj_dict['b'] = 1000.0
+        proj_dict['h'] = np.sqrt(2) * 1000.0 - 1000.0
+        geos_area.reset_mock()
+        geos_area.crs = CRS(proj_dict)
         expected = (np.deg2rad(45), np.deg2rad(45))
         np.testing.assert_allclose(expected,
                                    hf.get_geostationary_angle_extent(geos_area))
 
-        geos_area.proj_dict = {
+        proj_dict = {
             'proj': 'geos',
             'sweep': 'x',
             'lon_0': -89.5,
             'ellps': 'GRS80',
             'h': 35785831.00,
             'units': 'm'}
+        geos_area.crs = CRS(proj_dict)
         expected = (0.15185277703584374, 0.15133971368991794)
-
         np.testing.assert_allclose(expected,
                                    hf.get_geostationary_angle_extent(geos_area))
 
@@ -159,7 +154,7 @@ class TestHelpers(unittest.TestCase):
             (-6498000.088960204, -6498000.088960204,
              6502000.089024927, 6502000.089024927))
 
-        mask = hf.get_geostationary_mask(area).astype(np.int).compute()
+        mask = hf.get_geostationary_mask(area).astype(int).compute()
 
         # Check results along a couple of lines
         # a) Horizontal
@@ -192,11 +187,11 @@ class TestHelpers(unittest.TestCase):
         area.area_id = 'fakeid'
         area.name = 'fake name'
         area.proj_id = 'fakeproj'
-        area.proj_dict = {'fake': 'dict'}
+        area.crs = 'some_crs'
 
         hf.get_sub_area(area, slice(1, 4), slice(0, 3))
         adef.assert_called_once_with('fakeid', 'fake name', 'fakeproj',
-                                     {'fake': 'dict'},
+                                     'some_crs',
                                      3, 3,
                                      (0.75, -3.75, 5.25, 0.75))
 

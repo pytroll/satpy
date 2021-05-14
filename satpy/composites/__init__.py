@@ -25,6 +25,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+import satpy
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.aux_download import DataDownloadMixin
@@ -208,13 +209,14 @@ class CompositeBase:
 class DifferenceCompositor(CompositeBase):
     """Make the difference of two data arrays."""
 
-    def __call__(self, projectables, nonprojectables=None, **info):
+    def __call__(self, projectables, nonprojectables=None, **attrs):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
+        info.update(attrs)
 
         proj = projectables[0] - projectables[1]
         proj.attrs = info
@@ -227,6 +229,12 @@ class SingleBandCompositor(CompositeBase):
     This preserves all the attributes of the dataset it is derived from.
     """
 
+    @staticmethod
+    def _update_missing_metadata(existing_attrs, new_attrs):
+        for key, val in new_attrs.items():
+            if key not in existing_attrs and val is not None:
+                existing_attrs[key] = val
+
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         if len(projectables) != 1:
@@ -234,10 +242,7 @@ class SingleBandCompositor(CompositeBase):
 
         data = projectables[0]
         new_attrs = data.attrs.copy()
-
-        new_attrs.update({key: val
-                          for (key, val) in attrs.items()
-                          if val is not None})
+        self._update_missing_metadata(new_attrs, attrs)
         resolution = new_attrs.get('resolution', None)
         new_attrs.update(self.attrs)
         if resolution is not None:
@@ -364,6 +369,22 @@ class Filler(GenericCompositor):
         projectables = self.match_data_arrays(projectables)
         filled_projectable = projectables[0].fillna(projectables[1])
         return super(Filler, self).__call__([filled_projectable], **info)
+
+
+class MultiFiller(GenericCompositor):
+    """Fix holes in projectable 1 with data from the next projectables."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        filled_projectable = projectables[0]
+        for next_projectable in projectables[1:]:
+            filled_projectable = filled_projectable.fillna(next_projectable)
+        if 'optional_datasets' in info.keys():
+            for next_projectable in info['optional_datasets']:
+                filled_projectable = filled_projectable.fillna(next_projectable)
+
+        return super(MultiFiller, self).__call__([filled_projectable], **info)
 
 
 class RGBCompositor(GenericCompositor):
@@ -991,7 +1012,8 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
                 ``url`` is provided and ``filename`` is not then the
                 ``filename`` will be guessed from the ``url``.
                 If ``url`` is not provided, then it is assumed ``filename``
-                refers to a local file with an absolute path.
+                refers to a local file. If the ``filename`` does not come with
+                an absolute path, ``data_dir`` will be used as the directory path.
                 Environment variables are expanded.
             url (str): URL to remote file. When the composite is created the
                 file will be downloaded and cached in Satpy's ``data_dir``.
@@ -1003,6 +1025,24 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             area (str): Name of area definition for the image.  Optional
                 for images with built-in area definitions (geotiff).
 
+        Use cases:
+            1. url + no filename:
+               Satpy determines the filename based on the filename in the URL,
+               then downloads the URL, and saves it to <data_dir>/<filename>.
+               If the file already exists and known_hash is also provided, then the pooch
+               library compares the hash of the file to the known_hash. If it does not
+               match, then the URL is re-downloaded. If it matches then no download.
+            2. url + relative filename:
+               Same as case 1 but filename is already provided so download goes to
+               <data_dir>/<filename>. Same hashing behavior. This does not check for an
+               absolute path.
+            3. No url + absolute filename:
+               No download, filename is passed directly to generic_image reader. No hashing
+               is done.
+            4. No url + relative filename:
+               Check if <data_dir>/<filename> exists. If it does then make filename an
+               absolute path. If it doesn't, then keep it as is and let the exception at
+               the bottom of the method get raised.
         """
         filename, url = self._get_cache_filename_and_url(filename, url)
         self._cache_filename = filename
@@ -1018,16 +1058,28 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         self._cache_key = cache_keys[0]
 
     @staticmethod
-    def _get_cache_filename_and_url(filename, url):
-        if filename is not None:
+    def _check_relative_filename(filename):
+        data_dir = satpy.config.get('data_dir')
+        path = os.path.join(data_dir, filename)
+
+        return path if os.path.exists(path) else filename
+
+    def _get_cache_filename_and_url(self, filename, url):
+        if filename:
             filename = os.path.expanduser(os.path.expandvars(filename))
-        if url is not None:
+
+            if not os.path.isabs(filename) and not url:
+                filename = self._check_relative_filename(filename)
+
+        if url:
             url = os.path.expandvars(url)
-            if filename is None:
+            if not filename:
                 filename = os.path.basename(url)
-        if url is None and (filename is None or not os.path.isabs(filename)):
-            raise ValueError("StaticImageCompositor needs a remote 'url' "
-                             "or absolute path to 'filename'.")
+        elif not filename or not os.path.isabs(filename):
+            raise ValueError("StaticImageCompositor needs a remote 'url', "
+                             "or absolute path to 'filename', "
+                             "or an existing 'filename' relative to Satpy's 'data_dir'.")
+
         return filename, url
 
     def register_data_files(self, data_files):
@@ -1280,3 +1332,38 @@ def _get_flag_value(mask, val):
     index = flag_meanings.index(val)
 
     return flag_values[index]
+
+
+class LongitudeMaskingCompositor(GenericCompositor):
+    """Masks areas outside defined longitudes."""
+
+    def __init__(self, name, lon_min=None, lon_max=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            lon_min (float): lower longitude limit
+            lon_max (float): upper longitude limit
+        """
+        self.lon_min = lon_min
+        self.lon_max = lon_max
+        if self.lon_min is None and self.lon_max is None:
+            raise ValueError("Masking conditions not defined. \
+                At least lon_min or lon_max has to be specified.")
+        if not self.lon_min:
+            self.lon_min = -180.
+        if not self.lon_max:
+            self.lon_max = 180.
+        super(LongitudeMaskingCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectable = projectables[0]
+        lons, lats = projectable.attrs["area"].get_lonlats()
+
+        if self.lon_max > self.lon_min:
+            lon_min_max = np.logical_and(lons >= self.lon_min, lons <= self.lon_max)
+        else:
+            lon_min_max = np.logical_or(lons >= self.lon_min, lons <= self.lon_max)
+
+        masked_projectable = projectable.where(lon_min_max)
+        return super(LongitudeMaskingCompositor, self).__call__([masked_projectable], **info)

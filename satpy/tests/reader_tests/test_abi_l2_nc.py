@@ -67,7 +67,7 @@ class Test_NC_ABI_L2_base(unittest.TestCase):
                 'HT': ht_da,
                 "nominal_satellite_subpoint_lat": np.array(0.0),
                 "nominal_satellite_subpoint_lon": np.array(-89.5),
-                "nominal_satellite_height": np.array(35786020.),
+                "nominal_satellite_height": np.array(35786.02),
                 "spatial_resolution": "10km at nadir",
 
             },

@@ -23,6 +23,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from satpy.dataset.dataid import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -166,8 +167,45 @@ class TestCombineMetadata(unittest.TestCase):
               ]
         assert "quality" not in combine_metadata(*dts6)
 
+    def test_combine_lists_identical(self):
+        """Test combine metadata with identical lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 4]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert res['prerequisites'] == [1, 2, 3, 4]
+
+    def test_combine_lists_same_size_diff_values(self):
+        """Test combine metadata with lists with different values."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 5]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+    def test_combine_lists_different_size(self):
+        """Test combine metadata with different size lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': []},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
     def test_combine_identical_numpy_scalars(self):
-        """Test combining idendical fill values."""
+        """Test combining identical fill values."""
         from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
         assert combine_metadata(*test_metadata) == {'_FillValue': 42}
@@ -212,7 +250,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}},
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': np.array([1, 2, 3])}},
                        {'_FillValue': np.nan,
                         'valid_range': np.array([0., 0.00032], dtype=np.float32),
                         'ancillary_variables': ['cpp_status_flag',
@@ -221,7 +260,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}})
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': np.array([2, 3, 4])}})
 
         expected = {'_FillValue': np.nan,
                     'valid_range': np.array([0., 0.00032], dtype=np.float32),
@@ -427,87 +467,105 @@ class TestDataQuery:
         assert not d2.create_less_modified_query()['modifiers']
 
 
-def test_id_query_interactions():
-    """Test interactions between DataIDs and DataQuery's."""
-    from satpy.dataset.dataid import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
+class TestIDQueryInteractions(unittest.TestCase):
+    """Test the interactions between DataIDs and DataQuerys."""
 
-    default_id_keys_config = {'name': {
-                                'required': True,
-                              },
-                              'wavelength': {
-                                'type': WavelengthRange,
-                            },
-                            'resolution': None,
-                            'calibration': {
-                                'enum': [
-                                    'reflectance',
-                                    'brightness_temperature',
-                                    'radiance',
-                                    'counts'
-                                    ]
-                            },
-                            'modifiers': {
-                                'default': ModifierTuple(),
-                                'type': ModifierTuple,
-                            },
-                            }
+    def setUp(self) -> None:
+        """Set up the test case."""
+        self.default_id_keys_config = {
+            'name': {
+                'required': True,
+            },
+            'wavelength': {
+                'type': WavelengthRange,
+            },
+            'resolution': None,
+            'calibration': {
+                'enum': [
+                    'reflectance',
+                    'brightness_temperature',
+                    'radiance',
+                    'counts'
+                ]
+            },
+            'modifiers': {
+                'default': ModifierTuple(),
+                'type': ModifierTuple,
+            },
+        }
 
-    # Check hash equality
-    dq = DataQuery(modifiers=tuple(), name='cheese_shops')
-    did = DataID(default_id_keys_config, name='cheese_shops')
-    assert hash(dq) == hash(did)
+    def test_hash_equality(self):
+        """Test hash equality."""
+        dq = DataQuery(modifiers=tuple(), name='cheese_shops')
+        did = DataID(self.default_id_keys_config, name='cheese_shops')
+        assert hash(dq) == hash(did)
 
-    # Check did filtering
-    did2 = DataID(default_id_keys_config, name='ni')
-    res = dq.filter_dataids([did2, did])
-    assert len(res) == 1
-    assert res[0] == did
+    def test_id_filtering(self):
+        """Check did filtering."""
+        dq = DataQuery(modifiers=tuple(), name='cheese_shops')
+        did = DataID(self.default_id_keys_config, name='cheese_shops')
+        did2 = DataID(self.default_id_keys_config, name='ni')
+        res = dq.filter_dataids([did2, did])
+        assert len(res) == 1
+        assert res[0] == did
 
-    dataid_container = [DataID(default_id_keys_config,
-                               name='ds1',
-                               resolution=250,
-                               calibration='reflectance',
-                               modifiers=tuple())]
-    dq = DataQuery(wavelength=0.22, modifiers=tuple())
-    assert len(dq.filter_dataids(dataid_container)) == 0
-    dataid_container = [DataID(minimal_default_keys_config,
-                               name='natural_color')]
-    dq = DataQuery(name='natural_color', resolution=250)
-    assert len(dq.filter_dataids(dataid_container)) == 1
+        dataid_container = [DataID(self.default_id_keys_config,
+                                   name='ds1',
+                                   resolution=250,
+                                   calibration='reflectance',
+                                   modifiers=tuple())]
+        dq = DataQuery(wavelength=0.22, modifiers=tuple())
+        assert len(dq.filter_dataids(dataid_container)) == 0
+        dataid_container = [DataID(minimal_default_keys_config,
+                                   name='natural_color')]
+        dq = DataQuery(name='natural_color', resolution=250)
+        assert len(dq.filter_dataids(dataid_container)) == 1
 
-    dq = make_dsq(wavelength=0.22, modifiers=('mod1',))
-    did = make_cid(name='static_image')
-    assert len(dq.filter_dataids([did])) == 0
+        dq = make_dsq(wavelength=0.22, modifiers=('mod1',))
+        did = make_cid(name='static_image')
+        assert len(dq.filter_dataids([did])) == 0
 
-    # Check did sorting
-    dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')
-    did = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1, 2, 3))
-    did2 = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1.1, 2.1, 3.1))
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did, did2]
-    assert np.allclose(distances, [0, 0.1])
+    def test_inequality(self):
+        """Check (in)equality."""
+        assert DataQuery(wavelength=10) != DataID(self.default_id_keys_config, name="VIS006")
 
-    dq = DataQuery(name='cheese_shops')
-    did = DataID(default_id_keys_config, name='cheese_shops', resolution=200)
-    did2 = DataID(default_id_keys_config, name='cheese_shops', resolution=400)
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did, did2]
-    assert distances[0] < distances[1]
+    def test_sort_dataids(self):
+        """Check dataid sorting."""
+        dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')
+        did = DataID(self.default_id_keys_config, name='cheese_shops', wavelength=(1, 2, 3))
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', wavelength=(1.1, 2.1, 3.1))
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did, did2]
+        assert np.allclose(distances, [0, 0.1])
 
-    did = DataID(default_id_keys_config, name='cheese_shops', calibration='counts')
-    did2 = DataID(default_id_keys_config, name='cheese_shops', calibration='reflectance')
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did2, did]
-    assert distances[0] < distances[1]
+        dq = DataQuery(name='cheese_shops')
+        did = DataID(self.default_id_keys_config, name='cheese_shops', resolution=200)
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', resolution=400)
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did, did2]
+        assert distances[0] < distances[1]
 
-    did = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple())
-    did2 = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple(['out_of_stock']))
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did, did2]
-    assert distances[0] < distances[1]
+        did = DataID(self.default_id_keys_config, name='cheese_shops', calibration='counts')
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', calibration='reflectance')
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did2, did]
+        assert distances[0] < distances[1]
 
-    # Check (in)equality
-    assert DataQuery(wavelength=10) != DataID(default_id_keys_config, name="VIS006")
+        did = DataID(self.default_id_keys_config, name='cheese_shops', modifiers=tuple())
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', modifiers=tuple(['out_of_stock']))
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did, did2]
+        assert distances[0] < distances[1]
+
+    def test_sort_dataids_with_different_set_of_keys(self):
+        """Check sorting data ids when the query has a different set of keys."""
+        dq = DataQuery(name='solar_zenith_angle', calibration='reflectance')
+        dids = [DataID(self.default_id_keys_config, name='solar_zenith_angle', resolution=1000, modifiers=()),
+                DataID(self.default_id_keys_config, name='solar_zenith_angle', resolution=500, modifiers=()),
+                DataID(self.default_id_keys_config, name='solar_zenith_angle', resolution=250, modifiers=())]
+        dsids, distances = dq.sort_dataids(dids)
+        assert distances[0] < distances[1]
+        assert distances[1] < distances[2]
 
 
 def test_wavelength_range():

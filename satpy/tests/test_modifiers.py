@@ -370,7 +370,7 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
                                      'start_time': 'start_time',
                                      'name': 'name',
                                      'platform_name': 'platform',
-                                     'sensor': 'sensor'})
+                                     'sensor': 'sensor'}, dims=['y'])
 
         # Perform atmospherical correction
         psp = PSPAtmosphericalCorrection(name='dummy')

@@ -267,8 +267,9 @@ class TestDifferenceCompositor(unittest.TestCase):
         """Test that a basic difference composite works."""
         from satpy.composites import DifferenceCompositor
         comp = DifferenceCompositor(name='diff')
-        res = comp((self.ds1, self.ds2))
+        res = comp((self.ds1, self.ds2), standard_name='temperature_difference')
         np.testing.assert_allclose(res.values, -2)
+        assert res.attrs.get('standard_name') == 'temperature_difference'
 
     def test_bad_areas_diff(self):
         """Test that a difference where resolutions are different fails."""
@@ -289,7 +290,7 @@ class TestDayNightCompositor(unittest.TestCase):
         start_time = datetime(2018, 1, 1, 18, 0, 0)
 
         # RGB
-        a = np.zeros((3, 2, 2), dtype=np.float)
+        a = np.zeros((3, 2, 2), dtype=np.float64)
         a[:, 0, 0] = 0.1
         a[:, 0, 1] = 0.2
         a[:, 1, 0] = 0.3
@@ -297,7 +298,7 @@ class TestDayNightCompositor(unittest.TestCase):
         a = da.from_array(a, a.shape)
         self.data_a = xr.DataArray(a, attrs={'test': 'a', 'start_time': start_time},
                                    coords={'bands': bands}, dims=('bands', 'y', 'x'))
-        b = np.zeros((3, 2, 2), dtype=np.float)
+        b = np.zeros((3, 2, 2), dtype=np.float64)
         b[:, 0, 0] = np.nan
         b[:, 0, 1] = 0.25
         b[:, 1, 0] = 0.50
@@ -356,6 +357,23 @@ class TestFillingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='R').data, filler.data)
         np.testing.assert_allclose(res.sel(bands='G').data, filler.data)
         np.testing.assert_allclose(res.sel(bands='B').data, blue.data)
+
+
+class TestMultiFiller(unittest.TestCase):
+    """Test case for the MultiFiller compositor."""
+
+    def test_fill(self):
+        """Test filling."""
+        from satpy.composites import MultiFiller
+        comp = MultiFiller(name='fill_test')
+        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]))
+        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]))
+        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]))
+        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]))
+        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]))
+        expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
+        res = comp([a, b, c], optional_datasets=[d, e])
+        np.testing.assert_allclose(res.data, expected.data)
 
 
 class TestLuminanceSharpeningCompositor(unittest.TestCase):
@@ -663,10 +681,16 @@ class TestSingleBandCompositor(unittest.TestCase):
         # Dataset with extra attributes
         all_valid = self.all_valid
         all_valid.attrs['sensor'] = 'foo'
-        attrs = {'foo': 'bar', 'resolution': 333, 'units': 'K',
-                 'calibration': 'BT', 'wavelength': 10.8}
+        attrs = {
+            'foo': 'bar',
+            'resolution': 333,
+            'units': 'K',
+            'sensor': {'fake_sensor1', 'fake_sensor2'},
+            'calibration': 'BT',
+            'wavelength': 10.8
+        }
         self.comp.attrs['resolution'] = None
-        res = self.comp([self.all_valid], **attrs)
+        res = self.comp([all_valid], **attrs)
         # Verify attributes
         self.assertEqual(res.attrs.get('sensor'), 'foo')
         self.assertTrue('foo' in res.attrs)
@@ -890,10 +914,6 @@ class TestStaticImageCompositor(unittest.TestCase):
         with self.assertRaises(ValueError):
             StaticImageCompositor("name")
 
-        # No absolute filename and no URL
-        with self.assertRaises(ValueError):
-            StaticImageCompositor("name", filename="foo.tif")
-
         # No area defined
         comp = StaticImageCompositor("name", filename="/foo.tif")
         self.assertEqual(comp._cache_filename, "/foo.tif")
@@ -911,7 +931,10 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
+        import satpy
         from satpy.composites import StaticImageCompositor
+
+        satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
         remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
@@ -965,6 +988,19 @@ class TestStaticImageCompositor(unittest.TestCase):
         os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
         self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
+
+        # URL and filename without absolute path
+        comp = StaticImageCompositor("name", url=remote_tif, filename="bar.tif")
+        self.assertEqual(comp._url, remote_tif)
+        self.assertEqual(comp._cache_filename, "bar.tif")
+
+        # No URL, filename without absolute path, use default data_dir from config
+        with mock.patch('os.path.exists') as exists:
+            exists.return_value = True
+            comp = StaticImageCompositor("name", filename="foo.tif")
+            self.assertEqual(comp._url, None)
+            self.assertEqual(comp._cache_filename,
+                             os.path.join(os.path.sep, 'path', 'to', 'image', 'foo.tif'))
 
 
 def _enhance2dataset(dataset, convert_p=False):
@@ -1399,3 +1435,36 @@ class TestInferMode(unittest.TestCase):
         from satpy.composites import GenericCompositor
         arr = xr.DataArray(np.ones((5, 5)), dims=('x', 'y'))
         assert GenericCompositor.infer_mode(arr) == 'L'
+
+
+class TestLongitudeMaskingCompositor(unittest.TestCase):
+    """Test case for the LongitudeMaskingCompositor compositor."""
+
+    def test_masking(self):
+        """Test longitude masking."""
+        from satpy.composites import LongitudeMaskingCompositor
+
+        area = mock.MagicMock()
+        lons = np.array([-180., -100., -50., 0., 50., 100., 180.])
+        area.get_lonlats = mock.MagicMock(return_value=[lons, []])
+        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]), attrs={'area': area})
+
+        comp = LongitudeMaskingCompositor(name='test', lon_min=-40., lon_max=120.)
+        expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, np.nan]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
+
+        comp = LongitudeMaskingCompositor(name='test', lon_min=-40.)
+        expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, 7]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
+
+        comp = LongitudeMaskingCompositor(name='test', lon_max=120.)
+        expected = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, np.nan]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
+
+        comp = LongitudeMaskingCompositor(name='test', lon_min=120., lon_max=-40.)
+        expected = xr.DataArray(np.array([1, 2, 3, np.nan, np.nan, np.nan, 7]))
+        res = comp([a])
+        np.testing.assert_allclose(res.data, expected.data)
