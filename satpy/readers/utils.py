@@ -66,27 +66,36 @@ def np2str(value):
         raise ValueError("Array is not a string type or is larger than 1")
 
 
+def _get_geostationary_height(geos_area):
+    params = geos_area.crs.coordinate_operation.params
+    h_param = [p for p in params if 'satellite height' in p.name.lower()][0]
+    return h_param.value
+
+
+def _get_geostationary_reference_longitude(geos_area):
+    params = geos_area.crs.coordinate_operation.params
+    lon_0_params = [p for p in params if 'longitude of natural origin' in p.name.lower()]
+    if not lon_0_params:
+        return 0
+    elif len(lon_0_params) != 1:
+        raise ValueError("Not sure how to get reference longitude "
+                         "information from AreaDefinition.")
+    return lon_0_params[0].value
+
+
+def _get_geostationary_semi_axes(geos_area):
+    from pyresample.utils import proj4_radius_parameters
+    return proj4_radius_parameters(geos_area.crs)
+
+
 def get_geostationary_angle_extent(geos_area):
     """Get the max earth (vs space) viewing angles in x and y."""
     # TODO: take into account sweep_axis_angle parameter
-
-    # get some projection parameters
-    try:
-        crs = geos_area.crs
-        a = crs.ellipsoid.semi_major_metre
-        b = crs.ellipsoid.semi_minor_metre
-        if np.isnan(b):
-            # see https://github.com/pyproj4/pyproj/issues/457
-            raise AttributeError("'semi_minor_metre' attribute is not valid "
-                                 "in older versions of pyproj.")
-    except AttributeError:
-        # older versions of pyproj don't have CRS objects
-        from pyresample.utils import proj4_radius_parameters
-        a, b = proj4_radius_parameters(geos_area.proj_dict)
-
+    a, b = _get_geostationary_semi_axes(geos_area)
+    h = _get_geostationary_height(geos_area)
     req = float(a) / 1000
     rp = float(b) / 1000
-    h = float(geos_area.proj_dict['h']) / 1000 + req
+    h = float(h) / 1000 + req
 
     # compute some constants
     aeq = 1 - req**2 / (h ** 2)
@@ -111,7 +120,7 @@ def get_geostationary_mask(area):
 
     """
     # Compute projection coordinates at the earth's limb
-    h = area.proj_dict['h']
+    h = _get_geostationary_height(area)
     xmax, ymax = get_geostationary_angle_extent(area)
     xmax *= h
     ymax *= h
@@ -125,21 +134,24 @@ def get_geostationary_mask(area):
 
 def _lonlat_from_geos_angle(x, y, geos_area):
     """Get lons and lats from x, y in projection coordinates."""
-    h = float(geos_area.proj_dict['h'] + geos_area.proj_dict['a']) / 1000
-    b__ = (geos_area.proj_dict['a'] / float(geos_area.proj_dict['b'])) ** 2
+    a, b = _get_geostationary_semi_axes(geos_area)
+    h = _get_geostationary_height(geos_area)
+    lon_0 = _get_geostationary_reference_longitude(geos_area)
+    h__ = float(h + a) / 1000
+    b__ = (a / float(b)) ** 2
 
-    sd = np.sqrt((h * np.cos(x) * np.cos(y)) ** 2 -
+    sd = np.sqrt((h__ * np.cos(x) * np.cos(y)) ** 2 -
                  (np.cos(y)**2 + b__ * np.sin(y)**2) *
-                 (h**2 - (float(geos_area.proj_dict['a']) / 1000)**2))
+                 (h__**2 - (float(a) / 1000)**2))
     # sd = 0
 
-    sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
-    s1 = h - sn * np.cos(x) * np.cos(y)
+    sn = (h__ * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
+    s1 = h__ - sn * np.cos(x) * np.cos(y)
     s2 = sn * np.sin(x) * np.cos(y)
     s3 = -sn * np.sin(y)
     sxy = np.sqrt(s1**2 + s2**2)
 
-    lons = np.rad2deg(np.arctan2(s2, s1)) + geos_area.proj_dict.get('lon_0', 0)
+    lons = np.rad2deg(np.arctan2(s2, s1)) + lon_0
     lats = np.rad2deg(-np.arctan2(b__ * s3, sxy))
 
     return lons, lats
@@ -154,6 +166,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
 
     """
     xmax, ymax = get_geostationary_angle_extent(geos_area)
+    h = _get_geostationary_height(geos_area)
 
     # generate points around the north hemisphere in satellite projection
     # make it a bit smaller so that we stay inside the valid area
@@ -162,7 +175,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
 
     # clip the projection coordinates to fit the area extent of geos_area
     ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent) /
-                              float(geos_area.proj_dict['h']))
+                              float(h))
 
     x = np.clip(np.concatenate([x, x[::-1]]), min(ll_x, ur_x), max(ll_x, ur_x))
     y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
@@ -182,7 +195,7 @@ def get_sub_area(area, xslice, yslice):
                         (yslice.start - 0.5) * area.pixel_size_y))
 
     return AreaDefinition(area.area_id, area.name,
-                          area.proj_id, area.proj_dict,
+                          area.proj_id, area.crs,
                           xslice.stop - xslice.start,
                           yslice.stop - yslice.start,
                           new_area_extent)

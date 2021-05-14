@@ -47,6 +47,13 @@ datasets:
     standard_name: latitude
     units: degree
 
+  altitude:
+    name: altitude
+    resolution: 300
+    file_type: esa_geo
+    standard_name: altitude
+    units: m
+
   Oa01:
     name: Oa01
     sensor: olci

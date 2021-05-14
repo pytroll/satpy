@@ -64,6 +64,26 @@ class TestDependencyTree(unittest.TestCase):
         dependency_3 = make_dataid(name='ds2', resolution=250, calibration="reflectance", modifiers=tuple())
         self.dependency_tree.add_leaf(dependency_3, node_composite_1)
 
+    @staticmethod
+    def _nodes_equal(node_list1, node_list2):
+        names1 = [node.name for node in node_list1]
+        names2 = [node.name for node in node_list2]
+        return sorted(names1) == sorted(names2)
+
+    def test_copy_preserves_all_nodes(self):
+        """Test that dependency tree copy preserves all nodes."""
+        new_dependency_tree = self.dependency_tree.copy()
+        assert self.dependency_tree.empty_node is new_dependency_tree.empty_node
+        assert self._nodes_equal(self.dependency_tree.leaves(),
+                                 new_dependency_tree.leaves())
+        assert self._nodes_equal(self.dependency_tree.trunk(),
+                                 new_dependency_tree.trunk())
+
+        # make sure that we can get access to sub-nodes
+        c13_id = make_cid(name='comp13')
+        assert self._nodes_equal(self.dependency_tree.trunk(limit_nodes_to=[c13_id]),
+                                 new_dependency_tree.trunk(limit_nodes_to=[c13_id]))
+
     def test_copy_preserves_unique_empty_node(self):
         """Test that dependency tree copy preserves the uniqueness of the empty node."""
         new_dependency_tree = self.dependency_tree.copy()
@@ -101,7 +121,7 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
 
     def test_modis_overview_1000m(self):
         """Test a modis overview dependency calculation with resolution fixed to 1000m."""
-        from satpy.config import PACKAGE_CONFIG_PATH
+        from satpy._config import PACKAGE_CONFIG_PATH
         from satpy.readers.yaml_reader import FileYAMLReader
 
         from satpy import DataQuery

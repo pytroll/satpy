@@ -17,7 +17,7 @@ To install the `satpy` package and the minimum amount of python dependencies:
 
 Additional dependencies can be installed as "extras" and are grouped by
 reader, writer, or feature added. Extras available can be found in the
-`setup.py <https://github.com/pytroll/satpy/blob/master/setup.py>`_ file.
+`setup.py <https://github.com/pytroll/satpy/blob/main/setup.py>`_ file.
 They can be installed individually:
 
 .. code-block:: bash

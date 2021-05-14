@@ -10,9 +10,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
-# To generate apidoc modules:
-#     sphinx-apidoc -f -T -o source/api ../satpy ../satpy/tests
 """Sphinx documentation configuration and setup."""
 
 import os
@@ -81,7 +78,18 @@ autoclass_content = 'both'  # append class __init__ docstring to the class docst
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'doi_role',
-              'sphinx.ext.viewcode']
+              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc']
+
+# API docs
+apidoc_module_dir = "../../satpy"
+apidoc_output_dir = "api"
+apidoc_excluded_paths = [
+    'readers/caliop_l2_cloud.py',
+    'readers/ghrsst_l3c_sst.py',
+    'readers/li_l2.py',
+    'readers/scatsat1_l2b.py',
+]
+apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -172,11 +180,9 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
-        ],
-     }
+html_css_files = [
+    'theme_overrides.css',  # override wide tables in RTD theme
+]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -267,4 +273,6 @@ intersphinx_mapping = {
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
+    'donfig': ('https://donfig.readthedocs.io/en/latest', None),
+    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }

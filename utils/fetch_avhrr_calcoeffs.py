@@ -106,7 +106,7 @@ def get_all_coeffs():
     """Get all available calibration coefficients for the satellites."""
     coeffs = {}
 
-    for platform in URLS.keys():
+    for platform in URLS:
         if platform not in coeffs:
             coeffs[platform] = {}
         for chan in URLS[platform].keys():

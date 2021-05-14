@@ -27,7 +27,7 @@ There are several readers using the same satpy_cf_nc.py reader.
 * EUMETSAT GAC FDR reader ``avhrr_l1c_eum_gac_fdr_nc``
 
 Generic reader
--------
+--------------
 
 The generic ``satpy_cf_nc`` reader reads files of type:
 
@@ -38,6 +38,7 @@ The generic ``satpy_cf_nc`` reader reads files of type:
 
 Example
 -------
+
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -48,7 +49,6 @@ Here is an example how to read the data in satpy:
     scn = Scene(reader='satpy_cf_nc', filenames=filenames)
     scn.load(['M05'])
     scn['M05']
-
 
 Output:
 
@@ -83,7 +83,7 @@ Notes:
     Available datasets and attributes will depend on the data saved with the cf_writer.
 
 EUMETSAT AVHRR GAC FDR L1C reader
--------
+---------------------------------
 
 The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
 
@@ -94,6 +94,7 @@ The ``avhrr_l1c_eum_gac_fdr_nc`` reader reads files of type:
 
 Example
 -------
+
 Here is an example how to read the data in satpy:
 
 .. code-block:: python
@@ -177,11 +178,14 @@ Output:
         ancillary_variables:                   []
 
 """
-from satpy.readers.file_handlers import BaseFileHandler
-import logging
 import itertools
+import logging
+
 import xarray as xr
+
 from satpy import CHUNK_SIZE
+from satpy.dataset.dataid import WavelengthRange
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -189,10 +193,11 @@ logger = logging.getLogger(__name__)
 class SatpyCFFileHandler(BaseFileHandler):
     """File handler for Satpy's CF netCDF files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, numeric_name_prefix='CHANNEL_'):
         """Initialize file handler."""
         super().__init__(filename, filename_info, filetype_info)
         self.engine = None
+        self._numeric_name_prefix = numeric_name_prefix
 
     @property
     def start_time(self):
@@ -231,7 +236,7 @@ class SatpyCFFileHandler(BaseFileHandler):
     def fix_modifier_attr(self, ds_info):
         """Fix modifiers attribute."""
         # Empty modifiers are read as [], which causes problems later
-        if 'modifiers' in ds_info and len(ds_info['modifiers']) == 0:
+        if 'modifiers' in ds_info and not ds_info['modifiers']:
             ds_info['modifiers'] = ()
         try:
             try:
@@ -241,23 +246,32 @@ class SatpyCFFileHandler(BaseFileHandler):
         except KeyError:
             pass
 
+    def _assign_ds_info(self, var_name, val):
+        """Assign ds_info."""
+        ds_info = dict(val.attrs)
+        ds_info['file_type'] = self.filetype_info['file_type']
+        ds_info['name'] = ds_info['nc_store_name'] = var_name
+        if 'original_name' in ds_info:
+            ds_info['name'] = ds_info['original_name']
+        elif self._numeric_name_prefix and var_name.startswith(self._numeric_name_prefix):
+            ds_info['name'] = var_name.replace(self._numeric_name_prefix, '')
+        try:
+            ds_info['wavelength'] = WavelengthRange.from_cf(ds_info['wavelength'])
+        except KeyError:
+            pass
+        return ds_info
+
     def _dynamic_datasets(self):
         """Add information of dynamic datasets."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
         # get dynamic variables known to this file (that we created)
         for var_name, val in nc.data_vars.items():
-            ds_info = dict(val.attrs)
-            ds_info['file_type'] = self.filetype_info['file_type']
-            ds_info['name'] = var_name
-            try:
-                ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
-            except KeyError:
-                pass
+            ds_info = self._assign_ds_info(var_name, val)
             self.fix_modifier_attr(ds_info)
             yield True, ds_info
 
     def _coordinate_datasets(self, configured_datasets=None):
-        """Add information of coordiante datasets."""
+        """Add information of coordinate datasets."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
         for var_name, val in nc.coords.items():
             ds_info = dict(val.attrs)
@@ -271,7 +285,10 @@ class SatpyCFFileHandler(BaseFileHandler):
         logger.debug("Getting data for: %s", ds_id['name'])
         nc = xr.open_dataset(self.filename, engine=self.engine,
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
-        file_key = ds_info.get('file_key', ds_id['name'])
+        name = ds_info.get('nc_store_name', ds_id['name'])
+        file_key = ds_info.get('file_key', name)
         data = nc[file_key]
+        if name != ds_id['name']:
+            data = data.rename(ds_id['name'])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         return data

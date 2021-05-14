@@ -17,12 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF reader."""
 
-import unittest
 import os
+import unittest
+from contextlib import suppress
 from datetime import datetime
-import xarray as xr
+
 import numpy as np
+import xarray as xr
+
 from satpy import Scene
+from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
 
 
@@ -49,7 +53,10 @@ class TestCFReader(unittest.TestCase):
         vis006 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
                               coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_vis006)},
-                              attrs={'name': 'image0', 'id_tag': 'ch_r06', 'coordinates': 'lat lon'})
+                              attrs={'name': 'image0', 'id_tag': 'ch_r06',
+                                     'coordinates': 'lat lon', 'resolution': 1000, 'calibration': 'reflectance',
+                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm')
+                                     })
 
         ir_108 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
@@ -85,25 +92,25 @@ class TestCFReader(unittest.TestCase):
 
     def test_write_and_read(self):
         """Save a file with cf_writer and read the data again."""
-        # '{testin}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
-        self.scene.save_datasets(writer='cf',
-                                 filename=filename,
-                                 header_attrs={'instrument': 'avhrr'},
-                                 engine='h5netcdf',
-                                 flatten_attrs=True,
-                                 pretty=True)
-        scn_ = Scene(reader='satpy_cf_nc',
-                     filenames=[filename])
-        scn_.load(['image0', 'image1', 'lat'])
-        self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
-        self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
-        self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
         try:
-            os.remove(filename)
-        except PermissionError:
-            pass
+            self.scene.save_datasets(writer='cf',
+                                     filename=filename,
+                                     header_attrs={'instrument': 'avhrr'},
+                                     engine='h5netcdf',
+                                     flatten_attrs=True,
+                                     pretty=True)
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['image0', 'image1', 'lat'])
+            np.testing.assert_array_equal(scn_['image0'].data, self.scene['image0'].data)
+            np.testing.assert_array_equal(scn_['lat'].data, self.scene['lat'].data)  # lat loaded as dataset
+            np.testing.assert_array_equal(scn_['image0'].coords['lon'], self.scene['lon'].data)  # lon loded as coord
+            assert isinstance(scn_['image0'].attrs['wavelength'], WavelengthRange)
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
 
     def test_fix_modifier_attr(self):
         """Check that fix modifier can handle empty list as modifier attribute."""
@@ -113,3 +120,194 @@ class TestCFReader(unittest.TestCase):
         ds_info = {'modifiers': []}
         self.reader.fix_modifier_attr(ds_info)
         self.assertEqual(ds_info['modifiers'], ())
+
+    def _dataset_for_prefix_testing(self):
+        data_visir = [[1, 2], [3, 4]]
+        y_visir = [1, 2]
+        x_visir = [1, 2]
+        lat = 33.0 * np.array([[1, 2], [3, 4]])
+        lon = -13.0 * np.array([[1, 2], [3, 4]])
+        vis006 = xr.DataArray(data_visir,
+                              dims=('y', 'x'),
+                              coords={'y': y_visir, 'x': x_visir},
+                              attrs={'name': '1', 'id_tag': 'ch_r06',
+                                     'coordinates': 'lat lon', 'resolution': 1000, 'calibration': 'reflectance',
+                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm')
+                                     })
+        lat = xr.DataArray(lat,
+                           dims=('y', 'x'),
+                           coords={'y': y_visir, 'x': x_visir},
+                           attrs={'name': 'lat',
+                                  'standard_name': 'latitude',
+                                  'modifiers': np.array([])})
+        lon = xr.DataArray(lon,
+                           dims=('y', 'x'),
+                           coords={'y': y_visir, 'x': x_visir},
+                           attrs={'name': 'lon',
+                                  'standard_name': 'longitude',
+                                  'modifiers': np.array([])})
+        scene = Scene()
+        scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
+        scene['1'] = vis006
+        scene['lat'] = lat
+        scene['lon'] = lon
+
+        return scene
+
+    def test_read_prefixed_channels(self):
+        """Check channels starting with digit is prefixed and read back correctly."""
+        scene = self._dataset_for_prefix_testing()
+        # Testing with default prefixing
+        filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            scene.save_datasets(writer='cf',
+                                filename=filename,
+                                header_attrs={'instrument': 'avhrr'},
+                                engine='netcdf4',
+                                flatten_attrs=True,
+                                pretty=True)
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['1'])
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loaded as coord
+
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename], reader_kwargs={})
+            scn_.load(['1'])
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loaded as coord
+
+            # Check that variables starting with a digit is written to filename variable prefixed
+            with xr.open_dataset(filename) as ds_disk:
+                np.testing.assert_array_equal(ds_disk['CHANNEL_1'].data, scene['1'].data)
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def test_read_prefixed_channels_include_orig_name(self):
+        """Check channels starting with digit and includeed orig name is prefixed and read back correctly."""
+        scene = self._dataset_for_prefix_testing()
+        # Testing with default prefixing
+        filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            scene.save_datasets(writer='cf',
+                                filename=filename,
+                                header_attrs={'instrument': 'avhrr'},
+                                engine='netcdf4',
+                                flatten_attrs=True,
+                                pretty=True,
+                                include_orig_name=True)
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['1'])
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loaded as coord
+
+            self.assertEqual(scn_['1'].attrs['original_name'], '1')
+
+            # Check that variables starting with a digit is written to filename variable prefixed
+            with xr.open_dataset(filename) as ds_disk:
+                np.testing.assert_array_equal(ds_disk['CHANNEL_1'].data, scene['1'].data)
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def test_read_prefixed_channels_by_user(self):
+        """Check channels starting with digit is prefixed by user and read back correctly."""
+        scene = self._dataset_for_prefix_testing()
+        filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            scene.save_datasets(writer='cf',
+                                filename=filename,
+                                header_attrs={'instrument': 'avhrr'},
+                                engine='netcdf4',
+                                flatten_attrs=True,
+                                pretty=True,
+                                numeric_name_prefix='USER')
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename], reader_kwargs={'numeric_name_prefix': 'USER'})
+            scn_.load(['1'])
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loded as coord
+
+            # Check that variables starting with a digit is written to filename variable prefixed
+            with xr.open_dataset(filename) as ds_disk:
+                np.testing.assert_array_equal(ds_disk['USER1'].data, scene['1'].data)
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def test_read_prefixed_channels_by_user2(self):
+        """Check channels starting with digit is prefixed by user when saving and read back correctly without prefix."""
+        scene = self._dataset_for_prefix_testing()
+        filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            scene.save_datasets(writer='cf',
+                                filename=filename,
+                                header_attrs={'instrument': 'avhrr'},
+                                engine='netcdf4',
+                                flatten_attrs=True,
+                                pretty=True,
+                                include_orig_name=False,
+                                numeric_name_prefix='USER')
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['USER1'])
+            np.testing.assert_array_equal(scn_['USER1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['USER1'].coords['lon'], scene['lon'].data)  # lon loded as coord
+
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def test_read_prefixed_channels_by_user_include_prefix(self):
+        """Check channels starting with digit is prefixed by user and include original name when saving."""
+        scene = self._dataset_for_prefix_testing()
+        filename = 'testingcfwriter2{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            scene.save_datasets(writer='cf',
+                                filename=filename,
+                                header_attrs={'instrument': 'avhrr'},
+                                engine='netcdf4',
+                                flatten_attrs=True,
+                                pretty=True,
+                                include_orig_name=True,
+                                numeric_name_prefix='USER')
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['1'])
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loded as coord
+
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def test_read_prefixed_channels_by_user_no_prefix(self):
+        """Check channels starting with digit is not prefixed by user."""
+        scene = self._dataset_for_prefix_testing()
+        filename = 'testingcfwriter3{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            scene.save_datasets(writer='cf',
+                                filename=filename,
+                                header_attrs={'instrument': 'avhrr'},
+                                engine='netcdf4',
+                                flatten_attrs=True,
+                                pretty=True,
+                                numeric_name_prefix='')
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['1'])
+            np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
+            np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loded as coord
+
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)

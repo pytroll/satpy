@@ -1,6 +1,6 @@
 # Releasing Satpy
 
-1. checkout master
+1. checkout main branch
 2. pull from repo
 3. run the unittests
 4. run `loghub` and update the `CHANGELOG.md` file:
@@ -36,4 +36,11 @@
 
 
 6. push changes to github `git push --follow-tags`
-7. Verify travis tests passed and deployed sdist and wheel to PyPI
+7. Verify github action unittests passed.
+8. Create a "Release" on GitHub by going to
+   https://github.com/pytroll/satpy/releases and clicking "Draft a new release".
+   On the next page enter the newly created tag in the "Tag version" field,
+   "Version X.Y.Z" in the "Release title" field, and paste the markdown from
+   the changelog (the portion under the version section header) in the
+   "Describe this release" box. Finally click "Publish release".
+9. Verify the GitHub actions for deployment succeed and the release is on PyPI.

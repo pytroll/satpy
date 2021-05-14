@@ -20,6 +20,7 @@ import unittest
 
 
 class TestPillowWriter(unittest.TestCase):
+    """Test Pillow/PIL writer."""
 
     def setUp(self):
         """Create temporary directory to save files to."""

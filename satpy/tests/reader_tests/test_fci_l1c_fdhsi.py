@@ -142,7 +142,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 "wv_{:>02d}": (63, 73),
                 }
         data = {}
-        for pat in chan_patterns.keys():
+        for pat in chan_patterns:
             for ch_num in chan_patterns[pat]:
                 data.update(self._get_test_content_for_channel(pat, ch_num))
         return data
@@ -220,7 +220,7 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
 @pytest.fixture
 def reader_configs():
     """Return reader configs for FCI."""
-    from satpy.config import config_search_paths
+    from satpy._config import config_search_paths
     return config_search_paths(
         os.path.join("readers", "fci_l1c_fdhsi.yaml"))
 

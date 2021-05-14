@@ -19,7 +19,6 @@
 """Reader for eps level 1b data. Uses xml files as a format description."""
 
 import logging
-import os
 
 import numpy as np
 import xarray as xr
@@ -27,7 +26,7 @@ import xarray as xr
 import dask.array as da
 from dask.delayed import delayed
 from pyresample.geometry import SwathDefinition
-from satpy.config import CONFIG_PATH
+from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
 from satpy import CHUNK_SIZE
@@ -55,7 +54,8 @@ record_class = ["Reserved", "mphr", "sphr",
 
 def read_records(filename):
     """Read *filename* without scaling it afterwards."""
-    form = XMLFormat(os.path.join(CONFIG_PATH, "eps_avhrrl1b_6.5.xml"))
+    format_fn = get_config_path("eps_avhrrl1b_6.5.xml")
+    form = XMLFormat(format_fn)
 
     grh_dtype = np.dtype([("record_class", "|i1"),
                           ("INSTRUMENT_GROUP", "|i1"),
@@ -166,7 +166,7 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def __getitem__(self, key):
         """Get value for given key."""
-        for altkey in self.form.scales.keys():
+        for altkey in self.form.scales:
             try:
                 try:
                     return self.sections[altkey][key] * self.form.scales[altkey][key]

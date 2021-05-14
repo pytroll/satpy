@@ -16,12 +16,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests."""
 
-from datetime import datetime
 from unittest import mock
+from datetime import datetime
 
+from satpy import Scene
 from satpy.dataset import DataID, DataQuery
 from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.modifiers import ModifierBase
+
+from pyresample.geometry import SwathDefinition, BaseDefinition
+from pyresample import create_area_def
+from xarray import DataArray
+import dask.array as da
+import numpy as np
+
+FAKE_FILEHANDLER_START = datetime(2020, 1, 1, 0, 0, 0)
+FAKE_FILEHANDLER_END = datetime(2020, 1, 1, 1, 0, 0)
 
 
 def make_dataid(**items):
@@ -40,7 +52,7 @@ def make_dsq(**items):
 
 
 def spy_decorator(method_to_decorate):
-    """Fancy decorate to wrap an object while still calling it.
+    """Fancy decorator to wrap an object while still calling it.
 
     See https://stackoverflow.com/a/41599695/433202
 
@@ -82,9 +94,6 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
             last dimension for other arrays.
 
     """
-    from xarray import DataArray
-    import dask.array as da
-    import numpy as np
     for key, val in file_content.items():
         da_attrs = {}
         for a in attrs:
@@ -103,178 +112,6 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
             file_content[key] = DataArray(val, dims=da_dims, attrs=da_attrs)
 
 
-def test_datasets():
-    """Get list of various test datasets."""
-    d = [
-        make_dataid(name='ds1', resolution=250, calibration='reflectance'),
-        make_dataid(name='ds2', resolution=250, calibration='reflectance'),
-        make_dataid(name='ds3'),
-        make_dataid(name='ds4', calibration='reflectance'),
-        make_dataid(name='ds4', calibration='radiance'),
-        make_dataid(name='ds5', resolution=250),
-        make_dataid(name='ds5', resolution=500),
-        make_dataid(name='ds5', resolution=1000),
-        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3), resolution=250, calibration='reflectance'),
-        make_dataid(name='ds7', wavelength=(0.4, 0.5, 0.6)),
-        make_dataid(name='ds8', wavelength=(0.7, 0.8, 0.9)),
-        make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
-        make_dataid(name='ds10', wavelength=(0.75, 0.85, 0.95)),
-        make_dataid(name='ds11', resolution=500),
-        make_dataid(name='ds11', resolution=1000),
-        make_dataid(name='ds12', resolution=500),
-        make_dataid(name='ds12', resolution=1000),
-        make_dataid(name='B02', wavelength=(30.49, 30.51, 30.53), resolution=1000),
-        make_dataid(name='B03', wavelength=(30.62, 30.64, 30.66), resolution=500),
-        make_dataid(name='B04', wavelength=(30.83, 30.85, 30.87), resolution=1000),
-    ]
-    return d
-
-
-def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
-    import numpy as np
-    from xarray import DataArray
-    c = mock.MagicMock()
-    c.attrs = {
-        'prerequisites': tuple(prereqs),
-        'optional_prerequisites': tuple(opt_prereqs),
-    }
-    # special case
-    c.attrs.update(ds_id.to_dict())
-    c.id = ds_id
-
-    se = mock.MagicMock()
-
-    def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
-        if ds_id['name'] in ('comp14', 'comp26'):
-            # used as a test when composites update the dataset id with
-            # information from prereqs
-            ds_id = DataID(ds_id.id_keys, resolution=555, **ds_id)
-        if len(datasets) != len(prereqs):
-            raise ValueError("Not enough prerequisite datasets passed")
-        return DataArray(data=np.arange(75).reshape(5, 5, 3),
-                         attrs=ds_id.to_dict(),
-                         dims=['y', 'x', 'bands'],
-                         coords={'bands': ['R', 'G', 'B']})
-    se.side_effect = _se
-    c.side_effect = se
-    return c
-
-
-def _create_fake_modifiers(name, prereqs, opt_prereqs):
-    import numpy as np
-    from xarray import DataArray
-    from satpy.composites import CompositeBase, IncompatibleAreas
-
-    attrs = {
-        'name': name,
-        'prerequisites': tuple(prereqs),
-        'optional_prerequisites': tuple(opt_prereqs)
-    }
-
-    def _mod_loader(*args, **kwargs):
-        class FakeMod(CompositeBase):
-            def __init__(self, *args, **kwargs):
-
-                super(FakeMod, self).__init__(*args, **kwargs)
-
-            def __call__(self, datasets, optional_datasets, **info):
-                if self.attrs['optional_prerequisites']:
-                    for opt_dep in self.attrs['optional_prerequisites']:
-                        if 'NOPE' in opt_dep or 'fail' in opt_dep:
-                            continue
-                        assert optional_datasets is not None and \
-                            len(optional_datasets)
-                resolution = datasets[0].attrs.get('resolution')
-                if name == 'res_change' and resolution is not None:
-                    i = datasets[0].attrs.copy()
-                    i['resolution'] *= 5
-                elif 'incomp_areas' in name:
-                    raise IncompatibleAreas(
-                        "Test modifier 'incomp_areas' always raises IncompatibleAreas")
-                else:
-                    i = datasets[0].attrs
-                info = datasets[0].attrs.copy()
-                self.apply_modifier_info(i, info)
-                return DataArray(np.ma.MaskedArray(datasets[0]), attrs=info)
-
-        m = FakeMod(*args, **kwargs)
-        # m.attrs = attrs
-        m._call_mock = mock.patch.object(
-            FakeMod, '__call__', wraps=m.__call__).start()
-        return m
-
-    return _mod_loader, attrs
-
-
-def test_composites(sensor_name):
-    """Create some test composites."""
-    from satpy import DatasetDict
-    # Composite ID -> (prereqs, optional_prereqs)
-    comps = {
-        make_cid(name='comp1'): (['ds1'], []),
-        make_cid(name='comp2'): (['ds1', 'ds2'], []),
-        make_cid(name='comp3'): (['ds1', 'ds2', 'ds3'], []),
-        make_cid(name='comp4'): (['comp2', 'ds3'], []),
-        make_cid(name='comp5'): (['ds1', 'ds2'], ['ds3']),
-        make_cid(name='comp6'): (['ds1', 'ds2'], ['comp2']),
-        make_cid(name='comp7'): (['ds1', 'comp2'], ['ds2']),
-        make_cid(name='comp8'): (['ds_NOPE', 'comp2'], []),
-        make_cid(name='comp9'): (['ds1', 'comp2'], ['ds_NOPE']),
-        make_cid(name='comp10'): ([make_dsq(name='ds1', modifiers=('mod1',)), 'comp2'], []),
-        make_cid(name='comp11'): ([0.22, 0.48, 0.85], []),
-        make_cid(name='comp12'): ([make_dsq(wavelength=0.22, modifiers=('mod1',)),
-                                   make_dsq(wavelength=0.48, modifiers=('mod1',)),
-                                   make_dsq(wavelength=0.85, modifiers=('mod1',))], []),
-        make_cid(name='comp13'): ([make_dsq(name='ds5', modifiers=('res_change',))], []),
-        make_cid(name='comp14'): (['ds1'], []),
-        make_cid(name='comp15'): (['ds1', 'ds9_fail_load'], []),
-        make_cid(name='comp16'): (['ds1'], ['ds9_fail_load']),
-        make_cid(name='comp17'): (['ds1', 'comp15'], []),
-        make_cid(name='comp18'): (['ds3',
-                                   make_dsq(name='ds4', modifiers=('mod1', 'mod3',)),
-                                   make_dsq(name='ds5', modifiers=('mod1', 'incomp_areas'))], []),
-        make_cid(name='comp18_2'): (['ds3',
-                                     make_dsq(name='ds4', modifiers=('mod1', 'mod3',)),
-                                     make_dsq(name='ds5', modifiers=('mod1', 'incomp_areas_opt'))], []),
-        make_cid(name='comp19'): ([make_dsq(name='ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
-        make_cid(name='comp20'): ([make_dsq(name='ds5', modifiers=('mod_opt_prereq',))], []),
-        make_cid(name='comp21'): ([make_dsq(name='ds5', modifiers=('mod_bad_opt',))], []),
-        make_cid(name='comp22'): ([make_dsq(name='ds5', modifiers=('mod_opt_only',))], []),
-        make_cid(name='comp23'): ([0.8], []),
-        make_cid(name='static_image'): ([], []),
-        make_cid(name='comp24', resolution=500): ([make_dsq(name='ds11', resolution=500),
-                                                   make_dsq(name='ds12', resolution=500)], []),
-        make_cid(name='comp24', resolution=1000): ([make_dsq(name='ds11', resolution=1000),
-                                                    make_dsq(name='ds12', resolution=1000)], []),
-        make_cid(name='comp25', resolution=500): ([make_dsq(name='comp24', resolution=500),
-                                                   make_dsq(name='ds5', resolution=500)], []),
-        make_cid(name='comp25', resolution=1000): ([make_dsq(name='comp24', resolution=1000),
-                                                    make_dsq(name='ds5', resolution=1000)], []),
-        make_cid(name='ahi_green'): ([make_dsq(wavelength=30.5, modifiers=('sunz_corr', 'rayleigh_corr')),
-                                      make_dsq(wavelength=30.85, modifiers=('sunz_corr',))], []),
-        make_cid(name='comp26'): (['comp14'], []),
-    }
-    # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
-    mods = {
-        'mod1': (['ds2'], []),
-        'mod2': (['comp3'], []),
-        'mod3': (['ds2'], []),
-        'res_change': ([], []),
-        'incomp_areas': (['ds1'], []),
-        'incomp_areas_opt': ([make_dataid(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
-        'mod_opt_prereq': (['ds1'], ['ds2']),
-        'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
-        'mod_opt_only': ([], ['ds2']),
-        'mod_wl': ([make_dsq(wavelength=0.2, modifiers=('mod1',))], []),
-        'sunz_corr': ([], ['sunz_angles_NOPE']),
-        'rayleigh_corr': ([make_dsq(wavelength=30.64, modifiers=('sunz_corr',))], [])
-    }
-    comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
-    mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v)) for k, v in mods.items())}
-
-    return comps, mods
-
-
 def _filter_datasets(all_ds, names_or_ids):
     """Help filtering DataIDs by name or DataQuery."""
     # DataID will match a str to the name
@@ -286,77 +123,128 @@ def _filter_datasets(all_ds, names_or_ids):
             yield ds_id
 
 
-class FakeReader(FileYAMLReader):
-    """Fake reader to make testing basic Scene/reader functionality easier."""
+def _swath_def_of_data_arrays(rows, cols):
+    return SwathDefinition(
+        DataArray(da.zeros((rows, cols)), dims=('y', 'x')),
+        DataArray(da.zeros((rows, cols)), dims=('y', 'x')),
+    )
 
-    def __init__(self, name, sensor_name='fake_sensor', datasets=None,
-                 available_datasets=None, start_time=None, end_time=None,
-                 filter_datasets=True):
-        """Initialize reader and mock necessary properties and methods.
 
-        By default any 'datasets' provided will be filtered by what datasets
-        are configured at the top of this module in 'test_datasets'. This can
-        be disabled by specifying `filter_datasets=False`.
+class FakeModifier(ModifierBase):
+    """Act as a modifier that performs different modifications."""
 
-        """
-        reader_config = {'reader': {'name': name, 'config_files': ['fake.yaml']}, 'file_types': {}}
-        super(FakeReader, self).__init__(reader_config)
-
-        if start_time is None:
-            start_time = datetime.utcnow()
-        self._start_time = start_time
-        if end_time is None:
-            end_time = start_time
-        self._end_time = end_time
-        self._sensor_name = set([sensor_name])
-
-        all_ds = test_datasets()
-        if datasets is not None and filter_datasets:
-            all_ds = list(_filter_datasets(all_ds, datasets))
-        elif datasets:
-            all_ds = datasets
-        if available_datasets is not None:
-            available_datasets = list(_filter_datasets(all_ds, available_datasets))
+    def _handle_res_change(self, datasets, info):
+        # assume this is used on the 500m version of ds5
+        info['resolution'] = 250
+        rep_data_arr = datasets[0]
+        y_size = rep_data_arr.sizes['y']
+        x_size = rep_data_arr.sizes['x']
+        data = da.zeros((y_size * 2, x_size * 2))
+        if isinstance(rep_data_arr.attrs['area'], SwathDefinition):
+            area = _swath_def_of_data_arrays(y_size * 2, x_size * 2)
+            info['area'] = area
         else:
-            available_datasets = all_ds
+            raise NotImplementedError("'res_change' modifier can't handle "
+                                      "AreaDefinition changes yet.")
+        return data
 
-        self.all_ids = {ds_id: {} for ds_id in all_ds}
-        self.available_ids = {ds_id: {} for ds_id in available_datasets}
+    def __call__(self, datasets, optional_datasets=None, **kwargs):
+        """Modify provided data depending on the modifier name and input data."""
+        if self.attrs['optional_prerequisites']:
+            for opt_dep in self.attrs['optional_prerequisites']:
+                opt_dep_name = opt_dep if isinstance(opt_dep, str) else opt_dep.get('name', '')
+                if 'NOPE' in opt_dep_name or 'fail' in opt_dep_name:
+                    continue
+                assert (optional_datasets is not None and
+                        len(optional_datasets))
+        resolution = datasets[0].attrs.get('resolution')
+        mod_name = self.attrs['modifiers'][-1]
+        data = datasets[0].data
+        i = datasets[0].attrs.copy()
+        if mod_name == 'res_change' and resolution is not None:
+            data = self._handle_res_change(datasets, i)
+        elif 'incomp_areas' in mod_name:
+            raise IncompatibleAreas(
+                "Test modifier 'incomp_areas' always raises IncompatibleAreas")
+        self.apply_modifier_info(datasets[0].attrs, i)
+        return DataArray(data,
+                         dims=datasets[0].dims,
+                         # coords=datasets[0].coords,
+                         attrs=i)
 
-        # Wrap load method in mock object so we can record call information
-        self.load = mock.patch.object(self, 'load', wraps=self.load).start()
+
+class FakeCompositor(GenericCompositor):
+    """Act as a compositor that produces fake RGB data."""
+
+    def __call__(self, projectables, nonprojectables=None, **kwargs):
+        """Produce test compositor data depending on modifiers and input data provided."""
+        projectables = self.match_data_arrays(projectables)
+        if nonprojectables:
+            self.match_data_arrays(nonprojectables)
+        info = self.attrs.copy()
+        if self.attrs['name'] in ('comp14', 'comp26'):
+            # used as a test when composites update the dataset id with
+            # information from prereqs
+            info['resolution'] = 555
+        if self.attrs['name'] in ('comp24', 'comp25'):
+            # other composites that copy the resolution from inputs
+            info['resolution'] = projectables[0].attrs.get('resolution')
+        if len(projectables) != len(self.attrs['prerequisites']):
+            raise ValueError("Not enough prerequisite datasets passed")
+
+        info.update(kwargs)
+        info['area'] = projectables[0].attrs['area']
+        dim_sizes = projectables[0].sizes
+        return DataArray(data=da.zeros((dim_sizes['y'], dim_sizes['x'], 3)),
+                         attrs=info,
+                         dims=['y', 'x', 'bands'],
+                         coords={'bands': ['R', 'G', 'B']})
+
+
+class FakeFileHandler(BaseFileHandler):
+    """Fake file handler to be used by test readers."""
+
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Initialize file handler and accept all keyword arguments."""
+        self.kwargs = kwargs
+        super().__init__(filename, filename_info, filetype_info)
 
     @property
     def start_time(self):
-        """Get the start time."""
-        return self._start_time
+        """Get static start time datetime object."""
+        return FAKE_FILEHANDLER_START
 
     @property
     def end_time(self):
-        """Get the end time."""
-        return self._end_time
+        """Get static end time datetime object."""
+        return FAKE_FILEHANDLER_END
 
     @property
     def sensor_names(self):
-        """Get the sensor names."""
-        return self._sensor_name
+        """Get sensor name from filetype configuration."""
+        sensor = self.filetype_info.get('sensor', 'fake_sensor')
+        return {sensor}
 
-    def load(self, dataset_keys):
-        """Load some data."""
-        from satpy import DatasetDict
-        from xarray import DataArray
-        import numpy as np
-        dataset_ids = self.all_ids.keys()
-        loaded_datasets = DatasetDict()
-        for k in dataset_keys:
-            if k['name'] == 'ds9_fail_load':
-                continue
-            for ds in dataset_ids:
-                if ds == k:
-                    loaded_datasets[ds] = DataArray(data=np.arange(25).reshape(5, 5),
-                                                    attrs=ds.to_dict(),
-                                                    dims=['y', 'x'])
-        return loaded_datasets
+    def get_dataset(self, data_id: DataID, ds_info: dict):
+        """Get fake DataArray for testing."""
+        if data_id['name'] == 'ds9_fail_load':
+            raise KeyError("Can't load '{}' because it is supposed to "
+                           "fail.".format(data_id['name']))
+        attrs = data_id.to_dict()
+        attrs.update(ds_info)
+        attrs['sensor'] = self.filetype_info.get('sensor', 'fake_sensor')
+        attrs['platform_name'] = 'fake_platform'
+        attrs['start_time'] = self.start_time
+        attrs['end_time'] = self.end_time
+        res = attrs.get('resolution', 250)
+        rows = cols = {
+            250: 20,
+            500: 10,
+            1000: 5,
+        }.get(res, 5)
+        return DataArray(data=da.zeros((rows, cols)),
+                         attrs=attrs,
+                         dims=['y', 'x'])
 
 
 class CustomScheduler(object):
@@ -404,8 +292,8 @@ def make_fake_scene(content_dict, daskify=False, area=True,
             and values may be either ``numpy.ndarray`` or
             ``xarray.DataArray``.
         daskify (bool): optional, to use dask when converting
-            ``numpy.ndarray`` to ``xarray.DataArray`.  No effect when the
-            values in ``content_dict`` are already ``xarray.DataArray`.
+            ``numpy.ndarray`` to ``xarray.DataArray``.  No effect when the
+            values in ``content_dict`` are already ``xarray.DataArray``.
         area (bool or BaseDefinition): Can be ``True``, ``False``, or an
             instance of ``pyresample.geometry.BaseDefinition`` such as
             ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is
@@ -420,20 +308,15 @@ def make_fake_scene(content_dict, daskify=False, area=True,
     Returns:
         Scene object with datasets corresponding to content_dict.
     """
-    import pyresample
-    import satpy
-    import xarray as xr
     if common_attrs is None:
         common_attrs = {}
-    if daskify:
-        import dask.array
-    sc = satpy.Scene()
+    sc = Scene()
     for (did, arr) in content_dict.items():
         extra_attrs = common_attrs.copy()
-        if isinstance(area, pyresample.geometry.BaseDefinition):
+        if isinstance(area, BaseDefinition):
             extra_attrs["area"] = area
         elif area:
-            extra_attrs["area"] = pyresample.create_area_def(
+            extra_attrs["area"] = create_area_def(
                     "test-area",
                     {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
                      "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
@@ -442,14 +325,38 @@ def make_fake_scene(content_dict, daskify=False, area=True,
                     shape=arr.shape,
                     resolution=1000,
                     center=(0, 0))
-        if isinstance(arr, xr.DataArray):
+        if isinstance(arr, DataArray):
             sc[did] = arr.copy()  # don't change attributes of input
             sc[did].attrs.update(extra_attrs)
         else:
             if daskify:
-                arr = dask.array.from_array(arr)
-            sc[did] = xr.DataArray(
+                arr = da.from_array(arr)
+            sc[did] = DataArray(
                     arr,
                     dims=("y", "x"),
                     attrs=extra_attrs)
     return sc
+
+
+def assert_attrs_equal(attrs, attrs_exp, tolerance=0):
+    """Test that attributes are equal.
+
+    Walks dictionary recursively. Numerical attributes are compared with
+    the given relative tolerance.
+    """
+    keys_diff = set(attrs).difference(set(attrs_exp))
+    assert not keys_diff, "Different set of keys: {}".format(keys_diff)
+    for key in attrs_exp:
+        err_msg = "Attribute {} does not match expectation".format(key)
+        if isinstance(attrs[key], dict):
+            assert_attrs_equal(attrs[key], attrs_exp[key], tolerance)
+        else:
+            try:
+                np.testing.assert_allclose(
+                    attrs[key],
+                    attrs_exp[key],
+                    rtol=tolerance,
+                    err_msg=err_msg
+                )
+            except TypeError:
+                assert attrs[key] == attrs_exp[key], err_msg

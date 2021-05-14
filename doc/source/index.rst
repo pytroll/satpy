@@ -51,6 +51,7 @@ the base Satpy installation.
 
     overview
     install
+    config
     data_download
     examples/index
     quickstart
@@ -65,7 +66,7 @@ the base Satpy installation.
 .. toctree::
     :maxdepth: 1
 
-    Satpy API <api/satpy>
+    Satpy API <api/modules>
     faq
 
 .. _reader_table:
@@ -270,6 +271,12 @@ the base Satpy installation.
       - Nominal
     * - AMSR2 level 2 GAASP in NetCDF4 format
       - `amsr2_l2_gaasp`
+      - Beta
+    * - MiRS level 2 Precipitation and Surface Products (IMG) in NetCDF4 format
+      - `mirs`
+      - Beta
+    * - MIMIC Total Precipitable Water Product Reader in NetCDF format
+      - mimicTPW2_comp
       - Beta
 
 Indices and tables

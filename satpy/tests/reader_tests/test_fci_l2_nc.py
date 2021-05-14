@@ -21,18 +21,13 @@
 import datetime
 import os
 import unittest
+import uuid
 from contextlib import suppress
 from unittest import mock
 
 import numpy as np
 from netCDF4 import Dataset
-
 from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandler, PRODUCT_DATA_DURATION_MINUTES
-
-TEST_FILE = 'test_file_fci_l2_nc.nc'
-SEG_TEST_FILE = 'test_seg_file_fci_l2_nc.nc'
-TEST_ERROR_FILE = 'test_error_file_fci_l2_nc.nc'
-TEST_BYTE_FILE = 'test_byte_file_fci_l2_nc.nc'
 
 
 class TestFciL2NCFileHandler(unittest.TestCase):
@@ -41,7 +36,9 @@ class TestFciL2NCFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        with Dataset(TEST_FILE, 'w') as nc:
+        # Create unique filenames to prevent race conditions when tests are run in parallel
+        self.test_file = str(uuid.uuid4()) + ".nc"
+        with Dataset(self.test_file, 'w') as nc:
             # Create dimensions
             nc.createDimension('number_of_columns', 10)
             nc.createDimension('number_of_rows', 100)
@@ -75,14 +72,14 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             two_layers_dataset[0, :, :] = np.ones((100, 10))
             two_layers_dataset[1, :, :] = 2 * np.ones((100, 10))
 
-            mtg_geos_projection = nc.createVariable('mtg_geos_projection', np.int, dimensions=())
+            mtg_geos_projection = nc.createVariable('mtg_geos_projection', int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 10.0
             mtg_geos_projection.semi_major_axis = 6378137.
             mtg_geos_projection.semi_minor_axis = 6356752.
             mtg_geos_projection.perspective_point_height = 35786400.
 
         self.reader = FciL2NCFileHandler(
-            filename=TEST_FILE,
+            filename=self.test_file,
             filename_info={
                 'creation_time':  datetime.datetime(year=2017, month=9, day=20,
                                                     hour=12, minute=30, second=30),
@@ -94,9 +91,9 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         """Remove the previously created test file."""
         # First delete the reader, forcing the file to be closed if still open
         del self.reader
-        # Then can safely remove it from the system
+        # Then we can safely remove the file from the system
         with suppress(OSError):
-            os.remove(TEST_FILE)
+            os.remove(self.test_file)
 
     def test_all_basic(self):
         """Test all basic functionalities."""
@@ -116,7 +113,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
         global_attributes = self.reader._get_global_attributes()
         expected_global_attributes = {
-            'filename': TEST_FILE,
+            'filename': self.test_file,
             'start_time': datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=30, second=40),
             'end_time': datetime.datetime(year=2017, month=9, day=20,
@@ -201,7 +198,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        with Dataset(SEG_TEST_FILE, 'w') as nc:
+        self.seg_test_file = str(uuid.uuid4()) + ".nc"
+        with Dataset(self.seg_test_file, 'w') as nc:
             # Create dimensions
             nc.createDimension('number_of_FoR_cols', 10)
             nc.createDimension('number_of_FoR_rows', 100)
@@ -239,7 +237,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             test_dataset.units = 'test_units'
 
         self.segment_reader = FciL2NCSegmentFileHandler(
-            filename=SEG_TEST_FILE,
+            filename=self.seg_test_file,
             filename_info={
                 'creation_time':  datetime.datetime(year=2017, month=9, day=20,
                                                     hour=12, minute=30, second=30),
@@ -253,7 +251,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         del self.segment_reader
         # Then can safely remove it from the system
         with suppress(OSError):
-            os.remove(SEG_TEST_FILE)
+            os.remove(self.seg_test_file)
 
     def test_all_basic(self):
         """Test all basic functionalities."""
@@ -274,7 +272,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         global_attributes = self.segment_reader._get_global_attributes()
 
         expected_global_attributes = {
-            'filename': SEG_TEST_FILE,
+            'filename': self.seg_test_file,
             'start_time': datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=30, second=40),
             'end_time': datetime.datetime(year=2017, month=9, day=20,
@@ -313,8 +311,8 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-
-        with Dataset(TEST_ERROR_FILE, 'w') as nc_err:
+        self.test_error_file = str(uuid.uuid4()) + ".nc"
+        with Dataset(self.test_error_file, 'w') as nc_err:
             # Create dimensions
             nc_err.createDimension('number_of_FoR_cols', 10)
             nc_err.createDimension('number_of_FoR_rows', 100)
@@ -351,7 +349,7 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
             test_dataset.units = 'test_units'
 
         self.error_reader = FciL2NCSegmentFileHandler(
-            filename=TEST_ERROR_FILE,
+            filename=self.test_error_file,
             filename_info={
                 'creation_time': datetime.datetime(year=2017, month=9, day=20,
                                                    hour=12, minute=30, second=30),
@@ -365,9 +363,10 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
         del self.error_reader
         # Then can safely remove it from the system
         with suppress(OSError):
-            os.remove(TEST_ERROR_FILE)
+            os.remove(self.test_error_file)
 
     def test_errors(self):
+        """Test that certain properties cause errors."""
         self.assertRaises(TypeError, self.error_reader._start_time,
                           datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=30, second=40))
@@ -387,8 +386,8 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-
-        with Dataset(TEST_BYTE_FILE, 'w') as nc_byte:
+        self.test_byte_file = str(uuid.uuid4()) + ".nc"
+        with Dataset(self.test_byte_file, 'w') as nc_byte:
             # Create dimensions
             nc_byte.createDimension('number_of_columns', 1)
             nc_byte.createDimension('number_of_rows', 1)
@@ -402,7 +401,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             x.standard_name = 'projection_y_coordinate'
             y[:] = np.arange(1)
 
-            mtg_geos_projection = nc_byte.createVariable('mtg_geos_projection', np.int, dimensions=())
+            mtg_geos_projection = nc_byte.createVariable('mtg_geos_projection', int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 10.0
             mtg_geos_projection.semi_major_axis = 6378137.
             mtg_geos_projection.semi_minor_axis = 6356752.
@@ -415,7 +414,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             test_dataset[:] = 4544767
 
         self.byte_reader = FciL2NCFileHandler(
-            filename=TEST_BYTE_FILE,
+            filename=self.test_byte_file,
             filename_info={
                 'creation_time': datetime.datetime(year=2017, month=9, day=20,
                                                    hour=12, minute=30, second=30),
@@ -429,11 +428,10 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
         del self.byte_reader
         # Then can safely remove it from the system
         with suppress(OSError):
-            os.remove(TEST_BYTE_FILE)
+            os.remove(self.test_byte_file)
 
     def test_byte_extraction(self):
         """Test the execution of the get_dataset function."""
-
         # Value of 1 is expected to be returned for this test
         dataset = self.byte_reader.get_dataset(None,
                                                {'file_key': 'cloud_mask_test_flag',
