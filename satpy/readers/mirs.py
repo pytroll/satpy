@@ -385,8 +385,7 @@ class MiRSL2ncHandler(BaseFileHandler):
         # try to assign appropriate units (if "Kelvin" covert to K)
         units_convert = {"Kelvin": "K"}
         data_unit = ds_info.get('units', None)
-        if data_unit is not None:
-            ds_info['units'] = units_convert.get(data_unit, data_unit)
+        ds_info['units'] = units_convert.get(data_unit, data_unit)
 
         scale = ds_info.pop('scale_factor', 1.0)
         offset = ds_info.pop('add_offset', 0.)
@@ -396,6 +395,8 @@ class MiRSL2ncHandler(BaseFileHandler):
         data = self._scale_data(data, scale, offset)
         data = self._fill_data(data, fill_value, scale, offset)
         data = self._apply_valid_range(data, valid_range, scale, offset)
+
+        data.attrs = ds_info
 
         return data, ds_info
 
@@ -425,8 +426,13 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return data
 
-    def _available_if_this_type(self, configured_datasets):
+    def available_datasets(self, configured_datasets=None):
+        """Dynamically discover what variables can be loaded from this file.
 
+        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        for more information.
+
+        """
         handled_vars = set()
         for is_avail, ds_info in (configured_datasets or []):
             if is_avail is not None:
@@ -435,8 +441,13 @@ class MiRSL2ncHandler(BaseFileHandler):
                 # file handler so let's yield early
                 yield is_avail, ds_info
                 continue
+
             if self.file_type_matches(ds_info['file_type']):
                 handled_vars.add(ds_info['name'])
+            if ds_info['name'] == 'BT':
+                yaml_info = ds_info if self.file_type_matches(
+                    ds_info['file_type']) else {}
+                yield from self._available_btemp_datasets(yaml_info)
             yield self.file_type_matches(ds_info['file_type']), ds_info
         yield from self._available_new_datasets(handled_vars)
 
@@ -455,7 +466,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return chn_total, normals
 
-    def _available_btemp_datasets(self):
+    def _available_btemp_datasets(self, yaml_info):
         """Create metadata for channel BTs."""
         chn_total, normals = self._count_channel_repeat_number()
         # keep track of current channel count for string description
@@ -469,7 +480,8 @@ class MiRSL2ncHandler(BaseFileHandler):
 
             desc_bt = "Channel {} Brightness Temperature at {}GHz {}{}"
             desc_bt = desc_bt.format(idx, normal_f, normal_p, p_count)
-            ds_info = {
+            ds_info = yaml_info.copy()
+            ds_info.update({
                 'file_type': self.filetype_info['file_type'],
                 'name': new_name,
                 'description': desc_bt,
@@ -478,7 +490,7 @@ class MiRSL2ncHandler(BaseFileHandler):
                 'polarization': normal_p,
                 'dependencies': ('BT', 'Sfc_type'),
                 'coordinates': ['longitude', 'latitude']
-            }
+            })
             yield True, ds_info
 
     def _get_ds_info_for_data_arr(self, var_name):
@@ -509,16 +521,6 @@ class MiRSL2ncHandler(BaseFileHandler):
 
             ds_info = self._get_ds_info_for_data_arr(var_name)
             yield True, ds_info
-
-    def available_datasets(self, configured_datasets=None):
-        """Dynamically discover what variables can be loaded from this file.
-
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
-        for more information.
-
-        """
-        yield from self._available_if_this_type(configured_datasets)
-        yield from self._available_btemp_datasets()
 
     def __getitem__(self, item):
         """Wrap around `self.nc[item]`."""
