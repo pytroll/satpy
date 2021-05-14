@@ -397,14 +397,15 @@ class MiRSL2ncHandler(BaseFileHandler):
         if 'dependencies' in ds_info.keys():
             idx = ds_info['channel_index']
             data = self['BT']
-            data, ds_info = self.apply_attributes(data, ds_info)
             data = data.rename(new_name_or_name_dict=ds_info["name"])
+            data, ds_info = self.apply_attributes(data, ds_info)
 
             if self.sensor.lower() == "atms" and self.limb_correction:
                 sfc_type_mask = self['Sfc_type']
                 data = limb_correct_atms_bt(data, sfc_type_mask,
                                             self._get_coeff_filenames,
                                             ds_info)
+
                 self.nc = self.nc.merge(data)
             else:
                 LOG.info("No Limb Correction applied.")
@@ -417,7 +418,13 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return data
 
-    def _available_if_this_file_type(self, configured_datasets):
+    def available_datasets(self, configured_datasets=None):
+        """Dynamically discover what variables can be loaded from this file.
+
+        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        for more information.
+
+        """
         handled_vars = set()
         for is_avail, ds_info in (configured_datasets or []):
             if is_avail is not None:
@@ -428,6 +435,8 @@ class MiRSL2ncHandler(BaseFileHandler):
                 continue
             if self.file_type_matches(ds_info['file_type']):
                 handled_vars.add(ds_info['name'])
+            if ds_info['name'] == 'BT':
+                yield from self._available_btemp_datasets(ds_info)
             yield self.file_type_matches(ds_info['file_type']), ds_info
         yield from self._available_new_datasets(handled_vars)
 
@@ -446,7 +455,7 @@ class MiRSL2ncHandler(BaseFileHandler):
 
         return chn_total, normals
 
-    def _available_btemp_datasets(self):
+    def _available_btemp_datasets(self, yaml_info):
         """Create metadata for channel BTs."""
         chn_total, normals = self._count_channel_repeat_number()
         # keep track of current channel count for string description
@@ -460,18 +469,17 @@ class MiRSL2ncHandler(BaseFileHandler):
 
             desc_bt = "Channel {} Brightness Temperature at {}GHz {}{}"
             desc_bt = desc_bt.format(idx, normal_f, normal_p, p_count)
-            ds_info = {
+            ds_info = yaml_info.copy()
+            ds_info.update({
                 'file_type': self.filetype_info['file_type'],
                 'name': new_name,
                 'description': desc_bt,
-                'units': 'K',
-                'scale_factor': self.nc['BT'].attrs['scale_factor'],
                 'channel_index': idx,
                 'frequency': "{}GHz".format(normal_f),
                 'polarization': normal_p,
                 'dependencies': ('BT', 'Sfc_type'),
-                'coordinates': ["longitude", "latitude"]
-            }
+                'coordinates': ['longitude', 'latitude']
+            })
             yield True, ds_info
 
     def _get_ds_info_for_data_arr(self, var_name):
@@ -503,24 +511,8 @@ class MiRSL2ncHandler(BaseFileHandler):
             ds_info = self._get_ds_info_for_data_arr(var_name)
             yield True, ds_info
 
-    def available_datasets(self, configured_datasets=None):
-        """Dynamically discover what variables can be loaded from this file.
-
-        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
-        for more information.
-
-        """
-        yield from self._available_if_this_file_type(configured_datasets)
-        yield from self._available_btemp_datasets()
-
     def __getitem__(self, item):
-        """Wrap around `self.nc[item]`.
-
-        Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
-        variables which causes inaccurate unscaled data values. This method
-        forces the scale factor to a 64-bit float first.
-
-        """
+        """Wrap around `self.nc[item]`."""
         data = self.nc[item]
 
         # 'Freq' dimension causes issues in other processing
