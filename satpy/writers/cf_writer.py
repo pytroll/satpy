@@ -702,7 +702,7 @@ class CFWriter(Writer):
                         groups_[group_name].append(dataset)
                         break
 
-            written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
+        written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
         # Write datasets to groups (appending to the file; group=None means no group)
         for group_name, group_datasets in groups_.items():
@@ -721,14 +721,8 @@ class CFWriter(Writer):
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
             encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs)
-
-            if groups is None:
-                dataset = root.merge(dataset)
-                written = dataset.to_netcdf(filename, engine=engine, mode='w', encoding=encoding,
-                                            **other_to_netcdf_kwargs)
-            else:
-                res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
-                                        **other_to_netcdf_kwargs)
-                written.append(res)
+            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
+                                    **other_to_netcdf_kwargs)
+            written.append(res)
 
         return written
