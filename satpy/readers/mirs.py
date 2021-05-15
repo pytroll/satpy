@@ -95,11 +95,7 @@ def read_atms_limb_correction_coefficients(fn):
     coeff_str = read_atms_coeff_to_string(fn)
     n_chn = 22
     n_fov = 96
-    if n_chn < 22:
-        LOG.warning('Coefficient file has less than 22 channels:  %s' % n_chn)
-    if n_fov < 96:
-        LOG.warning('Coefficient file has less than 96 fov:  %s' % n_fov)
-    # make it a generator
+    # make the string a generator
     coeff_str = (line.strip() for line in coeff_str)
 
     all_coeffs = np.zeros((n_chn, n_fov, n_chn), dtype=np.float32)
