@@ -93,11 +93,8 @@ def read_atms_coeff_to_string(fn):
 def read_atms_limb_correction_coefficients(fn):
     """Read the limb correction files."""
     coeff_str = read_atms_coeff_to_string(fn)
-    # there should be 22 channels and 96 fov in the coefficient file. (read last line and get values)
-    n_chn = (coeff_str[-1].replace("  ", " ").split(" ")[1])
-    n_fov = (coeff_str[-1].replace("  ", " ").split(" ")[2])
-    n_chn = int(n_chn)
-    n_fov = int(n_fov)
+    n_chn = 22
+    n_fov = 96
     if n_chn < 22:
         LOG.warning('Coefficient file has less than 22 channels:  %s' % n_chn)
     if n_fov < 96:
