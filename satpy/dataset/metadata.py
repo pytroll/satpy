@@ -23,6 +23,8 @@ from functools import reduce, partial
 from operator import is_, eq
 import numpy as np
 
+from satpy.writers.utils import flatten_dict
+
 
 def combine_metadata(*metadata_objects, average_times=True):
     """Combine the metadata of two or more Datasets.
@@ -145,8 +147,11 @@ def _all_arrays_equal(arrays):
     """
     if hasattr(arrays[0], 'compute'):
         return _all_identical(arrays)
-    else:
-        return _pairwise_all(nan_allclose, arrays)
+    return _all_values_equal(arrays)
+
+
+def _all_values_equal(values):
+    return _all_close(values) or _all_equal(values)
 
 
 def _all_dicts_equal(dicts):
@@ -156,30 +161,55 @@ def _all_dicts_equal(dicts):
 def _dict_equal(d1, d2):
     """Check that two dictionaries are equal.
 
-    Nested dictionaries are walked recursively. Array type values are compared
-    approximately, other types are checked for identity.
+    Nested dictionaries are flattened to facilitate comparison.
     """
-    if not (isinstance(d1, dict) and isinstance(d2, dict)):
+    d1_flat = flatten_dict(d1)
+    d2_flat = flatten_dict(d2)
+    if not _dict_keys_equal(d1_flat, d2_flat):
         return False
-    if d1.keys() != d2.keys():
-        return False
-    for key in d1.keys():
-        if isinstance(d1[key], dict) and isinstance(d2[key], dict):
-            return _dict_equal(d1[key], d2[key])
-        value_pair = [d1[key], d2[key]]
-        return _all_non_dicts_equal(value_pair)
+    for key in d1_flat.keys():
+        value_pair = [d1_flat[key], d2_flat[key]]
+        if not _all_non_dicts_equal(value_pair):
+            return False
+    return True
+
+
+def _dict_keys_equal(d1, d2):
+    return d1.keys() == d2.keys()
 
 
 def _pairwise_all(func, values):
     for value in values[1:]:
-        if not func(values[0], value):
+        if not _is_equal(values[0], value, func):
             return False
     return True
+
+
+def _is_equal(a, b, comp_func):
+    try:
+        return _array_or_object_equal(a, b, comp_func)
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
+def _array_or_object_equal(a, b, comp_func):
+    res = comp_func(a, b)
+    if _is_array(res):
+        return res.all()
+    return res
 
 
 def _all_identical(values):
     """Check that the identities of all values are the same."""
     return _pairwise_all(is_, values)
+
+
+def _all_close(values):
+    return _pairwise_all(nan_allclose, values)
+
+
+def _all_equal(values):
+    return _pairwise_all(eq, values)
 
 
 def _contain_collections_of_arrays(values):
@@ -203,10 +233,3 @@ def _all_list_of_arrays_equal(array_lists):
         if not _all_arrays_equal(array_list):
             return False
     return True
-
-
-def _all_values_equal(values):
-    try:
-        return _pairwise_all(nan_allclose, values)
-    except (ValueError, TypeError):
-        return _pairwise_all(eq, values)
