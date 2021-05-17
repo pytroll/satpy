@@ -340,9 +340,8 @@ class MultiScene(object):
                 q.task_done()
 
         input_q = Queue(batch_size if batch_size is not None else 1)
-        load_thread = Thread(target=load_data, args=(input_q,))
         # set threads to daemon so they are killed if error is raised from main thread
-        load_thread.daemon = True
+        load_thread = Thread(target=load_data, args=(input_q,), daemon=True)
         load_thread.start()
 
         for scene in scenes_iter:

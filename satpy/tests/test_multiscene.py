@@ -434,6 +434,7 @@ class TestMultiSceneSave(unittest.TestCase):
     def test_save_datasets_distributed_delayed(self):
         """Test distributed save for writers returning delayed obejcts e.g. simple_image."""
         from satpy import MultiScene
+        from dask.delayed import Delayed
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
 
@@ -453,7 +454,6 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock.compute.side_effect = lambda x: tuple(v for v in x)
         client_mock.gather.side_effect = lambda x: x
         future_mock = mock.MagicMock()
-        from dask.delayed import Delayed
         future_mock.__class__ = Delayed
         with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
             save_datasets.return_value = [future_mock]  # some arbitrary return value
@@ -468,6 +468,7 @@ class TestMultiSceneSave(unittest.TestCase):
     def test_save_datasets_distributed_source_target(self):
         """Test distributed save for writers returning sources and targets e.g. geotiff writer."""
         from satpy import MultiScene
+        import dask.array as da
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
 
@@ -487,7 +488,6 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock.compute.side_effect = lambda x: tuple(v for v in x)
         client_mock.gather.side_effect = lambda x: x
         source_mock = mock.MagicMock()
-        import dask.array as da
         source_mock.__class__ = da.Array
         target_mock = mock.MagicMock()
         with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
