@@ -21,13 +21,11 @@ from satpy.enhancements import apply_enhancement
 
 
 def jma_true_color_reproduction(img, **kwargs):
-    """True Color Imagery Rendering for Himawari-8 with a Color Reproduction Approach
-    Based on the CIE XYZ Color System
+    """True Color Imagery Rendering for Himawari-8.
 
+    Color Reproduction Approach Based on the CIE XYZ Color System
     Hidehiko MURATA, Kotaro SAITOH, and Yasuhiko SUMIDA
-    Meteorological Satellite Center, Japan Meteorological Agency, Tokyo, Japan
-
-    Japan Meteorological Agency
+    Meteorological Satellite Center, Japan Meteorological Agency
     NOAA National Environmental Satellite, Data, and Information Service
     Colorado State University—CIRA
     https://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
