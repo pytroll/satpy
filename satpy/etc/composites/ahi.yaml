@@ -28,6 +28,18 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  green_true_color_reproduction:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    fractions: [0.6321, 0.2928, 0.0751]
+    prerequisites:
+    - name: B02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B03
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B04
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+
   green_nocorr:
     compositor: !!python/name:satpy.composites.ahi.GreenCorrector
     # FUTURE: Set a wavelength...see what happens. Dependency finding
@@ -204,6 +216,16 @@ composites:
     - name: B01
     high_resolution_band: red
     standard_name: true_color
+
+  true_color_reproduction:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: B03
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green_true_color_reproduction
+      - name: B01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color_reproduction
 
 #  true_color_reducedsize_land:
 #    compositor: !!python/name:satpy.composites.GenericCompositor

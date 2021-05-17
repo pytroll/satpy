@@ -9,3 +9,11 @@ enhancements:
           stretch: crude
           min_stretch: [-26.2, -43.2, 243.9]
           max_stretch: [0.6, 6.7, 208.5]
+
+   true_color_reproduction:
+    standard_name: true_color_reproduction
+    operations:
+      - name: contrast
+        method: !!python/name:satpy.enhancements.ahi.jma_true_color_reproduction
+      - name: cira_stretch
+        method: !!python/name:satpy.enhancements.cira_stretch
