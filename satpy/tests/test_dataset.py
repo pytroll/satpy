@@ -322,8 +322,9 @@ def test_combine_dicts_close():
             'd': {
                 'e': np.str('bar'),
                 'f': datetime(2020, 1, 1, 12, 15, 30),
-                'g': np.array([1, 2, 3])
-            }
+                'g': np.array([1, 2, 3]),
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
         }
     }
     attrs_close = {
@@ -335,7 +336,8 @@ def test_combine_dicts_close():
                 'e': np.str('bar'),
                 'f': datetime(2020, 1, 1, 12, 15, 30),
                 'g': np.array([1, 2, 3]) + 1E-12
-            }
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
         }
     }
     test_metadata = [attrs, attrs_close]
@@ -346,10 +348,12 @@ def test_combine_dicts_close():
 @pytest.mark.parametrize(
     "test_mda",
     [
+        # a/b/c/d different
         {'a': np.array([1, 2, 3]), 'd': 123},
         {'a': {'b': np.array([4, 5, 6]), 'c': 1.0}, 'd': 'foo'},
         {'a': {'b': np.array([1, 2, 3]), 'c': 2.0}, 'd': 'foo'},
         {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'bar'},
+        # a/b/c/d type different
         np.array([1, 2, 3]),
         {'a': {'b': 'baz', 'c': 1.0}, 'd': 'foo'},
         {'a': {'b': np.array([1, 2, 3]), 'c': 'baz'}, 'd': 'foo'},
