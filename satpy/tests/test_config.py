@@ -165,8 +165,9 @@ class TestConfigObject:
                                                        '/my/configs3']
 
     def test_config_path_multiple_load(self):
-        """Test that config paths are parsed properly after multiple load of satpy configs,
-           for example a subprocess call from a python script."""
+        """Test that config paths are parsed properly after multiple load of
+           satpy configs, for example a subprocess call from a python script.
+        """
         from importlib import reload
         import satpy
         old_vars = {
