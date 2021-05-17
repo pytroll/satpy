@@ -703,18 +703,6 @@ class CFWriter(Writer):
         """
         logger.info('Saving datasets to NetCDF4/CF.')
 
-        if groups is None:
-            # Write all datasets to the file root without creating a group
-            groups_ = {None: datasets}
-        else:
-            # User specified a group assignment using dataset names. Collect the corresponding datasets.
-            groups_ = defaultdict(list)
-            for dataset in datasets:
-                for group_name, group_members in groups.items():
-                    if dataset.attrs['name'] in group_members:
-                        groups_[group_name].append(dataset)
-                        break
-
         if compression is None:
             compression = {'zlib': True}
 
@@ -734,11 +722,6 @@ class CFWriter(Writer):
         else:
             root.attrs['history'] = _history_create
 
-        if groups is None:
-            # Groups are not CF-1.7 compliant
-            if 'Conventions' not in root.attrs:
-                root.attrs['Conventions'] = CF_VERSION
-
         # Remove satpy-specific kwargs
         to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
@@ -748,6 +731,22 @@ class CFWriter(Writer):
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
         init_nc_kwargs.pop('unlimited_dims', None)
+
+        if groups is None:
+            # Groups are not CF-1.7 compliant
+            if 'Conventions' not in root.attrs:
+                root.attrs['Conventions'] = CF_VERSION
+            # Write all datasets to the file root without creating a group
+            groups_ = {None: datasets}
+        else:
+            # User specified a group assignment using dataset names. Collect the corresponding datasets.
+            groups_ = defaultdict(list)
+            for dataset in datasets:
+                for group_name, group_members in groups.items():
+                    if dataset.attrs['name'] in group_members:
+                        groups_[group_name].append(dataset)
+                        break
+
         written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
         # Write datasets to groups (appending to the file; group=None means no group)
@@ -771,4 +770,5 @@ class CFWriter(Writer):
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                     **other_to_netcdf_kwargs)
             written.append(res)
+
         return written
