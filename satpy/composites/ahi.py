@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2017 Satpy developers
+# Copyright (c) 2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -19,6 +19,7 @@
 
 import logging
 
+from satpy.dataset import combine_metadata
 from satpy.composites import GenericCompositor
 
 LOG = logging.getLogger(__name__)
@@ -34,15 +35,8 @@ class GreenCorrector(GenericCompositor):
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Boost vegetation effect thanks to NIR (0.8µm) band."""
-        new_green = None
-        fraction_index = 0
         LOG.info('Boosting vegetation on green band')
 
-        for band in self.match_data_arrays(projectables):
-            if new_green is None:
-                new_green = band * self.fractions[fraction_index]
-                new_green.attrs = band.attrs.copy()
-            else:
-                new_green += band * self.fractions[fraction_index]
-            fraction_index += 1
+        new_green = sum(fraction * value for fraction, value in zip(self.fractions, projectables))
+        new_green.attrs = combine_metadata(*projectables)
         return super(GreenCorrector, self).__call__((new_green,), **attrs)
