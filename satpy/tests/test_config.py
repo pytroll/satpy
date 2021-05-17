@@ -185,7 +185,6 @@ class TestConfigObject:
                                                        '/my/configs2',
                                                        '/my/configs3']
 
-
     def test_bad_str_config_path(self):
         """Test that a str config path isn't allowed."""
         from importlib import reload
