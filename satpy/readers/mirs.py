@@ -435,13 +435,13 @@ class MiRSL2ncHandler(BaseFileHandler):
                 yield is_avail, ds_info
                 continue
 
+            yaml_info = {}
             if self.file_type_matches(ds_info['file_type']):
                 handled_vars.add(ds_info['name'])
+                yaml_info = ds_info
             if ds_info['name'] == 'BT':
-                yaml_info = ds_info if self.file_type_matches(
-                    ds_info['file_type']) else {}
                 yield from self._available_btemp_datasets(yaml_info)
-            yield self.file_type_matches(ds_info['file_type']), ds_info
+            yield True, ds_info
         yield from self._available_new_datasets(handled_vars)
 
     def _count_channel_repeat_number(self):
