@@ -1117,7 +1117,7 @@ class BucketResamplerBase(BaseResampler):
             dims = ('y', 'x')
         else:
             dims = data.dims
-        LOG.debug("Resampling %s", str(data.name))
+        LOG.debug("Resampling %s", str(data.attrs.get('_satpy_id', 'unknown')))
         result = self.compute(data_arr, **kwargs)
         coords = {}
         if 'bands' in data.coords:
