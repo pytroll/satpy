@@ -144,6 +144,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         logger.debug('Reading {} from {}'.format(key['name'], self.filename))
         if "pixel_quality" in key['name']:
             return self._get_dataset_quality(key, info=info)
+        elif "index_map" in key['name']:
+            return self._get_dataset_index_map(key, info=info)
         elif any(lb in key['name'] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
@@ -240,6 +242,27 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         data = self[dv_path]
         return data
 
+    def _get_dataset_index_map(self, key, info=None):
+        """Load index map for channel.
+
+        Load the index map for an FCI channel.  This is a bit involved in
+        case of FCI because each channel group (data/<channel>/measured) has
+        its own data variable 'index_map', so some special treatment in
+        necessary.
+        """
+        # FIXME: replace by .removesuffix after we drop support for Python < 3.9
+        if key['name'].endswith("_index_map"):
+            chan_lab = key['name'][:-len("_index_map")]
+        else:
+            raise ValueError("Index map label must end with index_map, got "
+                             f"{key['name']:s}")
+        grp_path = self.get_channel_measured_group_path(chan_lab)
+        dv_path = grp_path + "/index_map"
+        data = self[dv_path]
+
+        data = data.where(data != data.attrs['_FillValue'])
+        return data
+
     def get_channel_measured_group_path(self, channel):
         """Get the channel's measured group path."""
         measured_group_path = 'data/{}/measured'.format(channel)
@@ -248,11 +271,13 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
-        # if a user requests a pixel quality before the channel data, the
-        # yaml-reader will ask the area extent of the pixel quality field,
+        # if a user requests a pixel quality or index map before the channel data, the
+        # yaml-reader will ask the area extent of the pixel quality/index map field,
         # which will ultimately end up here
         if key['name'].endswith("_pixel_quality"):
             lab = key['name'][:-len("_pixel_quality")]
+        elif key['name'].endswith("_index_map"):
+            lab = key['name'][:-len("_index_map")]
         else:
             lab = key['name']
         # Get metadata for given dataset

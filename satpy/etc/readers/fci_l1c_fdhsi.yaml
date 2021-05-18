@@ -379,6 +379,102 @@ datasets:
     resolution: 2000
     file_type: fci_l1c_fdhsi
 
+  vis_04_index_map:
+    name: vis_04_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_index_map:
+    name: vis_05_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_index_map:
+    name: vis_06_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_index_map:
+    name: vis_08_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_index_map:
+    name: vis_09_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_index_map:
+    name: nir_13_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_index_map:
+    name: nir_16_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_index_map:
+    name: nir_22_index_map
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_index_map:
+    name: ir_38_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_index_map:
+    name: wv_63_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_index_map:
+    name: wv_73_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_index_map:
+    name: ir_87_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_index_map:
+    name: ir_97_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_index_map:
+    name: ir_105_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_index_map:
+    name: ir_123_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_index_map:
+    name: ir_133_index_map
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
 # Source: MTG FCI L1 Product User Guide [FCIL1PUG]
 # ftp://ftp.eumetsat.int/pub/OPS/out/test-data/Test-data-for-External-Users/MTG/MTG_FCI_L1C_Enhanced_and_Non-Nominal_Test_Data/PDF_MTG_FCI_L1_PUG.pdf
 # and Example Products for Pytroll Workshop Package Description,
