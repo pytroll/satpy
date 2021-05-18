@@ -475,6 +475,14 @@ datasets:
     resolution: 2000
     file_type: fci_l1c_fdhsi
 
+  vis_04_subsatellite_latitude:
+    name: vis_04_subsatellite_latitude
+    sensor: fci
+    resolution: 1000
+    aux_data_name: subsatellite_latitude
+    aux_data_group: state/platform
+    file_type: fci_l1c_fdhsi
+
 # Source: MTG FCI L1 Product User Guide [FCIL1PUG]
 # ftp://ftp.eumetsat.int/pub/OPS/out/test-data/Test-data-for-External-Users/MTG/MTG_FCI_L1C_Enhanced_and_Non-Nominal_Test_Data/PDF_MTG_FCI_L1_PUG.pdf
 # and Example Products for Pytroll Workshop Package Description,

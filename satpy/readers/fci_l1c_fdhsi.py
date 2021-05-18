@@ -146,6 +146,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             return self._get_dataset_quality(key, info=info)
         elif "index_map" in key['name']:
             return self._get_dataset_index_map(key, info=info)
+        elif any(aux in key['name'] for aux in {"subsatellite_latitude"}):
+            return self._get_dataset_aux_data(key, info=info)
         elif any(lb in key['name'] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
@@ -263,6 +265,27 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         data = data.where(data != data.attrs['_FillValue'])
         return data
 
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block.astype('int16')]
+
+    def _get_dataset_aux_data(self, key, info=None):
+        """Implement auxiliary data reading and index map assignment."""
+        # get index map
+        chan_lab = key['name'][:-len(info['aux_data_name'])-1]
+        index_map = self._get_dataset_index_map({'name': chan_lab+'_index_map'}) - 1
+
+        # get lut values from 1-d vector (needs to be a numpy array for
+        lut = self[info['aux_data_group']+'/'+info['aux_data_name']].data.compute()
+
+        # assign lut values based on index map indices (as in take function)
+        aux = index_map.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
+        aux = xr.DataArray(aux, dims=index_map.dims, attrs=index_map.attrs, coords=index_map.coords)
+
+        # filter out out-of-disk values
+        aux = aux.where(index_map > 0)
+        return aux
+
     def get_channel_measured_group_path(self, channel):
         """Get the channel's measured group path."""
         measured_group_path = 'data/{}/measured'.format(channel)
@@ -278,6 +301,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             lab = key['name'][:-len("_pixel_quality")]
         elif key['name'].endswith("_index_map"):
             lab = key['name'][:-len("_index_map")]
+        elif any(aux in key['name'] for aux in {"subsatellite_latitude"}):
+            lab = key['name'][:-len("subsatellite_latitude") - 1]
         else:
             lab = key['name']
         # Get metadata for given dataset
