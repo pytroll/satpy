@@ -166,6 +166,7 @@ class TestConfigObject:
 
     def test_config_path_multiple_load(self):
         """Test that config paths from subprocesses load properly.
+
         Satpy modifies the config path environment variable when it is imported.
         If Satpy is imported again from a subprocess then it should be able to parse this
         modified variable.
