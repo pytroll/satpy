@@ -151,11 +151,20 @@ def _all_arrays_equal(arrays):
 
 
 def _all_values_equal(values):
-    return _all_close(values) or _all_equal(values)
+    try:
+        return _all_close(values)
+    except (ValueError, TypeError):
+        # In case of object type arrays (e.g. datetime) _all_close fails,
+        # but _all_equal succeeds.
+        return _all_equal(values)
 
 
 def _all_dicts_equal(dicts):
-    return _pairwise_all(_dict_equal, dicts)
+    try:
+        return _pairwise_all(_dict_equal, dicts)
+    except AttributeError:
+        # There is something else than a dictionary in the list
+        return False
 
 
 def _dict_equal(d1, d2):
@@ -186,13 +195,6 @@ def _pairwise_all(func, values):
 
 
 def _is_equal(a, b, comp_func):
-    try:
-        return _array_or_object_equal(a, b, comp_func)
-    except (ValueError, AttributeError, TypeError):
-        return False
-
-
-def _array_or_object_equal(a, b, comp_func):
     res = comp_func(a, b)
     if _is_array(res):
         return res.all()
