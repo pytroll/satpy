@@ -83,10 +83,10 @@ class BitFlagsMERIS:
 
 
 class NCMERISBase(BaseFileHandler):
-    """The MERIS reader base."""
+    """The MERIS reader base.
+        Sentinel 3 like format."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the meris reader base."""
         super(NCMERISBase, self).__init__(filename, filename_info, filetype_info)
         self._engine = engine
@@ -163,8 +163,8 @@ class NCMERIS2(NCMERISChannelBase):
         if self.channel is not None and self.channel != key['name']:
             return
         logger.debug('Reading %s.', key['name'])
-        if self.channel is not None and self.channel.startswith('Oa'):
-            dataset = self.nc[self.channel + '_reflectance']
+        if self.channel is not None and self.channel.startswith('M'):
+            dataset = self.nc[self.channel + '_rho_w']
         else:
             dataset = self.nc[info['nc_key']]
 
