@@ -91,17 +91,34 @@ from .netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
+# dict containing all available auxiliary data parameters to be read using the index map. Keys are the
+# parameter name and values are the paths to the variable inside the netcdf
 AUX_DATA = {
-    'subsatellite_latitude': 'state/platform/subsatellite_latitude'
+    'subsatellite_latitude': 'state/platform/subsatellite_latitude',
+    'subsatellite_longitude': 'state/platform/subsatellite_longitude',
 }
 
 
 def _get_aux_data_name_from_dsname(dsname):
-    dsname = [key for key, val in AUX_DATA.items() if any(s in dsname for s in AUX_DATA.keys())]
-    if len(dsname) > 0:
-        return dsname[0]
+    aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
+    if len(aux_data_name) > 0:
+        return aux_data_name[0]
     else:
         return None
+
+
+def _get_channel_name_from_dsname(dsname):
+    # FIXME: replace by .removesuffix after we drop support for Python < 3.9
+    if dsname.endswith("_pixel_quality"):
+        channel_name = dsname[:-len("_pixel_quality")]
+    elif dsname.endswith("_index_map"):
+        channel_name = dsname[:-len("_index_map")]
+    elif _get_aux_data_name_from_dsname(dsname) is not None:
+        channel_name = dsname[:-len(_get_aux_data_name_from_dsname(dsname)) - 1]
+    else:
+        channel_name = dsname
+
+    return channel_name
 
 
 class FCIFDHSIFileHandler(NetCDF4FileHandler):
@@ -155,11 +172,11 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         """Load a dataset."""
         logger.debug('Reading {} from {}'.format(key['name'], self.filename))
         if "pixel_quality" in key['name']:
-            return self._get_dataset_quality(key, info=info)
+            return self._get_dataset_quality(key['name'])
         elif "index_map" in key['name']:
-            return self._get_dataset_index_map(key, info=info)
-        elif any(aux in key['name'] for aux in {"subsatellite_latitude"}):
-            return self._get_dataset_aux_data(key, info=info)
+            return self._get_dataset_index_map(key['name'])
+        elif _get_aux_data_name_from_dsname(key['name']) is not None:
+            return self._get_dataset_aux_data(key['name'])
         elif any(lb in key['name'] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
@@ -203,13 +220,15 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # "ancillary_variables" attribute the value "pixel_quality".  In
         # FileYAMLReader._load_ancillary_variables, satpy will try to load
         # "pixel_quality" but is lacking the context from what group to load
-        # it.  Until we can have multiple pixel_quality variables defined (for
+        # it: in the FCI format, each channel group (data/<channel>/measured) has
+        # its own data variable 'pixel_quality'.
+        # Until we can have multiple pixel_quality variables defined (for
         # example, with https://github.com/pytroll/satpy/pull/1088), rewrite
-        # the ancillary variable to include the channel.  See also
+        # the ancillary variable to include the channel. See also
         # https://github.com/pytroll/satpy/issues/1171.
         if "pixel_quality" in attrs["ancillary_variables"]:
             attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
-                    "pixel_quality", key['name'] + "_pixel_quality")
+                "pixel_quality", key['name'] + "_pixel_quality")
         else:
             raise ValueError(
                 "Unexpected value for attribute ancillary_variables, "
@@ -236,41 +255,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return res
 
-    def _get_dataset_quality(self, key, info=None):
-        """Load quality for channel.
-
-        Load a quality field for an FCI channel.  This is a bit involved in
-        case of FCI because each channel group (data/<channel>/measured) has
-        its own data variable 'pixel_quality', referred to in ancillary
-        variables (see also Satpy issue 1171), so some special treatment in
-        necessary.
-        """
-        # FIXME: replace by .removesuffix after we drop support for Python < 3.9
-        if key['name'].endswith("_pixel_quality"):
-            chan_lab = key['name'][:-len("_pixel_quality")]
-        else:
-            raise ValueError("Quality label must end with pixel_quality, got "
-                             f"{key['name']:s}")
-        grp_path = self.get_channel_measured_group_path(chan_lab)
+    def _get_dataset_quality(self, channel_name):
+        """Load a quality field for an FCI channel."""
+        grp_path = self.get_channel_measured_group_path(channel_name)
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
         return data
 
-    def _get_dataset_index_map(self, key, info=None):
-        """Load index map for channel.
-
-        Load the index map for an FCI channel.  This is a bit involved in
-        case of FCI because each channel group (data/<channel>/measured) has
-        its own data variable 'index_map', so some special treatment in
-        necessary.
-        """
-        # FIXME: replace by .removesuffix after we drop support for Python < 3.9
-        if key['name'].endswith("_index_map"):
-            chan_lab = key['name'][:-len("_index_map")]
-        else:
-            raise ValueError("Index map label must end with index_map, got "
-                             f"{key['name']:s}")
-        grp_path = self.get_channel_measured_group_path(chan_lab)
+    def _get_dataset_index_map(self, channel_name):
+        """Load the index map for an FCI channel."""
+        grp_path = self.get_channel_measured_group_path(channel_name)
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
 
@@ -281,16 +275,15 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def _getitem(block, lut):
         return lut[block.astype('int16')]
 
-    def _get_dataset_aux_data(self, key, info=None):
+    def _get_dataset_aux_data(self, dsname):
         """Get the auxiliary data arrays using the index map."""
         # get index map
-        aux_data_name = _get_aux_data_name_from_dsname(key['name'])
-        index_map = self._get_dataset_index_map({'name': key['name'][:-len(aux_data_name) - 1] + '_index_map'})
+        index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
         # subtract one as index map indexing starts from 1
         index_map += -1
 
         # get lut values from 1-d vector (needs to be a numpy array for getitem to work)
-        lut = self[AUX_DATA[aux_data_name]].data.compute()
+        lut = self[AUX_DATA[_get_aux_data_name_from_dsname(dsname)]].data.compute()
 
         # assign lut values based on index map indices
         aux = index_map.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
@@ -313,20 +306,13 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # if a user requests a pixel quality or index map before the channel data, the
         # yaml-reader will ask the area extent of the pixel quality/index map field,
         # which will ultimately end up here
-        if key['name'].endswith("_pixel_quality"):
-            lab = key['name'][:-len("_pixel_quality")]
-        elif key['name'].endswith("_index_map"):
-            lab = key['name'][:-len("_index_map")]
-        elif _get_aux_data_name_from_dsname(key['name']) is not None:
-            lab = key['name'][:-len(_get_aux_data_name_from_dsname(key['name'])) - 1]
-        else:
-            lab = key['name']
+        channel_name = _get_channel_name_from_dsname(key['name'])
         # Get metadata for given dataset
-        measured = self.get_channel_measured_group_path(lab)
+        measured = self.get_channel_measured_group_path(channel_name)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
-        logger.debug('Channel {} resolution: {}'.format(lab, ncols))
+        logger.debug('Channel {} resolution: {}'.format(channel_name, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
@@ -334,7 +320,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         extents = {}
         for coord in "xy":
-            coord_radian = self["data/{:s}/measured/{:s}".format(lab, coord)]
+            coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
 
             # FCI defines pixels by centroids (see PUG), while pyresample
