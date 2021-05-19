@@ -475,11 +475,1319 @@ datasets:
     resolution: 2000
     file_type: fci_l1c_fdhsi
 
-  vis_04_subsatellite_latitude:
-    name: vis_04_subsatellite_latitude
+  vis_04_time:
+    name: vis_04_time
+    units: s
     sensor: fci
     resolution: 1000
     file_type: fci_l1c_fdhsi
+
+  vis_05_time:
+    name: vis_05_time
+    units: s
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_time:
+    name: vis_06_time
+    units: s
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_time:
+    name: vis_08_time
+    units: s
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_time:
+    name: vis_09_time
+    units: s
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_time:
+    name: nir_13_time
+    units: s
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_time:
+    name: nir_16_time
+    units: s
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_time:
+    name: nir_22_time
+    units: s
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_time:
+    name: ir_38_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_time:
+    name: wv_63_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_time:
+    name: wv_73_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_time:
+    name: ir_87_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_time:
+    name: ir_97_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_time:
+    name: ir_105_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_time:
+    name: ir_123_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_time:
+    name: ir_133_time
+    units: s
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_swath_direction:
+    name: vis_04_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_swath_direction:
+    name: vis_05_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_swath_direction:
+    name: vis_06_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_swath_direction:
+    name: vis_08_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_swath_direction:
+    name: vis_09_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_swath_direction:
+    name: nir_13_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_swath_direction:
+    name: nir_16_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_swath_direction:
+    name: nir_22_swath_direction
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_swath_direction:
+    name: ir_38_swath_direction
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_swath_direction:
+    name: wv_63_swath_direction
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_swath_direction:
+    name: wv_73_swath_direction
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_swath_direction:
+    name: ir_87_swath_direction
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_swath_direction:
+    name: ir_97_swath_direction
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_swath_direction:
+    name: ir_105_swath_direction
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_swath_direction:
+    name: ir_123_swath_direction
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_swath_direction:
+    name: ir_133_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_swath_number:
+    name: vis_04_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_swath_number:
+    name: vis_05_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_swath_number:
+    name: vis_06_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_swath_number:
+    name: vis_08_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_swath_number:
+    name: vis_09_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_swath_number:
+    name: nir_13_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_swath_number:
+    name: nir_16_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_swath_number:
+    name: nir_22_swath_number
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_swath_number:
+    name: ir_38_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_swath_number:
+    name: wv_63_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_swath_number:
+    name: wv_73_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_swath_number:
+    name: ir_87_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_swath_number:
+    name: ir_97_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_swath_number:
+    name: ir_105_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_swath_number:
+    name: ir_123_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_swath_number:
+    name: ir_133_swath_number
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_subsatellite_latitude:
+    name: vis_04_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_subsatellite_latitude:
+    name: vis_05_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_subsatellite_latitude:
+    name: vis_06_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_subsatellite_latitude:
+    name: vis_08_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_subsatellite_latitude:
+    name: vis_09_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_subsatellite_latitude:
+    name: nir_13_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_subsatellite_latitude:
+    name: nir_16_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_subsatellite_latitude:
+    name: nir_22_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_subsatellite_latitude:
+    name: ir_38_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_subsatellite_latitude:
+    name: wv_63_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_subsatellite_latitude:
+    name: wv_73_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_subsatellite_latitude:
+    name: ir_87_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_subsatellite_latitude:
+    name: ir_97_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_subsatellite_latitude:
+    name: ir_105_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_subsatellite_latitude:
+    name: ir_123_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_subsatellite_latitude:
+    name: ir_133_subsatellite_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_subsatellite_longitude:
+    name: vis_04_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_subsatellite_longitude:
+    name: vis_05_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_subsatellite_longitude:
+    name: vis_06_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_subsatellite_longitude:
+    name: vis_08_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_subsatellite_longitude:
+    name: vis_09_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_subsatellite_longitude:
+    name: nir_13_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_subsatellite_longitude:
+    name: nir_16_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_subsatellite_longitude:
+    name: nir_22_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_subsatellite_longitude:
+    name: ir_38_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_subsatellite_longitude:
+    name: wv_63_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_subsatellite_longitude:
+    name: wv_73_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_subsatellite_longitude:
+    name: ir_87_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_subsatellite_longitude:
+    name: ir_97_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_subsatellite_longitude:
+    name: ir_105_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_subsatellite_longitude:
+    name: ir_123_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_subsatellite_longitude:
+    name: ir_133_subsatellite_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_solar_elevation:
+    name: vis_04_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_solar_elevation:
+    name: vis_05_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_solar_elevation:
+    name: vis_06_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_solar_elevation:
+    name: vis_08_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_solar_elevation:
+    name: vis_09_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_solar_elevation:
+    name: nir_13_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_solar_elevation:
+    name: nir_16_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_solar_elevation:
+    name: nir_22_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_solar_elevation:
+    name: ir_38_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_solar_elevation:
+    name: wv_63_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_solar_elevation:
+    name: wv_73_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_solar_elevation:
+    name: ir_87_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_solar_elevation:
+    name: ir_97_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_solar_elevation:
+    name: ir_105_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_solar_elevation:
+    name: ir_123_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_solar_elevation:
+    name: ir_133_solar_elevation
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_solar_azimuth:
+    name: vis_04_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_solar_azimuth:
+    name: vis_05_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_solar_azimuth:
+    name: vis_06_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_solar_azimuth:
+    name: vis_08_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_solar_azimuth:
+    name: vis_09_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_solar_azimuth:
+    name: nir_13_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_solar_azimuth:
+    name: nir_16_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_solar_azimuth:
+    name: nir_22_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_solar_azimuth:
+    name: ir_38_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_solar_azimuth:
+    name: wv_63_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_solar_azimuth:
+    name: wv_73_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_solar_azimuth:
+    name: ir_87_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_solar_azimuth:
+    name: ir_97_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_solar_azimuth:
+    name: ir_105_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_solar_azimuth:
+    name: ir_123_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_solar_azimuth:
+    name: ir_133_solar_azimuth
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_subsolar_latitude:
+    name: vis_04_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_subsolar_latitude:
+    name: vis_05_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_subsolar_latitude:
+    name: vis_06_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_subsolar_latitude:
+    name: vis_08_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_subsolar_latitude:
+    name: vis_09_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_subsolar_latitude:
+    name: nir_13_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_subsolar_latitude:
+    name: nir_16_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_subsolar_latitude:
+    name: nir_22_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_subsolar_latitude:
+    name: ir_38_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_subsolar_latitude:
+    name: wv_63_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_subsolar_latitude:
+    name: wv_73_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_subsolar_latitude:
+    name: ir_87_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_subsolar_latitude:
+    name: ir_97_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_subsolar_latitude:
+    name: ir_105_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_subsolar_latitude:
+    name: ir_123_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_subsolar_latitude:
+    name: ir_133_subsolar_latitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_subsolar_longitude:
+    name: vis_04_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_subsolar_longitude:
+    name: vis_05_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_subsolar_longitude:
+    name: vis_06_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_subsolar_longitude:
+    name: vis_08_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_subsolar_longitude:
+    name: vis_09_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_subsolar_longitude:
+    name: nir_13_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_subsolar_longitude:
+    name: nir_16_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_subsolar_longitude:
+    name: nir_22_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_subsolar_longitude:
+    name: ir_38_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_subsolar_longitude:
+    name: wv_63_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_subsolar_longitude:
+    name: wv_73_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_subsolar_longitude:
+    name: ir_87_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_subsolar_longitude:
+    name: ir_97_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_subsolar_longitude:
+    name: ir_105_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_subsolar_longitude:
+    name: ir_123_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_subsolar_longitude:
+    name: ir_133_subsolar_longitude
+    units: deg
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+
+  vis_04_platform_altitude:
+    name: vis_04_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_platform_altitude:
+    name: vis_05_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_platform_altitude:
+    name: vis_06_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_platform_altitude:
+    name: vis_08_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_platform_altitude:
+    name: vis_09_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_platform_altitude:
+    name: nir_13_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_platform_altitude:
+    name: nir_16_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_platform_altitude:
+    name: nir_22_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_platform_altitude:
+    name: ir_38_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_platform_altitude:
+    name: wv_63_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_platform_altitude:
+    name: wv_73_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_platform_altitude:
+    name: ir_87_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_platform_altitude:
+    name: ir_97_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_platform_altitude:
+    name: ir_105_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_platform_altitude:
+    name: ir_123_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_platform_altitude:
+    name: ir_133_platform_altitude
+    units: m
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_earth_sun_distance:
+    name: vis_04_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_earth_sun_distance:
+    name: vis_05_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_earth_sun_distance:
+    name: vis_06_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_earth_sun_distance:
+    name: vis_08_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_earth_sun_distance:
+    name: vis_09_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_earth_sun_distance:
+    name: nir_13_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_earth_sun_distance:
+    name: nir_16_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_earth_sun_distance:
+    name: nir_22_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_earth_sun_distance:
+    name: ir_38_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_earth_sun_distance:
+    name: wv_63_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_earth_sun_distance:
+    name: wv_73_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_earth_sun_distance:
+    name: ir_87_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_earth_sun_distance:
+    name: ir_97_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_earth_sun_distance:
+    name: ir_105_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_earth_sun_distance:
+    name: ir_123_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_earth_sun_distance:
+    name: ir_133_earth_sun_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  vis_04_sun_satellite_distance:
+    name: vis_04_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_sun_satellite_distance:
+    name: vis_05_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_sun_satellite_distance:
+    name: vis_06_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_sun_satellite_distance:
+    name: vis_08_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_sun_satellite_distance:
+    name: vis_09_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_sun_satellite_distance:
+    name: nir_13_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_sun_satellite_distance:
+    name: nir_16_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_sun_satellite_distance:
+    name: nir_22_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_sun_satellite_distance:
+    name: ir_38_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_sun_satellite_distance:
+    name: wv_63_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_sun_satellite_distance:
+    name: wv_73_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_sun_satellite_distance:
+    name: ir_87_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_sun_satellite_distance:
+    name: ir_97_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_sun_satellite_distance:
+    name: ir_105_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_sun_satellite_distance:
+    name: ir_123_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_sun_satellite_distance:
+    name: ir_133_sun_satellite_distance
+    units: km
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
 
 # Source: MTG FCI L1 Product User Guide [FCIL1PUG]
 # ftp://ftp.eumetsat.int/pub/OPS/out/test-data/Test-data-for-External-Users/MTG/MTG_FCI_L1C_Enhanced_and_Non-Nominal_Test_Data/PDF_MTG_FCI_L1_PUG.pdf
@@ -488,5 +1796,5 @@ datasets:
 file_types:
   fci_l1c_fdhsi:
     file_reader: !!python/name:satpy.readers.fci_l1c_fdhsi.FCIFDHSIFileHandler
-    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_level}-{type}-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']
+    file_patterns: [ '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_level}-{type}-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc' ]
     expected_segments: 40
