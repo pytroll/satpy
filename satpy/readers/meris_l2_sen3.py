@@ -88,8 +88,7 @@ class NCMERISBase(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the meris reader base."""
-        super(NCMERISBase, self).__init__(filename, filename_info,
-                                         filetype_info)
+        super(NCMERISBase, self).__init__(filename, filename_info, filetype_info)
         self._engine = engine
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
@@ -151,8 +150,7 @@ class NCMERISChannelBase(NCMERISBase):
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the file handler."""
-        super(NCMERISChannelBase, self).__init__(filename, filename_info,
-                                                filetype_info)
+        super(NCMERISChannelBase, self).__init__(filename, filename_info, filetype_info)
 
         self.channel = filename_info.get('dataset_name')
 
