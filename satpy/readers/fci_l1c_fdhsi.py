@@ -270,22 +270,26 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return lut[block.astype('int16')]
 
     def _get_dataset_aux_data(self, key, info=None):
-        """Implement auxiliary data reading and index map assignment."""
+        """Get the auxiliary data arrays using the index map."""
         # get index map
-        chan_lab = key['name'][:-len(info['aux_data_name'])-1]
-        index_map = self._get_dataset_index_map({'name': chan_lab+'_index_map'}) - 1
+        channel_name = key['name'][:-len(info['aux_data_name'])-1]
+        index_map = self._get_dataset_index_map({'name': channel_name+'_index_map'})
+        # subtract one as index map indexing starts from 1
+        index_map += -1
 
-        # get lut values from 1-d vector (needs to be a numpy array for
+        # get lut values from 1-d vector (needs to be a numpy array for getitem to work)
         lut = self[info['aux_data_group']+'/'+info['aux_data_name']].data.compute()
 
-        # assign lut values based on index map indices (as in take function)
+        # assign lut values based on index map indices
         aux = index_map.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
         aux = xr.DataArray(aux, dims=index_map.dims, attrs=index_map.attrs, coords=index_map.coords)
 
         # filter out out-of-disk values
-        aux = aux.where(index_map > 0)
+        aux = aux.where(index_map >= 0)
+
         return aux
 
+    @staticmethod
     def get_channel_measured_group_path(self, channel):
         """Get the channel's measured group path."""
         measured_group_path = 'data/{}/measured'.format(channel)
