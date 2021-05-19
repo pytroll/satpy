@@ -33,16 +33,16 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
     def _get_test_calib_for_channel_ir(self, chroot, meas):
         from pyspectral.blackbody import (
-                H_PLANCK as h,
-                K_BOLTZMANN as k,
-                C_SPEED as c)
+            H_PLANCK as h,
+            K_BOLTZMANN as k,
+            C_SPEED as c)
         xrda = xr.DataArray
         data = {}
         data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xrda(955)
         data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1)
         data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(0.4)
-        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(1e11*2*h*c**2)
-        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(1e2*h*c/k)
+        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(1e11 * 2 * h * c ** 2)
+        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(1e2 * h * c / k)
         return data
 
     def _get_test_calib_for_channel_vis(self, chroot, meas):
@@ -70,15 +70,15 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         ch_path = rad.format(ch_str)
 
         common_attrs = {
-                "scale_factor": 5,
-                "add_offset": 10,
-                "long_name": "Effective Radiance",
-                "units": "mW.m-2.sr-1.(cm-1)-1",
-                "ancillary_variables": "pixel_quality"
-                }
+            "scale_factor": 5,
+            "add_offset": 10,
+            "long_name": "Effective Radiance",
+            "units": "mW.m-2.sr-1.(cm-1)-1",
+            "ancillary_variables": "pixel_quality"
+        }
         if ch == 38:
             fire_line = da.ones((1, ncols), dtype="uint16", chunks=1024) * 5000
-            data_without_fires = da.ones((nrows-1, ncols), dtype="uint16", chunks=1024)
+            data_without_fires = da.ones((nrows - 1, ncols), dtype="uint16", chunks=1024)
             d = xrda(
                 da.concatenate([fire_line, data_without_fires], axis=0),
                 dims=("y", "x"),
@@ -98,17 +98,17 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "warm_scale_factor": 1,
                     "warm_add_offset": 0,
                     **common_attrs
-                    }
-                )
+                }
+            )
 
         data[ch_path] = d
         data[x.format(ch_str)] = xrda(
-                da.arange(1, ncols+1, dtype="uint16"),
-                dims=("x",),
-                attrs={
-                    "scale_factor": -5.58877772833e-05,
-                    "add_offset": 0.155619515845,
-                    }
+            da.arange(1, ncols + 1, dtype="uint16"),
+            dims=("x",),
+            attrs={
+                "scale_factor": -5.58877772833e-05,
+                "add_offset": 0.155619515845,
+            }
         )
         data[y.format(ch_str)] = xrda(
             da.arange(1, nrows + 1, dtype="uint16"),
@@ -121,8 +121,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         data[qual.format(ch_str)] = xrda(
             da.arange(nrows * ncols, dtype="uint8").reshape(nrows, ncols) % 128,
             dims=("y", "x"))
+        # add dummy data for index map starting from 1
         data[index_map.format(ch_str)] = xrda(
-            da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 65535,
+            (da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 6000) + 1,
             dims=("y", "x"))
 
         data[pos.format(ch_str, "start", "row")] = xrda(0)
@@ -134,17 +135,17 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                                                             meas.format(ch_str)))
         elif pat.startswith("vis") or pat.startswith("nir"):
             data.update(self._get_test_calib_for_channel_vis(chroot.format(ch_str),
-                        meas.format(ch_str)))
+                                                             meas.format(ch_str)))
         data[shp.format(ch_str)] = (nrows, ncols)
         return data
 
     def _get_test_content_all_channels(self):
         chan_patterns = {
-                "vis_{:>02d}": (4, 5, 6, 8, 9),
-                "nir_{:>02d}": (13, 16, 22),
-                "ir_{:>02d}": (38, 87, 97, 105, 123, 133),
-                "wv_{:>02d}": (63, 73),
-                }
+            "vis_{:>02d}": (4, 5, 6, 8, 9),
+            "nir_{:>02d}": (13, 16, 22),
+            "ir_{:>02d}": (38, 87, 97, 105, 123, 133),
+            "wv_{:>02d}": (63, 73),
+        }
         data = {}
         for pat in chan_patterns:
             for ch_num in chan_patterns[pat]:
@@ -157,21 +158,36 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         proj = "data/mtg_geos_projection"
 
         attrs = {
-                "sweep_angle_axis": "y",
-                "perspective_point_height": "35786400.0",
-                "semi_major_axis": "6378137.0",
-                "longitude_of_projection_origin": "0.0",
-                "inverse_flattening": "298.257223563",
-                "units": "m"}
+            "sweep_angle_axis": "y",
+            "perspective_point_height": "35786400.0",
+            "semi_major_axis": "6378137.0",
+            "longitude_of_projection_origin": "0.0",
+            "inverse_flattening": "298.257223563",
+            "units": "m"}
         data[proj] = xr.DataArray(
-                0,
-                dims=(),
-                attrs=attrs)
+            0,
+            dims=(),
+            attrs=attrs)
 
         # also set attributes cached, as this may be how they are accessed with
         # the NetCDF4FileHandler
         for (k, v) in attrs.items():
             data[proj + "/attr/" + k] = v
+
+        return data
+
+    def _get_test_content_aux_data(self):
+        from satpy.readers.fci_l1c_fdhsi import AUX_DATA
+        xrda = xr.DataArray
+        data = {}
+        indices_dim = 6000
+        for value in AUX_DATA.values():
+            data[value] = xrda(
+                da.arange(indices_dim, dtype="float32"),
+                dims=("index"))
+
+        # compute the last data entry to simulate the FCI caching
+        data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
         return data
 
@@ -195,6 +211,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         D = {}
         D.update(self._get_test_content_all_channels())
         D.update(self._get_test_content_areadef())
+        D.update(self._get_test_content_aux_data())
         D.update(self._get_global_attributes())
         return D
 
@@ -242,9 +259,9 @@ class TestFCIL1CFDHSIReader:
         # implementation strongly inspired by test_viirs_l1b.py
         from satpy.readers.fci_l1c_fdhsi import FCIFDHSIFileHandler
         p = mock.patch.object(
-                FCIFDHSIFileHandler,
-                "__bases__",
-                (self._alt_handler,))
+            FCIFDHSIFileHandler,
+            "__bases__",
+            (self._alt_handler,))
         with p:
             p.is_local = True
             yield p
@@ -306,11 +323,11 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [make_dataid(name=name, calibration="counts") for name in
-                    self._chans["solar"] + self._chans["terran"]], pad_data=False)
+            [make_dataid(name=name, calibration="counts") for name in
+             self._chans["solar"] + self._chans["terran"]], pad_data=False)
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
-            assert res[ch].shape == (200*2, 11136)
+            assert res[ch].shape == (200 * 2, 11136)
             assert res[ch].dtype == np.uint16
             assert res[ch].attrs["calibration"] == "counts"
             assert res[ch].attrs["units"] == "1"
@@ -335,8 +352,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [make_dataid(name=name, calibration="radiance") for name in
-                    self._chans["solar"] + self._chans["terran"]], pad_data=False)
+            [make_dataid(name=name, calibration="radiance") for name in
+             self._chans["solar"] + self._chans["terran"]], pad_data=False)
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch].shape == (200, 11136)
@@ -364,8 +381,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [make_dataid(name=name, calibration="reflectance") for name in
-                    self._chans["solar"]], pad_data=False)
+            [make_dataid(name=name, calibration="reflectance") for name in
+             self._chans["solar"]], pad_data=False)
         assert 8 == len(res)
         for ch in self._chans["solar"]:
             assert res[ch].shape == (200, 11136)
@@ -389,8 +406,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         with caplog.at_level(logging.WARNING):
             res = reader.load(
-                    [make_dataid(name=name, calibration="brightness_temperature") for
-                        name in self._chans["terran"]], pad_data=False)
+                [make_dataid(name=name, calibration="brightness_temperature") for
+                 name in self._chans["terran"]], pad_data=False)
             assert caplog.text == ""
         for ch in self._chans["terran"]:
             assert res[ch].shape == (200, 11136)
@@ -408,7 +425,6 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         """Test loading of index_map."""
         from satpy.readers import load_reader
 
-        # testing two filenames to test correctly combined
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
@@ -424,7 +440,28 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch + '_index_map'].shape == (200, 11136)
-            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 11137)
+            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5137)
+
+    def test_load_aux_data(self, reader_configs):
+        """Test loading of index_map."""
+        from satpy.readers import load_reader
+        from satpy.readers.fci_l1c_fdhsi import AUX_DATA
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+
+        res = reader.load(['vis_04_' + key for key in AUX_DATA.keys()],
+                          pad_data=False)
+        for aux in ['vis_04_' + key for key in AUX_DATA.keys()]:
+            assert res[aux].shape == (200, 11136)
+            numpy.testing.assert_array_equal(res[aux][1, 1], 5137)
 
     def test_load_composite(self):
         """Test that composites are loadable."""
@@ -499,8 +536,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             fhs["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
         with pytest.raises(ValueError):
             fhs["fci_l1c_fdhsi"][0].get_dataset(
-                    make_dataid(name="ir_123", calibration="unknown"),
-                    {"units": "unknown"})
+                make_dataid(name="ir_123", calibration="unknown"),
+                {"units": "unknown"})
 
     def test_area_definition_computation(self, reader_configs):
         """Test that the geolocation computation is correct."""
@@ -557,8 +594,8 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         with caplog.at_level("ERROR"):
             reader.load([make_dataid(
-                    name="ir_123",
-                    calibration="brightness_temperature")], pad_data=False)
+                name="ir_123",
+                calibration="brightness_temperature")], pad_data=False)
             assert "cannot produce brightness temperature" in caplog.text
 
     def test_handling_bad_data_vis(self, reader_configs, caplog):
@@ -577,6 +614,6 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         with caplog.at_level("ERROR"):
             reader.load([make_dataid(
-                    name="vis_04",
-                    calibration="reflectance")], pad_data=False)
+                name="vis_04",
+                calibration="reflectance")], pad_data=False)
             assert "cannot produce reflectance" in caplog.text

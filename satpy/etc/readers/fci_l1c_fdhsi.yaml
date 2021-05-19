@@ -678,7 +678,7 @@ datasets:
     file_type: fci_l1c_fdhsi
 
   ir_133_swath_direction:
-    name: ir_133_swath_number
+    name: ir_133_swath_direction
     sensor: fci
     resolution: 2000
     file_type: fci_l1c_fdhsi
