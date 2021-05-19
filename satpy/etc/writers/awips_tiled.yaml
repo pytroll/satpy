@@ -124,9 +124,8 @@ templates:
         name: cloud_type
         var_name: data
         attributes:
-          attributes:
-            physical_element:
-              raw_value: CLAVR-x Cloud Type
+          physical_element:
+            raw_value: CLAVR-x Cloud Type
       clavrx_cld_temp_acha:
         reader: clavrx
         name: cld_temp_acha
