@@ -479,8 +479,6 @@ datasets:
     name: vis_04_subsatellite_latitude
     sensor: fci
     resolution: 1000
-    aux_data_name: subsatellite_latitude
-    aux_data_group: state/platform
     file_type: fci_l1c_fdhsi
 
 # Source: MTG FCI L1 Product User Guide [FCIL1PUG]

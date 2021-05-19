@@ -91,6 +91,18 @@ from .netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
+AUX_DATA = {
+    'subsatellite_latitude': 'state/platform/subsatellite_latitude'
+}
+
+
+def _get_aux_data_name_from_dsname(dsname):
+    dsname = [key for key, val in AUX_DATA.items() if any(s in dsname for s in AUX_DATA.keys())]
+    if len(dsname) > 0:
+        return dsname[0]
+    else:
+        return None
+
 
 class FCIFDHSIFileHandler(NetCDF4FileHandler):
     """Class implementing the MTG FCI FDHSI File .
@@ -272,13 +284,13 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def _get_dataset_aux_data(self, key, info=None):
         """Get the auxiliary data arrays using the index map."""
         # get index map
-        channel_name = key['name'][:-len(info['aux_data_name'])-1]
-        index_map = self._get_dataset_index_map({'name': channel_name+'_index_map'})
+        aux_data_name = _get_aux_data_name_from_dsname(key['name'])
+        index_map = self._get_dataset_index_map({'name': key['name'][:-len(aux_data_name) - 1] + '_index_map'})
         # subtract one as index map indexing starts from 1
         index_map += -1
 
         # get lut values from 1-d vector (needs to be a numpy array for getitem to work)
-        lut = self[info['aux_data_group']+'/'+info['aux_data_name']].data.compute()
+        lut = self[AUX_DATA[aux_data_name]].data.compute()
 
         # assign lut values based on index map indices
         aux = index_map.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
@@ -305,8 +317,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             lab = key['name'][:-len("_pixel_quality")]
         elif key['name'].endswith("_index_map"):
             lab = key['name'][:-len("_index_map")]
-        elif any(aux in key['name'] for aux in {"subsatellite_latitude"}):
-            lab = key['name'][:-len("subsatellite_latitude") - 1]
+        elif _get_aux_data_name_from_dsname(key['name']) is not None:
+            lab = key['name'][:-len(_get_aux_data_name_from_dsname(key['name'])) - 1]
         else:
             lab = key['name']
         # Get metadata for given dataset
