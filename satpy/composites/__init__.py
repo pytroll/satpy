@@ -252,6 +252,55 @@ class SingleBandCompositor(CompositeBase):
                             dims=data.dims, coords=data.coords)
 
 
+class CategoricalDataCompositor(CompositeBase):
+    """Compositor used to recategorize categorical data using a look-up-table.
+
+    Each value in the data array will be recategorized to a new category defined in
+    the look-up-table using the original value as an index for that look-up-table.
+
+    Example:
+        data = [[1, 3, 2], [4, 2, 0]]
+        lut = [10, 20, 30, 40, 50]
+        res = [[20, 40, 30], [50, 30, 10]]
+    """
+
+    def __init__(self, name, lut=None, **kwargs):
+        """Get look-up-table used to recategorize data.
+
+        Args:
+            lut (list): a list of new categories. The lenght must be greather than or equal to
+                        the maximum value in the data array that should be recategorized.
+        """
+        self.lut = np.array(lut)
+        super(CategoricalDataCompositor, self).__init__(name, **kwargs)
+
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block]
+
+    def __call__(self, projectables, **kwargs):
+        """Recategorize the data."""
+        if len(projectables) != 1:
+            raise ValueError("Can't have more than one dataset for a categorical data composite")
+
+        data = projectables[0]
+        data = data.astype(int)
+
+        maxval = data.data.max().compute()
+        if len(self.lut) < maxval:
+            raise ValueError("The LUT length (={}) must be greater than or equal to the"
+                             "maximum value in data array (={})".format(len(self.lut), maxval))
+
+        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
+
+        # Update attributes
+        new_attrs = data.attrs.copy()
+        new_attrs['name'] = self.attrs['name']
+        new_attrs['composite_lut'] = list(self.lut)
+
+        return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
+
+
 class GenericCompositor(CompositeBase):
     """Basic colored composite builder."""
 
