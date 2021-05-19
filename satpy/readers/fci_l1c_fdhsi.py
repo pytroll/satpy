@@ -96,6 +96,16 @@ logger = logging.getLogger(__name__)
 AUX_DATA = {
     'subsatellite_latitude': 'state/platform/subsatellite_latitude',
     'subsatellite_longitude': 'state/platform/subsatellite_longitude',
+    'platform_altitude': 'state/platform/platform_altitude',
+    'solar_elevation': 'state/celestial/solar_elevation',
+    'solar_azimuth': 'state/celestial/solar_azimuth',
+    'subsolar_latitude': 'state/celestial/subsolar_latitude',
+    'subsolar_longitude': 'state/celestial/subsolar_longitude',
+    'earth_sun_distance': 'state/celestial/earth_sun_distance',
+    'sun_satellite_distance': 'state/celestial/sun_satellite_distance',
+    'time': 'time',
+    'swath_number': 'data/swath_number',
+    'swath_direction': 'data/swath_direction',
 }
 
 
@@ -141,10 +151,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     # numbering will be considering MTG-S1 and MTG-S2 will be launched
     # in-between.
     _platform_name_translate = {
-            "MTI1": "MTG-I1",
-            "MTI2": "MTG-I2",
-            "MTI3": "MTG-I3",
-            "MTI4": "MTG-I4"}
+        "MTI1": "MTG-I1",
+        "MTI2": "MTG-I2",
+        "MTI3": "MTG-I3",
+        "MTI4": "MTG-I4"}
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
@@ -241,7 +251,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         res.attrs.update(attrs)
 
         res.attrs["platform_name"] = self._platform_name_translate.get(
-                self["/attr/platform"], self["/attr/platform"])
+            self["/attr/platform"], self["/attr/platform"])
 
         # remove unpacking parameters for calibrated data
         if key['calibration'] in ['brightness_temperature', 'reflectance']:
@@ -255,16 +265,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return res
 
-    def _get_dataset_quality(self, channel_name):
+    def _get_dataset_quality(self, dsname):
         """Load a quality field for an FCI channel."""
-        grp_path = self.get_channel_measured_group_path(channel_name)
+        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
         return data
 
-    def _get_dataset_index_map(self, channel_name):
+    def _get_dataset_index_map(self, dsname):
         """Load the index map for an FCI channel."""
-        grp_path = self.get_channel_measured_group_path(channel_name)
+        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
 
@@ -283,10 +293,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         index_map += -1
 
         # get lut values from 1-d vector (needs to be a numpy array for getitem to work)
-        lut = self[AUX_DATA[_get_aux_data_name_from_dsname(dsname)]].data.compute()
+        lut = self[AUX_DATA[_get_aux_data_name_from_dsname(dsname)]]
+        # variable may been computed already during caching
+        if not isinstance(lut, np.ndarray):
+            lut = lut.compute()
+
+        fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
+        lut[lut == fv] = np.nan
 
         # assign lut values based on index map indices
-        aux = index_map.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
+        aux = index_map.data.map_blocks(self._getitem, lut.data, dtype=lut.data.dtype)
         aux = xr.DataArray(aux, dims=index_map.dims, attrs=index_map.attrs, coords=index_map.coords)
 
         # filter out out-of-disk values
@@ -335,9 +351,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             # The values of y go from negative (South) to positive (North) and the scale factor of y is positive.
 
             # South-West corner (x positive, y negative)
-            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor/2
+            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor / 2
             # North-East corner (x negative, y positive)
-            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor/2
+            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor / 2
 
             # convert to arc length in m
             first_coord = first_coord_radian * h  # arc length in m
@@ -480,10 +496,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                         v.attrs.get("long_name",
                                     "at least one necessary coefficient"),
                         measured))
-                return radiance*np.nan
+                return radiance * np.nan
 
         nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc**3) / radiance)
+        denom = a * np.log(1 + (c1 * vc ** 3) / radiance)
 
         res = nom / denom - b / a
         res.attrs["units"] = "K"
@@ -500,10 +516,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
-            return radiance*np.nan
+            return radiance * np.nan
 
         sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
 
-        res = 100 * radiance * np.pi * sun_earth_distance**2 / cesi
+        res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
         res.attrs["units"] = "%"
         return res
