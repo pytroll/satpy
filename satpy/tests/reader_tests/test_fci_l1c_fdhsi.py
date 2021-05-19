@@ -440,7 +440,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch + '_index_map'].shape == (200, 11136)
-            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5137)
+            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5138)
 
     def test_load_aux_data(self, reader_configs):
         """Test loading of index_map."""
