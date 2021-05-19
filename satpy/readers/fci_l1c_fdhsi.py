@@ -190,7 +190,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         elif any(lb in key['name'] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
-            raise ValueError("Unknown dataset key, not a channel or quality: "
+            raise ValueError("Unknown dataset key, not a channel, quality or auxiliary data: "
                              f"{key['name']:s}")
 
     def _get_dataset_measurand(self, key, info=None):
@@ -278,12 +278,12 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
 
-        data = data.where(data != data.attrs['_FillValue'])
+        data = data.where(data != data.attrs.get('_FillValue', 65535))
         return data
 
     @staticmethod
     def _getitem(block, lut):
-        return lut[block.astype('int16')]
+        return lut[block.astype('uint16')]
 
     def _get_dataset_aux_data(self, dsname):
         """Get the auxiliary data arrays using the index map."""

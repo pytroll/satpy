@@ -60,6 +60,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         meas = chroot + "/measured"
         rad = meas + "/effective_radiance"
         qual = meas + "/pixel_quality"
+        index_map = meas + "/index_map"
         pos = meas + "/{:s}_position_{:s}"
         shp = rad + "/shape"
         x = meas + "/x"
@@ -108,18 +109,21 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "scale_factor": -5.58877772833e-05,
                     "add_offset": 0.155619515845,
                     }
-                )
+        )
         data[y.format(ch_str)] = xrda(
-                da.arange(1, nrows+1, dtype="uint16"),
-                dims=("y",),
-                attrs={
-                    "scale_factor": -5.58877772833e-05,
-                    "add_offset": 0.155619515845,
-                    }
-                )
+            da.arange(1, nrows + 1, dtype="uint16"),
+            dims=("y",),
+            attrs={
+                "scale_factor": -5.58877772833e-05,
+                "add_offset": 0.155619515845,
+            }
+        )
         data[qual.format(ch_str)] = xrda(
-                da.arange(nrows*ncols, dtype="uint8").reshape(nrows, ncols) % 128,
-                dims=("y", "x"))
+            da.arange(nrows * ncols, dtype="uint8").reshape(nrows, ncols) % 128,
+            dims=("y", "x"))
+        data[index_map.format(ch_str)] = xrda(
+            da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 65535,
+            dims=("y", "x"))
 
         data[pos.format(ch_str, "start", "row")] = xrda(0)
         data[pos.format(ch_str, "start", "column")] = xrda(0)
@@ -127,7 +131,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         data[pos.format(ch_str, "end", "column")] = xrda(ncols)
         if pat.startswith("ir") or pat.startswith("wv"):
             data.update(self._get_test_calib_for_channel_ir(chroot.format(ch_str),
-                        meas.format(ch_str)))
+                                                            meas.format(ch_str)))
         elif pat.startswith("vis") or pat.startswith("nir"):
             data.update(self._get_test_calib_for_channel_vis(chroot.format(ch_str),
                         meas.format(ch_str)))
@@ -400,6 +404,28 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             else:
                 numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
 
+    def test_load_index_map(self, reader_configs):
+        """Test loading of index_map."""
+        from satpy.readers import load_reader
+
+        # testing two filenames to test correctly combined
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc"
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        res = reader.load(
+            [name + '_index_map' for name in
+             self._chans["solar"] + self._chans["terran"]], pad_data=False)
+        assert 16 == len(res)
+        for ch in self._chans["solar"] + self._chans["terran"]:
+            assert res[ch + '_index_map'].shape == (200, 11136)
+            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 11137)
+
     def test_load_composite(self):
         """Test that composites are loadable."""
         # when dedicated composites for FCI FDHSI are implemented in satpy,
@@ -425,8 +451,14 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        res = reader.load(["ir_123_pixel_quality"], pad_data=False)
-        assert res["ir_123_pixel_quality"].attrs["name"] == "ir_123_pixel_quality"
+        res = reader.load(
+            [name + '_pixel_quality' for name in
+             self._chans["solar"] + self._chans["terran"]], pad_data=False)
+        assert 16 == len(res)
+        for ch in self._chans["solar"] + self._chans["terran"]:
+            assert res[ch + '_pixel_quality'].shape == (200, 11136)
+            numpy.testing.assert_array_equal(res[ch + '_pixel_quality'][1, 1], 1)
+            assert res[ch + '_pixel_quality'].attrs["name"] == ch + '_pixel_quality'
 
     def test_platform_name(self, reader_configs):
         """Test that platform name is exposed.
