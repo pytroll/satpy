@@ -97,8 +97,6 @@ AUX_DATA = {
     'subsatellite_latitude': 'state/platform/subsatellite_latitude',
     'subsatellite_longitude': 'state/platform/subsatellite_longitude',
     'platform_altitude': 'state/platform/platform_altitude',
-    'solar_elevation': 'state/celestial/solar_elevation',
-    'solar_azimuth': 'state/celestial/solar_azimuth',
     'subsolar_latitude': 'state/celestial/subsolar_latitude',
     'subsolar_longitude': 'state/celestial/subsolar_longitude',
     'earth_sun_distance': 'state/celestial/earth_sun_distance',

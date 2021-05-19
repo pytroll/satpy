@@ -48,7 +48,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     def _get_test_calib_for_channel_vis(self, chroot, meas):
         xrda = xr.DataArray
         data = {}
-        data["state/celestial/earth_sun_distance"] = xrda(149597870.7)
+        data["state/celestial/earth_sun_distance"] = xrda(da.repeat(da.array([149597870.7]), 6000))
         data[meas + "/channel_effective_solar_irradiance"] = xrda(50)
         return data
 
@@ -181,10 +181,11 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         xrda = xr.DataArray
         data = {}
         indices_dim = 6000
-        for value in AUX_DATA.values():
-            data[value] = xrda(
-                da.arange(indices_dim, dtype="float32"),
-                dims=("index"))
+        for key, value in AUX_DATA.items():
+            # skip population of earth_sun_distance as this is already defined for reflectance calculation
+            if key == 'earth_sun_distance':
+                continue
+            data[value] = xrda(da.arange(indices_dim, dtype="float32"), dims=("index"))
 
         # compute the last data entry to simulate the FCI caching
         data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
@@ -389,7 +390,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             assert res[ch].dtype == np.float64
             assert res[ch].attrs["calibration"] == "reflectance"
             assert res[ch].attrs["units"] == "%"
-            numpy.testing.assert_array_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
+            numpy.testing.assert_array_almost_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
     def test_load_bt(self, reader_configs, caplog):
         """Test loading with bt."""
@@ -460,8 +461,12 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         res = reader.load(['vis_04_' + key for key in AUX_DATA.keys()],
                           pad_data=False)
         for aux in ['vis_04_' + key for key in AUX_DATA.keys()]:
+
             assert res[aux].shape == (200, 11136)
-            numpy.testing.assert_array_equal(res[aux][1, 1], 5137)
+            if aux == 'vis_04_earth_sun_distance':
+                numpy.testing.assert_array_equal(res[aux][1, 1], 149597870.7)
+            else:
+                numpy.testing.assert_array_equal(res[aux][1, 1], 5137)
 
     def test_load_composite(self):
         """Test that composites are loadable."""
