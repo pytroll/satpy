@@ -466,9 +466,6 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         with pytest.raises(ValueError):
             fhs["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
         with pytest.raises(ValueError):
-            fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(make_dataid(name="invalid"),
-                                                         {})
-        with pytest.raises(ValueError):
             fhs["fci_l1c_fdhsi"][0].get_dataset(
                     make_dataid(name="ir_123", calibration="unknown"),
                     {"units": "unknown"})
