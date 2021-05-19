@@ -290,7 +290,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return aux
 
     @staticmethod
-    def get_channel_measured_group_path(self, channel):
+    def get_channel_measured_group_path(channel):
         """Get the channel's measured group path."""
         measured_group_path = 'data/{}/measured'.format(channel)
 
