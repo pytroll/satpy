@@ -76,8 +76,7 @@ class BitFlagsMERIS:
 
 
 class NCMERISBase(BaseFileHandler):
-    """The MERIS reader base.
-        Sentinel 3 like format."""
+    """The MERIS reader base. Sentinel 3 like format."""
 
     def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the meris reader base."""
@@ -171,8 +170,7 @@ class NCMERIS2(NCMERISChannelBase):
         return dataset
 
     def getbitmask(self, wqsf, items=None):
-        """Get the bitmask.
-        Experimental mask"""
+        """Get the bitmask. Experimental default mask"""
         items = items or ['SEA_ICE', 'MEGLINT', 'HIGHGLINT',
                           'HAZE_OVER_WATER', 'WHITECAPS', 'AC_FAIL', 'WHITE_SCATT',
                           'LOWRW', 'HIGHRW', 'OUT_OF_RANGE_AAC', 'OUT_OF_SCOPE_AAC',
