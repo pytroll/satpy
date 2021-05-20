@@ -726,8 +726,15 @@ class TestCategoricalDataCompositor(unittest.TestCase):
         np.testing.assert_equal(res.attrs['name'], name)
         np.testing.assert_equal(res.attrs['composite_lut'], lut)
 
+    def test_too_many_datasets(self):
+        """Test that ValueError is raised if more than one dataset is provided."""
+        from satpy.composites import CategoricalDataCompositor
+        lut = [np.nan, 0, 1]
+        comp = CategoricalDataCompositor(name='foo', lut=lut)
+        np.testing.assert_raises(ValueError, comp, [self.data, self.data])
+
     def test_bad_lut(self):
-        """Test that ValueError is raised if the LU is not sufficiently long."""
+        """Test that ValueError is raised if the LUT is not sufficiently long."""
         from satpy.composites import CategoricalDataCompositor
         lut = [np.nan, 0, 1]
         comp = CategoricalDataCompositor(name='foo', lut=lut)
