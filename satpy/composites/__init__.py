@@ -268,8 +268,8 @@ class CategoricalDataCompositor(CompositeBase):
         """Get look-up-table used to recategorize data.
 
         Args:
-            lut (list): a list of new categories. The lenght must be greather than or equal to
-                        the maximum value in the data array that should be recategorized.
+            lut (list): a list of new categories. The lenght must be greater than the
+                        maximum value in the data array that should be recategorized.
         """
         self.lut = np.array(lut)
         super(CategoricalDataCompositor, self).__init__(name, **kwargs)
@@ -287,9 +287,9 @@ class CategoricalDataCompositor(CompositeBase):
         data = data.astype(int)
 
         maxval = data.data.max().compute()
-        if len(self.lut) < maxval:
-            raise ValueError("The LUT length (={}) must be greater than or equal to the"
-                             "maximum value in data array (={})".format(len(self.lut), maxval))
+        if len(self.lut) <= maxval:
+            raise ValueError("The LUT length (={}) must be greater than the maximum value "
+                             "in the data array (={})".format(len(self.lut), maxval))
 
         res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
 
