@@ -274,18 +274,26 @@ class CategoricalDataCompositor(CompositeBase):
         self.lut = np.array(lut)
         super(CategoricalDataCompositor, self).__init__(name, **kwargs)
 
+    def _update_attrs(self, existing_attrs, new_attrs):
+        """Transfer attributes from **attrs, modify name and add LUT."""
+        for key, val in existing_attrs.items():
+            if key not in new_attrs and val is not None:
+                new_attrs[key] = val
+
+        # Modify name and add the LUT used to create the composite
+        new_attrs['name'] = self.attrs['name']
+        new_attrs['composite_lut'] = list(self.lut)
+
     @staticmethod
     def _getitem(block, lut):
         return lut[block]
 
-    def __call__(self, projectables, **kwargs):
+    def __call__(self, projectables, **attrs):
         """Recategorize the data."""
         if len(projectables) != 1:
             raise ValueError("Can't have more than one dataset for a categorical data composite")
 
-        data = projectables[0]
-        data = data.astype(int)
-
+        data = projectables[0].astype(int)
         maxval = data.data.max().compute()
         if len(self.lut) <= maxval:
             raise ValueError("The LUT length (={}) must be greater than the maximum value "
@@ -295,8 +303,7 @@ class CategoricalDataCompositor(CompositeBase):
 
         # Update attributes
         new_attrs = data.attrs.copy()
-        new_attrs['name'] = self.attrs['name']
-        new_attrs['composite_lut'] = list(self.lut)
+        self._update_attrs(attrs, new_attrs)
 
         return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
 
