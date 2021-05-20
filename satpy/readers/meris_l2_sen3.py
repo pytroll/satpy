@@ -15,7 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""ENVISAT MERIS reader (sentinel 3 like format: https://earth.esa.int/eogateway/documents/20142/37627/MERIS-Sentinel-3-Like-L1-andL2-PFS.pdf).
+"""ENVISAT MERIS reader
+sentinel 3 like format: https://earth.esa.int/eogateway/documents/20142/37627/MERIS-Sentinel-3-Like-L1-andL2-PFS.pdf
 
 Default:
     scn = Scene(filenames=my_files, reader='meris_l2_sen3')
@@ -47,16 +48,11 @@ PLATFORM_NAMES = {'ENV': 'Environmental Satellite'}
 class BitFlagsMERIS:
     """Manipulate flags stored bitwise."""
 
-    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                 'Extra_1',
-                 'KDM_FAIL',
-                 'Extra_2',
-                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                 'LOWRW', 'HIGHRW']
+    flag_list = ['SEA_ICE', 'MEGLINT', 'HIGHGLINT', 'CASE2_S', 'CASE2_ANOM',
+                 'HAZE_OVER_WATER', 'WHITECAPS', 'AC_FAIL', 'BPAC_ON', 'WHITE_SCATT',
+                 'LOWRW', 'HIGHRW', 'OUT_OF_RANGE_AAC', 'OUT_OF_SCOPE_AAC',
+                 'OUT_OF_RANGE_OC_NN', 'OUT_OF_SCOPE_OC_NN',
+                 'OUT_OF_RANGE_CHL_OC4ME_INPUT', 'OUT_OF_RANGE_CHL_OC4ME']
 
     meaning = {f: i for i, f in enumerate(flag_list)}
 
@@ -175,11 +171,13 @@ class NCMERIS2(NCMERISChannelBase):
         return dataset
 
     def getbitmask(self, wqsf, items=None):
-        """Get the bitmask."""
-        if items is None:
-            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+        """Get the bitmask.
+        Experimental mask"""
+        items = items or ['SEA_ICE', 'MEGLINT', 'HIGHGLINT',
+                          'HAZE_OVER_WATER', 'WHITECAPS', 'AC_FAIL', 'WHITE_SCATT',
+                          'LOWRW', 'HIGHRW', 'OUT_OF_RANGE_AAC', 'OUT_OF_SCOPE_AAC',
+                          'OUT_OF_RANGE_OC_NN', 'OUT_OF_SCOPE_OC_NN',
+                          'OUT_OF_RANGE_CHL_OC4ME_INPUT', 'OUT_OF_RANGE_CHL_OC4ME']
         bflags = BitFlagsMERIS(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
 
