@@ -702,6 +702,38 @@ class TestSingleBandCompositor(unittest.TestCase):
         self.assertEqual(res.attrs['resolution'], 333)
 
 
+class TestCategoricalDataCompositor(unittest.TestCase):
+    """Test composiotor for recategorization of categorical data."""
+
+    def setUp(self):
+        """Create test data."""
+        attrs = {'name': 'foo'}
+        data = xr.DataArray(da.from_array([[2., 1.], [3., 0.]]), attrs=attrs,
+                            dims=('y', 'x'), coords={'y': [0, 1], 'x': [0, 1]})
+
+        self.data = data
+
+    def test_basic_recategorization(self):
+        """Test general functionality of compositor incl. attributes."""
+        from satpy.composites import CategoricalDataCompositor
+        lut = [np.nan, 0, 1, 1]
+        name = 'bar'
+        comp = CategoricalDataCompositor(name=name, lut=lut)
+        res = comp([self.data])
+        res = res.compute()
+        expected = np.array([[1., 0.], [1., np.nan]])
+        np.testing.assert_equal(res.values, expected)
+        np.testing.assert_equal(res.attrs['name'], name)
+        np.testing.assert_equal(res.attrs['composite_lut'], lut)
+
+    def test_bad_lut(self):
+        """Test that ValueError is raised if the LU is not sufficiently long."""
+        from satpy.composites import CategoricalDataCompositor
+        lut = [np.nan, 0, 1]
+        comp = CategoricalDataCompositor(name='foo', lut=lut)
+        np.testing.assert_raises(ValueError, comp, [self.data])
+
+
 class TestGenericCompositor(unittest.TestCase):
     """Test generic compositor."""
 
