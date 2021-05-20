@@ -18,7 +18,7 @@
 """Satpy Package initializer."""
 
 import os
-from satpy.version import version as __version__  # noqa
+# from satpy.version import version as __version__  # noqa
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 

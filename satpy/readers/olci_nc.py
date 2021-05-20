@@ -67,16 +67,16 @@ class BitFlags:
     def __init__(self, value, flag_list=None):
         """Init the flags."""
         self._value = value
-        self.flag_list = flag_list or ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                                       'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                                       'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                                       'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                                       'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                                       'Extra_1',
-                                       'KDM_FAIL',
-                                       'Extra_2',
-                                       'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                                       'LOWRW', 'HIGHRW']
+        flag_list = flag_list or ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
+                                  'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
+                                  'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
+                                  'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
+                                  'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
+                                  'Extra_1',
+                                  'KDM_FAIL',
+                                  'Extra_2',
+                                  'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
+                                  'LOWRW', 'HIGHRW']
         self.meaning = {f: i for i, f in enumerate(flag_list)}
 
     def __getitem__(self, item):
