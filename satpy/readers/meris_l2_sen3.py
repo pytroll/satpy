@@ -15,16 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""ENVISAT MERIS reader.
+"""ENVISAT MERIS reader (sentinel 3 like format: https://earth.esa.int/eogateway/documents/20142/37627/MERIS-Sentinel-3-Like-L1-andL2-PFS.pdf).
 
 Default:
     scn = Scene(filenames=my_files, reader='meris_l2_sen3')
 
 References:
     - :func:`xarray.open_dataset`
-
-
-https://earth.esa.int/eogateway/documents/20142/37627/MERIS-Sentinel-3-Like-L1-andL2-PFS.pdf
 """
 
 import logging
@@ -147,8 +144,7 @@ class NCMERISGeo(NCMERISBase):
 class NCMERISChannelBase(NCMERISBase):
     """Base class for channel reading."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the file handler."""
         super(NCMERISChannelBase, self).__init__(filename, filename_info, filetype_info)
 
@@ -191,8 +187,7 @@ class NCMERIS2(NCMERISChannelBase):
 class NCMERISLowResData(BaseFileHandler):
     """Handler for low resolution data."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the file handler."""
         super(NCMERISLowResData, self).__init__(filename, filename_info, filetype_info)
         self.nc = None

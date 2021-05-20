@@ -1,12 +1,14 @@
 reader:
-  description: NC Reader for MERIS data
+  description: NC Reader for MERIS data (Sentinel 3 like format)
   name: meris_l2_sen3
   sensors: [meris]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    # ENV_ME_2_FRG____20050710T093805_20050710T094343_________________0337_038_480______DSI_R_NT____.SEN3
+    esa_l2_reflectance:
+        file_reader: !!python/name:satpy.readers.meris_l2_sen3.NCMERIS2
+        file_patterns: ['{mission_id:3s}_ME_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:15s}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_rho_w.nc']
     esa_l2_chl_nn:
         file_reader: !!python/name:satpy.readers.meris_l2_sen3.NCMERIS2
         file_patterns: ['{mission_id:3s}_ME_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:15s}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_nn.nc']
@@ -46,6 +48,175 @@ datasets:
     file_type: esa_geo
     standard_name: latitude
     units: degree
+
+  M01:
+    name: M01
+    sensor: meris
+    wavelength: [0.4075, 0.4125, 0.4175]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M02:
+    name: M02
+    sensor: meris
+    wavelength: [0.4375, 0.4425, 0.4475]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M03:
+    name: M03
+    sensor: meris
+    wavelength: [0.485, 0.49, 0.495]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M04:
+    name: M04
+    sensor: meris
+    wavelength: [0.505, 0.51, 0.515]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M05:
+    name: M05
+    sensor: meris
+    wavelength: [0.555, 0.56, 0.565]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M06:
+    name: M06
+    sensor: meris
+    wavelength: [0.615, 0.62, 0.625]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M07:
+    name: M07
+    sensor: meris
+    wavelength: [0.66, 0.665, 0.67]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M08:
+    name: M08
+    sensor: meris
+    wavelength: [0.6775, 0.68125, 0.685]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M09:
+    name: M09
+    sensor: meris
+    wavelength: [0.70375, 0.70875, 0.71375]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M10:
+    name: M10
+    sensor: meris
+    wavelength: [0.75, 0.75375, 0.7575]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M12:
+    name: M12
+    sensor: meris
+    wavelength: [0.77125, 0.77875, 0.78625]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M13:
+    name: M13
+    sensor: meris
+    wavelength: [0.855, 0.865, 0.875]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
+
+  M14:
+    name: M14
+    sensor: meris
+    wavelength: [0.88, 0.885, 0.89]
+    modifiers: [sunz_corrected, rayleigh_corrected]
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: water_leaving_reflectance
+        units: "%"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_reflectance
 
   chl_oc4me:
     name: chl_oc4me
