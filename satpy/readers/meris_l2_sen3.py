@@ -15,8 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""ENVISAT MERIS reader
-sentinel 3 like format: https://earth.esa.int/eogateway/documents/20142/37627/MERIS-Sentinel-3-Like-L1-andL2-PFS.pdf
+"""ENVISAT MERIS reader.
+
+Sentinel 3 like format: https://earth.esa.int/eogateway/documents/20142/37627/MERIS-Sentinel-3-Like-L1-andL2-PFS.pdf
 
 Default:
     scn = Scene(filenames=my_files, reader='meris_l2_sen3')
@@ -170,7 +171,7 @@ class NCMERIS2(NCMERISChannelBase):
         return dataset
 
     def getbitmask(self, wqsf, items=None):
-        """Get the bitmask. Experimental default mask"""
+        """Get the bitmask. Experimental default mask."""
         items = items or ['SEA_ICE', 'MEGLINT', 'HIGHGLINT',
                           'HAZE_OVER_WATER', 'WHITECAPS', 'AC_FAIL', 'WHITE_SCATT',
                           'LOWRW', 'HIGHRW', 'OUT_OF_RANGE_AAC', 'OUT_OF_SCOPE_AAC',
