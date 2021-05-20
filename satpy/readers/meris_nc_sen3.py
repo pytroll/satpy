@@ -27,20 +27,17 @@ References:
 """
 
 import logging
-from contextlib import suppress
 from functools import reduce
 
-import dask.array as da
 import numpy as np
-import xarray as xr
 
-from satpy import CHUNK_SIZE
-from satpy.readers import open_file_or_filename
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.olci_nc import NCOLCIBase, NCOLCI2, NCOLCILowResData, NCOLCIMeteo, BitFlags
-from satpy.utils import angle2xyz, xyz2angle
-
-from satpy._compat import cached_property
+from satpy.readers.olci_nc import (
+    NCOLCIBase,
+    NCOLCI2,
+    NCOLCILowResData,
+    NCOLCIMeteo,
+    BitFlags,
+)
 
 logger = logging.getLogger(__name__)
 
