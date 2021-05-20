@@ -20,7 +20,7 @@
 Sentinel 3 like format: https://earth.esa.int/eogateway/documents/20142/37627/MERIS-Sentinel-3-Like-L1-andL2-PFS.pdf
 
 Default:
-    scn = Scene(filenames=my_files, reader='meris_l2_sen3')
+    scn = Scene(filenames=my_files, reader='meris_nc_sen3')
 
 References:
     - :func:`xarray.open_dataset`
@@ -47,7 +47,7 @@ PLATFORM_NAMES = {'ENV': 'Environmental Satellite'}
 class NCMERISCal(NCOLCIBase):
     """Dummy class for calibration."""
 
-    def __init__(self, filename, filename_info, filetype_info, engine=None):
+    def __init__(self, filename, filename_info, filetype_info):
         """Init the meris reader base."""
         super(NCMERISCal, self).__init__(filename, filename_info, filetype_info)
         self.sensor = 'meris'
@@ -56,26 +56,16 @@ class NCMERISCal(NCOLCIBase):
 class NCMERISGeo(NCOLCIBase):
     """Dummy class for navigation."""
 
-    def __init__(self, filename, filename_info, filetype_info, engine=None):
+    def __init__(self, filename, filename_info, filetype_info):
         """Init the meris reader base."""
         super(NCMERISGeo, self).__init__(filename, filename_info, filetype_info)
-        self.sensor = 'meris'
-
-
-class NCMERISChannelBase(NCOLCIBase):
-    """Base class for channel reading."""
-
-    def __init__(self, filename, filename_info, filetype_info, engine=None):
-        """Init the file handler."""
-        super(NCMERISChannelBase, self).__init__(filename, filename_info, filetype_info)
-        self.channel = filename_info.get('dataset_name')
         self.sensor = 'meris'
 
 
 class NCMERIS2(NCOLCI2):
     """File handler for MERIS l2."""
 
-    def __init__(self, filename, filename_info, filetype_info, engine=None):
+    def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
         super(NCMERIS2, self).__init__(filename, filename_info, filetype_info)
         self.sensor = 'meris'
@@ -103,7 +93,7 @@ class NCMERIS2(NCOLCI2):
 class NCMERISAngles(NCOLCILowResData):
     """File handler for the MERIS angles."""
 
-    def __init__(self, filename, filename_info, filetype_info, engine=None):
+    def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
         super(NCMERISAngles, self).__init__(filename, filename_info, filetype_info)
         self.sensor = 'meris'
@@ -112,7 +102,7 @@ class NCMERISAngles(NCOLCILowResData):
 class NCMERISMeteo(NCOLCIMeteo):
     """File handler for the MERIS meteo data."""
 
-    def __init__(self, filename, filename_info, filetype_info, engine=None):
+    def __init__(self, filename, filename_info, filetype_info):
         """Init the file handler."""
         super(NCMERISMeteo, self).__init__(filename, filename_info, filetype_info)
         self.sensor = 'meris'

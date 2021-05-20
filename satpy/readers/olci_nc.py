@@ -97,11 +97,9 @@ class BitFlags:
 class NCOLCIBase(BaseFileHandler):
     """The OLCI reader base."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the olci reader base."""
-        super(NCOLCIBase, self).__init__(filename, filename_info,
-                                         filetype_info)
+        super(NCOLCIBase, self).__init__(filename, filename_info, filetype_info)
         self._engine = engine
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
@@ -160,11 +158,9 @@ class NCOLCIGeo(NCOLCIBase):
 class NCOLCIChannelBase(NCOLCIBase):
     """Base class for channel reading."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the file handler."""
-        super(NCOLCIChannelBase, self).__init__(filename, filename_info,
-                                                filetype_info)
+        super(NCOLCIChannelBase, self).__init__(filename, filename_info, filetype_info)
 
         self.channel = filename_info.get('dataset_name')
         self.reflectance_prefix = 'Oa'
@@ -174,8 +170,7 @@ class NCOLCIChannelBase(NCOLCIBase):
 class NCOLCI1B(NCOLCIChannelBase):
     """File handler for OLCI l1b."""
 
-    def __init__(self, filename, filename_info, filetype_info, cal,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, cal, engine=None):
         """Init the file handler."""
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                        filetype_info)
@@ -250,8 +245,7 @@ class NCOLCI2(NCOLCIChannelBase):
 class NCOLCILowResData(BaseFileHandler):
     """Handler for low resolution data."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the file handler."""
         super(NCOLCILowResData, self).__init__(filename, filename_info, filetype_info)
         self.nc = None
