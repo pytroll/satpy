@@ -224,6 +224,19 @@ BackgroundCompositor
     >>> background = local_scene['overview']
     >>> composite = compositor([clouds, background])
 
+CategoricalDataCompositor
+-------------------------
+
+    :class:`CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
+    combine comparable categories into a common category. Below is an example on how to create a binary clear-sky/cloud
+    mask from a pseodu cloud type product with six categories representing clear sky (cat1/cat5), cloudy features
+    (cat2-cat4) and missing/undefined data (cat0).
+
+    >>> cloud_type = local_scene['cloud_type']  # 0 - cat0, 1 - cat1, 2 - cat2, 3 - cat3, 4 - cat4, 5 - cat5,
+    >>> lut = [np.nan, 0, 1, 1, 1, 0]
+    >>> compositor = CategoricalDataCompositor('binary_cloud_mask', lut=lut)
+    >>> composite = compositor([cloud_type])  # 0 - cat1/cat5, 1 - cat2/cat3/cat4, nan - cat0
+
 Creating composite configuration files
 ======================================
 
