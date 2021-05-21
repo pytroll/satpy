@@ -247,6 +247,14 @@ def reader_configs():
         os.path.join("readers", "fci_l1c_fdhsi.yaml"))
 
 
+def _get_reader_with_filehandlers(filenames, reader_configs):
+    from satpy.readers import load_reader
+    reader = load_reader(reader_configs)
+    loadables = reader.select_files_from_pathnames(filenames)
+    reader.create_filehandlers(loadables)
+    return reader
+
+
 class TestFCIL1CFDHSIReader:
     """Initialize the unittest TestCase for the FCI L1C FDHSI Reader."""
 
@@ -308,7 +316,6 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
     def test_load_counts(self, reader_configs):
         """Test loading with counts."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
 
         # testing two filenames to test correctly combined
         filenames = [
@@ -320,9 +327,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113934_20170410113942_N__C_0070_0068.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(
             [make_dataid(name=name, calibration="counts") for name in
              self._chans["solar"] + self._chans["terran"]], pad_data=False)
@@ -341,7 +346,6 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
     def test_load_radiance(self, reader_configs):
         """Test loading with radiance."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
 
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -349,9 +353,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(
             [make_dataid(name=name, calibration="radiance") for name in
              self._chans["solar"] + self._chans["terran"]], pad_data=False)
@@ -370,7 +372,6 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
     def test_load_reflectance(self, reader_configs):
         """Test loading with reflectance."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
 
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -378,9 +379,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(
             [make_dataid(name=name, calibration="reflectance") for name in
              self._chans["solar"]], pad_data=False)
@@ -395,16 +394,14 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
     def test_load_bt(self, reader_configs, caplog):
         """Test loading with bt."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
+
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         with caplog.at_level(logging.WARNING):
             res = reader.load(
                 [make_dataid(name=name, calibration="brightness_temperature") for
@@ -424,17 +421,13 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_index_map(self, reader_configs):
         """Test loading of index_map."""
-        from satpy.readers import load_reader
-
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc"
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(
             [name + '_index_map' for name in
              self._chans["solar"] + self._chans["terran"]], pad_data=False)
@@ -444,8 +437,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5138)
 
     def test_load_aux_data(self, reader_configs):
-        """Test loading of index_map."""
-        from satpy.readers import load_reader
+        """Test loading of auxiliary data."""
         from satpy.readers.fci_l1c_fdhsi import AUX_DATA
 
         filenames = [
@@ -454,10 +446,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc"
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
-
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(['vis_04_' + key for key in AUX_DATA.keys()],
                           pad_data=False)
         for aux in ['vis_04_' + key for key in AUX_DATA.keys()]:
@@ -482,17 +471,13 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_quality_only(self, reader_configs):
         """Test that loading quality only works."""
-        from satpy.readers import load_reader
-
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(
             [name + '_pixel_quality' for name in
              self._chans["solar"] + self._chans["terran"]], pad_data=False)
@@ -508,55 +493,43 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         Test that the FCI reader exposes the platform name.  Corresponds
         to GH issue 1014.
         """
-        from satpy.readers import load_reader
-
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(["ir_123"], pad_data=False)
         assert res["ir_123"].attrs["platform_name"] == "MTG-I1"
 
     def test_excs(self, reader_configs):
         """Test that exceptions are raised where expected."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
-
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        fhs = reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
 
         with pytest.raises(ValueError):
-            fhs["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
+            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
         with pytest.raises(ValueError):
-            fhs["fci_l1c_fdhsi"][0].get_dataset(
+            reader.file_handlers["fci_l1c_fdhsi"][0].get_dataset(
                 make_dataid(name="ir_123", calibration="unknown"),
                 {"units": "unknown"})
 
     def test_area_definition_computation(self, reader_configs):
         """Test that the geolocation computation is correct."""
-        from satpy.readers import load_reader
-
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         res = reader.load(['ir_105', 'vis_06'], pad_data=False)
 
         # test that area_ids are harmonisation-conform <platform>_<instrument>_<service>_<resolution>
@@ -586,7 +559,6 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     def test_handling_bad_data_ir(self, reader_configs, caplog):
         """Test handling of bad IR data."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
 
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -594,9 +566,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         with caplog.at_level("ERROR"):
             reader.load([make_dataid(
                 name="ir_123",
@@ -606,7 +576,6 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     def test_handling_bad_data_vis(self, reader_configs, caplog):
         """Test handling of bad VIS data."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
 
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -614,9 +583,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
         with caplog.at_level("ERROR"):
             reader.load([make_dataid(
                 name="vis_04",
