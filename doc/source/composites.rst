@@ -234,6 +234,7 @@ using a look-up-table (`lut`)::
                  [[lut[data[1,0]], lut[data[1,1]], lut[data[1,Nj]],
                  [[lut[data[Ni,0]], lut[data[Ni,1]], lut[data[Ni,Nj]]]
 
+Hence, `lut` must have a length that is greater than the maximum value in `data` in orer to avoid an `IndexError`.
 Below is an example on how to create a binary clear-sky/cloud mask from a pseodu cloud type product with six
 categories representing clear sky (cat1/cat5), cloudy features (cat2-cat4) and missing/undefined data (cat0)::
 
