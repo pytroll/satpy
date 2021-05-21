@@ -289,11 +289,6 @@ class CategoricalDataCompositor(CompositeBase):
             raise ValueError("Can't have more than one dataset for a categorical data composite")
 
         data = projectables[0].astype(int)
-        maxval = data.data.max().compute()
-        if len(self.lut) <= maxval:
-            raise ValueError("The LUT length (={}) must be greater than the maximum value "
-                             "in the data array (={})".format(len(self.lut), maxval))
-
         res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
 
         new_attrs = data.attrs.copy()
