@@ -55,12 +55,17 @@ geostationary altitude, and longitude of projection origin, are passed on to
 ``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
 geolocation calculations.
 
-The brightness temperature and reflectance calculation is based on the formulas indicated in
-`PUG`_.
 
 The reading routine supports channel data in counts, radiances, and (depending
-on channel) brightness temperatures or reflectances.  For each channel, it also
-supports the pixel quality, obtained by prepending the channel name such as
+on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on the formulas indicated in
+`PUG`_.
+
+For each channel, it also supports a number of auxiliary datasets, such as the pixel quality,
+the index map and the related geometric and acquisition parameters: time,
+subsatellite latitude, subsatellite longitude, platform altitude, subsolar latitude, subsolar longitude,
+earth-sun distance, sun-satellite distance,  swath number, and swath direction.
+
+All auxiliary data can be obtained by prepending the channel name such as
 ``"vis_04_pixel_quality"``.
 
 .. warning::
