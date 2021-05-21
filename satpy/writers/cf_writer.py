@@ -210,10 +210,6 @@ def area2cf(dataarray, strict=False, got_lonlats=False):
 
 def make_time_bounds(start_times, end_times):
     """Create time bounds for the current *dataarray*."""
-    start_time = min(start_time for start_time in start_times
-                     if start_time is not None)
-    end_time = min(end_time for end_time in end_times
-                   if end_time is not None)
     data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]
                         for start_time, end_time in zip(start_times, end_times)],
                         dims=['time', 'bnds_1d'])
@@ -648,7 +644,7 @@ class CFWriter(Writer):
                     start_times = new_ds.coords['start_time'].data
                     end_times = new_ds.coords['end_time'].data
                 else:
-                    start_times= [None]
+                    start_times = [None]
                     end_times = [None]
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                      exclude_attrs=exclude_attrs, compression=compression,
