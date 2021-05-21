@@ -292,8 +292,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         """Get the auxiliary data arrays using the index map."""
         # get index map
         index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
-        # subtract one as index map indexing starts from 1
-        index_map += -1
+        # index map indexing starts from 1
+        index_map -= 1
 
         # get lut values from 1-d vector (needs to be a numpy array for getitem to work)
         lut = self[AUX_DATA[_get_aux_data_name_from_dsname(dsname)]]
