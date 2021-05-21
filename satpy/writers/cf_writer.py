@@ -214,7 +214,8 @@ def make_time_bounds(start_times, end_times):
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]],
+    data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]
+                        for start_time, end_time in zip(start_times, end_times)],
                         dims=['time', 'bnds_1d'])
     return data
 
@@ -630,8 +631,7 @@ class CFWriter(Writer):
             ds_collection.update(get_extra_ds(ds))
         got_lonlats = has_projection_coords(ds_collection)
         datas = {}
-        start_times = []
-        end_times = []
+
         # sort by name, but don't use the name
         for _, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
@@ -644,8 +644,12 @@ class CFWriter(Writer):
             except KeyError:
                 new_datasets = [ds]
             for new_ds in new_datasets:
-                start_times.append(new_ds.attrs.get("start_time", None))
-                end_times.append(new_ds.attrs.get("end_time", None))
+                if 'start_time' in new_ds.coords:
+                    start_times = new_ds.coords['start_time'].data
+                    end_times = new_ds.coords['end_time'].data
+                else:
+                    start_times= [None]
+                    end_times = [None]
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                      exclude_attrs=exclude_attrs, compression=compression,
                                      include_orig_name=include_orig_name,
