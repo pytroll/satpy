@@ -9,7 +9,6 @@ Composites are generated in satpy using Compositor classes. The attributes of th
 resulting composites are usually a combination of the prerequisites' attributes and
 the key/values of the DataID used to identify it.
 
-
 Built-in Compositors
 ====================
 
@@ -227,15 +226,23 @@ BackgroundCompositor
 CategoricalDataCompositor
 -------------------------
 
-    :class:`CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
-    combine comparable categories into a common category. Below is an example on how to create a binary clear-sky/cloud
-    mask from a pseodu cloud type product with six categories representing clear sky (cat1/cat5), cloudy features
-    (cat2-cat4) and missing/undefined data (cat0).
+:class:`CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
+combine comparable categories into a common category. The category remapping from `data` to `composite` is done
+using a look-up-table (`lut`)::
+
+    composite = [[lut[data[0,0]], lut[data[0,1]], lut[data[0,Nj]]],
+                 [[lut[data[1,0]], lut[data[1,1]], lut[data[1,Nj]],
+                 [[lut[data[Ni,0]], lut[data[Ni,1]], lut[data[Ni,Nj]]]
+
+Below is an example on how to create a binary clear-sky/cloud mask from a pseodu cloud type product with six
+categories representing clear sky (cat1/cat5), cloudy features (cat2-cat4) and missing/undefined data (cat0)::
 
     >>> cloud_type = local_scene['cloud_type']  # 0 - cat0, 1 - cat1, 2 - cat2, 3 - cat3, 4 - cat4, 5 - cat5,
+    # categories: 0    1  2  3  4  5
     >>> lut = [np.nan, 0, 1, 1, 1, 0]
     >>> compositor = CategoricalDataCompositor('binary_cloud_mask', lut=lut)
     >>> composite = compositor([cloud_type])  # 0 - cat1/cat5, 1 - cat2/cat3/cat4, nan - cat0
+
 
 Creating composite configuration files
 ======================================
