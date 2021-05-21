@@ -295,14 +295,11 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # index map indexing starts from 1
         index_map -= 1
 
-        # get lut values from 1-d vector (needs to be a numpy array for getitem to work)
+        # get lut values from 1-d vector
         lut = self[AUX_DATA[_get_aux_data_name_from_dsname(dsname)]]
-        # variable may been computed already during caching
-        if not isinstance(lut, np.ndarray):
-            lut = lut.compute()
 
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
-        lut[lut == fv] = np.nan
+        lut = lut.where(lut != fv)
 
         # assign lut values based on index map indices
         aux = index_map.data.map_blocks(self._getitem, lut.data, dtype=lut.data.dtype)
