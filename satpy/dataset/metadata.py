@@ -78,8 +78,13 @@ def _combine_shared_info(shared_keys, info_dicts, average_times):
     shared_info = {}
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
-        if 'time' in key and isinstance(values[0], datetime) and average_times:
+        if 'time' in key and key not in ['start_time', 'end_time'] \
+           and isinstance(values[0], datetime) and average_times:
             shared_info[key] = average_datetimes(values)
+        elif key == 'start_time' and isinstance(values[0], datetime):
+            shared_info[key] = min(values)
+        elif key == 'end_time' and isinstance(values[0], datetime):
+            shared_info[key] = max(values)
         elif _are_values_combinable(values):
             shared_info[key] = values[0]
     return shared_info

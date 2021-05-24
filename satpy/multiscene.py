@@ -66,7 +66,7 @@ def timeseries(datasets):
         expanded_ds.append(tmp)
 
     res = xr.concat(expanded_ds, dim="time")
-    res.attrs = combine_metadata(*[x.attrs for x in expanded_ds], average_times=False)
+    res.attrs = combine_metadata(*[x.attrs for x in expanded_ds])
     return res
 
 
