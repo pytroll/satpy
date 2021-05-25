@@ -948,7 +948,7 @@ class SandwichCompositor(GenericCompositor):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
         luminance = projectables[0]
-        luminance /= 100.
+        luminance = luminance / 100.
         # Limit between min(luminance) ... 1.0
         luminance = luminance.clip(max=1.)
 
@@ -1142,6 +1142,8 @@ class BackgroundCompositor(GenericCompositor):
         # L/RGB -> RGB/RGB
         # LA/RGB -> RGBA/RGBA
         # RGB/RGBA -> RGBA/RGBA
+        print(foreground.shape, background.shape)
+        print(foreground['bands'], background['bands'])
         foreground = add_bands(foreground, background['bands'])
         background = add_bands(background, foreground['bands'])
 
