@@ -948,7 +948,7 @@ class SandwichCompositor(GenericCompositor):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
         luminance = projectables[0]
-        luminance /= 100.
+        luminance = luminance / 100.
         # Limit between min(luminance) ... 1.0
         luminance = luminance.clip(max=1.)
 
