@@ -9,7 +9,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.viirs_l2_lsr.VIIRSLandSurfaceReflectanceFileHandler
         variable_prefix: ""
         file_patterns: 
-            - 'SurfRefl_v1r1_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+            - 'SurfRefl_v{version:1d}r{revision:1d}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
 
 navigations:
     vgeoi:
