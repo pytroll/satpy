@@ -187,6 +187,7 @@ class TestAWIPSTiledWriter:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
             assert ds.attrs['my_global'] == 'TEST'
+            assert ds.attrs['sector_id'] == 'TEST'
             stime = input_data_arr.attrs['start_time']
             assert ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
 

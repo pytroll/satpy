@@ -118,7 +118,7 @@ templates:
         var_name: data
         attributes:
           physical_element:
-            raw_value: 'CLAVR-x {name}'
+            value: 'CLAVR-x {name}'
       clavrx_cloud_type:
         reader: clavrx
         name: cloud_type
