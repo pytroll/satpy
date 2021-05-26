@@ -1142,8 +1142,6 @@ class BackgroundCompositor(GenericCompositor):
         # L/RGB -> RGB/RGB
         # LA/RGB -> RGBA/RGBA
         # RGB/RGBA -> RGBA/RGBA
-        print(foreground.shape, background.shape)
-        print(foreground['bands'], background['bands'])
         foreground = add_bands(foreground, background['bands'])
         background = add_bands(background, foreground['bands'])
 
