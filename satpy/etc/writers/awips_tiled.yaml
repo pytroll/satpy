@@ -66,7 +66,7 @@ templates:
 #        value: "${ORGANIZATION}"
       awips_id: {}
 #        value: "{awips_id}"  # special variable created by awips_tiled.py
-      creating_entity:
+      satellite_id:
         value: "{platform_name!u}-{sensor!u}"
       sector_id: {}  # special handler in awips_tiled.py
     coordinates:
@@ -118,7 +118,7 @@ templates:
         var_name: data
         attributes:
           physical_element:
-            raw_value: 'CLAVR-x {name}'
+            value: 'CLAVR-x {name}'
       clavrx_cloud_type:
         reader: clavrx
         name: cloud_type
