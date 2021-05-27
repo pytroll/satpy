@@ -127,7 +127,7 @@ from satpy.readers.seviri_base import (
     CHANNEL_NAMES, SATNUM, SEVIRICalibrationHandler, get_cds_time,
     HRV_NUM_COLUMNS, pad_data_horizontally, create_coef_dict,
     OrbitPolynomialFinder, get_satpos, NoValidOrbitParams,
-    add_scanline_acq_time
+    add_scanline_acq_time, mask_bad_quality
 )
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
@@ -580,12 +580,11 @@ class HRITMSGFileHandler(HRITFileHandler):
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""
         # Based on missing (2) or corrupted (3) data
-        line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
-        line_mask &= self.mda['image_segment_line_quality']['line_validity'] <= 3
+        line_validity = self.mda['image_segment_line_quality']['line_validity']
         # Do not use (4)
-        line_mask &= self.mda['image_segment_line_quality']['line_radiometric_quality'] == 4
-        line_mask &= self.mda['image_segment_line_quality']['line_geometric_quality'] == 4
-        data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
+        line_radiometric_quality = self.mda['image_segment_line_quality']['line_radiometric_quality']
+        line_geometric_quality = self.mda['image_segment_line_quality']['line_geometric_quality']
+        data = mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality)
         return data
 
     def _get_raw_mda(self):

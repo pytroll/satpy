@@ -910,3 +910,34 @@ def pad_data_vertically(data, final_size, south_bound, north_bound):
     padding_north = get_padding_area(((final_size[0] - north_bound), ncols), data.dtype)
 
     return np.vstack((padding_south, data, padding_north))
+
+
+def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality):
+    """Mask scan lines with bad quality.
+
+    For details on quality flags see `MSG Level 1.5 Image Data Format Description`_
+    page 109.
+
+    Args:
+        data (xarray.DataArray):
+            Channel data
+        line_validity (numpy.Array):
+            Quality flags with shape (nlines,).
+        line_geometric_quality (numpy.Array):
+            Quality flags with shape (nlines,).
+        line_radiometric_quality (numpy.Array):
+            Quality flags with shape (nlines,).
+
+    Returns:
+        xarray.DataArray: data with lines flagged as bad converted to np.nan.
+    """
+    # Based on missing (2) or corrupted (3) data
+    print(line_validity)
+    line_mask = line_validity >= 2
+    line_mask &= line_validity <= 3
+    # Do not use (4)
+    line_mask &= line_radiometric_quality == 4
+    line_mask &= line_geometric_quality == 4
+    print(line_mask)
+    data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
+    return data
