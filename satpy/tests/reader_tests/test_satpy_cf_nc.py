@@ -28,6 +28,7 @@ import xarray as xr
 from satpy import Scene
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
+from pyresample import AreaDefinition
 
 
 class TestCFReader(unittest.TestCase):
@@ -37,19 +38,37 @@ class TestCFReader(unittest.TestCase):
         """Create a test scene."""
         tstart = datetime(2019, 4, 1, 12, 0)
         tend = datetime(2019, 4, 1, 12, 15)
-        data_visir = [[1, 2], [3, 4]]
-        y_visir = [1, 2]
-        x_visir = [1, 2]
+        data_visir = np.array([[1, 2], [3, 4]])
         z_visir = [1, 2, 3, 4, 5, 6, 7]
         qual_data = [[1, 2, 3, 4, 5, 6, 7],
                      [1, 2, 3, 4, 5, 6, 7]]
         time_vis006 = [1, 2]
         lat = 33.0 * np.array([[1, 2], [3, 4]])
         lon = -13.0 * np.array([[1, 2], [3, 4]])
+
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size, y_size = data_visir.shape
+        area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
+        area = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+
+        x, y = area.get_proj_coords()
+        y_visir = x[0, :]
+        x_visir = y[:, 0]
+
         common_attrs = {'start_time': tstart,
                         'end_time': tend,
                         'platform_name': 'tirosn',
-                        'orbit_number': 99999}
+                        'orbit_number': 99999,
+                        'area': area}
         vis006 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
                               coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_vis006)},
@@ -120,6 +139,14 @@ class TestCFReader(unittest.TestCase):
             np.testing.assert_array_equal(scn_['lat'].data, self.scene['lat'].data)  # lat loaded as dataset
             np.testing.assert_array_equal(scn_['image0'].coords['lon'], self.scene['lon'].data)  # lon loded as coord
             assert isinstance(scn_['image0'].attrs['wavelength'], WavelengthRange)
+            expected_area = self.scene['image0'].attrs['area']
+            actual_area = scn_['image0'].attrs['area']
+            assert expected_area.area_extent == actual_area.area_extent
+            assert expected_area.proj_dict == actual_area.proj_dict
+            assert expected_area.shape == actual_area.shape
+            assert expected_area.area_id == actual_area.area_id
+            assert expected_area.description == actual_area.description
+            assert expected_area.proj_dict == actual_area.proj_dict
         finally:
             with suppress(PermissionError):
                 os.remove(filename)
@@ -134,17 +161,37 @@ class TestCFReader(unittest.TestCase):
         self.assertEqual(ds_info['modifiers'], ())
 
     def _dataset_for_prefix_testing(self):
-        data_visir = [[1, 2], [3, 4]]
+        data_visir = np.array([[1, 2], [3, 4]])
         y_visir = [1, 2]
         x_visir = [1, 2]
         lat = 33.0 * np.array([[1, 2], [3, 4]])
         lon = -13.0 * np.array([[1, 2], [3, 4]])
+
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size, y_size = data_visir.shape
+        area_extent = (339045.5577, 4365586.6063, 1068143.527, 4803645.4685)
+        area = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+
+        x, y = area.get_proj_coords()
+        y_visir = x[0, :]
+        x_visir = y[:, 0]
+
         vis006 = xr.DataArray(data_visir,
                               dims=('y', 'x'),
                               coords={'y': y_visir, 'x': x_visir},
                               attrs={'name': '1', 'id_tag': 'ch_r06',
                                      'coordinates': 'lat lon', 'resolution': 1000, 'calibration': 'reflectance',
-                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm')
+                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm'),
+                                     'area': area
                                      })
         lat = xr.DataArray(lat,
                            dims=('y', 'x'),
