@@ -50,6 +50,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         """Create a fake dataset."""
         acq_time_day = np.repeat([1, 1], 11).reshape(2, 11)
         acq_time_msec = np.repeat([1000, 2000], 11).reshape(2, 11)
+        quality = np.repeat([0, 3], 11).reshape(2, 11)
         orbit_poly_start_day, orbit_poly_start_msec = to_cds_time(
             np.array([datetime(2019, 12, 31, 18),
                       datetime(2019, 12, 31, 22)],
@@ -67,8 +68,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         scan_time_days, scan_time_msecs = to_cds_time(self.scan_time)
         ds = xr.Dataset(
             {
-                'VIS006': counts.copy(),
-                'IR_108': counts.copy(),
+                'ch1': counts.copy(),
+                'ch9': counts.copy(),
                 'HRV': (('num_rows_hrv', 'num_columns_hrv'), [[1, 2, 3],
                                                               [4, 5, 6],
                                                               [7, 8, 9]]),
@@ -80,6 +81,18 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 'channel_data_visir_data_l10_line_mean_acquisition_msec': (
                     ('num_rows_vis_ir', 'channels_vis_ir_dim'),
                     acq_time_msec
+                ),
+                'channel_data_visir_data_line_validity': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    quality
+                ),
+                'channel_data_visir_data_line_geometric_quality': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    quality
+                ),
+                'channel_data_visir_data_line_radiometric_quality': (
+                    ('num_rows_vis_ir', 'channels_vis_ir_dim'),
+                    quality
                 ),
                 'orbit_polynomial_x': (
                     ('orbit_polynomial_dim_row',
@@ -133,11 +146,13 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 'type_of_earth_model': '0x02',
             }
         )
-        ds['VIS006'].attrs.update({
+        # VIS006 is dataset with key ch1
+        ds['ch1'].attrs.update({
             'scale_factor': self.gains_nominal[0],
             'add_offset': self.offsets_nominal[0]
         })
-        ds['IR_108'].attrs.update({
+        # IR_108 is dataset with key ch9
+        ds['ch9'].attrs.update({
             'scale_factor': self.gains_nominal[8],
             'add_offset': self.offsets_nominal[8],
         })
@@ -149,7 +164,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             'valid_min': None,
             'valid_max': None
         }
-        for name in ['VIS006', 'IR_108']:
+        for name in ['ch1', 'ch9']:
             ds[name].attrs.update(strip_attrs)
 
         return ds
@@ -170,22 +185,22 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             )
 
     @pytest.mark.parametrize(
-        ('channel', 'calibration', 'use_ext_coefs'),
+        ('channel', 'key', 'calibration', 'use_ext_coefs'),
         [
             # VIS channel, internal coefficients
-            ('VIS006', 'counts', False),
-            ('VIS006', 'radiance', False),
-            ('VIS006', 'reflectance', False),
+            ('VIS006', 'ch1', 'counts', False),
+            ('VIS006', 'ch1', 'radiance', False),
+            ('VIS006', 'ch1', 'reflectance', False),
             # VIS channel, external coefficients
-            ('VIS006', 'radiance', True),
-            ('VIS006', 'reflectance', True),
+            ('VIS006', 'ch1', 'radiance', True),
+            ('VIS006', 'ch1', 'reflectance', True),
             # IR channel, internal coefficients
-            ('IR_108', 'counts', False),
-            ('IR_108', 'radiance', False),
-            ('IR_108', 'brightness_temperature', False),
+            ('IR_108', 'ch9', 'counts', False),
+            ('IR_108', 'ch9', 'radiance', False),
+            ('IR_108', 'ch9', 'brightness_temperature', False),
             # IR channel, external coefficients
-            ('IR_108', 'radiance', True),
-            ('IR_108', 'brightness_temperature', True),
+            ('IR_108', 'ch9', 'radiance', True),
+            ('IR_108', 'ch9', 'brightness_temperature', True),
             # FUTURE: Enable once HRV reading has been fixed.
             # # HRV channel, internal coefficiens
             # ('HRV', 'counts', False),
@@ -197,7 +212,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         ]
     )
     def test_calibrate(
-            self, file_handler, channel, calibration, use_ext_coefs
+            self, file_handler, channel, key, calibration, use_ext_coefs
     ):
         """Test the calibration."""
         file_handler.nc = file_handler.nc.rename({
@@ -215,21 +230,21 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         fh.ext_calib_coefs = external_coefs
         dataset_id = make_dataid(name=channel, calibration=calibration)
 
-        res = fh.calibrate(fh.nc[channel], dataset_id)
+        res = fh.calibrate(fh.nc[key], dataset_id)
         xr.testing.assert_allclose(res, expected)
 
     @pytest.mark.parametrize(
-        ('channel', 'calibration'),
+        ('channel', 'key', 'calibration'),
         [
-            ('VIS006', 'reflectance'),
-            ('IR_108', 'brightness_temperature')
+            ('VIS006', 'ch1', 'reflectance'),
+            ('IR_108', 'ch9', 'brightness_temperature')
          ]
     )
-    def test_get_dataset(self, file_handler, channel, calibration):
+    def test_get_dataset(self, file_handler, channel, key, calibration):
         """Test getting the dataset."""
         dataset_id = make_dataid(name=channel, calibration=calibration)
         dataset_info = {
-            'nc_key': channel,
+            'nc_key': key,
             'units': 'units',
             'wavelength': 'wavelength',
             'standard_name': 'standard_name'
@@ -275,7 +290,8 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         """Test satellite position if there is no valid orbit polynomial."""
         dataset_id = make_dataid(name='VIS006', calibration='counts')
         dataset_info = {
-            'nc_key': 'VIS006',
+            'name': 'VIS006',
+            'nc_key': 'ch1',
             'units': 'units',
             'wavelength': 'wavelength',
             'standard_name': 'standard_name'
