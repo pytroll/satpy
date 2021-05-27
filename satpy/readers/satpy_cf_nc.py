@@ -187,6 +187,7 @@ import xarray as xr
 from satpy import CHUNK_SIZE
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.file_handlers import BaseFileHandler
+from pyresample import AreaDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +295,13 @@ class SatpyCFFileHandler(BaseFileHandler):
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         if "orbital_parameters" in data.attrs:
             data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])
+
         return data
+
+    def get_area_def(self, dataset_id):
+        """Get area definition from CF complient netcdf."""
+        area = AreaDefinition.from_cf(self.filename)
+        return area
 
 
 def _str2dict(val):
