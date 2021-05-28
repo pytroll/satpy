@@ -21,6 +21,7 @@ import tempfile
 import unittest
 import unittest.mock as mock
 from contextlib import suppress
+from enum import Enum
 
 import dask.array as da
 import numpy as np
@@ -374,6 +375,64 @@ noise_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 </noise>
 """
 
+calibration_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<calibration>
+  <adsHeader>
+    <missionId>S1A</missionId>
+    <productType>GRD</productType>
+    <polarisation>VV</polarisation>
+    <mode>IW</mode>
+    <swath>IW</swath>
+    <startTime>2018-02-12T03:24:58.493726</startTime>
+    <stopTime>2018-02-12T03:25:01.493726</stopTime>
+    <absoluteOrbitNumber>20568</absoluteOrbitNumber>
+    <missionDataTakeId>144162</missionDataTakeId>
+    <imageNumber>001</imageNumber>
+  </adsHeader>
+  <calibrationInformation>
+    <absoluteCalibrationConstant>1.000000e+00</absoluteCalibrationConstant>
+  </calibrationInformation>
+  <calibrationVectorList count="4">
+    <calibrationVector>
+      <azimuthTime>2018-02-12T03:24:58.493726</azimuthTime>
+      <line>0</line>
+      <pixel count="6">0 2 4 6 8 9</pixel>
+      <sigmaNought count="6">1.894274e+03 1.788593e+03 1.320240e+03 1.277968e+03 1.277968e+03 1.277968e+03</sigmaNought>
+      <betaNought count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</betaNought>
+      <gamma count="6">1.840695e+03 1.718649e+03 1.187203e+03 1.185249e+03 1.183303e+03 1.181365e+03</gamma>
+      <dn count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</dn>
+    </calibrationVector>
+    <calibrationVector>
+      <azimuthTime>2018-02-12T03:24:59.493726</azimuthTime>
+      <line>3</line>
+      <pixel count="6">0 2 4 6 8 9</pixel>
+      <sigmaNought count="6">1.894274e+03 1.788593e+03 1.320240e+03 1.277968e+03 1.277968e+03 1.277968e+03</sigmaNought>
+      <betaNought count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</betaNought>
+      <gamma count="6">1.840695e+03 1.718649e+03 1.187203e+03 1.185249e+03 1.183303e+03 1.181365e+03</gamma>
+      <dn count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</dn>
+    </calibrationVector>
+    <calibrationVector>
+      <azimuthTime>2018-02-12T03:25:00.493726</azimuthTime>
+      <line>6</line>
+      <pixel count="6">0 2 4 6 8 9</pixel>
+      <sigmaNought count="6">1.894274e+03 1.788593e+03 1.320240e+03 1.277968e+03 1.277968e+03 1.277968e+03</sigmaNought>
+      <betaNought count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</betaNought>
+      <gamma count="6">1.840695e+03 1.718649e+03 1.187203e+03 1.185249e+03 1.183303e+03 1.181365e+03</gamma>
+      <dn count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</dn>
+    </calibrationVector>
+    <calibrationVector>
+      <azimuthTime>2018-02-12T03:25:01.493726</azimuthTime>
+      <line>9</line>
+      <pixel count="6">0 2 4 6 8 9</pixel>
+      <sigmaNought count="6">1.894274e+03 1.788593e+03 1.320240e+03 1.277968e+03 1.277968e+03 1.277968e+03</sigmaNought>
+      <betaNought count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</betaNought>
+      <gamma count="6">1.840695e+03 1.718649e+03 1.187203e+03 1.185249e+03 1.183303e+03 1.181365e+03</gamma>
+      <dn count="6">1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03 1.0870e+03</dn>
+    </calibrationVector>
+  </calibrationVectorList>
+</calibration>
+"""
+
 
 class TestSAFEXMLNoise(unittest.TestCase):
     """Test the SAFE XML Noise file handler."""
@@ -448,3 +507,84 @@ class TestSAFEXMLNoise(unittest.TestCase):
         query = DataQuery(name="noise", polarization="vv")
         res = self.noise_fh.get_dataset(query, {}, chunks=3)
         assert res.data.chunksize == (3, 3)
+
+
+class Calibration(Enum):
+    """Calibration levels."""
+
+    gamma = 1
+    sigma_nought = 2
+    beta_nought = 3
+    dn = 4
+
+
+class TestSAFEXMLCalibration(unittest.TestCase):
+    """Test the SAFE XML Calibration file handler."""
+
+    def setUp(self):
+        """Set up the test case."""
+        from satpy.readers.sar_c_safe import SAFEXML, SAFEXMLCalibration
+
+        with tempfile.NamedTemporaryFile(delete=False) as ntf:
+            self.annotation_filename = ntf.name
+            ntf.write(annotation_xml)
+            ntf.close()
+            filename_info = dict(start_time=None, end_time=None, polarization="vv")
+            self.annotation_fh = SAFEXML(self.annotation_filename, filename_info, mock.MagicMock())
+
+        with tempfile.NamedTemporaryFile(delete=False) as ntf:
+            self.calibration_filename = ntf.name
+            ntf.write(calibration_xml)
+            ntf.close()
+            filename_info = dict(start_time=None, end_time=None, polarization="vv")
+            self.calibration_fh = SAFEXMLCalibration(self.calibration_filename,
+                                                     filename_info,
+                                                     mock.MagicMock(),
+                                                     self.annotation_fh)
+
+        self.expected_gamma = np.array([[1840.695, 1779.672, 1718.649, 1452.926, 1187.203, 1186.226,
+                                         1185.249, 1184.276, 1183.303, 1181.365]]) * np.ones((10, 1))
+
+    def tearDown(self):
+        """Tear down the test case."""
+        with suppress(PermissionError):
+            os.remove(self.annotation_filename)
+        with suppress(PermissionError):
+            os.remove(self.calibration_filename)
+
+    def test_dn_calibration_array(self):
+        """Test reading the dn calibration array."""
+        expected_dn = np.ones((10, 10)) * 1087
+        res = self.calibration_fh.get_calibration(Calibration.dn, chunks=5)
+        np.testing.assert_allclose(res, expected_dn)
+
+    def test_beta_calibration_array(self):
+        """Test reading the beta calibration array."""
+        expected_beta = np.ones((10, 10)) * 1087
+        res = self.calibration_fh.get_calibration(Calibration.beta_nought, chunks=5)
+        np.testing.assert_allclose(res, expected_beta)
+
+    def test_sigma_calibration_array(self):
+        """Test reading the sigma calibration array."""
+        expected_sigma = np.array([[1894.274, 1841.4335, 1788.593, 1554.4165, 1320.24, 1299.104,
+                                    1277.968, 1277.968, 1277.968, 1277.968]]) * np.ones((10, 1))
+        res = self.calibration_fh.get_calibration(Calibration.sigma_nought, chunks=5)
+        np.testing.assert_allclose(res, expected_sigma)
+
+    def test_gamma_calibration_array(self):
+        """Test reading the gamma calibration array."""
+        res = self.calibration_fh.get_calibration(Calibration.gamma, chunks=5)
+        np.testing.assert_allclose(res, self.expected_gamma)
+
+    def test_get_calibration_dataset(self):
+        """Test using get_dataset for the calibration."""
+        query = DataQuery(name="gamma", polarization="vv")
+        res = self.calibration_fh.get_dataset(query, {})
+        np.testing.assert_allclose(res, self.expected_gamma)
+
+    def test_get_calibration_dataset_has_right_chunk_size(self):
+        """Test using get_dataset for the calibration yields array with right chunksize."""
+        query = DataQuery(name="gamma", polarization="vv")
+        res = self.calibration_fh.get_dataset(query, {}, chunks=3)
+        assert res.data.chunksize == (3, 3)
+        np.testing.assert_allclose(res, self.expected_gamma)

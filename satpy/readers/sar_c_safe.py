@@ -80,7 +80,7 @@ def _dictify(r):
 
 def _get_calibration_name(calibration):
     """Get the proper calibration name."""
-    calibration_name = calibration.name or 'gamma'
+    calibration_name = getattr(calibration, "name", calibration) or 'gamma'
     if calibration_name == 'sigma_nought':
         calibration_name = 'sigmaNought'
     elif calibration_name == 'beta_nought':
@@ -122,18 +122,6 @@ class SAFEXML(BaseFileHandler):
         if key["name"] == "incidence_angle":
             return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
 
-    @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, chunks=None):
-        """Get the calibration array."""
-        calibration_name = _get_calibration_name(calibration)
-        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
-        return calibration_vector
-
-    def _get_calibration_vector(self, calibration_name, chunks):
-        """Get the calibration vector."""
-        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
-        return calibration_vector.expand(self._image_shape, chunks=chunks)
-
     def get_calibration_constant(self):
         """Load the calibration constant."""
         return float(self.root.find('.//absoluteCalibrationConstant').text)
@@ -163,6 +151,18 @@ class SAFEXMLCalibration(SAFEXML):
         if self._polarization != key["polarization"]:
             return
         return self.get_calibration(key["name"], chunks=chunks or CHUNK_SIZE)
+
+    @lru_cache(maxsize=10)
+    def get_calibration(self, calibration, chunks=None):
+        """Get the calibration array."""
+        calibration_name = _get_calibration_name(calibration)
+        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
+        return calibration_vector
+
+    def _get_calibration_vector(self, calibration_name, chunks):
+        """Get the calibration vector."""
+        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
+        return calibration_vector.expand(self._image_shape, chunks=chunks)
 
 
 class SAFEXMLNoise(SAFEXML):
