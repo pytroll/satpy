@@ -380,19 +380,45 @@ class TestSAFEXMLNoise(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.sar_c_safe import SAFEXML
+        from satpy.readers.sar_c_safe import SAFEXML, SAFEXMLNoise
 
         with tempfile.NamedTemporaryFile(delete=False) as ntf:
             self.annotation_filename = ntf.name
             ntf.write(annotation_xml)
             ntf.close()
-            self.annotation_fh = SAFEXML(self.annotation_filename, mock.MagicMock(), mock.MagicMock())
+            filename_info = dict(start_time=None, end_time=None, polarization="vv")
+            self.annotation_fh = SAFEXML(self.annotation_filename, filename_info, mock.MagicMock())
 
         with tempfile.NamedTemporaryFile(delete=False) as ntf:
             self.noise_filename = ntf.name
             ntf.write(noise_xml)
             ntf.close()
-            self.noise_fh = SAFEXML(self.noise_filename, mock.MagicMock(), mock.MagicMock(), self.annotation_fh)
+            filename_info = dict(start_time=None, end_time=None, polarization="vv")
+            self.noise_fh = SAFEXMLNoise(self.noise_filename, filename_info, mock.MagicMock(), self.annotation_fh)
+
+        self.expected_azimuth_noise = np.array([[np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                                                [np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                                                [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
+                                                [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
+                                                [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
+                                                [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
+                                                [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
+                                                [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
+                                                [2, 2, 7, 7, 7, 7, 7, 8, 8, 8],
+                                                [2, 2, 7, 7, 7, 7, 7, 8, 8, 8],
+                                                ])
+
+        self.expected_range_noise = np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                                              ])
 
     def tearDown(self):
         """Tear down the test case."""
@@ -403,34 +429,22 @@ class TestSAFEXMLNoise(unittest.TestCase):
 
     def test_azimuth_noise_array(self):
         """Test reading the azimuth-noise array."""
-        expected_data = np.array([[np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-                                  [np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-                                  [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
-                                  [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
-                                  [2, 2, 3, 3, 3, 4, 4, 4, 4, np.nan],
-                                  [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
-                                  [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
-                                  [2, 2, 5, 5, 5, 5, 6, 6, 6, 6],
-                                  [2, 2, 7, 7, 7, 7, 7, 8, 8, 8],
-                                  [2, 2, 7, 7, 7, 7, 7, 8, 8, 8],
-                                  ])
-
         res = self.noise_fh.azimuth_noise_reader.read_azimuth_noise_array()
-        np.testing.assert_array_equal(res, expected_data)
+        np.testing.assert_array_equal(res, self.expected_azimuth_noise)
 
     def test_range_noise_array(self):
         """Test reading the range-noise array."""
-        expected_data = np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                                  ])
-
         res = self.noise_fh.read_range_noise_array(chunks=5)
-        np.testing.assert_allclose(res, expected_data)
+        np.testing.assert_allclose(res, self.expected_range_noise)
+
+    def test_get_noise_dataset(self):
+        """Test using get_dataset for the noise."""
+        query = DataQuery(name="noise", polarization="vv")
+        res = self.noise_fh.get_dataset(query, {})
+        np.testing.assert_allclose(res, self.expected_azimuth_noise * self.expected_range_noise)
+
+    def test_get_noise_dataset_has_right_chunk_size(self):
+        """Test using get_dataset for the noise has right chunk size in result."""
+        query = DataQuery(name="noise", polarization="vv")
+        res = self.noise_fh.get_dataset(query, {}, chunks=3)
+        assert res.data.chunksize == (3, 3)

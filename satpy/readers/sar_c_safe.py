@@ -114,49 +114,13 @@ class SAFEXML(BaseFileHandler):
         """Convert the xml metadata to dict."""
         return dictify(self.root.getroot())
 
-    def get_dataset(self, key, info):
+    def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
         if self._polarization != key["polarization"]:
             return
 
-        xml_items = info['xml_item']
-        xml_tags = info['xml_tag']
-
-        if not isinstance(xml_items, list):
-            xml_items = [xml_items]
-            xml_tags = [xml_tags]
-
-        for xml_item, xml_tag in zip(xml_items, xml_tags):
-            data_items = self.root.findall(".//" + xml_item)
-            if not data_items:
-                continue
-            data, low_res_coords = self.read_xml_array(data_items, xml_tag)
-
-        if key['name'].endswith('squared'):
-            data **= 2
-
-        data = self.interpolate_xml_array(data, low_res_coords, data.shape)
-
-    @lru_cache(maxsize=10)
-    def get_noise_correction(self, chunks=None):
-        """Get the noise correction array."""
-        try:
-            noise = self.read_legacy_noise(chunks)
-        except KeyError:
-            range_noise = self.read_range_noise_array(chunks)
-            azimuth_noise = self.azimuth_noise_reader.read_azimuth_noise_array(chunks)
-            noise = range_noise * azimuth_noise
-        return noise
-
-    def read_legacy_noise(self, chunks):
-        """Read noise for legacy GRD data."""
-        noise = XMLArray(self.root, ".//noiseVector", "noiseLut")
-        return noise.expand(self._image_shape, chunks)
-
-    def read_range_noise_array(self, chunks):
-        """Read the range-noise array."""
-        range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
-        return range_noise.expand(self._image_shape, chunks)
+        if key["name"] == "incidence_angle":
+            return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
 
     @lru_cache(maxsize=10)
     def get_calibration(self, calibration, chunks=None):
@@ -189,6 +153,55 @@ class SAFEXML(BaseFileHandler):
     def end_time(self):
         """Get the end time."""
         return self._end_time
+
+
+class SAFEXMLCalibration(SAFEXML):
+    """XML file reader for the SAFE format, Calibration file."""
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        return self.get_calibration(key["name"], chunks=chunks or CHUNK_SIZE)
+
+
+class SAFEXMLNoise(SAFEXML):
+    """XML file reader for the SAFE format, Noise file."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the xml filehandler."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+
+        self.azimuth_noise_reader = AzimuthNoiseReader(self.filename, self._image_shape)
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        if key["name"] == "noise":
+            return self.get_noise_correction(chunks=chunks or CHUNK_SIZE)
+
+    @lru_cache(maxsize=10)
+    def get_noise_correction(self, chunks=None):
+        """Get the noise correction array."""
+        try:
+            noise = self.read_legacy_noise(chunks)
+        except KeyError:
+            range_noise = self.read_range_noise_array(chunks)
+            azimuth_noise = self.azimuth_noise_reader.read_azimuth_noise_array(chunks)
+            noise = range_noise * azimuth_noise
+        return noise
+
+    def read_legacy_noise(self, chunks):
+        """Read noise for legacy GRD data."""
+        noise = XMLArray(self.root, ".//noiseVector", "noiseLut")
+        return noise.expand(self._image_shape, chunks)
+
+    def read_range_noise_array(self, chunks):
+        """Read the range-noise array."""
+        range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
+        return range_noise.expand(self._image_shape, chunks)
 
 
 class AzimuthNoiseReader:
