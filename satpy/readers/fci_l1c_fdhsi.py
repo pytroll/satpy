@@ -284,6 +284,15 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         data = data.where(data != data.attrs.get('_FillValue', 65535))
         return data
 
+    def _get_aux_data_lut_vector(self, aux_data_name):
+        """Load the lut vector of an auxiliary variable."""
+        lut = self[AUX_DATA[aux_data_name]]
+
+        fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
+        lut = lut.where(lut != fv)
+
+        return lut
+
     @staticmethod
     def _getitem(block, lut):
         return lut[block.astype('uint16')]
@@ -296,10 +305,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         index_map -= 1
 
         # get lut values from 1-d vector
-        lut = self[AUX_DATA[_get_aux_data_name_from_dsname(dsname)]]
-
-        fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
-        lut = lut.where(lut != fv)
+        lut = self._get_aux_data_lut_vector(_get_aux_data_name_from_dsname(dsname))
 
         # assign lut values based on index map indices
         aux = index_map.data.map_blocks(self._getitem, lut.data, dtype=lut.data.dtype)
@@ -382,7 +388,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return area_extent, nlines, ncols
 
     def get_area_def(self, key):
-        """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
+        """Calculate on-fly area definition for a dataset in geos-projection."""
         # assumption: channels with same resolution should have same area
         # cache results to improve performance
         if key['resolution'] in self._cache:
