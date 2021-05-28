@@ -593,7 +593,8 @@ class TestFindFilesAndReaders(unittest.TestCase):
                                  "no pending deprecated readers.")
         test_reader = sorted(PENDING_OLD_READER_NAMES.keys())[0]
         with self.assertWarns(FutureWarning):
-            get_valid_reader_names([test_reader])
+            valid_reader_names = get_valid_reader_names([test_reader])
+        self.assertEqual(valid_reader_names[0], PENDING_OLD_READER_NAMES[test_reader])
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
