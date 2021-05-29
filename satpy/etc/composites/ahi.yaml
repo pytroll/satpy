@@ -38,7 +38,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: B04
       modifiers: [sunz_corrected]
-    standard_name: toa_bidirectional_reflectance
+    standard_name: none
 
   green_nocorr:
     compositor: !!python/name:satpy.composites.ahi.GreenCorrector
@@ -218,7 +218,7 @@ composites:
     standard_name: true_color
 
   true_color_reproduction:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: B03
         modifiers: [sunz_corrected, rayleigh_corrected]
