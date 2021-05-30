@@ -273,6 +273,54 @@ annotation_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
       </imageStatistics>
     </imageInformation>
   </imageAnnotation>
+  <geolocationGrid>
+    <geolocationGridPointList count="4">
+      <geolocationGridPoint>
+        <azimuthTime>2018-02-12T03:24:58.493342</azimuthTime>
+        <slantRangeTime>4.964462411376810e-03</slantRangeTime>
+        <line>0</line>
+        <pixel>0</pixel>
+        <latitude>7.021017981690355e+01</latitude>
+        <longitude>5.609684402205929e+01</longitude>
+        <height>8.234046399593353e-04</height>
+        <incidenceAngle>1.918318045731997e+01</incidenceAngle>
+        <elevationAngle>1.720012646010728e+01</elevationAngle>
+      </geolocationGridPoint>
+      <geolocationGridPoint>
+        <azimuthTime>2018-02-12T03:24:58.493342</azimuthTime>
+        <slantRangeTime>4.964462411376810e-03</slantRangeTime>
+        <line>0</line>
+        <pixel>9</pixel>
+        <latitude>7.021017981690355e+01</latitude>
+        <longitude>5.609684402205929e+01</longitude>
+        <height>8.234046399593353e-04</height>
+        <incidenceAngle>1.918318045731997e+01</incidenceAngle>
+        <elevationAngle>1.720012646010728e+01</elevationAngle>
+      </geolocationGridPoint>
+      <geolocationGridPoint>
+        <azimuthTime>2018-02-12T03:24:58.493342</azimuthTime>
+        <slantRangeTime>4.964462411376810e-03</slantRangeTime>
+        <line>9</line>
+        <pixel>0</pixel>
+        <latitude>7.021017981690355e+01</latitude>
+        <longitude>5.609684402205929e+01</longitude>
+        <height>8.234046399593353e-04</height>
+        <incidenceAngle>1.918318045731997e+01</incidenceAngle>
+        <elevationAngle>1.720012646010728e+01</elevationAngle>
+      </geolocationGridPoint>
+      <geolocationGridPoint>
+        <azimuthTime>2018-02-12T03:24:58.493342</azimuthTime>
+        <slantRangeTime>4.964462411376810e-03</slantRangeTime>
+        <line>9</line>
+        <pixel>9</pixel>
+        <latitude>7.021017981690355e+01</latitude>
+        <longitude>5.609684402205929e+01</longitude>
+        <height>8.234046399593353e-04</height>
+        <incidenceAngle>1.918318045731997e+01</incidenceAngle>
+        <elevationAngle>1.720012646010728e+01</elevationAngle>
+      </geolocationGridPoint>
+    </geolocationGridPointList>
+  </geolocationGrid>
 </product>
 """
 
@@ -439,14 +487,14 @@ class TestSAFEXMLNoise(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.sar_c_safe import SAFEXML, SAFEXMLNoise
+        from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLNoise
 
         with tempfile.NamedTemporaryFile(delete=False) as ntf:
             self.annotation_filename = ntf.name
             ntf.write(annotation_xml)
             ntf.close()
             filename_info = dict(start_time=None, end_time=None, polarization="vv")
-            self.annotation_fh = SAFEXML(self.annotation_filename, filename_info, mock.MagicMock())
+            self.annotation_fh = SAFEXMLAnnotation(self.annotation_filename, filename_info, mock.MagicMock())
 
         with tempfile.NamedTemporaryFile(delete=False) as ntf:
             self.noise_filename = ntf.name
@@ -523,14 +571,14 @@ class TestSAFEXMLCalibration(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.sar_c_safe import SAFEXML, SAFEXMLCalibration
+        from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration
 
         with tempfile.NamedTemporaryFile(delete=False) as ntf:
             self.annotation_filename = ntf.name
             ntf.write(annotation_xml)
             ntf.close()
             filename_info = dict(start_time=None, end_time=None, polarization="vv")
-            self.annotation_fh = SAFEXML(self.annotation_filename, filename_info, mock.MagicMock())
+            self.annotation_fh = SAFEXMLAnnotation(self.annotation_filename, filename_info, mock.MagicMock())
 
         with tempfile.NamedTemporaryFile(delete=False) as ntf:
             self.calibration_filename = ntf.name
@@ -588,3 +636,38 @@ class TestSAFEXMLCalibration(unittest.TestCase):
         res = self.calibration_fh.get_dataset(query, {}, chunks=3)
         assert res.data.chunksize == (3, 3)
         np.testing.assert_allclose(res, self.expected_gamma)
+
+    def test_get_calibration_constant(self):
+        """Test getting the calibration constant."""
+        query = DataQuery(name="calibration_constant", polarization="vv")
+        res = self.calibration_fh.get_dataset(query, {})
+        assert res == 1
+
+
+class TestSAFEXMLAnnotation(unittest.TestCase):
+    """Test the SAFE XML Annotation file handler."""
+
+    def setUp(self):
+        """Set up the test case."""
+        from satpy.readers.sar_c_safe import SAFEXMLAnnotation
+
+        with tempfile.NamedTemporaryFile(delete=False) as ntf:
+            self.annotation_filename = ntf.name
+            ntf.write(annotation_xml)
+            ntf.close()
+            filename_info = dict(start_time=None, end_time=None, polarization="vv")
+            self.annotation_fh = SAFEXMLAnnotation(self.annotation_filename, filename_info, mock.MagicMock())
+
+        self.expected_gamma = np.array([[1840.695, 1779.672, 1718.649, 1452.926, 1187.203, 1186.226,
+                                         1185.249, 1184.276, 1183.303, 1181.365]]) * np.ones((10, 1))
+
+    def tearDown(self):
+        """Tear down the test case."""
+        with suppress(PermissionError):
+            os.remove(self.annotation_filename)
+
+    def test_incidence_angle(self):
+        """Test reading the incidence angle."""
+        query = DataQuery(name="incidence_angle", polarization="vv")
+        res = self.annotation_fh.get_dataset(query, {})
+        np.testing.assert_allclose(res, 19.18318046)

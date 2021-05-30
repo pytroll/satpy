@@ -114,24 +114,6 @@ class SAFEXML(BaseFileHandler):
         """Convert the xml metadata to dict."""
         return dictify(self.root.getroot())
 
-    def get_dataset(self, key, info, chunks=None):
-        """Load a dataset."""
-        if self._polarization != key["polarization"]:
-            return
-
-        if key["name"] == "incidence_angle":
-            return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
-
-    def get_calibration_constant(self):
-        """Load the calibration constant."""
-        return float(self.root.find('.//absoluteCalibrationConstant').text)
-
-    @lru_cache(maxsize=10)
-    def get_incidence_angle(self, chunks):
-        """Get the incidence angle array."""
-        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
-        return incidence_angle.expand(self._image_shape, chunks=chunks)
-
     @property
     def start_time(self):
         """Get the start time."""
@@ -143,6 +125,24 @@ class SAFEXML(BaseFileHandler):
         return self._end_time
 
 
+class SAFEXMLAnnotation(SAFEXML):
+    """XML file reader for the SAFE format, Annotation file."""
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+
+        if key["name"] == "incidence_angle":
+            return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
+
+    @lru_cache(maxsize=10)
+    def get_incidence_angle(self, chunks):
+        """Get the incidence angle array."""
+        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
+        return incidence_angle.expand(self._image_shape, chunks=chunks)
+
+
 class SAFEXMLCalibration(SAFEXML):
     """XML file reader for the SAFE format, Calibration file."""
 
@@ -150,7 +150,13 @@ class SAFEXMLCalibration(SAFEXML):
         """Load a dataset."""
         if self._polarization != key["polarization"]:
             return
+        if key["name"] == "calibration_constant":
+            return self.get_calibration_constant()
         return self.get_calibration(key["name"], chunks=chunks or CHUNK_SIZE)
+
+    def get_calibration_constant(self):
+        """Load the calibration constant."""
+        return float(self.root.find('.//absoluteCalibrationConstant').text)
 
     @lru_cache(maxsize=10)
     def get_calibration(self, calibration, chunks=None):
