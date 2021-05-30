@@ -658,9 +658,6 @@ class TestSAFEXMLAnnotation(unittest.TestCase):
             filename_info = dict(start_time=None, end_time=None, polarization="vv")
             self.annotation_fh = SAFEXMLAnnotation(self.annotation_filename, filename_info, mock.MagicMock())
 
-        self.expected_gamma = np.array([[1840.695, 1779.672, 1718.649, 1452.926, 1187.203, 1186.226,
-                                         1185.249, 1184.276, 1183.303, 1181.365]]) * np.ones((10, 1))
-
     def tearDown(self):
         """Tear down the test case."""
         with suppress(PermissionError):
