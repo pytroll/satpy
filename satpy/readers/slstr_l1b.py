@@ -250,13 +250,22 @@ class NCSLSTRAngles(BaseFileHandler):
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
 
-        cart_file = os.path.join(
+        carta_file = os.path.join(
+            os.path.dirname(self.filename), 'cartesian_a{}.nc'.format(self.view[0]))
+        self.carta = xr.open_dataset(carta_file,
+                                     decode_cf=True,
+                                     mask_and_scale=True,
+                                     chunks={'columns': CHUNK_SIZE,
+                                             'rows': CHUNK_SIZE})
+
+        carti_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view[0]))
-        self.cart = xr.open_dataset(cart_file,
-                                    decode_cf=True,
-                                    mask_and_scale=True,
-                                    chunks={'columns': CHUNK_SIZE,
-                                            'rows': CHUNK_SIZE})
+        self.carti = xr.open_dataset(carti_file,
+                                     decode_cf=True,
+                                     mask_and_scale=True,
+                                     chunks={'columns': CHUNK_SIZE,
+                                             'rows': CHUNK_SIZE})
+
         cartx_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_tx.nc')
         self.cartx = xr.open_dataset(cartx_file,
@@ -288,8 +297,12 @@ class NCSLSTRAngles(BaseFileHandler):
             # possible
             tie_x = self.cartx['x_tx'].data[0, :][::-1]
             tie_y = self.cartx['y_tx'].data[:, 0]
-            full_x = self.cart['x_i' + self.view[0]].data
-            full_y = self.cart['y_i' + self.view[0]].data
+            if key.get('resolution', 1000) == 500:
+                full_x = self.carta['x_a' + self.view[0]].data
+                full_y = self.carta['y_a' + self.view[0]].data
+            else:
+                full_x = self.carti['x_i' + self.view[0]].data
+                full_y = self.carti['y_i' + self.view[0]].data
 
             variable = variable.fillna(0)
 
