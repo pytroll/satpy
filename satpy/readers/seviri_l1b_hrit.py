@@ -579,9 +579,7 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def _mask_bad_quality(self, data):
         """Mask scanlines with bad quality."""
-        # Based on missing (2) or corrupted (3) data
         line_validity = self.mda['image_segment_line_quality']['line_validity']
-        # Do not use (4)
         line_radiometric_quality = self.mda['image_segment_line_quality']['line_radiometric_quality']
         line_geometric_quality = self.mda['image_segment_line_quality']['line_geometric_quality']
         data = mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometric_quality)

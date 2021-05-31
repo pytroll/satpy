@@ -932,12 +932,10 @@ def mask_bad_quality(data, line_validity, line_geometric_quality, line_radiometr
         xarray.DataArray: data with lines flagged as bad converted to np.nan.
     """
     # Based on missing (2) or corrupted (3) data
-    print(line_validity)
     line_mask = line_validity >= 2
     line_mask &= line_validity <= 3
     # Do not use (4)
     line_mask &= line_radiometric_quality == 4
     line_mask &= line_geometric_quality == 4
-    print(line_mask)
     data *= np.choose(line_mask, [1, np.nan])[:, np.newaxis].astype(np.float32)
     return data

@@ -32,6 +32,9 @@ from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 from satpy.tests.utils import make_dataid, assert_attrs_equal
 
 
+channel_keys_dict = {'VIS006': 'ch1', 'IR_108': 'ch9'}
+
+
 def to_cds_time(time):
     """Convert datetime to (days, msecs) since 1958-01-01."""
     if isinstance(time, datetime):
@@ -185,22 +188,22 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             )
 
     @pytest.mark.parametrize(
-        ('channel', 'key', 'calibration', 'use_ext_coefs'),
+        ('channel', 'calibration', 'use_ext_coefs'),
         [
             # VIS channel, internal coefficients
-            ('VIS006', 'ch1', 'counts', False),
-            ('VIS006', 'ch1', 'radiance', False),
-            ('VIS006', 'ch1', 'reflectance', False),
+            ('VIS006', 'counts', False),
+            ('VIS006', 'radiance', False),
+            ('VIS006', 'reflectance', False),
             # VIS channel, external coefficients
-            ('VIS006', 'ch1', 'radiance', True),
-            ('VIS006', 'ch1', 'reflectance', True),
+            ('VIS006', 'radiance', True),
+            ('VIS006', 'reflectance', True),
             # IR channel, internal coefficients
-            ('IR_108', 'ch9', 'counts', False),
-            ('IR_108', 'ch9', 'radiance', False),
-            ('IR_108', 'ch9', 'brightness_temperature', False),
+            ('IR_108', 'counts', False),
+            ('IR_108', 'radiance', False),
+            ('IR_108', 'brightness_temperature', False),
             # IR channel, external coefficients
-            ('IR_108', 'ch9', 'radiance', True),
-            ('IR_108', 'ch9', 'brightness_temperature', True),
+            ('IR_108', 'radiance', True),
+            ('IR_108', 'brightness_temperature', True),
             # FUTURE: Enable once HRV reading has been fixed.
             # # HRV channel, internal coefficiens
             # ('HRV', 'counts', False),
@@ -212,7 +215,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         ]
     )
     def test_calibrate(
-            self, file_handler, channel, key, calibration, use_ext_coefs
+            self, file_handler, channel, calibration, use_ext_coefs
     ):
         """Test the calibration."""
         file_handler.nc = file_handler.nc.rename({
@@ -230,19 +233,22 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         fh.ext_calib_coefs = external_coefs
         dataset_id = make_dataid(name=channel, calibration=calibration)
 
+        key = channel_keys_dict[channel]
+
         res = fh.calibrate(fh.nc[key], dataset_id)
         xr.testing.assert_allclose(res, expected)
 
     @pytest.mark.parametrize(
         ('channel', 'key', 'calibration'),
         [
-            ('VIS006', 'ch1', 'reflectance'),
-            ('IR_108', 'ch9', 'brightness_temperature')
+            ('VIS006', 'reflectance'),
+            ('IR_108', 'brightness_temperature')
          ]
     )
-    def test_get_dataset(self, file_handler, channel, key, calibration):
+    def test_get_dataset(self, file_handler, channel, calibration):
         """Test getting the dataset."""
         dataset_id = make_dataid(name=channel, calibration=calibration)
+        key = channel_keys_dict[channel]
         dataset_info = {
             'nc_key': key,
             'units': 'units',
