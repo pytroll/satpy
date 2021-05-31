@@ -20,7 +20,7 @@ to generate a Natural Color RGB composite over the European area.
     path_to_data = 'your/path/to/FCI/data/folder/'
 
     # find files and assign the FCI reader
-    files = find_files_and_readers(base_dir=path_to_data, reader='fci_l1c_fdhsi')
+    files = find_files_and_readers(base_dir=path_to_data, reader='fci_l1c_nc')
 
     # create an FCI scene from the selected files
     scn = Scene(filenames=files)
