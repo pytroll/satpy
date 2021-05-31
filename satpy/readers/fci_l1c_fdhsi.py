@@ -15,11 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to MTG-FCI L1C NetCDF files.
+"""Interface to MTG-FCI L1c NetCDF files.
 
 This module defines the :class:`FCIFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Level-1C data.  FCI will fly
+Imager (FCI) Level-1c data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
 in 2022 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
@@ -138,7 +138,7 @@ class FCIL1CNCFileHandler(NetCDF4FileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
-    Combined Imager (FCI) Level-1 NetCDF reader.
+    Combined Imager (FCI) Level-1C NetCDF reader.
     It is designed to be used through the :class:`~satpy.Scene`
     class using the :mod:`~satpy.Scene.load` method with the reader
     ``"fci_l1c_nc"``.
