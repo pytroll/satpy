@@ -15,11 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to MTG-FCI-FDHSI L1C NetCDF files.
+"""Interface to MTG-FCI L1C NetCDF files.
 
-This module defines the :class:`FCIFDHSIFileHandler` file handler, to
+This module defines the :class:`FCIFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
+Imager (FCI) Level-1C data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
 in 2022 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
@@ -134,14 +134,14 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIFDHSIFileHandler(NetCDF4FileHandler):
-    """Class implementing the MTG FCI FDHSI File .
+class FCIL1CNCFileHandler(NetCDF4FileHandler):
+    """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
-    Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) reader.
+    Combined Imager (FCI) Level-1 NetCDF reader.
     It is designed to be used through the :class:`~satpy.Scene`
     class using the :mod:`~satpy.Scene.load` method with the reader
-    ``"fci_l1c_fdhsi"``.
+    ``"fci_l1c_nc"``.
 
     """
 
@@ -161,7 +161,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
-        super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
+        super(FCIL1CNCFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info,
                                                   cache_var_size=10000,
                                                   cache_handle=True)
