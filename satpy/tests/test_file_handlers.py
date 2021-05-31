@@ -19,6 +19,7 @@
 
 import unittest
 from unittest import mock
+
 import numpy as np
 
 from satpy.readers.file_handlers import BaseFileHandler

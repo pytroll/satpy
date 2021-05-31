@@ -274,9 +274,9 @@ class DataDownloadMixin:
             ... other metadata ...
             data_files:
               - url: "https://example.com/my_data_file.dat"
-              - url: "https://raw.githubusercontent.com/pytroll/satpy/master/README.rst"
+              - url: "https://raw.githubusercontent.com/pytroll/satpy/main/README.rst"
                 known_hash: "sha256:5891286b63e7745de08c4b0ac204ad44cfdb9ab770309debaba90308305fa759"
-              - url: "https://raw.githubusercontent.com/pytroll/satpy/master/RELEASING.md"
+              - url: "https://raw.githubusercontent.com/pytroll/satpy/main/RELEASING.md"
                 filename: "satpy_releasing.md"
 
     In this example we register two files that might be downloaded.

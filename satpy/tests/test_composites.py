@@ -431,6 +431,8 @@ class TestSandwichCompositor(unittest.TestCase):
         for i in range(3):
             np.testing.assert_allclose(res.data[i, :, :],
                                        rgb_arr[i, :, :] * lum_arr / 100.)
+        # make sure the compositor doesn't modify the input data
+        np.testing.assert_allclose(lum.values, lum_arr.compute())
 
 
 class TestInlineComposites(unittest.TestCase):

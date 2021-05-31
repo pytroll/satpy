@@ -51,10 +51,8 @@ extras_require = {
     'omps_edr': ['h5py >= 2.7.0'],
     'amsr2_l1b': ['h5py >= 2.7.0'],
     'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
-    'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.10.1'],
-    'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
+    'msi_safe': ['glymur'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'rasterio', 'rioxarray'],
     'abi_l1b': ['h5netcdf'],
@@ -67,12 +65,16 @@ extras_require = {
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
+    # Composites/Modifiers:
+    'rayleigh': ['pyspectral >= 0.10.1'],
+    'angles': ['pyorbital >= 1.3.1'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
     'doc': ['sphinx', 'sphinx_rtd_theme', 'sphinxcontrib-apidoc'],
     # Other
     'geoviews': ['geoviews'],
+    'overlays': ['pycoast', 'pydecorate'],
 }
 all_extras = []
 for extra_deps in extras_require.values():

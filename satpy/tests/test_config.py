@@ -164,6 +164,31 @@ class TestConfigObject:
                                                        '/my/configs2',
                                                        '/my/configs3']
 
+    def test_config_path_multiple_load(self):
+        """Test that config paths from subprocesses load properly.
+
+        Satpy modifies the config path environment variable when it is imported.
+        If Satpy is imported again from a subprocess then it should be able to parse this
+        modified variable.
+        """
+        from importlib import reload
+        import satpy
+        old_vars = {
+            'SATPY_CONFIG_PATH': '/my/configs1:/my/configs2:/my/configs3',
+        }
+
+        with mock.patch.dict('os.environ', old_vars):
+            # these reloads will update env variable "SATPY_CONFIG_PATH"
+            reload(satpy._config)
+            reload(satpy)
+
+            # load the updated env variable and parse it again.
+            reload(satpy._config)
+            reload(satpy)
+            assert satpy.config.get('config_path') == ['/my/configs1',
+                                                       '/my/configs2',
+                                                       '/my/configs3']
+
     def test_bad_str_config_path(self):
         """Test that a str config path isn't allowed."""
         from importlib import reload

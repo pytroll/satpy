@@ -55,7 +55,19 @@ class TestCFReader(unittest.TestCase):
                               coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_vis006)},
                               attrs={'name': 'image0', 'id_tag': 'ch_r06',
                                      'coordinates': 'lat lon', 'resolution': 1000, 'calibration': 'reflectance',
-                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm')
+                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm'),
+                                     'orbital_parameters': {
+                                        'projection_longitude': 1,
+                                        'projection_latitude': 1,
+                                        'projection_altitude': 1,
+                                        'satellite_nominal_longitude': 1,
+                                        'satellite_nominal_latitude': 1,
+                                        'satellite_actual_longitude': 1,
+                                        'satellite_actual_latitude': 1,
+                                        'satellite_actual_altitude': 1,
+                                        'nadir_longitude': 1,
+                                        'nadir_latitude': 1,
+                                        'only_in_1': False}
                                      })
 
         ir_108 = xr.DataArray(data_visir,
@@ -308,6 +320,26 @@ class TestCFReader(unittest.TestCase):
             np.testing.assert_array_equal(scn_['1'].data, scene['1'].data)
             np.testing.assert_array_equal(scn_['1'].coords['lon'], scene['lon'].data)  # lon loded as coord
 
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def test_orbital_parameters(self):
+        """Test that the orbital parameters in attributes are handled correctly."""
+        filename = 'testingcfwriter4{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            self.scene.save_datasets(writer='cf',
+                                     filename=filename,
+                                     header_attrs={'instrument': 'avhrr'})
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['image0'])
+            orig_attrs = self.scene['image0'].attrs['orbital_parameters']
+            new_attrs = scn_['image0'].attrs['orbital_parameters']
+            assert isinstance(new_attrs, dict)
+            for key in orig_attrs:
+                assert orig_attrs[key] == new_attrs[key]
         finally:
             with suppress(PermissionError):
                 os.remove(filename)

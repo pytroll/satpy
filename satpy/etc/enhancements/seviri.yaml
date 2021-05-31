@@ -1,0 +1,61 @@
+enhancements:
+
+  hrv:
+    standard_name: hrv
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, ]
+        max_stretch: [100, ]
+
+  ir108:
+    standard_name: ir108
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [300, ]
+        max_stretch: [215, ]
+
+  vis06_filled_hrv:
+    standard_name: vis06_filled_hrv
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, ]
+        max_stretch: [100, ]
+
+  vis_with_ir:
+    standard_name: vis_with_ir
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, ]
+        max_stretch: [1, ]
+
+  vis_with_ir_cloud_overlay:
+    standard_name: vis_with_ir_cloud_overlay
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0]
+        max_stretch: [1, 1]
+
+  ct:
+    standard_name: ct
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, ]
+        max_stretch: [255, ]
