@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the 'fci_l1c_fdhsi' reader."""
+"""Tests for the 'fci_l1c_nc' reader."""
 
 import os
 import numpy as np
@@ -244,7 +244,7 @@ def reader_configs():
     """Return reader configs for FCI."""
     from satpy._config import config_search_paths
     return config_search_paths(
-        os.path.join("readers", "fci_l1c_fdhsi.yaml"))
+        os.path.join("readers", "fci_l1c_nc.yaml"))
 
 
 def _get_reader_with_filehandlers(filenames, reader_configs):
@@ -255,10 +255,10 @@ def _get_reader_with_filehandlers(filenames, reader_configs):
     return reader
 
 
-class TestFCIL1CFDHSIReader:
-    """Initialize the unittest TestCase for the FCI L1C FDHSI Reader."""
+class TestFCIL1CNCReader:
+    """Initialize the unittest TestCase for the FCI L1C NetCDF Reader."""
 
-    yaml_file = "fci_l1c_fdhsi.yaml"
+    yaml_file = "fci_l1c_nc.yaml"
 
     _alt_handler = FakeNetCDF4FileHandler2
 
@@ -266,18 +266,18 @@ class TestFCIL1CFDHSIReader:
     def fake_handler(self):
         """Wrap NetCDF4 FileHandler with our own fake handler."""
         # implementation strongly inspired by test_viirs_l1b.py
-        from satpy.readers.fci_l1c_fdhsi import FCIFDHSIFileHandler
+        from satpy.readers.fci_l1c_nc import FCIL1CNCFileHandler
         p = mock.patch.object(
-            FCIFDHSIFileHandler,
-            "__bases__",
-            (self._alt_handler,))
+                FCIL1CNCFileHandler,
+                "__bases__",
+                (self._alt_handler,))
         with p:
             p.is_local = True
             yield p
 
 
-class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
-    """Test FCI L1C FDHSI reader."""
+class TestFCIL1CNCReaderGoodData(TestFCIL1CNCReader):
+    """Test FCI L1C NetCDF reader."""
 
     _alt_handler = FakeNetCDF4FileHandler2
 
@@ -438,7 +438,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_aux_data(self, reader_configs):
         """Test loading of auxiliary data."""
-        from satpy.readers.fci_l1c_fdhsi import AUX_DATA
+        from satpy.readers.fci_l1c_nc import AUX_DATA
 
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -459,7 +459,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_composite(self):
         """Test that composites are loadable."""
-        # when dedicated composites for FCI FDHSI are implemented in satpy,
+        # when dedicated composites for FCI are implemented in satpy,
         # this method should probably move to a dedicated class and module
         # in the tests.compositor_tests package
 
@@ -551,8 +551,8 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         assert area_def.crs.ellipsoid.is_semi_minor_computed
 
 
-class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
-    """Test the FCI L1C FDHSI Reader for bad data input."""
+class TestFCIL1CNCReaderBadData(TestFCIL1CNCReader):
+    """Test the FCI L1C NetCDF Reader for bad data input."""
 
     _alt_handler = FakeNetCDF4FileHandler3
 
