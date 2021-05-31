@@ -108,8 +108,6 @@ class SAFEXML(BaseFileHandler):
         self._image_shape = (self.hdr['product']['imageAnnotation']['imageInformation']['numberOfLines'],
                              self.hdr['product']['imageAnnotation']['imageInformation']['numberOfSamples'])
 
-        self.azimuth_noise_reader = AzimuthNoiseReader(self.filename, self._image_shape)
-
     def get_metadata(self):
         """Convert the xml metadata to dict."""
         return dictify(self.root.getroot())
@@ -179,7 +177,7 @@ class SAFEXMLNoise(SAFEXML):
         """Init the xml filehandler."""
         super().__init__(filename, filename_info, filetype_info, header_file)
 
-        self.azimuth_noise_reader = AzimuthNoiseReader(self.filename, self._image_shape)
+        self.azimuth_noise_reader = AzimuthNoiseReader(self.root, self._image_shape)
 
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
@@ -233,9 +231,9 @@ class AzimuthNoiseReader:
     to be gap-filled with NaNs.
     """
 
-    def __init__(self, filename, shape):
+    def __init__(self, root, shape):
         """Set up the azimuth noise reader."""
-        self.root = ET.parse(filename)
+        self.root = root
         self.elements = self.root.findall(".//noiseAzimuthVector")
         self._image_shape = shape
         self.blocks = []

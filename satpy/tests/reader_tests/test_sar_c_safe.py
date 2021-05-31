@@ -16,18 +16,18 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.sar-c_safe module."""
-import os
-import tempfile
+
 import unittest
 import unittest.mock as mock
-from contextlib import suppress
 from enum import Enum
+from io import BytesIO
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
 from satpy.dataset import DataQuery
+from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration, SAFEXMLNoise
 
 
 class TestSAFEGRD(unittest.TestCase):
@@ -487,21 +487,9 @@ class TestSAFEXMLNoise(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLNoise
-
-        with tempfile.NamedTemporaryFile(delete=False) as ntf:
-            self.annotation_filename = ntf.name
-            ntf.write(annotation_xml)
-            ntf.close()
-            filename_info = dict(start_time=None, end_time=None, polarization="vv")
-            self.annotation_fh = SAFEXMLAnnotation(self.annotation_filename, filename_info, mock.MagicMock())
-
-        with tempfile.NamedTemporaryFile(delete=False) as ntf:
-            self.noise_filename = ntf.name
-            ntf.write(noise_xml)
-            ntf.close()
-            filename_info = dict(start_time=None, end_time=None, polarization="vv")
-            self.noise_fh = SAFEXMLNoise(self.noise_filename, filename_info, mock.MagicMock(), self.annotation_fh)
+        filename_info = dict(start_time=None, end_time=None, polarization="vv")
+        self.annotation_fh = SAFEXMLAnnotation(BytesIO(annotation_xml), filename_info, mock.MagicMock())
+        self.noise_fh = SAFEXMLNoise(BytesIO(noise_xml), filename_info, mock.MagicMock(), self.annotation_fh)
 
         self.expected_azimuth_noise = np.array([[np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                                                 [np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
@@ -526,13 +514,6 @@ class TestSAFEXMLNoise(unittest.TestCase):
                                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                                               ])
-
-    def tearDown(self):
-        """Tear down the test case."""
-        with suppress(PermissionError):
-            os.remove(self.annotation_filename)
-        with suppress(PermissionError):
-            os.remove(self.noise_filename)
 
     def test_azimuth_noise_array(self):
         """Test reading the azimuth-noise array."""
@@ -571,34 +552,15 @@ class TestSAFEXMLCalibration(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration
-
-        with tempfile.NamedTemporaryFile(delete=False) as ntf:
-            self.annotation_filename = ntf.name
-            ntf.write(annotation_xml)
-            ntf.close()
-            filename_info = dict(start_time=None, end_time=None, polarization="vv")
-            self.annotation_fh = SAFEXMLAnnotation(self.annotation_filename, filename_info, mock.MagicMock())
-
-        with tempfile.NamedTemporaryFile(delete=False) as ntf:
-            self.calibration_filename = ntf.name
-            ntf.write(calibration_xml)
-            ntf.close()
-            filename_info = dict(start_time=None, end_time=None, polarization="vv")
-            self.calibration_fh = SAFEXMLCalibration(self.calibration_filename,
-                                                     filename_info,
-                                                     mock.MagicMock(),
-                                                     self.annotation_fh)
+        filename_info = dict(start_time=None, end_time=None, polarization="vv")
+        self.annotation_fh = SAFEXMLAnnotation(BytesIO(annotation_xml), filename_info, mock.MagicMock())
+        self.calibration_fh = SAFEXMLCalibration(BytesIO(calibration_xml),
+                                                 filename_info,
+                                                 mock.MagicMock(),
+                                                 self.annotation_fh)
 
         self.expected_gamma = np.array([[1840.695, 1779.672, 1718.649, 1452.926, 1187.203, 1186.226,
                                          1185.249, 1184.276, 1183.303, 1181.365]]) * np.ones((10, 1))
-
-    def tearDown(self):
-        """Tear down the test case."""
-        with suppress(PermissionError):
-            os.remove(self.annotation_filename)
-        with suppress(PermissionError):
-            os.remove(self.calibration_filename)
 
     def test_dn_calibration_array(self):
         """Test reading the dn calibration array."""
@@ -649,19 +611,8 @@ class TestSAFEXMLAnnotation(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.sar_c_safe import SAFEXMLAnnotation
-
-        with tempfile.NamedTemporaryFile(delete=False) as ntf:
-            self.annotation_filename = ntf.name
-            ntf.write(annotation_xml)
-            ntf.close()
-            filename_info = dict(start_time=None, end_time=None, polarization="vv")
-            self.annotation_fh = SAFEXMLAnnotation(self.annotation_filename, filename_info, mock.MagicMock())
-
-    def tearDown(self):
-        """Tear down the test case."""
-        with suppress(PermissionError):
-            os.remove(self.annotation_filename)
+        filename_info = dict(start_time=None, end_time=None, polarization="vv")
+        self.annotation_fh = SAFEXMLAnnotation(BytesIO(annotation_xml), filename_info, mock.MagicMock())
 
     def test_incidence_angle(self):
         """Test reading the incidence angle."""
