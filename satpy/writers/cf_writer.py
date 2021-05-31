@@ -437,7 +437,7 @@ def _set_default_chunks(encoding, dataset):
                 np.stack([variable.data.chunksize,
                           variable.shape]).min(axis=0)
             )  # Chunksize may not exceed shape
-            encoding.setdefault(var_name, {})
+            encoding.setdefault(var_name, variable.encoding)
             encoding[var_name].setdefault('chunksizes', chunks)
 
 
@@ -451,7 +451,7 @@ def _set_default_fill_value(encoding, dataset):
     for data_array in dataset.values():
         coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
     for coord_var in coord_vars:
-        encoding.setdefault(coord_var, {})
+        encoding.setdefault(coord_var, dataset[coord_var].encoding)
         encoding[coord_var].update({'_FillValue': None})
 
 
@@ -505,8 +505,18 @@ def update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix='CHANNEL_'):
     _set_default_chunks(encoding, dataset)
     _set_default_fill_value(encoding, dataset)
     _set_default_time_encoding(encoding, dataset)
+    _set_default_compression(encoding, dataset)
 
     return encoding, other_to_netcdf_kwargs
+
+
+def _set_default_compression(encoding, dataset):
+    """Activate compression by default."""
+    for var_name, variable in dataset.variables.items():
+        encoding.setdefault(var_name, variable.encoding)
+        if "compression" not in encoding[var_name]:
+            # h5netcdf supports h5py-style encoding, so "compression" would already imply compression.
+            encoding[var_name].setdefault('zlib', True)
 
 
 def _handle_dataarray_name(original_name, numeric_name_prefix):
@@ -523,7 +533,7 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None,
+    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None,
               include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Convert the dataarray to something cf-compatible.
 
@@ -572,8 +582,6 @@ class CFWriter(Writer):
             if key == 'ancillary_variables' and val == []:
                 new_data.attrs.pop(key)
         new_data.attrs.pop('_last_resampler', None)
-        if compression is not None:
-            new_data.encoding.update(compression)
 
         if 'time' in new_data.coords:
             new_data['time'].encoding['units'] = epoch
@@ -623,7 +631,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False, compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
+                          pretty=False, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -647,7 +655,7 @@ class CFWriter(Writer):
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                     exclude_attrs=exclude_attrs, compression=compression,
+                                     exclude_attrs=exclude_attrs,
                                      include_orig_name=include_orig_name,
                                      numeric_name_prefix=numeric_name_prefix)
                 datas[new_var.name] = new_var
@@ -661,7 +669,7 @@ class CFWriter(Writer):
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
+                      include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -691,10 +699,6 @@ class CFWriter(Writer):
                 Always include latitude and longitude coordinates, even for datasets with area definition
             pretty (bool):
                 Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
-            compression (dict):
-                Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
-                This is in turn passed the xarray's `to_netcdf` method:
-                http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
             include_orig_name (bool).
                 Include the original dataset name as an varaibel attribute in the final netcdf
             numeric_name_prefix (str):
@@ -702,9 +706,6 @@ class CFWriter(Writer):
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
-
-        if compression is None:
-            compression = {'zlib': True}
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
@@ -754,7 +755,7 @@ class CFWriter(Writer):
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression,
+                include_lonlats=include_lonlats, pretty=pretty,
                 include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
             dataset = xr.Dataset(datas)
             if 'time' in dataset:

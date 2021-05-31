@@ -89,15 +89,52 @@ class TestCFWriter(unittest.TestCase):
         end_time = datetime(2018, 5, 30, 10, 15)
         with mock.patch('satpy.writers.cf_writer.xr.Dataset') as xrdataset,\
                 mock.patch('satpy.writers.cf_writer.make_time_bounds'):
+            comp = {'zlib': True, 'complevel': 9}
             scn['test-array'] = xr.DataArray([1, 2, 3],
                                              attrs=dict(start_time=start_time,
                                                         end_time=end_time,
                                                         prerequisites=[make_dsq(name='hej')]))
+            scn["test-array"].encoding = comp
 
-            comp = {'zlib': True, 'complevel': 9}
-            scn.save_datasets(filename='bla', writer='cf', compression=comp)
+            scn.save_datasets(filename='bla', writer='cf')
             ars, kws = xrdataset.call_args_list[1]
             self.assertDictEqual(ars[0]['test-array'].encoding, comp)
+
+    def test_save_compresses_by_default(self):
+        """Test saving an array activates compression by default."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        with mock.patch('satpy.writers.cf_writer.xr.Dataset.to_netcdf') as to_netcdf:
+            scn['test-array'] = xr.DataArray([1, 2, 3])
+            scn.save_datasets(filename='bla', writer='cf')
+            ars, kws = to_netcdf.call_args_list[1]
+            self.assertDictEqual(kws["encoding"]['test-array'], {"zlib": True})
+
+    def test_save_does_not_override_compression(self):
+        """Test saving an array does not override provided compression options."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        with mock.patch('satpy.writers.cf_writer.xr.Dataset.to_netcdf') as to_netcdf:
+            scn['test-array'] = xr.DataArray([1, 2, 3])
+            scn["test-array"].encoding = {"zlib": False}
+            scn.save_datasets(filename='bla', writer='cf')
+            ars, kws = to_netcdf.call_args_list[1]
+            self.assertDictEqual(kws["encoding"]['test-array'], {"zlib": False})
+
+    def test_save_does_not_override_h5py_style_compression(self):
+        """Test saving an array does not override provided compression options."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        with mock.patch('satpy.writers.cf_writer.xr.Dataset.to_netcdf') as to_netcdf:
+            import dask.array as da
+            scn['test-array'] = xr.DataArray(da.from_array([1, 2, 3]))
+            scn["test-array"].encoding = {"compression": "gzip"}
+            scn.save_datasets(filename='bla', writer='cf')
+            ars, kws = to_netcdf.call_args_list[1]
+            assert "zlib" not in kws["encoding"]['test-array']
 
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
