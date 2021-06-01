@@ -249,6 +249,8 @@ class TestNUCAPSReader(unittest.TestCase):
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             self.assertEqual(v.ndim, 2)
+            if np.issubdtype(v.dtype, np.floating):
+                assert '_FillValue' not in v.attrs
 
     def test_load_individual_pressure_levels_true(self):
         """Test loading Temperature with individual pressure datasets."""
