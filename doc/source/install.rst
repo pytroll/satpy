@@ -23,20 +23,41 @@ to always use conda-forge by running:
 
     $ conda config --add channels conda-forge
 
-We recommend creating a separate environment for your work with Satpy. If
-you haven't created and activated one already, you can by running:
+In a new conda environment
+--------------------------
+
+We recommend creating a separate environment for your work with Satpy. To
+create a new environment and install Satpy all in one command you can
+run:
+
 
 .. code-block:: bash
 
-    $ conda create -c conda-forge -n my_satpy_env python
+    $ conda create -c conda-forge -n my_satpy_env python satpy
+
+You must then activate the environment so any future python or
+conda commands will use this environment.
+
+.. code-block::
+
     $ conda activate my_satpy_env
 
-The above will create a new environment with the latest version of Python
-installed along with Satpy and all of its dependencies. The second command
-will activate the environment so all future conda or python commands will
-use this new environment.
+This method of creating an environment with Satpy (and optionally other
+packages) installed can generally be created faster than creating an
+environment and then later installing Satpy and other packages (see the
+section below).
 
-Next to install Satpy into an existing activated environment run:
+In an existing environment
+--------------------------
+
+.. note::
+
+    It is recommended that when first exploring Satpy, you create a new
+    environment specifically for this rather than modifying one used for
+    other work.
+
+If you already have a conda environment, it is activated, and would like to
+install Satpy into it, run the following:
 
 .. code-block:: bash
 
