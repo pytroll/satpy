@@ -26,6 +26,11 @@ in 2022 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 For simulated test data to be used with this reader, see `test data release`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
+.. note:: This reader currently supports
+Full Disk High Spectral Resolution Imagery (FDHSI) files. Support for
+High Spatial Resolution Fast Imagery (HRFI) files will be implemented when
+corresponding test datasets will be available.
+
 
 Geolocation is based on information from the data files.  It uses:
 
