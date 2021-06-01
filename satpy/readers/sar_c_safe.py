@@ -80,7 +80,7 @@ def _dictify(r):
 
 def _get_calibration_name(calibration):
     """Get the proper calibration name."""
-    calibration_name = calibration.name or 'gamma'
+    calibration_name = getattr(calibration, "name", calibration) or 'gamma'
     if calibration_name == 'sigma_nought':
         calibration_name = 'sigmaNought'
     elif calibration_name == 'beta_nought':
@@ -108,34 +108,83 @@ class SAFEXML(BaseFileHandler):
         self._image_shape = (self.hdr['product']['imageAnnotation']['imageInformation']['numberOfLines'],
                              self.hdr['product']['imageAnnotation']['imageInformation']['numberOfSamples'])
 
-        self.azimuth_noise_reader = AzimuthNoiseReader(self.filename, self._image_shape)
-
     def get_metadata(self):
         """Convert the xml metadata to dict."""
         return dictify(self.root.getroot())
 
-    def get_dataset(self, key, info):
+    @property
+    def start_time(self):
+        """Get the start time."""
+        return self._start_time
+
+    @property
+    def end_time(self):
+        """Get the end time."""
+        return self._end_time
+
+
+class SAFEXMLAnnotation(SAFEXML):
+    """XML file reader for the SAFE format, Annotation file."""
+
+    def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
         if self._polarization != key["polarization"]:
             return
 
-        xml_items = info['xml_item']
-        xml_tags = info['xml_tag']
+        if key["name"] == "incidence_angle":
+            return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
 
-        if not isinstance(xml_items, list):
-            xml_items = [xml_items]
-            xml_tags = [xml_tags]
+    @lru_cache(maxsize=10)
+    def get_incidence_angle(self, chunks):
+        """Get the incidence angle array."""
+        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
+        return incidence_angle.expand(self._image_shape, chunks=chunks)
 
-        for xml_item, xml_tag in zip(xml_items, xml_tags):
-            data_items = self.root.findall(".//" + xml_item)
-            if not data_items:
-                continue
-            data, low_res_coords = self.read_xml_array(data_items, xml_tag)
 
-        if key['name'].endswith('squared'):
-            data **= 2
+class SAFEXMLCalibration(SAFEXML):
+    """XML file reader for the SAFE format, Calibration file."""
 
-        data = self.interpolate_xml_array(data, low_res_coords, data.shape)
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        if key["name"] == "calibration_constant":
+            return self.get_calibration_constant()
+        return self.get_calibration(key["name"], chunks=chunks or CHUNK_SIZE)
+
+    def get_calibration_constant(self):
+        """Load the calibration constant."""
+        return float(self.root.find('.//absoluteCalibrationConstant').text)
+
+    @lru_cache(maxsize=10)
+    def get_calibration(self, calibration, chunks=None):
+        """Get the calibration array."""
+        calibration_name = _get_calibration_name(calibration)
+        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
+        return calibration_vector
+
+    def _get_calibration_vector(self, calibration_name, chunks):
+        """Get the calibration vector."""
+        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
+        return calibration_vector.expand(self._image_shape, chunks=chunks)
+
+
+class SAFEXMLNoise(SAFEXML):
+    """XML file reader for the SAFE format, Noise file."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the xml filehandler."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+
+        self.azimuth_noise_reader = AzimuthNoiseReader(self.root, self._image_shape)
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        if key["name"] == "noise":
+            return self.get_noise_correction(chunks=chunks or CHUNK_SIZE)
 
     @lru_cache(maxsize=10)
     def get_noise_correction(self, chunks=None):
@@ -157,38 +206,6 @@ class SAFEXML(BaseFileHandler):
         """Read the range-noise array."""
         range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
         return range_noise.expand(self._image_shape, chunks)
-
-    @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, chunks=None):
-        """Get the calibration array."""
-        calibration_name = _get_calibration_name(calibration)
-        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
-        return calibration_vector
-
-    def _get_calibration_vector(self, calibration_name, chunks):
-        """Get the calibration vector."""
-        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
-        return calibration_vector.expand(self._image_shape, chunks=chunks)
-
-    def get_calibration_constant(self):
-        """Load the calibration constant."""
-        return float(self.root.find('.//absoluteCalibrationConstant').text)
-
-    @lru_cache(maxsize=10)
-    def get_incidence_angle(self, chunks):
-        """Get the incidence angle array."""
-        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
-        return incidence_angle.expand(self._image_shape, chunks=chunks)
-
-    @property
-    def start_time(self):
-        """Get the start time."""
-        return self._start_time
-
-    @property
-    def end_time(self):
-        """Get the end time."""
-        return self._end_time
 
 
 class AzimuthNoiseReader:
@@ -214,9 +231,9 @@ class AzimuthNoiseReader:
     to be gap-filled with NaNs.
     """
 
-    def __init__(self, filename, shape):
+    def __init__(self, root, shape):
         """Set up the azimuth noise reader."""
-        self.root = ET.parse(filename)
+        self.root = root
         self.elements = self.root.findall(".//noiseAzimuthVector")
         self._image_shape = shape
         self.blocks = []
