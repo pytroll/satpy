@@ -30,6 +30,8 @@ Satpy is now Python 3 only and it is no longer needed to support Python 2.
 Check ``setup.py`` for the current Python versions any new code needs
 to support.
 
+.. _devinstall:
+
 Development installation
 ========================
 
