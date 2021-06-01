@@ -34,9 +34,9 @@ format:
 * You can select the netCDF backend using the ``engine`` keyword argument. If `None` if follows
   :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
 * For datasets with area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
-* By default the dataset name is prepended to non-dimensional coordinates such as scanline timestamps. This ensures
-  maximum consistency, i.e. the netCDF variable names are independent of the number/set of datasets to be written.
-  If a non-dimensional coordinate is unique among all datasets and ``pretty=True``, its name will not be modified.
+* By default non-dimensional coordinates (such as scanline timestamps) are prefixed with the corresponding
+  dataset name. This is because they are likely to be different for each dataset. If a non-dimensional
+  coordinate is identical for all datasets, the prefix can be removed by setting ``pretty=True``.
 * Some dataset names start with a digit, like AVHRR channels 1, 2, 3a, 3b, 4 and 5. This doesn't comply with CF
   https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch02s03.html. These channels are prefixed
   with `CHANNEL_` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
@@ -55,6 +55,36 @@ datasets with common grids in separate netCDF groups as follows:
                           groups={'visir': ['VIS006', 'IR_108'], 'hrv': ['HRV']})
 
 Note that the resulting file will not be fully CF compliant.
+
+
+Dataset Encoding
+~~~~~~~~~~~~~~~~
+
+Dataset encoding can be specified in two ways:
+
+1) Via the ``encoding`` keyword argument of ``save_datasets``:
+
+    >>> my_encoding = {
+    ...    'my_dataset_1': {
+    ...        'zlib': True,
+    ...        'complevel': 9,
+    ...        'scale_factor': 0.01,
+    ...        'add_offset': 100,
+    ...        'dtype': np.int16
+    ...     },
+    ...    'my_dataset_2': {
+    ...        'zlib': False
+    ...     }
+    ... }
+    >>> scn.save_datasets(writer='cf', filename='encoding_test.nc', encoding=my_encoding)
+
+
+2) Via the ``encoding`` attribute of the datasets in a scene. For example
+
+    >>> scn['my_dataset'].encoding = {'zlib': False}
+    >>> scn.save_datasets(writer='cf', filename='encoding_test.nc')
+
+See the `xarray encoding documentation`_ for all encoding options.
 
 
 Attribute Encoding
@@ -100,6 +130,8 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 
 
 .. _CF-compliant: http://cfconventions.org/
+.. _xarray encoding documentation:
+    http://xarray.pydata.org/en/stable/user-guide/io.html?highlight=encoding#writing-encoded-data
 """
 
 import copy
