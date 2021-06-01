@@ -12,6 +12,7 @@ The following people have made contributions to this project:
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Ray Bell (raybellwaves)](https://github.com/raybellwaves)
 - [Jorge Bravo (jhbravo)](https://github.com/jhbravo)
+- [Sebastian Brodehl (sbrodehl)](https://github.com/sbrodehl)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
 - [Pierre de Buyl (pdebuyl)](https://github.com/pdebuyl)

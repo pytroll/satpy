@@ -119,13 +119,13 @@ Examples coming soon...
 Store area definitions
 ----------------------
 
-Area definitions can be added to a custom YAML file (see
-`pyresample's documentation <http://pyresample.readthedocs.io/en/stable/geo_def.html#pyresample-utils>`_
-for more information)
-and loaded using pyresample's utility methods::
+Area definitions can be saved to a custom YAML file (see
+`pyresample's writing to disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#writing-to-disk>`_)
+and loaded using pyresample's utility methods
+(`pyresample's loading from disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#loading-from-disk>`_)::
 
-    >>> from pyresample.utils import parse_area_file
-    >>> my_area = parse_area_file('my_areas.yaml', 'my_area')[0]
+    >>> from pyresample import load_area
+    >>> my_area = load_area('my_areas.yaml', 'my_area')
 
 Examples coming soon...
 

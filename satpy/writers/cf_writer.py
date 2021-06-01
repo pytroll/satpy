@@ -31,11 +31,12 @@ format:
     >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc',
                           exclude_attrs=['raw_metadata'])
 
-* You can select the netCDF backend using the ``engine`` keyword argument. Default is ``h5netcdf``.
+* You can select the netCDF backend using the ``engine`` keyword argument. If `None` if follows
+  :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
 * For datasets with area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
 * By default the dataset name is prepended to non-dimensional coordinates such as scanline timestamps. This ensures
   maximum consistency, i.e. the netCDF variable names are independent of the number/set of datasets to be written.
-  If a non-dimensional coordinate is identical for
+  If a non-dimensional coordinate is unique among all datasets and ``pretty=True``, its name will not be modified.
 * Some dataset names start with a digit, like AVHRR channels 1, 2, 3a, 3b, 4 and 5. This doesn't comply with CF
   https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch02s03.html. These channels are prefixed
   with `CHANNEL_` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
