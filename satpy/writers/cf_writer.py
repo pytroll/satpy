@@ -728,6 +728,7 @@ class CFWriter(Writer):
                 Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
                 This is in turn passed the xarray's `to_netcdf` method:
                 http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
+                (This parameter is now being deprecated, please use the DataArrays's `encoding` from now on.)
             include_orig_name (bool).
                 Include the original dataset name as an varaibel attribute in the final netcdf
             numeric_name_prefix (str):
@@ -735,9 +736,13 @@ class CFWriter(Writer):
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
-
+        warnings.warn("The default behaviour of the CF writer will soon change to not compress data by default.",
+                      FutureWarning)
         if compression is None:
             compression = {'zlib': True}
+        else:
+            warnings.warn("The `compression` keyword will soon be  deprecated. Please use then `encoding` of the "
+                          "DataArrays to tune compression from now on.", FutureWarning)
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
