@@ -1223,10 +1223,11 @@ class EncodingUpdateTest(unittest.TestCase):
                                '2': {'dtype': 'float32'}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs, numeric_name_prefix='CHANNEL_')
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'CHANNEL_1': {'dtype': 'float32'},
-                                   'CHANNEL_2': {'dtype': 'float32'}})
+        self.assertDictEqual(enc, {'y': {'_FillValue': None, "zlib": True},
+                                   'x': {'_FillValue': None, "zlib": True},
+                                   'lon': {'zlib': True},
+                                   'CHANNEL_1': {'dtype': 'float32', "zlib": True},
+                                   'CHANNEL_2': {'dtype': 'float32', "zlib": True}})
         self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
 
     def test_without_time(self):
@@ -1238,22 +1239,22 @@ class EncodingUpdateTest(unittest.TestCase):
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1)}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'lon': {'chunksizes': (2, 2)},
-                                   'foo': {'chunksizes': (2, 2)},
-                                   'bar': {'chunksizes': (1, 1)}})
+        self.assertDictEqual(enc, {'y': {'_FillValue': None, "zlib": True},
+                                   'x': {'_FillValue': None, "zlib": True},
+                                   'lon': {'chunksizes': (2, 2), "zlib": True},
+                                   'foo': {'chunksizes': (2, 2), "zlib": True},
+                                   'bar': {'chunksizes': (1, 1), "zlib": True}})
         self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
 
         # Chunksize may not exceed shape
         ds = self.ds.chunk(8)
         kwargs = {'encoding': {}, 'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'lon': {'chunksizes': (2, 2)},
-                                   'foo': {'chunksizes': (2, 2)},
-                                   'bar': {'chunksizes': (2, 2)}})
+        self.assertDictEqual(enc, {'y': {'_FillValue': None, "zlib": True},
+                                   'x': {'_FillValue': None, "zlib": True},
+                                   'lon': {'chunksizes': (2, 2), "zlib": True},
+                                   'foo': {'chunksizes': (2, 2), "zlib": True},
+                                   'bar': {'chunksizes': (2, 2), "zlib": True}})
 
     def test_with_time(self):
         """Test data with a time dimension."""
@@ -1264,17 +1265,18 @@ class EncodingUpdateTest(unittest.TestCase):
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1, 1)}},
                   'other': 'kwargs'}
         enc, other_kwargs = update_encoding(ds, kwargs)
-        self.assertDictEqual(enc, {'y': {'_FillValue': None},
-                                   'x': {'_FillValue': None},
-                                   'lon': {'chunksizes': (2, 2)},
-                                   'foo': {'chunksizes': (1, 2, 2)},
-                                   'bar': {'chunksizes': (1, 1, 1)},
+        self.assertDictEqual(enc, {'y': {'_FillValue': None, "zlib": True},
+                                   'x': {'_FillValue': None, "zlib": True},
+                                   'lon': {'chunksizes': (2, 2), "zlib": True},
+                                   'foo': {'chunksizes': (1, 2, 2), "zlib": True},
+                                   'bar': {'chunksizes': (1, 1, 1), "zlib": True},
                                    'time': {'_FillValue': None,
                                             'calendar': 'proleptic_gregorian',
-                                            'units': 'days since 2009-07-01 12:15:00'},
+                                            'units': 'days since 2009-07-01 12:15:00',
+                                            "zlib": True},
                                    'time_bnds': {'_FillValue': None,
                                                  'calendar': 'proleptic_gregorian',
                                                  'units': 'days since 2009-07-01 12:15:00'}})
 
         # User-defined encoding may not be altered
-        self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})
+        self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1), "zlib": True}})
