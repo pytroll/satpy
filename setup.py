@@ -58,7 +58,7 @@ extras_require = {
     'abi_l1b': ['h5netcdf'],
     'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
     'seviri_l1b_native': ['pyorbital >= 1.3.1'],
-    'seviri_l1b_nc': ['pyorbital >= 1.3.1'],
+    'seviri_l1b_nc': ['pyorbital >= 1.3.1', 'netCDF4 >= 1.1.8'],
     'seviri_l2_bufr': ['eccodes-python'],
     'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
