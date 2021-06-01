@@ -145,7 +145,7 @@ the base Satpy installation.
       - Nominal
     * - MTG FCI Level 1C data in NetCDF format
       - `fci_l1c_nc`
-      - In development
+      - In development (beta for FDHSI files, HRFI not supported yet)
     * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
       - `caliop_l2_cloud`
       - In development
