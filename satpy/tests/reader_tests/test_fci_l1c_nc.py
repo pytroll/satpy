@@ -177,7 +177,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         return data
 
     def _get_test_content_aux_data(self):
-        from satpy.readers.fci_l1c_fdhsi import AUX_DATA
+        from satpy.readers.fci_l1c_nc import AUX_DATA
         xrda = xr.DataArray
         data = {}
         indices_dim = 6000
