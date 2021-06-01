@@ -67,7 +67,9 @@ install Satpy into it, run the following:
 
     Satpy only automatically installs the dependencies needed to process the
     most common use cases. Additional dependencies may need to be installed
-    with conda or pip if import errors are encountered.
+    with conda or pip if import errors are encountered. To check your
+    installation use the ``check_satpy`` function discussed
+    :ref:`here <troubleshooting>`.
 
 Pip-based Installation
 ======================
