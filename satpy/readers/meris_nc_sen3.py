@@ -34,7 +34,6 @@ import numpy as np
 from satpy.readers.olci_nc import (
     NCOLCIBase,
     NCOLCI2,
-    NCOLCILowResData,
     NCOLCIAngles,
     NCOLCIMeteo,
     BitFlags,
