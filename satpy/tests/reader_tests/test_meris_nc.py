@@ -30,14 +30,6 @@ class TestMERISReader(unittest.TestCase):
         from satpy.tests.utils import make_dataid
         import xarray as xr
 
-        cal_data = xr.Dataset(
-            {
-                'solar_flux': (('bands'), [0, 1, 2]),
-                'detector_index': (('bands'), [0, 1, 2]),
-            },
-            {'bands': [0, 1, 2], },
-        )
-
         ds_id = make_dataid(name='M01', calibration='reflectance')
         ds_id2 = make_dataid(name='wsqf', calibration='reflectance')
         filename_info = {'mission_id': 'ENV', 'dataset_name': 'M01', 'start_time': 0, 'end_time': 0}
