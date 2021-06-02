@@ -741,7 +741,7 @@ class CFWriter(Writer):
         if compression is None:
             compression = {'zlib': True}
         else:
-            warnings.warn("The `compression` keyword will soon be  deprecated. Please use then `encoding` of the "
+            warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
                           "DataArrays to tune compression from now on.", FutureWarning)
 
         # Write global attributes to file root (creates the file)
