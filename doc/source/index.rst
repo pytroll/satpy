@@ -143,9 +143,9 @@ the base Satpy installation.
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
       - Nominal
-    * - MTG FCI Level 1C data for Full Disk High Spectral Imagery (FDHSI) in netcdf format
-      - `fci_l1c_fdhsi`
-      - In development
+    * - MTG FCI Level 1C data in NetCDF format
+      - `fci_l1c_nc`
+      - In development (beta for FDHSI files, HRFI not supported yet)
     * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
       - `caliop_l2_cloud`
       - In development
