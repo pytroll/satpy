@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to MTG-FCI L1c NetCDF files.
 
-This module defines the :class:`FCIL1CNCFileHandler` file handler, to
+This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
 Imager (FCI) Level-1c data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
@@ -138,11 +138,11 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1CNCFileHandler(NetCDF4FileHandler):
+class FCIL1cNCFileHandler(NetCDF4FileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
-    Combined Imager (FCI) Level-1C NetCDF reader.
+    Combined Imager (FCI) Level-1c NetCDF reader.
     It is designed to be used through the :class:`~satpy.Scene`
     class using the :mod:`~satpy.Scene.load` method with the reader
     ``"fci_l1c_nc"``.
@@ -165,10 +165,10 @@ class FCIL1CNCFileHandler(NetCDF4FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
-        super(FCIL1CNCFileHandler, self).__init__(filename, filename_info,
-                                                  filetype_info,
-                                                  cache_var_size=10000,
-                                                  cache_handle=True)
+        super().__init__(filename, filename_info,
+                         filetype_info,
+                         cache_var_size=10000,
+                         cache_handle=True)
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))

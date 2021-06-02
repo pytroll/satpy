@@ -255,8 +255,8 @@ def _get_reader_with_filehandlers(filenames, reader_configs):
     return reader
 
 
-class TestFCIL1CNCReader:
-    """Initialize the unittest TestCase for the FCI L1C NetCDF Reader."""
+class TestFCIL1cNCReader:
+    """Initialize the unittest TestCase for the FCI L1c NetCDF Reader."""
 
     yaml_file = "fci_l1c_nc.yaml"
 
@@ -266,9 +266,9 @@ class TestFCIL1CNCReader:
     def fake_handler(self):
         """Wrap NetCDF4 FileHandler with our own fake handler."""
         # implementation strongly inspired by test_viirs_l1b.py
-        from satpy.readers.fci_l1c_nc import FCIL1CNCFileHandler
+        from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
         p = mock.patch.object(
-                FCIL1CNCFileHandler,
+                FCIL1cNCFileHandler,
                 "__bases__",
                 (self._alt_handler,))
         with p:
@@ -276,8 +276,8 @@ class TestFCIL1CNCReader:
             yield p
 
 
-class TestFCIL1CNCReaderGoodData(TestFCIL1CNCReader):
-    """Test FCI L1C NetCDF reader."""
+class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
+    """Test FCI L1c NetCDF reader."""
 
     _alt_handler = FakeNetCDF4FileHandler2
 
@@ -551,8 +551,8 @@ class TestFCIL1CNCReaderGoodData(TestFCIL1CNCReader):
         assert area_def.crs.ellipsoid.is_semi_minor_computed
 
 
-class TestFCIL1CNCReaderBadData(TestFCIL1CNCReader):
-    """Test the FCI L1C NetCDF Reader for bad data input."""
+class TestFCIL1cNCReaderBadData(TestFCIL1cNCReader):
+    """Test the FCI L1c NetCDF Reader for bad data input."""
 
     _alt_handler = FakeNetCDF4FileHandler3
 
