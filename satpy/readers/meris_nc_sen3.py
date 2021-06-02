@@ -35,13 +35,12 @@ from satpy.readers.olci_nc import (
     NCOLCIBase,
     NCOLCI2,
     NCOLCILowResData,
+    NCOLCIAngles,
     NCOLCIMeteo,
     BitFlags,
 )
 
 logger = logging.getLogger(__name__)
-
-PLATFORM_NAMES = {'ENV': 'Environmental Satellite'}
 
 
 class NCMERISCal(NCOLCIBase):
@@ -90,7 +89,7 @@ class NCMERIS2(NCOLCI2):
         return reduce(np.logical_or, [bflags[item] for item in items])
 
 
-class NCMERISAngles(NCOLCILowResData):
+class NCMERISAngles(NCOLCIAngles):
     """File handler for the MERIS angles."""
 
     def __init__(self, filename, filename_info, filetype_info):
