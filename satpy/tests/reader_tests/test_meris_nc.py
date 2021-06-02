@@ -166,11 +166,11 @@ class TestBitFlags(unittest.TestCase):
         from functools import reduce
         from satpy.readers.olci_nc import BitFlags
 
-        flag_list=['SEA_ICE', 'MEGLINT', 'HIGHGLINT', 'CASE2_S', 'CASE2_ANOM',
-                   'HAZE_OVER_WATER', 'WHITECAPS', 'AC_FAIL', 'BPAC_ON', 'WHITE_SCATT',
-                   'LOWRW', 'HIGHRW', 'OUT_OF_RANGE_AAC', 'OUT_OF_SCOPE_AAC',
-                   'OUT_OF_RANGE_OC_NN', 'OUT_OF_SCOPE_OC_NN',
-                   'OUT_OF_RANGE_CHL_OC4ME_INPUT', 'OUT_OF_RANGE_CHL_OC4ME']
+        flag_list = ['SEA_ICE', 'MEGLINT', 'HIGHGLINT', 'CASE2_S', 'CASE2_ANOM',
+                     'HAZE_OVER_WATER', 'WHITECAPS', 'AC_FAIL', 'BPAC_ON', 'WHITE_SCATT',
+                     'LOWRW', 'HIGHRW', 'OUT_OF_RANGE_AAC', 'OUT_OF_SCOPE_AAC',
+                     'OUT_OF_RANGE_OC_NN', 'OUT_OF_SCOPE_OC_NN',
+                     'OUT_OF_RANGE_CHL_OC4ME_INPUT', 'OUT_OF_RANGE_CHL_OC4ME']
 
         bits = np.array([1 << x for x in range(len(flag_list))])
 
