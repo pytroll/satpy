@@ -28,7 +28,6 @@ class TestMERISReader(unittest.TestCase):
         """Test initialization of file handlers."""
         from satpy.readers.meris_nc_sen3 import (NCMERISCal, NCMERISGeo, NCMERIS2)
         from satpy.tests.utils import make_dataid
-        import xarray as xr
 
         ds_id = make_dataid(name='M01', calibration='reflectance')
         ds_id2 = make_dataid(name='wsqf', calibration='reflectance')
