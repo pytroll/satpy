@@ -93,6 +93,7 @@ class TestSLSTRL1B(unittest.TestCase):
                 'S9_BT_ao': self.rad,
                 'foo_radiance_an': self.rad,
                 'S5_solar_irradiances': self.rad,
+                'latitude_an': self.rad,
                 'detector_an': det,
             },
             attrs={
@@ -149,8 +150,9 @@ class TestSLSTRReader(TestSLSTRL1B):
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo',
                          'start_time': 0, 'end_time': 0,
                          'stripe': 'a', 'view': 'n'}
-        test = NCSLSTRGeo('somedir/S1_radiance_an.nc', filename_info, 'c')
-        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'foo'}))
+        test = NCSLSTRGeo('somedir/geometry_an.nc', filename_info, 'c')
+        print(filename_info)
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'latitude_{stripe:1s}{view:1s}'}))
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
         xr_.open_dataset.assert_called()
@@ -158,7 +160,8 @@ class TestSLSTRReader(TestSLSTRL1B):
 
         test = NCSLSTRAngles('somedir/S1_radiance_an.nc', filename_info, 'c')
         # TODO: Make this test work
-        # test.get_dataset(ds_id, filename_info)
+        print(filename_info)
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'geometry_{stripe:1s}{view:1s}'}))
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
         xr_.open_dataset.assert_called()
