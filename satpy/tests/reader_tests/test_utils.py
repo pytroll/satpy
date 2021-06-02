@@ -386,3 +386,10 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
         np.testing.assert_allclose(out_refl, self.raw_refl)
         self.assertFalse(out_refl.attrs['sun_earth_distance_correction_applied'])
         assert isinstance(out_refl.data, da.Array)
+
+    def test_modified_julian_day_to_datetime64(self):
+        """Test conversion from modified julian day to datetime64."""
+        self.assertEqual(hf.modified_julian_day_to_datetime64(np.array([0])),
+                         np.datetime64('1858-11-17', 'us'))
+        self.assertEqual(hf.modified_julian_day_to_datetime64(np.array([40587.5])),
+                         np.datetime64('1970-01-01 12:00', 'us'))

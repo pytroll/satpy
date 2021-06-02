@@ -101,7 +101,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
 from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.utils import get_geostationary_mask
+from satpy.readers.utils import get_geostationary_mask, modified_julian_day_to_datetime64
 
 logger = logging.getLogger('hrit_jma')
 
@@ -173,14 +173,6 @@ SENSORS = {
     MTSAT2: 'mtsat2_imager',
     HIMAWARI8: 'ahi'
 }
-
-
-def mjd2datetime64(mjd):
-    """Convert Modified Julian Day (MJD) to datetime64."""
-    epoch = np.datetime64('1858-11-17 00:00')
-    day2usec = 24 * 3600 * 1E6
-    mjd_usec = (mjd * day2usec).astype(np.int64).astype('timedelta64[us]')
-    return epoch + mjd_usec
 
 
 class HRITJMAFileHandler(HRITFileHandler):
@@ -397,7 +389,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         times = np.interp(lines, lines_sparse, times_sparse)
 
         # Convert to np.datetime64
-        times64 = mjd2datetime64(times)
+        times64 = modified_julian_day_to_datetime64(times)
 
         return times64
 
