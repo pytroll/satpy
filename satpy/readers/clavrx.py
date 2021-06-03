@@ -203,15 +203,10 @@ class _CLAVRxHelper:
         dirname = os.path.split(self.filename)[0]
         glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
         LOG.debug("searching for {0}".format(glob_pat))
-        fixed_name = "clavrx_H08_20180723_1300_B16_FLDK_R20.nc"
-        fixed_name = os.path.join(dirname, fixed_name)
         l1b_filenames = list(glob(glob_pat))
-        fixed_filename = list(glob(fixed_name))
         if not l1b_filenames:
-            if not fixed_name:
-                raise IOError("Could not find navigation donor for {0}"
-                              " in same directory as CLAVR-x data".format(l1b_base))
-            l1b_filenames = fixed_filename
+            raise IOError("Could not find navigation donor for {0}"
+                          " in same directory as CLAVR-x data".format(l1b_base))
         LOG.debug('Candidate nav donors: {0}'.format(repr(l1b_filenames)))
         return l1b_filenames[0]
 
@@ -274,10 +269,6 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                                                     filename_info,
                                                     filetype_info)
 
-
-        self.sensor = self.get_sensor(self.file_content.get('/attr/sensor'))
-        self.platform = self.get_platform(self.file_content.get('/attr/platform'))
-
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset."""
         var_name = ds_info.get('file_key', dataset_id['name'])
@@ -297,6 +288,9 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
+        self.sensor = self.get_sensor(self.file_content.get('/attr/sensor'))
+        self.platform = self.get_platform(self.file_content.get('/attr/platform'))
+
         nadir_resolution = self.get_nadir_resolution(self.sensor)
         coordinates = ('longitude', 'latitude')
         handled_variables = set()
