@@ -135,7 +135,6 @@ class _CLAVRxHelper:
         factor = attrs.pop('scale_factor', None)
         offset = attrs.pop('add_offset', None)
         valid_range = attrs.pop('valid_range', None)
-        print(attrs)
 
         if factor is not None and offset is not None:
             def scale_inplace(data):
@@ -276,24 +275,8 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                                                     filetype_info)
 
 
-        self.sensor = self.get_sensor(self['/attr/sensor'])
-        self.platform = self.get_platform(self['/attr/platform'])
-
-    @property
-    def get_sensor(sensor):
-        """Get the sensor."""
-        for k, v in SENSORS.items():
-            if k in sensor:
-                return v
-        raise ValueError("Unknown sensor '{}'".format(sensor))
-
-    @property
-    def get_platform(platform):
-        """Get the platform."""
-        for k, v in PLATFORMS.items():
-            if k in platform:
-                return v
-        return platform
+        self.sensor = self.get_sensor(self.file_content.get('/attr/sensor'))
+        self.platform = self.get_platform(self.file_content.get('/attr/platform'))
 
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset."""
@@ -371,7 +354,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
             return super(CLAVRXHDF4FileHandler, self).get_area_def(key)
 
         l1b_att = str(self.file_content.get('/attr/L1B', None))
-        return self.helper._read_axi_fixed_grid(l1b_att)
+        return self._read_axi_fixed_grid(l1b_att)
 
 
 class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
