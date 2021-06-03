@@ -113,10 +113,10 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
     def setUp(self):
         """Wrap HDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.clavrx import CLAVRXFileHandler
+        from satpy.readers.clavrx import CLAVRXHDF4FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(CLAVRXFileHandler, '__bases__', (FakeHDF4FileHandlerPolar,))
+        self.p = mock.patch.object(CLAVRXHDF4FileHandler, '__bases__', (FakeHDF4FileHandlerPolar,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -305,10 +305,10 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
     def setUp(self):
         """Wrap HDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.clavrx import CLAVRXFileHandler
+        from satpy.readers.clavrx import CLAVRXHDF4FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(CLAVRXFileHandler, '__bases__', (FakeHDF4FileHandlerGeo,))
+        self.p = mock.patch.object(CLAVRXHDF4FileHandler, '__bases__', (FakeHDF4FileHandlerGeo,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 

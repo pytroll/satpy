@@ -19,10 +19,14 @@
 
 import os
 import logging
+
 import numpy as np
 import netCDF4
+import xarray as xr
 from glob import glob
 from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 LOG = logging.getLogger(__name__)
@@ -32,68 +36,53 @@ CF_UNITS = {
     'none': '1',
 }
 
+SENSORS = {
+    'MODIS': 'modis',
+    'VIIRS': 'viirs',
+    'AVHRR': 'avhrr',
+    'AHI': 'ahi',
+    'ABI': 'abi',
+}
+PLATFORMS = {
+    'SNPP': 'npp',
+    'HIM8': 'himawari8',
+    'HIM9': 'himawari9',
+    'H08': 'himawari8',
+    'H09': 'himawari9',
+    'G16': 'GOES-16',
+    'G17': 'GOES-17'
+}
+ROWS_PER_SCAN = {
+    'viirs': 16,
+    'modis': 10,
+}
+NADIR_RESOLUTION = {
+    'viirs': 742,
+    'modis': 1000,
+    'avhrr': 1050,
+    'ahi': 2000,
+    # 'abi': 2004,
+}
 
-class CLAVRXFileHandler(HDF4FileHandler):
-    """A file handler for CLAVRx files."""
 
-    sensors = {
-        'MODIS': 'modis',
-        'VIIRS': 'viirs',
-        'AVHRR': 'avhrr',
-        'AHI': 'ahi',
-        # 'ABI': 'abi',
-    }
-    platforms = {
-        'SNPP': 'npp',
-        'HIM8': 'himawari8',
-        'HIM9': 'himawari9',
-        'H08': 'himawari8',
-        'H09': 'himawari9',
-        # 'G16': 'GOES-16',
-        # 'G17': 'GOES-17'
-    }
-    rows_per_scan = {
-        'viirs': 16,
-        'modis': 10,
-    }
-    nadir_resolution = {
-        'viirs': 742,
-        'modis': 1000,
-        'avhrr': 1050,
-        'ahi': 2000,
-        # 'abi': 2004,
-    }
+class _CLAVRxHelper:
+    """A base class for the CLAVR File Handlers."""
 
-    def get_sensor(self, sensor):
+    @staticmethod
+    def get_sensor(sensor):
         """Get the sensor."""
-        for k, v in self.sensors.items():
+        for k, v in SENSORS.items():
             if k in sensor:
                 return v
         raise ValueError("Unknown sensor '{}'".format(sensor))
 
-    def get_platform(self, platform):
+    @staticmethod
+    def get_platform(platform):
         """Get the platform."""
-        for k, v in self.platforms.items():
+        for k, v in PLATFORMS.items():
             if k in platform:
                 return v
         return platform
-
-    def get_rows_per_scan(self, sensor):
-        """Get number of rows per scan."""
-        for k, v in self.rows_per_scan.items():
-            if sensor.startswith(k):
-                return v
-
-    def get_nadir_resolution(self, sensor):
-        """Get nadir resolution."""
-        for k, v in self.nadir_resolution.items():
-            if sensor.startswith(k):
-                return v
-        res = self.filename_info.get('resolution')
-        if res.endswith('m'):
-            return int(res[:-1])
-        elif res is not None:
-            return int(res)
 
     @property
     def start_time(self):
@@ -105,61 +94,13 @@ class CLAVRXFileHandler(HDF4FileHandler):
         """Get the end time."""
         return self.filename_info.get('end_time', self.start_time)
 
-    def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file."""
-        sensor = self.get_sensor(self['/attr/sensor'])
-        nadir_resolution = self.get_nadir_resolution(sensor)
-        coordinates = ('longitude', 'latitude')
-        handled_variables = set()
-
-        # update previously configured datasets
-        for is_avail, ds_info in (configured_datasets or []):
-            this_res = ds_info.get('resolution')
-            this_coords = ds_info.get('coordinates')
-            # some other file handler knows how to load this
-            if is_avail is not None:
-                yield is_avail, ds_info
-
-            var_name = ds_info.get('file_key', ds_info['name'])
-            matches = self.file_type_matches(ds_info['file_type'])
-            # we can confidently say that we can provide this dataset and can
-            # provide more info
-            if matches and var_name in self and this_res != nadir_resolution:
-                handled_variables.add(var_name)
-                new_info = ds_info.copy()  # don't mess up the above yielded
-                new_info['resolution'] = nadir_resolution
-                if self._is_polar() and this_coords is None:
-                    new_info['coordinates'] = coordinates
-                yield True, new_info
-            elif is_avail is None:
-                # if we didn't know how to handle this dataset and no one else did
-                # then we should keep it going down the chain
-                yield is_avail, ds_info
-
-        # add new datasets
-        for var_name, val in self.file_content.items():
-            if isinstance(val, SDS):
-                ds_info = {
-                    'file_type': self.filetype_info['file_type'],
-                    'resolution': nadir_resolution,
-                    'name': var_name,
-                }
-                if self._is_polar():
-                    ds_info['coordinates'] = ['longitude', 'latitude']
-                yield True, ds_info
-
-    def get_shape(self, dataset_id, ds_info):
-        """Get the shape."""
-        var_name = ds_info.get('file_key', dataset_id['name'])
-        return self[var_name + '/shape']
-
     def get_metadata(self, data_arr, ds_info):
         """Get metadata."""
         i = {}
         i.update(data_arr.attrs)
         i.update(ds_info)
 
-        flag_meanings = i.get('flag_meanings')
+        flag_meanings = i.get('flag_meanings', None)
         if not i.get('SCALED', 1) and not flag_meanings:
             i['flag_meanings'] = '<flag_meanings_unknown>'
             i.setdefault('flag_values', [None])
@@ -169,21 +110,18 @@ class CLAVRXFileHandler(HDF4FileHandler):
             # CF compliance
             i['units'] = CF_UNITS[u]
 
-        i['sensor'] = sensor = self.get_sensor(self['/attr/sensor'])
-        platform = self.get_platform(self['/attr/platform'])
-        i['platform'] = i['platform_name'] = platform
-        i['resolution'] = i.get('resolution') or self.get_nadir_resolution(i['sensor'])
-        rps = self.get_rows_per_scan(sensor)
-        if rps:
-            i['rows_per_scan'] = rps
+        i['sensor'] = self.sensor
+        i['platform'] = i['platform_name'] = self.platform
+        # rps = self.get_rows_per_scan(sensor)
+        # if rps:
+        #     i['rows_per_scan'] = rps
         i['reader'] = 'clavrx'
 
         return i
 
-    def get_dataset(self, dataset_id, ds_info):
+    @staticmethod
+    def get_data(data, dataset_id, ds_info):
         """Get a dataset."""
-        var_name = ds_info.get('file_key', dataset_id['name'])
-        data = self[var_name]
         if dataset_id['resolution']:
             data.attrs['resolution'] = dataset_id['resolution']
         data.attrs = self.get_metadata(data, ds_info)
@@ -246,10 +184,15 @@ class CLAVRXFileHandler(HDF4FileHandler):
         dirname = os.path.split(self.filename)[0]
         glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
         LOG.debug("searching for {0}".format(glob_pat))
+        fixed_name = "clavrx_H08_20180723_1300_B16_FLDK_R20.nc"
+        fixed_name = os.path.join(dirname, fixed_name)
         l1b_filenames = list(glob(glob_pat))
+        fixed_filename = list(glob(fixed_name))
         if not l1b_filenames:
-            raise IOError("Could not find navigation donor for {0}"
-                          " in same directory as CLAVR-x data".format(l1b_base))
+            if not fixed_name:
+                raise IOError("Could not find navigation donor for {0}"
+                              " in same directory as CLAVR-x data".format(l1b_base))
+            l1b_filenames = fixed_filename
         LOG.debug('Candidate nav donors: {0}'.format(repr(l1b_filenames)))
         return l1b_filenames[0]
 
@@ -305,6 +248,88 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
         return area
 
+class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
+    """A file handler for CLAVRx files."""
+    def __init__(self, filename, filename_info, filetype_info):
+        super(CLAVRXHDF4FileHandler, self).__init__(filename,
+                                                    filename_info,
+                                                    filetype_info)
+
+    # self.sensor = self.get_sensor(self['/attr/sensor'])
+    # self.platform = self.get_platform(self['/attr/platform'])
+
+
+    @property
+    def get_rows_per_scan(sensor):
+        """Get number of rows per scan."""
+        for k, v in ROWS_PER_SCAN.items():
+            if sensor.startswith(k):
+                return v
+
+    def get_dataset(self, dataset_id, ds_info):
+        """Get a dataset."""
+        var_name = ds_info.get('file_key', dataset_id['name'])
+        data = self[var_name]
+        return self.get_data(data, dataset_id, ds_info)
+
+    def get_nadir_resolution(self, sensor):
+        """Get nadir resolution."""
+        for k, v in NADIR_RESOLUTION.items():
+            if sensor.startswith(k):
+                return v
+        res = self.filename_info.get('resolution')
+        if res.endswith('m'):
+            return int(res[:-1])
+        elif res is not None:
+            return int(res)
+
+    def available_datasets(self, configured_datasets=None):
+        """Automatically determine datasets provided by this file."""
+        nadir_resolution = self.get_nadir_resolution(self.sensor)
+        coordinates = ('longitude', 'latitude')
+        handled_variables = set()
+
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            this_res = ds_info.get('resolution')
+            this_coords = ds_info.get('coordinates')
+            # some other file handler knows how to load this
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            var_name = ds_info.get('file_key', ds_info['name'])
+            matches = self.file_type_matches(ds_info['file_type'])
+            # we can confidently say that we can provide this dataset and can
+            # provide more info
+            if matches and var_name in self and this_res != nadir_resolution:
+                handled_variables.add(var_name)
+                new_info = ds_info.copy()  # don't mess up the above yielded
+                new_info['resolution'] = nadir_resolution
+                if self._is_polar() and this_coords is None:
+                    new_info['coordinates'] = coordinates
+                yield True, new_info
+            elif is_avail is None:
+                # if we didn't know how to handle this dataset and no one else did
+                # then we should keep it going down the chain
+                yield is_avail, ds_info
+
+        # add new datasets
+        for var_name, val in self.file_content.items():
+            if isinstance(val, SDS):
+                ds_info = {
+                    'file_type': self.filetype_info['file_type'],
+                    'resolution': nadir_resolution,
+                    'name': var_name,
+                }
+                if self._is_polar():
+                    ds_info['coordinates'] = ['longitude', 'latitude']
+                yield True, ds_info
+
+    def get_shape(self, dataset_id, ds_info):
+        """Get the shape."""
+        var_name = ds_info.get('file_key', dataset_id['name'])
+        return self[var_name + '/shape']
+
     def _is_polar(self):
         l1b_att, inst_att = (str(self.file_content.get('/attr/L1B', None)),
                              str(self.file_content.get('/attr/sensor', None)))
@@ -314,7 +339,106 @@ class CLAVRXFileHandler(HDF4FileHandler):
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
         if self._is_polar():  # then it doesn't have a fixed grid
-            return super(CLAVRXFileHandler, self).get_area_def(key)
+            return super(CLAVRXHDF4FileHandler, self).get_area_def(key)
 
         l1b_att = str(self.file_content.get('/attr/L1B', None))
         return self._read_axi_fixed_grid(l1b_att)
+
+
+class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
+    """File Handler for CLAVRX netcdf files."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init method."""
+        super(CLAVRXNetCDFFileHandler, self).__init__(filename,
+                                                      filename_info,
+                                                      filetype_info,
+                                                      )
+
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=False,
+                                  decode_coords=True,
+                                  chunks={'pixel_elements_along_scan_direction': CHUNK_SIZE,
+                                          'scan_lines_along_track_direction': CHUNK_SIZE})
+        # y,x is used in satpy, bands rather than channel using in xrimage
+        self.nc = self.nc.rename_dims({'scan_lines_along_track_direction': "y",
+                                       'pixel_elements_along_scan_direction': "x"})
+
+        self.platform = self.get_platform(
+            self.filename_info.get('platform_shortname', None))
+        self.sensor = self.nc.attrs.get('sensor', None)
+
+    def _get_ds_info_for_data_arr(self, var_name):
+        ds_info = {
+            'file_type': self.filetype_info['file_type'],
+            'name': var_name,
+            'coordinates': ["longitude", "latitude"]
+        }
+        return ds_info
+
+    def _is_2d_yx_data_array(self, data_arr):
+        has_y_dim = data_arr.dims[0] == "y"
+        has_x_dim = data_arr.dims[1] == "x"
+        return has_y_dim and has_x_dim
+
+    def _available_new_datasets(self, handled_vars):
+        """Metadata for available variables other than BT."""
+        possible_vars = list(self.nc.items()) + list(self.nc.coords.items())
+        for var_name, data_arr in possible_vars:
+            if var_name in handled_vars:
+                continue
+            if data_arr.ndim != 2:
+                # we don't currently handle non-2D variables
+                continue
+            if not self._is_2d_yx_data_array(data_arr):
+                # we need 'traditional' y/x dimensions currently
+                continue
+
+            ds_info = self._get_ds_info_for_data_arr(var_name)
+            yield True, ds_info
+
+    def available_datasets(self, configured_datasets=None):
+        """Dynamically discover what variables can be loaded from this file.
+
+        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        for more information.
+
+        """
+        handled_vars = set()
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
+                continue
+            if self.file_type_matches(ds_info['file_type']):
+                handled_vars.add(ds_info['name'])
+            yield self.file_type_matches(ds_info['file_type']), ds_info
+        yield from self._available_new_datasets(handled_vars)
+
+    def _is_polar(self):
+        l1b_att, inst_att = (str(self.nc.attrs.get('L1B', None)),
+                             str(self.nc.attrs.get('sensor', None)))
+
+        return (inst_att != 'AHI') or (l1b_att is None)
+
+    def get_area_def(self, key):
+        """Get the area definition of the data at hand."""
+        if self._is_polar():  # then it doesn't have a fixed grid
+            return super(CLAVRXNetCDFFileHandler, self).get_area_def(key)
+
+        l1b_att = str(self.nc.attrs.get('L1B', None))
+        return self._read_axi_fixed_grid(l1b_att)
+
+    def get_dataset(self, dataset_id, ds_info):
+        """Get a dataset."""
+        var_name = ds_info.get('name', dataset_id['name'])
+        data = self[var_name]
+        return self.get_data(data, dataset_id, ds_info)
+
+    def __getitem__(self, item):
+        """Wrap around `self.nc[item]`."""
+        data = self.nc[item]
+        return data
