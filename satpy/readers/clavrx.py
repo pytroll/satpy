@@ -94,10 +94,16 @@ class _CLAVRxHelper:
         """Get the end time."""
         return self.filename_info.get('end_time', self.start_time)
 
-    def get_metadata(self, data_arr, ds_info):
+    def get_rows_per_scan(sensor):
+        """Get number of rows per scan."""
+        for k, v in ROWS_PER_SCAN.items():
+            if sensor.startswith(k):
+                return v
+
+    def get_metadata(self, attrs, ds_info):
         """Get metadata."""
         i = {}
-        i.update(data_arr.attrs)
+        i.update(attrs)
         i.update(ds_info)
 
         flag_meanings = i.get('flag_meanings', None)
@@ -119,16 +125,17 @@ class _CLAVRxHelper:
 
         return i
 
-    @staticmethod
-    def get_data(data, dataset_id, ds_info):
+    def get_data(self, data, dataset_id, ds_info):
         """Get a dataset."""
-        if dataset_id['resolution']:
+        if dataset_id.get('resolution'):
             data.attrs['resolution'] = dataset_id['resolution']
-        data.attrs = self.get_metadata(data, ds_info)
-        fill = data.attrs.pop('_FillValue', None)
-        factor = data.attrs.pop('scale_factor', None)
-        offset = data.attrs.pop('add_offset', None)
-        valid_range = data.attrs.pop('valid_range', None)
+
+        attrs = data.attrs.copy()
+        fill = attrs.pop('_FillValue', None)
+        factor = attrs.pop('scale_factor', None)
+        offset = attrs.pop('add_offset', None)
+        valid_range = attrs.pop('valid_range', None)
+        print(attrs)
 
         if factor is not None and offset is not None:
             def scale_inplace(data):
@@ -146,7 +153,20 @@ class _CLAVRxHelper:
             data = data.where((data >= valid_min) & (data <= valid_max))
             data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
 
+        data.attrs = self.remove_attributes(attrs)
+        data.attrs = self.get_metadata(attrs, ds_info)
+
         return data
+
+    @staticmethod
+    def remove_attributes(attrs):
+        """Remove attributes that described data before scaling."""
+        old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
+                     'SCALED_MISSING', 'actual_missing']
+
+        for attr_key in old_attrs:
+            attrs.pop(attr_key, None)
+        return attrs
 
     @staticmethod
     def _area_extent(x, y, h):
@@ -255,16 +275,25 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
                                                     filename_info,
                                                     filetype_info)
 
-    # self.sensor = self.get_sensor(self['/attr/sensor'])
-    # self.platform = self.get_platform(self['/attr/platform'])
 
+        self.sensor = self.get_sensor(self['/attr/sensor'])
+        self.platform = self.get_platform(self['/attr/platform'])
 
     @property
-    def get_rows_per_scan(sensor):
-        """Get number of rows per scan."""
-        for k, v in ROWS_PER_SCAN.items():
-            if sensor.startswith(k):
+    def get_sensor(sensor):
+        """Get the sensor."""
+        for k, v in SENSORS.items():
+            if k in sensor:
                 return v
+        raise ValueError("Unknown sensor '{}'".format(sensor))
+
+    @property
+    def get_platform(platform):
+        """Get the platform."""
+        for k, v in PLATFORMS.items():
+            if k in platform:
+                return v
+        return platform
 
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset."""
@@ -342,8 +371,97 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
             return super(CLAVRXHDF4FileHandler, self).get_area_def(key)
 
         l1b_att = str(self.file_content.get('/attr/L1B', None))
-        return self._read_axi_fixed_grid(l1b_att)
+        return self.helper._read_axi_fixed_grid(l1b_att)
 
+
+class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
+    """File Handler for CLAVRX netcdf files."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init method."""
+        super(CLAVRXNetCDFFileHandler, self).__init__(filename,
+                                                      filename_info,
+                                                      filetype_info,
+                                                      )
+
+        self.nc = xr.open_dataset(filename,
+                                  decode_cf=True,
+                                  mask_and_scale=False,
+                                  decode_coords=True,
+                                  chunks={'pixel_elements_along_scan_direction': CHUNK_SIZE,
+                                          'scan_lines_along_track_direction': CHUNK_SIZE})
+        # y,x is used in satpy, bands rather than channel using in xrimage
+        self.nc = self.nc.rename_dims({'scan_lines_along_track_direction': "y",
+                                       'pixel_elements_along_scan_direction': "x"})
+
+        self.platform = self.get_platform(
+            self.filename_info.get('platform_shortname', None)
+        )
+
+        self.sensor = self.nc.attrs.get('sensor', None)
+
+    def _get_ds_info_for_data_arr(self, var_name):
+        ds_info = {
+            'file_type': self.filetype_info['file_type'],
+            'name': var_name,
+            'coordinates': ["longitude", "latitude"]
+        }
+        return ds_info
+
+    def _is_2d_yx_data_array(self, data_arr):
+        has_y_dim = data_arr.dims[0] == "y"
+        has_x_dim = data_arr.dims[1] == "x"
+        return has_y_dim and has_x_dim
+
+    def _available_new_datasets(self, handled_vars):
+        """Metadata for available variables other than BT."""
+        possible_vars = list(self.nc.items()) + list(self.nc.coords.items())
+        for var_name, data_arr in possible_vars:
+            if var_name in handled_vars:
+                continue
+            if data_arr.ndim != 2:
+                # we don't currently handle non-2D variables
+                continue
+            if not self._is_2d_yx_data_array(data_arr):
+                # we need 'traditional' y/x dimensions currently
+                continue
+
+            ds_info = self._get_ds_info_for_data_arr(var_name)
+            yield True, ds_info
+
+    def available_datasets(self, configured_datasets=None):
+        """Dynamically discover what variables can be loaded from this file.
+
+        See :meth:`satpy.readers.file_handlers.BaseHandler.available_datasets`
+        for more information.
+
+        """
+        handled_vars = set()
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
+                continue
+            if self.file_type_matches(ds_info['file_type']):
+                handled_vars.add(ds_info['name'])
+            yield self.file_type_matches(ds_info['file_type']), ds_info
+        yield from self._available_new_datasets(handled_vars)
+
+    def _is_polar(self):
+        l1b_att, inst_att = (str(self.nc.attrs.get('L1B', None)),
+                             str(self.nc.attrs.get('sensor', None)))
+
+        return (inst_att != 'AHI') or (l1b_att is None)
+
+    def get_area_def(self, key):
+        """Get the area definition of the data at hand."""
+        if self._is_polar():  # then it doesn't have a fixed grid
+            return super(CLAVRXNetCDFFileHandler, self).get_area_def(key)
+
+        l1b_att = str(self.nc.attrs.get('L1B', None))
+        return self._read_axi_fixed_grid(l1b_att)
 
 class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
     """File Handler for CLAVRX netcdf files."""
