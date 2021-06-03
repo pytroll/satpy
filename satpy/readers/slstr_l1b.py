@@ -78,7 +78,6 @@ class NCSLSTRGeo(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading %s.', key['name'])
-        print(key['view'])
         file_key = info['file_key'].format(view=key['view'].name[0],
                                            stripe=key['stripe'].name)
         try:
@@ -246,9 +245,7 @@ class NCSLSTRAngles(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
-
-        views = {'n': 'nadir', 'o': 'oblique', 'x': 'meteo'}
-        self.view = views[filename_info['view']]
+        self.view = filename_info['view']
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
 
@@ -278,9 +275,7 @@ class NCSLSTRAngles(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        print("ANGLES")
-        print(info['view'], self.view)
-        if not info['view'].name.startswith(self.view):
+        if not key['view'].name.startswith(self.view[0]):
             return
         logger.debug('Reading %s.', key['name'])
         # Check if file_key is specified in the yaml
