@@ -150,15 +150,15 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
         # mimic the YAML file being configured for more datasets
         fake_dataset_info = [
-            (None, {'name': 'variable1', 'resolution': None, 'file_type': ['level2']}),
-            (True, {'name': 'variable2', 'resolution': 742, 'file_type': ['level2']}),
-            (True, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
-            (None, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
-            (None, {'name': '_fake1', 'file_type': ['level2']}),
+            (None, {'name': 'variable1', 'resolution': None, 'file_type': ['clavrx_hdf4']}),
+            (True, {'name': 'variable2', 'resolution': 742, 'file_type': ['clavrx_hdf4']}),
+            (True, {'name': 'variable2', 'resolution': 1, 'file_type': ['clavrx_hdf4']}),
+            (None, {'name': 'variable2', 'resolution': 1, 'file_type': ['clavrx_hdf4']}),
+            (None, {'name': '_fake1', 'file_type': ['clavrx_hdf4']}),
             (None, {'name': 'variable1', 'file_type': ['level_fake']}),
-            (True, {'name': 'variable3', 'file_type': ['level2']}),
+            (True, {'name': 'variable3', 'file_type': ['clavrx_hdf4']}),
         ]
-        new_ds_infos = list(r.file_handlers['level2'][0].available_datasets(
+        new_ds_infos = list(r.file_handlers['clavrx_hdf4'][0].available_datasets(
             fake_dataset_info))
         self.assertEqual(len(new_ds_infos), 9)
 
