@@ -585,14 +585,26 @@ class TestFindFilesAndReaders(unittest.TestCase):
             load.side_effect = yaml.YAMLError("Import problems")
             self.assertRaises(yaml.YAMLError, find_files_and_readers, reader='viirs_sdr')
 
+    def test_pending_old_reader_name_mapping(self):
+        """Test that requesting pending old reader names raises a warning."""
+        from satpy.readers import get_valid_reader_names, PENDING_OLD_READER_NAMES
+        if not PENDING_OLD_READER_NAMES:
+            return unittest.skip("Skipping pending deprecated reader tests because "
+                                 "no pending deprecated readers.")
+        test_reader = sorted(PENDING_OLD_READER_NAMES.keys())[0]
+        with self.assertWarns(FutureWarning):
+            valid_reader_names = get_valid_reader_names([test_reader])
+        self.assertEqual(valid_reader_names[0], PENDING_OLD_READER_NAMES[test_reader])
+
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
-        from satpy.readers import configs_for_reader, OLD_READER_NAMES
+        from satpy.readers import get_valid_reader_names, OLD_READER_NAMES
         if not OLD_READER_NAMES:
             return unittest.skip("Skipping deprecated reader tests because "
                                  "no deprecated readers.")
         test_reader = sorted(OLD_READER_NAMES.keys())[0]
-        self.assertRaises(ValueError, list, configs_for_reader(test_reader))
+        with self.assertRaises(ValueError):
+            get_valid_reader_names([test_reader])
 
 
 class TestYAMLFiles(unittest.TestCase):

@@ -20,7 +20,7 @@ to generate a Natural Color RGB composite over the European area.
     path_to_data = 'your/path/to/FCI/data/folder/'
 
     # find files and assign the FCI reader
-    files = find_files_and_readers(base_dir=path_to_data, reader='fci_l1c_fdhsi')
+    files = find_files_and_readers(base_dir=path_to_data, reader='fci_l1c_nc')
 
     # create an FCI scene from the selected files
     scn = Scene(filenames=files)
@@ -32,7 +32,12 @@ to generate a Natural Color RGB composite over the European area.
     print(scn.available_composite_names())
 
     # load the datasets/composites of interest
-    scn.load(['natural_color','vis_04'])
+    scn.load(['natural_color','vis_04'], upper_right_corner='NE')
+    # note: the data inside the FCI files is stored upside down. The upper_right_corner='NE' argument
+    # flips it automatically in upright position.
+
+    # you can access the values of a dataset as a Numpy array with
+    vis_04_values = scn['vis_04'].values
 
     # resample the scene to a specified area (e.g. "eurol1" for Europe in 1km resolution)
     scn_resampled = scn.resample("eurol", resampler='nearest', radius_of_influence=5000)
