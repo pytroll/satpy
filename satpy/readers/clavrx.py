@@ -81,11 +81,13 @@ def _get_platform(platform: str) -> str:
             return v
     return platform
 
+
 def _get_rows_per_scan(sensor: str) -> str:
     """Get number of rows per scan."""
     for k, v in ROWS_PER_SCAN.items():
         if sensor.startswith(k):
             return v
+
 
 def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArray:
     """Get a dataset."""
@@ -118,6 +120,7 @@ def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArr
 
     return data
 
+
 def _remove_attributes(attrs: dict) -> dict:
     """Remove attributes that described data before scaling."""
     old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
@@ -127,8 +130,10 @@ def _remove_attributes(attrs: dict) -> dict:
         attrs.pop(attr_key, None)
     return attrs
 
+
 class _CLAVRxHelper:
     """A base class for the CLAVR File Handlers."""
+
     @staticmethod
     def _area_extent(x, y, h):
         x_l = h * x[0]
@@ -211,7 +216,7 @@ class _CLAVRxHelper:
                 proj = _CLAVRxHelper._read_pug_fixed_grid(proj_var)
         if not proj:
             raise ValueError("Unable to recover projection information"
-                             " for {0}".format(self.filename))
+                             " for {0}".format(filename))
 
         h = float(proj['h'])
         x, y = l1b['x'], l1b['y']
@@ -231,12 +236,16 @@ class _CLAVRxHelper:
 
         return area
 
+
 class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
     """A file handler for CLAVRx files."""
+
     def __init__(self, filename, filename_info, filetype_info):
+        """Init method."""
         super(CLAVRXHDF4FileHandler, self).__init__(filename,
                                                     filename_info,
                                                     filetype_info)
+
     @property
     def start_time(self):
         """Get the start time."""
@@ -257,7 +266,6 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         if not i.get('SCALED', 1) and not flag_meanings:
             i['flag_meanings'] = '<flag_meanings_unknown>'
             i.setdefault('flag_values', [None])
-
         u = i.get('units')
         if u in CF_UNITS:
             # CF compliance
@@ -355,6 +363,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         l1b_att = str(self.file_content.get('/attr/L1B', None))
         area_def = _CLAVRxHelper._read_axi_fixed_grid(self.filename, l1b_att)
         return area_def
+
 
 class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
     """File Handler for CLAVRX netcdf files."""
