@@ -48,7 +48,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
             res = self._ir_calibrate(radiances)
         elif key['calibration'] == 'counts':
             logger.debug("Calibrating to raw counts")
-            res = self.nc['Rad'].copy()
+            res = self._raw_calibrate(radiances)
         elif key['calibration'] != 'radiance':
             raise ValueError("Unknown calibration '{}'".format(key['calibration']))
         else:
@@ -95,6 +95,17 @@ class NC_ABI_L1B(NC_ABI_BASE):
             if attr in self.nc.attrs:
                 res.attrs[attr] = self.nc.attrs[attr]
 
+        return res
+
+    def _raw_calibrate(self, data):
+        """Calibrate any channel to raw counts."""
+        """Useful for cases where a copy requires no calibration."""
+
+        res = data
+        res.attrs = data.attrs
+        res.attrs['units'] = '1'
+        res.attrs['long_name'] = 'Raw Counts'
+        res.attrs['standard_name'] = 'counts'
         return res
 
     def _vis_calibrate(self, data):
