@@ -286,7 +286,6 @@ class NCSLSTRAngles(BaseFileHandler):
 
         if c_step != 1 or l_step != 1:
             logger.debug('Interpolating %s.', key['name'])
-
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
             tie_x = self.cartx['x_tx'].data[0, :][::-1]
@@ -299,6 +298,7 @@ class NCSLSTRAngles(BaseFileHandler):
                 full_y = self.carti['y_i' + self.view[0]].data
 
             variable = variable.fillna(0)
+            variable.attrs['resolution'] = key.get('resolution', 1000)
 
             from scipy.interpolate import RectBivariateSpline
             spl = RectBivariateSpline(

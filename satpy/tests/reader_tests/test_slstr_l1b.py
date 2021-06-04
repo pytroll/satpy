@@ -141,6 +141,8 @@ class TestSLSTRReader(TestSLSTRL1B):
 
         ds_id = make_dataid(name='foo', calibration='radiance',
                             stripe='a', view='nadir')
+        ds_id_500 = make_dataid(name='foo', calibration='radiance',
+                                stripe='a', view='nadir', resolution=500)
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo',
                          'start_time': 0, 'end_time': 0,
                          'stripe': 'a', 'view': 'n'}
@@ -184,13 +186,13 @@ class TestSLSTRReader(TestSLSTRL1B):
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
 
-        filename_info['resolution'] = 1000
         test = NCSLSTRAngles('somedir/S1_radiance_an.nc', filename_info, 'c')
         test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'geometry_t{view:1s}'}))
         self.assertEqual(test.start_time, good_start)
         self.assertEqual(test.end_time, good_end)
         xr_.open_dataset.assert_called()
         xr_.open_dataset.reset_mock()
+        test.get_dataset(ds_id_500, dict(filename_info, **{'file_key': 'geometry_t{view:1s}'}))
 
 
 class TestSLSTRCalibration(TestSLSTRL1B):
