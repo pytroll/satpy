@@ -208,12 +208,44 @@ def area2cf(dataarray, strict=False, got_lonlats=False):
     return res
 
 
-def make_time_bounds(start_times, end_times):
-    """Create time bounds for the current *dataarray*."""
-    data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]
-                        for start_time, end_time in zip(start_times, end_times)],
-                        dims=['time', 'bnds_1d'])
-    return data
+def _get_time_bounds(datasets):
+    if _is_timeseries(datasets):
+        time_bounds = _get_time_bounds_from_coords(datasets)
+    else:
+        time_bounds = _get_time_bounds_from_attrs(datasets)
+    return xr.DataArray(time_bounds, dims=['time', 'bnds_1d'])
+
+
+def _is_timeseries(datasets):
+    return all('start_time' in ds.coords for ds in datasets)
+
+
+def _get_time_bounds_from_coords(datasets):
+    start_times = np.stack(
+        [ds.coords['start_time'].data for ds in datasets]
+    )
+    end_times = np.stack(
+        [ds.coords['end_time'].data for ds in datasets]
+    )
+    return np.vstack([start_times.min(axis=0),
+                      end_times.max(axis=0)]).transpose()
+
+
+def _get_time_bounds_from_attrs(datasets):
+    start_times = np.nanmin(_get_times_from_attrs(datasets, 'start_time'))
+    end_times = np.nanmax(_get_times_from_attrs(datasets, 'end_time'))
+    return np.vstack([start_times, end_times]).transpose()
+
+
+def _get_times_from_attrs(datasets, kind):
+    return [np.datetime64(ds.attrs.get(kind, np.datetime64('NaT')))
+            for ds in datasets]
+
+
+def _add_time_bounds(dataset, time_bounds):
+    dataset['time_bnds'] = time_bounds
+    dataset['time'].attrs['bounds'] = "time_bnds"
+    dataset['time'].attrs['standard_name'] = "time"
 
 
 def assert_xy_unique(datas):
@@ -622,6 +654,7 @@ class CFWriter(Writer):
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
                           pretty=False, compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_'):
         """Collect and prepare datasets to be written."""
+        time_bounds = _get_time_bounds(datasets)
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
@@ -640,12 +673,6 @@ class CFWriter(Writer):
             except KeyError:
                 new_datasets = [ds]
             for new_ds in new_datasets:
-                if 'start_time' in new_ds.coords:
-                    start_times = new_ds.coords['start_time'].data
-                    end_times = new_ds.coords['end_time'].data
-                else:
-                    start_times = [None]
-                    end_times = [None]
                 new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                      exclude_attrs=exclude_attrs, compression=compression,
                                      include_orig_name=include_orig_name,
@@ -657,7 +684,7 @@ class CFWriter(Writer):
         link_coords(datas)
         datas = make_alt_coords_unique(datas, pretty=pretty)
 
-        return datas, start_times, end_times
+        return datas, time_bounds
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
@@ -752,16 +779,13 @@ class CFWriter(Writer):
         # Write datasets to groups (appending to the file; group=None means no group)
         for group_name, group_datasets in groups_.items():
             # XXX: Should we combine the info of all datasets?
-            datas, start_times, end_times = self._collect_datasets(
+            datas, time_bounds = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
                 include_lonlats=include_lonlats, pretty=pretty, compression=compression,
                 include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
             dataset = xr.Dataset(datas)
             if 'time' in dataset:
-                dataset['time_bnds'] = make_time_bounds(start_times,
-                                                        end_times)
-                dataset['time'].attrs['bounds'] = "time_bnds"
-                dataset['time'].attrs['standard_name'] = "time"
+                _add_time_bounds(dataset, time_bounds)
             else:
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
