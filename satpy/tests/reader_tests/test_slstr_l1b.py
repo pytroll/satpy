@@ -121,9 +121,10 @@ class TestSLSTRReader(TestSLSTRL1B):
 
     class FakeSpl:
         """Fake return function for SPL interpolation."""
+
         @staticmethod
         def ev(foo_x, foo_y):
-            """"Fake function to return interpolated data."""
+            """Fake function to return interpolated data."""
             return np.zeros((3, 2))
 
     @mock.patch('satpy.readers.slstr_l1b.xr')
