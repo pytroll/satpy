@@ -231,6 +231,15 @@ class NCSLSTR1B(BaseFileHandler):
 class NCSLSTRAngles(BaseFileHandler):
     """Filehandler for angles."""
 
+    def _loadcart(self, fname):
+        """Load a cartesian file of appropriate type."""
+        cartf = xr.open_dataset(fname,
+                                decode_cf=True,
+                                mask_and_scale=True,
+                                chunks={'columns': CHUNK_SIZE,
+                                        'rows': CHUNK_SIZE})
+        return cartf
+
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the angles reader."""
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
@@ -251,27 +260,13 @@ class NCSLSTRAngles(BaseFileHandler):
 
         carta_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_a{}.nc'.format(self.view[0]))
-        self.carta = xr.open_dataset(carta_file,
-                                     decode_cf=True,
-                                     mask_and_scale=True,
-                                     chunks={'columns': CHUNK_SIZE,
-                                             'rows': CHUNK_SIZE})
-
         carti_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view[0]))
-        self.carti = xr.open_dataset(carti_file,
-                                     decode_cf=True,
-                                     mask_and_scale=True,
-                                     chunks={'columns': CHUNK_SIZE,
-                                             'rows': CHUNK_SIZE})
-
         cartx_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_tx.nc')
-        self.cartx = xr.open_dataset(cartx_file,
-                                     decode_cf=True,
-                                     mask_and_scale=True,
-                                     chunks={'columns': CHUNK_SIZE,
-                                             'rows': CHUNK_SIZE})
+        self.carta = self._loadcart(carta_file)
+        self.carti = self._loadcart(carti_file)
+        self.cartx = self._loadcart(cartx_file)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
