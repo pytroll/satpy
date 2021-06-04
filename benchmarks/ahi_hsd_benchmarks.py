@@ -17,7 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark satpy."""
 
-from pyspectral.utils import download_rsr, download_luts
+from pyspectral.rayleigh import check_and_download as download_luts
+from pyspectral.rsr_reader import check_and_download as download_rsr
 
 
 class HimawariHSD:
@@ -28,18 +29,26 @@ class HimawariHSD:
 
     def setup_cache(self):
         """Fetch the data files."""
-        from satpy.demo import download_typhoon_surigae_ahi
-        download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
+        try:
+            from satpy.demo import download_typhoon_surigae_ahi
+            download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
+        except ImportError:
+            assert len(self.get_filenames()) == 4
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 
     def setup(self):
         """Set up the benchmarks."""
         import satpy
-        from satpy.demo import download_typhoon_surigae_ahi
-        # This just returns the filenames, as the data already is downloaded above
-        self.data_files = download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
+        self.data_files = self.get_filenames()
         satpy.CHUNK_SIZE = 2048
+
+    def get_filenames(self):
+        """Get the data filenames manually."""
+        import os
+        import glob
+        base_dir = os.environ.get("SATPY_DEMO_DATA_DIR", ".")
+        return glob.glob(os.path.join(base_dir, "ahi_hsd/20210417_0500_random/*"))
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""
