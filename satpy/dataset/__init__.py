@@ -17,7 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Classes and functions related to data identification and querying."""
 
-from .dataid import DataID, DataQuery, ModifierTuple, create_filtered_query  # noqa
+from .dataid import (  # noqa
+    DataID, DataQuery, ModifierTuple, WavelengthRange, create_filtered_query
+)
 from .data_dict import get_key, DatasetDict  # noqa
 from .metadata import combine_metadata  # noqa
 from .anc_vars import dataset_walker, replace_anc  # noqa
