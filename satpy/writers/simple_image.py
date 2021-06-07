@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-"""
+"""Generic PIL/Pillow image format writer."""
 
 import logging
 
@@ -26,7 +25,10 @@ LOG = logging.getLogger(__name__)
 
 
 class PillowWriter(ImageWriter):
+    """Generic PIL image format writer."""
+
     def __init__(self, **kwargs):
+        """Initialize image writer plugin."""
         ImageWriter.__init__(
             self,
             default_config_filename="writers/simple_image.yaml",

@@ -194,7 +194,7 @@ class TestModisL2(unittest.TestCase):
         dataset_name = 'quality_assurance'
         scene.load([dataset_name])
         quality_assurance_id = make_dataid(name=dataset_name, resolution=1000)
-        self.assertIn(quality_assurance_id, scene.datasets)
+        self.assertIn(quality_assurance_id, scene)
         quality_assurance = scene[quality_assurance_id]
         self.assertEqual(quality_assurance.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
 
@@ -205,7 +205,7 @@ class TestModisL2(unittest.TestCase):
         dataset_name = 'cloud_mask'
         scene.load([dataset_name], resolution=1000)
         cloud_mask_id = make_dataid(name=dataset_name, resolution=1000)
-        self.assertIn(cloud_mask_id, scene.datasets)
+        self.assertIn(cloud_mask_id, scene)
         cloud_mask = scene[cloud_mask_id]
         self.assertEqual(cloud_mask.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
 
@@ -216,6 +216,6 @@ class TestModisL2(unittest.TestCase):
         dataset_name = 'cloud_mask'
         scene.load([dataset_name], resolution=250)
         cloud_mask_id = make_dataid(name=dataset_name, resolution=250)
-        self.assertIn(cloud_mask_id, scene.datasets)
+        self.assertIn(cloud_mask_id, scene)
         cloud_mask = scene[cloud_mask_id]
         self.assertEqual(cloud_mask.shape, (4*5*SCAN_WIDTH, 4*(5*SCAN_LEN+4)))

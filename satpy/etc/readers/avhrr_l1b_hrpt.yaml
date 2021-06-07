@@ -1,7 +1,7 @@
 reader:
     name: avhrr_l1b_hrpt
     description: HRPT Reader for AVHRR
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3, avhrr-2]
     default_channels: [1, 2, 3a, 3b, 4, 5]
 
@@ -13,8 +13,10 @@ datasets:
         calibration:
           reflectance:
             standard_name: toa_bidirectional_reflectance
+            units: '%'
           counts:
             standard_name: counts
+            units: '1'
         coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '2':
@@ -24,8 +26,10 @@ datasets:
         calibration:
           reflectance:
             standard_name: toa_bidirectional_reflectance
+            units: '%'
           counts:
             standard_name: counts
+            units: '1'
         coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '3a':
@@ -35,8 +39,10 @@ datasets:
         calibration:
           reflectance:
             standard_name: toa_bidirectional_reflectance
+            units: '%'
           counts:
             standard_name: counts
+            units: '1'
         coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '3b':
@@ -46,8 +52,10 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
+            units: K
           counts:
             standard_name: counts
+            units: '1'
         coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '4':
@@ -57,8 +65,10 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
+            units: K
           counts:
             standard_name: counts
+            units: '1'
         coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
     '5':
@@ -68,8 +78,10 @@ datasets:
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
+            units: K
           counts:
             standard_name: counts
+            units: '1'
         coordinates: [longitude, latitude]
         file_type: avhrr_hrpt
 
@@ -90,5 +102,5 @@ datasets:
 
 file_types:
     avhrr_hrpt:
-        file_reader: !!python/name:satpy.readers.hrpt.HRPTFile ''
+        file_reader: !!python/name:satpy.readers.hrpt.HRPTFile
         file_patterns: ['{start_time:%Y%m%d%H%M%S}_{platform_name}.hmf', 'hrpt16_{platform_name:s}_{start_time:%d-%b-%Y_%H:%M:%S.%f}_{orbit_number:05d}']

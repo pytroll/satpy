@@ -10,7 +10,7 @@ reader:
     resolution:
     modifiers:
       default: []
-      type: !!python/name:satpy.dataset.ModifierTuple
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
 
 file_types:
   grib:

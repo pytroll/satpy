@@ -15,7 +15,9 @@ requested, or added to a Scene object.
 Available Readers
 =================
 
-To get a list of available readers use the `available_readers` function::
+To get a list of available readers use the `available_readers` function. By default,
+it returns the names of available readers. To return additional reader information 
+use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers
     >>> available_readers()
@@ -61,7 +63,7 @@ polarization::
 
 Or multiple calibrations::
 
-    >>> scn.load([0.6, 10.8], calibrations=['brightness_temperature', 'radiance'])
+    >>> scn.load([0.6, 10.8], calibration=['brightness_temperature', 'radiance'])
 
 In the above case Satpy will load whatever dataset is available and matches
 the specified parameters. So the above ``load`` call would load the ``0.6``
@@ -209,11 +211,10 @@ This is described in the developer guide, see :doc:`dev_guide/custom_reader`.
 Implemented readers
 ===================
 
+SEVIRI L1.5 data readers
+------------------------
 
-xRIT-based readers
-------------------
-
-.. automodule:: satpy.readers.hrit_base
+.. automodule:: satpy.readers.seviri_base
     :noindex:
 
 SEVIRI HRIT format reader
@@ -221,6 +222,26 @@ SEVIRI HRIT format reader
 
 .. automodule:: satpy.readers.seviri_l1b_hrit
     :noindex:
+
+SEVIRI Native format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.seviri_l1b_native
+    :noindex:
+
+SEVIRI netCDF format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.seviri_l1b_nc
+    :noindex:
+
+
+Other xRIT-based readers
+------------------------
+
+.. automodule:: satpy.readers.hrit_base
+    :noindex:
+
 
 JMA HRIT format reader
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -248,4 +269,10 @@ hdf-eos based readers
     :noindex:
 
 .. automodule:: satpy.readers.modis_l2
+    :noindex:
+
+satpy cf nc readers
+---------------------
+
+.. automodule:: satpy.readers.satpy_cf_nc
     :noindex:

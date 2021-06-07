@@ -33,8 +33,8 @@ onboard Joint Polar Satellite System spacecraft.
 
 """
 
-from datetime import datetime
 import xarray as xr
+import pandas as pd
 import numpy as np
 import logging
 from collections import defaultdict
@@ -68,6 +68,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def __init__(self, *args, **kwargs):
         """Initialize file handler."""
+        # remove kwargs that reader instance used that file handler does not
+        kwargs.pop('mask_surface', None)
+        kwargs.pop('mask_quality', None)
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'decode_times', False)
         super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
@@ -78,7 +81,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def _parse_datetime(self, datestr):
         """Parse NUCAPS datetime string."""
-        return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return pd.to_datetime(datestr).to_pydatetime()
 
     @property
     def start_time(self):
@@ -121,8 +124,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             res = self['/attr/platform_name']
             if isinstance(res, np.ndarray):
                 return str(res.astype(str))
-            else:
-                return res
+            return res
         except KeyError:
             return self.filename_info['platform_shortname']
 
@@ -219,6 +221,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             data = data.where((data <= valid_max))  # | (data >= valid_min))
         if fill_value is not None:
             data = data.where(data != fill_value)
+            # this _FillValue is no longer valid
+            metadata.pop('_FillValue', None)
+            data.attrs.pop('_FillValue', None)
 
         data.attrs.update(metadata)
         # Older format

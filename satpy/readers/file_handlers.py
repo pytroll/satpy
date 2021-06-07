@@ -20,9 +20,8 @@
 from abc import ABCMeta
 
 import numpy as np
-from pathlib import PurePath
-
 from pyresample.geometry import SwathDefinition
+
 from satpy.dataset import combine_metadata
 
 
@@ -31,10 +30,7 @@ class BaseFileHandler(metaclass=ABCMeta):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
-        if isinstance(filename, PurePath):
-            self.filename = str(filename)
-        else:
-            self.filename = filename
+        self.filename = filename
         self.navigation_reader = None
         self.filename_info = filename_info
         self.filetype_info = filetype_info
@@ -70,6 +66,7 @@ class BaseFileHandler(metaclass=ABCMeta):
         for key in keys:
             if key in infos[0]:
                 res[key] = func([i[key] for i in infos])
+
         return res
 
     def combine_info(self, all_infos):

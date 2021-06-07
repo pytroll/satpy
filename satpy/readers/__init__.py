@@ -21,7 +21,8 @@ import logging
 import os
 import warnings
 from datetime import datetime, timedelta
-import numpy as np
+from functools import total_ordering
+import pickle
 
 import yaml
 
@@ -30,278 +31,20 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          glob_config)
-from satpy.dataset import DataID, minimal_default_keys_config, create_filtered_query
+from satpy._config import config_search_paths, glob_config
+from .yaml_reader import (AbstractYAMLReader,
+                          load_yaml_configs as load_yaml_reader_configs)
 
 LOG = logging.getLogger(__name__)
 
 
 # Old Name -> New Name
-OLD_READER_NAMES = {
-}
-
-
-class TooManyResults(KeyError):
-    """Special exception when one key maps to multiple items in the container."""
-
-    pass
-
-
-def _wl_dist(wl_a, wl_b):
-    """Return the distance between two requested wavelengths."""
-    if isinstance(wl_a, tuple):
-        # central wavelength
-        wl_a = wl_a[1]
-    if isinstance(wl_b, tuple):
-        wl_b = wl_b[1]
-    if wl_a is None or wl_b is None:
-        return 1000.
-    return abs(wl_a - wl_b)
-
-
-def get_best_dataset_key(key, choices):
-    """Choose the "best" `DataID` from `choices` based on `key`.
-
-    To see how the keys are sorted, refer to `:meth:satpy.datasets.DataQuery.sort_dataids`.
-
-    This function assumes `choices` has already been filtered to only
-    include datasets that match the provided `key`.
-
-    Args:
-        key (DataQuery): Query parameters to sort `choices` by.
-        choices (iterable): `DataID` objects to sort through to determine
-                            the best dataset.
-
-    Returns: List of best `DataID`s from `choices`. If there is more
-             than one element this function could not choose between the
-             available datasets.
-
-    """
-    sorted_choices, distances = key.sort_dataids(choices)
-    if len(sorted_choices) == 0 or distances[0] is np.inf:
-        return []
-    else:
-        return [choice for choice, distance in zip(sorted_choices, distances) if distance == distances[0]]
-
-
-def filter_keys_by_dataset_query(dquery, key_container):
-    """Filer provided key iterable by the provided `DataQuery`.
-
-    Note: The `modifiers` attribute of `did` should be `None` to allow for
-          **any** modifier in the results.
-
-    Args:
-        dquery (DataQuery): Query parameters to match in the `key_container`.
-        key_container (iterable): Set, list, tuple, or dict of `DataID`
-                                  keys.
-
-    Returns (list): List of keys matching the provided parameters in no
-                    specific order.
-
-    """
-    return dquery.filter_dataids(key_container)
-
-
-def get_key(key, key_container, num_results=1, best=True, query=None,
-            **kwargs):
-    """Get the fully-specified key best matching the provided key.
-
-    Only the best match is returned if `best` is `True` (default). See
-    `get_best_dataset_key` for more information on how this is determined.
-
-    `query` is provided as a convenience to filter by multiple parameters
-    at once without having to filter by multiple `key` inputs.
-
-    Args:
-        key (DataID): DataID of query parameters to use for
-                         searching. Any parameter that is `None`
-                         is considered a wild card and any match is
-                         accepted.
-        key_container (dict or set): Container of DataID objects that
-                                     uses hashing to quickly access items.
-        num_results (int): Number of results to return. Use `0` for all
-                           matching results. If `1` then the single matching
-                           key is returned instead of a list of length 1.
-                           (default: 1)
-        best (bool): Sort results to get "best" result first
-                     (default: True). See `get_best_dataset_key` for details.
-        query (DataQuery): filter for the key which can contain for example:
-            resolution (float, int, or list): Resolution of the dataset in
-                                            dataset units (typically
-                                            meters). This can also be a
-                                            list of these numbers.
-            calibration (str or list): Dataset calibration
-                                    (ex.'reflectance'). This can also be a
-                                    list of these strings.
-            polarization (str or list): Dataset polarization
-                                        (ex.'V'). This can also be a
-                                        list of these strings.
-            level (number or list): Dataset level (ex. 100). This can also be a
-                                    list of these numbers.
-            modifiers (list): Modifiers applied to the dataset. Unlike
-                            resolution and calibration this is the exact
-                            desired list of modifiers for one dataset, not
-                            a list of possible modifiers.
-
-
-    Returns (list or DataID): Matching key(s)
-
-    Raises: KeyError if no matching results or if more than one result is
-            found when `num_results` is `1`.
-
-    """
-    key = create_filtered_query(key, query)
-
-    res = filter_keys_by_dataset_query(key, key_container)
-    if not res:
-        raise KeyError("No dataset matching '{}' found".format(str(key)))
-
-    if best:
-        res = get_best_dataset_key(key, res)
-
-    if num_results == 1 and not res:
-        raise KeyError("No dataset matching '{}' found".format(str(key)))
-    elif num_results == 1 and len(res) != 1:
-        raise TooManyResults("No unique dataset matching {}".format(str(key)))
-    elif num_results == 1:
-        return res[0]
-    elif num_results == 0:
-        return res
-    else:
-        return res[:num_results]
-
-
-class DatasetDict(dict):
-    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DataID.
-
-    Note: Internal dictionary keys are `DataID` objects.
-
-    """
-
-    def keys(self, names=False, wavelengths=False):
-        """Give currently contained keys."""
-        # sort keys so things are a little more deterministic (.keys() is not)
-        keys = sorted(super(DatasetDict, self).keys())
-        if names:
-            return (k.get('name') for k in keys)
-        elif wavelengths:
-            return (k.get('wavelength') for k in keys)
-        else:
-            return keys
-
-    def get_key(self, match_key, num_results=1, best=True, **dfilter):
-        """Get multiple fully-specified keys that match the provided query.
-
-        Args:
-            key (DataID): DataID of query parameters to use for
-                          searching. Any parameter that is `None`
-                          is considered a wild card and any match is
-                          accepted. Can also be a string representing the
-                          dataset name or a number representing the dataset
-                          wavelength.
-            num_results (int): Number of results to return. If `0` return all,
-                               if `1` return only that element, otherwise
-                               return a list of matching keys.
-            **dfilter (dict): See `get_key` function for more information.
-
-        """
-        return get_key(match_key, self.keys(), num_results=num_results,
-                       best=best, **dfilter)
-
-    def getitem(self, item):
-        """Get Node when we know the *exact* DataID."""
-        return super(DatasetDict, self).__getitem__(item)
-
-    def __getitem__(self, item):
-        """Get item from container."""
-        try:
-            # short circuit - try to get the object without more work
-            return super(DatasetDict, self).__getitem__(item)
-        except KeyError:
-            key = self.get_key(item)
-            return super(DatasetDict, self).__getitem__(key)
-
-    def get(self, key, default=None):
-        """Get value with optional default."""
-        try:
-            key = self.get_key(key)
-        except KeyError:
-            return default
-        return super(DatasetDict, self).get(key, default)
-
-    def __setitem__(self, key, value):
-        """Support assigning 'Dataset' objects or dictionaries of metadata."""
-        value_dict = value
-        if hasattr(value, 'attrs'):
-            # xarray.DataArray objects
-            value_dict = value.attrs
-        # use value information to make a more complete DataID
-        if not isinstance(key, DataID):
-            if not isinstance(value_dict, dict):
-                raise ValueError("Key must be a DataID when value is not an xarray DataArray or dict")
-            old_key = key
-            try:
-                key = self.get_key(key)
-            except KeyError:
-                if isinstance(old_key, str):
-                    new_name = old_key
-                else:
-                    new_name = value_dict.get("name")
-                # this is a new key and it's not a full DataID tuple
-                if new_name is None and value_dict.get('wavelength') is None:
-                    raise ValueError("One of 'name' or 'wavelength' attrs "
-                                     "values should be set.")
-                try:
-                    id_keys = value_dict['_satpy_id'].id_keys
-                except KeyError:
-                    try:
-                        id_keys = value_dict['_satpy_id_keys']
-                    except KeyError:
-                        id_keys = minimal_default_keys_config
-                value_dict['name'] = new_name
-                key = DataID(id_keys, **value_dict)
-                if hasattr(value, 'attrs') and 'name' not in value.attrs:
-                    value.attrs['name'] = new_name
-
-        # update the 'value' with the information contained in the key
-        try:
-            new_info = key.to_dict()
-        except AttributeError:
-            new_info = key
-        if isinstance(value_dict, dict):
-            value_dict.update(new_info)
-
-        if hasattr(value, 'attrs'):
-            if isinstance(key, DataID):
-                value.attrs['_satpy_id'] = key
-
-        return super(DatasetDict, self).__setitem__(key, value)
-
-    def contains(self, item):
-        """Check contains when we know the *exact* DataID."""
-        return super(DatasetDict, self).__contains__(item)
-
-    def __contains__(self, item):
-        """Check if item exists in container."""
-        try:
-            key = self.get_key(item)
-        except KeyError:
-            return False
-        return super(DatasetDict, self).__contains__(key)
-
-    def __delitem__(self, key):
-        """Delete item from container."""
-        try:
-            # short circuit - try to get the object without more work
-            return super(DatasetDict, self).__delitem__(key)
-        except KeyError:
-            key = self.get_key(key)
-            return super(DatasetDict, self).__delitem__(key)
+PENDING_OLD_READER_NAMES = {'fci_l1c_fdhsi': 'fci_l1c_nc'}
+OLD_READER_NAMES = {}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
-                group_keys=None, ppp_config_dir=None, reader_kwargs=None):
+                group_keys=None, reader_kwargs=None):
     """Group series of files by file pattern information.
 
     By default this will group files by their filename ``start_time``
@@ -331,9 +74,6 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             in YAML), otherwise ``('start_time',)``.  When passing multiple
             readers, passing group_keys is strongly recommended as the
             behaviour without doing so is undefined.
-        ppp_config_dir (str): Root usser configuration directory for Satpy.
-            This will be deprecated in the future, but is here for consistency
-            with other Satpy features.
         reader_kwargs (dict): Additional keyword arguments to pass to reader
             creation.
 
@@ -343,14 +83,13 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
         a `Scene` object.
 
     """
-
     if reader is not None and not isinstance(reader, (list, tuple)):
         reader = [reader]
 
     reader_kwargs = reader_kwargs or {}
 
     reader_files = _assign_files_to_readers(
-            files_to_sort, reader, ppp_config_dir, reader_kwargs)
+            files_to_sort, reader, reader_kwargs)
 
     if reader is None:
         reader = reader_files.keys()
@@ -363,7 +102,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     return [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
 
 
-def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
+def _assign_files_to_readers(files_to_sort, reader_names,
                              reader_kwargs):
     """Assign files to readers.
 
@@ -374,7 +113,6 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
     Args:
         files_to_sort (Collection[str]): Files to assign to readers.
         reader_names (Collection[str]): Readers to consider
-        ppp_config_dir (str):
         reader_kwargs (Mapping):
 
     Returns:
@@ -382,10 +120,9 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
         Mapping where the keys are reader names and the values are tuples of
         (reader_configs, filenames).
     """
-
     files_to_sort = set(files_to_sort)
     reader_dict = {}
-    for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
+    for reader_configs in configs_for_reader(reader_names):
         try:
             reader = load_reader(reader_configs, **reader_kwargs)
         except yaml.constructor.ConstructorError:
@@ -422,7 +159,6 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
     Returns:
         Mapping[str, List[Tuple[Tuple, str]]], as described.
     """
-
     file_keys = {}
     for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
         if group_keys is None:
@@ -496,71 +232,41 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):
 
 
 def read_reader_config(config_files, loader=UnsafeLoader):
-    """Read the reader `config_files` and return the info extracted."""
-    conf = {}
-    LOG.debug('Reading %s', str(config_files))
-    for config_file in config_files:
-        with open(config_file) as fd:
-            conf.update(yaml.load(fd.read(), Loader=loader))
-
-    try:
-        reader_info = conf['reader']
-    except KeyError:
-        raise KeyError(
-            "Malformed config file {}: missing reader 'reader'".format(
-                config_files))
-    reader_info['config_files'] = config_files
-    return reader_info
+    """Read the reader `config_files` and return the extracted reader metadata."""
+    reader_config = load_yaml_reader_configs(*config_files, loader=loader)
+    return reader_config['reader']
 
 
 def load_reader(reader_configs, **reader_kwargs):
     """Import and setup the reader from *reader_info*."""
-    reader_info = read_reader_config(reader_configs)
-    reader_instance = reader_info['reader'](config_files=reader_configs, **reader_kwargs)
-    return reader_instance
+    return AbstractYAMLReader.from_config_files(*reader_configs, **reader_kwargs)
 
 
-def configs_for_reader(reader=None, ppp_config_dir=None):
+def configs_for_reader(reader=None):
     """Generate reader configuration files for one or more readers.
 
     Args:
         reader (Optional[str]): Yield configs only for this reader
-        ppp_config_dir (Optional[str]): Additional configuration directory
-            to search for reader configuration files.
 
     Returns: Generator of lists of configuration files
 
     """
-    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
     if reader is not None:
         if not isinstance(reader, (list, tuple)):
             reader = [reader]
-        # check for old reader names
-        new_readers = []
-        for reader_name in reader:
-            if reader_name.endswith('.yaml') or reader_name not in OLD_READER_NAMES:
-                new_readers.append(reader_name)
-                continue
 
-            new_name = OLD_READER_NAMES[reader_name]
-            # Satpy 0.11 only displays a warning
-            # Satpy 0.13 will raise an exception
-            raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
-            # Satpy 0.15 or 1.0, remove exception and mapping
-
-        reader = new_readers
+        reader = get_valid_reader_names(reader)
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
-        reader_configs = glob_config(os.path.join('readers', '*.yaml'),
-                                     *search_paths)
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'))
         config_files = set(reader_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         reader_name = os.path.splitext(config_basename)[0]
         reader_configs = config_search_paths(
-            os.path.join("readers", config_basename), *search_paths)
+            os.path.join("readers", config_basename))
 
         if not reader_configs:
             # either the reader they asked for does not exist
@@ -568,6 +274,28 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
             raise ValueError("No reader named: {}".format(reader_name))
 
         yield reader_configs
+
+
+def get_valid_reader_names(reader):
+    """Check for old reader names or readers pending deprecation."""
+    new_readers = []
+    for reader_name in reader:
+        if reader_name in OLD_READER_NAMES:
+            raise ValueError(
+                "Reader name '{}' has been deprecated, "
+                "use '{}' instead.".format(reader_name,
+                                           OLD_READER_NAMES[reader_name]))
+
+        if reader_name in PENDING_OLD_READER_NAMES:
+            new_name = PENDING_OLD_READER_NAMES[reader_name]
+            warnings.warn("Reader name '{}' is being deprecated and will be removed soon."
+                          "Please use '{}' instead.".format(reader_name, new_name),
+                          FutureWarning)
+            new_readers.append(new_name)
+        else:
+            new_readers.append(reader_name)
+
+    return new_readers
 
 
 def available_readers(as_dict=False):
@@ -587,15 +315,19 @@ def available_readers(as_dict=False):
         try:
             reader_info = read_reader_config(reader_configs)
         except (KeyError, IOError, yaml.YAMLError):
-            LOG.warning("Could not import reader config from: %s", reader_configs)
+            LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
             continue
         readers.append(reader_info if as_dict else reader_info['name'])
+    if as_dict:
+        readers = sorted(readers, key=lambda reader_info: reader_info['name'])
+    else:
+        readers = sorted(readers)
     return readers
 
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
-                           reader=None, sensor=None, ppp_config_dir=None,
+                           reader=None, sensor=None,
                            filter_parameters=None, reader_kwargs=None,
                            missing_ok=False, fs=None):
     """Find files matching the provided parameters.
@@ -642,8 +374,6 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                         data to load. Defaults to the current directory.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         sensor (str or list): Limit used files by provided sensors.
-        ppp_config_dir (str): The directory containing the configuration
-                              files for Satpy.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
                                   automatically added to this dictionary. Shortcut for
                                   `reader_kwargs['filter_parameters']`.
@@ -660,8 +390,6 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     Returns: Dictionary mapping reader name string to list of filenames
 
     """
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
@@ -672,7 +400,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         filter_parameters['end_time'] = end_time
     reader_kwargs['filter_parameters'] = filter_parameters
 
-    for reader_configs in configs_for_reader(reader, ppp_config_dir):
+    for reader_configs in configs_for_reader(reader):
         try:
             reader_instance = load_reader(reader_configs, **reader_kwargs)
         except (KeyError, IOError, yaml.YAMLError) as err:
@@ -703,8 +431,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     return reader_files
 
 
-def load_readers(filenames=None, reader=None, reader_kwargs=None,
-                 ppp_config_dir=None):
+def load_readers(filenames=None, reader=None, reader_kwargs=None):
     """Create specified readers and assign files to them.
 
     Args:
@@ -712,19 +439,16 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
-        ppp_config_dir (str): The directory containing the configuration files for satpy.
+            This can either be a single dictionary that will be passed to all
+            reader instances, or a mapping of reader names to dictionaries.  If
+            the keys of ``reader_kwargs`` match exactly the list of strings in
+            ``reader`` or the keys of filenames, each reader instance will get its
+            own keyword arguments accordingly.
 
     Returns: Dictionary mapping reader name to reader instance
 
     """
     reader_instances = {}
-    reader_kwargs = reader_kwargs or {}
-    reader_kwargs_without_filter = reader_kwargs.copy()
-    reader_kwargs_without_filter.pop('filter_parameters', None)
-
-    if ppp_config_dir is None:
-        ppp_config_dir = get_environ_config_dir()
-
     if not filenames and not reader:
         # used for an empty Scene
         return {}
@@ -746,14 +470,18 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     else:
         remaining_filenames = set(filenames or [])
 
-    for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
+    (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
+
+    for idx, reader_configs in enumerate(configs_for_reader(reader)):
         if isinstance(filenames, dict):
             readers_files = set(filenames[reader[idx]])
         else:
             readers_files = remaining_filenames
 
         try:
-            reader_instance = load_reader(reader_configs, **reader_kwargs)
+            reader_instance = load_reader(
+                    reader_configs,
+                    **reader_kwargs[None if reader is None else reader[idx]])
         except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
@@ -764,7 +492,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
+            reader_instance.create_filehandlers(
+                    loadables,
+                    fh_kwargs=reader_kwargs_without_filter[None if reader is None else reader[idx]])
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:
@@ -779,3 +509,134 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
     return reader_instances
+
+
+def _get_reader_kwargs(reader, reader_kwargs):
+    """Help load_readers to form reader_kwargs.
+
+    Helper for load_readers to get reader_kwargs and
+    reader_kwargs_without_filter in the desirable form.
+    """
+    reader_kwargs = reader_kwargs or {}
+
+    # ensure one reader_kwargs per reader, None if not provided
+    if reader is None:
+        reader_kwargs = {None: reader_kwargs}
+    elif reader_kwargs.keys() != set(reader):
+        reader_kwargs = dict.fromkeys(reader, reader_kwargs)
+
+    reader_kwargs_without_filter = {}
+    for (k, v) in reader_kwargs.items():
+        reader_kwargs_without_filter[k] = v.copy()
+        reader_kwargs_without_filter[k].pop('filter_parameters', None)
+
+    return (reader_kwargs, reader_kwargs_without_filter)
+
+
+@total_ordering
+class FSFile(os.PathLike):
+    """Implementation of a PathLike file object, that can be opened.
+
+    This is made to be used in conjuction with fsspec or s3fs. For example::
+
+        from satpy import Scene
+
+        import fsspec
+        filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
+
+        the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
+
+        from satpy.readers import FSFile
+        fs_files = [FSFile(open_file) for open_file in the_files]
+
+        scn = Scene(filenames=fs_files, reader='abi_l1b')
+        scn.load(['true_color_raw'])
+
+    """
+
+    def __init__(self, file, fs=None):
+        """Initialise the FSFile instance.
+
+        Args:
+            file (str, Pathlike, or OpenFile):
+                String, object implementing the `os.PathLike` protocol, or
+                an `fsspec.OpenFile` instance.  If passed an instance of
+                `fsspec.OpenFile`, the following argument ``fs`` has no
+                effect.
+            fs (fsspec filesystem, optional)
+                Object implementing the fsspec filesystem protocol.
+        """
+        try:
+            self._file = file.path
+            self._fs = file.fs
+        except AttributeError:
+            self._file = file
+            self._fs = fs
+
+    def __str__(self):
+        """Return the string version of the filename."""
+        return os.fspath(self._file)
+
+    def __fspath__(self):
+        """Comply with PathLike."""
+        return os.fspath(self._file)
+
+    def __repr__(self):
+        """Representation of the object."""
+        return '<FSFile "' + str(self._file) + '">'
+
+    def open(self):
+        """Open the file.
+
+        This is read-only.
+        """
+        try:
+            return self._fs.open(self._file)
+        except AttributeError:
+            return open(self._file)
+
+    def __lt__(self, other):
+        """Implement ordering.
+
+        Ordering is defined by the string representation of the filename,
+        without considering the file system.
+        """
+        return os.fspath(self) < os.fspath(other)
+
+    def __eq__(self, other):
+        """Implement equality comparisons.
+
+        Two FSFile instances are considered equal if they have the same
+        filename and the same file system.
+        """
+        return (isinstance(other, FSFile) and
+                self._file == other._file and
+                self._fs == other._fs)
+
+    def __hash__(self):
+        """Implement hashing.
+
+        Make FSFile objects hashable, so that they can be used in sets.  Some
+        parts of satpy and perhaps others use sets of filenames (strings or
+        pathlib.Path), or maybe use them as dictionary keys.  This requires
+        them to be hashable.  To ensure FSFile can work as a drop-in
+        replacement for strings of Path objects to represent the location of
+        blob of data, FSFile should be hashable too.
+
+        Returns the hash, computed from the hash of the filename and the hash
+        of the filesystem.
+        """
+        try:
+            fshash = hash(self._fs)
+        except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
+            fshash = hash(pickle.dumps(self._fs))
+        return hash(self._file) ^ fshash
+
+
+def open_file_or_filename(unknown_file_thing):
+    """Try to open the *unknown_file_thing*, otherwise return the filename."""
+    try:
+        f_obj = unknown_file_thing.open()
+    except AttributeError:
+        f_obj = unknown_file_thing
+    return f_obj

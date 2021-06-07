@@ -367,7 +367,7 @@ class MITIFFWriter(ImageWriter):
                 isinstance(ds.attrs['prerequisites'], list) and
                 len(ds.attrs['prerequisites']) >= i + 1 and
                     isinstance(ds.attrs['prerequisites'][i], (DataQuery, DataID))):
-                if ds.attrs['prerequisites'][i]['name'] == str(ch):
+                if ds.attrs['prerequisites'][i].get('name') == str(ch):
                     if ds.attrs['prerequisites'][i].get('calibration') == 'RADIANCE':
                         raise NotImplementedError(
                             "Mitiff radiance calibration not implemented.")

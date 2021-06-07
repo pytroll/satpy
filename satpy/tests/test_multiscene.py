@@ -24,7 +24,7 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
-from satpy.dataset import DataID, ModifierTuple, WavelengthRange
+from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
 
@@ -176,10 +176,12 @@ class TestMultiScene(unittest.TestCase):
         with mock.patch('satpy.multiscene.Scene') as scn_mock:
             mscn = MultiScene.from_files(
                     input_files_abi,
-                    reader='abi_l1b')
+                    reader='abi_l1b',
+                    scene_kwargs={"reader_kwargs": {}})
             assert len(mscn.scenes) == 6
             calls = [mock.call(
-                filenames={'abi_l1b': [in_file_abi]})
+                filenames={'abi_l1b': [in_file_abi]},
+                reader_kwargs={})
                 for in_file_abi in input_files_abi]
             scn_mock.assert_has_calls(calls)
 
@@ -429,9 +431,10 @@ class TestMultiSceneSave(unittest.TestCase):
         self.assertEqual(save_datasets.call_count, 2)
 
     @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
-    def test_save_datasets_distributed(self):
-        """Save a series of fake scenes to an PNG images using dask distributed."""
+    def test_save_datasets_distributed_delayed(self):
+        """Test distributed save for writers returning delayed obejcts e.g. simple_image."""
         from satpy import MultiScene
+        from dask.delayed import Delayed
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
 
@@ -451,6 +454,7 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock.compute.side_effect = lambda x: tuple(v for v in x)
         client_mock.gather.side_effect = lambda x: x
         future_mock = mock.MagicMock()
+        future_mock.__class__ = Delayed
         with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
             save_datasets.return_value = [future_mock]  # some arbitrary return value
             # force order of datasets by specifying them
@@ -459,6 +463,39 @@ class TestMultiSceneSave(unittest.TestCase):
 
         # 2 for each scene
         self.assertEqual(save_datasets.call_count, 2)
+
+    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    def test_save_datasets_distributed_source_target(self):
+        """Test distributed save for writers returning sources and targets e.g. geotiff writer."""
+        from satpy import MultiScene
+        import dask.array as da
+        area = _create_test_area()
+        scenes = _create_test_scenes(area=area)
+
+        # Add a dataset to only one of the Scenes
+        scenes[1]['ds3'] = _create_test_dataset('ds3')
+        # Add a start and end time
+        for ds_id in ['ds1', 'ds2', 'ds3']:
+            scenes[1][ds_id].attrs['start_time'] = datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs['end_time'] = datetime(2018, 1, 2, 12)
+            if ds_id == 'ds3':
+                continue
+            scenes[0][ds_id].attrs['start_time'] = datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs['end_time'] = datetime(2018, 1, 1, 12)
+
+        mscn = MultiScene(scenes)
+        client_mock = mock.MagicMock()
+        client_mock.compute.side_effect = lambda x: tuple(v for v in x)
+        client_mock.gather.side_effect = lambda x: x
+        source_mock = mock.MagicMock()
+        source_mock.__class__ = da.Array
+        target_mock = mock.MagicMock()
+        with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
+            save_datasets.return_value = [(source_mock, target_mock)]  # some arbitrary return value
+            # force order of datasets by specifying them
+            with self.assertRaises(NotImplementedError):
+                mscn.save_datasets(base_dir=self.base_dir, client=client_mock, datasets=['ds1', 'ds2', 'ds3'],
+                                   writer='geotiff')
 
     def test_crop(self):
         """Test the crop method."""

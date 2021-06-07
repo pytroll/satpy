@@ -23,6 +23,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from satpy.dataset.dataid import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -31,7 +32,10 @@ class TestDataID(unittest.TestCase):
 
     def test_basic_init(self):
         """Test basic ways of creating a DataID."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc, minimal_default_keys_config as mdkc
+        from satpy.dataset.dataid import (
+            DataID,
+            default_id_keys_config as dikc,
+            minimal_default_keys_config as mdkc)
 
         did = DataID(dikc, name="a")
         assert did['name'] == 'a'
@@ -50,12 +54,12 @@ class TestDataID(unittest.TestCase):
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         self.assertRaises(TypeError, DataID, dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DataID(dikc, name="a", wavelength=None)
 
@@ -65,17 +69,45 @@ class TestDataID(unittest.TestCase):
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         with pytest.raises(ValueError):
             DataID(dikc, name='C05', calibration='_bad_')
+
+    def test_is_modified(self):
+        """Test that modifications are detected properly."""
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
+        d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
+
+        assert d1.is_modified()
+        assert not d2.is_modified()
+
+    def test_create_less_modified_query(self):
+        """Test that modifications are popped correctly."""
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
+        d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
+
+        assert not d1.create_less_modified_query()['modifiers']
+        assert not d2.create_less_modified_query()['modifiers']
 
 
 class TestCombineMetadata(unittest.TestCase):
     """Test how metadata is combined."""
 
+    def setUp(self):
+        """Set up the test case."""
+        self.datetime_dts = (
+            {'start_time': datetime(2018, 2, 1, 11, 58, 0)},
+            {'start_time': datetime(2018, 2, 1, 11, 59, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 0, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 1, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 2, 0)},
+        )
+
     def test_average_datetimes(self):
         """Test the average_datetimes helper function."""
-        from satpy.dataset import average_datetimes
+        from satpy.dataset.metadata import average_datetimes
         dts = (
             datetime(2018, 2, 1, 11, 58, 0),
             datetime(2018, 2, 1, 11, 59, 0),
@@ -86,25 +118,22 @@ class TestCombineMetadata(unittest.TestCase):
         ret = average_datetimes(dts)
         self.assertEqual(dts[2], ret)
 
-    def test_combine_times(self):
-        """Test the combine_metadata with times."""
-        from satpy.dataset import combine_metadata
-        dts = (
-            {'start_time': datetime(2018, 2, 1, 11, 58, 0)},
-            {'start_time': datetime(2018, 2, 1, 11, 59, 0)},
-            {'start_time': datetime(2018, 2, 1, 12, 0, 0)},
-            {'start_time': datetime(2018, 2, 1, 12, 1, 0)},
-            {'start_time': datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        ret = combine_metadata(*dts)
-        self.assertEqual(dts[2]['start_time'], ret['start_time'])
-        ret = combine_metadata(*dts, average_times=False)
+    def test_combine_times_with_averaging(self):
+        """Test the combine_metadata with times with averaging."""
+        from satpy.dataset.metadata import combine_metadata
+        ret = combine_metadata(*self.datetime_dts)
+        self.assertEqual(self.datetime_dts[2]['start_time'], ret['start_time'])
+
+    def test_combine_times_without_averaging(self):
+        """Test the combine_metadata with times without averaging."""
+        from satpy.dataset.metadata import combine_metadata
+        ret = combine_metadata(*self.datetime_dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         from numpy import arange, ones
         from xarray import DataArray
         dts = [
@@ -138,10 +167,211 @@ class TestCombineMetadata(unittest.TestCase):
               ]
         assert "quality" not in combine_metadata(*dts6)
 
+    def test_combine_lists_identical(self):
+        """Test combine metadata with identical lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 4]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert res['prerequisites'] == [1, 2, 3, 4]
+
+    def test_combine_lists_same_size_diff_values(self):
+        """Test combine metadata with lists with different values."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3, 5]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+    def test_combine_lists_different_size(self):
+        """Test combine metadata with different size lists."""
+        from satpy.dataset.metadata import combine_metadata
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': []},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+        metadatas = [
+            {'prerequisites': [1, 2, 3, 4]},
+            {'prerequisites': [1, 2, 3]},
+        ]
+        res = combine_metadata(*metadatas)
+        assert 'prerequisites' not in res
+
+    def test_combine_identical_numpy_scalars(self):
+        """Test combining identical fill values."""
+        from satpy.dataset.metadata import combine_metadata
+        test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
+        assert combine_metadata(*test_metadata) == {'_FillValue': 42}
+
+    def test_combine_empty_metadata(self):
+        """Test combining empty metadata."""
+        from satpy.dataset.metadata import combine_metadata
+        test_metadata = [{}, {}]
+        assert combine_metadata(*test_metadata) == {}
+
+    def test_combine_nans(self):
+        """Test combining nan fill values."""
+        from satpy.dataset.metadata import combine_metadata
+        test_metadata = [{'_FillValue': np.nan}, {'_FillValue': np.nan}]
+        assert combine_metadata(*test_metadata) == {'_FillValue': np.nan}
+
+    def test_combine_numpy_arrays(self):
+        """Test combining values that are numpy arrays."""
+        from satpy.dataset.metadata import combine_metadata
+        test_metadata = [{'valid_range': np.array([0., 0.00032], dtype=np.float32)},
+                         {'valid_range': np.array([0., 0.00032], dtype=np.float32)},
+                         {'valid_range': np.array([0., 0.00032], dtype=np.float32)}]
+        result = combine_metadata(*test_metadata)
+        assert np.allclose(result['valid_range'], np.array([0., 0.00032], dtype=np.float32))
+
+    def test_combine_dask_arrays(self):
+        """Test combining values that are dask arrays."""
+        from satpy.dataset.metadata import combine_metadata
+        import dask.array as da
+        test_metadata = [{'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))},
+                         {'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
+        result = combine_metadata(*test_metadata)
+        assert 'valid_range' not in result
+
+    def test_combine_real_world_mda(self):
+        """Test with real data."""
+        mda_objects = ({'_FillValue': np.nan,
+                        'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                        'ancillary_variables': ['cpp_status_flag',
+                                                'cpp_conditions',
+                                                'cpp_quality',
+                                                'cpp_reff_pal',
+                                                '-'],
+                        'platform_name': 'NOAA-20',
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}},
+                       {'_FillValue': np.nan,
+                        'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                        'ancillary_variables': ['cpp_status_flag',
+                                                'cpp_conditions',
+                                                'cpp_quality',
+                                                'cpp_reff_pal',
+                                                '-'],
+                        'platform_name': 'NOAA-20',
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}})
+
+        expected = {'_FillValue': np.nan,
+                    'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                    'ancillary_variables': ['cpp_status_flag',
+                                            'cpp_conditions',
+                                            'cpp_quality',
+                                            'cpp_reff_pal',
+                                            '-'],
+                    'platform_name': 'NOAA-20',
+                    'sensor': {'viirs'},
+                    'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}}
+
+        from satpy.dataset.metadata import combine_metadata
+        result = combine_metadata(*mda_objects)
+        assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
+        assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
+        np.testing.assert_equal(result.pop('raw_metadata'),
+                                expected.pop('raw_metadata'))
+        assert result == expected
+
+    def test_combine_one_metadata_object(self):
+        """Test combining one metadata object."""
+        mda_objects = ({'_FillValue': np.nan,
+                        'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                        'ancillary_variables': ['cpp_status_flag',
+                                                'cpp_conditions',
+                                                'cpp_quality',
+                                                'cpp_reff_pal',
+                                                '-'],
+                        'platform_name': 'NOAA-20',
+                        'sensor': {'viirs'}},)
+
+        expected = {'_FillValue': np.nan,
+                    'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                    'ancillary_variables': ['cpp_status_flag',
+                                            'cpp_conditions',
+                                            'cpp_quality',
+                                            'cpp_reff_pal',
+                                            '-'],
+                    'platform_name': 'NOAA-20',
+                    'sensor': {'viirs'}}
+
+        from satpy.dataset.metadata import combine_metadata
+        result = combine_metadata(*mda_objects)
+        assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
+        assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
+        assert result == expected
+
+
+def test_combine_dicts_close():
+    """Test combination of dictionaries whose values are close."""
+    from satpy.dataset.metadata import combine_metadata
+    attrs = {
+        'raw_metadata': {
+            'a': 1,
+            'b': 'foo',
+            'c': [1, 2, 3],
+            'd': {
+                'e': np.str('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3]),
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+        }
+    }
+    attrs_close = {
+        'raw_metadata': {
+            'a': 1 + 1E-12,
+            'b': 'foo',
+            'c': np.array([1, 2, 3]) + 1E-12,
+            'd': {
+                'e': np.str('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3]) + 1E-12
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+        }
+    }
+    test_metadata = [attrs, attrs_close]
+    result = combine_metadata(*test_metadata)
+    assert result == attrs
+
+
+@pytest.mark.parametrize(
+    "test_mda",
+    [
+        # a/b/c/d different
+        {'a': np.array([1, 2, 3]), 'd': 123},
+        {'a': {'b': np.array([4, 5, 6]), 'c': 1.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 2.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'bar'},
+        # a/b/c/d type different
+        np.array([1, 2, 3]),
+        {'a': {'b': 'baz', 'c': 1.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 'baz'}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 1.0}
+    ]
+)
+def test_combine_dicts_different(test_mda):
+    """Test combination of dictionaries differing in various ways."""
+    from satpy.dataset.metadata import combine_metadata
+    mda = {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'foo'}
+    test_metadata = [{'raw_metadata': mda}, {'raw_metadata': test_mda}]
+    result = combine_metadata(*test_metadata)
+    assert not result
+
 
 def test_dataid():
     """Test the DataID object."""
-    from satpy.dataset import DataID, WavelengthRange, ModifierTuple, ValueList
+    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple, ValueList
 
     # Check that enum is translated to type.
     did = make_dataid()
@@ -203,7 +433,7 @@ def test_dataid():
 
 def test_dataid_equal_if_enums_different():
     """Check that dataids with different enums but same items are equal."""
-    from satpy.dataset import DataID, WavelengthRange, ModifierTuple
+    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple
     id_keys_config1 = {'name': None,
                        'wavelength': {
                            'type': WavelengthRange,
@@ -246,7 +476,7 @@ def test_dataid_equal_if_enums_different():
 
 def test_dataid_copy():
     """Test copying a DataID."""
-    from satpy.dataset import DataID, default_id_keys_config as dikc
+    from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
     from copy import deepcopy
 
     did = DataID(dikc, name="a", resolution=1000)
@@ -263,106 +493,145 @@ def test_dataid_pickle():
     assert did == pickle.loads(pickle.dumps(did))
 
 
-def test_dataquery():
-    """Test DataQuery objects."""
-    from satpy.dataset import DataQuery
+class TestDataQuery:
+    """Test case for data queries."""
 
-    DataQuery(name='cheese_shops')
+    def test_dataquery(self):
+        """Test DataQuery objects."""
+        from satpy.dataset import DataQuery
 
-    # Check repr
-    did = DataQuery(name='VIS008', resolution=111)
-    assert repr(did) == "DataQuery(name='VIS008', resolution=111)"
+        DataQuery(name='cheese_shops')
 
-    # Check inequality
-    assert DataQuery(wavelength=10) != DataQuery(name="VIS006")
+        # Check repr
+        did = DataQuery(name='VIS008', resolution=111)
+        assert repr(did) == "DataQuery(name='VIS008', resolution=111)"
+
+        # Check inequality
+        assert DataQuery(wavelength=10) != DataQuery(name="VIS006")
+
+    def test_is_modified(self):
+        """Test that modifications are detected properly."""
+        from satpy.dataset import DataQuery
+        d1 = DataQuery(name="a", wavelength=0.2, modifiers=('hej',))
+        d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
+
+        assert d1.is_modified()
+        assert not d2.is_modified()
+
+    def test_create_less_modified_query(self):
+        """Test that modifications are popped correctly."""
+        from satpy.dataset import DataQuery
+        d1 = DataQuery(name="a", wavelength=0.2, modifiers=('hej',))
+        d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
+
+        assert not d1.create_less_modified_query()['modifiers']
+        assert not d2.create_less_modified_query()['modifiers']
 
 
-def test_id_query_interactions():
-    """Test interactions between DataIDs and DataQuery's."""
-    from satpy.dataset import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
+class TestIDQueryInteractions(unittest.TestCase):
+    """Test the interactions between DataIDs and DataQuerys."""
 
-    default_id_keys_config = {'name': {
-                                'required': True,
-                              },
-                              'wavelength': {
-                                'type': WavelengthRange,
-                            },
-                            'resolution': None,
-                            'calibration': {
-                                'enum': [
-                                    'reflectance',
-                                    'brightness_temperature',
-                                    'radiance',
-                                    'counts'
-                                    ]
-                            },
-                            'modifiers': {
-                                'default': ModifierTuple(),
-                                'type': ModifierTuple,
-                            },
-                            }
+    def setUp(self) -> None:
+        """Set up the test case."""
+        self.default_id_keys_config = {
+            'name': {
+                'required': True,
+            },
+            'wavelength': {
+                'type': WavelengthRange,
+            },
+            'resolution': None,
+            'calibration': {
+                'enum': [
+                    'reflectance',
+                    'brightness_temperature',
+                    'radiance',
+                    'counts'
+                ]
+            },
+            'modifiers': {
+                'default': ModifierTuple(),
+                'type': ModifierTuple,
+            },
+        }
 
-    # Check hash equality
-    dq = DataQuery(modifiers=tuple(), name='cheese_shops')
-    did = DataID(default_id_keys_config, name='cheese_shops')
-    assert hash(dq) == hash(did)
+    def test_hash_equality(self):
+        """Test hash equality."""
+        dq = DataQuery(modifiers=tuple(), name='cheese_shops')
+        did = DataID(self.default_id_keys_config, name='cheese_shops')
+        assert hash(dq) == hash(did)
 
-    # Check did filtering
-    did2 = DataID(default_id_keys_config, name='ni')
-    res = dq.filter_dataids([did2, did])
-    assert len(res) == 1
-    assert res[0] == did
+    def test_id_filtering(self):
+        """Check did filtering."""
+        dq = DataQuery(modifiers=tuple(), name='cheese_shops')
+        did = DataID(self.default_id_keys_config, name='cheese_shops')
+        did2 = DataID(self.default_id_keys_config, name='ni')
+        res = dq.filter_dataids([did2, did])
+        assert len(res) == 1
+        assert res[0] == did
 
-    dataid_container = [DataID(default_id_keys_config,
-                               name='ds1',
-                               resolution=250,
-                               calibration='reflectance',
-                               modifiers=tuple())]
-    dq = DataQuery(wavelength=0.22, modifiers=tuple())
-    assert len(dq.filter_dataids(dataid_container)) == 0
-    dataid_container = [DataID(minimal_default_keys_config,
-                               name='natural_color')]
-    dq = DataQuery(name='natural_color', resolution=250)
-    assert len(dq.filter_dataids(dataid_container)) == 1
+        dataid_container = [DataID(self.default_id_keys_config,
+                                   name='ds1',
+                                   resolution=250,
+                                   calibration='reflectance',
+                                   modifiers=tuple())]
+        dq = DataQuery(wavelength=0.22, modifiers=tuple())
+        assert len(dq.filter_dataids(dataid_container)) == 0
+        dataid_container = [DataID(minimal_default_keys_config,
+                                   name='natural_color')]
+        dq = DataQuery(name='natural_color', resolution=250)
+        assert len(dq.filter_dataids(dataid_container)) == 1
 
-    dq = make_dsq(wavelength=0.22, modifiers=('mod1',))
-    did = make_cid(name='static_image')
-    assert len(dq.filter_dataids([did])) == 0
+        dq = make_dsq(wavelength=0.22, modifiers=('mod1',))
+        did = make_cid(name='static_image')
+        assert len(dq.filter_dataids([did])) == 0
 
-    # Check did sorting
-    dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')
-    did = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1, 2, 3))
-    did2 = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1.1, 2.1, 3.1))
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did, did2]
-    assert np.allclose(distances, [0, 0.1])
+    def test_inequality(self):
+        """Check (in)equality."""
+        assert DataQuery(wavelength=10) != DataID(self.default_id_keys_config, name="VIS006")
 
-    dq = DataQuery(name='cheese_shops')
-    did = DataID(default_id_keys_config, name='cheese_shops', resolution=200)
-    did2 = DataID(default_id_keys_config, name='cheese_shops', resolution=400)
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did, did2]
-    assert distances[0] < distances[1]
+    def test_sort_dataids(self):
+        """Check dataid sorting."""
+        dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')
+        did = DataID(self.default_id_keys_config, name='cheese_shops', wavelength=(1, 2, 3))
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', wavelength=(1.1, 2.1, 3.1))
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did, did2]
+        assert np.allclose(distances, [0, 0.1])
 
-    did = DataID(default_id_keys_config, name='cheese_shops', calibration='counts')
-    did2 = DataID(default_id_keys_config, name='cheese_shops', calibration='reflectance')
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did2, did]
-    assert distances[0] < distances[1]
+        dq = DataQuery(name='cheese_shops')
+        did = DataID(self.default_id_keys_config, name='cheese_shops', resolution=200)
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', resolution=400)
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did, did2]
+        assert distances[0] < distances[1]
 
-    did = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple())
-    did2 = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple(['out_of_stock']))
-    dsids, distances = dq.sort_dataids([did2, did])
-    assert list(dsids) == [did, did2]
-    assert distances[0] < distances[1]
+        did = DataID(self.default_id_keys_config, name='cheese_shops', calibration='counts')
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', calibration='reflectance')
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did2, did]
+        assert distances[0] < distances[1]
 
-    # Check (in)equality
-    assert DataQuery(wavelength=10) != DataID(default_id_keys_config, name="VIS006")
+        did = DataID(self.default_id_keys_config, name='cheese_shops', modifiers=tuple())
+        did2 = DataID(self.default_id_keys_config, name='cheese_shops', modifiers=tuple(['out_of_stock']))
+        dsids, distances = dq.sort_dataids([did2, did])
+        assert list(dsids) == [did, did2]
+        assert distances[0] < distances[1]
+
+    def test_sort_dataids_with_different_set_of_keys(self):
+        """Check sorting data ids when the query has a different set of keys."""
+        dq = DataQuery(name='solar_zenith_angle', calibration='reflectance')
+        dids = [DataID(self.default_id_keys_config, name='solar_zenith_angle', resolution=1000, modifiers=()),
+                DataID(self.default_id_keys_config, name='solar_zenith_angle', resolution=500, modifiers=()),
+                DataID(self.default_id_keys_config, name='solar_zenith_angle', resolution=250, modifiers=())]
+        dsids, distances = dq.sort_dataids(dids)
+        assert distances[0] < distances[1]
+        assert distances[1] < distances[2]
 
 
 def test_wavelength_range():
     """Test the wavelength range object."""
-    from satpy.dataset import WavelengthRange
+    from satpy.dataset.dataid import WavelengthRange
 
     wr = WavelengthRange(1, 2, 3)
     assert 1.2 == wr
@@ -383,8 +652,18 @@ def test_wavelength_range():
     assert wr2 in wr
     wr2 = WavelengthRange(1, 2, 3, 'nm')
     with pytest.raises(NotImplementedError):
-        wr2 in wr
+        wr2 in wr  # noqa
 
     # Check __str__
-    assert str(wr) == "2 µm (1-3 µm)"
-    assert str(wr2) == "2 nm (1-3 nm)"
+    assert str(wr) == "2 µm (1-3 µm)"
+    assert str(wr2) == "2 nm (1-3 nm)"
+
+
+def test_wavelength_range_cf_roundtrip():
+    """Test the wavelength range object roundtrip to cf."""
+    from satpy.dataset.dataid import WavelengthRange
+
+    wr = WavelengthRange(1, 2, 3)
+
+    assert WavelengthRange.from_cf(wr.to_cf()) == wr
+    assert WavelengthRange.from_cf([str(item) for item in wr]) == wr

@@ -35,12 +35,12 @@ datasets:
         file_type: gac_lac_l1b
     '3':
         name: '3'
-        wavelength: [1.58, 1.61, 1.64]
+        wavelength: [3.55, 3.74, 3.93]
         resolution: 1050
         calibration:
-          reflectance:
-            standard_name: toa_bidirectional_reflectance
-            units: '%'
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
           counts:
             units: count
         coordinates:

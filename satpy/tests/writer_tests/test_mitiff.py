@@ -129,7 +129,7 @@ class TestMITIFFWriter(unittest.TestCase):
             attrs={'name': '1',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
-                   'sensor': set('TEST_SENSOR_NAME'),
+                   'sensor': {'TEST_SENSOR_NAME'},
                    'area': area_def,
                    'prerequisites': ['1'],
                    'calibration': 'reflectance',
@@ -152,7 +152,7 @@ class TestMITIFFWriter(unittest.TestCase):
             attrs={'name': '4',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
-                   'sensor': set('TEST_SENSOR_NAME'),
+                   'sensor': {'TEST_SENSOR_NAME'},
                    'area': area_def,
                    'prerequisites': ['4'],
                    'calibration': 'brightness_temperature',
@@ -255,7 +255,7 @@ class TestMITIFFWriter(unittest.TestCase):
             attrs={'name': 'test',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
-                   'sensor': set('avhrr'),
+                   'sensor': {'avhrr'},
                    'area': area_def,
                    'prerequisites': [10.8]}
         )
@@ -482,6 +482,39 @@ class TestMITIFFWriter(unittest.TestCase):
                    'prerequisites': [make_dsq(name='1', calibration='reflectance'),
                                      make_dsq(name='2', calibration='reflectance')]}
         )
+        return ds1
+
+    def _get_test_dataset_three_bands_prereq(self, bands=3):
+        """Create a single test dataset."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        from satpy.tests.utils import make_dsq
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((bands, 100, 200), chunks=50),
+            coords=[['R', 'G', 'B'], list(range(100)), list(range(200))],
+            dims=('bands', 'y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': 'TEST_SENSOR_NAME',
+                   'area': area_def,
+                   'prerequisites': [make_dsq(wavelength=0.6, modifiers=('sunz_corrected',)),
+                                     make_dsq(wavelength=0.8, modifiers=('sunz_corrected',)),
+                                     10.8]})
         return ds1
 
     def test_init(self):
@@ -942,3 +975,21 @@ class TestMITIFFWriter(unittest.TestCase):
         dataset = self._get_test_dataset_three_bands_two_prereq()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
+
+    def test_get_test_dataset_three_bands_prereq(self):
+        """Test basic writer operation with 3 bands with DataQuery prerequisites with missing name."""
+        import os
+        from libtiff import TIFF
+        from satpy.writers.mitiff import MITIFFWriter
+        IMAGEDESCRIPTION = 270
+
+        dataset = self._get_test_dataset_three_bands_prereq()
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset)
+        filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
+                                                         dataset.attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        for element in imgdesc:
+            if ' Channels:' in element:
+                self.assertEqual(element, ' Channels: 3 In this file: 1 2 3')

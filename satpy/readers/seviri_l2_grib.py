@@ -22,21 +22,22 @@ References:
     FM 92 GRIB Edition 2
     https://www.wmo.int/pages/prog/www/WMOCodes/Guides/GRIB/GRIB2_062006.pdf
 
-"""
+    EUMETSAT Product Navigator
+    https://navigator.eumetsat.int/
 
+"""
 import logging
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-
 from datetime import timedelta
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 from satpy.readers._geos_area import get_area_definition
+from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (calculate_area_extent,
                                        PLATFORM_DICT,
                                        REPEAT_CYCLE_DURATION)
-from satpy import CHUNK_SIZE
 
 try:
     import eccodes as ec
@@ -141,6 +142,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
                 # Check if the parameter number in the GRIB message corresponds to the required key
                 parameter_number = self._get_from_msg(gid, 'parameterNumber')
+
                 if parameter_number != dataset_info['parameter_number']:
                     # The parameter number is not the correct one, skip to next message
                     ec.codes_release(gid)
@@ -151,7 +153,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
                 # Retrieve values and metadata from the GRIB message, masking the values equal to missing_value
                 xarr = self._get_xarray_from_msg(gid)
-                xarr.where(xarr.data == missing_value, np.NaN)
+
+                xarr.data = da.where(xarr.data == missing_value, np.nan, xarr.data)
 
                 ec.codes_release(gid)
 

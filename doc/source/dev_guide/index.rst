@@ -16,6 +16,7 @@ at the pages listed below.
     custom_reader
     plugins
     satpy_internals
+    aux_data
 
 Coding guidelines
 =================
@@ -29,6 +30,8 @@ Satpy is now Python 3 only and it is no longer needed to support Python 2.
 Check ``setup.py`` for the current Python versions any new code needs
 to support.
 
+.. _devinstall:
+
 Development installation
 ========================
 
@@ -36,13 +39,32 @@ See the :doc:`../install` section for basic installation instructions. When
 it comes time to install Satpy it should be installed from a clone of the git
 repository and in development mode so that local file changes are
 automatically reflected in the python environment. We highly recommend making
-a separate conda environment or virtualenv for development.
+a separate conda environment or virtualenv for development. For example, you
+can do this using conda_::
 
-First, if you plan on contributing back to the project you should
+  conda create -n satpy-dev python=3.8
+  conda activate satpy-dev
+
+.. _conda: https://conda.io/
+
+This will create a new environment called "satpy-dev" with Python 3.8
+installed. The second command will activate the environment so any future
+conda, python, or pip commands will use this new environment.
+
+If you plan on contributing back to the project you should first
 `fork the repository <https://help.github.com/articles/fork-a-repo/>`_ and
-clone your fork. The package can then be installed in development by doing::
+clone your fork. The package can then be installed in development mode by doing::
 
+    conda install --only-deps satpy
     pip install -e .
+
+The first command will install all dependencies needed by the Satpy
+conda-forge package, but won't actually install Satpy. The second command
+should be run from the root of the cloned Satpy repository (where the
+`setup.py` is) and will install the actual package.
+
+You can now edit the python files in your cloned repository and have them
+immediately reflected in your conda environment.
 
 Running tests
 =============
@@ -52,6 +74,27 @@ third-party :doc:`pytest <pytest:index>` package. Satpy tests can be executed by
 running::
 
     pytest satpy/tests
+
+Running benchmarks
+==================
+
+Satpy benchmarks are written using the
+`Airspeed Velocity <https://asv.readthedocs.io/en/stable/index.html>`_
+package (:mod:`asv`).
+The benchmarks can be run using::
+
+    asv run
+
+These are pretty computation intensive, and shouldn't be run unless you want to
+diagnose some performance issue for example.
+
+Once the benchmarks have run, you can use::
+
+    asv publish
+    asv preview
+
+to have a look at the results. Again, have a look at the `asv` documentation for
+more information.
 
 Documentation
 =============

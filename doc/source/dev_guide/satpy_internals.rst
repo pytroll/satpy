@@ -57,13 +57,13 @@ As an example here is the definition of the first one in yaml:
       wavelength:
         type: !!python/name:satpy.dataset.WavelengthRange
       resolution:
-        transitive: true
       calibration:
         enum:
             - reflectance
             - brightness_temperature
             - radiance
             - counts
+        transitive: true
       modifiers:
         required: true
         default: []
@@ -80,11 +80,11 @@ arrays. Under each of this, a few options are available:
  - `enum`: if the item has to be limited to a finite number of options, an enum can be used.
    Be sure to place the options in the order of preference, with the most desirable option on top.
  - `default`: the default value to assign to the item if nothing (or None) is provided. If this
-   option isn't provided, the key will simply be omited if it is not present in the attrs or if it
+   option isn't provided, the key will simply be omitted if it is not present in the attrs or if it
    is None. It will be passed to the type's `convert` method if available.
- - `transitive`: whether the key is to be passed when looking for dependencies. Here for example,
-   a composite that has to be at a certain resolution will pass this resolution requirement to its
-   dependencies.
+ - `transitive`: whether the key is to be passed when looking for dependencies of composites/modifiers.
+   Here for example, a composite that has in a given calibration type will pass this calibration
+   type requirement to its dependencies.
 
 
 If the definition of the metadata keys need to be done in python rather than in a yaml file, it will
@@ -107,7 +107,8 @@ be a dictionary very similar to the yaml code. Here is the same example as above
                               'brightness_temperature',
                               'radiance',
                               'counts'
-                              ]
+                              ],
+                          'transitive': True,
                       },
                       'modifiers': {
                           'required': True,

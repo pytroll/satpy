@@ -73,7 +73,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                     'Slope': 1., 'Intercept': 0.,
                                     'FillValue': 0,
                                     'units': 'NUL',
-                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'band_names': 'NUL',
                                     'long_name': b'Calibration coefficient (SCALE and OFFSET)',
                                     'valid_range': [-500, 500],
                                 },
@@ -86,7 +86,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                     'Slope': 1., 'Intercept': 0.,
                                     'FillValue': 0,
                                     'units': 'NUL',
-                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'band_names': 'NUL',
                                     'long_name': b'Calibration coefficient (SCALE and OFFSET)',
                                     'valid_range': [-500, 500],
                                 },
@@ -99,7 +99,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                     'Slope': 1., 'Intercept': 0.,
                                     'FillValue': 0,
                                     'units': 'NUL',
-                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'band_names': 'NUL',
                                     'long_name': b'Calibration coefficient (SCALE and OFFSET)',
                                     'valid_range': [-500, 500],
                                 },
@@ -113,7 +113,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                     'Slope': 1., 'Intercept': 0.,
                                     'FillValue': 0,
                                     'units': 'NUL',
-                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'band_names': 'NUL',
                                     'long_name': b'Calibration coefficient (SCALE and OFFSET)',
                                     'valid_range': [-500, 500],
                                 },
@@ -228,7 +228,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.agri_l1 import HDF_AGRI_L1
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(HDF_AGRI_L1, '__bases__', (FakeHDF5FileHandler2,))
@@ -242,7 +242,8 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def test_fy4a_all_resolutions(self):
         """Test loading data when all resolutions are available."""
         from satpy.tests.utils import make_dsq
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_0500M_V0001.HDF',
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_1000M_V0001.HDF',
@@ -338,7 +339,8 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def test_fy4a_4km_resolutions(self):
         """Test loading data when only 4km resolutions are available."""
         from satpy.tests.utils import make_dsq
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF',
         ]
@@ -393,7 +395,8 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def test_fy4a_2km_resolutions(self):
         """Test loading data when only 2km resolutions are available."""
         from satpy.tests.utils import make_dsq
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_2000M_V0001.HDF',
         ]
@@ -448,7 +451,8 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def test_fy4a_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
         from satpy.tests.utils import make_dsq
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_1000M_V0001.HDF',
         ]
@@ -491,7 +495,8 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def test_fy4a_500m_resolutions(self):
         """Test loading data when only 500m resolutions are available."""
         from satpy.tests.utils import make_dsq
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_0500M_V0001.HDF',
         ]

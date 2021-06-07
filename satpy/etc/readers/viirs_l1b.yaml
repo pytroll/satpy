@@ -34,31 +34,37 @@ file_types:
     file_patterns:
     - 'VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}03IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+    - 'V{platform_shortname:2s}03IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
   vgeom:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}03MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+    - 'V{platform_shortname:2s}03MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
   vgeod:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}03DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+    - 'V{platform_shortname:2s}03DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
   vl1bi:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}02IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+    - 'V{platform_shortname:2s}02IMG_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
   vl1bm:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}02MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+    - 'V{platform_shortname:2s}02MOD_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
   vl1bd:
     file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
     file_patterns:
     - 'VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
     - 'V{platform_shortname:2s}02DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+    - 'V{platform_shortname:2s}02DNB_NRT.A{start_time:%Y%j.%H%M}.{collection_number:3d}.nc'
 
 datasets:
   i_lon:
@@ -459,6 +465,13 @@ datasets:
     coordinates: [dnb_lon, dnb_lat]
     file_type: vgeod
     file_key: geolocation_data/solar_zenith
+  DNB_SENZ:
+    name: dnb_satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 743
+    coordinates: [dnb_lon, dnb_lat]
+    file_type: vgeod
+    file_key: geolocation_data/solar_zenith
   DNB_LZA:
     name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
@@ -466,6 +479,27 @@ datasets:
     coordinates: [dnb_lon, dnb_lat]
     file_type: vgeod
     file_key: geolocation_data/lunar_zenith
+  DNB_SAA:
+    name: dnb_solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_lon, dnb_lat]
+    file_type: vgeod
+    file_key: geolocation_data/solar_azimuth
+  DNB_SENA:
+    name: dnb_satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_lon, dnb_lat]
+    file_type: vgeod
+    file_key: geolocation_data/sensor_azimuth
+  DNB_LAA:
+    name: dnb_lunar_azimuth_angle
+    standard_name: lunar_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_lon, dnb_lat]
+    file_type: vgeod
+    file_key: geolocation_data/lunar_azimuth
   dnb_moon_illumination_fraction:
     name: dnb_moon_illumination_fraction
     resolution: 743

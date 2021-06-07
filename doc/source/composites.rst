@@ -9,7 +9,6 @@ Composites are generated in satpy using Compositor classes. The attributes of th
 resulting composites are usually a combination of the prerequisites' attributes and
 the key/values of the DataID used to identify it.
 
-
 Built-in Compositors
 ====================
 
@@ -28,7 +27,7 @@ General-use compositor code dealing with visible or infrared satellite
 data can be put in a configuration file called ``visir.yaml``. Composites
 that are specific to an instrument can be placed in YAML config files named
 accordingly (e.g., ``seviri.yaml`` or ``viirs.yaml``). See the
-`satpy repository <https://github.com/pytroll/satpy/tree/master/satpy/etc/composites>`_
+`satpy repository <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_
 for more examples.
 
 GenericCompositor
@@ -224,21 +223,40 @@ BackgroundCompositor
     >>> background = local_scene['overview']
     >>> composite = compositor([clouds, background])
 
+CategoricalDataCompositor
+-------------------------
+
+:class:`CategoricalDataCompositor` can be used to recategorize categorical data. This is for example useful to
+combine comparable categories into a common category. The category remapping from `data` to `composite` is done
+using a look-up-table (`lut`)::
+
+    composite = [[lut[data[0,0]], lut[data[0,1]], lut[data[0,Nj]]],
+                 [[lut[data[1,0]], lut[data[1,1]], lut[data[1,Nj]],
+                 [[lut[data[Ni,0]], lut[data[Ni,1]], lut[data[Ni,Nj]]]
+
+Hence, `lut` must have a length that is greater than the maximum value in `data` in orer to avoid an `IndexError`.
+Below is an example on how to create a binary clear-sky/cloud mask from a pseodu cloud type product with six
+categories representing clear sky (cat1/cat5), cloudy features (cat2-cat4) and missing/undefined data (cat0)::
+
+    >>> cloud_type = local_scene['cloud_type']  # 0 - cat0, 1 - cat1, 2 - cat2, 3 - cat3, 4 - cat4, 5 - cat5,
+    # categories: 0    1  2  3  4  5
+    >>> lut = [np.nan, 0, 1, 1, 1, 0]
+    >>> compositor = CategoricalDataCompositor('binary_cloud_mask', lut=lut)
+    >>> composite = compositor([cloud_type])  # 0 - cat1/cat5, 1 - cat2/cat3/cat4, nan - cat0
+
+
 Creating composite configuration files
 ======================================
 
-To save the custom composite, the following procedure can be used:
-
-1. Create a custom directory for your custom configs.
-2. Set the environment variable ``PPP_CONFIG_DIR`` to this path.
-3. Write config files with your changes only (see examples below), pointing
-   to the (custom) module containing your composites. Generic compositors can
-   be placed in ``$PPP_CONFIG_DIR/composites/visir.yaml`` and instrument-
-   specific ones in ``$PPP_CONFIG_DIR/composites/<sensor>.yaml``. Don't forget
-   to add changes to the ``enhancement/generic.yaml`` file too.
-4. If custom compositing code was used then it must be importable by python.
-   If the code is not installed in your python environment then another option
-   it to add it to your ``PYTHONPATH``.
+To save the custom composite, follow the :ref:`component_configuration`
+documentation. Once your component configuration directory is created
+you can create your custom composite YAML configuration files.
+Compositors that can be used for multiple instruments can be placed in the
+generic ``$SATPY_CONFIG_PATH/composites/visir.yaml`` file. Composites that
+are specific to one sensor should be placed in
+``$SATPY_CONFIG_PATH/composites/<sensor>.yaml``. Custom enhancements for your new
+composites can be stored in ``$SATPY_CONFIG_PATH/enhancements/generic.yaml`` or
+``$SATPY_CONFIG_PATH/enhancements/<sensor>.yaml``.
 
 With that, you should be able to load your new composite directly. Example
 configuration files can be found in the satpy repository as well as a few
@@ -404,7 +422,7 @@ image) for both of the static images::
       standard_name: static_day
       operations:
       - name: stretch
-        method: *stretchfun
+        method: !!python/name:satpy.enhancements.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
@@ -468,7 +486,7 @@ And finally either show or save the image::
 
 As pointed out in the composite section, it is better to define
 frequently used enhancements in configuration files under
-``$PPP_CONFIG_DIR/enhancements/``.  The enhancements can either be in
+``$SATPY_CONFIG_PATH/enhancements/``.  The enhancements can either be in
 ``generic.yaml`` or instrument-specific file (e.g., ``seviri.yaml``).
 
 The above enhancement can be written (with the headers necessary for

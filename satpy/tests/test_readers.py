@@ -19,10 +19,12 @@
 
 import os
 import unittest
+from contextlib import suppress
 from unittest import mock
-from satpy.dataset import WavelengthRange, ModifierTuple, DataID
 
 import pytest
+from satpy.dataset.data_dict import get_key
+from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -62,7 +64,7 @@ class TestDatasetDict(unittest.TestCase):
 
     def setUp(self):
         """Create a test DatasetDict."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         self.regular_dict = regular_dict = {
             make_dataid(name="test",
                         wavelength=(0, 0.5, 1),
@@ -93,13 +95,13 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_init_noargs(self):
         """Test DatasetDict init with no arguments."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         d = DatasetDict()
         self.assertIsInstance(d, dict)
 
     def test_init_dict(self):
         """Test DatasetDict init with a regular dict argument."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         regular_dict = {make_dataid(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
@@ -136,7 +138,6 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_get_key(self):
         """Test 'get_key' special functions."""
-        from satpy.readers import get_key
         from satpy.dataset import DataQuery
         d = self.test_dict
         res1 = get_key(make_dataid(name='test4'), d, calibration='radiance')
@@ -584,14 +585,26 @@ class TestFindFilesAndReaders(unittest.TestCase):
             load.side_effect = yaml.YAMLError("Import problems")
             self.assertRaises(yaml.YAMLError, find_files_and_readers, reader='viirs_sdr')
 
+    def test_pending_old_reader_name_mapping(self):
+        """Test that requesting pending old reader names raises a warning."""
+        from satpy.readers import get_valid_reader_names, PENDING_OLD_READER_NAMES
+        if not PENDING_OLD_READER_NAMES:
+            return unittest.skip("Skipping pending deprecated reader tests because "
+                                 "no pending deprecated readers.")
+        test_reader = sorted(PENDING_OLD_READER_NAMES.keys())[0]
+        with self.assertWarns(FutureWarning):
+            valid_reader_names = get_valid_reader_names([test_reader])
+        self.assertEqual(valid_reader_names[0], PENDING_OLD_READER_NAMES[test_reader])
+
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
-        from satpy.readers import configs_for_reader, OLD_READER_NAMES
+        from satpy.readers import get_valid_reader_names, OLD_READER_NAMES
         if not OLD_READER_NAMES:
             return unittest.skip("Skipping deprecated reader tests because "
                                  "no deprecated readers.")
         test_reader = sorted(OLD_READER_NAMES.keys())[0]
-        self.assertRaises(ValueError, list, configs_for_reader(test_reader))
+        with self.assertRaises(ValueError):
+            get_valid_reader_names([test_reader])
 
 
 class TestYAMLFiles(unittest.TestCase):
@@ -606,7 +619,7 @@ class TestYAMLFiles(unittest.TestCase):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
 
-        from satpy.config import glob_config
+        from satpy._config import glob_config
         from satpy.readers import read_reader_config
         for reader_config in glob_config('readers/*.yaml'):
             reader_fn = os.path.basename(reader_config)
@@ -625,12 +638,14 @@ class TestYAMLFiles(unittest.TestCase):
         self.assertIsInstance(reader_names[0], str)
         self.assertIn('viirs_sdr', reader_names)  # needs h5py
         self.assertIn('abi_l1b', reader_names)  # needs netcdf4
+        self.assertEqual(reader_names, sorted(reader_names))
 
         reader_infos = available_readers(as_dict=True)
         self.assertEqual(len(reader_names), len(reader_infos))
         self.assertIsInstance(reader_infos[0], dict)
         for reader_info in reader_infos:
             self.assertIn('name', reader_info)
+        self.assertEqual(reader_infos, sorted(reader_infos, key=lambda reader_info: reader_info['name']))
 
 
 class TestGroupFiles(unittest.TestCase):
@@ -830,3 +845,149 @@ class TestGroupFiles(unittest.TestCase):
                     reader=("abi_l1b", "viirs_sdr"),
                     group_keys=("start_time"),
                     time_threshold=10**9)
+
+
+def _generate_random_string():
+    import uuid
+    return str(uuid.uuid1())
+
+
+def _assert_is_open_file_and_close(opened):
+    try:
+        assert hasattr(opened, 'tell')
+    finally:
+        opened.close()
+
+
+def _posixify_path(filename):
+    drive, driveless_name = os.path.splitdrive(filename)
+    return driveless_name.replace('\\', '/')
+
+
+class TestFSFile(unittest.TestCase):
+    """Test the FSFile class."""
+
+    def setUp(self):
+        """Set up the instance."""
+        import fsspec
+        from pathlib import Path
+        import tempfile
+        import zipfile
+        self.random_string = _generate_random_string()
+        self.local_filename = os.path.join(tempfile.gettempdir(), self.random_string)
+        Path(self.local_filename).touch()
+        self.local_file = fsspec.open(self.local_filename)
+
+        self.random_string2 = _generate_random_string()
+        self.local_filename2 = os.path.join(tempfile.gettempdir(), self.random_string2)
+        Path(self.local_filename2).touch()
+        self.zip_name = os.path.join(tempfile.gettempdir(), self.random_string2 + ".zip")
+        zip_file = zipfile.ZipFile(self.zip_name, 'w', zipfile.ZIP_DEFLATED)
+        zip_file.write(self.local_filename2)
+        zip_file.close()
+        os.remove(self.local_filename2)
+
+    def tearDown(self):
+        """Destroy the instance."""
+        os.remove(self.local_filename)
+        with suppress(PermissionError):
+            os.remove(self.zip_name)
+
+    def test_regular_filename_is_returned_with_str(self):
+        """Test that str give the filename."""
+        from satpy.readers import FSFile
+        assert str(FSFile(self.random_string)) == self.random_string
+
+    def test_fsfile_with_regular_filename_abides_pathlike(self):
+        """Test that FSFile abides PathLike for regular filenames."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.random_string)) == self.random_string
+
+    def test_fsfile_with_regular_filename_and_fs_spec_abides_pathlike(self):
+        """Test that FSFile abides PathLike for filename+fs instances."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.random_string, fs=None)) == self.random_string
+
+    def test_fsfile_with_pathlike(self):
+        """Test FSFile with path-like object."""
+        from satpy.readers import FSFile
+        from pathlib import Path
+        f = FSFile(Path(self.local_filename))
+        assert str(f) == os.fspath(f) == self.local_filename
+
+    def test_fsfile_with_fs_open_file_abides_pathlike(self):
+        """Test that FSFile abides PathLike for fsspec OpenFile instances."""
+        from satpy.readers import FSFile
+        assert os.fspath(FSFile(self.local_file)).endswith(self.random_string)
+
+    def test_repr_includes_filename(self):
+        """Test that repr includes the filename."""
+        from satpy.readers import FSFile
+        assert self.random_string in repr(FSFile(self.local_file))
+
+    def test_open_regular_file(self):
+        """Test opening a regular file."""
+        from satpy.readers import FSFile
+        _assert_is_open_file_and_close(FSFile(self.local_filename).open())
+
+    def test_open_local_fs_file(self):
+        """Test opening a localfs file."""
+        from satpy.readers import FSFile
+        _assert_is_open_file_and_close(FSFile(self.local_file).open())
+
+    def test_open_zip_fs_regular_filename(self):
+        """Test opening a zipfs with a regular filename provided."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        file = FSFile(_posixify_path(self.local_filename2), zip_fs)
+        _assert_is_open_file_and_close(file.open())
+
+    def test_open_zip_fs_openfile(self):
+        """Test opening a zipfs openfile."""
+        from satpy.readers import FSFile
+        import fsspec
+        open_file = fsspec.open("zip:/" + _posixify_path(self.local_filename2) + "::file://" + self.zip_name)
+        file = FSFile(open_file)
+        _assert_is_open_file_and_close(file.open())
+
+    def test_sorting_fsfiles(self):
+        """Test sorting FSFiles."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        file1 = FSFile(self.local_filename2, zip_fs)
+
+        file2 = FSFile(self.local_filename)
+
+        extra_file = os.path.normpath('/somedir/bla')
+        sorted_filenames = [os.fspath(file) for file in sorted([file1, file2, extra_file])]
+        expected_filenames = sorted([extra_file, os.fspath(file1), os.fspath(file2)])
+        assert sorted_filenames == expected_filenames
+
+    def test_equality(self):
+        """Test that FSFile compares equal when it should."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        zip_fs = ZipFileSystem(self.zip_name)
+        assert FSFile(self.local_filename) == FSFile(self.local_filename)
+        assert (FSFile(self.local_filename, zip_fs) ==
+                FSFile(self.local_filename, zip_fs))
+        assert (FSFile(self.local_filename, zip_fs) !=
+                FSFile(self.local_filename))
+        assert FSFile(self.local_filename) != FSFile(self.local_filename2)
+
+    def test_hash(self):
+        """Test that FSFile hashing behaves sanely."""
+        from satpy.readers import FSFile
+        from fsspec.implementations.zip import ZipFileSystem
+        from fsspec.implementations.local import LocalFileSystem
+        from fsspec.implementations.cached import CachingFileSystem
+
+        lfs = LocalFileSystem()
+        zfs = ZipFileSystem(self.zip_name)
+        cfs = CachingFileSystem(fs=lfs)
+        # make sure each name/fs-combi has its own hash
+        assert len({hash(FSFile(fn, fs))
+                    for fn in {self.local_filename, self.local_filename2}
+                    for fs in [None, lfs, zfs, cfs]}) == 2*4
