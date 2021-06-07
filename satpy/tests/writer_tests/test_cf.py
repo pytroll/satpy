@@ -88,7 +88,7 @@ class TestCFWriter(unittest.TestCase):
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
         with mock.patch('satpy.writers.cf_writer.xr.Dataset') as xrdataset,\
-                mock.patch('satpy.writers.cf_writer.make_time_bounds'):
+                mock.patch('satpy.writers.cf_writer._get_time_bounds'):
             scn['test-array'] = xr.DataArray([1, 2, 3],
                                              attrs=dict(start_time=start_time,
                                                         end_time=end_time,
@@ -270,15 +270,22 @@ class TestCFWriter(unittest.TestCase):
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
         test_array = np.array([[1, 2], [3, 4]])
+        test_array2 = test_array[..., np.newaxis]
         scn['test-array'] = xr.DataArray(test_array,
                                          dims=['x', 'y'],
                                          coords={'time': np.datetime64('2018-05-30T10:05:00')},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
+        scn['test-array2'] = xr.DataArray(test_array2,
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
+                                          attrs=dict(start_time=start_time,
+                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename, decode_cf=True) as f:
                 np.testing.assert_array_equal(f['time'], scn['test-array']['time'])
+                np.testing.assert_array_equal(f['time'], scn['test-array2']['time'])
                 bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
@@ -321,9 +328,9 @@ class TestCFWriter(unittest.TestCase):
         import xarray as xr
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
-        end_timeA = datetime(2018, 5, 30, 10, 20)
+        end_timeA = datetime(2018, 5, 30, 10, 20)  # expected to be used
         start_timeB = datetime(2018, 5, 30, 10, 3)
-        end_timeB = datetime(2018, 5, 30, 10, 15)  # expected to be used
+        end_timeB = datetime(2018, 5, 30, 10, 15)
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn['test-arrayA'] = xr.DataArray(test_arrayA,
@@ -339,7 +346,7 @@ class TestCFWriter(unittest.TestCase):
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename, decode_cf=True) as f:
-                bounds_exp = np.array([[start_timeA, end_timeB]], dtype='datetime64[m]')
+                bounds_exp = np.array([[start_timeA, end_timeA]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
     def test_bounds_missing_time_info(self):
@@ -627,13 +634,13 @@ class TestCFWriter(unittest.TestCase):
 
         # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(datasets, include_lonlats=True)
+        datas, time_bounds = writer._collect_datasets(datasets, include_lonlats=True)
 
         # Test results
         self.assertEqual(len(datas), 3)
         self.assertEqual(set(datas.keys()), {'var1', 'var2', 'geos'})
-        self.assertListEqual(start_times, [None, tstart, None])
-        self.assertListEqual(end_times, [None, tend, None])
+        self.assertEqual(time_bounds.isel(bnds_1d=0), np.datetime64(tstart))
+        self.assertEqual(time_bounds.isel(bnds_1d=1), np.datetime64(tend))
         var1 = datas['var1']
         var2 = datas['var2']
         self.assertEqual(var1.name, 'var1')
@@ -1147,8 +1154,8 @@ class TestCFWriterData(unittest.TestCase):
 
         # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(self.datasets_list, include_lonlats=True)
-        datas2, start_times, end_times = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
+        datas, time_bounds = writer._collect_datasets(self.datasets_list, include_lonlats=True)
+        datas2, time_bounds = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
         # Test results
 
         self.assertEqual(len(datas), 5)
