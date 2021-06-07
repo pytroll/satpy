@@ -122,14 +122,15 @@ class TestCombineMetadata(unittest.TestCase):
         """Test the combine_metadata with times with averaging."""
         from satpy.dataset.metadata import combine_metadata
         ret = combine_metadata(*self.datetime_dts)
-        self.assertEqual(self.datetime_dts[2]['start_time'], ret['start_time'])
+        # start_time should be the min time
+        self.assertEqual(self.datetime_dts[0]['start_time'], ret['start_time'])
 
     def test_combine_times_without_averaging(self):
         """Test the combine_metadata with times without averaging."""
         from satpy.dataset.metadata import combine_metadata
         ret = combine_metadata(*self.datetime_dts, average_times=False)
-        # times are not equal so don't include it in the final result
-        self.assertNotIn('start_time', ret)
+        # start_time should be the min time
+        self.assertEqual(self.datetime_dts[0]['start_time'], ret['start_time'])
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
