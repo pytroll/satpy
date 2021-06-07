@@ -238,8 +238,8 @@ def _get_time_bounds_from_attrs(datasets):
 
 
 def _get_times_from_attrs(datasets, kind):
-    return [np.datetime64(ds.attrs.get(kind, np.datetime64('NaT')))
-            for ds in datasets]
+    return np.array([np.datetime64(ds.attrs.get(kind, np.datetime64('NaT')))
+                     for ds in datasets])
 
 
 def _add_time_bounds(dataset, time_bounds):
