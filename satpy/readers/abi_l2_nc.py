@@ -36,6 +36,8 @@ class NC_ABI_L2(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset."""
         var = info['file_key']
+        if self.filetype_info['file_type'] == 'abi_l2_mcmip':
+            var += "_" + key.name
         LOG.debug('Reading in get_dataset %s.', var)
         variable = self[var]
 
