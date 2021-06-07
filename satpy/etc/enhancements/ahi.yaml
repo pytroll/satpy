@@ -21,5 +21,8 @@ enhancements:
         method: !!python/name:satpy.enhancements.stretch
         kwargs:
           stretch: crude
-          min_stretch: [0, 0, 0]
-          max_stretch: [.90, .90, .90]
+          min_stretch: [0.08, 0.08, 0.08]
+          max_stretch: [.85, .85, .85]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: {gamma: 1.10}
