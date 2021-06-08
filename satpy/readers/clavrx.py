@@ -53,10 +53,10 @@ PLATFORMS = {
     'G16': 'GOES-16',
     'G17': 'GOES-17'
 }
-ROWS_PER_SCAN = {
-    'viirs': 16,
-    'modis': 10,
-}
+# ROWS_PER_SCAN = {
+#     'viirs': 16,
+#     'modis': 10,
+# }
 NADIR_RESOLUTION = {
     'viirs': 742,
     'modis': 1000,
@@ -82,11 +82,11 @@ def _get_platform(platform: str) -> str:
     return platform
 
 
-def _get_rows_per_scan(sensor: str) -> str:
-    """Get number of rows per scan."""
-    for k, v in ROWS_PER_SCAN.items():
-        if sensor.startswith(k):
-            return v
+# def _get_rows_per_scan(sensor: str) -> str:
+#     """Get number of rows per scan."""
+#     for k, v in ROWS_PER_SCAN.items():
+#         if sensor.startswith(k):
+#             return v
 
 
 def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArray:
