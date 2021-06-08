@@ -104,12 +104,12 @@ COORDINATE_CONVERSION_PARAMETERS = np.dtype([
     ('scheduled_observation_time', R8),
     ('stepping_angle_along_line', CHANNELS),
     ('sampling_angle_along_pixel', CHANNELS),
-    ('central_line_number_of_vissr_frame', CHANNELS),  # TODO
-    ('central_pixel_number_of_vissr_frame', CHANNELS),  # TODO
-    ('pixel_difference_of_vissr_center_from_normal_position', CHANNELS),  # TODO
+    ('central_line_number_of_vissr_frame', CHANNELS),
+    ('central_pixel_number_of_vissr_frame', CHANNELS),
+    ('pixel_difference_of_vissr_center_from_normal_position', CHANNELS),
     ('number_of_sensor_elements', CHANNELS),
-    ('total_number_of_vissr_frame_lines', CHANNELS),  # TODO
-    ('total_number_of_vissr_frame_pixels', CHANNELS),  # TODO
+    ('total_number_of_vissr_frame_lines', CHANNELS),
+    ('total_number_of_vissr_frame_pixels', CHANNELS),
     ('vissr_misalignment', R4, (3,)),
     ('matrix_of_misalignment', R4, (3, 3)),
     ('parameters', [('judgement_of_observation_convergence_time', R4),
@@ -143,8 +143,8 @@ COORDINATE_CONVERSION_PARAMETERS = np.dtype([
                             ('longitude_of_ascending_node', R8),
                             ('argument_of_perigee', R8),
                             ('mean_anomaly', R8),
-                            ('longitude_of_ssp', R8),  # TODO
-                            ('latitude_of_ssp', R8)]),  # TODO
+                            ('longitude_of_ssp', R8),
+                            ('latitude_of_ssp', R8)]),
     ('reserved_2', I4, 2),
     ('attitude_parameters', [('epoch_time', R8),
                              ('angle_between_z_axis_and_satellite_spin_axis_at_epoch_time', R8),
@@ -385,7 +385,7 @@ LINE_CONTROL_WORD = np.dtype([
     ('data_id', U1, (4, )),
     ('line_number', I4),
     ('line_name', I4),
-    ('error_line_flag', I4),  # TODO
+    ('error_line_flag', I4),
     ('error_message', I4),
     ('mode_error_flag', I4),
     ('scan_time', R8),

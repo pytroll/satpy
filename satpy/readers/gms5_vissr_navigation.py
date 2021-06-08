@@ -1,7 +1,15 @@
-"""GMS-5 VISSR Navigation."""
+"""GMS-5 VISSR Navigation.
+
+
+Reference: `GMS User Guide`_, Appendix E, S-VISSR Mapping.
+
+.. _GMS User Guide:
+    https://www.data.jma.go.jp/mscweb/en/operation/fig/GMS_Users_Guide_3rd_Edition_Rev1.pdf
+"""
 
 import numba
 import numpy as np
+
 
 @numba.njit
 def get_lons_lats(lines, pixels, nav_params):
@@ -20,185 +28,37 @@ def get_lons_lats(lines, pixels, nav_params):
             lats[i, j] = lat
 
 
-@numba.njit
-def get_observation_time(point, start_time_of_scan, scan_params):
-    """Calculate observation time of a VISSR pixel."""
-    relative_time = _get_relative_observation_time(point, scan_params)
-    return start_time_of_scan + relative_time
-
-
-@numba.njit
-def _get_relative_observation_time(point, scanning_params):
-    line, pixel = point
-    spinning_rate, num_sensors, sampling_angle = scanning_params
-    spinning_freq = 1440 * spinning_rate
-    line_step = np.floor((line - 1) / num_sensors)
-    pixel_step = (sampling_angle * pixel) / (2 * np.pi)
-    return (line_step + pixel_step) / spinning_freq
-
-
-@numba.njit
-def interpolate_nav_params_at_obs_time(nav_params, obs_time):
-    pass
-
-
-@numba.njit
-def interpolate_prediction(prediction_times, predicted_values, desired_time):
-    # TODO: Interpolate all fields
-    # TODO: How to interpolate angles? See mspVissrGetInsertValue
-    return np.interp(desired_time, prediction_times, predicted_values)
-
-
-@numba.njit
-def get_nearest_prediction(prediction_times, predicted_values, desired_time):
-    time_diff = desired_time - prediction_times
-    idx_of_nearest_prediction = np.argmin(np.fabs(time_diff))
-    return predicted_values[idx_of_nearest_prediction]
-
-
-def dict_to_nav_params(dictionary):
-    arr = np.empty(1, nav_params_dtype)
-    for key, val in dictionary.items():
-        arr[key] = val
-    return arr
-
-
-
-nav_params_dtype = np.dtype([
-    ('start_time_of_scan', np.float32),
-    ('spinning_rate', np.float32),
-    ('num_sensors', np.int32),
-    ('sampling_angle', np.float32),
-    ('equatorial_earth_radius', np.float32),
-    ('earth_flattening', np.float32)
-])
-
-
-attitude_prediction_dtype = np.dtype(
+@numba.experimental.jitclass(
     [
-        ('prediction_time_mjd', np.float64)
+        ('start_time_of_scan', numba.float64),
+        ('spinning_rate', numba.float64),
+        ('num_sensors', numba.int64),
+        ('sampling_angle', numba.float64)
     ]
 )
-orbit_prediction_dtype = np.dtype(
-    [
-        ('prediction_time_mjd', np.float64)
-    ]
-)
-image_navigator_spec = [
-    ('start_time_of_scan', numba.float64),
-    ('line_offset', numba.int32),
-    ('pixel_offset', numba.int32),
-    ('sampling_angle', numba.float32),
-    ('stepping_angle', numba.float32),
-    ('spinning_rate', numba.float32),
-    ('num_sensors', numba.int32),
-    ('misalignment', numba.float32[:, :]),
-    ('attitude_prediction', numba.from_dtype(attitude_prediction_dtype)[:]),
-    ('orbit_prediction', numba.from_dtype(orbit_prediction_dtype)[:]),
-    ('earth_flattening', numba.float32),
-    ('earth_equatorial_radius', numba.float32)
-]  # TODO: Compare types with header types
-
-@numba.experimental.jitclass(spec=image_navigator_spec)
-class ImageNavigator:
-    def __init__(self, start_time_of_scan, line_offset, pixel_offset, sampling_angle, stepping_angle,
-                 spinning_rate, num_sensors, misalignment, attitude_prediction,
-                 orbit_prediction, earth_flattening, earth_equatorial_radius):
+class ScanningParameters:
+    def __init__(self, start_time_of_scan, spinning_rate, num_sensors,
+                 sampling_angle):
         self.start_time_of_scan = start_time_of_scan
-        self.line_offset = line_offset
-        self.pixel_offset = pixel_offset
-        self.sampling_angle = sampling_angle
-        self.stepping_angle = stepping_angle
         self.spinning_rate = spinning_rate
         self.num_sensors = num_sensors
-        self.misalignment = misalignment
-        self.attitude_prediction = attitude_prediction
-        self.orbit_prediction = orbit_prediction
-        self.earth_flattening = earth_flattening
-        self.earth_equatorial_radius = earth_equatorial_radius
-
-
-
-@numba.experimental.jitclass([
-    ('line_offset', numba.int32),
-    ('pixel_offset', numba.int32),
-    ('stepping_angle', numba.float64),
-    ('sampling_angle', numba.float64),
-    ('misalignment', numba.types.Array(numba.float64, 2, layout='C')),
-    ('greenwich_sidereal_time', numba.float64),
-    ('angle_between_earth_and_sun', numba.float64),
-    ('declination_from_sat_to_sun', numba.float64),
-    ('right_ascension_from_sat_to_sun', numba.float64),
-    ('angle_between_sat_spin_and_z_axis', numba.float64),
-    ('angle_between_sat_spin_and_yz_plane', numba.float64),
-    ('sat_position_earth_fixed_x', numba.float64),
-    ('sat_position_earth_fixed_y', numba.float64),
-    ('sat_position_earth_fixed_z', numba.float64),
-    ('nutation_precession', numba.types.Array(numba.float64, 2, layout='C')),
-    ('earth_flattening', numba.float64),
-    ('earth_equatorial_radius', numba.float64)
-])
-class NavigationParameters:
-    def __init__(
-            self,
-            line_offset,
-            pixel_offset,
-            stepping_angle,
-            sampling_angle,
-            misalignment,
-            greenwich_sidereal_time,
-            angle_between_earth_and_sun,
-            declination_from_sat_to_sun,
-            right_ascension_from_sat_to_sun,
-            angle_between_sat_spin_and_z_axis,
-            angle_between_sat_spin_and_yz_plane,
-            sat_position_earth_fixed_x,
-            sat_position_earth_fixed_y,
-            sat_position_earth_fixed_z,
-            nutation_precession,
-            earth_flattening,
-            earth_equatorial_radius
-    ):
-        self.line_offset = line_offset
-        self.pixel_offset = pixel_offset
-        self.stepping_angle = stepping_angle
         self.sampling_angle = sampling_angle
-        self.misalignment = misalignment
-        self.greenwich_sidereal_time = greenwich_sidereal_time
-        self.angle_between_earth_and_sun = angle_between_earth_and_sun
-        self.declination_from_sat_to_sun = declination_from_sat_to_sun
-        self.right_ascension_from_sat_to_sun = right_ascension_from_sat_to_sun
-        self.angle_between_sat_spin_and_z_axis = angle_between_sat_spin_and_z_axis
-        self.angle_between_sat_spin_and_yz_plane = angle_between_sat_spin_and_yz_plane
-        self.sat_position_earth_fixed_x = sat_position_earth_fixed_x
-        self.sat_position_earth_fixed_y = sat_position_earth_fixed_y
-        self.sat_position_earth_fixed_z = sat_position_earth_fixed_z
-        self.nutation_precession = nutation_precession
-        self.earth_flattening = earth_flattening
-        self.earth_equatorial_radius = earth_equatorial_radius
 
-        # TODO: Remember that all angles are expected in rad
-        # TODO: Watch out shape of 3x3 matrices! See msVissrNav.c
 
-    def get_image_offset(self):
-        return self.line_offset, self.pixel_offset
+@numba.njit
+def get_observation_time(point, scan_params):
+    """Calculate observation time of a VISSR pixel."""
+    relative_time = _get_relative_observation_time(point, scan_params)
+    return scan_params.start_time_of_scan + relative_time
 
-    def get_sampling(self):
-        return self.stepping_angle, self.sampling_angle
 
-    def get_sat_sun_angles(self):
-        return np.array([self.declination_from_sat_to_sun, self.right_ascension_from_sat_to_sun])
-
-    def get_spin_angles(self):
-        return np.array([self.angle_between_sat_spin_and_z_axis, self.angle_between_sat_spin_and_yz_plane])
-
-    def get_ellipsoid(self):
-        return np.array([self.earth_equatorial_radius, self.earth_flattening])
-
-    def get_sat_position(self):
-        return np.array((self.sat_position_earth_fixed_x,
-                         self.sat_position_earth_fixed_y,
-                         self.sat_position_earth_fixed_z))
+@numba.njit
+def _get_relative_observation_time(point, scan_params):
+    line, pixel = point
+    spinning_freq = 1440 * scan_params.spinning_rate
+    line_step = np.floor((line - 1) / scan_params.num_sensors)
+    pixel_step = (scan_params.sampling_angle * pixel) / (2 * np.pi)
+    return (line_step + pixel_step) / spinning_freq
 
 
 @numba.njit
@@ -217,7 +77,7 @@ def get_lon_lat(line, pixel, nav_params):
     )
     point_on_earth = _intersect_with_earth(view_vector_earth_fixed, nav_params)
     lon, lat = transform_earth_fixed_to_geodetic_coords(
-        point_on_earth, nav_params.earth_flattening
+        point_on_earth, nav_params.static_params.earth_flattening
     )
     return lon, lat
 
@@ -245,7 +105,7 @@ def transform_image_coords_to_scanning_angles(point, offset, sampling):
 @numba.njit
 def _transform_scanning_angles_to_satellite_coords(angles, nav_params):
     transformer = ScanningAnglesToSatelliteCoordsTransformer(
-        nav_params.misalignment
+        nav_params.static_params.misalignment
     )
     return transformer.transform(angles)
 
@@ -289,13 +149,12 @@ class ScanningAnglesToSatelliteCoordsTransformer:
 
 @numba.njit
 def _transform_satellite_to_earth_fixed_coords(point, nav_params):
-    # TODO: kwargs possible here?
     transformer = SatelliteToEarthFixedCoordsTransformer(
-        nav_params.greenwich_sidereal_time,
+        nav_params.orbit.greenwich_sidereal_time,
         nav_params.get_sat_sun_angles(),
-        nav_params.angle_between_earth_and_sun,
+        nav_params.attitude.angle_between_earth_and_sun,
         nav_params.get_spin_angles(),
-        nav_params.nutation_precession
+        nav_params.orbit.nutation_precession
     )
     return transformer.transform(point)
 
@@ -478,3 +337,349 @@ def transform_earth_fixed_to_geodetic_coords(point, earth_flattening):
 def normalize_vector(v):
     """Normalize the given vector."""
     return v / np.sqrt(np.dot(v, v))
+
+
+@numba.njit
+def interpolate_cont(x, xp, yp):
+    """Linear interpolation of continuous quantities.
+
+    Numpy equivalent would be np.interp(..., left=np.nan, right=np.nan), but
+    numba currently doesn't support those keyword arguments.
+    """
+    try:
+        return _interpolate(x, xp, yp, False)
+    except Exception:
+        return np.nan
+
+
+@numba.njit
+def interpolate_angles(x, xp, yp):
+    """Linear interpolation of periodic angles.
+
+    Takes care of phase jumps by wrapping angle differences to [-pi, pi].
+
+    Numpy equivalent would be np.interp(x, xp, np.unwrap(yp)), but
+    numba currently doesn't support np.unwrap.
+    """
+    try:
+        return _interpolate(x, xp, yp, True)
+    except Exception:
+        return np.nan
+
+
+@numba.njit
+def _interpolate(x, xp, yp, wrap_2pi):
+    i = _find_enclosing_index(x, xp)
+    offset = yp[i]
+    x_diff = xp[i+1] - xp[i]
+    y_diff = yp[i+1] - yp[i]
+    if wrap_2pi:
+        y_diff = _wrap_2pi(y_diff)
+    slope = y_diff / x_diff
+    dist = x - xp[i]
+    return offset + slope * dist
+
+
+@numba.njit
+def _find_enclosing_index(x, xp):
+    """Find where xp encloses x."""
+    for i in range(len(xp) - 1):
+        if xp[i] <= x < xp[i+1]:
+            return i
+    raise Exception('x not enclosed by xp')
+
+
+@numba.njit
+def _wrap_2pi(values):
+    """Wrap values to interval [-pi, pi].
+
+    Source: https://stackoverflow.com/a/15927914/5703449
+    """
+    return (values + np.pi) % (2 * np.pi) - np.pi
+
+
+@numba.njit
+def interpolate_nearest(x, xp, yp):
+    """Nearest neighbour interpolation."""
+    try:
+        return _interpolate_nearest(x, xp, yp)
+    except Exception:
+        return np.nan * np.ones_like(yp[0])
+
+
+@numba.njit
+def _interpolate_nearest(x, xp, yp):
+    i = _find_enclosing_index(x, xp)
+    return yp[i]
+
+
+@numba.experimental.jitclass(
+    [
+        ('line_offset', numba.float64),
+        ('pixel_offset', numba.float64),
+        ('stepping_angle', numba.float64),
+        ('sampling_angle', numba.float64),
+        ('misalignment', numba.types.Array(numba.float64, 2, layout='C')),
+        ('earth_flattening', numba.float64),
+        ('earth_equatorial_radius', numba.float64),
+    ]
+)
+class StaticNavigationParameters:
+    def __init__(
+            self,
+            line_offset,
+            pixel_offset,
+            stepping_angle,
+            sampling_angle,
+            misalignment,
+            earth_flattening,
+            earth_equatorial_radius
+    ):
+        self.line_offset = line_offset
+        self.pixel_offset = pixel_offset
+        self.stepping_angle = stepping_angle
+        self.sampling_angle = sampling_angle
+        self.misalignment = misalignment
+        self.earth_flattening = earth_flattening
+        self.earth_equatorial_radius = earth_equatorial_radius
+
+
+@numba.experimental.jitclass(
+    [
+        ('prediction_time', numba.float64[:]),
+        ('greenwich_sidereal_time', numba.float64[:]),
+        ('declination_from_sat_to_sun', numba.float64[:]),
+        ('right_ascension_from_sat_to_sun', numba.float64[:]),
+        ('sat_position_earth_fixed_x', numba.float64[:]),
+        ('sat_position_earth_fixed_y', numba.float64[:]),
+        ('sat_position_earth_fixed_z', numba.float64[:]),
+        ('nutation_precession', numba.types.Array(numba.float64, 3, layout='C')),
+    ]
+)
+class OrbitPrediction:
+    def __init__(
+            self,
+            prediction_time,
+            greenwich_sidereal_time,
+            declination_from_sat_to_sun,
+            right_ascension_from_sat_to_sun,
+            sat_position_earth_fixed_x,
+            sat_position_earth_fixed_y,
+            sat_position_earth_fixed_z,
+            nutation_precession
+    ):
+        self.prediction_time = prediction_time
+        self.greenwich_sidereal_time = greenwich_sidereal_time
+        self.declination_from_sat_to_sun = declination_from_sat_to_sun
+        self.right_ascension_from_sat_to_sun = right_ascension_from_sat_to_sun
+        self.sat_position_earth_fixed_x = sat_position_earth_fixed_x
+        self.sat_position_earth_fixed_y = sat_position_earth_fixed_y
+        self.sat_position_earth_fixed_z = sat_position_earth_fixed_z
+        self.nutation_precession = nutation_precession
+
+    def interpolate(self, observation_time):
+        greenwich_sidereal_time = self._interpolate_angles(
+            self.greenwich_sidereal_time,
+            observation_time
+        )
+        declination_from_sat_to_sun = self._interpolate_angles(
+            self.declination_from_sat_to_sun,
+            observation_time
+        )
+        right_ascension_from_sat_to_sun = self._interpolate_angles(
+            self.right_ascension_from_sat_to_sun,
+            observation_time
+        )
+        sat_position_earth_fixed_x = self._interpolate_cont(
+            self.sat_position_earth_fixed_x,
+            observation_time
+        )
+        sat_position_earth_fixed_y = self._interpolate_cont(
+            self.sat_position_earth_fixed_y,
+            observation_time
+        )
+        sat_position_earth_fixed_z = self._interpolate_cont(
+            self.sat_position_earth_fixed_z,
+            observation_time
+        )
+        nutation_precession = self._interpolate_nearest(
+            self.nutation_precession,
+            observation_time
+        )
+        return Orbit(
+            greenwich_sidereal_time,
+            declination_from_sat_to_sun,
+            right_ascension_from_sat_to_sun,
+            sat_position_earth_fixed_x,
+            sat_position_earth_fixed_y,
+            sat_position_earth_fixed_z,
+            nutation_precession
+        )
+
+    def _interpolate_cont(self, predicted_values, observation_time):
+        return interpolate_cont(observation_time, self.prediction_time, predicted_values)
+
+    def _interpolate_angles(self, predicted_values, observation_time):
+        return interpolate_angles(observation_time, self.prediction_time, predicted_values)
+
+    def _interpolate_nearest(self, predicted_values, observation_time):
+        return interpolate_nearest(observation_time, self.prediction_time, predicted_values)
+
+
+@numba.experimental.jitclass(
+    [
+        ('greenwich_sidereal_time', numba.float64),
+        ('declination_from_sat_to_sun', numba.float64),
+        ('right_ascension_from_sat_to_sun', numba.float64),
+        ('sat_position_earth_fixed_x', numba.float64),
+        ('sat_position_earth_fixed_y', numba.float64),
+        ('sat_position_earth_fixed_z', numba.float64),
+        ('nutation_precession', numba.types.Array(numba.float64, 2, layout='C')),
+    ]
+)
+class Orbit:
+    def __init__(
+            self,
+            greenwich_sidereal_time,
+            declination_from_sat_to_sun,
+            right_ascension_from_sat_to_sun,
+            sat_position_earth_fixed_x,
+            sat_position_earth_fixed_y,
+            sat_position_earth_fixed_z,
+            nutation_precession
+    ):
+        self.greenwich_sidereal_time = greenwich_sidereal_time
+        self.declination_from_sat_to_sun = declination_from_sat_to_sun
+        self.right_ascension_from_sat_to_sun = right_ascension_from_sat_to_sun
+        self.sat_position_earth_fixed_x = sat_position_earth_fixed_x
+        self.sat_position_earth_fixed_y = sat_position_earth_fixed_y
+        self.sat_position_earth_fixed_z = sat_position_earth_fixed_z
+        self.nutation_precession = nutation_precession
+
+
+@numba.experimental.jitclass(
+    [
+        ('prediction_time', numba.float64[:]),
+        ('angle_between_earth_and_sun', numba.float64[:]),
+        ('angle_between_sat_spin_and_z_axis', numba.float64[:]),
+        ('angle_between_sat_spin_and_yz_plane', numba.float64[:]),
+    ]
+)
+class AttitudePrediction:
+    def __init__(
+            self,
+            prediction_time,
+            angle_between_earth_and_sun,
+            angle_between_sat_spin_and_z_axis,
+            angle_between_sat_spin_and_yz_plane
+    ):
+        self.prediction_time = prediction_time
+        self.angle_between_earth_and_sun = angle_between_earth_and_sun
+        self.angle_between_sat_spin_and_z_axis = angle_between_sat_spin_and_z_axis
+        self.angle_between_sat_spin_and_yz_plane = angle_between_sat_spin_and_yz_plane
+
+    def interpolate(self, observation_time):
+        angle_between_earth_and_sun = self._interpolate(
+            observation_time, self.angle_between_earth_and_sun
+        )
+        angle_between_sat_spin_and_z_axis = self._interpolate(
+            observation_time, self.angle_between_sat_spin_and_z_axis,
+        )
+        angle_between_sat_spin_and_yz_plane = self._interpolate(
+            observation_time, self.angle_between_sat_spin_and_yz_plane
+        )
+        return Attitude(
+            angle_between_earth_and_sun,
+            angle_between_sat_spin_and_z_axis,
+            angle_between_sat_spin_and_yz_plane
+        )
+
+    def _interpolate(self, observation_time, predicted_values):
+        return interpolate_angles(observation_time, self.prediction_time, predicted_values)
+
+
+@numba.experimental.jitclass(
+    [
+        ('angle_between_earth_and_sun', numba.float64),
+        ('angle_between_sat_spin_and_z_axis', numba.float64),
+        ('angle_between_sat_spin_and_yz_plane', numba.float64),
+    ]
+)
+class Attitude:
+    def __init__(
+            self,
+            angle_between_earth_and_sun,
+            angle_between_sat_spin_and_z_axis,
+            angle_between_sat_spin_and_yz_plane
+    ):
+        self.angle_between_earth_and_sun = angle_between_earth_and_sun
+        self.angle_between_sat_spin_and_z_axis = angle_between_sat_spin_and_z_axis
+        self.angle_between_sat_spin_and_yz_plane = angle_between_sat_spin_and_yz_plane
+
+
+@numba.experimental.jitclass(
+    [
+        ('attitude', Attitude.class_type.instance_type),
+        ('orbit', Orbit.class_type.instance_type),
+        ('static_params', StaticNavigationParameters.class_type.instance_type),
+    ]
+)
+class NavigationParameters:
+    def __init__(self, attitude, orbit, static_params):
+        self.attitude = attitude
+        self.orbit = orbit
+        self.static_params = static_params
+
+        # TODO: Remember that all angles are expected in rad
+        # TODO: Watch out shape of 3x3 matrices! See msVissrNav.c
+
+    def get_image_offset(self):
+        return self.static_params.line_offset, self.static_params.pixel_offset
+
+    def get_sampling(self):
+        return self.static_params.stepping_angle, self.static_params.sampling_angle
+
+    def get_sat_sun_angles(self):
+        return np.array([
+            self.orbit.declination_from_sat_to_sun,
+            self.orbit.right_ascension_from_sat_to_sun
+        ])
+
+    def get_spin_angles(self):
+        return np.array([
+            self.attitude.angle_between_sat_spin_and_z_axis,
+            self.attitude.angle_between_sat_spin_and_yz_plane
+        ])
+
+    def get_ellipsoid(self):
+        return np.array([
+            self.static_params.earth_equatorial_radius,
+            self.static_params.earth_flattening
+        ])
+
+    def get_sat_position(self):
+        return np.array((self.orbit.sat_position_earth_fixed_x,
+                         self.orbit.sat_position_earth_fixed_y,
+                         self.orbit.sat_position_earth_fixed_z))
+
+
+@numba.experimental.jitclass(
+    [
+        ('attitude_prediction', AttitudePrediction.class_type.instance_type),
+        ('orbit_prediction', OrbitPrediction.class_type.instance_type),
+        ('static_params', StaticNavigationParameters.class_type.instance_type),
+    ]
+)
+class PredictionInterpolator:
+    def __init__(self, attitude_prediction, orbit_prediction, static_params):
+        self.attitude_prediction = attitude_prediction
+        self.orbit_prediction = orbit_prediction
+        self.static_params = static_params
+
+    def interpolate(self, observation_time):
+        attitude = self.attitude_prediction.interpolate(observation_time)
+        orbit = self.orbit_prediction.interpolate(observation_time)
+        return self._get_nav_params(attitude, orbit)
+
+    def _get_nav_params(self, attitude, orbit):
+        return NavigationParameters(attitude, orbit, self.static_params)
