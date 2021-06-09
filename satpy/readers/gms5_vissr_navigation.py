@@ -11,6 +11,14 @@ import numba
 import numpy as np
 
 
+def get_jitclass_type(cls):
+    try:
+        return cls.class_type.instance_type
+    except AttributeError:
+        # With NUMBA_DISABLE_JIT=1
+        return cls
+
+
 @numba.njit
 def get_lons_lats(lines, pixels, nav_params):
     num_lines = len(lines)
@@ -619,9 +627,9 @@ class Attitude:
 
 @numba.experimental.jitclass(
     [
-        ('attitude', Attitude.class_type.instance_type),
-        ('orbit', Orbit.class_type.instance_type),
-        ('static_params', StaticNavigationParameters.class_type.instance_type),
+        ('attitude', get_jitclass_type(Attitude)),
+        ('orbit', get_jitclass_type(Orbit)),
+        ('static_params', get_jitclass_type(StaticNavigationParameters)),
     ]
 )
 class NavigationParameters:
@@ -665,9 +673,9 @@ class NavigationParameters:
 
 @numba.experimental.jitclass(
     [
-        ('attitude_prediction', AttitudePrediction.class_type.instance_type),
-        ('orbit_prediction', OrbitPrediction.class_type.instance_type),
-        ('static_params', StaticNavigationParameters.class_type.instance_type),
+        ('attitude_prediction', get_jitclass_type(AttitudePrediction)),
+        ('orbit_prediction', get_jitclass_type(OrbitPrediction)),
+        ('static_params', get_jitclass_type(StaticNavigationParameters)),
     ]
 )
 class PredictionInterpolator:
