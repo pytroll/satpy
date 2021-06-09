@@ -35,7 +35,7 @@ IR_NAVIGATION_REFERENCE = [
                      [0.004496123789670, -0.000064242454080, 0.999989890320785]]
                 ),
             ),
-            static_params=nav.StaticNavigationParameters(
+            proj_params=nav.ProjectionParameters(
                 line_offset=1378.5,
                 pixel_offset=1672.5,
                 stepping_angle=0.000140000047395,
@@ -74,7 +74,7 @@ IR_NAVIGATION_REFERENCE = [
                      [0.004496126086653, -0.000064239500295, 0.999989890310647]]
                 ),
             ),
-            static_params=nav.StaticNavigationParameters(
+            proj_params=nav.ProjectionParameters(
                 line_offset=1378.5,
                 pixel_offset=1672.5,
                 stepping_angle=0.000140000047395,
@@ -256,7 +256,7 @@ VIS_NAVIGATION_REFERENCE = [
                      [0.004496123789670, -0.000064242454080, 0.999989890320785]]
                 ),
             ),
-            static_params=nav.StaticNavigationParameters(
+            proj_params=nav.ProjectionParameters(
                 line_offset=5513.0,
                 pixel_offset=6688.5,
                 stepping_angle=0.000035000004573,
@@ -295,7 +295,7 @@ VIS_NAVIGATION_REFERENCE = [
                      [0.004496126086653, -0.000064239500295, 0.999989890310647]]
                 ),
             ),
-            static_params=nav.StaticNavigationParameters(
+            proj_params=nav.ProjectionParameters(
                 line_offset=5513.0,
                 pixel_offset=6688.5,
                 stepping_angle=0.000035000004573,
@@ -341,7 +341,7 @@ NAVIGATION_REFERENCE = VIS_NAVIGATION_REFERENCE + IR_NAVIGATION_REFERENCE
                      []]
                 ),
             ),
-            static_params=nav.StaticNavigationParameters(
+            proj_params=nav.ProjectionParameters(
                 line_offset=,
                 pixel_offset=,
                 stepping_angle=,
@@ -381,7 +381,7 @@ class TestSinglePixelNavigation:
     def test_nav_matrices_are_contiguous(self):
         """Test that navigation matrices are stored as C-contiguous arrays."""
         nav_params = NAVIGATION_REFERENCE[0]['nav_params']
-        assert nav_params.static_params.misalignment.flags['C_CONTIGUOUS']
+        assert nav_params.proj_params.misalignment.flags['C_CONTIGUOUS']
         assert nav_params.orbit.nutation_precession.flags['C_CONTIGUOUS']
 
     def test_transform_image_coords_to_scanning_angles(self):
@@ -522,9 +522,9 @@ class TestPredictionInterpolation:
         attitude = attitude_prediction.interpolate(obs_time)
         self.assert_attitude_close(attitude, attitude_expected)
 
-    def test_interpolate_prediction(self, obs_time, static_params, attitude_prediction, orbit_prediction, nav_params_expected):
+    def test_interpolate_prediction(self, obs_time, proj_params, attitude_prediction, orbit_prediction, nav_params_expected):
         interpolator = nav.PredictionInterpolator(
-            static_params=static_params,
+            proj_params=proj_params,
             attitude_prediction=attitude_prediction,
             orbit_prediction=orbit_prediction
         )
@@ -585,8 +585,8 @@ class TestPredictionInterpolation:
         )
 
     @pytest.fixture
-    def static_params(self):
-        return nav.StaticNavigationParameters(
+    def proj_params(self):
+        return nav.ProjectionParameters(
             line_offset=1378.5,
             pixel_offset=1672.5,
             stepping_angle=0.000140000047395,
@@ -597,9 +597,9 @@ class TestPredictionInterpolation:
         )
 
     @pytest.fixture
-    def nav_params_expected(self, attitude_expected, orbit_expected, static_params):
+    def nav_params_expected(self, attitude_expected, orbit_expected, proj_params):
         return nav.NavigationParameters(
-            attitude_expected, orbit_expected, static_params
+            attitude_expected, orbit_expected, proj_params
         )
 
     def assert_orbit_close(self, a, b):
@@ -632,8 +632,8 @@ class TestPredictionInterpolation:
         ]
         self._assert_attrs_close(a, b, attrs, 'Attitude')
 
-    def assert_static_params_close(self, a, b):
-        """Assert that two StaticNavigationParameters instances are close.
+    def assert_proj_params_close(self, a, b):
+        """Assert that two ProjectionParameters instances are close.
 
         This would probably make more sense in the Attitude class. However,
         numba doesn't support np.allclose, yet.
@@ -647,12 +647,12 @@ class TestPredictionInterpolation:
             'earth_flattening',
             'earth_equatorial_radius',
         ]
-        self._assert_attrs_close(a, b, attrs, 'StaticNavigationParameters')
+        self._assert_attrs_close(a, b, attrs, 'ProjectionParameters')
 
     def assert_nav_params_close(self, a, b):
         self.assert_attitude_close(a.attitude, b.attitude)
         self.assert_orbit_close(a.orbit, b.orbit)
-        self.assert_static_params_close(a.static_params, b.static_params)
+        self.assert_proj_params_close(a.proj_params, b.proj_params)
 
     @staticmethod
     def _assert_attrs_close(a, b, attrs, desc):

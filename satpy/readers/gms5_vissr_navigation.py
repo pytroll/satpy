@@ -85,7 +85,7 @@ def get_lon_lat(line, pixel, nav_params):
     )
     point_on_earth = _intersect_with_earth(view_vector_earth_fixed, nav_params)
     lon, lat = transform_earth_fixed_to_geodetic_coords(
-        point_on_earth, nav_params.static_params.earth_flattening
+        point_on_earth, nav_params.proj_params.earth_flattening
     )
     return lon, lat
 
@@ -113,7 +113,7 @@ def transform_image_coords_to_scanning_angles(point, offset, sampling):
 @numba.njit
 def _transform_scanning_angles_to_satellite_coords(angles, nav_params):
     transformer = ScanningAnglesToSatelliteCoordsTransformer(
-        nav_params.static_params.misalignment
+        nav_params.proj_params.misalignment
     )
     return transformer.transform(angles)
 
@@ -432,7 +432,7 @@ def _interpolate_nearest(x, xp, yp):
         ('earth_equatorial_radius', numba.float64),
     ]
 )
-class StaticNavigationParameters:
+class ProjectionParameters:
     def __init__(
             self,
             line_offset,
@@ -629,23 +629,23 @@ class Attitude:
     [
         ('attitude', get_jitclass_type(Attitude)),
         ('orbit', get_jitclass_type(Orbit)),
-        ('static_params', get_jitclass_type(StaticNavigationParameters)),
+        ('proj_params', get_jitclass_type(ProjectionParameters)),
     ]
 )
 class NavigationParameters:
-    def __init__(self, attitude, orbit, static_params):
+    def __init__(self, attitude, orbit, proj_params):
         self.attitude = attitude
         self.orbit = orbit
-        self.static_params = static_params
+        self.proj_params = proj_params
 
         # TODO: Remember that all angles are expected in rad
         # TODO: Watch out shape of 3x3 matrices! See msVissrNav.c
 
     def get_image_offset(self):
-        return self.static_params.line_offset, self.static_params.pixel_offset
+        return self.proj_params.line_offset, self.proj_params.pixel_offset
 
     def get_sampling(self):
-        return self.static_params.stepping_angle, self.static_params.sampling_angle
+        return self.proj_params.stepping_angle, self.proj_params.sampling_angle
 
     def get_sat_sun_angles(self):
         return np.array([
@@ -661,8 +661,8 @@ class NavigationParameters:
 
     def get_ellipsoid(self):
         return np.array([
-            self.static_params.earth_equatorial_radius,
-            self.static_params.earth_flattening
+            self.proj_params.earth_equatorial_radius,
+            self.proj_params.earth_flattening
         ])
 
     def get_sat_position(self):
@@ -675,14 +675,14 @@ class NavigationParameters:
     [
         ('attitude_prediction', get_jitclass_type(AttitudePrediction)),
         ('orbit_prediction', get_jitclass_type(OrbitPrediction)),
-        ('static_params', get_jitclass_type(StaticNavigationParameters)),
+        ('proj_params', get_jitclass_type(ProjectionParameters)),
     ]
 )
 class PredictionInterpolator:
-    def __init__(self, attitude_prediction, orbit_prediction, static_params):
+    def __init__(self, attitude_prediction, orbit_prediction, proj_params):
         self.attitude_prediction = attitude_prediction
         self.orbit_prediction = orbit_prediction
-        self.static_params = static_params
+        self.proj_params = proj_params
 
     def interpolate(self, observation_time):
         attitude = self.attitude_prediction.interpolate(observation_time)
@@ -690,4 +690,4 @@ class PredictionInterpolator:
         return self._get_nav_params(attitude, orbit)
 
     def _get_nav_params(self, attitude, orbit):
-        return NavigationParameters(attitude, orbit, self.static_params)
+        return NavigationParameters(attitude, orbit, self.proj_params)
