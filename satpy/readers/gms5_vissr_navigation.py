@@ -454,7 +454,7 @@ class ProjectionParameters:
 
 @numba.experimental.jitclass(
     [
-        ('prediction_time', numba.float64[:]),
+        ('prediction_times', numba.float64[:]),
         ('greenwich_sidereal_time', numba.float64[:]),
         ('declination_from_sat_to_sun', numba.float64[:]),
         ('right_ascension_from_sat_to_sun', numba.float64[:]),
@@ -467,7 +467,7 @@ class ProjectionParameters:
 class OrbitPrediction:
     def __init__(
             self,
-            prediction_time,
+            prediction_times,
             greenwich_sidereal_time,
             declination_from_sat_to_sun,
             right_ascension_from_sat_to_sun,
@@ -476,7 +476,7 @@ class OrbitPrediction:
             sat_position_earth_fixed_z,
             nutation_precession
     ):
-        self.prediction_time = prediction_time
+        self.prediction_times = prediction_times
         self.greenwich_sidereal_time = greenwich_sidereal_time
         self.declination_from_sat_to_sun = declination_from_sat_to_sun
         self.right_ascension_from_sat_to_sun = right_ascension_from_sat_to_sun
@@ -525,13 +525,13 @@ class OrbitPrediction:
         )
 
     def _interpolate_cont(self, predicted_values, observation_time):
-        return interpolate_cont(observation_time, self.prediction_time, predicted_values)
+        return interpolate_cont(observation_time, self.prediction_times, predicted_values)
 
     def _interpolate_angles(self, predicted_values, observation_time):
-        return interpolate_angles(observation_time, self.prediction_time, predicted_values)
+        return interpolate_angles(observation_time, self.prediction_times, predicted_values)
 
     def _interpolate_nearest(self, predicted_values, observation_time):
-        return interpolate_nearest(observation_time, self.prediction_time, predicted_values)
+        return interpolate_nearest(observation_time, self.prediction_times, predicted_values)
 
 
 @numba.experimental.jitclass(
@@ -567,7 +567,7 @@ class Orbit:
 
 @numba.experimental.jitclass(
     [
-        ('prediction_time', numba.float64[:]),
+        ('prediction_times', numba.float64[:]),
         ('angle_between_earth_and_sun', numba.float64[:]),
         ('angle_between_sat_spin_and_z_axis', numba.float64[:]),
         ('angle_between_sat_spin_and_yz_plane', numba.float64[:]),
@@ -576,12 +576,12 @@ class Orbit:
 class AttitudePrediction:
     def __init__(
             self,
-            prediction_time,
+            prediction_times,
             angle_between_earth_and_sun,
             angle_between_sat_spin_and_z_axis,
             angle_between_sat_spin_and_yz_plane
     ):
-        self.prediction_time = prediction_time
+        self.prediction_times = prediction_times
         self.angle_between_earth_and_sun = angle_between_earth_and_sun
         self.angle_between_sat_spin_and_z_axis = angle_between_sat_spin_and_z_axis
         self.angle_between_sat_spin_and_yz_plane = angle_between_sat_spin_and_yz_plane
@@ -603,7 +603,7 @@ class AttitudePrediction:
         )
 
     def _interpolate(self, observation_time, predicted_values):
-        return interpolate_angles(observation_time, self.prediction_time, predicted_values)
+        return interpolate_angles(observation_time, self.prediction_times, predicted_values)
 
 
 @numba.experimental.jitclass(

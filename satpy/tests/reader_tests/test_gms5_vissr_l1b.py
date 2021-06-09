@@ -538,7 +538,7 @@ class TestPredictionInterpolation:
     @pytest.fixture
     def orbit_prediction(self):
         return nav.OrbitPrediction(
-            prediction_time=np.array([1.0, 2.0, 3.0, 4.0]),
+            prediction_times=np.array([1.0, 2.0, 3.0, 4.0]),
             greenwich_sidereal_time=np.array([0.0, 1.0, 2.0, 3.0]),
             declination_from_sat_to_sun=np.array([0.1, 1.1, 2.1, 3.1]),
             right_ascension_from_sat_to_sun=np.array([0.2, 1.2, 2.2, 3.2]),
@@ -570,7 +570,7 @@ class TestPredictionInterpolation:
     @pytest.fixture
     def attitude_prediction(self):
         return nav.AttitudePrediction(
-            prediction_time=np.array([1.0, 2.0, 3.0]),
+            prediction_times=np.array([1.0, 2.0, 3.0]),
             angle_between_earth_and_sun=np.array([0.0, 1.0, 2.0]),
             angle_between_sat_spin_and_z_axis=np.array([0.1, 1.1, 2.1]),
             angle_between_sat_spin_and_yz_plane=np.array([0.2, 1.2, 2.2]),
