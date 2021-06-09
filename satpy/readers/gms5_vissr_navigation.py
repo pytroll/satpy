@@ -105,8 +105,8 @@ def transform_image_coords_to_scanning_angles(point, offset, sampling):
     line, pixel = point
     line_offset, pixel_offset = offset
     stepping_angle, sampling_angle = sampling
-    x = sampling_angle * (pixel + 0.5 - pixel_offset)
-    y = stepping_angle * (line + 0.5 - line_offset)
+    x = sampling_angle * (pixel + 1 - pixel_offset)
+    y = stepping_angle * (line + 1 - line_offset)
     return np.array([x, y])
 
 

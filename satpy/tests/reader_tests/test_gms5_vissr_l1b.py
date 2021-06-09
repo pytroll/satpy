@@ -16,7 +16,6 @@ IR_NAVIGATION_REFERENCE = [
         'pixel': 1680,
         'lon': 139.990380,
         'lat': 35.047056,
-        'tolerance': 0,
         'nav_params': nav.NavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397917902958,
@@ -56,7 +55,6 @@ IR_NAVIGATION_REFERENCE = [
         'pixel': 1793,
         'lon': 144.996967,
         'lat': -34.959853,
-        'tolerance': 0,
         'nav_params': nav.NavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944355762,
@@ -239,7 +237,6 @@ VIS_NAVIGATION_REFERENCE = [
         'pixel': 6720,
         'lon': 139.975527,
         'lat': 35.078028,
-        'tolerance': 0.01,
         'nav_params': nav.NavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.997397918405798,
@@ -279,7 +276,6 @@ VIS_NAVIGATION_REFERENCE = [
         'pixel': 7172,
         'lon': 144.980104,
         'lat': -34.929123,
-        'tolerance': 0.01,
         'nav_params': nav.NavigationParameters(
             attitude=nav.Attitude(
                 angle_between_earth_and_sun=3.935707944858620,
@@ -367,24 +363,20 @@ class TestSinglePixelNavigation:
     """Test navigation of a single pixel."""
 
     @pytest.mark.parametrize(
-        'line,pixel,nav_params,lon_exp,lat_exp,tolerance',
+        'line,pixel,nav_params,lon_exp,lat_exp',
         [
             (ref['line'],
              ref['pixel'],
              ref['nav_params'],
              ref['lon'],
-             ref['lat'],
-             ref['tolerance'])
+             ref['lat'])
             for ref in NAVIGATION_REFERENCE
         ]
     )
-    def test_get_lon_lat(self, line, pixel, nav_params, lon_exp, lat_exp,
-                         tolerance):
+    def test_get_lon_lat(self, line, pixel, nav_params, lon_exp, lat_exp):
         """Test getting lon/lat coordinates for a given pixel."""
         lon, lat = nav.get_lon_lat(line, pixel, nav_params)
-        np.testing.assert_allclose(
-            (lon, lat), (lon_exp, lat_exp), atol=tolerance
-        )
+        np.testing.assert_allclose((lon, lat), (lon_exp, lat_exp))
 
     def test_nav_matrices_are_contiguous(self):
         """Test that navigation matrices are stored as C-contiguous arrays."""
@@ -395,8 +387,8 @@ class TestSinglePixelNavigation:
     def test_transform_image_coords_to_scanning_angles(self):
         """Test transformation from image coordinates to scanning angles."""
         angles = nav.transform_image_coords_to_scanning_angles(
-            point=np.array([200.5, 100.5]),
-            offset=np.array([101, 201]),
+            point=np.array([199, 99]),
+            offset=np.array([100, 200]),
             sampling=np.array([0.01, 0.02])
         )
         np.testing.assert_allclose(angles, [-2, 1])
