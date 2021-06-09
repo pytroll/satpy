@@ -21,7 +21,6 @@ References
 """
 
 import dask.array as da
-import numba
 import numpy as np
 import xarray as xr
 
@@ -29,6 +28,8 @@ from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import modified_julian_day_to_datetime64
 import satpy.readers._geos_area as geos_area
+import satpy.readers.gms5_vissr_navigation as nav
+
 
 U1 = '>u1'
 I2 = '>i2'
@@ -559,7 +560,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             fh_ir2._header['image_parameters']['mode']['vis_frame_parameters']['number_of_pixels'],
             fh_ir2._header['image_parameters']['mode']['vis_frame_parameters']['number_of_lines'])
 
-    def get_area_def(self, dsid):
+    def get_area_def_test(self, dsid):
         """
         TODO:
             - misalignment matrix, rotation matrix
@@ -615,10 +616,58 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         area = geos_area.get_area_definition(proj_dict, extent)
         return area
 
-    def get_lonlat(self):
+    def get_area_def(self, dsid):
+        alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]
         mode_block = self._header['image_parameters']['mode']
-        from pprint import pprint
-        pprint(mode_block)
-        params = {
-            'spinning_rate': mode_block['spin_rate']
-        }
+        coord_conv = self._header['image_parameters']['coordinate_conversion']
+        att_pred = self._header['image_parameters']['attitude_prediction']['data']
+        orb_pred = self._header['image_parameters']['orbit_prediction']['data']
+
+        center_line_vissr_frame = coord_conv['central_line_number_of_vissr_frame'][alt_ch_name]
+        center_pixel_vissr_frame = coord_conv['central_pixel_number_of_vissr_frame'][alt_ch_name]
+        pixel_offset = coord_conv['pixel_difference_of_vissr_center_from_normal_position'][
+            alt_ch_name]
+
+        scan_params = nav.ScanningParameters(
+            start_time_of_scan=mode_block['observation_time_mjd'],
+            spinning_rate=mode_block['spin_rate'],
+            num_sensors=coord_conv['number_of_sensor_elements'][alt_ch_name],
+            sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
+        )
+        attitude_prediction = nav.AttitudePrediction(
+            prediction_times=att_pred['prediction_time_mjd'].astype(np.float64),
+            angle_between_earth_and_sun=att_pred['sun_earth_angle'].astype(np.float64),
+            angle_between_sat_spin_and_z_axis=att_pred['right_ascension_of_attitude'].astype(np.float64),
+            angle_between_sat_spin_and_yz_plane=att_pred['declination_of_attitude'].astype(np.float64),
+        )
+        orbit_prediction = nav.OrbitPrediction(
+            prediction_times=orb_pred['prediction_time_mjd'].astype(np.float64),
+            greenwich_sidereal_time=np.deg2rad(orb_pred['greenwich_sidereal_time'].astype(np.float64)),
+            declination_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['azimuth'].astype(np.float64)),
+            right_ascension_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['elevation'].astype(np.float64)),
+            sat_position_earth_fixed_x=orb_pred['satellite_position_earth_fixed'][0].astype(np.float64),
+            sat_position_earth_fixed_y=orb_pred['satellite_position_earth_fixed'][1].astype(np.float64),
+            sat_position_earth_fixed_z=orb_pred['satellite_position_earth_fixed'][2].astype(np.float64),
+            nutation_precession=np.ascontiguousarray(orb_pred['conversion_matrix'].transpose().astype(np.float64))
+        )
+        # TODO: Check all angles in radians
+
+        proj_params = nav.ProjectionParameters(
+            line_offset=center_line_vissr_frame,
+            pixel_offset=center_pixel_vissr_frame + pixel_offset,
+            stepping_angle=coord_conv['stepping_angle_along_line'][alt_ch_name],
+            sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
+            misalignment=np.ascontiguousarray(coord_conv['matrix_of_misalignment']).astype(np.float64),
+            earth_flattening=coord_conv['parameters']['oblateness_of_earth'],
+            earth_equatorial_radius=coord_conv['parameters']['equatorial_radius']
+        )
+        predicted_nav_params = nav.PredictedNavigationParameters(
+            attitude_prediction, orbit_prediction, proj_params
+        )
+        lons, lats = nav.get_lons_lats(
+            lines=np.array([686, 2089]),
+            pixels=np.array([1680, 1793]),
+            scan_params=scan_params,
+            predicted_nav_params=predicted_nav_params
+        )
+        print(lons, lats)
