@@ -628,7 +628,7 @@ def interpolate_continuous(x, x_sample, y_sample):
     numba currently doesn't support those keyword arguments.
     """
     try:
-        return _interpolate(x, x_sample, y_sample, False)
+        return _interpolate(x, x_sample, y_sample)
     except Exception:
         return np.nan
 
@@ -637,25 +637,22 @@ def interpolate_continuous(x, x_sample, y_sample):
 def interpolate_angles(x, x_sample, y_sample):
     """Linear interpolation of periodic angles.
 
-    Takes care of phase jumps by wrapping angle differences to [-pi, pi].
-
-    Numpy equivalent would be np.interp(x, x_sample, np.unwrap(y_sample)), but
-    numba currently doesn't support np.unwrap.
+    In order to preserve the periodicity, change phase jumps greater than pi
+    to their 2*pi complement, then perform interpolation and finally wrap
+    the results to [-pi, pi].
     """
     try:
-        return _interpolate(x, x_sample, y_sample, True)
+        return _wrap_2pi(_interpolate(x, x_sample, unwrap(y_sample)))
     except Exception:
         return np.nan
 
 
 @numba.njit
-def _interpolate(x, x_sample, y_sample, wrap_2pi):
+def _interpolate(x, x_sample, y_sample):
     i = _find_enclosing_index(x, x_sample)
     offset = y_sample[i]
     x_diff = x_sample[i+1] - x_sample[i]
     y_diff = y_sample[i+1] - y_sample[i]
-    if wrap_2pi:
-        y_diff = _wrap_2pi(y_diff)
     slope = y_diff / x_diff
     dist = x - x_sample[i]
     return offset + slope * dist
@@ -694,3 +691,16 @@ def _interpolate_nearest(x, x_sample, y_sample):
     return y_sample[i]
 
 
+@numba.njit
+def unwrap(p, discont=np.pi):
+    """Simple 1-D numba implementation of np.unwrap()."""
+    p = np.ascontiguousarray(p)
+    dd = np.diff(p)
+    slice1 = slice(1, None)
+    ddmod = np.mod(dd + np.pi, 2*np.pi) - np.pi
+    ddmod = np.where((ddmod == -np.pi) & (dd > 0), np.pi, ddmod)
+    ph_correct = ddmod - dd
+    ph_correct = np.where(np.fabs(dd) < discont, 0, ph_correct)
+    up = p.copy()
+    up[slice1] = p[slice1] + ph_correct.cumsum()
+    return up

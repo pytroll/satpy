@@ -477,7 +477,7 @@ class TestPredictionInterpolation:
         [
             (-1, np.nan),
             (1.5, 0.75*np.pi),
-            (2.5, np.pi),
+            (2.5, -np.pi),
             (3.5, -0.75*np.pi),
             (5, np.nan),
         ]
@@ -663,6 +663,16 @@ class TestPredictionInterpolation:
                 err_msg='{} attribute {} differs'.format(desc, attr)
             )
 
+
+@pytest.mark.parametrize(
+    'angles',
+    [
+        (np.array([0, np.pi/2, np.pi, -np.pi, -np.pi/2])),
+        (np.array([0, 0.78539816, 1.57079633, 5.49778714, 6.28318531]))
+    ]
+)
+def test_unwrap(angles):
+    np.testing.assert_allclose(nav.unwrap(angles), np.unwrap(angles))
 
 
 def test_get_observation_time():
