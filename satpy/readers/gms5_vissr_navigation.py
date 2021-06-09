@@ -348,7 +348,7 @@ def normalize_vector(v):
 
 
 @numba.njit
-def interpolate_cont(x, xp, yp):
+def interpolate_continuous(x, xp, yp):
     """Linear interpolation of continuous quantities.
 
     Numpy equivalent would be np.interp(..., left=np.nan, right=np.nan), but
@@ -498,15 +498,15 @@ class OrbitPrediction:
             self.right_ascension_from_sat_to_sun,
             observation_time
         )
-        sat_position_earth_fixed_x = self._interpolate_cont(
+        sat_position_earth_fixed_x = self._interpolate_continuous(
             self.sat_position_earth_fixed_x,
             observation_time
         )
-        sat_position_earth_fixed_y = self._interpolate_cont(
+        sat_position_earth_fixed_y = self._interpolate_continuous(
             self.sat_position_earth_fixed_y,
             observation_time
         )
-        sat_position_earth_fixed_z = self._interpolate_cont(
+        sat_position_earth_fixed_z = self._interpolate_continuous(
             self.sat_position_earth_fixed_z,
             observation_time
         )
@@ -524,8 +524,8 @@ class OrbitPrediction:
             nutation_precession
         )
 
-    def _interpolate_cont(self, predicted_values, observation_time):
-        return interpolate_cont(observation_time, self.prediction_times, predicted_values)
+    def _interpolate_continuous(self, predicted_values, observation_time):
+        return interpolate_continuous(observation_time, self.prediction_times, predicted_values)
 
     def _interpolate_angles(self, predicted_values, observation_time):
         return interpolate_angles(observation_time, self.prediction_times, predicted_values)

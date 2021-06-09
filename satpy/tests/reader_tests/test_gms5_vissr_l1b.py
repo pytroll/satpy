@@ -462,10 +462,10 @@ class TestPredictionInterpolation:
             (5, np.nan)
         ]
     )
-    def test_interpolate_cont(self, obs_time, expected):
+    def test_interpolate_continuous(self, obs_time, expected):
         prediction_times = np.array([0, 1, 2, 3])
         predicted_values = np.array([1, 2, 3, 4])
-        res = nav.interpolate_cont(
+        res = nav.interpolate_continuous(
             obs_time,
             prediction_times,
             predicted_values
