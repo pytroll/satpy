@@ -359,24 +359,23 @@ NAVIGATION_REFERENCE = VIS_NAVIGATION_REFERENCE + IR_NAVIGATION_REFERENCE
 
 """
 
+
 class TestSinglePixelNavigation:
     """Test navigation of a single pixel."""
 
     @pytest.mark.parametrize(
-        'line,pixel,nav_params,lon_exp,lat_exp',
+        'point,nav_params,expected',
         [
-            (ref['line'],
-             ref['pixel'],
+            ((ref['line'], ref['pixel']),
              ref['nav_params'],
-             ref['lon'],
-             ref['lat'])
+             (ref['lon'], ref['lat']))
             for ref in NAVIGATION_REFERENCE
         ]
     )
-    def test_get_lon_lat(self, line, pixel, nav_params, lon_exp, lat_exp):
+    def test_get_lon_lat(self, point, nav_params, expected):
         """Test getting lon/lat coordinates for a given pixel."""
-        lon, lat = nav.get_lon_lat(line, pixel, nav_params)
-        np.testing.assert_allclose((lon, lat), (lon_exp, lat_exp))
+        lon, lat = nav.get_lon_lat(point, nav_params)
+        np.testing.assert_allclose((lon, lat), expected)
 
     def test_nav_matrices_are_contiguous(self):
         """Test that navigation matrices are stored as C-contiguous arrays."""
@@ -523,37 +522,17 @@ class TestPredictionInterpolation:
         self.assert_attitude_close(attitude, attitude_expected)
 
     def test_interpolate_prediction(self, obs_time, proj_params, attitude_prediction, orbit_prediction, nav_params_expected):
-        interpolator = nav.PredictionInterpolator(
+        predicted_nav_params = nav.PredictedNavigationParameters(
             proj_params=proj_params,
             attitude_prediction=attitude_prediction,
             orbit_prediction=orbit_prediction
         )
-        nav_params = interpolator.interpolate(obs_time)
+        nav_params = predicted_nav_params.interpolate(obs_time)
         self.assert_nav_params_close(nav_params, nav_params_expected)
 
     @pytest.fixture
     def obs_time(self):
         return 2.5
-
-    @pytest.fixture
-    def orbit_prediction(self):
-        return nav.OrbitPrediction(
-            prediction_times=np.array([1.0, 2.0, 3.0, 4.0]),
-            greenwich_sidereal_time=np.array([0.0, 1.0, 2.0, 3.0]),
-            declination_from_sat_to_sun=np.array([0.1, 1.1, 2.1, 3.1]),
-            right_ascension_from_sat_to_sun=np.array([0.2, 1.2, 2.2, 3.2]),
-            sat_position_earth_fixed_x=np.array([0.3, 1.3, 2.3, 3.3]),
-            sat_position_earth_fixed_y=np.array([0.4, 1.4, 2.4, 3.4]),
-            sat_position_earth_fixed_z=np.array([0.5, 1.5, 2.5, 3.5]),
-            nutation_precession=np.array(
-                [
-                    0.6*np.identity(3),
-                    1.6*np.identity(3),
-                    2.6*np.identity(3),
-                    3.6*np.identity(3)
-                ]
-            )
-        )
 
     @pytest.fixture
     def orbit_expected(self):
@@ -568,32 +547,11 @@ class TestPredictionInterpolation:
         )
 
     @pytest.fixture
-    def attitude_prediction(self):
-        return nav.AttitudePrediction(
-            prediction_times=np.array([1.0, 2.0, 3.0]),
-            angle_between_earth_and_sun=np.array([0.0, 1.0, 2.0]),
-            angle_between_sat_spin_and_z_axis=np.array([0.1, 1.1, 2.1]),
-            angle_between_sat_spin_and_yz_plane=np.array([0.2, 1.2, 2.2]),
-        )
-
-    @pytest.fixture
     def attitude_expected(self):
         return nav.Attitude(
             angle_between_earth_and_sun=1.5,
             angle_between_sat_spin_and_z_axis=1.6,
             angle_between_sat_spin_and_yz_plane=1.7,
-        )
-
-    @pytest.fixture
-    def proj_params(self):
-        return nav.ProjectionParameters(
-            line_offset=1378.5,
-            pixel_offset=1672.5,
-            stepping_angle=0.000140000047395,
-            sampling_angle=0.000095719995443,
-            misalignment=np.identity(3).astype(np.float64),
-            earth_flattening=0.003352813177897,
-            earth_equatorial_radius=6378136
         )
 
     @pytest.fixture
@@ -662,6 +620,84 @@ class TestPredictionInterpolation:
                 getattr(b, attr),
                 err_msg='{} attribute {} differs'.format(desc, attr)
             )
+
+
+class TestImageNavigation:
+    def test_get_lons_lats(self, scan_params, predicted_nav_params):
+        lons, lats = nav.get_lons_lats(
+            lines=np.array([1000, 1500, 2000]),
+            pixels=np.array([1000, 1500, 2000]),
+            scan_params=scan_params,
+            predicted_nav_params=predicted_nav_params
+        )
+        # TODO
+        assert 1 == 0
+
+
+@pytest.fixture
+def sampling_angle():
+    return 0.000095719995443
+
+
+@pytest.fixture
+def scan_params(sampling_angle):
+    return nav.ScanningParameters(
+        start_time_of_scan=0,
+        spinning_rate=0.5,
+        num_sensors=1,
+        sampling_angle=sampling_angle
+    )
+
+
+@pytest.fixture
+def predicted_nav_params(attitude_prediction, orbit_prediction, proj_params):
+    return nav.PredictedNavigationParameters(
+        attitude_prediction, orbit_prediction, proj_params
+    )
+
+
+@pytest.fixture
+def attitude_prediction():
+    return nav.AttitudePrediction(
+        prediction_times=np.array([1.0, 2.0, 3.0]),
+        angle_between_earth_and_sun=np.array([0.0, 1.0, 2.0]),
+        angle_between_sat_spin_and_z_axis=np.array([0.1, 1.1, 2.1]),
+        angle_between_sat_spin_and_yz_plane=np.array([0.2, 1.2, 2.2]),
+    )
+
+
+@pytest.fixture
+def orbit_prediction():
+    return nav.OrbitPrediction(
+        prediction_times=np.array([1.0, 2.0, 3.0, 4.0]),
+        greenwich_sidereal_time=np.array([0.0, 1.0, 2.0, 3.0]),
+        declination_from_sat_to_sun=np.array([0.1, 1.1, 2.1, 3.1]),
+        right_ascension_from_sat_to_sun=np.array([0.2, 1.2, 2.2, 3.2]),
+        sat_position_earth_fixed_x=np.array([0.3, 1.3, 2.3, 3.3]),
+        sat_position_earth_fixed_y=np.array([0.4, 1.4, 2.4, 3.4]),
+        sat_position_earth_fixed_z=np.array([0.5, 1.5, 2.5, 3.5]),
+        nutation_precession=np.array(
+            [
+                0.6*np.identity(3),
+                1.6*np.identity(3),
+                2.6*np.identity(3),
+                3.6*np.identity(3)
+            ]
+        )
+    )
+
+
+@pytest.fixture
+def proj_params(sampling_angle):
+    return nav.ProjectionParameters(
+        line_offset=1378.5,
+        pixel_offset=1672.5,
+        stepping_angle=0.000140000047395,
+        sampling_angle=sampling_angle,
+        misalignment=np.identity(3).astype(np.float64),
+        earth_flattening=0.003352813177897,
+        earth_equatorial_radius=6378136
+    )
 
 
 @pytest.mark.parametrize(

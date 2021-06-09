@@ -20,7 +20,7 @@ def get_jitclass_type(cls):
 
 
 @numba.njit
-def get_lons_lats(lines, pixels, nav_params):
+def get_lons_lats(lines, pixels, scan_params, predicted_nav_params):
     num_lines = len(lines)
     num_pixels = len(pixels)
     output_shape = (num_lines, num_pixels)
@@ -28,12 +28,13 @@ def get_lons_lats(lines, pixels, nav_params):
     lats = np.zeros(output_shape)
     for i in range(num_lines):
         for j in range(num_pixels):
-            line = lines[i]
-            pixel = pixels[j]
-            point = (line, pixel)
+            point = (lines[i], pixels[j])
+            obs_time = get_observation_time(point, scan_params)
+            nav_params = predicted_nav_params.interpolate(obs_time)
             lon, lat = get_lon_lat(point, nav_params)
             lons[i, j] = lon
             lats[i, j] = lat
+    return lons, lats
 
 
 @numba.experimental.jitclass(
@@ -70,10 +71,10 @@ def _get_relative_observation_time(point, scan_params):
 
 
 @numba.njit
-def get_lon_lat(line, pixel, nav_params):
+def get_lon_lat(point, nav_params):
     """Get longitude and latitude coordinates for a given image pixel."""
     scan_angles = transform_image_coords_to_scanning_angles(
-        point=(line, pixel),
+        point=point,
         offset=nav_params.get_image_offset(),
         sampling=nav_params.get_sampling()
     )
@@ -397,7 +398,6 @@ class Orbit:
         self.nutation_precession = nutation_precession
 
 
-
 @numba.experimental.jitclass(
     [
         ('line_offset', numba.float64),
@@ -605,7 +605,7 @@ class AttitudePrediction:
         ('proj_params', get_jitclass_type(ProjectionParameters)),
     ]
 )
-class PredictionInterpolator:
+class PredictedNavigationParameters:
     def __init__(self, attitude_prediction, orbit_prediction, proj_params):
         self.attitude_prediction = attitude_prediction
         self.orbit_prediction = orbit_prediction
@@ -693,7 +693,7 @@ def _interpolate_nearest(x, x_sample, y_sample):
 
 @numba.njit
 def unwrap(p, discont=np.pi):
-    """Simple 1-D numba implementation of np.unwrap()."""
+    """Numba implementation of np.unwrap in one dimension."""
     p = np.ascontiguousarray(p)
     dd = np.diff(p)
     slice1 = slice(1, None)
