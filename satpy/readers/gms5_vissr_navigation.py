@@ -348,53 +348,53 @@ def normalize_vector(v):
 
 
 @numba.njit
-def interpolate_continuous(x, xp, yp):
+def interpolate_continuous(x, x_sample, y_sample):
     """Linear interpolation of continuous quantities.
 
     Numpy equivalent would be np.interp(..., left=np.nan, right=np.nan), but
     numba currently doesn't support those keyword arguments.
     """
     try:
-        return _interpolate(x, xp, yp, False)
+        return _interpolate(x, x_sample, y_sample, False)
     except Exception:
         return np.nan
 
 
 @numba.njit
-def interpolate_angles(x, xp, yp):
+def interpolate_angles(x, x_sample, y_sample):
     """Linear interpolation of periodic angles.
 
     Takes care of phase jumps by wrapping angle differences to [-pi, pi].
 
-    Numpy equivalent would be np.interp(x, xp, np.unwrap(yp)), but
+    Numpy equivalent would be np.interp(x, x_sample, np.unwrap(y_sample)), but
     numba currently doesn't support np.unwrap.
     """
     try:
-        return _interpolate(x, xp, yp, True)
+        return _interpolate(x, x_sample, y_sample, True)
     except Exception:
         return np.nan
 
 
 @numba.njit
-def _interpolate(x, xp, yp, wrap_2pi):
-    i = _find_enclosing_index(x, xp)
-    offset = yp[i]
-    x_diff = xp[i+1] - xp[i]
-    y_diff = yp[i+1] - yp[i]
+def _interpolate(x, x_sample, y_sample, wrap_2pi):
+    i = _find_enclosing_index(x, x_sample)
+    offset = y_sample[i]
+    x_diff = x_sample[i+1] - x_sample[i]
+    y_diff = y_sample[i+1] - y_sample[i]
     if wrap_2pi:
         y_diff = _wrap_2pi(y_diff)
     slope = y_diff / x_diff
-    dist = x - xp[i]
+    dist = x - x_sample[i]
     return offset + slope * dist
 
 
 @numba.njit
-def _find_enclosing_index(x, xp):
-    """Find where xp encloses x."""
-    for i in range(len(xp) - 1):
-        if xp[i] <= x < xp[i+1]:
+def _find_enclosing_index(x, x_sample):
+    """Find where x_sample encloses x."""
+    for i in range(len(x_sample) - 1):
+        if x_sample[i] <= x < x_sample[i+1]:
             return i
-    raise Exception('x not enclosed by xp')
+    raise Exception('x not enclosed by x_sample')
 
 
 @numba.njit
@@ -407,18 +407,18 @@ def _wrap_2pi(values):
 
 
 @numba.njit
-def interpolate_nearest(x, xp, yp):
+def interpolate_nearest(x, x_sample, y_sample):
     """Nearest neighbour interpolation."""
     try:
-        return _interpolate_nearest(x, xp, yp)
+        return _interpolate_nearest(x, x_sample, y_sample)
     except Exception:
-        return np.nan * np.ones_like(yp[0])
+        return np.nan * np.ones_like(y_sample[0])
 
 
 @numba.njit
-def _interpolate_nearest(x, xp, yp):
-    i = _find_enclosing_index(x, xp)
-    return yp[i]
+def _interpolate_nearest(x, x_sample, y_sample):
+    i = _find_enclosing_index(x, x_sample)
+    return y_sample[i]
 
 
 @numba.experimental.jitclass(
