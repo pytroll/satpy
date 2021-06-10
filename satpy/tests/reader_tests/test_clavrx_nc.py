@@ -190,4 +190,5 @@ class TestCLAVRXReaderGeo:
                     assert isinstance(v.attrs['area'], AreaDefinition)
                     assert v.attrs['platform'] == 'himawari8'
                     assert v.attrs['sensor'] == 'AHI'
+                    assert 'rows_per_scan' not in v.coords.get('longitude').attrs
                 assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
