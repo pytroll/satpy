@@ -440,17 +440,11 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         self._filename = filename
         self._filename_info = filename_info
         self._header, self._channel_type = self._read_header(filename)
+
+        from pprint import pprint  # FIXME
+        pprint(self._header)
+
         self._mda = self._get_mda()
-        #
-        # print(self._header['image_parameters']['mode']['ssp_longitude'])
-        # print(self._header['image_parameters']['orbit_prediction']['data']['satellite_position'])
-        # print(self._header['image_parameters']['vis_calibration']['data_segment'])
-        # print(self._header['image_parameters']['vis_calibration']['vis1_calibration_table']['updated_time'])
-        # print(self._header['image_parameters']['ir1_calibration']['flag_of_calid_shutter_temperature_calculation'])
-        # print(self._header['image_parameters']['wv_calibration']['conversion_table_of_equivalent_black_body_temperature'])
-        # print(self._header['image_parameters']['coordinate_conversion']['central_line_number_of_vissr_frame'])
-        # print(self._header['image_parameters']['coordinate_conversion']['central_pixel_number_of_vissr_frame'])
-        # print(self._header['image_parameters']['coordinate_conversion']['pixel_difference_of_vissr_center_from_normal_position'])
 
     def _read_header(self, filename):
         header = {}
@@ -523,6 +517,10 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         }
 
     def get_dataset(self, dataset_id, ds_info):
+        """
+
+        TODO: Split in two methods
+        """
         num_lines, _ = self._get_actual_shape()
         memmap = np.memmap(
             filename=self._filename,
@@ -648,7 +646,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             sat_position_earth_fixed_x=orb_pred['satellite_position_earth_fixed'][0].astype(np.float64),
             sat_position_earth_fixed_y=orb_pred['satellite_position_earth_fixed'][1].astype(np.float64),
             sat_position_earth_fixed_z=orb_pred['satellite_position_earth_fixed'][2].astype(np.float64),
-            nutation_precession=np.ascontiguousarray(orb_pred['conversion_matrix'].transpose().astype(np.float64))
+            nutation_precession=np.ascontiguousarray(orb_pred['conversion_matrix'].transpose(0, 2, 1).astype(np.float64))
         )
         # TODO: Check all angles in radians
 
@@ -657,7 +655,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             pixel_offset=center_pixel_vissr_frame + pixel_offset,
             stepping_angle=coord_conv['stepping_angle_along_line'][alt_ch_name],
             sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
-            misalignment=np.ascontiguousarray(coord_conv['matrix_of_misalignment']).astype(np.float64),
+            misalignment=np.ascontiguousarray(coord_conv['matrix_of_misalignment'].transpose().astype(np.float64)),
             earth_flattening=coord_conv['parameters']['oblateness_of_earth'],
             earth_equatorial_radius=coord_conv['parameters']['equatorial_radius']
         )

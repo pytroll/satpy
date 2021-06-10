@@ -2,8 +2,10 @@
 
 import numpy as np
 import pytest
+from unittest import mock
 
 import satpy.readers.gms5_vissr_navigation as nav
+from satpy.readers.gms5_vissr_l1b import GMS5VISSRFileHandler
 
 
 # Navigation references computed with JMA's Msial library (files
@@ -721,3 +723,105 @@ def test_get_observation_time():
     point = np.array([11, 100])
     obs_time = nav.get_observation_time(point, scan_params)
     np.testing.assert_allclose(obs_time, 50000.0000705496871047)
+
+
+class TestFileHandler:
+    def test_get_attitude_prediction(self, file_handler):
+        # TODO: Go on here!
+        assert 1 == 0
+
+    @pytest.fixture
+    def file_handler(self, header, channel_type):
+        with mock.patch('satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler._read_header') as _read_header:
+            _read_header.return_value = header, channel_type
+            fh = GMS5VISSRFileHandler('foo', {'foo': 'bar'}, {'foo': 'bar'})
+            return fh
+
+    @pytest.fixture(params=['VIS', 'IR'])
+    def channel_type(self, request):
+        return request.param
+
+    @pytest.fixture
+    def header(self, control_block, image_params):
+        return {
+            'control_block': control_block,
+            'image_parameters': image_params
+        }
+
+    @pytest.fixture
+    def control_block(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def image_params(
+            self, mode, coordinate_conversion, attitude_prediction,
+            orbit_prediction, vis_calibration, ir1_calibration, ir2_calibration,
+            wv_calibration, simple_coordinate_conversion_table
+    ):
+        return {
+            'mode': mode,
+            'coordinate_conversion': coordinate_conversion,
+            'attitude_prediction': attitude_prediction,
+            'orbit_prediction': orbit_prediction,
+            'vis_calibration': vis_calibration,
+            'ir1_calibration': ir1_calibration,
+            'ir2_calibration': ir2_calibration,
+            'wv_calibration': wv_calibration,
+            'simple_coordinate_conversion_table': simple_coordinate_conversion_table
+        }
+
+    @pytest.fixture
+    def mode(self):
+        return {
+            'satellite_name': b'GMS-5       '
+        }
+
+    @pytest.fixture
+    def coordinate_conversion(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def attitude_prediction(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def orbit_prediction(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def vis_calibration(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def ir1_calibration(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def ir2_calibration(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def wv_calibration(self):
+        return {
+
+        }
+
+    @pytest.fixture
+    def simple_coordinate_conversion_table(self):
+        return {
+
+        }
