@@ -22,7 +22,7 @@ import numpy as np
 import dask.array as da
 import xarray as xr
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
-from pyresample.geometry import AreaDefinition
+from pyresample.geometry import AreaDefinition, SwathDefinition
 
 import unittest
 from unittest import mock
@@ -221,6 +221,9 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
             self.assertEqual(v.attrs['platform'], 'npp')
             self.assertEqual(v.attrs['sensor'], 'viirs')
+            self.assertIsInstance(v.attrs['area'], SwathDefinition)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 16)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 16)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
 
@@ -406,6 +409,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
+            self.assertTrue(v.attrs['area'].is_geostationary)
             self.assertEqual(v.attrs['platform'], 'himawari8')
             self.assertEqual(v.attrs['sensor'], 'ahi')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
