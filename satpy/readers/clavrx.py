@@ -354,7 +354,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         l1b_att, inst_att = (str(self.file_content.get('/attr/L1B', None)),
                              str(self.file_content.get('/attr/sensor', None)))
 
-        return (inst_att != 'AHI') or (l1b_att is None)
+        return (inst_att != 'AHI' and 'GOES' not in inst_att) or (l1b_att is None)
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
