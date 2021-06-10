@@ -53,16 +53,16 @@ PLATFORMS = {
     'G16': 'GOES-16',
     'G17': 'GOES-17'
 }
-# ROWS_PER_SCAN = {
-#     'viirs': 16,
-#     'modis': 10,
-# }
+ROWS_PER_SCAN = {
+    'viirs': 16,
+    'modis': 10,
+}
 NADIR_RESOLUTION = {
     'viirs': 742,
     'modis': 1000,
     'avhrr': 1050,
     'ahi': 2000,
-    # 'abi': 2004,
+    'abi': 2000,
 }
 
 
@@ -82,11 +82,12 @@ def _get_platform(platform: str) -> str:
     return platform
 
 
-# def _get_rows_per_scan(sensor: str) -> str:
-#     """Get number of rows per scan."""
-#     for k, v in ROWS_PER_SCAN.items():
-#         if sensor.startswith(k):
-#             return v
+def _get_rows_per_scan(sensor: str) -> str:
+    """Get number of rows per scan."""
+    for k, v in ROWS_PER_SCAN.items():
+        if sensor.startswith(k):
+            return v
+    return None
 
 
 def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArray:
@@ -273,9 +274,9 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
 
         i['sensor'] = self.sensor
         i['platform'] = i['platform_name'] = self.platform
-        # rps = self.get_rows_per_scan(sensor)
-        # if rps:
-        #     i['rows_per_scan'] = rps
+        rps = _get_rows_per_scan(self.sensor)
+        if rps:
+            i['rows_per_scan'] = rps
         i['reader'] = 'clavrx'
 
         return i
@@ -470,9 +471,9 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
         i['sensor'] = self.sensor
         i['platform'] = i['platform_name'] = self.platform
-        # rps = self.get_rows_per_scan(sensor)
-        # if rps:
-        #     i['rows_per_scan'] = rps
+        rps = _get_rows_per_scan(self.sensor)
+        if rps:
+            i['rows_per_scan'] = rps
         i['reader'] = 'clavrx'
 
         return i
