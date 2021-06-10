@@ -114,6 +114,9 @@ class SAFEMSIMDXML(BaseFileHandler):
         self.tile = filename_info['gtile_number']
         self.platform_name = PLATFORMS[filename_info['fmission_id']]
 
+        import geotiepoints  # noqa
+        import bottleneck  # noqa
+
     @property
     def start_time(self):
         """Get start time."""
