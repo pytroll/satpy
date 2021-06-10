@@ -443,7 +443,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         l1b_att, inst_att = (str(self.nc.attrs.get('L1B', None)),
                              str(self.nc.attrs.get('sensor', None)))
 
-        return (inst_att != 'AHI') or (l1b_att is None)
+        return (inst_att != 'AHI' and 'GOES' not in inst_att) or (l1b_att is None)
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
