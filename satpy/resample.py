@@ -205,7 +205,7 @@ def get_area_file():
 def get_area_def(area_name):
     """Get the definition of *area_name* from file.
 
-    The file is defined to use is to be placed in the $PPP_CONFIG_DIR
+    The file is defined to use is to be placed in the $SATPY_CONFIG_PATH
     directory, and its name is defined in satpy's configuration file.
     """
     try:
