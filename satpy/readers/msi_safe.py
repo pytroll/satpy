@@ -70,6 +70,7 @@ class SAFEMSIL1C(BaseFileHandler):
 
     @staticmethod
     def _calibrate(proj):
+        proj = proj.where(proj > 0)
         # FIXME: get this from MTD_MSIL1C.xml
         quantification_value = 10000.
         return proj / quantification_value * 100

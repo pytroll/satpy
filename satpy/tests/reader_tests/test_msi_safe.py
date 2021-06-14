@@ -21,6 +21,7 @@ import unittest.mock as mock
 from io import BytesIO
 
 import numpy as np
+import xarray as xr
 
 from satpy.tests.utils import make_dataid
 
@@ -610,3 +611,18 @@ class TestMTDXML(unittest.TestCase):
                                    9.98937, 9.98937, 9.98937, 9.98937, 9.98937]])
         res = self.xml_fh.get_dataset(make_dataid(name="satellite_zenith_angle", resolution=60), info)[::200, ::200]
         np.testing.assert_allclose(res, expected_data)
+
+
+class TestSAFEMSIL1C:
+    """Test case for image reading (jp2k)."""
+
+    def test_no_data_masked(self):
+        """Test that no-data is masked with nans."""
+        from satpy.readers.msi_safe import SAFEMSIL1C
+        fake_data = xr.DataArray([[[0, 1], [2, 3]]], dims=["band", "x", "y"])
+        filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01")
+        self.jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), mock.MagicMock())
+
+        with mock.patch("satpy.readers.msi_safe.rioxarray.open_rasterio", return_value=fake_data):
+            res = self.jp2_fh.get_dataset(make_dataid(name="B01"), info=dict())
+            np.testing.assert_allclose(res, [[np.nan, 0.01], [0.02, 0.03]])
