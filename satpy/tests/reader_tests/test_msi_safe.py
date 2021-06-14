@@ -199,7 +199,7 @@ mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           </Values_List>
         </Azimuth>
       </Viewing_Incidence_Angles_Grids>
-      <Viewing_Incidence_Angles_Grids bandId="0" detectorId="2">
+      <Viewing_Incidence_Angles_Grids bandId="1" detectorId="2">
         <Zenith>
           <COL_STEP unit="m">5000</COL_STEP>
           <ROW_STEP unit="m">5000</ROW_STEP>
@@ -259,7 +259,7 @@ mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           </Values_List>
         </Azimuth>
       </Viewing_Incidence_Angles_Grids>
-      <Viewing_Incidence_Angles_Grids bandId="0" detectorId="3">
+      <Viewing_Incidence_Angles_Grids bandId="1" detectorId="3">
         <Zenith>
           <COL_STEP unit="m">5000</COL_STEP>
           <ROW_STEP unit="m">5000</ROW_STEP>
@@ -319,7 +319,7 @@ mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           </Values_List>
         </Azimuth>
       </Viewing_Incidence_Angles_Grids>
-      <Viewing_Incidence_Angles_Grids bandId="0" detectorId="4">
+      <Viewing_Incidence_Angles_Grids bandId="1" detectorId="4">
         <Zenith>
           <COL_STEP unit="m">5000</COL_STEP>
           <ROW_STEP unit="m">5000</ROW_STEP>
@@ -379,7 +379,7 @@ mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           </Values_List>
         </Azimuth>
       </Viewing_Incidence_Angles_Grids>
-      <Viewing_Incidence_Angles_Grids bandId="0" detectorId="5">
+      <Viewing_Incidence_Angles_Grids bandId="1" detectorId="5">
         <Zenith>
           <COL_STEP unit="m">5000</COL_STEP>
           <ROW_STEP unit="m">5000</ROW_STEP>
@@ -589,26 +589,26 @@ class TestMTDXML(unittest.TestCase):
         """Test reading the satellite zenith array."""
         info = dict(xml_tag="Viewing_Incidence_Angles_Grids", xml_item="Zenith")
 
-        expected_data = np.array([[11.7128, 11.18397802, 10.27667671, 10.2053, 10.2053,
-                                   10.2053, 10.2053, 10.2053, 10.2053, 10.2053],
-                                  [11.88606009, 10.9799713, 10.07285751, 10.00169112, 10.00169112,
-                                   10.00169112, 10.00169112, 10.00169112, 10.00169112, 10.00169112],
-                                  [11.6823579, 10.7763071, 10.1750579, 10.1750579, 10.1750579,
-                                   10.1750579, 10.1750579, 10.1750579, 10.1750579, 10.1750579],
-                                  [11.4976, 10.59075347, 9.98937, 9.98937, 9.98937,
-                                   9.98937, 9.98937, 9.98937, 9.98937, 9.98937],
-                                  [11.4976, 10.59075347, 9.98937, 9.98937, 9.98937,
-                                   9.98937, 9.98937, 9.98937, 9.98937, 9.98937],
-                                  [11.4976, 10.59075347, 9.98937, 9.98937, 9.98937,
-                                   9.98937, 9.98937, 9.98937, 9.98937, 9.98937],
-                                  [11.4976, 10.59075347, 9.98937, 9.98937, 9.98937,
-                                   9.98937, 9.98937, 9.98937, 9.98937, 9.98937],
-                                  [11.4976, 10.59075347, 9.98937, 9.98937, 9.98937,
-                                   9.98937, 9.98937, 9.98937, 9.98937, 9.98937],
-                                  [11.4976, 10.59075347, 9.98937, 9.98937, 9.98937,
-                                   9.98937, 9.98937, 9.98937, 9.98937, 9.98937],
-                                  [11.4976, 10.59075347, 9.98937, 9.98937, 9.98937,
-                                   9.98937, 9.98937, 9.98937, 9.98937, 9.98937]])
+        expected_data = np.array([[11.7128, 11.18397802, 10.27667671, 9.35384969, 8.42850504,
+                                   7.55445611, 6.65475545, 5.66517232, 4.75893757, 4.04976844],
+                                  [11.88606009, 10.9799713, 10.07083278, 9.14571825, 8.22607131,
+                                   7.35181457, 6.44647222, 5.46144173, 4.56625547, 3.86638233],
+                                  [11.6823579, 10.7763071, 9.86302106, 8.93879112, 8.04005637,
+                                   7.15028077, 6.21461062, 5.25780953, 4.39876601, 3.68620793],
+                                  [11.06724679, 10.35723901, 9.63958896, 8.73072512, 7.83680864,
+                                   6.94792574, 5.9889201, 5.05445872, 4.26089708, 3.50984272],
+                                  [6.28411038, 6.28411038, 6.28411038, 6.28411038, 6.28411038,
+                                   5.99769643, 5.62586167, 4.85165966, 4.13238314, 3.33781401],
+                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
+                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
+                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
+                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
+                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
+                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
+                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
+                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837],
+                                  [3.7708, 3.7708, 3.7708, 3.7708, 3.7708,
+                                   3.7708, 3.7708, 3.7708, 3.7708, 3.24140837]])
         res = self.xml_fh.get_dataset(make_dataid(name="satellite_zenith_angle", resolution=60), info)[::200, ::200]
         np.testing.assert_allclose(res, expected_data)
 
