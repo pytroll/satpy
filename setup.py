@@ -36,7 +36,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'pooch']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'trollimage', 'fsspec']
+                 'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck']
 
 extras_require = {
     # Readers:
