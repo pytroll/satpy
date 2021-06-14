@@ -119,15 +119,23 @@ Examples coming soon...
 Store area definitions
 ----------------------
 
-Area definitions can be added to a custom YAML file (see
-`pyresample's documentation <http://pyresample.readthedocs.io/en/stable/geo_def.html#pyresample-utils>`_
-for more information)
-and loaded using pyresample's utility methods::
+Area definitions can be saved to a custom YAML file (see
+`pyresample's writing to disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#writing-to-disk>`_)
+and loaded using pyresample's utility methods
+(`pyresample's loading from disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#loading-from-disk>`_)::
 
-    >>> from pyresample.utils import parse_area_file
-    >>> my_area = parse_area_file('my_areas.yaml', 'my_area')[0]
+    >>> from pyresample import load_area
+    >>> my_area = load_area('my_areas.yaml', 'my_area')
 
-Examples coming soon...
+Or using :func:`satpy.resample.get_area_def`, which will search through all
+``areas.yaml`` files in your ``SATPY_CONFIG_PATH``::
+
+    >>> from satpy.resample import get_area_def
+    >>> area_eurol = get_area_def("eurol")
+
+For examples of area definitions, see the file ``etc/areas.yaml`` that is
+included with Satpy and where all the area definitions shipped with Satpy are
+defined.
 
 """
 import hashlib
@@ -205,7 +213,7 @@ def get_area_file():
 def get_area_def(area_name):
     """Get the definition of *area_name* from file.
 
-    The file is defined to use is to be placed in the $PPP_CONFIG_DIR
+    The file is defined to use is to be placed in the $SATPY_CONFIG_PATH
     directory, and its name is defined in satpy's configuration file.
     """
     try:
@@ -1117,6 +1125,7 @@ class BucketResamplerBase(BaseResampler):
             dims = ('y', 'x')
         else:
             dims = data.dims
+        LOG.debug("Resampling %s", str(data.attrs.get('_satpy_id', 'unknown')))
         result = self.compute(data_arr, **kwargs)
         coords = {}
         if 'bands' in data.coords:
@@ -1169,9 +1178,16 @@ class BucketAvg(BucketResamplerBase):
     """
 
     def compute(self, data, fill_value=np.nan, skipna=True, **kwargs):
-        """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
+        """Call the resampling.
 
+        Args:
+            data (numpy.Array, dask.Array): Data to be resampled
+            fill_value (numpy.nan, int): fill_value. Defaults to numpy.nan
+            skipna (boolean): Skip NA's. Default `True`
+
+        Returns:
+            dask.Array
+        """
         kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
 
         results = []
@@ -1210,8 +1226,6 @@ class BucketSum(BucketResamplerBase):
 
     def compute(self, data, skipna=True, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
-
         kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
 
         results = []
@@ -1237,7 +1251,6 @@ class BucketCount(BucketResamplerBase):
 
     def compute(self, data, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
         results = []
         if data.ndim == 3:
             for _i in range(data.shape[0]):
@@ -1260,7 +1273,6 @@ class BucketFraction(BucketResamplerBase):
 
     def compute(self, data, fill_value=np.nan, categories=None, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
         if data.ndim > 2:
             raise ValueError("BucketFraction not implemented for 3D datasets")
 

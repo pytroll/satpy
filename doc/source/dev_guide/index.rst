@@ -30,6 +30,8 @@ Satpy is now Python 3 only and it is no longer needed to support Python 2.
 Check ``setup.py`` for the current Python versions any new code needs
 to support.
 
+.. _devinstall:
+
 Development installation
 ========================
 
@@ -37,7 +39,7 @@ See the :doc:`../install` section for basic installation instructions. When
 it comes time to install Satpy it should be installed from a clone of the git
 repository and in development mode so that local file changes are
 automatically reflected in the python environment. We highly recommend making
-a separate conda environment or virtualenv for development. For example, you 
+a separate conda environment or virtualenv for development. For example, you
 can do this using conda_::
 
   conda create -n satpy-dev python=3.8
@@ -72,6 +74,27 @@ third-party :doc:`pytest <pytest:index>` package. Satpy tests can be executed by
 running::
 
     pytest satpy/tests
+
+Running benchmarks
+==================
+
+Satpy benchmarks are written using the
+`Airspeed Velocity <https://asv.readthedocs.io/en/stable/index.html>`_
+package (:mod:`asv`).
+The benchmarks can be run using::
+
+    asv run
+
+These are pretty computation intensive, and shouldn't be run unless you want to
+diagnose some performance issue for example.
+
+Once the benchmarks have run, you can use::
+
+    asv publish
+    asv preview
+
+to have a look at the results. Again, have a look at the `asv` documentation for
+more information.
 
 Documentation
 =============

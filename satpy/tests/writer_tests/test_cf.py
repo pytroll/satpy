@@ -407,7 +407,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
 
     def test_header_attrs(self):
-        """Check master attributes are set."""
+        """Check global attributes are set."""
         from satpy import Scene
         import xarray as xr
         scn = Scene()

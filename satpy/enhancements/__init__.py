@@ -20,7 +20,12 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
+from trollimage.xrimage import XRImage
+from numbers import Number
 import logging
+import warnings
+from functools import partial
+from satpy._compat import ArrayLike
 
 LOG = logging.getLogger(__name__)
 
@@ -106,18 +111,85 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 def crefl_scaling(img, **kwargs):
     """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
+    warnings.warn("'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.", DeprecationWarning)
+    img.data.data = img.data.data / 100
+    return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], reference_scale_factor=255)
 
-    def func(band_data, index=None):
-        idx = np.array(kwargs['idx']) / 255
-        sc = np.array(kwargs['sc']) / 255
-        band_data *= .01
+
+def piecewise_linear_stretch(
+        img: XRImage,
+        xp: ArrayLike,
+        fp: ArrayLike,
+        reference_scale_factor: Number = None,
+        **kwargs) -> xr.DataArray:
+    """Apply 1D linear interpolation.
+
+    This uses :func:`numpy.interp` mapped over the provided dask array chunks.
+
+    Args:
+        img: Image data to be scaled. It is assumed the data is already
+            normalized between 0 and 1.
+        xp: Input reference values of the image data points used for
+            interpolation. This is passed directly to :func:`numpy.interp`.
+        fp: Target reference values of the output image data points used for
+            interpolation. This is passed directly to :func:`numpy.interp`.
+        reference_scale_factor: Divide ``xp`` and ``fp`` by this value before
+            using them for interpolation. This is a convenience to make
+            matching normalized image data to interp coordinates or to avoid
+            floating point precision errors in YAML configuration files.
+            If not provided, ``xp`` and ``fp`` will not be modified.
+
+    Examples:
+        This example YAML uses a 'crude' stretch to pre-scale the RGB data
+        and then uses reference points in a 0-255 range.
+
+        .. code-block:: yaml
+
+              true_color_linear_interpolation:
+                sensor: abi
+                standard_name: true_color
+                operations:
+                - name: reflectance_range
+                  method: !!python/name:satpy.enhancements.stretch
+                  kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
+                - name: Linear interpolation
+                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+                  kwargs:
+                   xp: [0., 25., 55., 100., 255.]
+                   fp: [0., 90., 140., 175., 255.]
+                   reference_scale_factor: 255
+
+        This example YAML does the same as the above on the C02 channel, but
+        the interpolation reference points are already adjusted for the input
+        reflectance (%) data and the output range (0 to 1).
+
+        .. code-block:: yaml
+
+              c02_linear_interpolation:
+                sensor: abi
+                standard_name: C02
+                operations:
+                - name: Linear interpolation
+                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+                  kwargs:
+                   xp: [0., 9.8039, 21.5686, 39.2157, 100.]
+                   fp: [0., 0.3529, 0.5490, 0.6863, 1.0]
+
+    """
+    LOG.debug("Applying the piecewise_linear_stretch")
+    if reference_scale_factor is not None:
+        xp = np.asarray(xp) / reference_scale_factor
+        fp = np.asarray(fp) / reference_scale_factor
+
+    def func(band_data, xp, fp, index=None):
         # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
-        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=idx, fp=sc), 0, 1),
+        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=xp, fp=fp), 0, 1),
                                  coords=band_data.coords, dims=band_data.dims, name=band_data.name,
                                  attrs=band_data.attrs)
         return band_data
 
-    return apply_enhancement(img.data, func, separate=True)
+    func_with_kwargs = partial(func, xp=xp, fp=fp)
+    return apply_enhancement(img.data, func_with_kwargs, separate=True)
 
 
 def cira_stretch(img, **kwargs):

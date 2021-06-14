@@ -221,6 +221,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             data = data.where((data <= valid_max))  # | (data >= valid_min))
         if fill_value is not None:
             data = data.where(data != fill_value)
+            # this _FillValue is no longer valid
+            metadata.pop('_FillValue', None)
+            data.attrs.pop('_FillValue', None)
 
         data.attrs.update(metadata)
         # Older format

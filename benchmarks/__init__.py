@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,21 +15,4 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Backports and compatibility fixes for satpy."""
-
-try:
-    from functools import cached_property
-except ImportError:
-    # for python < 3.8
-    from functools import lru_cache
-
-    def cached_property(func):
-        """Port back functools.cached_property."""
-        return property(lru_cache(maxsize=None)(func))
-
-
-try:
-    from numpy.typing import ArrayLike  # noqa
-except ImportError:
-    # numpy <1.20
-    from numpy import ndarray as ArrayLike  # noqa
+"""Benchmark satpy."""

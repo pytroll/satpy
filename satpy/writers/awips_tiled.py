@@ -1060,7 +1060,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         return new_ds
 
     def _add_sector_id_global(self, new_ds, sector_id):
-        if not self._template_dict.get('apply_sector_id_global'):
+        if not self._template_dict.get('add_sector_id_global'):
             return
 
         if sector_id is None:

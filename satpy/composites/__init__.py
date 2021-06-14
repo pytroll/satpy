@@ -25,6 +25,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+import satpy
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.aux_download import DataDownloadMixin
@@ -249,6 +250,51 @@ class SingleBandCompositor(CompositeBase):
 
         return xr.DataArray(data=data.data, attrs=new_attrs,
                             dims=data.dims, coords=data.coords)
+
+
+class CategoricalDataCompositor(CompositeBase):
+    """Compositor used to recategorize categorical data using a look-up-table.
+
+    Each value in the data array will be recategorized to a new category defined in
+    the look-up-table using the original value as an index for that look-up-table.
+
+    Example:
+        data = [[1, 3, 2], [4, 2, 0]]
+        lut = [10, 20, 30, 40, 50]
+        res = [[20, 40, 30], [50, 30, 10]]
+    """
+
+    def __init__(self, name, lut=None, **kwargs):
+        """Get look-up-table used to recategorize data.
+
+        Args:
+            lut (list): a list of new categories. The lenght must be greater than the
+                        maximum value in the data array that should be recategorized.
+        """
+        self.lut = np.array(lut)
+        super(CategoricalDataCompositor, self).__init__(name, **kwargs)
+
+    def _update_attrs(self, new_attrs):
+        """Modify name and add LUT."""
+        new_attrs['name'] = self.attrs['name']
+        new_attrs['composite_lut'] = list(self.lut)
+
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block]
+
+    def __call__(self, projectables, **kwargs):
+        """Recategorize the data."""
+        if len(projectables) != 1:
+            raise ValueError("Can't have more than one dataset for a categorical data composite")
+
+        data = projectables[0].astype(int)
+        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
+
+        new_attrs = data.attrs.copy()
+        self._update_attrs(new_attrs)
+
+        return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
 
 
 class GenericCompositor(CompositeBase):
@@ -947,7 +993,7 @@ class SandwichCompositor(GenericCompositor):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
         luminance = projectables[0]
-        luminance /= 100.
+        luminance = luminance / 100.
         # Limit between min(luminance) ... 1.0
         luminance = luminance.clip(max=1.)
 
@@ -1011,7 +1057,8 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
                 ``url`` is provided and ``filename`` is not then the
                 ``filename`` will be guessed from the ``url``.
                 If ``url`` is not provided, then it is assumed ``filename``
-                refers to a local file with an absolute path.
+                refers to a local file. If the ``filename`` does not come with
+                an absolute path, ``data_dir`` will be used as the directory path.
                 Environment variables are expanded.
             url (str): URL to remote file. When the composite is created the
                 file will be downloaded and cached in Satpy's ``data_dir``.
@@ -1023,6 +1070,24 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
             area (str): Name of area definition for the image.  Optional
                 for images with built-in area definitions (geotiff).
 
+        Use cases:
+            1. url + no filename:
+               Satpy determines the filename based on the filename in the URL,
+               then downloads the URL, and saves it to <data_dir>/<filename>.
+               If the file already exists and known_hash is also provided, then the pooch
+               library compares the hash of the file to the known_hash. If it does not
+               match, then the URL is re-downloaded. If it matches then no download.
+            2. url + relative filename:
+               Same as case 1 but filename is already provided so download goes to
+               <data_dir>/<filename>. Same hashing behavior. This does not check for an
+               absolute path.
+            3. No url + absolute filename:
+               No download, filename is passed directly to generic_image reader. No hashing
+               is done.
+            4. No url + relative filename:
+               Check if <data_dir>/<filename> exists. If it does then make filename an
+               absolute path. If it doesn't, then keep it as is and let the exception at
+               the bottom of the method get raised.
         """
         filename, url = self._get_cache_filename_and_url(filename, url)
         self._cache_filename = filename
@@ -1038,16 +1103,28 @@ class StaticImageCompositor(GenericCompositor, DataDownloadMixin):
         self._cache_key = cache_keys[0]
 
     @staticmethod
-    def _get_cache_filename_and_url(filename, url):
-        if filename is not None:
+    def _check_relative_filename(filename):
+        data_dir = satpy.config.get('data_dir')
+        path = os.path.join(data_dir, filename)
+
+        return path if os.path.exists(path) else filename
+
+    def _get_cache_filename_and_url(self, filename, url):
+        if filename:
             filename = os.path.expanduser(os.path.expandvars(filename))
-        if url is not None:
+
+            if not os.path.isabs(filename) and not url:
+                filename = self._check_relative_filename(filename)
+
+        if url:
             url = os.path.expandvars(url)
-            if filename is None:
+            if not filename:
                 filename = os.path.basename(url)
-        if url is None and (filename is None or not os.path.isabs(filename)):
-            raise ValueError("StaticImageCompositor needs a remote 'url' "
-                             "or absolute path to 'filename'.")
+        elif not filename or not os.path.isabs(filename):
+            raise ValueError("StaticImageCompositor needs a remote 'url', "
+                             "or absolute path to 'filename', "
+                             "or an existing 'filename' relative to Satpy's 'data_dir'.")
+
         return filename, url
 
     def register_data_files(self, data_files):

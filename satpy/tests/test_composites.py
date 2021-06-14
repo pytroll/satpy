@@ -431,6 +431,8 @@ class TestSandwichCompositor(unittest.TestCase):
         for i in range(3):
             np.testing.assert_allclose(res.data[i, :, :],
                                        rgb_arr[i, :, :] * lum_arr / 100.)
+        # make sure the compositor doesn't modify the input data
+        np.testing.assert_allclose(lum.values, lum_arr.compute())
 
 
 class TestInlineComposites(unittest.TestCase):
@@ -702,6 +704,38 @@ class TestSingleBandCompositor(unittest.TestCase):
         self.assertEqual(res.attrs['resolution'], 333)
 
 
+class TestCategoricalDataCompositor(unittest.TestCase):
+    """Test composiotor for recategorization of categorical data."""
+
+    def setUp(self):
+        """Create test data."""
+        attrs = {'name': 'foo'}
+        data = xr.DataArray(da.from_array([[2., 1.], [3., 0.]]), attrs=attrs,
+                            dims=('y', 'x'), coords={'y': [0, 1], 'x': [0, 1]})
+
+        self.data = data
+
+    def test_basic_recategorization(self):
+        """Test general functionality of compositor incl. attributes."""
+        from satpy.composites import CategoricalDataCompositor
+        lut = [np.nan, 0, 1, 1]
+        name = 'bar'
+        comp = CategoricalDataCompositor(name=name, lut=lut)
+        res = comp([self.data])
+        res = res.compute()
+        expected = np.array([[1., 0.], [1., np.nan]])
+        np.testing.assert_equal(res.values, expected)
+        np.testing.assert_equal(res.attrs['name'], name)
+        np.testing.assert_equal(res.attrs['composite_lut'], lut)
+
+    def test_too_many_datasets(self):
+        """Test that ValueError is raised if more than one dataset is provided."""
+        from satpy.composites import CategoricalDataCompositor
+        lut = [np.nan, 0, 1, 1]
+        comp = CategoricalDataCompositor(name='foo', lut=lut)
+        np.testing.assert_raises(ValueError, comp, [self.data, self.data])
+
+
 class TestGenericCompositor(unittest.TestCase):
     """Test generic compositor."""
 
@@ -914,10 +948,6 @@ class TestStaticImageCompositor(unittest.TestCase):
         with self.assertRaises(ValueError):
             StaticImageCompositor("name")
 
-        # No absolute filename and no URL
-        with self.assertRaises(ValueError):
-            StaticImageCompositor("name", filename="foo.tif")
-
         # No area defined
         comp = StaticImageCompositor("name", filename="/foo.tif")
         self.assertEqual(comp._cache_filename, "/foo.tif")
@@ -935,7 +965,10 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
+        import satpy
         from satpy.composites import StaticImageCompositor
+
+        satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
         remote_tif = "http://example.com/foo.tif"
 
         class MockScene(dict):
@@ -989,6 +1022,19 @@ class TestStaticImageCompositor(unittest.TestCase):
         os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
         comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
         self.assertEqual(comp._cache_filename, "/path/to/image/foo.tif")
+
+        # URL and filename without absolute path
+        comp = StaticImageCompositor("name", url=remote_tif, filename="bar.tif")
+        self.assertEqual(comp._url, remote_tif)
+        self.assertEqual(comp._cache_filename, "bar.tif")
+
+        # No URL, filename without absolute path, use default data_dir from config
+        with mock.patch('os.path.exists') as exists:
+            exists.return_value = True
+            comp = StaticImageCompositor("name", filename="foo.tif")
+            self.assertEqual(comp._url, None)
+            self.assertEqual(comp._cache_filename,
+                             os.path.join(os.path.sep, 'path', 'to', 'image', 'foo.tif'))
 
 
 def _enhance2dataset(dataset, convert_p=False):
