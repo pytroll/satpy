@@ -59,6 +59,13 @@ class SAFEMSIL1C(BaseFileHandler):
             return
 
         logger.debug('Reading %s.', key['name'])
+        proj = self._read_from_file()
+        proj.attrs = info.copy()
+        proj.attrs['units'] = '%'
+        proj.attrs['platform_name'] = self.platform_name
+        return proj
+
+    def _read_from_file(self):
         # FIXME: get this from MTD_MSIL1C.xml
         quantification_value = 10000.
         jp2 = glymur.Jp2k(self.filename)
@@ -68,20 +75,13 @@ class SAFEMSIL1C(BaseFileHandler):
                 bitdepth = max(bitdepth, seg.bitdepth[0])
             except AttributeError:
                 pass
-
         jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
-
         # Initialize the jp2 reader / doesn't work in a multi-threaded context.
         # jp2[0, 0]
         # data = da.from_array(jp2, chunks=CHUNK_SIZE) / quantification_value * 100
-
         data = da.from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
         data = data.rechunk(CHUNK_SIZE) / quantification_value * 100
-
         proj = DataArray(data, dims=['y', 'x'])
-        proj.attrs = info.copy()
-        proj.attrs['units'] = '%'
-        proj.attrs['platform_name'] = self.platform_name
         return proj
 
     @property
