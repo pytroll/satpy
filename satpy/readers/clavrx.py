@@ -62,7 +62,7 @@ NADIR_RESOLUTION = {
     'modis': 1000,
     'avhrr': 1050,
     'ahi': 2000,
-    'abi': 2000,
+    'abi': 2004,
 }
 
 
