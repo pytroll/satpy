@@ -19,13 +19,12 @@
 
 import logging
 
-import glymur
+import rioxarray
 import numpy as np
 from xarray import DataArray
 import dask.array as da
 import xml.etree.ElementTree as ET
 from pyresample import geometry
-from dask import delayed
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -66,23 +65,14 @@ class SAFEMSIL1C(BaseFileHandler):
         return proj
 
     def _read_from_file(self):
+        proj = rioxarray.open_rasterio(self.filename, chunks=CHUNK_SIZE)
+        return self._calibrate(proj.squeeze("band"))
+
+    @staticmethod
+    def _calibrate(proj):
         # FIXME: get this from MTD_MSIL1C.xml
         quantification_value = 10000.
-        jp2 = glymur.Jp2k(self.filename)
-        bitdepth = 0
-        for seg in jp2.codestream.segment:
-            try:
-                bitdepth = max(bitdepth, seg.bitdepth[0])
-            except AttributeError:
-                pass
-        jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
-        # Initialize the jp2 reader / doesn't work in a multi-threaded context.
-        # jp2[0, 0]
-        # data = da.from_array(jp2, chunks=CHUNK_SIZE) / quantification_value * 100
-        data = da.from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
-        data = data.rechunk(CHUNK_SIZE) / quantification_value * 100
-        proj = DataArray(data, dims=['y', 'x'])
-        return proj
+        return proj / quantification_value * 100
 
     @property
     def start_time(self):
