@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -90,50 +90,50 @@ def _get_rows_per_scan(sensor: str) -> str:
     return None
 
 
-def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArray:
-    """Get a dataset."""
-    if dataset_id.get('resolution'):
-        data.attrs['resolution'] = dataset_id['resolution']
-
-    attrs = data.attrs.copy()
-    fill = attrs.pop('_FillValue', None)
-    factor = attrs.pop('scale_factor', None)
-    offset = attrs.pop('add_offset', None)
-    valid_range = attrs.pop('valid_range', None)
-
-    if factor is not None and offset is not None:
-        def scale_inplace(data):
-            data *= factor
-            data += offset
-            return data
-    else:
-        def scale_inplace(data):
-            return data
-
-    data = data.where(data != fill)
-    scale_inplace(data)
-    if valid_range is not None:
-        valid_min, valid_max = scale_inplace(valid_range[0]), scale_inplace(valid_range[1])
-        data = data.where((data >= valid_min) & (data <= valid_max))
-        data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
-
-    data.attrs = _remove_attributes(attrs)
-
-    return data
-
-
-def _remove_attributes(attrs: dict) -> dict:
-    """Remove attributes that described data before scaling."""
-    old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
-                 'SCALED_MISSING', 'actual_missing']
-
-    for attr_key in old_attrs:
-        attrs.pop(attr_key, None)
-    return attrs
-
-
 class _CLAVRxHelper:
-    """A base class for the CLAVR File Handlers."""
+    """A base class for the CLAVRx File Handlers."""
+
+    def _remove_attributes(attrs: dict) -> dict:
+        """Remove attributes that described data before scaling."""
+        old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
+                     'SCALED_MISSING', 'actual_missing']
+
+        for attr_key in old_attrs:
+            attrs.pop(attr_key, None)
+        return attrs
+
+    @staticmethod
+    def _scale_data(data_arr: xr.DataArray, scale_factor: float, add_offset: float) -> xr.DataArray:
+        """Scale data, if needed."""
+        scaling_needed = not (scale_factor == 1 and add_offset == 0)
+        if scaling_needed:
+            data_arr = data_arr * scale_factor + add_offset
+        return data_arr
+
+    @staticmethod
+    def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArray:
+        """Get a dataset."""
+        if dataset_id.get('resolution'):
+            data.attrs['resolution'] = dataset_id['resolution']
+
+        attrs = data.attrs.copy()
+        fill = attrs.pop('_FillValue', None)
+        factor = attrs.pop('scale_factor', 1.0)
+        offset = attrs.pop('add_offset', 0.0)
+        valid_range = attrs.pop('valid_range', None)
+
+        data = data.where(data != fill)
+        data = _CLAVRxHelper._scale_data(data, factor, offset)
+
+        if valid_range is not None:
+            valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
+            valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
+            data = data.where((data >= valid_min) & (data <= valid_max))
+            data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
+
+        data.attrs = _CLAVRxHelper._remove_attributes(attrs)
+
+        return data
 
     @staticmethod
     def _area_extent(x, y, h):
@@ -185,7 +185,7 @@ class _CLAVRxHelper:
         return l1b_filenames[0]
 
     @staticmethod
-    def _read_axi_fixed_grid(filename, l1b_attr):
+    def _read_axi_fixed_grid(filename: str, l1b_attr) -> geometry.AreaDefinition:
         """Read a fixed grid.
 
         CLAVR-x does not transcribe fixed grid parameters to its output
@@ -257,7 +257,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         """Get the end time."""
         return self.filename_info.get('end_time', self.start_time)
 
-    def get_metadata(self, attrs, ds_info):
+    def get_metadata(self, attrs: dict, ds_info: dict) -> dict:
         """Get metadata."""
         i = {}
         i.update(attrs)
@@ -285,7 +285,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         """Get a dataset."""
         var_name = ds_info.get('file_key', dataset_id['name'])
         data = self[var_name]
-        data = _get_data(data, dataset_id, ds_info)
+        data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
         data.attrs = self.get_metadata(data.attrs, ds_info)
         return data
 
@@ -482,7 +482,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         """Get a dataset."""
         var_name = ds_info.get('name', dataset_id['name'])
         data = self[var_name]
-        data = _get_data(data, dataset_id, ds_info)
+        data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
         data.attrs = self.get_metadata(data.attrs, ds_info)
 
         return data
