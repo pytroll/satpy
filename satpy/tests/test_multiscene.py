@@ -577,6 +577,15 @@ class TestBlendFuncs(unittest.TestCase):
                                   'area': area})
         self.ds4 = ds4
 
+    def _compare_time_coords_and_attrs(self, res, res2):
+        import numpy as np
+        self.assertEqual(res.coords['start_time'].data[0], np.datetime64(self.ds1.attrs['start_time']))
+        self.assertEqual(res.coords['start_time'].data[1], np.datetime64(self.ds2.attrs['start_time']))
+        self.assertEqual(res.attrs['start_time'], self.ds1.attrs['start_time'])
+        self.assertEqual(res.attrs['end_time'], self.ds2.attrs['end_time'])
+        self.assertEqual(res2.attrs['start_time'], self.ds3.attrs['start_time'])
+        self.assertEqual(res2.attrs['end_time'], self.ds4.attrs['end_time'])
+
     def test_stack(self):
         """Test the 'stack' function."""
         from satpy.multiscene import stack
@@ -600,7 +609,7 @@ class TestBlendFuncs(unittest.TestCase):
         self.assertEqual(res.attrs['end_time'], self.ds2.attrs['end_time'])
         self.assertEqual(res2.attrs['start_time'], self.ds3.attrs['start_time'])
         self.assertEqual(res2.attrs['end_time'], self.ds4.attrs['end_time'])
-
+        self._compare_time_coords_and_attrs(res, res2)
 
 @mock.patch('satpy.multiscene.get_enhanced_image')
 def test_save_mp4(smg, tmp_path):
