@@ -611,6 +611,7 @@ class TestBlendFuncs(unittest.TestCase):
         self.assertEqual(res2.attrs['end_time'], self.ds4.attrs['end_time'])
         self._compare_time_coords_and_attrs(res, res2)
 
+
 @mock.patch('satpy.multiscene.get_enhanced_image')
 def test_save_mp4(smg, tmp_path):
     """Save a series of fake scenes to an mp4 video."""
