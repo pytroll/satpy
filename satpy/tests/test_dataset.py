@@ -128,6 +128,7 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_times_with_averaging(self):
         """Test the combine_metadata with times with averaging."""
+        from satpy.dataset.metadata import combine_metadata
         ret_start_time = combine_metadata(*self.start_time_dts)
         ret_end_time = combine_metadata(*self.end_time_dts)
         # start_time should be the min time
@@ -136,6 +137,7 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_times_without_averaging(self):
         """Test the combine_metadata with times without averaging."""
+        from satpy.dataset.metadata import combine_metadata
         ret_start_time = combine_metadata(*self.start_time_dts, average_times=False)
         ret_end_time = combine_metadata(*self.end_time_dts, average_times=False)
         # start_time should be the min time
