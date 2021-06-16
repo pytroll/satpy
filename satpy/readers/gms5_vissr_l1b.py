@@ -615,6 +615,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         return area
 
     def get_area_def(self, dsid):
+        return None
+
+    def get_lons_lats(self, dsid):
         alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]
         mode_block = self._header['image_parameters']['mode']
         coord_conv = self._header['image_parameters']['coordinate_conversion']
@@ -627,7 +630,7 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             alt_ch_name]
 
         scan_params = nav.ScanningParameters(
-            start_time_of_scan=mode_block['observation_time_mjd'],
+            start_time_of_scan=coord_conv['scheduled_observation_time'],
             spinning_rate=mode_block['spin_rate'],
             num_sensors=coord_conv['number_of_sensor_elements'][alt_ch_name],
             sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
@@ -641,31 +644,35 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         orbit_prediction = nav.OrbitPrediction(
             prediction_times=orb_pred['prediction_time_mjd'].astype(np.float64),
             greenwich_sidereal_time=np.deg2rad(orb_pred['greenwich_sidereal_time'].astype(np.float64)),
-            declination_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['azimuth'].astype(np.float64)),
-            right_ascension_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['elevation'].astype(np.float64)),
-            sat_position_earth_fixed_x=orb_pred['satellite_position_earth_fixed'][0].astype(np.float64),
-            sat_position_earth_fixed_y=orb_pred['satellite_position_earth_fixed'][1].astype(np.float64),
-            sat_position_earth_fixed_z=orb_pred['satellite_position_earth_fixed'][2].astype(np.float64),
+            declination_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['elevation'].astype(np.float64)),
+            right_ascension_from_sat_to_sun=np.deg2rad(orb_pred['sat_sun_vector_earth_fixed']['azimuth'].astype(np.float64)),
+            sat_position_earth_fixed_x=orb_pred['satellite_position_earth_fixed'][:, 0].astype(np.float64),
+            sat_position_earth_fixed_y=orb_pred['satellite_position_earth_fixed'][:, 1].astype(np.float64),
+            sat_position_earth_fixed_z=orb_pred['satellite_position_earth_fixed'][:, 2].astype(np.float64),
             nutation_precession=np.ascontiguousarray(orb_pred['conversion_matrix'].transpose(0, 2, 1).astype(np.float64))
         )
-        # TODO: Check all angles in radians
 
+        # Use earth radius and flattening from JMA's Msial library, because
+        # the values in the data seem to be pretty old. For example the
+        # equatorial radius is from the Bessel Ellipsoid (1841).
         proj_params = nav.ProjectionParameters(
             line_offset=center_line_vissr_frame,
             pixel_offset=center_pixel_vissr_frame + pixel_offset,
             stepping_angle=coord_conv['stepping_angle_along_line'][alt_ch_name],
             sampling_angle=coord_conv['sampling_angle_along_pixel'][alt_ch_name],
             misalignment=np.ascontiguousarray(coord_conv['matrix_of_misalignment'].transpose().astype(np.float64)),
-            earth_flattening=coord_conv['parameters']['oblateness_of_earth'],
-            earth_equatorial_radius=coord_conv['parameters']['equatorial_radius']
+            earth_flattening=nav.EARTH_FLATTENING,
+            earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS
         )
         predicted_nav_params = nav.PredictedNavigationParameters(
             attitude_prediction, orbit_prediction, proj_params
         )
         lons, lats = nav.get_lons_lats(
-            lines=np.array([686, 2089]),
-            pixels=np.array([1680, 1793]),
+            #lines=np.array([686, 2089]),
+            lines=np.array([686]),
+            # pixels=np.array([1680, 1793]),
+            pixels=np.array([1680]),
             scan_params=scan_params,
             predicted_nav_params=predicted_nav_params
         )
-        print(lons, lats)
+        return lons, lats

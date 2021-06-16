@@ -10,6 +10,10 @@ Reference: `GMS User Guide`_, Appendix E, S-VISSR Mapping.
 import numba
 import numpy as np
 
+EARTH_FLATTENING = 1/298.257
+EARTH_EQUATORIAL_RADIUS = 6378136.0
+"""Constants taken from JMA's Msial library."""
+
 
 def get_jitclass_type(cls):
     try:
@@ -64,6 +68,8 @@ def get_observation_time(point, scan_params):
 @numba.njit
 def _get_relative_observation_time(point, scan_params):
     line, pixel = point
+    pixel = pixel + 1
+    line = line + 1
     spinning_freq = 1440 * scan_params.spinning_rate
     line_step = np.floor((line - 1) / scan_params.num_sensors)
     pixel_step = (scan_params.sampling_angle * pixel) / (2 * np.pi)
