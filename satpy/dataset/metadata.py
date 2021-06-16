@@ -33,7 +33,7 @@ def combine_metadata(*metadata_objects, average_times=True):
     exist in all provided dictionaries then they are not included in
     the returned dictionary.  By default any keys with the word 'time'
     in them and consisting of datetime objects will be averaged.
-    But, 'start_time' and 'end_time' will be kept as the minimum datatime
+    But, 'start_time' and 'end_time' will be kept as the minimum datetime
     and maximum datetime, respectively. This is to handle cases where
     data were observed at almost the same time but not exactly.
     In the interest of time, lazy arrays are compared by object identity
