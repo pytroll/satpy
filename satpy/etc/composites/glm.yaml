@@ -48,6 +48,31 @@ composites:
     prerequisites:
       - minimum_flash_area
       - C13
+# Windowed versions of each comp - 5x as large, for a 5 min vs. 1 min window.
+  C13_flash_extent_density_window:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: c13_flash_extent_density
+    prerequisites:
+      - flash_extent_density_window
+      - C13
+  C13_total_energy_window:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: c13_total_energy_window
+    prerequisites:
+      - total_energy_window
+      - C13
+  C13_event_flash_fraction_window:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: c13_event_flash_fraction_window
+    prerequisites:
+      - event_flash_fraction_window
+      - C13
+  C13_minimum_flash_area_window:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: c13_minimum_flash_area_window
+    prerequisites:
+      - minimum_flash_area_window
+      - C13
   C14_yellow_lightning:
     compositor: !!python/name:satpy.composites.glm.HighlightCompositor
     standard_name: c14_yellow_lightning
