@@ -206,7 +206,7 @@ class HRPTFile(BaseFileHandler):
         from pygac.calibration import calibrate_thermal
         line_numbers = (
             np.round((self.times - self.times[-1]) /
-                     np.timedelta64(166666667, 'ns'))).astype(np.int)
+                     np.timedelta64(166666667, 'ns'))).astype(int)
         line_numbers -= line_numbers[0]
         prt, ict, space = self.telemetry
         index = _get_channel_index(key)

@@ -1,6 +1,6 @@
 # Releasing Satpy
 
-1. checkout master
+1. checkout main branch
 2. pull from repo
 3. run the unittests
 4. run `loghub` and update the `CHANGELOG.md` file:

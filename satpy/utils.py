@@ -21,6 +21,7 @@
 import logging
 import os
 import warnings
+import contextlib
 from typing import Mapping
 
 import numpy as np
@@ -43,14 +44,81 @@ def ensure_dir(filename):
         os.makedirs(directory)
 
 
-def debug_on():
-    """Turn debugging logging on."""
+def debug_on(deprecation_warnings=True):
+    """Turn debugging logging on.
+
+    Sets up a StreamHandler to to `sys.stderr` at debug level for all
+    loggers, such that all debug messages (and log messages with higher
+    severity) are logged to the standard error stream.
+
+    By default, since Satpy 0.26, this also enables the global visibility
+    of deprecation warnings.  This can be suppressed by passing a false
+    value.
+
+    Args:
+        deprecation_warnings (Optional[bool]): Switch on deprecation warnings.
+            Defaults to True.
+
+    Returns:
+        None
+    """
     logging_on(logging.DEBUG)
+    if deprecation_warnings:
+        deprecation_warnings_on()
+
+
+def debug_off():
+    """Turn debugging logging off.
+
+    This disables both debugging logging and the global visibility of
+    deprecation warnings.
+    """
+    logging_off()
+    deprecation_warnings_off()
+
+
+@contextlib.contextmanager
+def debug(deprecation_warnings=True):
+    """Context manager to temporarily set debugging on.
+
+    Example::
+
+        >>> with satpy.utils.debug():
+        ...     code_here()
+
+    Args:
+        deprecation_warnings (Optional[bool]): Switch on deprecation warnings.
+            Defaults to True.
+    """
+    debug_on(deprecation_warnings=deprecation_warnings)
+    yield
+    debug_off()
 
 
 def trace_on():
     """Turn trace logging on."""
     logging_on(TRACE_LEVEL)
+
+
+class _WarningManager:
+    """Class to handle switching warnings on and off."""
+
+    filt = None
+
+
+_warning_manager = _WarningManager()
+
+
+def deprecation_warnings_on():
+    """Switch on deprecation warnings."""
+    warnings.filterwarnings("default", category=DeprecationWarning)
+    _warning_manager.filt = warnings.filters[0]
+
+
+def deprecation_warnings_off():
+    """Switch off deprecation warnings."""
+    if _warning_manager.filt in warnings.filters:
+        warnings.filters.remove(_warning_manager.filt)
 
 
 def logging_on(level=logging.WARNING):

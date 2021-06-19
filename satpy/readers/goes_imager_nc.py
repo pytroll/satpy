@@ -1348,7 +1348,7 @@ def test_coefs(ir_url, vis_url):
     """
     reader = GOESCoefficientReader(ir_url=ir_url, vis_url=vis_url)
 
-    for platform in CALIB_COEFS.keys():
+    for platform in CALIB_COEFS:
         for channel, coefs in CALIB_COEFS[platform].items():
             coefs_expected = reader.get_coefs(platform=platform,
                                               channel=channel)

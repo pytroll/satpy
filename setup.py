@@ -36,7 +36,8 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'pooch']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'trollimage', 'fsspec']
+                 'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
+                 'rioxarray']
 
 extras_require = {
     # Readers:
@@ -51,13 +52,14 @@ extras_require = {
     'omps_edr': ['h5py >= 2.7.0'],
     'amsr2_l1b': ['h5py >= 2.7.0'],
     'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
-    'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.10.1'],
-    'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
+    'msi_safe': ['rioxarray', "bottleneck", "python-geotiepoints"],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
-    'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
+    'sar_c': ['python-geotiepoints >= 1.1.7', 'rasterio', 'rioxarray'],
     'abi_l1b': ['h5netcdf'],
+    'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
+    'seviri_l1b_native': ['pyorbital >= 1.3.1'],
+    'seviri_l1b_nc': ['pyorbital >= 1.3.1', 'netCDF4 >= 1.1.8'],
     'seviri_l2_bufr': ['eccodes-python'],
     'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
@@ -67,12 +69,16 @@ extras_require = {
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
+    # Composites/Modifiers:
+    'rayleigh': ['pyspectral >= 0.10.1'],
+    'angles': ['pyorbital >= 1.3.1'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
     'doc': ['sphinx', 'sphinx_rtd_theme', 'sphinxcontrib-apidoc'],
     # Other
     'geoviews': ['geoviews'],
+    'overlays': ['pycoast', 'pydecorate'],
 }
 all_extras = []
 for extra_deps in extras_require.values():
@@ -128,23 +134,28 @@ setup(name=NAME,
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
       packages=find_packages(),
-      package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
-                              os.path.join('etc', 'areas.yaml'),
-                              os.path.join('etc', 'satpy.cfg'),
-                              os.path.join('etc', 'himawari-8.cfg'),
-                              os.path.join('etc', 'eps_avhrrl1b_6.5.xml'),
-                              os.path.join('etc', 'readers', '*.yaml'),
-                              os.path.join('etc', 'writers', '*.yaml'),
-                              os.path.join('etc', 'composites', '*.yaml'),
-                              os.path.join('etc', 'enhancements', '*.cfg'),
-                              os.path.join('etc', 'enhancements', '*.yaml'),
+      # Always use forward '/', even on Windows
+      # See https://setuptools.readthedocs.io/en/latest/userguide/datafiles.html#data-files-support
+      package_data={'satpy': ['etc/geo_image.cfg',
+                              'etc/areas.yaml',
+                              'etc/satpy.cfg',
+                              'etc/himawari-8.cfg',
+                              'etc/eps_avhrrl1b_6.5.xml',
+                              'etc/readers/*.yaml',
+                              'etc/writers/*.yaml',
+                              'etc/composites/*.yaml',
+                              'etc/enhancements/*.cfg',
+                              'etc/enhancements/*.yaml',
+                              'tests/etc/readers/*.yaml',
+                              'tests/etc/composites/*.yaml',
+                              'tests/etc/writers/*.yaml',
                               ]},
       zip_safe=False,
       use_scm_version={'write_to': 'satpy/version.py'},
       setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
       install_requires=requires,
       tests_require=test_requires,
-      python_requires='>=3.6',
+      python_requires='>=3.7',
       extras_require=extras_require,
       entry_points=entry_points,
       )

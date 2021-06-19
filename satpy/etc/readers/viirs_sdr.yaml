@@ -496,6 +496,24 @@ datasets:
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
+  DNB_SAA:
+    name: dnb_solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_longitude, dnb_latitude]
+    file_units: degrees
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
+  DNB_LAA:
+    name: dnb_lunar_azimuth_angle
+    standard_name: lunar_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_longitude, dnb_latitude]
+    file_units: degrees
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/LunarAzimuthAngle'
   DNB_SENA:
     name: dnb_satellite_azimuth_angle
     standard_name: sensor_azimuth_angle

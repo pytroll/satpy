@@ -19,13 +19,12 @@
 
 import logging
 
-import glymur
+import rioxarray
 import numpy as np
 from xarray import DataArray
 import dask.array as da
 import xml.etree.ElementTree as ET
 from pyresample import geometry
-from dask import delayed
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -59,30 +58,21 @@ class SAFEMSIL1C(BaseFileHandler):
             return
 
         logger.debug('Reading %s.', key['name'])
-        # FIXME: get this from MTD_MSIL1C.xml
-        quantification_value = 10000.
-        jp2 = glymur.Jp2k(self.filename)
-        bitdepth = 0
-        for seg in jp2.codestream.segment:
-            try:
-                bitdepth = max(bitdepth, seg.bitdepth[0])
-            except AttributeError:
-                pass
-
-        jp2.dtype = (np.uint8 if bitdepth <= 8 else np.uint16)
-
-        # Initialize the jp2 reader / doesn't work in a multi-threaded context.
-        # jp2[0, 0]
-        # data = da.from_array(jp2, chunks=CHUNK_SIZE) / quantification_value * 100
-
-        data = da.from_delayed(delayed(jp2.read)(), jp2.shape, jp2.dtype)
-        data = data.rechunk(CHUNK_SIZE) / quantification_value * 100
-
-        proj = DataArray(data, dims=['y', 'x'])
+        proj = self._read_from_file()
         proj.attrs = info.copy()
         proj.attrs['units'] = '%'
         proj.attrs['platform_name'] = self.platform_name
         return proj
+
+    def _read_from_file(self):
+        proj = rioxarray.open_rasterio(self.filename, chunks=CHUNK_SIZE)
+        return self._calibrate(proj.squeeze("band"))
+
+    @staticmethod
+    def _calibrate(proj):
+        proj = proj.where(proj > 0)
+        quantification_value = 10000.
+        return proj / quantification_value * 100
 
     @property
     def start_time(self):
@@ -113,6 +103,9 @@ class SAFEMSIMDXML(BaseFileHandler):
         self.root = ET.parse(self.filename)
         self.tile = filename_info['gtile_number']
         self.platform_name = PLATFORMS[filename_info['fmission_id']]
+
+        import geotiepoints  # noqa
+        import bottleneck  # noqa
 
     @property
     def start_time(self):
@@ -156,14 +149,12 @@ class SAFEMSIMDXML(BaseFileHandler):
 
     @staticmethod
     def _do_interp(minterp, xcoord, ycoord):
-        interp_points2 = np.vstack((xcoord.ravel(), ycoord.ravel()))
+        interp_points2 = np.vstack((ycoord.ravel(), xcoord.ravel()))
         res = minterp(interp_points2)
         return res.reshape(xcoord.shape)
 
     def interpolate_angles(self, angles, resolution):
         """Interpolate the angles."""
-        # FIXME: interpolate in cartesian coordinates if the lons or lats are
-        # problematic
         from geotiepoints.multilinear import MultilinearInterpolator
 
         geocoding = self.root.find('.//Tile_Geocoding')
@@ -176,8 +167,8 @@ class SAFEMSIMDXML(BaseFileHandler):
         minterp = MultilinearInterpolator(smin, smax, orders)
         minterp.set_values(da.atleast_2d(angles.ravel()))
 
-        x = da.arange(rows, dtype=angles.dtype, chunks=CHUNK_SIZE) / (rows-1) * (angles.shape[0] - 1)
-        y = da.arange(cols, dtype=angles.dtype, chunks=CHUNK_SIZE) / (cols-1) * (angles.shape[1] - 1)
+        y = da.arange(rows, dtype=angles.dtype, chunks=CHUNK_SIZE) / (rows-1) * (angles.shape[0] - 1)
+        x = da.arange(cols, dtype=angles.dtype, chunks=CHUNK_SIZE) / (cols-1) * (angles.shape[1] - 1)
         xcoord, ycoord = da.meshgrid(x, y)
         return da.map_blocks(self._do_interp, minterp, xcoord, ycoord, dtype=angles.dtype, chunks=xcoord.chunks)
 
@@ -187,7 +178,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         if key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle']:
             elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
             return np.array([[val for val in elt.text.split()] for elt in elts],
-                            dtype=np.float)
+                            dtype=np.float64)
 
         elif key['name'] in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             arrays = []
@@ -195,7 +186,7 @@ class SAFEMSIMDXML(BaseFileHandler):
             for elt in elts:
                 items = elt.findall(info['xml_item'] + '/Values_List/VALUES')
                 arrays.append(np.array([[val for val in item.text.split()] for item in items],
-                                       dtype=np.float))
+                                       dtype=np.float64))
             return np.nanmean(np.dstack(arrays), -1)
         return None
 
@@ -209,6 +200,8 @@ class SAFEMSIMDXML(BaseFileHandler):
         darr = DataArray(angles, dims=['y', 'x'])
         darr = darr.bfill('x')
         darr = darr.ffill('x')
+        darr = darr.bfill('y')
+        darr = darr.ffill('y')
         angles = darr.data
 
         res = self.interpolate_angles(angles, key['resolution'])

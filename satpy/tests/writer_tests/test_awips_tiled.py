@@ -177,7 +177,7 @@ class TestAWIPSTiledWriter:
                  pytest.raises(ValueError, match=r'Either.*tile_count.*'):
                 w.save_datasets([input_data_arr], **save_kwargs)
         else:
-            with dask.config.set(scheduler=CustomScheduler(1)):
+            with dask.config.set(scheduler=CustomScheduler(1 * 2)):  # precompute=*2
                 w.save_datasets([input_data_arr], **save_kwargs)
 
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
@@ -187,6 +187,7 @@ class TestAWIPSTiledWriter:
             ds = xr.open_dataset(fn, mask_and_scale=False)
             check_required_common_attributes(ds)
             assert ds.attrs['my_global'] == 'TEST'
+            assert ds.attrs['sector_id'] == 'TEST'
             stime = input_data_arr.attrs['start_time']
             assert ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
 
@@ -449,14 +450,13 @@ class TestAWIPSTiledWriter:
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True, filename="{Bad Key}.nc")
         area_def = AreaDefinition(
             'test',
             'test',
             'test',
-            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
-                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            ('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+             '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             1000,
             2000,
             (-1000000., -1500000., 1000000., 1500000.),
@@ -486,14 +486,13 @@ class TestAWIPSTiledWriter:
         import xarray as xr
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         area_def = AreaDefinition(
             'test',
             'test',
             'test',
-            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
-                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            ('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+             '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             100,
             200,
             (-1000., -1500., 1000., 1500.),

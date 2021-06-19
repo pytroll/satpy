@@ -41,6 +41,7 @@ from threading import Lock
 
 import numpy as np
 import rasterio
+import rioxarray
 import xarray as xr
 from dask import array as da
 from dask.base import tokenize
@@ -52,10 +53,13 @@ from satpy.readers.file_handlers import BaseFileHandler
 logger = logging.getLogger(__name__)
 
 
-def dictify(r, root=True):
+def dictify(r):
     """Convert an ElementTree into a dict."""
-    if root:
-        return {r.tag: dictify(r, False)}
+    return {r.tag: _dictify(r)}
+
+
+def _dictify(r):
+    """Convert an xml element to dict."""
     d = {}
     if r.text and r.text.strip():
         try:
@@ -68,10 +72,20 @@ def dictify(r, root=True):
     for x in r.findall("./*"):
         if x.tag in d and not isinstance(d[x.tag], list):
             d[x.tag] = [d[x.tag]]
-            d[x.tag].append(dictify(x, False))
+            d[x.tag].append(_dictify(x))
         else:
-            d[x.tag] = dictify(x, False)
+            d[x.tag] = _dictify(x)
     return d
+
+
+def _get_calibration_name(calibration):
+    """Get the proper calibration name."""
+    calibration_name = getattr(calibration, "name", calibration) or 'gamma'
+    if calibration_name == 'sigma_nought':
+        calibration_name = 'sigmaNought'
+    elif calibration_name == 'beta_nought':
+        calibration_name = 'betaNought'
+    return calibration_name
 
 
 class SAFEXML(BaseFileHandler):
@@ -89,127 +103,14 @@ class SAFEXML(BaseFileHandler):
         self.hdr = {}
         if header_file is not None:
             self.hdr = header_file.get_metadata()
+        else:
+            self.hdr = self.get_metadata()
+        self._image_shape = (self.hdr['product']['imageAnnotation']['imageInformation']['numberOfLines'],
+                             self.hdr['product']['imageAnnotation']['imageInformation']['numberOfSamples'])
 
     def get_metadata(self):
         """Convert the xml metadata to dict."""
         return dictify(self.root.getroot())
-
-    @staticmethod
-    def read_xml_array(elts, variable_name):
-        """Read an array from an xml elements *elts*."""
-        y = []
-        x = []
-        data = []
-        for elt in elts:
-            newx = elt.find('pixel').text.split()
-            y += [int(elt.find('line').text)] * len(newx)
-            x += [int(val) for val in newx]
-            data += [float(val)
-                     for val in elt.find(variable_name).text.split()]
-
-        return np.asarray(data), (x, y)
-
-    @staticmethod
-    def read_azimuth_noise_array(elts):
-        """Read the azimuth noise vectors.
-
-        The azimuth noise is normalized per swath to account for gain
-        differences between the swaths in EW mode.
-
-        This is based on the this reference:
-        J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
-        "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
-        in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
-        pp. 1555-1565, March 2018.
-        doi: 10.1109/TGRS.2017.2765248
-        """
-        y = []
-        x = []
-        data = []
-        for elt in elts:
-            first_pixel = int(elt.find('firstRangeSample').text)
-            last_pixel = int(elt.find('lastRangeSample').text)
-            lines = elt.find('line').text.split()
-            lut = elt.find('noiseAzimuthLut').text.split()
-            pixels = [first_pixel, last_pixel]
-            swath = elt.find('swath').text
-            corr = 1
-            if swath == 'EW1':
-                corr = 1.5
-            if swath == 'EW4':
-                corr = 1.2
-            if swath == 'EW5':
-                corr = 1.5
-
-            for pixel in pixels:
-                y += [int(val) for val in lines]
-                x += [pixel] * len(lines)
-                data += [float(val) * corr for val in lut]
-
-        return np.asarray(data), (x, y)
-
-    @staticmethod
-    def interpolate_xml_array(data, low_res_coords, shape, chunks):
-        """Interpolate arbitrary size dataset to a full sized grid."""
-        xpoints, ypoints = low_res_coords
-
-        return interpolate_xarray_linear(xpoints, ypoints, data, shape, chunks=chunks)
-
-    def get_dataset(self, key, info):
-        """Load a dataset."""
-        if self._polarization != key["polarization"]:
-            return
-
-        xml_items = info['xml_item']
-        xml_tags = info['xml_tag']
-
-        if not isinstance(xml_items, list):
-            xml_items = [xml_items]
-            xml_tags = [xml_tags]
-
-        for xml_item, xml_tag in zip(xml_items, xml_tags):
-            data_items = self.root.findall(".//" + xml_item)
-            if not data_items:
-                continue
-            data, low_res_coords = self.read_xml_array(data_items, xml_tag)
-
-        if key['name'].endswith('squared'):
-            data **= 2
-
-        data = self.interpolate_xml_array(data, low_res_coords, data.shape)
-
-    @lru_cache(maxsize=10)
-    def get_noise_correction(self, shape, chunks=None):
-        """Get the noise correction array."""
-        data_items = self.root.findall(".//noiseVector")
-        data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
-        if not data_items:
-            data_items = self.root.findall(".//noiseRangeVector")
-            data, low_res_coords = self.read_xml_array(data_items, 'noiseRangeLut')
-            range_noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
-            data_items = self.root.findall(".//noiseAzimuthVector")
-            data, low_res_coords = self.read_azimuth_noise_array(data_items)
-            azimuth_noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
-            noise = range_noise * azimuth_noise
-        else:
-            noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
-        return noise
-
-    @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, shape, chunks=None):
-        """Get the calibration array."""
-        calibration_name = calibration.name or 'gamma'
-        if calibration_name == 'sigma_nought':
-            calibration_name = 'sigmaNought'
-        elif calibration_name == 'beta_nought':
-            calibration_name = 'betaNought'
-        data_items = self.root.findall(".//calibrationVector")
-        data, low_res_coords = self.read_xml_array(data_items, calibration_name)
-        return self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
-
-    def get_calibration_constant(self):
-        """Load the calibration constant."""
-        return float(self.root.find('.//absoluteCalibrationConstant').text)
 
     @property
     def start_time(self):
@@ -222,11 +123,327 @@ class SAFEXML(BaseFileHandler):
         return self._end_time
 
 
+class SAFEXMLAnnotation(SAFEXML):
+    """XML file reader for the SAFE format, Annotation file."""
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+
+        if key["name"] == "incidence_angle":
+            return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
+
+    @lru_cache(maxsize=10)
+    def get_incidence_angle(self, chunks):
+        """Get the incidence angle array."""
+        incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
+        return incidence_angle.expand(self._image_shape, chunks=chunks)
+
+
+class SAFEXMLCalibration(SAFEXML):
+    """XML file reader for the SAFE format, Calibration file."""
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        if key["name"] == "calibration_constant":
+            return self.get_calibration_constant()
+        return self.get_calibration(key["name"], chunks=chunks or CHUNK_SIZE)
+
+    def get_calibration_constant(self):
+        """Load the calibration constant."""
+        return float(self.root.find('.//absoluteCalibrationConstant').text)
+
+    @lru_cache(maxsize=10)
+    def get_calibration(self, calibration, chunks=None):
+        """Get the calibration array."""
+        calibration_name = _get_calibration_name(calibration)
+        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
+        return calibration_vector
+
+    def _get_calibration_vector(self, calibration_name, chunks):
+        """Get the calibration vector."""
+        calibration_vector = XMLArray(self.root, ".//calibrationVector", calibration_name)
+        return calibration_vector.expand(self._image_shape, chunks=chunks)
+
+
+class SAFEXMLNoise(SAFEXML):
+    """XML file reader for the SAFE format, Noise file."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the xml filehandler."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+
+        self.azimuth_noise_reader = AzimuthNoiseReader(self.root, self._image_shape)
+
+    def get_dataset(self, key, info, chunks=None):
+        """Load a dataset."""
+        if self._polarization != key["polarization"]:
+            return
+        if key["name"] == "noise":
+            return self.get_noise_correction(chunks=chunks or CHUNK_SIZE)
+
+    @lru_cache(maxsize=10)
+    def get_noise_correction(self, chunks=None):
+        """Get the noise correction array."""
+        try:
+            noise = self.read_legacy_noise(chunks)
+        except KeyError:
+            range_noise = self.read_range_noise_array(chunks)
+            azimuth_noise = self.azimuth_noise_reader.read_azimuth_noise_array(chunks)
+            noise = range_noise * azimuth_noise
+        return noise
+
+    def read_legacy_noise(self, chunks):
+        """Read noise for legacy GRD data."""
+        noise = XMLArray(self.root, ".//noiseVector", "noiseLut")
+        return noise.expand(self._image_shape, chunks)
+
+    def read_range_noise_array(self, chunks):
+        """Read the range-noise array."""
+        range_noise = XMLArray(self.root, ".//noiseRangeVector", "noiseRangeLut")
+        return range_noise.expand(self._image_shape, chunks)
+
+
+class AzimuthNoiseReader:
+    """Class to parse and read azimuth-noise data.
+
+    The azimuth noise vector is provided as a series of blocks, each comprised
+    of a column of data to fill the block and a start and finish column number,
+    and a start and finish line.
+    For example, we can see here a (fake) azimuth noise array::
+
+        [[ 1.  1.  1. nan nan nan nan nan nan nan]
+         [ 1.  1.  1. nan nan nan nan nan nan nan]
+         [ 2.  2.  3.  3.  3.  4.  4.  4.  4. nan]
+         [ 2.  2.  3.  3.  3.  4.  4.  4.  4. nan]
+         [ 2.  2.  3.  3.  3.  4.  4.  4.  4. nan]
+         [ 2.  2.  5.  5.  5.  5.  6.  6.  6.  6.]
+         [ 2.  2.  5.  5.  5.  5.  6.  6.  6.  6.]
+         [ 2.  2.  5.  5.  5.  5.  6.  6.  6.  6.]
+         [ 2.  2.  7.  7.  7.  7.  7.  8.  8.  8.]
+         [ 2.  2.  7.  7.  7.  7.  7.  8.  8.  8.]]
+
+    As is shown here, the blocks may not cover the full array, and hence it has
+    to be gap-filled with NaNs.
+    """
+
+    def __init__(self, root, shape):
+        """Set up the azimuth noise reader."""
+        self.root = root
+        self.elements = self.root.findall(".//noiseAzimuthVector")
+        self._image_shape = shape
+        self.blocks = []
+
+    def read_azimuth_noise_array(self, chunks=CHUNK_SIZE):
+        """Read the azimuth noise vectors."""
+        self._read_azimuth_noise_blocks(chunks)
+        populated_array = self._assemble_azimuth_noise_blocks(chunks)
+
+        return populated_array
+
+    def _read_azimuth_noise_blocks(self, chunks):
+        """Read the azimuth noise blocks."""
+        self.blocks = []
+        for elt in self.elements:
+            block = _AzimuthBlock(elt)
+            new_arr = block.expand(chunks)
+            self.blocks.append(new_arr)
+
+    def _assemble_azimuth_noise_blocks(self, chunks):
+        """Assemble the azimuth noise blocks into one single array."""
+        # The strategy here is a bit convoluted. The job would be trivial if
+        # performed on regular numpy arrays, but here we want to keep the data
+        # as xarray/dask array as much as possible.
+        # Using a pure xarray approach was tested (with `combine_first`,
+        # `interpolate_na`, etc), but was found to be memory-hungry at the time
+        # of implementation (March 2021). Hence the usage of a custom algorithm,
+        # relying mostly on dask arrays.
+        slices = self._create_dask_slices_from_blocks(chunks)
+        populated_array = da.vstack(slices).rechunk(chunks)
+        populated_array = xr.DataArray(populated_array, dims=['y', 'x'],
+                                       coords={'x': np.arange(self._image_shape[1]),
+                                               'y': np.arange(self._image_shape[0])})
+        return populated_array
+
+    def _create_dask_slices_from_blocks(self, chunks):
+        """Create full-width slices from azimuth noise blocks."""
+        current_line = 0
+        slices = []
+        while current_line < self._image_shape[0]:
+            new_slice = self._create_dask_slice_from_block_line(current_line, chunks)
+            slices.append(new_slice)
+            current_line += new_slice.shape[0]
+        return slices
+
+    def _create_dask_slice_from_block_line(self, current_line, chunks):
+        """Create a dask slice from the blocks at the current line."""
+        current_blocks = self._find_blocks_covering_line(current_line)
+        current_blocks.sort(key=(lambda x: x.coords['x'][0]))
+
+        next_line = min((arr.coords['y'][-1] for arr in current_blocks))
+        current_y = np.arange(current_line, next_line + 1)
+
+        pieces = [arr.sel(y=current_y) for arr in current_blocks]
+        dask_pieces = self._get_padded_dask_pieces(pieces, chunks)
+        new_slice = da.hstack(dask_pieces)
+        return new_slice
+
+    def _find_blocks_covering_line(self, current_line):
+        """Find the blocks covering a given line."""
+        current_blocks = []
+        for block in self.blocks:
+            if block.coords['y'][0] <= current_line <= block.coords['y'][-1]:
+                current_blocks.append(block)
+        return current_blocks
+
+    def _get_padded_dask_pieces(self, pieces, chunks):
+        """Get the padded pieces of a slice."""
+        dask_pieces = [piece.data for piece in pieces]
+        self._pad_dask_pieces_before(pieces, dask_pieces, chunks)
+        self._pad_dask_pieces_after(pieces, dask_pieces, chunks)
+        return dask_pieces
+
+    @staticmethod
+    def _pad_dask_pieces_before(pieces, dask_pieces, chunks):
+        """Pad the dask pieces before."""
+        first_x = min(arr.coords['x'][0] for arr in pieces)
+        if first_x > 0:
+            missing_x = np.arange(first_x)
+            missing_y = pieces[0].coords['y']
+            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
+            dask_pieces.insert(0, new_piece)
+
+    def _pad_dask_pieces_after(self, pieces, dask_pieces, chunks):
+        """Pad the dask pieces after."""
+        last_x = max(arr.coords['x'][-1] for arr in pieces)
+        if last_x < self._image_shape[1] - 1:
+            missing_x = np.arange(last_x + 1, self._image_shape[1])
+            missing_y = pieces[-1].coords['y']
+            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
+            dask_pieces.append(new_piece)
+
+
 def interpolate_slice(slice_rows, slice_cols, interpolator):
     """Interpolate the given slice of the larger array."""
     fine_rows = np.arange(slice_rows.start, slice_rows.stop, slice_rows.step)
     fine_cols = np.arange(slice_cols.start, slice_cols.stop, slice_cols.step)
     return interpolator(fine_cols, fine_rows)
+
+
+class _AzimuthBlock:
+    """Implementation of an single azimuth-noise block."""
+
+    def __init__(self, xml_element):
+        """Set up the block from an XML element."""
+        self.element = xml_element
+
+    def expand(self, chunks):
+        """Build an azimuth block from xml data."""
+        corr = 1
+        # This isn't needed with newer data (> 2020). When was the change operated?
+        #
+        #         The azimuth noise is normalized per swath to account for gain
+        #         differences between the swaths in EW mode.
+        #
+        #         This is based on the this reference:
+        #         J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
+        #         "Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"
+        #         in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
+        #         pp. 1555-1565, March 2018.
+        #         doi: 10.1109/TGRS.2017.2765248
+        #
+        # For old data. < 2020
+        # swath = elt.find('swath').text
+        # if swath == 'EW1':
+        #     corr = 1.5
+        # if swath in ['EW4', 'IW3']:
+        #     corr = 1.2
+        # if swath == 'EW5':
+        #     corr = 1.5
+        data = self.lut * corr
+
+        x_coord = np.arange(self.first_pixel, self.last_pixel + 1)
+        y_coord = np.arange(self.first_line, self.last_line + 1)
+
+        new_arr = (da.ones((len(y_coord), len(x_coord)), chunks=chunks) *
+                   np.interp(y_coord, self.lines, data)[:, np.newaxis])
+        new_arr = xr.DataArray(new_arr,
+                               dims=['y', 'x'],
+                               coords={'x': x_coord,
+                                       'y': y_coord})
+        return new_arr
+
+    @property
+    def first_pixel(self):
+        return int(self.element.find('firstRangeSample').text)
+
+    @property
+    def last_pixel(self):
+        return int(self.element.find('lastRangeSample').text)
+
+    @property
+    def first_line(self):
+        return int(self.element.find('firstAzimuthLine').text)
+
+    @property
+    def last_line(self):
+        return int(self.element.find('lastAzimuthLine').text)
+
+    @property
+    def lines(self):
+        lines = self.element.find('line').text.split()
+        return np.array(lines).astype(int)
+
+    @property
+    def lut(self):
+        lut = self.element.find('noiseAzimuthLut').text.split()
+        return np.array(lut).astype(float)
+
+
+class XMLArray:
+    """A proxy for getting xml data as an array."""
+
+    def __init__(self, root, list_tag, element_tag):
+        """Set up the XML array."""
+        self.root = root
+        self.list_tag = list_tag
+        self.element_tag = element_tag
+        self.data, self.low_res_coords = self._read_xml_array()
+
+    def expand(self, shape, chunks=None):
+        """Generate the full-blown array."""
+        return self.interpolate_xml_array(shape, chunks=chunks)
+
+    def _read_xml_array(self):
+        """Read an array from xml."""
+        elements = self.get_data_items()
+        y = []
+        x = []
+        data = []
+        for elt in elements:
+            new_x = elt.find('pixel').text.split()
+            y += [int(elt.find('line').text)] * len(new_x)
+            x += [int(val) for val in new_x]
+            data += [float(val)
+                     for val in elt.find(self.element_tag).text.split()]
+
+        return np.asarray(data), (x, y)
+
+    def get_data_items(self):
+        """Get the data items for this array."""
+        data_items = self.root.findall(self.list_tag)
+        if not data_items:
+            raise KeyError("Can't find data items for xml tag " + self.list_tag)
+        return data_items
+
+    def interpolate_xml_array(self, shape, chunks):
+        """Interpolate arbitrary size dataset to a full sized grid."""
+        xpoints, ypoints = self.low_res_coords
+        return interpolate_xarray_linear(xpoints, ypoints, self.data, shape, chunks=chunks)
 
 
 def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
@@ -293,7 +510,7 @@ class SAFEGRD(BaseFileHandler):
     block size.
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calfh, noisefh):
+    def __init__(self, filename, filename_info, filetype_info, calfh, noisefh, annotationfh):
         """Init the grd filehandler."""
         super(SAFEGRD, self).__init__(filename, filename_info,
                                       filetype_info)
@@ -307,6 +524,7 @@ class SAFEGRD(BaseFileHandler):
 
         self.calibration = calfh
         self.noise = noisefh
+        self.annotation = annotationfh
         self.read_lock = Lock()
 
         self.filehandle = rasterio.open(self.filename, 'r', sharing=False)
@@ -327,10 +545,10 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            data = xr.open_rasterio(self.filehandle,
-                                    chunks={'band': 1, 'x': CHUNK_SIZE, 'y': CHUNK_SIZE},
-                                    lock=self.read_lock).squeeze()
-            data = self._calibrate(data, key)
+            data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
+            data = data.assign_coords(x=np.arange(len(data.coords['x'])),
+                                      y=np.arange(len(data.coords['y'])))
+            data = self._calibrate_and_denoise(data, key)
             data.attrs.update(info)
             data.attrs.update({'platform_name': self._mission_id})
 
@@ -349,21 +567,37 @@ class SAFEGRD(BaseFileHandler):
 
         return data
 
-    def _calibrate(self, data, key):
-        """Calibrate the data."""
+    def _calibrate_and_denoise(self, data, key):
+        """Calibrate and denoise the data."""
         chunks = CHUNK_SIZE
-        logger.debug('Reading noise data.')
-        noise = self.noise.get_noise_correction(data.shape, chunks=chunks).fillna(0)
-        logger.debug('Reading calibration data.')
-        cal = self.calibration.get_calibration(key['calibration'], data.shape, chunks=chunks)
-        cal_constant = self.calibration.get_calibration_constant()
-        logger.debug('Calibrating.')
+
+        dn = self._get_digital_number(data)
+        dn = self._denoise(dn, chunks)
+        data = self._calibrate(dn, chunks, key)
+
+        return data
+
+    def _get_digital_number(self, data):
+        """Get the digital numbers (uncalibrated data)."""
         data = data.where(data > 0)
         data = data.astype(np.float64)
         dn = data * data
-        data = dn - noise
-        data = ((data + cal_constant) / (cal ** 2)).clip(min=0)
+        return dn
 
+    def _denoise(self, dn, chunks):
+        """Denoise the data."""
+        logger.debug('Reading noise data.')
+        noise = self.noise.get_noise_correction(chunks=chunks).fillna(0)
+        dn = dn - noise
+        return dn
+
+    def _calibrate(self, dn, chunks, key):
+        """Calibrate the data."""
+        logger.debug('Reading calibration data.')
+        cal = self.calibration.get_calibration(key['calibration'], chunks=chunks)
+        cal_constant = self.calibration.get_calibration_constant()
+        logger.debug('Calibrating.')
+        data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
         return data
 
     @lru_cache(maxsize=2)

@@ -1039,15 +1039,9 @@ def _get_target_scene_orientation(upper_right_corner):
 
     'NE' corresponds to target_eastright and target_northup being True.
     """
-    if upper_right_corner in ['NW', 'NE']:
-        target_northup = True
-    else:
-        target_northup = False
+    target_northup = upper_right_corner in ['NW', 'NE']
 
-    if upper_right_corner in ['NE', 'SE']:
-        target_eastright = True
-    else:
-        target_eastright = False
+    target_eastright = upper_right_corner in ['NE', 'SE']
 
     return target_eastright, target_northup
 
@@ -1076,10 +1070,10 @@ def _flip_dataset_data_and_area_extents(dataset, area_extents_to_update, flip_di
     """Flip the data and area extents array for a dataset."""
     logger.info("Flipping Dataset {} {}.".format(dataset.attrs.get('name', 'unknown_name'), flip_direction))
     if flip_direction == 'upsidedown':
-        dataset.data = dataset.data[::-1, :]
+        dataset = dataset[::-1, :]
         area_extents_to_update[:, [1, 3]] = area_extents_to_update[:, [3, 1]]
     elif flip_direction == 'leftright':
-        dataset.data = dataset.data[:, ::-1]
+        dataset = dataset[:, ::-1]
         area_extents_to_update[:, [0, 2]] = area_extents_to_update[:, [2, 0]]
     else:
         raise ValueError("Flip direction not recognized. Should be either 'upsidedown' or 'leftright'.")

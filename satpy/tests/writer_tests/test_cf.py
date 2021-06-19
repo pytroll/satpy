@@ -36,13 +36,14 @@ except ImportError:
 class TempFile(object):
     """A temporary filename class."""
 
-    def __init__(self):
+    def __init__(self, suffix=".nc"):
         """Initialize."""
         self.filename = None
+        self.suffix = suffix
 
     def __enter__(self):
         """Enter."""
-        self.handle, self.filename = tempfile.mkstemp()
+        self.handle, self.filename = tempfile.mkstemp(suffix=self.suffix)
         os.close(self.handle)
         return self.filename
 
@@ -406,7 +407,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
 
     def test_header_attrs(self):
-        """Check master attributes are set."""
+        """Check global attributes are set."""
         from satpy import Scene
         import xarray as xr
         scn = Scene()
@@ -458,7 +459,7 @@ class TestCFWriter(unittest.TestCase):
                  'none': None,  # should be dropped
                  'numpy_int': np.uint8(1),
                  'numpy_float': np.float32(1),
-                 'numpy_bool': np.bool(True),
+                 'numpy_bool': True,
                  'numpy_void': np.void(0),
                  'numpy_bytes': np.bytes_('test'),
                  'numpy_string': np.string_('test'),
@@ -666,11 +667,15 @@ class TestCFWriter(unittest.TestCase):
 
         data = [[1, 2], [3, 4]]
         lon = np.zeros((2, 2))
+        lon2 = np.zeros((1, 2, 2))
         lat = np.ones((2, 2))
         datasets = {
             'var1': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon lat'}),
             'var2': xr.DataArray(data=data, dims=('y', 'x')),
+            'var3': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon2 lat'}),
+            'var4': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'not_exist lon lat'}),
             'lon': xr.DataArray(data=lon, dims=('y', 'x')),
+            'lon2': xr.DataArray(data=lon2, dims=('time', 'y', 'x')),
             'lat': xr.DataArray(data=lat, dims=('y', 'x'))
         }
 
@@ -686,6 +691,10 @@ class TestCFWriter(unittest.TestCase):
         # There should be no link if there was no 'coordinate' attribute
         self.assertNotIn('lon', datasets['var2'].coords)
         self.assertNotIn('lat', datasets['var2'].coords)
+
+        # The non-existant dimension or coordinate should be dropped
+        self.assertNotIn('time', datasets['var3'].coords)
+        self.assertNotIn('not_exist', datasets['var4'].coords)
 
     def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
