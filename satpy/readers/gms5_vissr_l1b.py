@@ -521,7 +521,8 @@ class GMS5VISSRFileHandler(BaseFileHandler):
 
         TODO: Split in two methods
         """
-        num_lines, _ = self._get_actual_shape()
+
+        num_lines, num_pixels = self._get_actual_shape()
         memmap = np.memmap(
             filename=self._filename,
             mode='r',
@@ -538,36 +539,21 @@ class GMS5VISSRFileHandler(BaseFileHandler):
                 'line_number': ('y', dask_array['LCW']['line_number'].compute())
             }
         )
+
+        lines, pixels = self._get_image_coords(data)
+        lons, lats = self._get_lons_lats(dataset_id, lines, pixels)
+        lons = xr.DataArray(lons, dims=('y', 'x'), attrs={'standard_name': 'longitude'})
+        lats = xr.DataArray(lats, dims=('y', 'x'), attrs={'standard_name': 'latitude'})
+        data.coords['lon'] = lons
+        data.coords['lat'] = lats
+
         return data
 
     def _get_acq_time(self, dask_array):
         acq_time = dask_array['LCW']['scan_time'].compute()
         return modified_julian_day_to_datetime64(acq_time)
 
-    def _update_attrs(self):
-        print(fh_ir2._header['image_parameters']['coordinate_conversion']['orbital_parameters'])
-
-    def _pad(self, data):
-        # Actual line/column numbers. Alternatively use "line number" coordinate.
-        print(fh_ir2._header['control_block']['head_valid_line_number'])
-        print(fh_ir2._header['control_block']['final_valid_line_number'])
-
-        # Target shape for padding!
-        print(fh_ir2._header['image_parameters']['mode']['vis_frame_parameters']['number_of_lines'])
-        print(
-            fh_ir2._header['image_parameters']['mode']['vis_frame_parameters']['number_of_pixels'],
-            fh_ir2._header['image_parameters']['mode']['vis_frame_parameters']['number_of_lines'])
-
     def get_area_def_test(self, dsid):
-        """
-        TODO:
-            - misalignment matrix, rotation matrix
-            - near sided perspective
-
-        Checked:
-            - numerical accuracy of stepping angle
-            - following C routing strictly (discarding head_valid_line_number) -> worse
-        """
         alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]
         num_lines, num_pixels = self._get_actual_shape()
         mode_block = self._header['image_parameters']['mode']
@@ -614,11 +600,9 @@ class GMS5VISSRFileHandler(BaseFileHandler):
         area = geos_area.get_area_definition(proj_dict, extent)
         return area
 
-    def get_area_def(self, dsid):
-        return None
-
-    def get_lons_lats(self, dsid):
-        alt_ch_name = ALT_CHANNEL_NAMES[dsid['name']]
+    def _get_lons_lats(self, dataset_id, lines, pixels):
+        # TODO: Store channel name in self.channel_name
+        alt_ch_name = ALT_CHANNEL_NAMES[dataset_id['name']]
         mode_block = self._header['image_parameters']['mode']
         coord_conv = self._header['image_parameters']['coordinate_conversion']
         att_pred = self._header['image_parameters']['attitude_prediction']['data']
@@ -668,11 +652,16 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             attitude_prediction, orbit_prediction, proj_params
         )
         lons, lats = nav.get_lons_lats(
-            #lines=np.array([686, 2089]),
-            lines=np.array([686]),
-            # pixels=np.array([1680, 1793]),
-            pixels=np.array([1680]),
+            # lines=np.array([686, 2089]),
+            # pixels=np.array([1680, 1793]),  # FIXME TODO
+            lines=lines.astype(np.float64),
+            pixels=pixels.astype(np.float64),
             scan_params=scan_params,
             predicted_nav_params=predicted_nav_params
         )
         return lons, lats
+
+    def _get_image_coords(self, data):
+        lines = data.coords['line_number'].values
+        pixels = np.arange(data.shape[1])
+        return lines, pixels

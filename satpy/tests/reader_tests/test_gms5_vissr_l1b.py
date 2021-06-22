@@ -679,26 +679,42 @@ class TestFileHandler:
         'IR3': 'IR'
     }
 
-    def test_get_lons_lats(self, file_handler, dataset_id):
-        lons, lats = file_handler.get_lons_lats(dataset_id)
-
-        # TODO: Go on here: Channel dependent expectations
-        lons_exp = [[139.990380]]
-        lats_exp = [[35.047056]]
+    def test_dataset_navigation(self, file_handler, dataset_id, lons_lats_exp):
+        lons_exp, lats_exp = lons_lats_exp
+        dataset = file_handler.get_dataset(dataset_id, {})
+        lons = dataset.coords['lon']
+        lats = dataset.coords['lat']
         np.testing.assert_allclose(lons, lons_exp, atol=1E-6)
         np.testing.assert_allclose(lats, lats_exp, atol=1E-6)
 
     @pytest.fixture
-    def file_handler(self, header, dataset_id):
+    def file_handler(self, header, dataset_id, image_data):
         channel_type = self.channel_types[dataset_id['name']]
-        with mock.patch('satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler._read_header') as _read_header:
+        with mock.patch('satpy.readers.gms5_vissr_l1b.GMS5VISSRFileHandler._read_header') as _read_header, \
+                mock.patch('satpy.readers.gms5_vissr_l1b.np.memmap') as memmap:
             _read_header.return_value = header, channel_type
+            memmap.return_value = image_data
             fh = vissr.GMS5VISSRFileHandler('foo', {'foo': 'bar'}, {'foo': 'bar'})
-            return fh
+            # Yield instead of return, to make the memmap mock succeed.
+            # See https://stackoverflow.com/a/59045506/5703449
+            yield fh
 
     @pytest.fixture(params=['VIS', 'IR1'])
     def dataset_id(self, request):
         return make_dataid(name=request.param)
+
+    @pytest.fixture
+    def image_data(self, dataset_id):
+        line_control_word = np.dtype([
+            ('line_number', vissr.I4),
+            ('scan_time', vissr.R8),
+        ])
+        dtype = np.dtype([('LCW', line_control_word),
+                          ('image_data', vissr.U1, (2,))])
+        if dataset_id['name'] == 'IR1':
+            return np.array([((686, 50000), (1, 2)), ((2089, 50000), (3, 4))], dtype=dtype)
+        else:
+            raise NotImplementedError
 
     @pytest.fixture
     def header(self, control_block, image_params):
@@ -710,7 +726,7 @@ class TestFileHandler:
     @pytest.fixture
     def control_block(self):
         return {
-
+            'available_block_size_of_image_data': 2
         }
 
     @pytest.fixture
@@ -732,14 +748,31 @@ class TestFileHandler:
         }
 
     @pytest.fixture
-    def mode(self):
+    def mode(self, ir_frame_parameters, vis_frame_parameters):
         return {
             'satellite_name': b'GMS-5       ',
             'spin_rate': 99.21774,
+            'ir_frame_parameters': ir_frame_parameters,
+            'vis_frame_parameters': vis_frame_parameters
         }
 
     @pytest.fixture
+    def ir_frame_parameters(self):
+        return {'number_of_lines': 2, 'number_of_pixels': 2}
+
+    @pytest.fixture
+    def vis_frame_parameters(self):
+        return {'number_of_lines': 2, 'number_of_pixels': 2}
+
+    @pytest.fixture
     def coordinate_conversion(self):
+        """Provide parameters for coordinate conversions.
+
+        Since we are testing with very small images, adjust pixel offset so that
+        the first column is at the image center. This has the advantage, that
+        the lat/lon coordinates are finite for every column. Otherwise they
+        would be in space.
+        """
         return {
             'central_line_number_of_vissr_frame': {
                 'IR1': 1378.5,
@@ -748,9 +781,9 @@ class TestFileHandler:
                 'WV': 1379.1001
             },
             'central_pixel_number_of_vissr_frame': {
-                'IR1': 1672.5,
+                'IR1': 0.5,  # to obtain finite lat/lon coordinates
                 'IR2': 1672.5,
-                'VIS': 6688.5,
+                'VIS': 0.5,  # to obtain finite lat/lon coordinates
                 'WV': 1672.5
             },
             'pixel_difference_of_vissr_center_from_normal_position': {
@@ -886,6 +919,23 @@ class TestFileHandler:
         return {
 
         }
+
+    @pytest.fixture
+    def lons_lats_exp(self, dataset_id):
+        """Get expected lon/lat coordinates.
+
+        Computed with JMA's Msial library.
+        """
+        if dataset_id['name'] == 'IR1':
+            lons_exp = [[139.680120, 139.718902],
+                        [140.307367, 140.346062]]
+            lats_exp = [[35.045132, 35.045361],
+                        [-34.971012, -34.970738]]
+        elif dataset_id == 'VIS':
+            lons_exp = lats_exp = None
+        else:
+            raise NotImplementedError
+        return lons_exp, lats_exp
 
 
 def _get_attributes(obj):

@@ -10,7 +10,7 @@ reader:
 
   sensors: [gms5-vissr]
   default_channels: []
-  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
     gms5_vissr_vis:
