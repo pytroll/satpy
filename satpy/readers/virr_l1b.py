@@ -92,10 +92,12 @@ class VIRR_L1B(HDF5FileHandler):
             file_key = file_key.replace('Data/', '')
         data = self[file_key]
         band_index = ds_info.get('band_index')
+        valid_range = data.attrs.pop('valid_range', None)
         if band_index is not None:
             data = data[band_index]
-            data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
-                              (data <= self[file_key + '/attr/valid_range'][1]))
+            if valid_range:
+                data = data.where((data >= valid_range[0]) &
+                                  (data <= valid_range[1]))
             if 'Emissive' in file_key:
                 slope = self._correct_slope(self[self.l1b_prefix + 'Emissive_Radiance_Scales'].
                                             data[:, band_index][:, np.newaxis])
@@ -121,8 +123,10 @@ class VIRR_L1B(HDF5FileHandler):
         else:
             slope = self._correct_slope(self[file_key + '/attr/Slope'])
             intercept = self[file_key + '/attr/Intercept']
-            data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
-                              (data <= self[file_key + '/attr/valid_range'][1]))
+
+            if valid_range:
+                data = data.where((data >= valid_range[0]) &
+                                  (data <= valid_range[1]))
             data = data * slope + intercept
         new_dims = {old: new for old, new in zip(data.dims, ('y', 'x'))}
         data = data.rename(new_dims)
