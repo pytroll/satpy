@@ -268,7 +268,9 @@ class TestCFWriter(unittest.TestCase):
         import xarray as xr
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
+        start_time2 = datetime(2018, 5, 30, 10, 1)
         end_time = datetime(2018, 5, 30, 10, 15)
+        end_time2 = datetime(2018, 5, 30, 10, 16)
         test_array = np.array([[1, 2], [3, 4]])
         test_array2 = test_array[..., np.newaxis]
         scn['test-array'] = xr.DataArray(test_array,
@@ -278,15 +280,16 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         scn['test-array2'] = xr.DataArray(test_array2,
                                           dims=['x', 'y', 'time'],
-                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                          attrs=dict(start_time=start_time,
-                                                     end_time=end_time))
+                                          coords={'time': [np.datetime64('2018-05-30T10:06:00')]},
+                                          attrs=dict(start_time=start_time2,
+                                                     end_time=end_time2))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename, decode_cf=True) as f:
-                np.testing.assert_array_equal(f['time'], scn['test-array']['time'])
-                np.testing.assert_array_equal(f['time'], scn['test-array2']['time'])
-                bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
+                np.testing.assert_array_equal(f['time'],
+                                              np.hstack([scn['test-array']['time'],
+                                                         scn['test-array2']['time']]))
+                bounds_exp = np.array([[start_time, end_time2]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
     def test_bounds(self):
@@ -639,8 +642,8 @@ class TestCFWriter(unittest.TestCase):
         # Test results
         self.assertEqual(len(datas), 3)
         self.assertEqual(set(datas.keys()), {'var1', 'var2', 'geos'})
-        self.assertEqual(time_bounds.isel(bnds_1d=0), np.datetime64(tstart))
-        self.assertEqual(time_bounds.isel(bnds_1d=1), np.datetime64(tend))
+        np.testing.assert_array_equal(time_bounds.data,
+                                      np.vstack([np.datetime64(tstart), np.datetime64(tend)]).transpose())
         var1 = datas['var1']
         var2 = datas['var2']
         self.assertEqual(var1.name, 'var1')

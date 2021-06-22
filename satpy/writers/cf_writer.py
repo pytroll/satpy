@@ -213,7 +213,7 @@ def _get_time_bounds(datasets):
         time_bounds = _get_time_bounds_from_coords(datasets)
     else:
         time_bounds = _get_time_bounds_from_attrs(datasets)
-    return xr.DataArray(time_bounds, dims=['time', 'bnds_1d'])
+    return xr.DataArray(time_bounds, dims=['time_1d', 'bnds_1d'])
 
 
 def _is_timeseries(datasets):
