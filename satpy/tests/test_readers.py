@@ -887,7 +887,7 @@ class TestGroupFiles(unittest.TestCase):
             group_keys=("start_time",),
             time_threshold=35,
             missing="skip")
-        assert len(groups) == 3
+        assert len(groups) == 2
         for g in groups:
             assert g["abi_l1b"]
             assert g["glm_l2"]
@@ -898,7 +898,7 @@ class TestGroupFiles(unittest.TestCase):
             group_keys=("start_time",),
             time_threshold=35,
             missing="pass")
-        assert len(groups) == len(filenames)
+        assert len(groups) == 17
         assert not groups[1]["abi_l1b"]  # should be empty
         assert groups[1]["glm_l2"]  # should not be empty
 
