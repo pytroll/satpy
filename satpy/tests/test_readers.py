@@ -870,7 +870,9 @@ class TestGroupFiles(unittest.TestCase):
             "OR_GLM-L2-GLMF-M3_G16_s19000010013000_e19000010014000_c20403662359590.nc",
             "OR_GLM-L2-GLMF-M3_G16_s19000010014000_e19000010015000_c20403662359590.nc",
             "OR_GLM-L2-GLMF-M3_G16_s19000010015000_e19000010016000_c20403662359590.nc"]
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(
+                FileNotFoundError, match="when grouping files, group at index 1 "
+                "had no files for readers: abi_l1b"):
             # make sure it raises an exception, for there will be groups
             # containing GLM but not ABI
             group_files(
@@ -901,6 +903,13 @@ class TestGroupFiles(unittest.TestCase):
         assert len(groups) == 17
         assert not groups[1]["abi_l1b"]  # should be empty
         assert groups[1]["glm_l2"]  # should not be empty
+        with pytest.raises(ValueError):
+            group_files(
+                filenames,
+                reader=["abi_l1b", "glm_l2"],
+                group_keys=("start_time",),
+                time_threshold=35,
+                missing="hopkin green frog")
 
 
 def _generate_random_string():

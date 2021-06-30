@@ -110,9 +110,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     groups = [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
 
-    _filter_groups(groups, missing=missing)
-
-    return groups
+    return list(_filter_groups(groups, missing=missing))
 
 
 def _assign_files_to_readers(files_to_sort, reader_names,
@@ -251,7 +249,7 @@ def _filter_groups(groups, missing="pass"):
     readers, make sure that the desired behaviour for missing files is
     enforced: if missing is ``"raise"``, raise an exception if at least one
     group has at least one reader without files; if it is ``"skip"``, remove
-    those.  If it is ``"pass"``, do nothing.
+    those.  If it is ``"pass"``, do nothing.  Yields groups to be kept.
 
     Args:
         groups (List[Mapping[str, List[str]]]):
@@ -259,24 +257,25 @@ def _filter_groups(groups, missing="pass"):
         missing (str):
             String controlling behaviour, see documentation above.
 
-    Returns:
-        None (changes groups in-situ)
+    Yields:
+        ``Mapping[str:, List[str]]``: groups to be retained
     """
     if missing == "pass":
+        yield from groups
         return
-    elif missing in ("raise", "skip"):
-        remove = set()
-        for (i, grp) in enumerate(groups):
-            readers_without_files = _get_keys_with_empty_values(grp)
-            if readers_without_files:
-                if missing == "raise":
-                    raise FileNotFoundError(
-                            f"when grouping files, group at index {i:d} "
-                            "had no files for readers: " +
-                            ", ".join(readers_without_files))
-                remove.add(i)
-        for i in reversed(sorted(remove)):
-            del groups[i]
+    elif missing not in ("raise", "skip"):
+        raise ValueError("Invalid value for ``missing`` argument.  Expected "
+                         f"'raise', 'skip', or 'pass', got '{missing!s}'")
+    for (i, grp) in enumerate(groups):
+        readers_without_files = _get_keys_with_empty_values(grp)
+        if readers_without_files:
+            if missing == "raise":
+                raise FileNotFoundError(
+                        f"when grouping files, group at index {i:d} "
+                        "had no files for readers: " +
+                        ", ".join(readers_without_files))
+        else:
+            yield grp
 
 
 def _get_keys_with_empty_values(grp):
