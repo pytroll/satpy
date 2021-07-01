@@ -96,7 +96,7 @@ class _CLAVRxHelper:
     def _remove_attributes(attrs: dict) -> dict:
         """Remove attributes that described data before scaling."""
         old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
-                     'SCALED_MISSING', 'actual_missing']
+                     'SCALED_MISSING']
 
         for attr_key in old_attrs:
             attrs.pop(attr_key, None)
@@ -105,7 +105,7 @@ class _CLAVRxHelper:
     @staticmethod
     def _scale_data(data_arr: xr.DataArray, scale_factor: float, add_offset: float) -> xr.DataArray:
         """Scale data, if needed."""
-        scaling_needed = not (scale_factor == 1 and add_offset == 0)
+        scaling_needed = not (scale_factor == 1.0 and add_offset == 0.0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
         return data_arr
@@ -118,18 +118,28 @@ class _CLAVRxHelper:
 
         attrs = data.attrs.copy()
         fill = attrs.pop('_FillValue', None)
-        factor = attrs.pop('scale_factor', 1)
-        offset = attrs.pop('add_offset', 0)
+        factor = attrs.pop('scale_factor', 1.0)
+        offset = attrs.pop('add_offset', 0.0)
         valid_range = attrs.pop('valid_range', None)
+        actual_missing = attrs.pop('actual_missing', None)
+        if actual_missing:
+            attrs["_FillValue"] = actual_missing
 
         data = data.where(data != fill)
         data = _CLAVRxHelper._scale_data(data, factor, offset)
 
+        flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
+
         if valid_range is not None:
             valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
             valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
+            if flags:
+                valid_min = int(valid_min)
+                valid_max = int(valid_max)
             data = data.where((data >= valid_min) & (data <= valid_max))
             data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
+
+        data = data.astype(np.uint32) if flags else data
 
         data.attrs = _CLAVRxHelper._remove_attributes(attrs)
 
