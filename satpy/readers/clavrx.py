@@ -118,8 +118,8 @@ class _CLAVRxHelper:
 
         attrs = data.attrs.copy()
         fill = attrs.pop('_FillValue', None)
-        factor = attrs.pop('scale_factor', 1.0)
-        offset = attrs.pop('add_offset', 0.0)
+        factor = attrs.pop('scale_factor', 1)
+        offset = attrs.pop('add_offset', 0)
         valid_range = attrs.pop('valid_range', None)
 
         data = data.where(data != fill)
@@ -380,8 +380,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   decode_coords=True,
-                                  chunks={'pixel_elements_along_scan_direction': CHUNK_SIZE,
-                                          'scan_lines_along_track_direction': CHUNK_SIZE})
+                                  chunks=CHUNK_SIZE)
         # y,x is used in satpy, bands rather than channel using in xrimage
         self.nc = self.nc.rename_dims({'scan_lines_along_track_direction': "y",
                                        'pixel_elements_along_scan_direction': "x"})
