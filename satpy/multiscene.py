@@ -293,7 +293,7 @@ class MultiScene(object):
     def blend(self, blend_function=stack):
         """Blend the datasets into one scene.
 
-        Reduce the ``MultiScene`` to a single ``Scene``.  Datasets
+        Reduce the :class:`MultiScene` to a single :class:`~satpy.scene.Scene`.  Datasets
         occurring in each scene will be passed to a blending
         function, which shall take as input a list of datasets
         (:class:`xarray.DataArray` objects) and shall return a single
@@ -302,7 +302,7 @@ class MultiScene(object):
 
         Blending functions provided in this module are :func:`stack`
         (the default) and :func:`timeseries`, but the Python built-in
-        function `sum` also works and may be appropriate for
+        function :func:`sum` also works and may be appropriate for
         some types of data.
 
         .. note::
