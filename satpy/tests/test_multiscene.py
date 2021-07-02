@@ -24,6 +24,8 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
+import numpy as np
+
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
@@ -91,7 +93,7 @@ def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None):
     import numpy as np
 
     return xr.DataArray(
-        da.zeros(shape, dtype=np.float32, chunks=shape), dims=('y', 'x'),
+        da.ones(shape, dtype=np.float32, chunks=shape), dims=('y', 'x'),
         attrs={'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
 
 
@@ -655,3 +657,12 @@ def test_save_mp4(smg, tmp_path):
     assert writer_mock.append_data.call_count == 2 + 2
     assert ("2018-01-02" in smg.call_args_list[-1][1]
             ["decorate"]["decorate"][0]["text"]["txt"])
+
+
+def test_blend():
+    """Test MultiScene.blend method."""
+    from satpy import MultiScene
+    ms = MultiScene(_create_test_scenes(3))
+    bs = ms.blend(sum)
+    np.testing.assert_array_equal(bs["ds1"].data, np.full(DEFAULT_SHAPE, 3))
+    np.testing.assert_array_equal(bs["ds2"].data, np.full(DEFAULT_SHAPE, 3))
