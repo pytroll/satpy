@@ -175,7 +175,28 @@ class CompositeBase:
         return new_arrays
 
     def check_geolocation(self, data_arrays):
-        """Check that the geolocations of the *data_arrays* are compatible."""
+        """Check that the geolocations of the ``data_arrays`` are compatible.
+
+        Check that the geolocation of a list of data arrays is consistent.
+        The dimension ``x`` and ``y`` should be equal between all data arrays,
+        all data arrays should have an ``area`` attribute, and all area
+        attributes should be the same.  If there are inconsistent shapes or
+        inconsistent areas, raises :class:`IncompatibleAreas`.  If at least
+        one data array is lacking an ``area`` attribute, raises
+        :class:`AttributeError`.
+
+        Args:
+            data_array (Collection[xarray.DataArray]):
+                Collection of :class:`xarray.DataArray` objects (such as satpy
+                datasets) that all have an ``area`` attribute.  There must be
+                at least one array in the collection.
+
+        Returns:
+            None, meaning everything seems fine.
+
+        Raises:
+            AttributeError, IncompatibleAreas
+        """
         if len(data_arrays) == 1:
             return
 
