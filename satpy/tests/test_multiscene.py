@@ -660,9 +660,18 @@ def test_save_mp4(smg, tmp_path):
 
 
 def test_blend():
-    """Test MultiScene.blend method."""
+    """Test MultiScene.blend method with regular MultiScene."""
     from satpy import MultiScene
     ms = MultiScene(_create_test_scenes(3))
     bs = ms.blend(sum)
     np.testing.assert_array_equal(bs["ds1"].data, np.full(DEFAULT_SHAPE, 3))
     np.testing.assert_array_equal(bs["ds2"].data, np.full(DEFAULT_SHAPE, 3))
+
+
+def test_blend_own_scene():
+    """Test bringing own scene to blend function."""
+    from satpy import Scene, MultiScene
+    ms = MultiScene(_create_test_scenes(2))
+    sc = Scene()
+    bs = ms.blend(sum, scene=sc)
+    assert bs is sc
