@@ -42,7 +42,7 @@ class TestMatchDataArrays(unittest.TestCase):
              'lat_0': 0.0},
             shape[dims.index('x')], shape[dims.index('y')],
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
-        attrs = {'area': area}
+        attrs = {'area': area, "name": name}
         return xr.DataArray(data, dims=dims, attrs=attrs, name=name)
 
     def test_single_ds(self):
@@ -70,6 +70,10 @@ class TestMatchDataArrays(unittest.TestCase):
         ds2 = self._get_test_ds(name="tumbleweed")
         del ds2.attrs['area']
         comp = CompositeBase('test_comp')
+        with pytest.raises(AttributeError, match="tumbleweed"):
+            comp.match_data_arrays((ds1, ds2))
+        # confirm this remains the case if name defined as name not attribute
+        del ds2.attrs["name"]
         with pytest.raises(AttributeError, match="tumbleweed"):
             comp.match_data_arrays((ds1, ds2))
 
