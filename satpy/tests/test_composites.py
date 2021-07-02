@@ -32,7 +32,7 @@ import xarray as xr
 class TestMatchDataArrays(unittest.TestCase):
     """Test the utility method 'match_data_arrays'."""
 
-    def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
+    def _get_test_ds(self, shape=(50, 100), dims=('y', 'x'), name="test"):
         """Get a fake DataArray."""
         from pyresample.geometry import AreaDefinition
         data = da.random.random(shape, chunks=25)
@@ -43,7 +43,7 @@ class TestMatchDataArrays(unittest.TestCase):
             shape[dims.index('x')], shape[dims.index('y')],
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
         attrs = {'area': area}
-        return xr.DataArray(data, dims=dims, attrs=attrs)
+        return xr.DataArray(data, dims=dims, attrs=attrs, name=name)
 
     def test_single_ds(self):
         """Test a single dataset is returned unharmed."""
@@ -66,11 +66,12 @@ class TestMatchDataArrays(unittest.TestCase):
     def test_mult_ds_no_area(self):
         """Test that all datasets must have an area attribute."""
         from satpy.composites import CompositeBase
-        ds1 = self._get_test_ds()
-        ds2 = self._get_test_ds()
+        ds1 = self._get_test_ds(name="seaweed")
+        ds2 = self._get_test_ds(name="tumbleweed")
         del ds2.attrs['area']
         comp = CompositeBase('test_comp')
-        self.assertRaises(ValueError, comp.match_data_arrays, (ds1, ds2))
+        with pytest.raises(AttributeError, match="tumbleweed"):
+            comp.match_data_arrays((ds1, ds2))
 
     def test_mult_ds_diff_area(self):
         """Test that datasets with different areas fail."""

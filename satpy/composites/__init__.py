@@ -191,8 +191,9 @@ class CompositeBase:
         areas = [ds.attrs.get('area') for ds in data_arrays]
         if all(a is None for a in areas):
             return
-        elif any(a is None for a in areas):
-            raise ValueError("Missing 'area' attribute")
+        for ds in data_arrays:
+            if "area" not in ds.attrs:
+                raise AttributeError(f"Dataset {ds.name!s} missing 'area' attribute")
 
         if not all(areas[0] == x for x in areas[1:]):
             LOG.debug("Not all areas are the same in "
