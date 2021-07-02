@@ -290,7 +290,7 @@ class MultiScene(object):
         """Resample the multiscene."""
         return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
 
-    def blend(self, blend_function=stack):
+    def blend(self, blend_function=stack, scene=None):
         """Blend the datasets into one scene.
 
         .. note::
@@ -299,7 +299,7 @@ class MultiScene(object):
             MultiScene.
 
         """
-        new_scn = Scene()
+        new_scn = scene or Scene()
         common_datasets = self.shared_dataset_ids
         for ds_id in common_datasets:
             datasets = [scn[ds_id] for scn in self.scenes if ds_id in scn]
