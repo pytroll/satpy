@@ -300,9 +300,9 @@ class MultiScene(object):
         dataset (:class:`xarray.DataArray` object).  The blend method
         then assigns those datasets to the blended scene.
 
-        Blunding functions provided in this module are :func:`stack`
+        Blending functions provided in this module are :func:`stack`
         (the default) and :func:`timeseries`, but the Python built-in
-        function function `sum` also works and may be appropriate for
+        function `sum` also works and may be appropriate for
         some types of data.
 
         .. note::
