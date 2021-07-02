@@ -214,7 +214,8 @@ class CompositeBase:
             return
         for ds in data_arrays:
             if "area" not in ds.attrs:
-                raise AttributeError(f"Dataset {ds.name!s} missing 'area' attribute")
+                raise AttributeError(f"Dataset {ds.attrs.get('name', ds.name)!s}"
+                                     " missing 'area' attribute")
 
         if not all(areas[0] == x for x in areas[1:]):
             LOG.debug("Not all areas are the same in "
