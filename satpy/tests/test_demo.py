@@ -230,3 +230,9 @@ class TestVIIRSSDRDemoDownload:
         _requests.get.return_value = _FakeZipRequest("viirs_sdr_20170323_204321_204612")
         files = get_viirs_sdr_20170323_204321(base_dir=str(tmpdir))
         assert len(files) == 3 * (4 + 2)  # 3 granules * (4 bands + 2 geolocation)
+
+        get_mock = mock.MagicMock()
+        _requests.get.return_value = get_mock
+        files = get_viirs_sdr_20170323_204321(base_dir=str(tmpdir))
+        assert len(files) == 3 * (4 + 2)  # 3 granules * (4 bands + 2 geolocation)
+        get_mock.assert_not_called()
