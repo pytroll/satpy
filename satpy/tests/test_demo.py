@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the satpy.demo module."""
-
+import io
 import os
 import sys
 import unittest
@@ -192,3 +192,41 @@ class TestAHIDemoDownload:
         from tempfile import gettempdir
         files = download_typhoon_surigae_ahi(base_dir=gettempdir(), segments=[4, 9], channels=[1, 2, 3])
         assert len(files) == 6
+
+
+class _FakeZipRequest:
+    """Fake object to act like a requests return value when downloading a zip file."""
+
+    def __init__(self, zip_dir_name):
+        self._dir_name = zip_dir_name
+        self.headers = {}
+
+    def _get_fake_viirs_sdr_zip(self):
+        import zipfile
+        filelike_obj = io.BytesIO()
+        with zipfile.ZipFile(filelike_obj, mode="w") as z_file:
+            for i in range(6 * 3):
+                v_fn = f"{i}.h5"
+                z_file.writestr(os.path.join(self._dir_name, v_fn), "")
+        filelike_obj.seek(0)
+        return filelike_obj
+
+    def iter_content(self, num_bytes):
+        """Return generator of 'num_bytes' at a time."""
+        bytes_io = self._get_fake_viirs_sdr_zip()
+        x = bytes_io.read(num_bytes)
+        while x:
+            yield x
+            x = bytes_io.read(num_bytes)
+
+
+class TestVIIRSSDRDemoDownload:
+    """Test VIIRS SDR downloading."""
+
+    @mock.patch('satpy.demo._zip.requests')
+    def test_download(self, _requests, tmpdir):
+        """Test downloading and re-downloading VIIRS SDR data."""
+        from satpy.demo import get_viirs_sdr_20170323_204321
+        _requests.get.return_value = _FakeZipRequest("viirs_sdr_20170323_204321_204612")
+        files = get_viirs_sdr_20170323_204321(base_dir=str(tmpdir))
+        assert len(files) == 3 * (4 + 2)  # 3 granules * (4 bands + 2 geolocation)

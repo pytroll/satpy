@@ -52,3 +52,4 @@ To use these functions, do:
 
 from .abi_l1b import get_hurricane_florence_abi, get_us_midlatitude_cyclone_abi  # noqa
 from .ahi_hsd import download_typhoon_surigae_ahi  # noqa
+from .viirs_sdr import get_viirs_sdr_20170323_204321  # noqa
