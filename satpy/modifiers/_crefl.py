@@ -110,15 +110,34 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         LOG.debug("Loading CREFL averaged elevation information from: %s",
                   self.dem_cache_key)
         local_filename = retrieve(self.dem_cache_key)
-        from netCDF4 import Dataset as NCDataset
-        # HDF4 file, NetCDF library needs to be compiled with HDF4 support
-        nc = NCDataset(local_filename, "r")
-        # average elevation is stored as a 16-bit signed integer but with
-        # scale factor 1 and offset 0, convert it to float here
-        avg_elevation = nc.variables[self.dem_sds][:].astype(np.float64)
+        avg_elevation = self._read_var_from_hdf4_file(local_filename, self.dem_sds).astype(np.float64)
         if isinstance(avg_elevation, np.ma.MaskedArray):
             avg_elevation = avg_elevation.filled(np.nan)
         return avg_elevation
+
+    @staticmethod
+    def _read_var_from_hdf4_file(local_filename, var_name):
+        try:
+            from netCDF4 import Dataset as NCDataset
+            # HDF4 file, NetCDF library needs to be compiled with HDF4 support
+            nc = NCDataset(local_filename, "r")
+            # average elevation is stored as a 16-bit signed integer but with
+            # scale factor 1 and offset 0, convert it to float here
+            return nc.variables[var_name][:]
+        except OSError:
+            # netcdf4 not compiled with HDF4 support
+            return ReflectanceCorrector._read_var_from_hdf4_file(local_filename, var_name)
+
+    @staticmethod
+    def _read_var_from_hdf4_file_pyhdf(local_filename, var_name):
+        try:
+            from pyhdf.SD import SD, SDC
+            f = SD(local_filename, SDC.READ)
+            var = f.select(var_name)
+            data = var[:]
+            return np.ma.MaskedArray(data, data == var.getfillvalue())
+        except ImportError:
+            raise RuntimeError("Could not read DEM file with NetCDF4 or pyhdf libraries")
 
     def _get_data_and_angles(self, datasets, optional_datasets):
         angles = self._extract_angle_data_arrays(datasets, optional_datasets)
