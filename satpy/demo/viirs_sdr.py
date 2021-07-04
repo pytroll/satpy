@@ -21,6 +21,7 @@ import os
 import logging
 from glob import glob
 
+from satpy import config
 from ._zip import download_and_unzip
 
 VIIRS_20170323_ZIP_URL = "https://bin.ssec.wisc.edu/pub/davidh/viirs_sdr_20170323_204321_204612.zip"
@@ -37,16 +38,18 @@ def get_viirs_sdr_20170323_204321(base_dir=None):
     the corresponding GITCO and GMTCO geolocation files.
 
     """
-    base_dir = base_dir or "."
+    base_dir = base_dir or config.get("demo_data_dir", ".")
     zip_fn = os.path.basename(VIIRS_20170323_ZIP_URL)
-    zip_path = os.path.join(base_dir, zip_fn)
     # assume directory in zip is the same as zip filename without the extension
-    extract_dir = zip_path.replace(".zip", "")
-    if os.path.isdir(extract_dir):
-        logger.info(f"Extracted zip directory {extract_dir} already exists, won't re-download.")
+    extract_dir = zip_fn.replace(".zip", "")
+    subdir = os.path.join(base_dir, "viirs_sdr")
+    os.makedirs(subdir, exist_ok=True)
+    extract_path = os.path.join(subdir, extract_dir)
+    if os.path.isdir(extract_path):
+        logger.info(f"Extracted zip directory {extract_path} already exists, won't re-download.")
     else:
-        download_and_unzip(VIIRS_20170323_ZIP_URL, base_dir, delete_zip=True)
-    if not os.path.isdir(extract_dir):
+        download_and_unzip(VIIRS_20170323_ZIP_URL, subdir, delete_zip=True)
+    if not os.path.isdir(extract_path):
         raise RuntimeError("Unable to download or extract zip file. "
-                           f"Extracted directory doesn't exist {extract_dir}")
-    return sorted(glob(os.path.join(extract_dir, "*.h5")))
+                           f"Extracted directory doesn't exist {extract_path}")
+    return sorted(glob(os.path.join(extract_path, "*.h5")))
