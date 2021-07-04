@@ -48,7 +48,7 @@ class VIIRSSDR:
         import os
         import glob
         base_dir = os.environ.get("SATPY_DEMO_DATA_DIR", ".")
-        return glob.glob(os.path.join(base_dir, "viirs_sdr", "viirs_sdr_20170323_204321_204612", "*"))
+        return glob.glob(os.path.join(base_dir, "viirs_sdr", "viirs_sdr_20170323_204321_204612", "*.h5"))
 
     def time_load_one_i_channel(self):
         """Time the loading of one I-band resolution channel."""
@@ -84,7 +84,7 @@ class VIIRSSDR:
 
     def time_save_true_color_raw_to_geotiff(self):
         """Time the generation and saving of true_color_raw."""
-        self.save_true_color_nocorr_as_geotiff()
+        self.save_true_color_raw_as_geotiff()
 
     def peakmem_save_true_color_raw_to_geotiff(self):
         """Check peak memory usage of the generation and saving of true_color_raw."""
