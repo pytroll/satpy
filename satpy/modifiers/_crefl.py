@@ -119,8 +119,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     def _read_var_from_hdf4_file(local_filename, var_name):
         try:
             return ReflectanceCorrector._read_var_from_hdf4_file(local_filename, var_name)
-        except (RuntimeError, OSError):
-            # netcdf4 not compiled with HDF4 support
+        except (ImportError, OSError):
             return ReflectanceCorrector._read_var_from_hdf4_file_netcdf4(local_filename, var_name)
 
     @staticmethod
@@ -134,14 +133,11 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
 
     @staticmethod
     def _read_var_from_hdf4_file_pyhdf(local_filename, var_name):
-        try:
-            from pyhdf.SD import SD, SDC
-            f = SD(local_filename, SDC.READ)
-            var = f.select(var_name)
-            data = var[:]
-            return np.ma.MaskedArray(data, data == var.getfillvalue())
-        except ImportError:
-            raise RuntimeError("Could not read DEM file with NetCDF4 or pyhdf libraries")
+        from pyhdf.SD import SD, SDC
+        f = SD(local_filename, SDC.READ)
+        var = f.select(var_name)
+        data = var[:]
+        return np.ma.MaskedArray(data, data == var.getfillvalue())
 
     def _get_data_and_angles(self, datasets, optional_datasets):
         angles = self._extract_angle_data_arrays(datasets, optional_datasets)
