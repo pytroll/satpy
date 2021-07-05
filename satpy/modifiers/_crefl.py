@@ -118,15 +118,19 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     @staticmethod
     def _read_var_from_hdf4_file(local_filename, var_name):
         try:
-            from netCDF4 import Dataset as NCDataset
-            # HDF4 file, NetCDF library needs to be compiled with HDF4 support
-            nc = NCDataset(local_filename, "r")
-            # average elevation is stored as a 16-bit signed integer but with
-            # scale factor 1 and offset 0, convert it to float here
-            return nc.variables[var_name][:]
-        except OSError:
-            # netcdf4 not compiled with HDF4 support
             return ReflectanceCorrector._read_var_from_hdf4_file(local_filename, var_name)
+        except (RuntimeError, OSError):
+            # netcdf4 not compiled with HDF4 support
+            return ReflectanceCorrector._read_var_from_hdf4_file_netcdf4(local_filename, var_name)
+
+    @staticmethod
+    def _read_var_from_hdf4_file_netcdf4(local_filename, var_name):
+        from netCDF4 import Dataset as NCDataset
+        # HDF4 file, NetCDF library needs to be compiled with HDF4 support
+        nc = NCDataset(local_filename, "r")
+        # average elevation is stored as a 16-bit signed integer but with
+        # scale factor 1 and offset 0, convert it to float here
+        return nc.variables[var_name][:]
 
     @staticmethod
     def _read_var_from_hdf4_file_pyhdf(local_filename, var_name):
