@@ -118,7 +118,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     @staticmethod
     def _read_var_from_hdf4_file(local_filename, var_name):
         try:
-            return ReflectanceCorrector._read_var_from_hdf4_file(local_filename, var_name)
+            return ReflectanceCorrector._read_var_from_hdf4_file_pyhdf(local_filename, var_name)
         except (ImportError, OSError):
             return ReflectanceCorrector._read_var_from_hdf4_file_netcdf4(local_filename, var_name)
 
