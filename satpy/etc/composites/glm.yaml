@@ -2,74 +2,74 @@ sensor_name: visir/glm
 composites:
   C14_flash_extent_density:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c14_flash_extent_density
+    standard_name: glm_abi_overlay
     prerequisites:
       - flash_extent_density
       - C14
   C14_total_energy:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c14_total_energy
+    standard_name: glm_abi_overlay
     prerequisites:
       - total_energy
       - C14
   C14_event_flash_fraction:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c14_event_flash_fraction
+    standard_name: glm_abi_overlay
     prerequisites:
       - event_flash_fraction
       - C14
   C14_minimum_flash_area:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c14_minimum_flash_area
+    standard_name: glm_abi_overlay
     prerequisites:
       - minimum_flash_area
       - C14
   C13_flash_extent_density:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_flash_extent_density
+    standard_name: glm_abi_overlay
     prerequisites:
       - flash_extent_density
       - C13
   C13_total_energy:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_total_energy
+    standard_name: glm_abi_overlay
     prerequisites:
       - total_energy
       - C13
   C13_event_flash_fraction:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_event_flash_fraction
+    standard_name: glm_abi_overlay
     prerequisites:
       - event_flash_fraction
       - C13
   C13_minimum_flash_area:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_minimum_flash_area
+    standard_name: glm_abi_overlay
     prerequisites:
       - minimum_flash_area
       - C13
 # Windowed versions of each comp - 5x as large, for a 5 min vs. 1 min window.
   C13_flash_extent_density_window:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_flash_extent_density
+    standard_name: glm_abi_overlay
     prerequisites:
       - flash_extent_density_window
       - C13
   C13_total_energy_window:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_total_energy_window
+    standard_name: glm_abi_overlay
     prerequisites:
       - total_energy_window
       - C13
   C13_event_flash_fraction_window:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_event_flash_fraction_window
+    standard_name: glm_abi_overlay
     prerequisites:
       - event_flash_fraction_window
       - C13
   C13_minimum_flash_area_window:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: c13_minimum_flash_area_window
+    standard_name: glm_abi_overlay
     prerequisites:
       - minimum_flash_area_window
       - C13
