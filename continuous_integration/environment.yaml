@@ -26,6 +26,8 @@ dependencies:
   - h5netcdf
   - gdal
   - rasterio
+  - bottleneck
+  - rioxarray
   - imageio
   - pyhdf
   - mock

@@ -34,7 +34,14 @@ class GeoTIFFWriter(ImageWriter):
 
         >>> scn.save_datasets(writer='geotiff')
 
-    Un-enhanced float geotiff with NaN for fill values:
+    By default the writer will use the :class:`~satpy.writers.Enhancer` class to
+    linear stretch the data (see :doc:`../enhancements`).
+    To get Un-enhanced images ``enhance=False`` can be specified which will
+    write a geotiff with the data type of the dataset. The fill value defaults
+    to the the datasets ``"_FillValue"`` attribute if not ``None`` and no value is
+    passed to ``fill_value`` for integer data. In case of float data if ``fill_value``
+    is not passed NaN will be used. If a geotiff with a
+    certain datatype is desired for example 32 bit floating point geotiffs:
 
         >>> scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
 
@@ -118,7 +125,8 @@ class GeoTIFFWriter(ImageWriter):
                 creation ``filename`` keyword argument, this filename does not
                 get formatted with data attributes.
             dtype (numpy.dtype): Numpy data type to save the image as.
-                Defaults to 8-bit unsigned integer (``np.uint8``). If the
+                Defaults to 8-bit unsigned integer (``np.uint8``) or the data
+                type of the data to be saved if ``enhance=False``. If the
                 ``dtype`` argument is provided during writer creation then
                 that will be used as the default.
             fill_value (int or float): Value to use where data values are
@@ -178,7 +186,7 @@ class GeoTIFFWriter(ImageWriter):
 
         # Update global GDAL options with these specific ones
         gdal_options = self.gdal_options.copy()
-        for k in kwargs.keys():
+        for k in kwargs:
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
         if fill_value is None:
@@ -186,8 +194,10 @@ class GeoTIFFWriter(ImageWriter):
             fill_value = self.info.get('fill_value')
 
         dtype = dtype if dtype is not None else self.dtype
-        if dtype is None:
+        if dtype is None and self.enhancer is not False:
             dtype = np.uint8
+        else:
+            dtype = img.data.dtype.type
 
         if "alpha" in kwargs:
             raise ValueError(

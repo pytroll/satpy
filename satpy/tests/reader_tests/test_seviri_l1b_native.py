@@ -17,13 +17,17 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
+from datetime import datetime
+import os
 import unittest
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
 
+from satpy.readers.eum_base import time_cds_short
 from satpy.readers.seviri_l1b_native import (
     NativeMSGFileHandler, ImageBoundaries, Padder,
     get_available_channels,
@@ -31,7 +35,10 @@ from satpy.readers.seviri_l1b_native import (
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
     TestFileHandlerCalibrationBase
 )
-from satpy.tests.utils import make_dataid
+from satpy.tests.reader_tests.test_seviri_base import (
+    ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
+)
+from satpy.tests.utils import make_dataid, assert_attrs_equal
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -491,17 +498,6 @@ TEST_PADDER_FES_HRV = {
 
 }
 
-# This should preferably be put in a helper-module
-# Fixme!
-
-
-def assertNumpyArraysEqual(self, other):
-    """Assert that Numpy arrays are equal."""
-    if self.shape != other.shape:
-        raise AssertionError("Shapes don't match")
-    if not np.allclose(self, other):
-        raise AssertionError("Elements don't match!")
-
 
 class TestNativeMSGFileHandler(unittest.TestCase):
     """Test the NativeMSGFileHandler."""
@@ -510,7 +506,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         """Test the derivation of the available channel list."""
         available_chs = get_available_channels(TEST1_HEADER_CHNLIST)
         trues = ['WV_062', 'WV_073', 'IR_108', 'VIS006', 'VIS008', 'IR_120']
-        for bandname in AVAILABLE_CHANNELS.keys():
+        for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
             else:
@@ -518,14 +514,14 @@ class TestNativeMSGFileHandler(unittest.TestCase):
 
         available_chs = get_available_channels(TEST2_HEADER_CHNLIST)
         trues = ['VIS006', 'VIS008', 'IR_039', 'WV_062', 'WV_073', 'IR_087', 'HRV']
-        for bandname in AVAILABLE_CHANNELS.keys():
+        for bandname in AVAILABLE_CHANNELS:
             if bandname in trues:
                 self.assertTrue(available_chs[bandname])
             else:
                 self.assertFalse(available_chs[bandname])
 
         available_chs = get_available_channels(TEST3_HEADER_CHNLIST)
-        for bandname in AVAILABLE_CHANNELS.keys():
+        for bandname in AVAILABLE_CHANNELS:
             self.assertTrue(available_chs[bandname])
 
 
@@ -664,19 +660,23 @@ class TestNativeMSGArea(unittest.TestCase):
         trailer = self.create_test_trailer(is_rapid_scan)
         expected_area_def = test_dict['expected_area_def']
 
-        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+                mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+                mock.patch(
+                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
+                ) as _has_archive_header:
+            _has_archive_header.return_value = True
             fromfile.return_value = header
-            with mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict:
-                recarray2dict.side_effect = (lambda x: x)
-                with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap:
-                    _get_memmap.return_value = np.arange(3)
-                    with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
-                        fh = NativeMSGFileHandler(None, {}, None)
-                        fh.fill_disk = fill_disk
-                        fh.header = header
-                        fh.trailer = trailer
-                        fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
-                        calc_area_def = fh.get_area_def(dataset_id)
+            recarray2dict.side_effect = (lambda x: x)
+            _get_memmap.return_value = np.arange(3)
+            fh = NativeMSGFileHandler(None, {}, None)
+            fh.fill_disk = fill_disk
+            fh.header = header
+            fh.trailer = trailer
+            fh.image_boundaries = ImageBoundaries(header, trailer, fh.mda)
+            calc_area_def = fh.get_area_def(dataset_id)
 
         return (calc_area_def, expected_area_def)
 
@@ -686,8 +686,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -697,10 +697,10 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK
         )
-        assertNumpyArraysEqual(np.array(calculated.defs[0].area_extent),
-                               np.array(expected['Area extent 0']))
-        assertNumpyArraysEqual(np.array(calculated.defs[1].area_extent),
-                               np.array(expected['Area extent 1']))
+        np.testing.assert_allclose(np.array(calculated.defs[0].area_extent),
+                                   np.array(expected['Area extent 0']))
+        np.testing.assert_allclose(np.array(calculated.defs[1].area_extent),
+                                   np.array(expected['Area extent 1']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -712,8 +712,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -724,8 +724,8 @@ class TestNativeMSGArea(unittest.TestCase):
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN
         )
 
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -737,8 +737,8 @@ class TestNativeMSGArea(unittest.TestCase):
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_RAPIDSCAN_FILL
         )
 
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -750,8 +750,8 @@ class TestNativeMSGArea(unittest.TestCase):
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN
         )
 
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -763,8 +763,8 @@ class TestNativeMSGArea(unittest.TestCase):
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN_FILL
         )
 
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -775,8 +775,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -786,8 +786,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -797,8 +797,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -808,8 +808,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -820,8 +820,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -831,8 +831,10 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK
         )
-        assertNumpyArraysEqual(np.array(calculated.defs[0].area_extent), np.array(expected['Area extent 0']))
-        assertNumpyArraysEqual(np.array(calculated.defs[1].area_extent), np.array(expected['Area extent 1']))
+        np.testing.assert_allclose(np.array(calculated.defs[0].area_extent),
+                                   np.array(expected['Area extent 0']))
+        np.testing.assert_allclose(np.array(calculated.defs[1].area_extent),
+                                   np.array(expected['Area extent 1']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -844,8 +846,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -855,8 +857,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -867,8 +869,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_VISIR_RAPIDSCAN_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -879,8 +881,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -891,8 +893,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
 
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
@@ -903,8 +905,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -914,8 +916,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -925,8 +927,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -936,8 +938,8 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI_FILL
         )
-        assertNumpyArraysEqual(np.array(calculated.area_extent),
-                               np.array(expected['Area extent']))
+        np.testing.assert_allclose(np.array(calculated.area_extent),
+                                   np.array(expected['Area extent']))
         self.assertEqual(calculated.width, expected['Number of columns'])
         self.assertEqual(calculated.height, expected['Number of rows'])
         self.assertEqual(calculated.area_id, expected['Area ID'])
@@ -953,17 +955,21 @@ class TestNativeMSGArea(unittest.TestCase):
         trailer = self.create_test_trailer(is_rapid_scan)
         expected_is_roi = test_dict['is_roi']
 
-        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+                mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+                mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+                mock.patch(
+                    'satpy.readers.seviri_l1b_native.NativeMSGFileHandler._has_archive_header'
+                ) as _has_archive_header:
+            _has_archive_header.return_value = True
             fromfile.return_value = header
-            with mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict:
-                recarray2dict.side_effect = (lambda x: x)
-                with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap:
-                    _get_memmap.return_value = np.arange(3)
-                    with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
-                        fh = NativeMSGFileHandler(None, {}, None)
-                        fh.header = header
-                        fh.trailer = trailer
-                        calc_is_roi = fh.is_roi()
+            recarray2dict.side_effect = (lambda x: x)
+            _get_memmap.return_value = np.arange(3)
+            fh = NativeMSGFileHandler(None, {}, None)
+            fh.header = header
+            fh.trailer = trailer
+            calc_is_roi = fh.is_roi()
 
         return (calc_is_roi, expected_is_roi)
 
@@ -983,6 +989,26 @@ class TestNativeMSGArea(unittest.TestCase):
         self.assertEqual(calculated, expected)
 
 
+TEST_HEADER_CALIB = {
+    'RadiometricProcessing': {
+        'Level15ImageCalibration': {
+            'CalSlope': TestFileHandlerCalibrationBase.gains_nominal,
+            'CalOffset': TestFileHandlerCalibrationBase.offsets_nominal,
+
+        },
+        'MPEFCalFeedback': {
+            'GSICSCalCoeff': TestFileHandlerCalibrationBase.gains_gsics,
+            'GSICSOffsetCount': TestFileHandlerCalibrationBase.offsets_gsics
+        }
+    },
+    'ImageDescription': {
+        'Level15ImageProduction': {
+            'PlannedChanProcessing': TestFileHandlerCalibrationBase.radiance_types
+        }
+    },
+}
+
+
 class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
     """Unit tests for calibration."""
 
@@ -991,22 +1017,6 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
         """Create a mocked file handler."""
         header = {
             '15_DATA_HEADER': {
-                'RadiometricProcessing': {
-                    'Level15ImageCalibration': {
-                        'CalSlope': self.gains_nominal,
-                        'CalOffset': self.offsets_nominal,
-
-                    },
-                    'MPEFCalFeedback': {
-                        'GSICSCalCoeff': self.gains_gsics,
-                        'GSICSOffsetCount': self.offsets_gsics
-                    }
-                },
-                'ImageDescription': {
-                    'Level15ImageProduction': {
-                        'PlannedChanProcessing': self.radiance_types
-                    }
-                },
                 'ImageAcquisition': {
                     'PlannedAcquisitionTime': {
                         'TrueRepeatCycleStart': self.scan_time
@@ -1014,6 +1024,7 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
                 }
             }
         }
+        header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
             fh = NativeMSGFileHandler()
@@ -1073,6 +1084,149 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
         xr.testing.assert_allclose(res, expected)
 
 
+class TestNativeMSGDataset:
+    """Tests for getting the dataset."""
+
+    @pytest.fixture
+    def file_handler(self):
+        """Create a file handler for testing."""
+        header = {
+            '15_DATA_HEADER': {
+                'SatelliteStatus': {
+                    'SatelliteDefinition': {
+                        'NominalLongitude': 0.0
+                    },
+                    'Orbit': {
+                        'OrbitPolynomial': ORBIT_POLYNOMIALS
+                    }
+                },
+                'ImageAcquisition': {
+                    'PlannedAcquisitionTime': {
+                        'TrueRepeatCycleStart': datetime(
+                            2006, 1, 1, 12, 15, 9, 304888
+                        )
+                    }
+                }
+            },
+        }
+        header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
+        mda = {
+            'channel_list': ['VIS006', 'IR_108'],
+            'number_of_lines': 4,
+            'number_of_columns': 4,
+            'is_full_disk': True,
+            'platform_name': 'MSG-3',
+            'offset_corrected': True,
+            'projection_parameters': {
+                'ssp_longitude': 0.0,
+                'h': 35785831.0,
+                'a': 6378169.0,
+                'b': 6356583.8
+            }
+        }
+        num_visir_cols = 5  # will be divided by 1.25 -> 4 columns
+        visir_rec = [
+            ('line_data', np.uint8, (num_visir_cols,)),
+            ('acq_time', time_cds_short)
+        ]
+        vis006_line1 = (
+            [1, 2, 3, 4, 5],  # line_data
+            (1, 1000)  # acq_time (days, milliseconds)
+        )
+        vis006_line2 = ([6, 7, 8, 9, 10], (1, 2000))
+        vis006_line3 = ([11, 12, 13, 14, 15], (1, 3000))
+        vis006_line4 = ([16, 17, 18, 19, 20], (1, 4000))
+        ir108_line1 = ([20, 19, 18, 17, 16], (1, 1000))
+        ir108_line2 = ([15, 14, 13, 12, 11], (1, 2000))
+        ir108_line3 = ([10, 9, 8, 7, 6], (1, 3000))
+        ir108_line4 = ([5, 4, 3, 2, 1], (1, 4000))
+        data = np.array(
+            [[(vis006_line1,), (ir108_line1,)],
+             [(vis006_line2,), (ir108_line2,)],
+             [(vis006_line3,), (ir108_line3,)],
+             [(vis006_line4,), (ir108_line4,)]],
+            dtype=[('visir', visir_rec)]
+        )
+        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
+                        return_value=None):
+            fh = NativeMSGFileHandler()
+            fh.header = header
+            fh.mda = mda
+            fh.dask_array = da.from_array(data)
+            fh.platform_id = 324
+            fh.fill_disk = False
+            fh.calib_mode = 'NOMINAL'
+            fh.ext_calib_coefs = {}
+            fh.mda_max_array_size = 100
+            return fh
+
+    def test_get_dataset(self, file_handler):
+        """Test getting the dataset."""
+        dataset_id = make_dataid(
+            name='VIS006',
+            resolution=3000,
+            calibration='counts'
+        )
+        dataset_info = {
+            'units': '1',
+            'wavelength': (1, 2, 3),
+            'standard_name': 'counts'
+        }
+        dataset = file_handler.get_dataset(dataset_id, dataset_info)
+        expected = xr.DataArray(
+            np.array([[4., 32., 193., 5.],
+                      [24., 112., 514., 266.],
+                      [44., 192., 835., 527.],
+                      [64., 273., 132., 788.]],
+                     dtype=np.float32),
+            dims=('y', 'x'),
+            attrs={
+                'orbital_parameters': {
+                    'satellite_actual_longitude': -3.55117540817073,
+                    'satellite_actual_latitude': -0.5711243456528018,
+                    'satellite_actual_altitude': 35783296.150123544,
+                    'satellite_nominal_longitude': 0.0,
+                    'satellite_nominal_latitude': 0.0,
+                    'projection_longitude': 0.0,
+                    'projection_latitude': 0.0,
+                    'projection_altitude': 35785831.0
+                },
+                'georef_offset_corrected': True,
+                'platform_name': 'MSG-3',
+                'sensor': 'seviri',
+                'units': '1',
+                'wavelength': (1, 2, 3),
+                'standard_name': 'counts'
+            }
+        )
+        expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
+                                      np.datetime64('1958-01-02 00:00:02'),
+                                      np.datetime64('1958-01-02 00:00:03'),
+                                      np.datetime64('1958-01-02 00:00:04')])
+        xr.testing.assert_equal(dataset, expected)
+        assert 'raw_metadata' in dataset.attrs
+        dataset.attrs.pop('raw_metadata')
+        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_satpos_no_valid_orbit_polynomial(self, file_handler):
+        """Test satellite position if there is no valid orbit polynomial."""
+        file_handler.header['15_DATA_HEADER']['SatelliteStatus'][
+            'Orbit']['OrbitPolynomial'] = ORBIT_POLYNOMIALS_INVALID
+        dataset_id = make_dataid(
+            name='VIS006',
+            resolution=3000,
+            calibration='counts'
+        )
+        dataset_info = {
+            'units': '1',
+            'wavelength': (1, 2, 3),
+            'standard_name': 'counts'
+        }
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'satellite_actual_longitude' not in res.attrs[
+            'orbital_parameters']
+
+
 class TestNativeMSGPadder(unittest.TestCase):
     """Test Padder of the native l1b seviri reader."""
 
@@ -1101,3 +1255,62 @@ class TestNativeMSGPadder(unittest.TestCase):
         """Test padder for FES HRV data."""
         calculated, expected = self.prepare_padder(TEST_PADDER_FES_HRV)
         np.testing.assert_array_equal(calculated, expected)
+
+
+class TestNativeMSGFilenames:
+    """Test identification of Native format filenames."""
+
+    @pytest.fixture
+    def reader(self):
+        """Return reader for SEVIRI Native format."""
+        from satpy._config import config_search_paths
+        from satpy.readers import load_reader
+
+        reader_configs = config_search_paths(
+            os.path.join("readers", "seviri_l1b_native.yaml"))
+        reader = load_reader(reader_configs)
+        return reader
+
+    def test_file_pattern(self, reader):
+        """Test file pattern matching."""
+        filenames = [
+            # Valid
+            "MSG2-SEVI-MSG15-0100-NA-20080219094242.289000000Z",
+            "MSG2-SEVI-MSG15-0201-NA-20080219094242.289000000Z",
+            "MSG2-SEVI-MSG15-0301-NA-20080219094242.289000000Z-123456.nat",
+            "MSG2-SEVI-MSG15-0401-NA-20080219094242.289000000Z-20201231181545-123456.nat",
+            # Invalid
+            "MSG2-SEVI-MSG15-010-NA-20080219094242.289000000Z",
+        ]
+        files = reader.select_files_from_pathnames(filenames)
+        assert len(files) == 4
+
+
+@pytest.mark.parametrize(
+    'file_content,exp_header_size',
+    [
+        (b'FormatName                  : NATIVE', 450400),  # with ascii header
+        (b'foobar', 445286),  # without ascii header
+    ]
+)
+def test_header_type(file_content, exp_header_size):
+    """Test identification of the file header type."""
+    header = TestNativeMSGArea.create_test_header(
+        dataset_id=make_dataid(name='VIS006', resolution=3000),
+        earth_model=1,
+        is_full_disk=True,
+        is_rapid_scan=0
+    )
+    if file_content == b'foobar':
+        header.pop('15_SECONDARY_PRODUCT_HEADER')
+    with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
+            mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap, \
+            mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'), \
+            mock.patch("builtins.open", mock.mock_open(read_data=file_content)):
+        fromfile.return_value = header
+        recarray2dict.side_effect = (lambda x: x)
+        _get_memmap.return_value = np.arange(3)
+        fh = NativeMSGFileHandler('myfile', {}, None)
+        assert fh.header_type.itemsize == exp_header_size
+        assert '15_SECONDARY_PRODUCT_HEADER' in fh.header

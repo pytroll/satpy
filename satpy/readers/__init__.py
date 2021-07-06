@@ -22,6 +22,7 @@ import os
 import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
+import pickle
 
 import yaml
 
@@ -38,8 +39,8 @@ LOG = logging.getLogger(__name__)
 
 
 # Old Name -> New Name
-OLD_READER_NAMES = {
-}
+PENDING_OLD_READER_NAMES = {'fci_l1c_fdhsi': 'fci_l1c_nc'}
+OLD_READER_NAMES = {}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
@@ -253,20 +254,8 @@ def configs_for_reader(reader=None):
     if reader is not None:
         if not isinstance(reader, (list, tuple)):
             reader = [reader]
-        # check for old reader names
-        new_readers = []
-        for reader_name in reader:
-            if reader_name.endswith('.yaml') or reader_name not in OLD_READER_NAMES:
-                new_readers.append(reader_name)
-                continue
 
-            new_name = OLD_READER_NAMES[reader_name]
-            # Satpy 0.11 only displays a warning
-            # Satpy 0.13 will raise an exception
-            raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
-            # Satpy 0.15 or 1.0, remove exception and mapping
-
-        reader = new_readers
+        reader = get_valid_reader_names(reader)
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
@@ -285,6 +274,28 @@ def configs_for_reader(reader=None):
             raise ValueError("No reader named: {}".format(reader_name))
 
         yield reader_configs
+
+
+def get_valid_reader_names(reader):
+    """Check for old reader names or readers pending deprecation."""
+    new_readers = []
+    for reader_name in reader:
+        if reader_name in OLD_READER_NAMES:
+            raise ValueError(
+                "Reader name '{}' has been deprecated, "
+                "use '{}' instead.".format(reader_name,
+                                           OLD_READER_NAMES[reader_name]))
+
+        if reader_name in PENDING_OLD_READER_NAMES:
+            new_name = PENDING_OLD_READER_NAMES[reader_name]
+            warnings.warn("Reader name '{}' is being deprecated and will be removed soon."
+                          "Please use '{}' instead.".format(reader_name, new_name),
+                          FutureWarning)
+            new_readers.append(new_name)
+        else:
+            new_readers.append(reader_name)
+
+    return new_readers
 
 
 def available_readers(as_dict=False):
@@ -585,8 +596,41 @@ class FSFile(os.PathLike):
             return open(self._file)
 
     def __lt__(self, other):
-        """Implement ordering."""
+        """Implement ordering.
+
+        Ordering is defined by the string representation of the filename,
+        without considering the file system.
+        """
         return os.fspath(self) < os.fspath(other)
+
+    def __eq__(self, other):
+        """Implement equality comparisons.
+
+        Two FSFile instances are considered equal if they have the same
+        filename and the same file system.
+        """
+        return (isinstance(other, FSFile) and
+                self._file == other._file and
+                self._fs == other._fs)
+
+    def __hash__(self):
+        """Implement hashing.
+
+        Make FSFile objects hashable, so that they can be used in sets.  Some
+        parts of satpy and perhaps others use sets of filenames (strings or
+        pathlib.Path), or maybe use them as dictionary keys.  This requires
+        them to be hashable.  To ensure FSFile can work as a drop-in
+        replacement for strings of Path objects to represent the location of
+        blob of data, FSFile should be hashable too.
+
+        Returns the hash, computed from the hash of the filename and the hash
+        of the filesystem.
+        """
+        try:
+            fshash = hash(self._fs)
+        except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
+            fshash = hash(pickle.dumps(self._fs))
+        return hash(self._file) ^ fshash
 
 
 def open_file_or_filename(unknown_file_thing):

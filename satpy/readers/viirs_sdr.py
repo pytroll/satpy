@@ -403,7 +403,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
                 else:
                     prev_lon = lons_ring[0]
                     prev_lat = lats_ring[0]
-                    dists = list(geod.inv(lon, lat, prev_lon, prev_lat)[2] for lon, lat in zip(lons, lats))
+                    dists = [geod.inv(lon, lat, prev_lon, prev_lat)[2] for lon, lat in zip(lons, lats)]
                     first_idx = np.argmin(dists)
                     if first_idx == 2 and len(lons) == 8:
                         lons_ring = np.hstack((lons[:3], lons_ring[:-2], lons[4:]))

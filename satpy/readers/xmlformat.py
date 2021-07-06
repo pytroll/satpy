@@ -58,7 +58,7 @@ def process_field(elt, ascii=False):
         except ValueError:
             scale = (10 / np.array(
                 elt.get("scaling-factor").replace("^", "e").split(","),
-                dtype=np.float))
+                dtype=np.float64))
 
     return ((elt.get("name"), current_type, scale))
 

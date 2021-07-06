@@ -310,15 +310,6 @@ sensor_name: visir/test_sensor2
                 {os.path.abspath(self.ENH_FN2),
                  os.path.abspath(self.ENH_ENH_FN2)})
 
-    def test_deprecated_enhance_with_file_specified(self):
-        """Test enhancing an image when config file is specified."""
-        from satpy.writers import get_enhanced_image
-        from xarray import DataArray
-        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
-                       dims=['y', 'x'])
-        get_enhanced_image(ds, enhancement_config_file=self.ENH_ENH_FN)
-
     def test_no_enhance(self):
         """Test turning off enhancements."""
         from satpy.writers import get_enhanced_image

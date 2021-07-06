@@ -1060,7 +1060,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         return new_ds
 
     def _add_sector_id_global(self, new_ds, sector_id):
-        if not self._template_dict.get('apply_sector_id_global'):
+        if not self._template_dict.get('add_sector_id_global'):
             return
 
         if sector_id is None:
@@ -1176,8 +1176,11 @@ def _reapply_factors(dataset_to_save, factors):
     return dataset_to_save
 
 
-def to_nonempty_netcdf(dataset_to_save, factors, output_filename, update_existing=True,
-                       check_categories=True, fix_awips=False):
+def to_nonempty_netcdf(dataset_to_save: xr.Dataset,
+                       factors: dict,
+                       output_filename: str,
+                       update_existing: bool = True,
+                       check_categories: bool = True):
     """Save :class:`xarray.Dataset` to a NetCDF file if not all fills.
 
     In addition to checking certain Dataset variables for fill values,
@@ -1189,7 +1192,7 @@ def to_nonempty_netcdf(dataset_to_save, factors, output_filename, update_existin
     if _is_empty_tile(dataset_to_save, check_categories):
         LOG.debug("Skipping tile creation for %s because it would be "
                   "empty.", output_filename)
-        return
+        return None, None, None
 
     # TODO: Allow for new variables to be created
     if update_existing and os.path.isfile(output_filename):
@@ -1197,9 +1200,10 @@ def to_nonempty_netcdf(dataset_to_save, factors, output_filename, update_existin
         mode = 'a'
     else:
         mode = 'w'
-    dataset_to_save.to_netcdf(output_filename, mode=mode)
-    if fix_awips:
-        fix_awips_file(output_filename)
+    return dataset_to_save, output_filename, mode
+    # return dataset_to_save.to_netcdf(output_filename, mode=mode)
+    # if fix_awips:
+    #     fix_awips_file(output_filename)
 
 
 delayed_to_notempty_netcdf = dask.delayed(to_nonempty_netcdf, pure=True)
@@ -1230,6 +1234,12 @@ class AWIPSTiledWriter(Writer):
         self.fix_awips = fix_awips
         self._fill_sector_info()
         self._enhancer = None
+
+        if self.fix_awips:
+            warnings.warn("'fix_awips' flag no longer has any effect and is "
+                          "deprecated. Modern versions of AWIPS should not "
+                          "require this hack.", DeprecationWarning)
+            self.fix_awips = False
 
     @property
     def enhancer(self):
@@ -1538,7 +1548,6 @@ class AWIPSTiledWriter(Writer):
         if not isinstance(template, dict):
             template = self.config['templates'][template]
         template = AWIPSNetCDFTemplate(template, swap_end_time=use_end_time)
-        delayeds = []
         area_data_arrs = self._group_by_area(datasets)
         datasets_to_save = []
         output_filenames = []
@@ -1571,17 +1580,56 @@ class AWIPSTiledWriter(Writer):
             output_filenames.append(output_filename)
         if not datasets_to_save:
             # no tiles produced
-            return delayeds
+            return []
 
         delayed_gen = self._save_nonempty_mfdatasets(datasets_to_save, output_filenames,
                                                      check_categories=check_categories,
-                                                     fix_awips=self.fix_awips,
                                                      update_existing=True)
-        for delayed_result in delayed_gen:
-            delayeds.append(delayed_result)
+        delayeds = self._delay_netcdf_creation(delayed_gen)
+
         if not compute:
             return delayeds
         return dask.compute(delayeds)
+
+    def _delay_netcdf_creation(self, delayed_gen, precompute=True, use_distributed=False):
+        """Workaround random dask and xarray hanging executions.
+
+        In previous implementations this writer called 'to_dataset' directly
+        in a delayed function. This seems to cause random deadlocks where
+        execution would hang indefinitely.
+
+        """
+        delayeds = []
+        if precompute:
+            dataset_iter = self._get_delayed_iter(use_distributed)
+            for dataset_to_save, output_filename, mode in dataset_iter(delayed_gen):
+                delayed_save = dataset_to_save.to_netcdf(output_filename, mode, compute=False)
+                delayeds.append(delayed_save)
+        else:
+            for delayed_result in delayed_gen:
+                delayeds.append(delayed_result)
+        return delayeds
+
+    @staticmethod
+    def _get_delayed_iter(use_distributed=False):
+        if use_distributed:
+            def dataset_iter(_delayed_gen):
+                from dask.distributed import as_completed, get_client
+                client = get_client()
+                futures = client.compute(list(_delayed_gen))
+                for _, (dataset_to_save, output_filename, mode) in as_completed(futures, with_results=True):
+                    if dataset_to_save is None:
+                        continue
+                    yield dataset_to_save, output_filename, mode
+        else:
+            def dataset_iter(_delayed_gen):
+                # compute all datasets
+                results = dask.compute(_delayed_gen)[0]
+                for result in results:
+                    if result[0] is None:
+                        continue
+                    yield result
+        return dataset_iter
 
 
 def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
@@ -1719,8 +1767,8 @@ def main():
                          help="alternative backend configuration files")
     group_1.add_argument("--compress", action="store_true",
                          help="zlib compress each netcdf file")
-    group_1.add_argument("--fix-awips", action="store_true",
-                         help="modify NetCDF output to work with the old/broken AWIPS NetCDF library")
+    # group_1.add_argument("--fix-awips", action="store_true",
+    #                      help="modify NetCDF output to work with the old/broken AWIPS NetCDF library")
     group_2 = parser.add_argument_group(title="Wrtier Save")
     group_2.add_argument("--tiles", dest="tile_count", nargs=2, type=int, default=[1, 1],
                          help="Number of tiles to produce in Y (rows) and X (cols) direction respectively")

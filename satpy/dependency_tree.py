@@ -17,11 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Implementation of a dependency tree."""
 
-import numpy as np
+from __future__ import annotations
 
+from typing import Optional, Iterable, Container
+
+from satpy import DataID
 from satpy.dataset import create_filtered_query, ModifierTuple
 from satpy.dataset.data_dict import TooManyResults, get_key
 from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG, ReaderNode
+
+import numpy as np
 
 
 class Tree:
@@ -39,45 +44,58 @@ class Tree:
         # __contains__
         self._all_nodes = _DataIDContainer()
 
-    def leaves(self, nodes=None, unique=True):
+    def leaves(self,
+               limit_nodes_to: Optional[Iterable[DataID]] = None,
+               unique: bool = True
+               ) -> list[Node]:
         """Get the leaves of the tree starting at the root.
 
         Args:
-            nodes (iterable): limit leaves for these node names
-            unique: only include individual leaf nodes once
+            limit_nodes_to: Limit leaves to Nodes with the names (DataIDs)
+                specified.
+            unique: Only include individual leaf nodes once.
 
         Returns:
             list of leaf nodes
 
         """
-        if nodes is None:
+        if limit_nodes_to is None:
             return self._root.leaves(unique=unique)
 
         res = list()
-        for child_id in nodes:
+        for child_id in limit_nodes_to:
             for sub_child in self._all_nodes[child_id].leaves(unique=unique):
                 if not unique or sub_child not in res:
                     res.append(sub_child)
         return res
 
-    def trunk(self, nodes=None, unique=True):
+    def trunk(self,
+              limit_nodes_to: Optional[Iterable[DataID]] = None,
+              unique: bool = True,
+              limit_children_to: Optional[Container[DataID]] = None,
+              ) -> list[Node]:
         """Get the trunk nodes of the tree starting at this root.
 
         Args:
-            nodes (iterable): limit trunk nodes to the names specified or the
-                              children of them that are also trunk nodes.
-            unique: only include individual trunk nodes once
+            limit_nodes_to: Limit searching to trunk nodes with the names
+                (DataIDs) specified and the children of these nodes.
+            unique: Only include individual trunk nodes once
+            limit_children_to: Limit searching to the children with the specified
+                names. These child nodes will be included in the result,
+                but not their children.
 
         Returns:
             list of trunk nodes
 
         """
-        if nodes is None:
-            return self._root.trunk(unique=unique)
+        if limit_nodes_to is None:
+            return self._root.trunk(unique=unique,
+                                    limit_children_to=limit_children_to)
 
         res = list()
-        for child_id in nodes:
-            for sub_child in self._all_nodes[child_id].trunk(unique=unique):
+        for child_id in limit_nodes_to:
+            child_node = self._all_nodes[child_id]
+            for sub_child in child_node.trunk(unique=unique, limit_children_to=limit_children_to):
                 if not unique or sub_child not in res:
                     res.append(sub_child)
         return res
@@ -89,7 +107,8 @@ class Tree:
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
         if self.contains(child.name):
-            assert self._all_nodes[child.name] is child
+            if self._all_nodes[child.name] is not child:
+                raise RuntimeError
         if child is self.empty_node:
             # No need to store "empty" nodes
             return
@@ -180,6 +199,15 @@ class DependencyTree(Tree):
             c = c.copy(node_cache=new_tree._all_nodes)
             new_tree.add_child(new_tree._root, c)
         return new_tree
+
+    def update_node_name(self, node, new_name):
+        """Update 'name' property of a node and any related metadata."""
+        old_name = node.name
+        if old_name not in self._all_nodes:
+            raise RuntimeError
+        del self._all_nodes[old_name]
+        node.update_name(new_name)
+        self._all_nodes[new_name] = node
 
     def populate_with_keys(self, dataset_keys: set, query=None):
         """Populate the dependency tree.

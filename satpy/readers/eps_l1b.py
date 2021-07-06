@@ -166,7 +166,7 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def __getitem__(self, key):
         """Get value for given key."""
-        for altkey in self.form.scales.keys():
+        for altkey in self.form.scales:
             try:
                 try:
                     return self.sections[altkey][key] * self.form.scales[altkey][key]

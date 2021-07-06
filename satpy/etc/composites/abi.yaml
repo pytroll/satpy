@@ -2,7 +2,7 @@ sensor_name: visir/abi
 
 modifiers:
   rayleigh_corrected_crefl:
-    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     optional_prerequisites:
       - name: satellite_azimuth_angle
@@ -194,7 +194,7 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
       - name: C03
         modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   cimss_green_sunz:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
@@ -207,7 +207,7 @@ composites:
         modifiers: [sunz_corrected]
       - name: C03
         modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   cimss_green:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
@@ -217,7 +217,7 @@ composites:
       - name: C01
       - name: C02
       - name: C03
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   cimss_true_color_sunz_rayleigh:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB

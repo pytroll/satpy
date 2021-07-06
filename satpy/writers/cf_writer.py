@@ -31,11 +31,12 @@ format:
     >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc',
                           exclude_attrs=['raw_metadata'])
 
-* You can select the netCDF backend using the ``engine`` keyword argument. Default is ``h5netcdf``.
+* You can select the netCDF backend using the ``engine`` keyword argument. If `None` if follows
+  :meth:`~xarray.Dataset.to_netcdf` engine choices with a preference for 'netcdf4'.
 * For datasets with area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
-* By default the dataset name is prepended to non-dimensional coordinates such as scanline timestamps. This ensures
-  maximum consistency, i.e. the netCDF variable names are independent of the number/set of datasets to be written.
-  If a non-dimensional coordinate is identical for
+* By default non-dimensional coordinates (such as scanline timestamps) are prefixed with the corresponding
+  dataset name. This is because they are likely to be different for each dataset. If a non-dimensional
+  coordinate is identical for all datasets, the prefix can be removed by setting ``pretty=True``.
 * Some dataset names start with a digit, like AVHRR channels 1, 2, 3a, 3b, 4 and 5. This doesn't comply with CF
   https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/ch02s03.html. These channels are prefixed
   with `CHANNEL_` by default. This can be controlled with the variable `numeric_name_prefix` to `save_datasets`.
@@ -54,6 +55,36 @@ datasets with common grids in separate netCDF groups as follows:
                           groups={'visir': ['VIS006', 'IR_108'], 'hrv': ['HRV']})
 
 Note that the resulting file will not be fully CF compliant.
+
+
+Dataset Encoding
+~~~~~~~~~~~~~~~~
+
+Dataset encoding can be specified in two ways:
+
+1) Via the ``encoding`` keyword argument of ``save_datasets``:
+
+    >>> my_encoding = {
+    ...    'my_dataset_1': {
+    ...        'zlib': True,
+    ...        'complevel': 9,
+    ...        'scale_factor': 0.01,
+    ...        'add_offset': 100,
+    ...        'dtype': np.int16
+    ...     },
+    ...    'my_dataset_2': {
+    ...        'zlib': False
+    ...     }
+    ... }
+    >>> scn.save_datasets(writer='cf', filename='encoding_test.nc', encoding=my_encoding)
+
+
+2) Via the ``encoding`` attribute of the datasets in a scene. For example
+
+    >>> scn['my_dataset'].encoding = {'zlib': False}
+    >>> scn.save_datasets(writer='cf', filename='encoding_test.nc')
+
+See the `xarray encoding documentation`_ for all encoding options.
 
 
 Attribute Encoding
@@ -99,6 +130,8 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 
 
 .. _CF-compliant: http://cfconventions.org/
+.. _xarray encoding documentation:
+    http://xarray.pydata.org/en/stable/user-guide/io.html?highlight=encoding#writing-encoded-data
 """
 
 import copy
@@ -236,29 +269,30 @@ def assert_xy_unique(datas):
 
 
 def link_coords(datas):
-    """Link datasets and coordinates.
+    """Link dataarrays and coordinates.
 
-    If the `coordinates` attribute of a data array links to other datasets in the scene, for example
+    If the `coordinates` attribute of a data array links to other dataarrays in the scene, for example
     `coordinates='lon lat'`, add them as coordinates to the data array and drop that attribute. In the final call to
     `xr.Dataset.to_netcdf()` all coordinate relations will be resolved and the `coordinates` attributes be set
     automatically.
 
     """
-    for ds_name, dataset in datas.items():
-        coords = dataset.attrs.get('coordinates', [])
-        if isinstance(coords, str):
-            coords = coords.split(' ')
-        for coord in coords:
-            if coord not in dataset.coords:
+    for da_name, data in datas.items():
+        declared_coordinates = data.attrs.get('coordinates', [])
+        if isinstance(declared_coordinates, str):
+            declared_coordinates = declared_coordinates.split(' ')
+        for coord in declared_coordinates:
+            if coord not in data.coords:
                 try:
-                    dataset[coord] = datas[coord]
+                    dimensions_not_in_data = list(set(datas[coord].dims) - set(data.dims))
+                    data[coord] = datas[coord].squeeze(dimensions_not_in_data, drop=True)
                 except KeyError:
-                    warnings.warn('Coordinate "{}" referenced by dataset {} does not exist, dropping reference.'.format(
-                        coord, ds_name))
+                    warnings.warn('Coordinate "{}" referenced by dataarray {} does not exist, dropping reference.'
+                                  .format(coord, da_name))
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
-        dataset.attrs.pop('coordinates', None)
+        data.attrs.pop('coordinates', None)
 
 
 def dataset_is_projection_coords(dataset):
@@ -694,6 +728,7 @@ class CFWriter(Writer):
                 Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
                 This is in turn passed the xarray's `to_netcdf` method:
                 http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
+                (This parameter is now being deprecated, please use the DataArrays's `encoding` from now on.)
             include_orig_name (bool).
                 Include the original dataset name as an varaibel attribute in the final netcdf
             numeric_name_prefix (str):
@@ -701,21 +736,13 @@ class CFWriter(Writer):
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
-
-        if groups is None:
-            # Write all datasets to the file root without creating a group
-            groups_ = {None: datasets}
-        else:
-            # User specified a group assignment using dataset names. Collect the corresponding datasets.
-            groups_ = defaultdict(list)
-            for dataset in datasets:
-                for group_name, group_members in groups.items():
-                    if dataset.attrs['name'] in group_members:
-                        groups_[group_name].append(dataset)
-                        break
-
+        warnings.warn("The default behaviour of the CF writer will soon change to not compress data by default.",
+                      FutureWarning)
         if compression is None:
             compression = {'zlib': True}
+        else:
+            warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
+                          "DataArrays to tune compression from now on.", FutureWarning)
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
@@ -733,11 +760,6 @@ class CFWriter(Writer):
         else:
             root.attrs['history'] = _history_create
 
-        if groups is None:
-            # Groups are not CF-1.7 compliant
-            if 'Conventions' not in root.attrs:
-                root.attrs['Conventions'] = CF_VERSION
-
         # Remove satpy-specific kwargs
         to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
@@ -747,6 +769,22 @@ class CFWriter(Writer):
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
         init_nc_kwargs.pop('unlimited_dims', None)
+
+        if groups is None:
+            # Groups are not CF-1.7 compliant
+            if 'Conventions' not in root.attrs:
+                root.attrs['Conventions'] = CF_VERSION
+            # Write all datasets to the file root without creating a group
+            groups_ = {None: datasets}
+        else:
+            # User specified a group assignment using dataset names. Collect the corresponding datasets.
+            groups_ = defaultdict(list)
+            for dataset in datasets:
+                for group_name, group_members in groups.items():
+                    if dataset.attrs['name'] in group_members:
+                        groups_[group_name].append(dataset)
+                        break
+
         written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
         # Write datasets to groups (appending to the file; group=None means no group)
@@ -770,4 +808,5 @@ class CFWriter(Writer):
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                     **other_to_netcdf_kwargs)
             written.append(res)
+
         return written

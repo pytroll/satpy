@@ -66,6 +66,7 @@ class BaseFileHandler(metaclass=ABCMeta):
         for key in keys:
             if key in infos[0]:
                 res[key] = func([i[key] for i in infos])
+
         return res
 
     def combine_info(self, all_infos):
