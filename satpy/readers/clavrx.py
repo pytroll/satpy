@@ -117,29 +117,22 @@ class _CLAVRxHelper:
             data.attrs['resolution'] = dataset_id['resolution']
 
         attrs = data.attrs.copy()
-        fill = attrs.pop('_FillValue', None)
+        fill = attrs.get('_FillValue', None)
         factor = attrs.pop('scale_factor', 1.0)
         offset = attrs.pop('add_offset', 0.0)
-        valid_range = attrs.pop('valid_range', None)
-        actual_missing = attrs.pop('actual_missing', None)
-        if actual_missing:
-            attrs["_FillValue"] = actual_missing
-
-        data = data.where(data != fill)
-        data = _CLAVRxHelper._scale_data(data, factor, offset)
+        valid_range = attrs.get('valid_range', [None])
 
         flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
 
-        if valid_range is not None:
+        if not flags:
+            data = data.where(data != fill)
+            data = _CLAVRxHelper._scale_data(data, factor, offset)
+
+        if all(valid_range) and not flags:
             valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
             valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
-            if flags:
-                valid_min = int(valid_min)
-                valid_max = int(valid_max)
             data = data.where((data >= valid_min) & (data <= valid_max))
-            data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
-
-        data = data.astype(np.uint32) if flags else data
+            data.attrs['valid_range'] = valid_min, valid_max
 
         data.attrs = _CLAVRxHelper._remove_attributes(attrs)
 
@@ -281,6 +274,8 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         if u in CF_UNITS:
             # CF compliance
             i['units'] = CF_UNITS[u]
+        if u.lower() == "none":
+            i['units'] = 1
 
         i['sensor'] = self.sensor
         i['platform'] = i['platform_name'] = self.platform
@@ -477,6 +472,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         if u in CF_UNITS:
             # CF compliance
             i['units'] = CF_UNITS[u]
+        if u.lower() == "none":
+            i['units'] = 1
 
         i['sensor'] = self.sensor
         i['platform'] = i['platform_name'] = self.platform
