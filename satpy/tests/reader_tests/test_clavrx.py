@@ -98,7 +98,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
                 'flag_values': [0, 1, 2, 3, 4, 5],
-                'units': '1',
+                'units': 'none',
             })
         file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
 

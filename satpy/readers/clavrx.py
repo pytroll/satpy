@@ -274,8 +274,8 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         if u in CF_UNITS:
             # CF compliance
             i['units'] = CF_UNITS[u]
-        if u.lower() == "none":
-            i['units'] = 1
+            if u.lower() == "none":
+                i['units'] = "1"
 
         i['sensor'] = self.sensor
         i['platform'] = i['platform_name'] = self.platform
@@ -472,8 +472,8 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         if u in CF_UNITS:
             # CF compliance
             i['units'] = CF_UNITS[u]
-        if u.lower() == "none":
-            i['units'] = 1
+            if u.lower() == "none":
+                i['units'] = 1
 
         i['sensor'] = self.sensor
         i['platform'] = i['platform_name'] = self.platform
