@@ -121,6 +121,8 @@ class _CLAVRxHelper:
         factor = attrs.pop('scale_factor', 1.0)
         offset = attrs.pop('add_offset', 0.0)
         valid_range = attrs.get('valid_range', [None])
+        if isinstance(valid_range, np.ndarray):
+            attrs["valid_range"] = valid_range.tolist()
 
         flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
 
@@ -132,7 +134,7 @@ class _CLAVRxHelper:
             valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
             valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
             data = data.where((data >= valid_min) & (data <= valid_max))
-            data.attrs['valid_range'] = valid_min, valid_max
+            data.attrs['valid_range'] = [valid_min, valid_max]
 
         data.attrs = _CLAVRxHelper._remove_attributes(attrs)
 
