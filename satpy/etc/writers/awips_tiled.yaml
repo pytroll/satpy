@@ -66,9 +66,12 @@ templates:
 #        value: "${ORGANIZATION}"
       awips_id: {}
 #        value: "{awips_id}"  # special variable created by awips_tiled.py
+      physical_element: {}
+#        value: "{physical_element}"   #special variable created by awips_tiled.py
       satellite_id:
         value: "{platform_name!u}-{sensor!u}"
       sector_id: {}  # special handler in awips_tiled.py
+
     coordinates:
       x:
         attributes:
@@ -123,6 +126,8 @@ templates:
         reader: clavrx
         name: cloud_type
         var_name: data
+        encoding:
+          dtype: "int16"
         attributes:
           physical_element:
             raw_value: CLAVR-x Cloud Type
@@ -130,6 +135,8 @@ templates:
         reader: clavrx
         name: cld_temp_acha
         var_name: data
+        encoding:
+          dtype: "int16"
         attributes:
           physical_element:
             raw_value: CLAVR-x Cloud Top Temperature (ACHA)
@@ -193,6 +200,8 @@ templates:
         reader: clavrx
         name: rain_rate
         var_name: data
+        encoding:
+          dtype: "int16"
         attributes:
           physical_element:
             raw_value: CLAVR-x Rain Rate
