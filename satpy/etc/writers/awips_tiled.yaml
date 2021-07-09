@@ -80,7 +80,7 @@ templates:
             value: '{standard_name}'
         encoding:
           dtype: "int16"
-          _Unsigned: "true"
+          #_Unsigned: "true"
       y:
         attributes:
           units: {}
@@ -88,7 +88,7 @@ templates:
             value: '{standard_name}'
         encoding:
           dtype: "int16"
-          _Unsigned: "true"
+          #_Unsigned: "true"
 
     # XXX: Variable attributes *CAN NOT* be tile-specific.
     variables:
@@ -120,6 +120,7 @@ templates:
         reader: clavrx
         var_name: data
         attributes:
+          units: {}
           physical_element:
             value: 'CLAVR-x {name}'
       clavrx_cloud_type:
@@ -131,6 +132,7 @@ templates:
         attributes:
           physical_element:
             raw_value: CLAVR-x Cloud Type
+          units: {}
       clavrx_cld_temp_acha:
         reader: clavrx
         name: cld_temp_acha
@@ -138,6 +140,7 @@ templates:
         encoding:
           dtype: "int16"
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Top Temperature (ACHA)
       clavrx_cld_height_acha:
@@ -145,6 +148,7 @@ templates:
         name: cld_height_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Top Height (ACHA)
       clavrx_cloud_phase:
@@ -152,6 +156,7 @@ templates:
         name: cloud_phase
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Phase
       clavrx_cld_opd_dcomp:
@@ -159,6 +164,7 @@ templates:
         name: cld_opd_dcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Optical Depth (dcomp)
       clavrx_clld_opd_nlcomp:
@@ -166,6 +172,7 @@ templates:
         name: cloud_opd_nlcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Optical Depth (nlcomp)
       clavrx_cld_reff_dcomp:
@@ -173,6 +180,7 @@ templates:
         name: cld_reff_dcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Effective Radius (dcomp)
       clavrx_cld_reff_nlcomp:
@@ -180,6 +188,7 @@ templates:
         name: cld_reff_nlcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Effective Radius (nlcomp)
       clavrx_cld_emiss_acha:
@@ -187,6 +196,7 @@ templates:
         name: cld_emiss_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Emissivity (ACHA)
       clavrx_refl_lunar_dnb_nom:
@@ -194,6 +204,7 @@ templates:
         name: refl_lunar_dnb_nom
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Lunar Reflectance
       clavrx_rain_rate:
@@ -203,6 +214,7 @@ templates:
         encoding:
           dtype: "int16"
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Rain Rate
 
