@@ -911,6 +911,11 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
     def _global_awips_id(self, input_metadata):
         return "AWIPS_" + input_metadata['name']
 
+    def _global_physical_element(self, input_metadata):
+        var_config = self._var_tree.find_match(**input_metadata)
+        result = self._render_attrs(var_config["attributes"], input_metadata)
+        return result["physical_element"]
+
     def _global_production_location(self, input_metadata):
         """Get default global production_location attribute."""
         del input_metadata
