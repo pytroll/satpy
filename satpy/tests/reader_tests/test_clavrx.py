@@ -219,7 +219,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         for v in datasets.values():
             assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
-            self.assertEqual(v.attrs['platform'], 'npp')
+            self.assertEqual(v.attrs['platform_name'], 'npp')
             self.assertEqual(v.attrs['sensor'], 'viirs')
             self.assertIsInstance(v.attrs['area'], SwathDefinition)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 16)
@@ -410,6 +410,6 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
             self.assertTrue(v.attrs['area'].is_geostationary)
-            self.assertEqual(v.attrs['platform'], 'himawari8')
+            self.assertEqual(v.attrs['platform_name'], 'himawari8')
             self.assertEqual(v.attrs['sensor'], 'ahi')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
