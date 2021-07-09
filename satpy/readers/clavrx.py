@@ -240,6 +240,32 @@ class _CLAVRxHelper:
 
         return area
 
+    @staticmethod
+    def get_metadata(sensor, platform, attrs: dict, ds_info: dict) -> dict:
+        """Get metadata."""
+        i = {}
+        i.update(attrs)
+        i.update(ds_info)
+
+        flag_meanings = i.get('flag_meanings', None)
+        if not i.get('SCALED', 1) and not flag_meanings:
+            i['flag_meanings'] = '<flag_meanings_unknown>'
+            i.setdefault('flag_values', [None])
+        u = i.get('units')
+        if u in CF_UNITS:
+            # CF compliance
+            i['units'] = CF_UNITS[u]
+            if u.lower() == "none":
+                i['units'] = "1"
+        i['sensor'] = sensor
+        i['platform_name'] = platform
+        rps = _get_rows_per_scan(sensor)
+        if rps:
+            i['rows_per_scan'] = rps
+        i['reader'] = 'clavrx'
+
+        return i
+
 
 class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
     """A file handler for CLAVRx files."""
@@ -260,38 +286,13 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         """Get the end time."""
         return self.filename_info.get('end_time', self.start_time)
 
-    def get_metadata(self, attrs: dict, ds_info: dict) -> dict:
-        """Get metadata."""
-        i = {}
-        i.update(attrs)
-        i.update(ds_info)
-
-        flag_meanings = i.get('flag_meanings', None)
-        if not i.get('SCALED', 1) and not flag_meanings:
-            i['flag_meanings'] = '<flag_meanings_unknown>'
-            i.setdefault('flag_values', [None])
-        u = i.get('units')
-        if u in CF_UNITS:
-            # CF compliance
-            i['units'] = CF_UNITS[u]
-            if u.lower() == "none":
-                i['units'] = "1"
-
-        i['sensor'] = self.sensor
-        i['platform'] = i['platform_name'] = self.platform
-        rps = _get_rows_per_scan(self.sensor)
-        if rps:
-            i['rows_per_scan'] = rps
-        i['reader'] = 'clavrx'
-
-        return i
-
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset."""
         var_name = ds_info.get('file_key', dataset_id['name'])
         data = self[var_name]
         data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
-        data.attrs = self.get_metadata(data.attrs, ds_info)
+        data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
+                                                data.attrs, ds_info)
         return data
 
     def get_nadir_resolution(self, sensor):
@@ -457,40 +458,13 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         l1b_att = str(self.nc.attrs.get('L1B', None))
         return _CLAVRxHelper._read_axi_fixed_grid(self.filename, l1b_att)
 
-    def get_metadata(self, attrs, ds_info):
-        """Get metadata."""
-        i = {}
-        i.update(attrs)
-        i.update(ds_info)
-
-        flag_meanings = i.get('flag_meanings', None)
-        if not i.get('SCALED', 1) and not flag_meanings:
-            i['flag_meanings'] = '<flag_meanings_unknown>'
-            i.setdefault('flag_values', [None])
-
-        u = i.get('units')
-        if u in CF_UNITS:
-            # CF compliance
-            i['units'] = CF_UNITS[u]
-            if u.lower() == "none":
-                i['units'] = 1
-
-        i['sensor'] = self.sensor
-        i['platform'] = i['platform_name'] = self.platform
-        rps = _get_rows_per_scan(self.sensor)
-        if rps:
-            i['rows_per_scan'] = rps
-        i['reader'] = 'clavrx'
-
-        return i
-
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset."""
         var_name = ds_info.get('name', dataset_id['name'])
         data = self[var_name]
         data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
-        data.attrs = self.get_metadata(data.attrs, ds_info)
-
+        data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
+                                                data.attrs, ds_info)
         return data
 
     def __getitem__(self, item):
