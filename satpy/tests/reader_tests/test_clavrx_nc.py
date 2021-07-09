@@ -73,7 +73,7 @@ def fake_test_content(filename, **kwargs):
                                     'scale_factor': 1.,
                                     'add_offset': 0.,
                                     'units': '1',
-                                    'valid_range': (-32767, 32767),
+                                    'valid_range': [-32767, 32767],
                                     })
 
     # data with fill values
@@ -84,7 +84,7 @@ def fake_test_content(filename, **kwargs):
                                     'scale_factor': 1.,
                                     'add_offset': 0.,
                                     'units': '1',
-                                    'valid_range': (-32767, 32767),
+                                    'valid_range': [-32767, 32767],
                                     })
     variable2 = variable2.where(variable2 % 2 != 0)
 
@@ -188,7 +188,9 @@ class TestCLAVRXReaderGeo:
                     assert 'calibration' not in v.attrs
                     assert v.attrs['units'] == '1'
                     assert isinstance(v.attrs['area'], AreaDefinition)
-                    assert v.attrs['platform'] == 'himawari8'
+                    assert v.attrs['platform_name'] == 'himawari8'
                     assert v.attrs['sensor'] == 'AHI'
                     assert 'rows_per_scan' not in v.coords.get('longitude').attrs
+                    if v.attrs["name"] in ["variable1", "variable2"]:
+                        assert isinstance(v.attrs["valid_range"], list)
                 assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
