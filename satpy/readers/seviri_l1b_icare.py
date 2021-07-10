@@ -69,8 +69,12 @@ Output:
         ancillary_variables:  []
 
 """
+from satpy.readers._geos_area import get_area_extent, get_area_definition
+from satpy.readers.hdf4_utils import HDF4FileHandler
 from datetime import datetime
-
+from satpy import CHUNK_SIZE
+import dask.array as da
+import xarray as xr
 import numpy as np
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent
@@ -261,7 +265,9 @@ class SEVIRI_ICARE(HDF4FileHandler):
             # Now we correct range from 0-1 to 0-100 for VIS:
             if ds_id['name'] in self.ref_bands:
                 data.values *= 100.
-        return data
+        variable = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                                dims=['y', 'x'])
+        return variable
 
     def get_area_def(self, ds_id):
         """Get the area def."""
