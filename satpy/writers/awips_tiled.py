@@ -864,7 +864,6 @@ class NetCDFTemplate:
         for data_arr in data_arrays:
             new_var_name, new_data_arr = self._render_variable(data_arr)
             new_ds[new_var_name] = new_data_arr
-
         new_coords = self._render_coordinates(new_ds)
         new_ds.coords.update(new_coords)
         # use first data array as "representative" for global attributes
@@ -969,6 +968,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             new_encoding['scale_factor'] = sf
             new_encoding['add_offset'] = ao
             new_encoding['_FillValue'] = fill
+            new_encoding['coordinates'] = ' '.join([ele for ele in input_data_arr.dims])
         return new_encoding
 
     def _get_projection_attrs(self, area_def):
