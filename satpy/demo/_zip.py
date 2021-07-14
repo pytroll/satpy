@@ -77,7 +77,7 @@ def download_and_unzip(url, output_dir, delete_zip=False):
     """Download zip file at 'url', extract it to 'output_dir'.
 
     Returns:
-        ``True`` if hte file was successfully downloaded and extracted,
+        ``True`` if the file was successfully downloaded and extracted,
         ``False`` otherwise.
 
     """
