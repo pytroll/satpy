@@ -71,8 +71,7 @@ def _dictify(r):
                 return r.text
     for x in r.findall("./*"):
         if x.tag in d and not isinstance(d[x.tag], list):
-            d[x.tag] = [d[x.tag]]
-            d[x.tag].append(_dictify(x))
+            d[x.tag] = [d[x.tag], _dictify(x)]
         else:
             d[x.tag] = _dictify(x)
     return d
@@ -160,8 +159,7 @@ class SAFEXMLCalibration(SAFEXML):
     def get_calibration(self, calibration, chunks=None):
         """Get the calibration array."""
         calibration_name = _get_calibration_name(calibration)
-        calibration_vector = self._get_calibration_vector(calibration_name, chunks)
-        return calibration_vector
+        return self._get_calibration_vector(calibration_name, chunks)
 
     def _get_calibration_vector(self, calibration_name, chunks):
         """Get the calibration vector."""
@@ -241,9 +239,7 @@ class AzimuthNoiseReader:
     def read_azimuth_noise_array(self, chunks=CHUNK_SIZE):
         """Read the azimuth noise vectors."""
         self._read_azimuth_noise_blocks(chunks)
-        populated_array = self._assemble_azimuth_noise_blocks(chunks)
-
-        return populated_array
+        return self._assemble_azimuth_noise_blocks(chunks)
 
     def _read_azimuth_noise_blocks(self, chunks):
         """Read the azimuth noise blocks."""
@@ -289,16 +285,15 @@ class AzimuthNoiseReader:
 
         pieces = [arr.sel(y=current_y) for arr in current_blocks]
         dask_pieces = self._get_padded_dask_pieces(pieces, chunks)
-        new_slice = da.hstack(dask_pieces)
-        return new_slice
+        return da.hstack(dask_pieces)
 
     def _find_blocks_covering_line(self, current_line):
         """Find the blocks covering a given line."""
-        current_blocks = []
-        for block in self.blocks:
-            if block.coords['y'][0] <= current_line <= block.coords['y'][-1]:
-                current_blocks.append(block)
-        return current_blocks
+        return [
+            block
+            for block in self.blocks
+            if block.coords['y'][0] <= current_line <= block.coords['y'][-1]
+        ]
 
     def _get_padded_dask_pieces(self, pieces, chunks):
         """Get the padded pieces of a slice."""
@@ -538,23 +533,34 @@ class SAFEGRD(BaseFileHandler):
 
         if key['name'] in ['longitude', 'latitude', 'altitude']:
             logger.debug('Constructing coordinate arrays.')
-            arrays = dict()
+            arrays = {}
             arrays['longitude'], arrays['latitude'], arrays['altitude'] = self.get_lonlatalts()
 
             data = arrays[key['name']]
             data.attrs.update(info)
 
         else:
-            data = rioxarray.open_rasterio(self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)).squeeze()
-            data = data.assign_coords(x=np.arange(len(data.coords['x'])),
-                                      y=np.arange(len(data.coords['y'])))
-            data = self._calibrate_and_denoise(data, key)
-            data.attrs.update(info)
-            data.attrs.update({'platform_name': self._mission_id})
-
-            data = self._change_quantity(data, key['quantity'])
-
+            data = self.get_measurement(key, info)
         return data
+
+    def get_measurement(self, key, info):
+        """Get the measurement data."""
+        result = rioxarray.open_rasterio(
+            self.filename, lock=False, chunks=(1, CHUNK_SIZE, CHUNK_SIZE)
+        ).squeeze()
+
+        result = result.assign_coords(
+            x=np.arange(len(result.coords['x'])),
+            y=np.arange(len(result.coords['y'])),
+        )
+
+        result = self._calibrate_and_denoise(result, key)
+        result.attrs.update(info)
+        result.attrs.update({'platform_name': self._mission_id})
+
+        result = self._change_quantity(result, key['quantity'])
+
+        return result
 
     @staticmethod
     def _change_quantity(data, quantity):
@@ -581,8 +587,7 @@ class SAFEGRD(BaseFileHandler):
         """Get the digital numbers (uncalibrated data)."""
         data = data.where(data > 0)
         data = data.astype(np.float64)
-        dn = data * data
-        return dn
+        return data * data
 
     def _denoise(self, dn, chunks):
         """Denoise the data."""
@@ -597,8 +602,7 @@ class SAFEGRD(BaseFileHandler):
         cal = self.calibration.get_calibration(key['calibration'], chunks=chunks)
         cal_constant = self.calibration.get_calibration_constant()
         logger.debug('Calibrating.')
-        data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
-        return data
+        return ((dn + cal_constant) / (cal ** 2)).clip(min=0)
 
     @lru_cache(maxsize=2)
     def get_lonlatalts(self):
