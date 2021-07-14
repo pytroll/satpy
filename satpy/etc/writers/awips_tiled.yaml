@@ -127,8 +127,6 @@ templates:
         reader: clavrx
         name: cloud_type
         var_name: data
-        encoding:
-          dtype: "int16"
         attributes:
           physical_element:
             raw_value: CLAVR-x Cloud Type
@@ -137,8 +135,6 @@ templates:
         reader: clavrx
         name: cld_temp_acha
         var_name: data
-        encoding:
-          dtype: "int16"
         attributes:
           units: {}
           physical_element:
@@ -211,8 +207,6 @@ templates:
         reader: clavrx
         name: rain_rate
         var_name: data
-        encoding:
-          dtype: "int16"
         attributes:
           units: {}
           physical_element:
