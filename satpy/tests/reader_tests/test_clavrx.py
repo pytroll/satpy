@@ -376,7 +376,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
             if v.attrs["name"] == 'variable1':
-                self.assertIsInstance(v.attrs["valid_range"], tuple)
+                self.assertIsInstance(v.attrs["valid_range"], list)
             else:
                 self.assertNotIn('valid_range', v.attrs)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
