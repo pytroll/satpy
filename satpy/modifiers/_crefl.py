@@ -73,7 +73,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
 
     def __call__(self, datasets, optional_datasets, **info):
         """Create modified DataArray object by applying the crefl algorithm."""
-        from satpy.composites.crefl_utils import get_coefficients
+        from satpy.modifiers._crefl_utils import get_coefficients
         refl_data, *angles = self._get_data_and_angles(datasets, optional_datasets)
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
@@ -86,7 +86,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         return results
 
     def _call_crefl(self, refl_data, coefficients, angles):
-        from satpy.composites.crefl_utils import run_crefl
+        from satpy.modifiers._crefl_utils import run_crefl
         avg_elevation = self._get_average_elevation()
         lons, lats = refl_data.attrs['area'].get_lonlats(chunks=refl_data.chunks)
         is_percent = refl_data.attrs["units"] == "%"
