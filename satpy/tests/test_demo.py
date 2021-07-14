@@ -20,6 +20,7 @@
 import os
 import sys
 import unittest
+from contextlib import contextmanager
 from unittest import mock
 
 
@@ -192,3 +193,128 @@ class TestAHIDemoDownload:
         from tempfile import gettempdir
         files = download_typhoon_surigae_ahi(base_dir=gettempdir(), segments=[4, 9], channels=[1, 2, 3])
         assert len(files) == 6
+
+
+class TestSEVIRIHRITDemoDownload(unittest.TestCase):
+    """Test case for downloading an hrit tarball."""
+
+    def setUp(self):
+        """Set up the test case."""
+        self.files = ['hrit',
+                      'hrit/H-000-MSG4__-MSG4________-_________-EPI______-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000001___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000002___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000003___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000004___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000005___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000009___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000010___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000011___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000012___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000013___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000014___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000015___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000016___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000017___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000018___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000019___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000020___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000021___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000022___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000023___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-HRV______-000024___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_016___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_016___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_016___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_039___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_039___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_039___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_087___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_087___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_087___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_097___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_097___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_097___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_108___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_108___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_108___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_120___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_120___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_120___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_134___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_134___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-IR_134___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-_________-PRO______-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-VIS006___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-VIS006___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-VIS006___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-VIS008___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-VIS008___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-VIS008___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-WV_062___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-WV_062___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-WV_062___-000008___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-WV_073___-000006___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-WV_073___-000007___-202003090800-__',
+                      'hrit/H-000-MSG4__-MSG4________-WV_073___-000008___-202003090800-__']
+
+    def test_download_filestream(self):
+        """Test that downloading a file works."""
+        from satpy.demo import download_filestream
+        from tempfile import NamedTemporaryFile
+        with NamedTemporaryFile(mode='w', delete=False) as fd:
+            fd.write('lots of data')
+            filename = fd.name
+        try:
+            url = "file:///" + filename
+            assert download_filestream(url).read() == b"lots of data"
+        finally:
+            from contextlib import suppress
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def test_unpack_tarball_stream(self):
+        """Test unpacking a tarball stream."""
+        from satpy.demo import unpack_tarball_stream
+
+        from tempfile import TemporaryDirectory
+        import glob
+
+        with make_fake_tarball(self.files) as tmp_filename:
+            with TemporaryDirectory() as tmp_dirname_output:
+                with open(tmp_filename, 'rb') as fd:
+                    unpack_tarball_stream(fd, tmp_dirname_output)
+                    os.chdir(tmp_dirname_output)
+                    assert set(glob.glob(os.path.join("hrit", "*"))) == set(self.files[1:])
+
+    def test_unpack_tarball_stream_returns_filenames(self):
+        """Test unpacking a tarball returns the filenames."""
+        from satpy.demo import unpack_tarball_stream
+        from tempfile import TemporaryDirectory
+
+        with make_fake_tarball(self.files) as tmp_filename:
+            with TemporaryDirectory() as tmp_dirname_output:
+                with open(tmp_filename, 'rb') as fd:
+                    res_files = unpack_tarball_stream(fd, tmp_dirname_output)
+                    assert res_files == self.files
+
+
+@contextmanager
+def make_fake_tarball(files):
+    """Make a fake tarball."""
+    from tempfile import TemporaryDirectory, NamedTemporaryFile
+    import tarfile
+    from pathlib import Path
+    with TemporaryDirectory() as tmp_dirname_input:
+        with NamedTemporaryFile(mode='wb') as tfd:
+            tmp_filename = tfd.name
+            with tarfile.open(tmp_filename, mode="w:gz") as tf:
+                os.mkdir(os.path.join(tmp_dirname_input, "hrit"))
+                tf.add(os.path.join(tmp_dirname_input, "hrit"), arcname="hrit")
+                for filename in files[1:]:
+                    Path(os.path.join(tmp_dirname_input, filename)).touch()
+                    tf.add(os.path.join(tmp_dirname_input, filename), arcname=filename)
+            yield tmp_filename

@@ -84,8 +84,7 @@ class HimawariHSD:
     def load_and_native_resample(self, composite):
         """Load and native resample a composite."""
         scn = self.load(composite)
-        lscn = scn.resample(resampler='native')
-        return lscn
+        return scn.resample(resampler='native')
 
     def compute_B01(self):
         """Load and compute one channel."""
