@@ -194,45 +194,70 @@ class TestAHIDemoDownload:
         assert len(files) == 6
 
 
-class _FakeZipRequest:
+class _FakeRequest:
     """Fake object to act like a requests return value when downloading a zip file."""
 
-    def __init__(self, zip_dir_name):
-        self._dir_name = zip_dir_name
+    def __init__(self, url, stream=None):
+        self._filename = os.path.basename(url)
         self.headers = {}
+        del stream  # just mimicking requests 'get'
 
-    def _get_fake_viirs_sdr_zip(self):
-        import zipfile
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return
+
+    def raise_for_status(self):
+        return
+
+    def _get_fake_viirs_sdr_bytesio(self):
         filelike_obj = io.BytesIO()
-        with zipfile.ZipFile(filelike_obj, mode="w") as z_file:
-            for i in range(6 * 3):
-                v_fn = f"{i}.h5"
-                z_file.writestr(os.path.join(self._dir_name, v_fn), "")
+        filelike_obj.write(b"1234")
         filelike_obj.seek(0)
         return filelike_obj
 
-    def iter_content(self, num_bytes):
-        """Return generator of 'num_bytes' at a time."""
-        bytes_io = self._get_fake_viirs_sdr_zip()
-        x = bytes_io.read(num_bytes)
+    def iter_content(self, chunk_size):
+        """Return generator of 'chunk_size' at a time."""
+        bytes_io = self._get_fake_viirs_sdr_bytesio()
+        x = bytes_io.read(chunk_size)
         while x:
             yield x
-            x = bytes_io.read(num_bytes)
+            x = bytes_io.read(chunk_size)
 
 
 class TestVIIRSSDRDemoDownload:
     """Test VIIRS SDR downloading."""
 
-    @mock.patch('satpy.demo._zip.requests')
+    @mock.patch('satpy.demo.viirs_sdr.requests')
     def test_download(self, _requests, tmpdir):
         """Test downloading and re-downloading VIIRS SDR data."""
-        from satpy.demo import get_viirs_sdr_20170323_204321
-        _requests.get.return_value = _FakeZipRequest("viirs_sdr_20170323_204321_204612")
-        files = get_viirs_sdr_20170323_204321(base_dir=str(tmpdir))
-        assert len(files) == 3 * (4 + 2)  # 3 granules * (4 bands + 2 geolocation)
+        from satpy.demo import get_viirs_sdr_20170128_1229
+        _requests.get.side_effect = _FakeRequest
+        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
+        assert len(files) == 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
 
         get_mock = mock.MagicMock()
         _requests.get.return_value = get_mock
-        files = get_viirs_sdr_20170323_204321(base_dir=str(tmpdir))
-        assert len(files) == 3 * (4 + 2)  # 3 granules * (4 bands + 2 geolocation)
+        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
+        assert len(files) == 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
         get_mock.assert_not_called()
+
+    @mock.patch('satpy.demo.viirs_sdr.requests')
+    def test_download_channels_num_granules(self, _requests, tmpdir):
+        """Test downloading and re-downloading VIIRS SDR data."""
+        from satpy.demo import get_viirs_sdr_20170128_1229
+        _requests.get.side_effect = _FakeRequest
+        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
+                                            channels=("I01", "M01"))
+        assert len(files) == 10 * (1 + 1 + 2)  # 10 granules * (1 I band + 1 M band + 2 geolocation)
+
+        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
+                                            channels=("I01", "M01"),
+                                            num_granules=2)
+        assert len(files) == 2 * (1 + 1 + 2)  # 2 granules * (1 I band + 1 M band + 2 geolocation)
+
+        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
+                                            channels=("DNB",),
+                                            num_granules=5)
+        assert len(files) == 5 * (1 + 1)  # 5 granules * (1 DNB + 1 geolocation)
