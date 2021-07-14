@@ -331,6 +331,22 @@ enhancements:
       args:
       - [true, true, true]
 
+  green-sar:
+    standard_name: green-sar
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, -19.18, 0]
+        max_stretch: [0.07, -1.294, .43]
+        #min_stretch: [0, -30, 0]
+        #max_stretch: [1, 10, 2]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.82, 0.74, 1]
+
   sar-quick:
     standard_name: sar-quick
     operations:
