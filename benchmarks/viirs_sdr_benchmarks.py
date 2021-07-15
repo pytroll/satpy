@@ -17,12 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark VIIRS SDR operations.."""
 
+import os
+import glob
+
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
 
 
-class VIIRSSDR:
-    """Benchmark reading, compositing, and writing VIIRS SDR data."""
+class VIIRSSDRBenchmarkBase:
+    """Shared methods for working with VIIRS SDR data."""
 
     timeout = 600
     data_files = []
@@ -33,13 +36,13 @@ class VIIRSSDR:
             from satpy.demo import get_viirs_sdr_20170128_1229
             get_viirs_sdr_20170128_1229(
                 channels=("I01", "M03", "M04", "M05"),
-                num_granules=3)
+                granules=(2, 3, 4))
         except ImportError:
             assert len(self.get_filenames()) == 6 * 3
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 
-    def setup(self):
+    def setup(self, name):
         """Set up the benchmarks."""
         import satpy
         self.data_files = self.get_filenames()
@@ -47,50 +50,8 @@ class VIIRSSDR:
 
     def get_filenames(self):
         """Get the data filenames manually."""
-        import os
-        import glob
         base_dir = os.environ.get("SATPY_DEMO_DATA_DIR", ".")
-        return glob.glob(os.path.join(base_dir, "viirs_sdr", "viirs_sdr_20170128_1229", "*.h5"))
-
-    def time_load_one_i_channel(self):
-        """Time the loading of one I-band resolution channel."""
-        self.compute_I01()
-
-    def peakmem_load_one_i_channel(self):
-        """Check peak memory usage of loading one I-band resolution channel."""
-        self.compute_I01()
-
-    def time_load_one_m_channel(self):
-        """Time the loading of one M-band resolution channel."""
-        self.compute_M03()
-
-    def peakmem_load_one_m_channel(self):
-        """Check peak memory usage of loading one M-band resolution channel."""
-        self.compute_M03()
-
-    def time_load_true_color(self):
-        """Time the loading of the generation of true_color."""
-        self.compute_true_color()
-
-    def peakmem_load_true_color(self):
-        """Check peak memory usage of the generation of true_color."""
-        self.compute_true_color()
-
-    def time_load_true_color_crefl(self):
-        """Time the loading of the generation of true_color_crefl."""
-        self.compute_true_color_crefl()
-
-    def peakmem_load_true_color_crefl(self):
-        """Check peak memory usage of the generation of true_color_crefl."""
-        self.compute_true_color_crefl()
-
-    def time_save_true_color_raw_to_geotiff(self):
-        """Time the generation and saving of true_color_raw."""
-        self.save_true_color_raw_as_geotiff()
-
-    def peakmem_save_true_color_raw_to_geotiff(self):
-        """Check peak memory usage of the generation and saving of true_color_raw."""
-        self.save_true_color_raw_as_geotiff()
+        return glob.glob(os.path.join(base_dir, "viirs_sdr", "20170128_1229", "*.h5"))
 
     def load(self, composite):
         """Load one composite."""
@@ -105,38 +66,53 @@ class VIIRSSDR:
         lscn = scn.resample(resampler='native')
         return lscn
 
-    def compute_I01(self):
+
+class VIIRSSDRReaderBenchmarks(VIIRSSDRBenchmarkBase):
+    """Benchmark reading and writing VIIRS SDR data."""
+
+    params = ["I01", "M03"]
+
+    def time_load_one_channel(self, name):
+        """Time the loading of one channel."""
+        self.compute_product(name)
+
+    def peakmem_load_one_channel(self, name):
+        """Check peak memory usage of loading one channel."""
+        self.compute_product(name)
+
+    def compute_product(self, name):
         """Load and compute one channel."""
-        composite = "I01"
-        scn = self.load(composite)
-        scn[composite].compute()
+        scn = self.load(name)
+        scn[name].compute()
 
-    def compute_M03(self):
-        """Load and compute one channel."""
-        composite = "M03"
-        scn = self.load(composite)
-        scn[composite].compute()
 
-    def compute_true_color(self):
-        """Compute a true color image."""
-        composite = "true_color"
-        lscn = self.load_and_native_resample(composite)
-        lscn[composite].compute()
+class VIIRSSDRCompositeBenchmarks(VIIRSSDRBenchmarkBase):
+    """Benchmark generating and writing composites from VIIRS SDR data."""
 
-    def compute_true_color_crefl(self):
-        """Compute a true color crefl image."""
-        composite = "true_color_crefl"
-        lscn = self.load_and_native_resample(composite)
-        lscn[composite].compute()
+    params = ["true_color", "true_color_crefl", "true_color_raw"]
 
-    def compute_true_color_raw(self):
-        """Compute a true color raw image."""
-        composite = "true_color_raw"
-        lscn = self.load_and_native_resample(composite)
-        lscn[composite].compute()
+    def time_load_composite(self, name):
+        """Time the loading of the generation of a composite."""
+        self.compute_composite(name)
 
-    def save_true_color_raw_as_geotiff(self):
-        """Save a true_color_raw to disk as geotiff."""
-        composite = "true_color_raw"
-        lscn = self.load_and_native_resample(composite)
-        lscn.save_dataset(composite, filename='test.tif', tiled=True)
+    def peakmem_load_composite(self, name):
+        """Check peak memory usage of the generation of a composite."""
+        self.compute_composite(name)
+
+    def time_save_composite_to_geotiff(self, name):
+        """Time the generation and saving of a composite."""
+        self.save_composite_as_geotiff(name)
+
+    def peakmem_save_composite_raw_to_geotiff(self, name):
+        """Check peak memory usage of the generation and saving of a composite."""
+        self.save_composite_as_geotiff(name)
+
+    def compute_composite(self, name):
+        """Compute a composite."""
+        lscn = self.load_and_native_resample(name)
+        lscn[name].compute()
+
+    def save_composite_as_geotiff(self, name):
+        """Save a composite to disk as geotiff."""
+        lscn = self.load_and_native_resample(name)
+        lscn.save_dataset(name, filename='test.tif', tiled=True)
