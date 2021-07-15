@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -51,7 +51,9 @@ To use these functions, do:
 """
 
 import os
+import urllib
 import logging
+import tarfile
 from satpy import config
 
 LOG = logging.getLogger(__name__)
@@ -180,3 +182,29 @@ def download_typhoon_surigae_ahi(base_dir=None,
         fs.get_file(to_get, destination_filename)
 
     return result
+
+
+_fci_uncompressed_nominal = (
+    "https://sftp.eumetsat.int/public/folder/UsCVknVOOkSyCdgpMimJNQ/"
+    "User-Materials/Test-Data/MTG/MTG_FCI_L1C_Enhanced-NonN_TD-272_May2020/"
+    "FCI_1C_UNCOMPRESSED_NOMINAL.tar.gz")
+
+
+def download_fci_test_data(base_dir=None):
+    """Download FCI test data.
+
+    Download the nominal FCI test data from July 2020.
+    """
+    base_dir = base_dir or config.get("demo_data_dir", ".")
+    (local_filename, headers) = urllib.request.urlretrieve(_fci_uncompressed_nominal)
+    subdir = os.path.join(base_dir, "fci", "test_data", "nominal",
+                          "uncompressed")
+    return _unpack_tarfile_to(local_filename, subdir)
+
+
+def _unpack_tarfile_to(filename, subdir):
+    """Unpack content of tarfile in filename to subdir."""
+    with tarfile.open(filename, mode="r:gz") as tf:
+        contents = tf.getnames()
+        tf.extractall(path=subdir)
+    return contents

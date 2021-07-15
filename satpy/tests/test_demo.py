@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -19,6 +19,7 @@
 
 import os
 import sys
+import tarfile
 import unittest
 from unittest import mock
 
@@ -192,3 +193,27 @@ class TestAHIDemoDownload:
         from tempfile import gettempdir
         files = download_typhoon_surigae_ahi(base_dir=gettempdir(), segments=[4, 9], channels=[1, 2, 3])
         assert len(files) == 6
+
+
+def test_fci_download(tmp_path, monkeypatch):
+    """Test download of FCI test data."""
+    from satpy.demo import download_fci_test_data
+    monkeypatch.chdir(tmp_path)
+
+    def fake_urlretrieve(url):
+        # create a dummy tarfile
+        fn = tmp_path / "tofu.tar.gz"
+        fn.parent.mkdir(exist_ok=True, parents=True)
+
+        with tarfile.open(fn, mode="x:gz") as tf:
+            for i in range(3):
+                with open(f"fci-rc{i:d}", "w"):
+                    pass
+                tf.addfile(tf.gettarinfo(name=f"fci-rc{i:d}"))
+        return (os.fspath(fn), None)
+    with mock.patch("urllib.request.urlretrieve", new=fake_urlretrieve):
+        files = download_fci_test_data(tmp_path)
+    assert len(files) == 3
+    assert files == ["fci-rc0", "fci-rc1", "fci-rc2"]
+    for f in files:
+        assert os.path.exists(f)
