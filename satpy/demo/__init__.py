@@ -54,6 +54,7 @@ import os
 import urllib
 import logging
 import tarfile
+import pathlib
 from satpy import config
 
 LOG = logging.getLogger(__name__)
@@ -195,11 +196,15 @@ def download_fci_test_data(base_dir=None):
 
     Download the nominal FCI test data from July 2020.
     """
-    base_dir = base_dir or config.get("demo_data_dir", ".")
+    subdir = _get_fci_test_data_dir(base_dir=base_dir)
     (local_filename, headers) = urllib.request.urlretrieve(_fci_uncompressed_nominal)
-    subdir = os.path.join(base_dir, "fci", "test_data", "nominal",
-                          "uncompressed")
     return _unpack_tarfile_to(local_filename, subdir)
+
+
+def _get_fci_test_data_dir(base_dir=None):
+    """Get directory for FCI test data."""
+    base_dir = base_dir or config.get("demo_data_dir", ".")
+    return pathlib.Path(base_dir) / "fci" / "test_data"
 
 
 def _unpack_tarfile_to(filename, subdir):
