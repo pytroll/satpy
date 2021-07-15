@@ -71,6 +71,7 @@ class VIIRSSDRReaderBenchmarks(VIIRSSDRBenchmarkBase):
     """Benchmark reading and writing VIIRS SDR data."""
 
     params = ["I01", "M03"]
+    param_names = ["name"]
 
     def time_load_one_channel(self, name):
         """Time the loading of one channel."""
@@ -90,6 +91,7 @@ class VIIRSSDRCompositeBenchmarks(VIIRSSDRBenchmarkBase):
     """Benchmark generating and writing composites from VIIRS SDR data."""
 
     params = ["true_color", "true_color_crefl", "true_color_raw"]
+    param_names = ["name"]
 
     def time_load_composite(self, name):
         """Time the loading of the generation of a composite."""
