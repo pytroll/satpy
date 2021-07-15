@@ -254,10 +254,10 @@ class TestVIIRSSDRDemoDownload:
 
         files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
                                             channels=("I01", "M01"),
-                                            num_granules=2)
+                                            granules=(2, 3))
         assert len(files) == 2 * (1 + 1 + 2)  # 2 granules * (1 I band + 1 M band + 2 geolocation)
 
         files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
                                             channels=("DNB",),
-                                            num_granules=5)
+                                            granules=(5, 6, 7, 8, 9))
         assert len(files) == 5 * (1 + 1)  # 5 granules * (1 DNB + 1 geolocation)

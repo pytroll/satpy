@@ -358,7 +358,7 @@ def get_viirs_sdr_20170128_1229(
                   "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10",
                   "M11", "M12", "M13", "M14", "M15", "M16",
                   "DNB"),
-        num_granules=10):
+        granules=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)):
     r"""Get VIIRS SDR files for 2017-01-28 12:29 to 12:43.
 
     These files are downloaded from Zenodo. You can see the full file
@@ -370,8 +370,9 @@ def get_viirs_sdr_20170128_1229(
     (ex. "I01" or "M16" or "DNB"). Terrain-corrected geolocation files are
     always downloaded when the corresponding band data is specified.
 
-    The ``num_granules`` argument will control how many granules ("time steps")
-    are downloaded. There are 10 available.
+    The ``granules`` argument will control whichranules ("time steps")
+    are downloaded. There are 10 available and the keyword argument can be
+    specified as a tuple of integers from 1 to 10.
 
     This full dataset is ~10.1GB.
 
@@ -391,7 +392,7 @@ def get_viirs_sdr_20170128_1229(
     # assume directory in zip is the same as zip filename without the extension
     subdir = os.path.join(base_dir, "viirs_sdr", "20170128_1229")
     os.makedirs(subdir, exist_ok=True)
-    urls = (ZENODO_BASE_URL + fn for fn in _get_filenames_to_download(channels, num_granules))
+    urls = (ZENODO_BASE_URL + fn for fn in _get_filenames_to_download(channels, granules))
 
     files = []
     for url in urls:
@@ -406,15 +407,20 @@ def get_viirs_sdr_20170128_1229(
     return files
 
 
-def _get_filenames_to_download(channels, num_granules):
+def _get_filenames_to_download(channels, granules):
     if any("DNB" in chan for chan in channels):
-        yield from GDNBO_URLS[:num_granules]
+        yield from _yield_specific_granules(GDNBO_URLS, granules)
     if any("I" in chan for chan in channels):
-        yield from GITCO_URLS[:num_granules]
+        yield from _yield_specific_granules(GITCO_URLS, granules)
     if any("M" in chan for chan in channels):
-        yield from GMTCO_URLS[:num_granules]
+        yield from _yield_specific_granules(GMTCO_URLS, granules)
     for channel in channels:
-        yield from FILES_20170128_1229[channel][:num_granules]
+        yield from _yield_specific_granules(FILES_20170128_1229[channel], granules)
+
+
+def _yield_specific_granules(filenames, granules):
+    for gran_num in granules:
+        yield filenames[gran_num - 1]
 
 
 def _download_url(source, target):
