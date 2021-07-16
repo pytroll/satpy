@@ -229,12 +229,11 @@ class _FakeRequest:
 class TestVIIRSSDRDemoDownload:
     """Test VIIRS SDR downloading."""
 
-    ALL_BANDS = ("I01", "I02", "I03", "I04", "I05",
-                 "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10",
-                 "M11", "M12", "M13", "M14", "M15", "M16",
-                 "SVDNB",
-                 )
-    ALL_GEO = ("GITCO", "GMTCO", "GDNBO")
+    ALL_BAND_PREFIXES = ("SVI01", "SVI02", "SVI03", "SVI04", "SVI05",
+                         "SVM01", "SVM02", "SVM03", "SVM04", "SVM05", "SVM06", "SVM07", "SVM08", "SVM09", "SVM10",
+                         "SVM11", "SVM12", "SVM13", "SVM14", "SVM15", "SVM16",
+                         "SVDNB")
+    ALL_GEO_PREFIXES = ("GITCO", "GMTCO", "GDNBO")
 
     @mock.patch('satpy.demo.viirs_sdr.requests')
     def test_download(self, _requests, tmpdir):
@@ -243,7 +242,7 @@ class TestVIIRSSDRDemoDownload:
         _requests.get.side_effect = _FakeRequest
         files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
         assert len(files) == 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
-        self._assert_bands_in_filenames_and_contents(self.ALL_BANDS + self.ALL_GEO, files, 10)
+        self._assert_bands_in_filenames_and_contents(self.ALL_BAND_PREFIXES + self.ALL_GEO_PREFIXES, files, 10)
 
         get_mock = mock.MagicMock()
         _requests.get.return_value = get_mock
@@ -253,38 +252,48 @@ class TestVIIRSSDRDemoDownload:
         assert new_files == files
 
     @mock.patch('satpy.demo.viirs_sdr.requests')
-    def test_download_channels_num_granules(self, _requests, tmpdir):
-        """Test downloading and re-downloading VIIRS SDR data."""
+    def test_download_channels_num_granules_im(self, _requests, tmpdir):
+        """Test downloading and re-downloading VIIRS SDR I/M data with select granules."""
         from satpy.demo import get_viirs_sdr_20170128_1229
         _requests.get.side_effect = _FakeRequest
         files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
                                             channels=("I01", "M01"))
         assert len(files) == 10 * (1 + 1 + 2)  # 10 granules * (1 I band + 1 M band + 2 geolocation)
-        self._assert_bands_in_filenames_and_contents(("I01", "M01", "GITCO", "GMTCO"), files, 10)
+        self._assert_bands_in_filenames_and_contents(("SVI01", "SVM01", "GITCO", "GMTCO"), files, 10)
 
+        get_mock = mock.MagicMock()
+        _requests.get.return_value = get_mock
         files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
                                             channels=("I01", "M01"),
                                             granules=(2, 3))
         assert len(files) == 2 * (1 + 1 + 2)  # 2 granules * (1 I band + 1 M band + 2 geolocation)
-        self._assert_bands_in_filenames_and_contents(("I01", "M01", "GITCO", "GMTCO"), files, 2)
+        get_mock.assert_not_called()
+        self._assert_bands_in_filenames_and_contents(("SVI01", "SVM01", "GITCO", "GMTCO"), files, 2)
 
+    @mock.patch('satpy.demo.viirs_sdr.requests')
+    def test_download_channels_num_granules_dnb(self, _requests, tmpdir):
+        """Test downloading and re-downloading VIIRS SDR DNB data with select granules."""
+        from satpy.demo import get_viirs_sdr_20170128_1229
+        _requests.get.side_effect = _FakeRequest
         files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
                                             channels=("DNB",),
                                             granules=(5, 6, 7, 8, 9))
         assert len(files) == 5 * (1 + 1)  # 5 granules * (1 DNB + 1 geolocation)
         self._assert_bands_in_filenames_and_contents(("SVDNB", "GDNBO"), files, 5)
 
-    def _assert_bands_in_filenames_and_contents(self, bands, filenames, num_files_per_band):
-        self._assert_bands_in_filenames(bands, filenames, num_files_per_band)
-        self._assert_file_contents(bands, filenames)
+    def _assert_bands_in_filenames_and_contents(self, band_prefixes, filenames, num_files_per_band):
+        self._assert_bands_in_filenames(band_prefixes, filenames, num_files_per_band)
+        self._assert_file_contents(filenames)
 
-    def _assert_bands_in_filenames(self, bands, filenames, num_files_per_band):
-        for band_name in bands:
+    @staticmethod
+    def _assert_bands_in_filenames(band_prefixes, filenames, num_files_per_band):
+        for band_name in band_prefixes:
             files_for_band = [x for x in filenames if band_name in x]
             assert files_for_band
             assert len(set(files_for_band)) == num_files_per_band
 
-    def _assert_file_contents(self, bands, filenames):
+    @staticmethod
+    def _assert_file_contents(filenames):
         for fn in filenames:
             with open(fn, "rb") as fake_hdf5_file:
                 assert fake_hdf5_file.read().decode("ascii") == os.path.basename(fn)
