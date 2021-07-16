@@ -36,7 +36,7 @@ class FCI:
 
     timeout = 600
     data_files = []
-    _chunks = {"single": slice(20, 21), "all": slice(None)}
+    region = "maspalomas"
 
     def setup(self, *args):
         """Fetch the data files."""
@@ -57,7 +57,7 @@ class FCI:
     def time_create_scene(self, chunk):
         """Time to create a scene."""
         self.create_scene(chunk)
-    time_create_scene.params = ["single", "all"]
+    time_create_scene.params = ["some", "all"]
 
     def peakmem_create_scene(self, chunk):
         """Peak RAM to create a scene."""
@@ -90,7 +90,7 @@ class FCI:
     def time_load_resample_compute(self, chunk, loadable, mode):
         """Time to load all chunks, resample, and compute."""
         ls = self.get_resampled_scene(
-                chunk, loadable, "eurol", mode)
+                chunk, loadable, self.region, mode)
         ls[loadable].compute()
     time_load_resample_compute.params = time_load.params + (
             ["nearest", "bilinear", "gradient_search"],)
@@ -98,25 +98,30 @@ class FCI:
     def peakmem_load_resample_compute(self, chunk, loadable, mode):
         """Peak memory to load all chunks, resample, and compute."""
         ls = self.get_resampled_scene(
-                chunk, loadable, "eurol", mode)
-        ls["natural_color_raw"].compute()
+                chunk, loadable, self.region, mode)
+        ls[loadable].compute()
     peakmem_load_resample_compute.params = time_load_resample_compute.params
 
     def time_load_resample_save(self, chunk, loadable, mode):
         """Time to load all chunks, resample, and save."""
-        self.load_resample_save(chunk, loadable, "eurol", mode)
+        self.load_resample_save(chunk, loadable, self.region, mode)
     time_load_resample_save.params = time_load_resample_compute.params
 
     def peakmem_load_resample_save(self, chunk, loadable, mode):
         """Peak memory to load all chunks, resample, and save."""
-        self.load_resample_save(chunk, loadable, "eurol", mode)
+        self.load_resample_save(chunk, loadable, self.region, mode)
     peakmem_load_resample_save.params = time_load_resample_save.params
 
     def create_scene(self, selection):
         """Create a scene with FCI, and return it."""
-        return satpy.Scene(
-                filenames=self.filenames[self._chunks[selection]],
-                reader="fci_l1c_nc")
+        if selection == "some":
+            names = fnmatch.filter(self.filenames, "*3[0123].nc")
+        elif selection == "all":
+            names = self.filenames
+        else:
+            raise ValueError("Expected selection some or all, got " +
+                             selection)
+        return satpy.Scene(filenames=names, reader="fci_l1c_nc")
 
     def get_loaded_scene(self, selection, loadable):
         """Return a FCI scene with a loaded channel or composite."""
@@ -136,5 +141,5 @@ class FCI:
 
     def load_resample_save(self, selection, loadable, area, resampler):
         """Load, resample, and save FCI scene with composite."""
-        ls = self.load_resample(selection, loadable, area, resampler)
+        ls = self.get_resampled_scene(selection, loadable, area, resampler)
         ls.save_datasets()
