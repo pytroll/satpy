@@ -331,8 +331,7 @@ def _sphalb_index(index_arr, sphalb0):
 
 
 def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
-    tau_step = np.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES,
-                           chunks=int(MAXNUMSPHALBVALUES / 2))
+    tau_step = np.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES)
     sphalb0 = _csalbr(tau_step)
     taur = tau * np.exp(-height / SCALEHEIGHT)
     rhoray, trdown, trup = _chand(phi, muv, mus, taur)
