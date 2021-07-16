@@ -20,6 +20,8 @@
 Benchmarks for reading and processing data from the Meteosat Third Generation
 (MTG) Flexible Combined Imager (FCI).  Uses pre-launch simulated test data as
 published by EUMETSAT in 2020.
+
+Also includes some benchmarks trying different resamplers.
 """
 
 import fnmatch
@@ -34,8 +36,9 @@ class FCI:
 
     timeout = 600
     data_files = []
+    _chunks = {"single": slice(20, 21), "all": slice(None)}
 
-    def setup(self):
+    def setup(self, *args):
         """Fetch the data files."""
         fns = self.get_filenames()
         cnt = len(fns)
@@ -51,70 +54,87 @@ class FCI:
         g = p.glob("UNCOMPRESSED/NOMINAL/*.nc")
         return [os.fspath(fn) for fn in g]
 
-    def time_create_scene_single_chunk(self):
-        """Time to create a scene with a single chunk."""
-        self.create_scene(slice(20, 21))
+    def time_create_scene(self, chunk):
+        """Time to create a scene."""
+        self.create_scene(chunk)
+    time_create_scene.params = ["single", "all"]
 
-    def time_create_scene_all_chunks(self):
-        """Time to create a scene with all chunks."""
-        self.create_scene(slice(None))
+    def peakmem_create_scene(self, chunk):
+        """Peak RAM to create a scene."""
+        self.create_scene(chunk)
+    peakmem_create_scene.params = time_create_scene.params
 
-    def peakmem_create_scene_single_chunk(self):
-        """Peak memory usage to create a scene with a single chunk."""
-        self.create_scene(slice(20, 21))
+    def time_load(self, chunk, loadable):
+        """Time to create a scene and load one channel or composite."""
+        self.get_loaded_scene(chunk, loadable)
+    time_load.params = (time_create_scene.params,
+                        ["ir_105", "natural_color_raw"])
 
-    def peakmem_create_scene_all_chunks(self):
-        """Peak memory usage of creating a scene with all chunks."""
-        self.create_scene(slice(None))
+    def peakmem_load(self, chunk, loadable):
+        """Peak RAM to create a scene and load one channel or composite."""
+        self.get_loaded_scene(chunk, loadable)
+    peakmem_load.params = time_load.params
 
-    def time_load_channel(self):
-        """Time to create a scene and load one channel."""
-        self.load_channel()
-
-    def peakmem_load_channel(self):
-        """Peak memory for creating a scene and loading one channel."""
-        self.load_channel()
-
-    def time_compute_channel(self):
+    def time_compute(self, chunk, loadable):
         """Time to create a scene and load and compute one channel."""
-        sc = self.load_channel()
-        sc["ir_105"].compute()
+        sc = self.get_loaded_scene(chunk, loadable)
+        sc[loadable].compute()
+    time_compute.params = time_load.params
 
-    def peakmem_compute_channel(self):
+    def peakmem_compute(self, chunk, loadable):
         """Peak memory for creating a scene and loading and computing one channel."""
-        sc = self.load_channel()
-        sc["ir_105"].compute()
+        sc = self.get_loaded_scene(chunk, loadable)
+        sc[loadable].compute()
+    peakmem_compute.params = time_compute.params
 
-    def time_load_composite(self):
-        """Time to create a scene and load a composite."""
-        self.load_composite()
+    def time_load_resample_compute(self, chunk, loadable, mode):
+        """Time to load all chunks, resample, and compute."""
+        ls = self.get_resampled_scene(
+                chunk, loadable, "eurol", mode)
+        ls[loadable].compute()
+    time_load_resample_compute.params = time_load.params + (
+            ["nearest", "bilinear", "gradient_search"],)
 
-    def peakmem_load_composite(self):
-        """Peak memory to create a scene and load a composite."""
-        self.load_composite()
+    def peakmem_load_resample_compute(self, chunk, loadable, mode):
+        """Peak memory to load all chunks, resample, and compute."""
+        ls = self.get_resampled_scene(
+                chunk, loadable, "eurol", mode)
+        ls["natural_color_raw"].compute()
+    peakmem_load_resample_compute.params = time_load_resample_compute.params
 
-    def time_load_resample_save(self):
+    def time_load_resample_save(self, chunk, loadable, mode):
         """Time to load all chunks, resample, and save."""
-        self.load_resample_save()
+        self.load_resample_save(chunk, loadable, "eurol", mode)
+    time_load_resample_save.params = time_load_resample_compute.params
+
+    def peakmem_load_resample_save(self, chunk, loadable, mode):
+        """Peak memory to load all chunks, resample, and save."""
+        self.load_resample_save(chunk, loadable, "eurol", mode)
+    peakmem_load_resample_save.params = time_load_resample_save.params
 
     def create_scene(self, selection):
         """Create a scene with FCI, and return it."""
-        return satpy.Scene(filenames=self.filenames[selection], reader="fci_l1c_nc")
+        return satpy.Scene(
+                filenames=self.filenames[self._chunks[selection]],
+                reader="fci_l1c_nc")
 
-    def load_channel(self):
-        """Return a FCI scene with a loaded channel."""
-        sc = self.create_scene(slice(None))
-        sc.load(["ir_105"])
+    def get_loaded_scene(self, selection, loadable):
+        """Return a FCI scene with a loaded channel or composite."""
+        sc = self.create_scene(selection)
+        sc.load([loadable])
         return sc
 
-    def load_composite(self):
-        """Return a FCI scene with a loaded composite."""
-        sc = self.create_scene(slice(None))
-        sc.load(["natural_color_raw"])
-        return sc
+    def get_resampled_scene(self, selection, loadable, area, resampler):
+        """Load and resample an FCI scene with a composite."""
+        sc = self.get_loaded_scene(selection, loadable)
+        # if I don't put this here, computing fails with RuntimeError: NetCDF:
+        # Not a valid ID.  Apparently the original scene object gets destroyed
+        # and garbage collected.  I can't reproduce this in a MCVE, but it
+        # happens when running through asv.
+        self._sc = sc
+        return sc.resample(area, resampler=resampler)
 
-    def load_resample_save(self):
+    def load_resample_save(self, selection, loadable, area, resampler):
         """Load, resample, and save FCI scene with composite."""
-        sc = self.load_composite()
-        ls = sc.resample("eurol")
+        ls = self.load_resample(selection, loadable, area, resampler)
         ls.save_datasets()
