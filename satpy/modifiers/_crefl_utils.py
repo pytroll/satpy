@@ -273,8 +273,8 @@ def _chand(phi, muv, mus, taur):
     #         int i, ib;
 
     xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
-    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * da.sqrt(
-        1.0 - mus * mus) * da.sqrt(1.0 - muv * muv)
+    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(
+        1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
     xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
 
     # pl[0] = 1.0
@@ -298,15 +298,15 @@ def _chand(phi, muv, mus, taur):
     # if ib is None:
     #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
 
-    xlntaur = da.log(taur)
+    xlntaur = np.log(taur)
 
     fs0 = fs01 + fs02 * xlntaur
     fs1 = as1[0] + xlntaur * as1[1]
     fs2 = as2[0] + xlntaur * as2[1]
     del xlntaur, fs01, fs02
 
-    trdown = da.exp(-taur / mus)
-    trup = da.exp(-taur / muv)
+    trdown = np.exp(-taur / mus)
+    trup = np.exp(-taur / muv)
 
     xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
     xitm2 = (1.0 - trdown) * (1.0 - trup)
@@ -315,10 +315,10 @@ def _chand(phi, muv, mus, taur):
     xitot3 = xph3 * (xitm1 + xitm2 * fs2)
     del xph1, xph2, xph3, xitm1, xitm2, fs0, fs1, fs2
 
-    phios = da.deg2rad(phi + 180.0)
+    phios = np.deg2rad(phi + 180.0)
     xcos1 = 1.0
-    xcos2 = da.cos(phios)
-    xcos3 = da.cos(2.0 * phios)
+    xcos2 = np.cos(phios)
+    xcos3 = np.cos(2.0 * phios)
     del phios
 
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
@@ -331,10 +331,10 @@ def _sphalb_index(index_arr, sphalb0):
 
 
 def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
-    tau_step = da.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES,
+    tau_step = np.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES,
                            chunks=int(MAXNUMSPHALBVALUES / 2))
     sphalb0 = _csalbr(tau_step)
-    taur = tau * da.exp(-height / SCALEHEIGHT)
+    taur = tau * np.exp(-height / SCALEHEIGHT)
     rhoray, trdown, trup = _chand(phi, muv, mus, taur)
     if isinstance(height, xr.DataArray):
         sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0.compute(),
@@ -355,12 +355,12 @@ def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
     tO3 = 1.0
     tH2O = 1.0
     if ao3 != 0:
-        tO3 = da.exp(-air_mass * UO3 * ao3)
+        tO3 = np.exp(-air_mass * UO3 * ao3)
     if bh2o != 0:
         if bUseV171:
-            tH2O = da.exp(-da.exp(ah2o + bh2o * da.log(air_mass * UH2O)))
+            tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
         else:
-            tH2O = da.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
+            tH2O = np.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
     # Returns sphalb, rhoray, TtotraytH2O, tOG
     return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
 
@@ -370,16 +370,16 @@ def get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, a
     tO3 = 1.0
     tH2O = 1.0
     if ao3 != 0:
-        tO3 = da.exp(-G_O3 * ao3)
+        tO3 = np.exp(-G_O3 * ao3)
     if ah2o != 0:
-        tH2O = da.exp(-G_H2O * ah2o)
-    tO2 = da.exp(-G_O2 * ao2)
+        tH2O = np.exp(-G_H2O * ah2o)
+    tO2 = np.exp(-G_O2 * ao2)
     # Returns sphalb, rhoray, TtotraytH2O, tOG.
     return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
 
 
 def _G_calc(zenith, a_coeff):
-    return (da.cos(da.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
+    return (np.cos(np.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
 
 
 def _avg_elevation_index(avg_elevation, row, col):
@@ -425,7 +425,7 @@ def run_crefl(refl, coeffs,
         lon[(lon <= -180) | (lon >= 180)] = np.nan
         row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
         col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
-        space_mask = da.isnull(lon) | da.isnull(lat)
+        space_mask = np.isnull(lon) | np.isnull(lat)
         row[space_mask] = 0
         col[space_mask] = 0
 
@@ -434,9 +434,9 @@ def run_crefl(refl, coeffs,
         # negative heights aren't allowed, clip to 0
         height = height.where((height >= 0.) & ~space_mask, 0.0)
         del lat, lon, row, col
-    mus = da.cos(da.deg2rad(solar_zenith))
+    mus = np.cos(np.deg2rad(solar_zenith))
     mus = mus.where(mus >= 0)
-    muv = da.cos(da.deg2rad(sensor_zenith))
+    muv = np.cos(np.deg2rad(sensor_zenith))
     phi = solar_azimuth - sensor_azimuth
 
     if use_abi:
