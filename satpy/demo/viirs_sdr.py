@@ -370,7 +370,7 @@ def get_viirs_sdr_20170128_1229(
     (ex. "I01" or "M16" or "DNB"). Terrain-corrected geolocation files are
     always downloaded when the corresponding band data is specified.
 
-    The ``granules`` argument will control whichranules ("time steps")
+    The ``granules`` argument will control which granules ("time steps")
     are downloaded. There are 10 available and the keyword argument can be
     specified as a tuple of integers from 1 to 10.
 
