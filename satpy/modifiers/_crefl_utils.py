@@ -330,11 +330,7 @@ def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb,
     sphalb0 = _csalbr(tau_step)
     taur = tau * np.exp(-height / SCALEHEIGHT)
     rhoray, trdown, trup = _chand(phi, muv, mus, taur)
-    if isinstance(height, xr.DataArray):
-        _sphalb_index = (taur / taustep4sphalb + 0.5).astype(np.int32).data
-        sphalb = sphalb0[_sphalb_index]
-    else:
-        sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
+    sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
     Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
     TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
@@ -345,7 +341,7 @@ def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb,
 def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
     """Get atmospheric variables for non-ABI instruments."""
     air_mass = 1.0 / mus + 1 / muv
-    air_mass = air_mass.where(air_mass <= MAXAIRMASS, -1.0)
+    air_mass[air_mass > MAXAIRMASS] = -1.0
     tO3 = 1.0
     tH2O = 1.0
     if ao3 != 0:
@@ -423,11 +419,11 @@ def run_crefl(refl, coeffs,
         row[space_mask] = 0
         col[space_mask] = 0
 
-        row, col, space_mask = da.compute(row, col, space_mask)  # FIXME: can we organize this better
+        # FIXME: can we organize this better so it is part of the map_blocks calls
+        row, col, space_mask = da.compute(row, col, space_mask)
         height = avg_elevation[row, col]
-        height = xr.DataArray(height, dims=['y', 'x'])
         # negative heights aren't allowed, clip to 0
-        height = height.where((height >= 0.) & ~space_mask, 0.0)
+        height[~((height >= 0.0) & ~space_mask)] = 0.0  # TODO: Simplify this old boolean logic
         del lat, lon, row, col, space_mask
     mus = np.cos(np.deg2rad(solar_zenith))
     mus = mus.where(mus >= 0)
@@ -446,11 +442,26 @@ def run_crefl(refl, coeffs,
         sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
-        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
+        corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
+                                  height, *coeffs, chunks=refl.chunks, dtype=refl.dtype,
+                                  percent=percent)
+        return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
 
     del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
     # Note: Assume that fill/invalid values are either NaN or we are dealing
     # with masked arrays
+    if percent:
+        corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
+    else:
+        corr_refl = (refl / tOG - rhoray) / TtotraytH2O
+    corr_refl /= (1.0 + corr_refl * sphalb)
+    return corr_refl.clip(REFLMIN, REFLMAX)
+
+
+def _run_crefl(refl, mus, muv, phi, height, *coeffs, percent=True, computing_meta=False):
+    if computing_meta:
+        return refl
+    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
     if percent:
         corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
     else:
