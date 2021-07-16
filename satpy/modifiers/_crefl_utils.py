@@ -325,19 +325,14 @@ def _chand(phi, muv, mus, taur):
     return rhoray, trdown, trup
 
 
-def _sphalb_index(index_arr, sphalb0):
-    # FIXME: if/when dask can support lazy index arrays then remove this
-    return sphalb0[index_arr]
-
-
 def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
     tau_step = np.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES)
     sphalb0 = _csalbr(tau_step)
     taur = tau * np.exp(-height / SCALEHEIGHT)
     rhoray, trdown, trup = _chand(phi, muv, mus, taur)
     if isinstance(height, xr.DataArray):
-        sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0,
-                               dtype=sphalb0.dtype)
+        _sphalb_index = (taur / taustep4sphalb + 0.5).astype(np.int32).data
+        sphalb = sphalb0[_sphalb_index]
     else:
         sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
@@ -428,11 +423,12 @@ def run_crefl(refl, coeffs,
         row[space_mask] = 0
         col[space_mask] = 0
 
-        height = da.map_blocks(_avg_elevation_index, avg_elevation, row, col, dtype=avg_elevation.dtype)
+        row, col, space_mask = da.compute(row, col, space_mask)  # FIXME: can we organize this better
+        height = avg_elevation[row, col]
         height = xr.DataArray(height, dims=['y', 'x'])
         # negative heights aren't allowed, clip to 0
         height = height.where((height >= 0.) & ~space_mask, 0.0)
-        del lat, lon, row, col
+        del lat, lon, row, col, space_mask
     mus = np.cos(np.deg2rad(solar_zenith))
     mus = mus.where(mus >= 0)
     muv = np.cos(np.deg2rad(sensor_zenith))
