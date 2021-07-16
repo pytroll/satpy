@@ -28,7 +28,7 @@ import fnmatch
 import os
 
 import satpy
-import satpy.demo
+import satpy.demo.fci
 
 
 class FCI:
@@ -50,7 +50,7 @@ class FCI:
 
     def get_filenames(self):
         """Get filenames of FCI test data as already available."""
-        p = satpy.demo._get_fci_test_data_dir()
+        p = satpy.demo.fci._get_fci_test_data_dir()
         g = p.glob("UNCOMPRESSED/NOMINAL/*.nc")
         return [os.fspath(fn) for fn in g]
 
