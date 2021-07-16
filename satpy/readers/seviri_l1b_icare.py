@@ -258,7 +258,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
         offset = data.attrs.get('add_offset')
         scale_factor = data.attrs.get('scale_factor')
         data = data.where(data != fill)
-        data.values = data.values.astype(np.float32)
+        data.values = data.astype(np.float32)
         if scale_factor is not None and offset is not None:
             data.values *= scale_factor
             data.values += offset
