@@ -336,7 +336,7 @@ def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb,
     taur = tau * np.exp(-height / SCALEHEIGHT)
     rhoray, trdown, trup = _chand(phi, muv, mus, taur)
     if isinstance(height, xr.DataArray):
-        sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0.compute(),
+        sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0,
                                dtype=sphalb0.dtype)
     else:
         sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
