@@ -425,7 +425,7 @@ def run_crefl(refl, coeffs,
         lon[(lon <= -180) | (lon >= 180)] = np.nan
         row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
         col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
-        space_mask = np.isnull(lon) | np.isnull(lat)
+        space_mask = np.isnan(lon) | np.isnan(lat)
         row[space_mask] = 0
         col[space_mask] = 0
 
