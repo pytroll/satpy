@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Benchmark satpy."""
+"""Benchmark AHI HSD operations.."""
 
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
@@ -48,7 +48,7 @@ class HimawariHSD:
         import os
         import glob
         base_dir = os.environ.get("SATPY_DEMO_DATA_DIR", ".")
-        return glob.glob(os.path.join(base_dir, "ahi_hsd/20210417_0500_random/*"))
+        return glob.glob(os.path.join(base_dir, "ahi_hsd", "20210417_0500_random", "*"))
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""
