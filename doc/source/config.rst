@@ -150,6 +150,16 @@ defaults to a different path depending on your operating system following the
 
 .. _download_aux_setting:
 
+Demo Data Directory
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_DEMO_DATA_DIR``
+* **YAML/Config Key**: ``demo_data_dir``
+* **Default**: <current working directory>
+
+Directory where demo data functions will download data files to. Available
+demo data functions can be found in :mod:`satpy.demo` subpackage.
+
 Download Auxiliary Data
 ^^^^^^^^^^^^^^^^^^^^^^^
 
