@@ -32,6 +32,18 @@ enhancements:
           min_stretch: [-26.2, -43.2, 243.9]
           max_stretch: [0.6, 6.7, 208.5]
 
+
+  true_color_with_night_fires:
+    standard_name: true_color_with_night_fires
+    sensor: abi
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+      - name: sqrt
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: { gamma: 2.0 }
+
+
   cira_fire_temperature:
     standard_name: cira_fire_temperature
     operations:

@@ -271,6 +271,13 @@ composites:
       - name: C01
     standard_name: cimss_true_color
 
+  true_color_with_night_fires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_fires
+    prerequisites:
+      - true_color
+      - cira_fire_temperature
+
   true_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: true_color_with_night_ir
