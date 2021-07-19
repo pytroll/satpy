@@ -188,6 +188,7 @@ class TestAWIPSTiledWriter:
             check_required_common_attributes(ds)
             assert ds.attrs['my_global'] == 'TEST'
             assert ds.attrs['sector_id'] == 'TEST'
+            assert 'physical_element' in ds.attrs
             stime = input_data_arr.attrs['start_time']
             assert ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
 
