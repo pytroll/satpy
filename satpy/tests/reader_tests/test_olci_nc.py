@@ -183,7 +183,6 @@ class TestOLCIReader(unittest.TestCase):
         test.get_dataset(ds_id, filename_info)
         test.get_dataset(ds_id2, filename_info)
         mocked_dataset.assert_called()
-        mocked_dataset.reset_mock()
 
     def test_meanings_are_read_from_file(self, mocked_dataset):
         """Test that the flag meanings are read from the file."""

@@ -247,33 +247,37 @@ class NCOLCI2Flags(NCOLCIChannelBase):
         return bflags.match_any(items)
 
 
-class NCOLCILowResData(BaseFileHandler):
+class NCOLCILowResData(NCOLCIBase):
     """Handler for low resolution data."""
 
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the file handler."""
-        super(NCOLCILowResData, self).__init__(filename, filename_info, filetype_info)
-        self.nc = None
-        # TODO: get metadata from the manifest file (xfdumanifest.xml)
-        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
-        self.sensor = 'olci'
+        super(NCOLCILowResData, self).__init__(filename, filename_info, filetype_info, engine)
         self.cache = {}
-        self.engine = engine
 
-    def _open_dataset(self):
-        if self.nc is None:
-            self.nc = xr.open_dataset(self.filename,
-                                      decode_cf=True,
-                                      mask_and_scale=True,
-                                      engine=self.engine,
-                                      chunks={'tie_columns': CHUNK_SIZE,
-                                              'tie_rows': CHUNK_SIZE})
+    @cached_property
+    def nc(self):
+        """Get the nc xr dataset."""
+        f_obj = open_file_or_filename(self.filename)
+        dataset = xr.open_dataset(f_obj,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  engine=self._engine,
+                                  chunks={'tie_columns': CHUNK_SIZE,
+                                          'tie_rows': CHUNK_SIZE})
 
-            self.nc = self.nc.rename({'tie_columns': 'x', 'tie_rows': 'y'})
+        return dataset.rename({'tie_columns': 'x', 'tie_rows': 'y'})
 
-            self.l_step = self.nc.attrs['al_subsampling_factor']
-            self.c_step = self.nc.attrs['ac_subsampling_factor']
+    @property
+    def l_step(self):
+        """Return the line step."""
+        return self.nc.attrs['al_subsampling_factor']
+
+    @property
+    def c_step(self):
+        """Return the column step."""
+        return self.nc.attrs['ac_subsampling_factor']
 
     def _do_interpolate(self, data):
 
@@ -322,8 +326,6 @@ class NCOLCIAngles(NCOLCILowResData):
         """Load a dataset."""
         if key['name'] not in self.datasets:
             return
-
-        self._open_dataset()
 
         logger.debug('Reading %s.', key['name'])
 
@@ -397,8 +399,6 @@ class NCOLCIMeteo(NCOLCILowResData):
         """Load a dataset."""
         if key['name'] not in self.datasets:
             return
-
-        self._open_dataset()
 
         logger.debug('Reading %s.', key['name'])
 
