@@ -111,7 +111,7 @@ class _CLAVRxHelper:
         return data_arr
 
     @staticmethod
-    def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArray:
+    def _get_data(data: xr.DataArray, dataset_id: dict) -> xr.DataArray:
         """Get a dataset."""
         if dataset_id.get('resolution'):
             data.attrs['resolution'] = dataset_id['resolution']
@@ -295,7 +295,7 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         """Get a dataset."""
         var_name = ds_info.get('file_key', dataset_id['name'])
         data = self[var_name]
-        data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
+        data = _CLAVRxHelper._get_data(data, dataset_id)
         data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
                                                 data.attrs, ds_info)
         return data
@@ -389,7 +389,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
-                                  mask_and_scale=False,
+                                  mask_and_scale=True,
                                   decode_coords=True,
                                   chunks=CHUNK_SIZE)
         # y,x is used in satpy, bands rather than channel using in xrimage
@@ -404,7 +404,6 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         ds_info = {
             'file_type': self.filetype_info['file_type'],
             'name': var_name,
-            'coordinates': ["longitude", "latitude"]
         }
         return ds_info
 
@@ -467,7 +466,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         """Get a dataset."""
         var_name = ds_info.get('name', dataset_id['name'])
         data = self[var_name]
-        data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
+        data = _CLAVRxHelper._get_data(data, dataset_id)
         data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
                                                 data.attrs, ds_info)
         return data
