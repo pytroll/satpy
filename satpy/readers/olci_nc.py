@@ -391,7 +391,7 @@ class NCOLCIMeteo(NCOLCILowResData):
         self._fill_dataarray_attrs(values, key)
         return values
 
-    @lru_cache
+    @lru_cache(None)
     def _get_full_resolution_dataset(self, key_name):
         """Get the full resolution dataset."""
         if self._need_interpolation():
