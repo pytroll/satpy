@@ -21,6 +21,7 @@ file_types:
     file_patterns:
       - 'clavrx_OR_{sensor}-L1b-Rad{sector}-{mode}C{channel_number}_{platform_shortname}_s{start_time:%Y%j%H%M%S%f}.level2.nc'
       - 'clavrx_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B{channel_number}_{sector}_R.level2.nc'
+      - 'clavrx_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B{channel_number}_{sector}_DK_R10_S0110.DAT.level2.nc'
 
 #datasets:
 #  longitude:
