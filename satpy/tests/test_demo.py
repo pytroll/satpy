@@ -313,7 +313,7 @@ def make_fake_tarball(files):
             tmp_filename = tfd.name
             tfd.close()
             with tarfile.open(tmp_filename, mode="w:gz") as tf:
-                os.mkdir(os.path.join(tmp_dirname_input, "hrit"))
+                os.makedirs(os.path.join(tmp_dirname_input, "hrit"))
                 tf.add(os.path.join(tmp_dirname_input, "hrit"), arcname="hrit")
                 for filename in files[1:]:
                     Path(os.path.join(tmp_dirname_input, filename)).touch()
