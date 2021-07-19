@@ -18,12 +18,21 @@
 """Module for testing the satpy.readers.olci_nc module."""
 import unittest
 import unittest.mock as mock
+import numpy as np
+
+flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
+             'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
+             'SATURATED', 'MEGLINT', 'HIGHGLINT', 'WHITECAPS',
+             'ADJAC', 'WV_FAIL', 'PAR_FAIL', 'AC_FAIL', 'OC4ME_FAIL',
+             'OCNN_FAIL', 'Extra_1', 'KDM_FAIL', 'Extra_2',
+             'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON',
+             'WHITE_SCATT', 'LOWRW', 'HIGHRW']
 
 
+@mock.patch('xarray.open_dataset')
 class TestOLCIReader(unittest.TestCase):
     """Test various olci_nc filehandlers."""
 
-    @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
         from satpy.readers.olci_nc import (NCOLCIBase, NCOLCICal, NCOLCIGeo,
@@ -76,7 +85,6 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
-    @mock.patch('xarray.open_dataset')
     def test_open_file_objects(self, mocked_open_dataset):
         """Test initialization of file handlers."""
         from satpy.readers.olci_nc import NCOLCIBase
@@ -92,29 +100,34 @@ class TestOLCIReader(unittest.TestCase):
         assert (open_file.open.return_value in mocked_open_dataset.call_args[0] or
                 open_file.open.return_value == mocked_open_dataset.call_args[1].get('filename_or_obj'))
 
-    @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
-        from satpy.readers.olci_nc import NCOLCI2
         from satpy.tests.utils import make_dataid
-        import numpy as np
-        import xarray as xr
-        mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
-                                                           np.array([1 << x for x in range(30)]).reshape(5, 6))},
-                                                 coords={'rows': np.arange(5),
-                                                         'columns': np.arange(6)})
-        ds_id = make_dataid(name='mask')
-        filename_info = {'mission_id': 'S3A', 'dataset_name': 'mask', 'start_time': 0, 'end_time': 0}
-        test = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
-        res = test.get_dataset(ds_id, {'nc_key': 'mask'})
-        self.assertEqual(res.dtype, np.dtype('bool'))
+        fh, _ = self._create_wqsf_filehandler(mocked_dataset)
+        ds_id = make_dataid(name='wqsf')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF'})
+        self.assertEqual(res.dtype, np.uint64)
 
-    @mock.patch('xarray.open_dataset')
+    def _create_wqsf_filehandler(self, mocked_dataset, meanings="INVALID WATER LAND CLOUD"):
+        """Create a filehandle for the wqsf quality flags."""
+        from satpy.readers.olci_nc import NCOLCI2Flags
+        import xarray as xr
+        nb_flags = len(meanings.split())
+        wqsf_data = xr.DataArray((2 ** (np.arange(30) % nb_flags)).astype(np.uint64).reshape(5, 6),
+                                 dims=["rows", "columns"],
+                                 coords={'rows': np.arange(5),
+                                         'columns': np.arange(6)},
+                                 attrs={"flag_masks": 2 ** np.arange(nb_flags),
+                                        "flag_meanings": meanings})
+        mocked_dataset.return_value = xr.Dataset({'WQSF': wqsf_data})
+        filename_info = {'mission_id': 'S3A', 'dataset_name': None, 'start_time': 0, 'end_time': 0}
+        fh = NCOLCI2Flags('somedir/somefile.nc', filename_info, 'c')
+        return fh, wqsf_data
+
     def test_olci_angles(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCIAngles
         from satpy.tests.utils import make_dataid
-        import numpy as np
         import xarray as xr
         attr_dict = {
             'ac_subsampling_factor': 1,
@@ -141,12 +154,10 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
-    @mock.patch('xarray.open_dataset')
     def test_olci_meteo(self, mocked_dataset):
-        """Test reading datasets."""
+        """Test reading meteo datasets."""
         from satpy.readers.olci_nc import NCOLCIMeteo
         from satpy.tests.utils import make_dataid
-        import numpy as np
         import xarray as xr
         attr_dict = {
             'ac_subsampling_factor': 1,
@@ -174,6 +185,68 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
+    def test_meanings_are_read_from_file(self, mocked_dataset):
+        """Test that the flag meanings are read from the file."""
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset)
+        res = fh.getbitmask(wqsf_data, ["CLOUD"])
+        np.testing.assert_allclose(res, (np.arange(30) % 4).reshape(5, 6) == 3)
+
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, "NOTHING FISH SHRIMP TURTLES")
+        res = fh.getbitmask(wqsf_data, ["TURTLES"])
+        np.testing.assert_allclose(res, (np.arange(30) % 4).reshape(5, 6) == 3)
+
+    def test_get_mask(self, mocked_dataset):
+        """Test reading mask datasets."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        masked_items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                        "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                        "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+
+        ds_id = make_dataid(name='mask')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF', "masked_items": masked_items})
+        self.assertEqual(res.dtype, np.dtype("bool"))
+
+        expected = np.array([True, False,  True,  True,  True,  True, False,
+                             False,  True, True, False, False, False, False,
+                             False, False, False,  True, False,  True, False,
+                             False, False,  True,  True, False, False, True,
+                             False, True]).reshape(5, 6)
+        np.testing.assert_array_equal(res, expected)
+
+    def test_get_cloud_mask(self, mocked_dataset):
+        """Test reading the cloud_mask dataset."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        ds_id = make_dataid(name='cloud_mask')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF', "masked_items": ["CLOUD"]})
+        self.assertEqual(res.dtype, np.dtype("bool"))
+
+        expected = np.array([False, False,  False,  True,  False, False, False,
+                             False,  False, False, False, False, False, False,
+                             False, False, False,  False, False,  False, False,
+                             False, False,  False,  False, False, False, False,
+                             False, False]).reshape(5, 6)
+        np.testing.assert_array_equal(res, expected)
+
+    def test_get_ocnn_mask(self, mocked_dataset):
+        """Test reading the ocnn_mask dataset."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        ds_id = make_dataid(name='ocnn_mask')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF', "masked_items": ["OCNN_FAIL"]})
+        self.assertEqual(res.dtype, np.dtype("bool"))
+
+        expected = np.array([False, False,  False,  False,  False, False, False,
+                             False,  False, False, False, False, False, False,
+                             False, False, False,  False, False,  True, False,
+                             False, False,  False,  False, False, False, False,
+                             False, False]).reshape(5, 6)
+        np.testing.assert_array_equal(res, expected)
+
 
 class TestBitFlags(unittest.TestCase):
     """Test the bitflag reading."""
@@ -183,17 +256,14 @@ class TestBitFlags(unittest.TestCase):
         import numpy as np
         from functools import reduce
         from satpy.readers.olci_nc import BitFlags
-        flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                     'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
-                     'SATURATED', 'MEGLINT', 'HIGHGLINT', 'WHITECAPS',
-                     'ADJAC', 'WV_FAIL', 'PAR_FAIL', 'AC_FAIL', 'OC4ME_FAIL',
-                     'OCNN_FAIL', 'Extra_1', 'KDM_FAIL', 'Extra_2',
-                     'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON',
-                     'WHITE_SCATT', 'LOWRW', 'HIGHRW']
 
-        bits = np.array([1 << x for x in range(len(flag_list))])
+        nb_flags = len(flag_list)
 
-        bflags = BitFlags(bits)
+        # As a test, the data is just an array with the possible masks
+        data = 2 ** np.arange(nb_flags)
+        masks = 2 ** np.arange(nb_flags)
+
+        bflags = BitFlags(data, masks, flag_list)
 
         items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
                  "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
@@ -205,4 +275,4 @@ class TestBitFlags(unittest.TestCase):
                              False, False, False,  True, False,  True, False,
                              False, False,  True,  True, False, False, True,
                              False])
-        self.assertTrue(all(mask == expected))
+        np.testing.assert_array_equal(mask, expected)

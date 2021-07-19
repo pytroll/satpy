@@ -26,7 +26,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
         file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tsm_nn.nc']
     esa_l2_wqsf:
-        file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
+        file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2Flags
         file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/wqsf.nc']
     esa_angles:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCIAngles
@@ -399,6 +399,27 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l2_wqsf
     nc_key: WQSF
+    masked_items: [ "INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                    "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                    "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND" ]
+
+  cloud_mask:
+    name: cloud_mask
+    sensor: olci
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_wqsf
+    nc_key: WQSF
+    masked_items: [ "CLOUD" ]
+
+  ocnn_mask:
+    name: ocnn_mask
+    sensor: olci
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_wqsf
+    nc_key: WQSF
+    masked_items: [ "OCNN_FAIL" ]
 
   solar_zenith_angle:
     name: solar_zenith_angle

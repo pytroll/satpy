@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 Satpy developers
+# Copyright (c) 2016-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -63,36 +63,22 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 class BitFlags(object):
     """Manipulate flags stored bitwise."""
 
-    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                 'Extra_1',
-                 'KDM_FAIL',
-                 'Extra_2',
-                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                 'LOWRW', 'HIGHRW']
-
-    meaning = {f: i for i, f in enumerate(flag_list)}
-
-    def __init__(self, value):
+    def __init__(self, data, masks, meanings):
         """Init the flags."""
-        self._value = value
+        self._data = data
+        self._masks = masks
+        self._meanings = meanings
+        self._map = dict(zip(meanings, masks))
 
     def __getitem__(self, item):
         """Get the item."""
-        pos = self.meaning[item]
-        data = self._value
-        if isinstance(data, xr.DataArray):
-            data = data.data
-            res = ((data >> pos) % 2).astype(bool)
-            res = xr.DataArray(res, coords=self._value.coords,
-                               attrs=self._value.attrs,
-                               dims=self._value.dims)
-        else:
-            res = ((data >> pos) % 2).astype(bool)
-        return res
+        mask = self._map[item]
+        return np.bitwise_and(self._data, mask).astype(np.bool)
+
+    def match_any(self, items):
+        """Match any of the items."""
+        mask = reduce(np.bitwise_or, [self._map[item] for item in items])
+        return np.bitwise_and(self._data, mask).astype(np.bool)
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -165,9 +151,15 @@ class NCOLCIChannelBase(NCOLCIBase):
                  engine=None):
         """Init the file handler."""
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
-                                                filetype_info)
+                                                filetype_info, engine)
 
         self.channel = filename_info.get('dataset_name')
+
+    def _fill_dataarray_attrs(self, data, key):
+        """Fill the dataarray with relevant attributes."""
+        data.attrs['platform_name'] = self.platform_name
+        data.attrs['sensor'] = self.sensor
+        data.attrs.update(key.to_dict())
 
 
 class NCOLCI1B(NCOLCIChannelBase):
@@ -177,7 +169,7 @@ class NCOLCI1B(NCOLCIChannelBase):
                  engine=None):
         """Init the file handler."""
         super(NCOLCI1B, self).__init__(filename, filename_info,
-                                       filetype_info)
+                                       filetype_info, engine)
         self.cal = cal.nc
 
     @staticmethod
@@ -207,9 +199,7 @@ class NCOLCI1B(NCOLCIChannelBase):
             radiances = radiances / sflux * np.pi * 100
             radiances.attrs['units'] = '%'
 
-        radiances.attrs['platform_name'] = self.platform_name
-        radiances.attrs['sensor'] = self.sensor
-        radiances.attrs.update(key.to_dict())
+        self._fill_dataarray_attrs(radiances, key)
         return radiances
 
 
@@ -226,24 +216,35 @@ class NCOLCI2(NCOLCIChannelBase):
         else:
             dataset = self.nc[info['nc_key']]
 
+        self._fill_dataarray_attrs(dataset, key)
+        return dataset
+
+
+class NCOLCI2Flags(NCOLCIChannelBase):
+    """File handler for OLCI l2 flag files."""
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug('Reading %s.', key['name'])
+        dataset = self.nc[info['nc_key']]
+
         if key['name'] == 'wqsf':
             dataset.attrs['_FillValue'] = 1
-        elif key['name'] == 'mask':
-            dataset = self.getbitmask(dataset)
+        elif "masked_items" in info:
+            dataset = self.getbitmask(dataset, info["masked_items"])
 
-        dataset.attrs['platform_name'] = self.platform_name
-        dataset.attrs['sensor'] = self.sensor
-        dataset.attrs.update(key.to_dict())
+        self._fill_dataarray_attrs(dataset, key)
         return dataset
 
     def getbitmask(self, wqsf, items=None):
-        """Get the bitmask."""
+        """Generate the bitmask."""
         if items is None:
             items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
-        bflags = BitFlags(wqsf)
-        return reduce(np.logical_or, [bflags[item] for item in items])
+        bflags = BitFlags(wqsf, wqsf.attrs['flag_masks'],
+                          wqsf.attrs['flag_meanings'].split())
+        return bflags.match_any(items)
 
 
 class NCOLCILowResData(BaseFileHandler):
