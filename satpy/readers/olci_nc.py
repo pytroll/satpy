@@ -41,7 +41,7 @@ References:
 
 import logging
 from contextlib import suppress
-from functools import reduce
+from functools import reduce, lru_cache
 
 import dask.array as da
 import numpy as np
@@ -131,6 +131,12 @@ class NCOLCIBase(BaseFileHandler):
         with suppress(IOError, OSError, AttributeError):
             self.nc.close()
 
+    def _fill_dataarray_attrs(self, data, key):
+        """Fill the dataarray with relevant attributes."""
+        data.attrs['platform_name'] = self.platform_name
+        data.attrs['sensor'] = self.sensor
+        data.attrs.update(key.to_dict())
+
 
 class NCOLCICal(NCOLCIBase):
     """Dummy class for calibration."""
@@ -154,12 +160,6 @@ class NCOLCIChannelBase(NCOLCIBase):
                                                 filetype_info, engine)
 
         self.channel = filename_info.get('dataset_name')
-
-    def _fill_dataarray_attrs(self, data, key):
-        """Fill the dataarray with relevant attributes."""
-        data.attrs['platform_name'] = self.platform_name
-        data.attrs['sensor'] = self.sensor
-        data.attrs.update(key.to_dict())
 
 
 class NCOLCI1B(NCOLCIChannelBase):
@@ -306,13 +306,6 @@ class NCOLCILowResData(NCOLCIBase):
     def _need_interpolation(self):
         return (self.c_step != 1 or self.l_step != 1)
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except (OSError, AttributeError):
-            pass
-
 
 class NCOLCIAngles(NCOLCILowResData):
     """File handler for the OLCI angles."""
@@ -333,24 +326,14 @@ class NCOLCIAngles(NCOLCILowResData):
 
             if key['name'].startswith('satellite'):
                 zen = self.nc[self.datasets['satellite_zenith_angle']]
-                zattrs = zen.attrs
                 azi = self.nc[self.datasets['satellite_azimuth_angle']]
-                aattrs = azi.attrs
             elif key['name'].startswith('solar'):
                 zen = self.nc[self.datasets['solar_zenith_angle']]
-                zattrs = zen.attrs
                 azi = self.nc[self.datasets['solar_azimuth_angle']]
-                aattrs = azi.attrs
             else:
                 raise NotImplementedError("Don't know how to read " + key['name'])
 
-            x, y, z = angle2xyz(azi, zen)
-
-            x, y, z = self._do_interpolate((x, y, z))
-
-            azi, zen = xyz2angle(x, y, z)
-            azi.attrs = aattrs
-            zen.attrs = zattrs
+            azi, zen = self._interpolate_angles(azi, zen)
 
             if 'zenith' in key['name']:
                 values = zen
@@ -371,18 +354,19 @@ class NCOLCIAngles(NCOLCILowResData):
         else:
             values = self.nc[self.datasets[key['name']]]
 
-        values.attrs['platform_name'] = self.platform_name
-        values.attrs['sensor'] = self.sensor
-
-        values.attrs.update(key.to_dict())
+        self._fill_dataarray_attrs(values, key)
         return values
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except (OSError, AttributeError):
-            pass
+    def _interpolate_angles(self, azi, zen):
+        """Interpolate angles."""
+        aattrs = azi.attrs
+        zattrs = zen.attrs
+        x, y, z = angle2xyz(azi, zen)
+        x, y, z = self._do_interpolate((x, y, z))
+        azi, zen = xyz2angle(x, y, z)
+        azi.attrs = aattrs
+        zen.attrs = zattrs
+        return azi, zen
 
 
 class NCOLCIMeteo(NCOLCILowResData):
@@ -402,22 +386,21 @@ class NCOLCIMeteo(NCOLCILowResData):
 
         logger.debug('Reading %s.', key['name'])
 
-        if self._need_interpolation() and self.cache.get(key['name']) is None:
+        values = self._get_full_resolution_dataset(key['name'])
 
-            data = self.nc[key['name']]
+        self._fill_dataarray_attrs(values, key)
+        return values
+
+    @lru_cache
+    def _get_full_resolution_dataset(self, key_name):
+        """Get the full resolution dataset."""
+        if self._need_interpolation():
+
+            data = self.nc[key_name]
 
             values, = self._do_interpolate(data)
             values.attrs = data.attrs
 
-            self.cache[key['name']] = values
+            return values
 
-        elif key['name'] in self.cache:
-            values = self.cache[key['name']]
-        else:
-            values = self.nc[key['name']]
-
-        values.attrs['platform_name'] = self.platform_name
-        values.attrs['sensor'] = self.sensor
-
-        values.attrs.update(key.to_dict())
-        return values
+        return self.nc[key_name]
