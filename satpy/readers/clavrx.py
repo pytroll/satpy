@@ -113,19 +113,19 @@ class _CLAVRxHelper:
     @staticmethod
     def _get_data(data: xr.DataArray, dataset_id: dict) -> xr.DataArray:
         """Get a dataset."""
-        if dataset_id.get('resolution'):
+        if dataset_id.get('resolution', None):
             data.attrs['resolution'] = dataset_id['resolution']
 
         attrs = data.attrs.copy()
+
         fill = attrs.get('_FillValue', None)
-        factor = attrs.pop('scale_factor', 1.0)
-        offset = attrs.pop('add_offset', 0.0)
+        factor = attrs.pop('scale_factor', (np.ones(1, dtype=data.dtype))[0])
+        offset = attrs.pop('add_offset', (np.zeros(1, dtype=data.dtype))[0])
         valid_range = attrs.get('valid_range', [None])
         if isinstance(valid_range, np.ndarray):
             attrs["valid_range"] = valid_range.tolist()
 
         flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
-
         if not flags:
             data = data.where(data != fill)
             data = _CLAVRxHelper._scale_data(data, factor, offset)
@@ -389,7 +389,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
 
         self.nc = xr.open_dataset(filename,
                                   decode_cf=True,
-                                  mask_and_scale=True,
+                                  mask_and_scale=False,
                                   decode_coords=True,
                                   chunks=CHUNK_SIZE)
         # y,x is used in satpy, bands rather than channel using in xrimage
@@ -399,6 +399,11 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         self.platform = _get_platform(
             self.filename_info.get('platform_shortname', None))
         self.sensor = self.nc.attrs.get('sensor', None)
+        # coordinates need scaling and valid_range (mask_and_scale won't work on valid_range)
+        self.nc.coords["latitude"] = _CLAVRxHelper._get_data(self.nc.coords["latitude"],
+                                                             {"name": "latitude"})
+        self.nc.coords["longitude"] = _CLAVRxHelper._get_data(self.nc.coords["longitude"],
+                                                              {"name": "longitude"})
 
     def _get_ds_info_for_data_arr(self, var_name):
         ds_info = {
