@@ -327,10 +327,9 @@ class NCOLCIAngles(NCOLCILowResData):
         azi, zen = self._get_full_resolution_angles(azi_key, zen_key)
         if 'zenith' in key_name:
             data = zen
-        elif 'azimuth' in key_name:
-            data = azi
         else:
-            raise NotImplementedError("Don't know how to read " + key_name)
+            data = azi
+
         return data
 
     def _get_angle_dataset_names(self, key_name):
@@ -338,11 +337,10 @@ class NCOLCIAngles(NCOLCILowResData):
         if key_name.startswith('satellite'):
             zen_key = "satellite_zenith_angle"
             azi_key = "satellite_azimuth_angle"
-        elif key_name.startswith('solar'):
+        else:
             zen_key = "solar_zenith_angle"
             azi_key = "solar_azimuth_angle"
-        else:
-            raise NotImplementedError("Don't know how to read " + key_name)
+
         return azi_key, zen_key
 
     @lru_cache(2)
