@@ -173,13 +173,8 @@ class NCOLCI1B(NCOLCIChannelBase):
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
-        return da.map_blocks(self._take_indices, d_index.data,
+        return da.map_blocks(_take_indices, d_index.data,
                              data=solar_flux, dtype=solar_flux.dtype)
-
-    @staticmethod
-    def _take_indices(idx, data):
-        """Take values from data using idx."""
-        return data[idx]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -197,6 +192,11 @@ class NCOLCI1B(NCOLCIChannelBase):
 
         self._fill_dataarray_attrs(radiances, key)
         return radiances
+
+
+def _take_indices(idx, data):
+    """Take values from data using idx."""
+    return data[idx]
 
 
 class NCOLCI2(NCOLCIChannelBase):
