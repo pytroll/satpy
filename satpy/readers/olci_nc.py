@@ -172,18 +172,18 @@ class NCOLCI1B(NCOLCIChannelBase):
                                        filetype_info, engine)
         self.cal = cal.nc
 
-    @staticmethod
-    def _get_items(idx, solar_flux):
-        """Get items."""
-        return solar_flux[idx]
-
     def _get_solar_flux(self, band):
         """Get the solar flux for the band."""
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
-        return da.map_blocks(self._get_items, d_index.data,
+        return da.map_blocks(self._take_indices, d_index.data,
                              solar_flux=solar_flux, dtype=solar_flux.dtype)
+
+    @staticmethod
+    def _take_indices(idx, data):
+        """Take values from data using idx."""
+        return data[idx]
 
     def get_dataset(self, key, info):
         """Load a dataset."""
