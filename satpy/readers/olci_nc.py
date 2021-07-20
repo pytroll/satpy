@@ -250,12 +250,6 @@ class NCOLCI2Flags(NCOLCIChannelBase):
 class NCOLCILowResData(NCOLCIBase):
     """Handler for low resolution data."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
-        """Init the file handler."""
-        super(NCOLCILowResData, self).__init__(filename, filename_info, filetype_info, engine)
-        self.cache = {}
-
     @cached_property
     def nc(self):
         """Get the nc xr dataset."""
@@ -280,7 +274,7 @@ class NCOLCILowResData(NCOLCIBase):
         return self.nc.attrs['ac_subsampling_factor']
 
     def _do_interpolate(self, data):
-
+        """Do the interpolation."""
         if not isinstance(data, tuple):
             data = (data,)
 
@@ -303,7 +297,7 @@ class NCOLCILowResData(NCOLCIBase):
         return [xr.DataArray(da.from_array(x, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                              dims=['y', 'x']) for x in int_data]
 
-    def _need_interpolation(self):
+    def _needs_interpolation(self):
         return (self.c_step != 1 or self.l_step != 1)
 
 
@@ -317,45 +311,46 @@ class NCOLCIAngles(NCOLCILowResData):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key['name'] not in self.datasets:
+        key_name = key['name']
+        if key_name not in self.datasets:
             return
 
-        logger.debug('Reading %s.', key['name'])
+        logger.debug('Reading %s.', key_name)
 
-        if self._need_interpolation() and self.cache.get(key['name']) is None:
-
-            if key['name'].startswith('satellite'):
-                zen = self.nc[self.datasets['satellite_zenith_angle']]
-                azi = self.nc[self.datasets['satellite_azimuth_angle']]
-            elif key['name'].startswith('solar'):
-                zen = self.nc[self.datasets['solar_zenith_angle']]
-                azi = self.nc[self.datasets['solar_azimuth_angle']]
-            else:
-                raise NotImplementedError("Don't know how to read " + key['name'])
-
-            azi, zen = self._interpolate_angles(azi, zen)
-
-            if 'zenith' in key['name']:
-                values = zen
-            elif 'azimuth' in key['name']:
-                values = azi
-            else:
-                raise NotImplementedError("Don't know how to read " + key['name'])
-
-            if key['name'].startswith('satellite'):
-                self.cache['satellite_zenith_angle'] = zen
-                self.cache['satellite_azimuth_angle'] = azi
-            elif key['name'].startswith('solar'):
-                self.cache['solar_zenith_angle'] = zen
-                self.cache['solar_azimuth_angle'] = azi
-
-        elif key['name'] in self.cache:
-            values = self.cache[key['name']]
+        if self._needs_interpolation():
+            data = self._get_interpolated_dataset(key_name)
         else:
-            values = self.nc[self.datasets[key['name']]]
+            data = self.nc[self.datasets[key_name]]
 
-        self._fill_dataarray_attrs(values, key)
-        return values
+        self._fill_dataarray_attrs(data, key)
+        return data
+
+    def _get_interpolated_dataset(self, key_name):
+        """Get the interpolated dataset."""
+        if key_name.startswith('satellite'):
+            zen_key = "satellite_zenith_angle"
+            azi_key = "satellite_azimuth_angle"
+        elif key_name.startswith('solar'):
+            zen_key = "solar_zenith_angle"
+            azi_key = "solar_azimuth_angle"
+        else:
+            raise NotImplementedError("Don't know how to read " + key_name)
+        azi, zen = self._get_full_resolution_angles(azi_key, zen_key)
+        if 'zenith' in key_name:
+            data = zen
+        elif 'azimuth' in key_name:
+            data = azi
+        else:
+            raise NotImplementedError("Don't know how to read " + key_name)
+        return data
+
+    @lru_cache(2)
+    def _get_full_resolution_angles(self, azi_key, zen_key):
+        """Get the full resolution_angles."""
+        zen = self.nc[self.datasets[zen_key]]
+        azi = self.nc[self.datasets[azi_key]]
+        azi, zen = self._interpolate_angles(azi, zen)
+        return azi, zen
 
     def _interpolate_angles(self, azi, zen):
         """Interpolate angles."""
@@ -394,7 +389,7 @@ class NCOLCIMeteo(NCOLCILowResData):
     @lru_cache(None)
     def _get_full_resolution_dataset(self, key_name):
         """Get the full resolution dataset."""
-        if self._need_interpolation():
+        if self._needs_interpolation():
 
             data = self.nc[key_name]
 

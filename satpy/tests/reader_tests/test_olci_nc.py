@@ -124,35 +124,6 @@ class TestOLCIReader(unittest.TestCase):
         fh = NCOLCI2Flags('somedir/somefile.nc', filename_info, 'c')
         return fh, wqsf_data
 
-    def test_olci_angles(self, mocked_dataset):
-        """Test reading datasets."""
-        from satpy.readers.olci_nc import NCOLCIAngles
-        from satpy.tests.utils import make_dataid
-        import xarray as xr
-        attr_dict = {
-            'ac_subsampling_factor': 1,
-            'al_subsampling_factor': 2,
-        }
-        mocked_dataset.return_value = xr.Dataset({'SAA': (['tie_rows', 'tie_columns'],
-                                                          np.arange(30).reshape(5, 6)),
-                                                  'SZA': (['tie_rows', 'tie_columns'],
-                                                          np.arange(30).reshape(5, 6)),
-                                                  'OAA': (['tie_rows', 'tie_columns'],
-                                                          np.arange(30).reshape(5, 6)),
-                                                  'OZA': (['tie_rows', 'tie_columns'],
-                                                          np.arange(30).reshape(5, 6))},
-                                                 coords={'tie_rows': np.arange(5),
-                                                         'tie_columns': np.arange(6)},
-                                                 attrs=attr_dict)
-        filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
-
-        ds_id = make_dataid(name='solar_azimuth_angle')
-        ds_id2 = make_dataid(name='satellite_zenith_angle')
-        test = NCOLCIAngles('somedir/somefile.nc', filename_info, 'c')
-        test.get_dataset(ds_id, filename_info)
-        test.get_dataset(ds_id2, filename_info)
-        mocked_dataset.assert_called()
-
     def test_meanings_are_read_from_file(self, mocked_dataset):
         """Test that the flag meanings are read from the file."""
         fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset)
@@ -214,6 +185,89 @@ class TestOLCIReader(unittest.TestCase):
                              False, False,  False,  False, False, False, False,
                              False, False]).reshape(5, 6)
         np.testing.assert_array_equal(res, expected)
+
+
+class TestOLCIAngles(unittest.TestCase):
+    """Test the angles olci_nc filehandler."""
+
+    def setUp(self):
+        """Set up the test case."""
+        from satpy.readers.olci_nc import NCOLCIAngles
+        import xarray as xr
+        attr_dict = {
+            'ac_subsampling_factor': 1,
+            'al_subsampling_factor': 2,
+        }
+
+        self.patcher = mock.patch("xarray.open_dataset")
+        mocked_dataset = self.patcher.start()
+
+        mocked_dataset.return_value = xr.Dataset({'SAA': (['tie_rows', 'tie_columns'],
+                                                          np.arange(30).reshape(5, 6)),
+                                                  'SZA': (['tie_rows', 'tie_columns'],
+                                                          np.arange(30).reshape(5, 6) + 30),
+                                                  'OAA': (['tie_rows', 'tie_columns'],
+                                                          np.arange(30).reshape(5, 6)),
+                                                  'OZA': (['tie_rows', 'tie_columns'],
+                                                          np.arange(30).reshape(5, 6) + 30)},
+                                                 coords={'tie_rows': np.arange(5),
+                                                         'tie_columns': np.arange(6)},
+                                                 attrs=attr_dict)
+        self.filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
+        self.file_handler = NCOLCIAngles('somedir/somefile.nc', self.filename_info, 'c')
+
+        self.expected_data = np.array([[0, 1, 2, 3, 4, 5],
+                                       [3, 4, 5, 6, 7, 8],
+                                       [6, 7, 8, 9, 10, 11],
+                                       [9, 10, 11, 12, 13, 14],
+                                       [12, 13, 14, 15, 16, 17],
+                                       [15, 16, 17, 18, 19, 20],
+                                       [18, 19, 20, 21, 22, 23],
+                                       [21, 22, 23, 24, 25, 26],
+                                       [24, 25, 26, 27, 28, 29]]
+                                      )
+
+    def test_olci_angles(self):
+        """Test reading angles datasets."""
+        from satpy.tests.utils import make_dataid
+        ds_id_sun_azimuth = make_dataid(name='solar_azimuth_angle')
+        ds_id_sat_zenith = make_dataid(name='satellite_zenith_angle')
+
+        azi = self.file_handler.get_dataset(ds_id_sun_azimuth, self.filename_info)
+        zen = self.file_handler.get_dataset(ds_id_sat_zenith, self.filename_info)
+        np.testing.assert_allclose(azi, self.expected_data, atol=0.5)
+        np.testing.assert_allclose(zen, self.expected_data + 30, atol=0.5)
+
+    def test_olci_angles_caches_interpolation(self):
+        """Test reading angles datasets caches interpolation."""
+        from satpy.tests.utils import make_dataid
+
+        ds_id = make_dataid(name='solar_zenith_angle')
+        with mock.patch("geotiepoints.interpolator.Interpolator") as interpolator:
+            interpolator.return_value.interpolate.return_value = (
+                self.expected_data, self.expected_data, self.expected_data)
+
+            self.file_handler.get_dataset(ds_id, self.filename_info)
+            self.file_handler.get_dataset(ds_id, self.filename_info)
+            assert(interpolator.call_count == 1)
+
+    def test_olci_different_angles_caches_interpolation(self):
+        """Test reading different angles datasets caches interpolation."""
+        from satpy.tests.utils import make_dataid
+
+        ds_id_zenith = make_dataid(name='solar_zenith_angle')
+        ds_id_azimuth = make_dataid(name='solar_azimuth_angle')
+        with mock.patch("geotiepoints.interpolator.Interpolator") as interpolator:
+            interpolator.return_value.interpolate.return_value = (
+                self.expected_data, self.expected_data, self.expected_data)
+
+            self.file_handler.get_dataset(ds_id_zenith, self.filename_info)
+            self.file_handler.get_dataset(ds_id_azimuth, self.filename_info)
+            assert(interpolator.call_count == 1)
+
+    def tearDown(self):
+        """Tear down the test case."""
+        self.patcher.stop()
 
 
 class TestOLCIMeteo(unittest.TestCase):
