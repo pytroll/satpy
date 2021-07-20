@@ -243,13 +243,7 @@ class TestOLCIAngles(unittest.TestCase):
         from satpy.tests.utils import make_dataid
 
         ds_id = make_dataid(name='solar_zenith_angle')
-        with mock.patch("geotiepoints.interpolator.Interpolator") as interpolator:
-            interpolator.return_value.interpolate.return_value = (
-                self.expected_data, self.expected_data, self.expected_data)
-
-            self.file_handler.get_dataset(ds_id, self.filename_info)
-            self.file_handler.get_dataset(ds_id, self.filename_info)
-            assert(interpolator.call_count == 1)
+        self._check_interpolator_is_called_only_once(ds_id, ds_id)
 
     def test_olci_different_angles_caches_interpolation(self):
         """Test reading different angles datasets caches interpolation."""
@@ -257,13 +251,17 @@ class TestOLCIAngles(unittest.TestCase):
 
         ds_id_zenith = make_dataid(name='solar_zenith_angle')
         ds_id_azimuth = make_dataid(name='solar_azimuth_angle')
+        self._check_interpolator_is_called_only_once(ds_id_azimuth, ds_id_zenith)
+
+    def _check_interpolator_is_called_only_once(self, ds_id_1, ds_id_2):
+        """Check that the interpolation is used only once."""
         with mock.patch("geotiepoints.interpolator.Interpolator") as interpolator:
             interpolator.return_value.interpolate.return_value = (
                 self.expected_data, self.expected_data, self.expected_data)
 
-            self.file_handler.get_dataset(ds_id_zenith, self.filename_info)
-            self.file_handler.get_dataset(ds_id_azimuth, self.filename_info)
-            assert(interpolator.call_count == 1)
+            self.file_handler.get_dataset(ds_id_2, self.filename_info)
+            self.file_handler.get_dataset(ds_id_1, self.filename_info)
+            assert (interpolator.call_count == 1)
 
     def tearDown(self):
         """Tear down the test case."""
