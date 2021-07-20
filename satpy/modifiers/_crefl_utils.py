@@ -432,36 +432,39 @@ def run_crefl(refl, coeffs,
 
     if use_abi:
         LOG.debug("Using ABI CREFL algorithm")
-        a_O3 = [268.45, 0.5, 115.42, -3.2922]
-        a_H2O = [0.0311, 0.1, 92.471, -1.3814]
-        a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
-        G_O3 = _G_calc(solar_zenith, a_O3) + _G_calc(sensor_zenith, a_O3)
-        G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
-        G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
-        # Note: bh2o values are actually ao2 values for abi
-        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
+        corr_refl = da.map_blocks(_run_crefl_abi, refl.data, mus.data, muv.data, phi.data,
+                                  solar_zenith, sensor_zenith, height, *coeffs, percent=percent)
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
         corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
                                   height, *coeffs, chunks=refl.chunks, dtype=refl.dtype,
                                   percent=percent)
-        return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
-
-    del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
-    # Note: Assume that fill/invalid values are either NaN or we are dealing
-    # with masked arrays
-    if percent:
-        corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
-    else:
-        corr_refl = (refl / tOG - rhoray) / TtotraytH2O
-    corr_refl /= (1.0 + corr_refl * sphalb)
-    return corr_refl.clip(REFLMIN, REFLMAX)
+    return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
 
 
 def _run_crefl(refl, mus, muv, phi, height, *coeffs, percent=True, computing_meta=False):
     if computing_meta:
         return refl
     sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent)
+
+
+def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
+                   *coeffs, percent=True, computing_meta=False):
+    if computing_meta:
+        return refl
+    a_O3 = [268.45, 0.5, 115.42, -3.2922]
+    a_H2O = [0.0311, 0.1, 92.471, -1.3814]
+    a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
+    G_O3 = _G_calc(solar_zenith, a_O3) + _G_calc(sensor_zenith, a_O3)
+    G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
+    G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
+    # Note: bh2o values are actually ao2 values for abi
+    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent)
+
+
+def _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent):
     if percent:
         corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
     else:
