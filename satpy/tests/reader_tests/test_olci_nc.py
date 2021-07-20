@@ -344,7 +344,6 @@ class TestBitFlags(unittest.TestCase):
 
     def test_bitflags(self):
         """Test the BitFlags class."""
-        import numpy as np
         from functools import reduce
         from satpy.readers.olci_nc import BitFlags
 

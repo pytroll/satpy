@@ -139,15 +139,11 @@ class NCOLCIBase(BaseFileHandler):
 
 
 class NCOLCICal(NCOLCIBase):
-    """Dummy class for calibration."""
-
-    pass
+    """Class for OLCI calibration."""
 
 
 class NCOLCIGeo(NCOLCIBase):
-    """Dummy class for navigation."""
-
-    pass
+    """Class for OLCI navigation."""
 
 
 class NCOLCIChannelBase(NCOLCIBase):
