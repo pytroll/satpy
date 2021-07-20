@@ -178,7 +178,7 @@ class NCOLCI1B(NCOLCIChannelBase):
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
         return da.map_blocks(self._take_indices, d_index.data,
-                             solar_flux=solar_flux, dtype=solar_flux.dtype)
+                             data=solar_flux, dtype=solar_flux.dtype)
 
     @staticmethod
     def _take_indices(idx, data):
