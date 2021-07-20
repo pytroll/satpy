@@ -60,7 +60,7 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
 
-class BitFlags(object):
+class BitFlags:
     """Manipulate flags stored bitwise."""
 
     def __init__(self, data, masks, meanings):
