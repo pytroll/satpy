@@ -327,14 +327,7 @@ class NCOLCIAngles(NCOLCILowResData):
 
     def _get_interpolated_dataset(self, key_name):
         """Get the interpolated dataset."""
-        if key_name.startswith('satellite'):
-            zen_key = "satellite_zenith_angle"
-            azi_key = "satellite_azimuth_angle"
-        elif key_name.startswith('solar'):
-            zen_key = "solar_zenith_angle"
-            azi_key = "solar_azimuth_angle"
-        else:
-            raise NotImplementedError("Don't know how to read " + key_name)
+        azi_key, zen_key = self._get_angle_dataset_names(key_name)
         azi, zen = self._get_full_resolution_angles(azi_key, zen_key)
         if 'zenith' in key_name:
             data = zen
@@ -343,6 +336,18 @@ class NCOLCIAngles(NCOLCILowResData):
         else:
             raise NotImplementedError("Don't know how to read " + key_name)
         return data
+
+    def _get_angle_dataset_names(self, key_name):
+        """Get both angle dataset names for a given name."""
+        if key_name.startswith('satellite'):
+            zen_key = "satellite_zenith_angle"
+            azi_key = "satellite_azimuth_angle"
+        elif key_name.startswith('solar'):
+            zen_key = "solar_zenith_angle"
+            azi_key = "solar_azimuth_angle"
+        else:
+            raise NotImplementedError("Don't know how to read " + key_name)
+        return azi_key, zen_key
 
     @lru_cache(2)
     def _get_full_resolution_angles(self, azi_key, zen_key):
