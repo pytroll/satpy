@@ -411,20 +411,8 @@ def run_crefl(refl, coeffs,
         height = 0.
     else:
         LOG.debug("Using average elevation information provided to CREFL")
-        lat[(lat <= -90) | (lat >= 90)] = np.nan
-        lon[(lon <= -180) | (lon >= 180)] = np.nan
-        row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
-        col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
-        space_mask = np.isnan(lon) | np.isnan(lat)
-        row[space_mask] = 0
-        col[space_mask] = 0
-
-        # FIXME: can we organize this better so it is part of the map_blocks calls
-        row, col, space_mask = da.compute(row, col, space_mask)
-        height = avg_elevation[row, col]
-        # negative heights aren't allowed, clip to 0
-        height[~((height >= 0.0) & ~space_mask)] = 0.0  # TODO: Simplify this old boolean logic
-        del lat, lon, row, col, space_mask
+        height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
+                               chunks=lon.chunks, dtype=avg_elevation.dtype)
     mus = np.cos(np.deg2rad(solar_zenith))
     mus = mus.where(mus >= 0)
     muv = np.cos(np.deg2rad(sensor_zenith))
@@ -440,6 +428,21 @@ def run_crefl(refl, coeffs,
                                   height, *coeffs, chunks=refl.chunks, dtype=refl.dtype,
                                   percent=percent)
     return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
+
+
+def _space_mask_height(lon, lat, avg_elevation):
+    lat[(lat <= -90) | (lat >= 90)] = np.nan
+    lon[(lon <= -180) | (lon >= 180)] = np.nan
+    row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
+    col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
+    space_mask = np.isnan(lon) | np.isnan(lat)
+    row[space_mask] = 0
+    col[space_mask] = 0
+
+    height = avg_elevation[row, col]
+    # negative heights aren't allowed, clip to 0
+    height[(height < 0.0) | space_mask] = 0.0
+    return height
 
 
 def _run_crefl(refl, mus, muv, phi, height, *coeffs, percent=True, computing_meta=False):
