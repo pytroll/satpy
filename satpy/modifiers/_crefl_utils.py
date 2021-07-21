@@ -441,7 +441,7 @@ def _space_mask_height(lon, lat, avg_elevation):
 
     height = avg_elevation[row, col]
     # negative heights aren't allowed, clip to 0
-    height[(height < 0.0) | space_mask] = 0.0
+    height[(height < 0.0) | np.isnan(height) | space_mask] = 0.0
     return height
 
 
