@@ -19,9 +19,9 @@
 
 import os
 import logging
-import requests
 
 from satpy import config
+from satpy.demo.utils import download_url
 
 logger = logging.getLogger(__name__)
 ZENODO_BASE_URL = "https://zenodo.org/api/files/6aae2ac7-5e8e-4a42-96d0-393ad6a620ea/"
@@ -402,7 +402,7 @@ def get_viirs_sdr_20170128_1229(
             logger.info(f"File {target} already exists, skipping...")
             continue
         logger.info(f"Downloading file to {target}...")
-        _download_url(url, target)
+        download_url(url, target)
 
     return files
 
@@ -421,11 +421,3 @@ def _get_filenames_to_download(channels, granules):
 def _yield_specific_granules(filenames, granules):
     for gran_num in granules:
         yield filenames[gran_num - 1]
-
-
-def _download_url(source, target):
-    with requests.get(source, stream=True) as r:
-        r.raise_for_status()
-        with open(target, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)

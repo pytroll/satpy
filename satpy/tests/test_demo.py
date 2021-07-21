@@ -236,7 +236,7 @@ class TestVIIRSSDRDemoDownload:
                          "SVDNB")
     ALL_GEO_PREFIXES = ("GITCO", "GMTCO", "GDNBO")
 
-    @mock.patch('satpy.demo.viirs_sdr.requests')
+    @mock.patch('satpy.demo.utils.requests')
     def test_download(self, _requests, tmpdir):
         """Test downloading and re-downloading VIIRS SDR data."""
         from satpy.demo import get_viirs_sdr_20170128_1229
@@ -252,7 +252,7 @@ class TestVIIRSSDRDemoDownload:
         get_mock.assert_not_called()
         assert new_files == files
 
-    @mock.patch('satpy.demo.viirs_sdr.requests')
+    @mock.patch('satpy.demo.utils.requests')
     def test_download_channels_num_granules_im(self, _requests, tmpdir):
         """Test downloading and re-downloading VIIRS SDR I/M data with select granules."""
         from satpy.demo import get_viirs_sdr_20170128_1229
@@ -271,7 +271,7 @@ class TestVIIRSSDRDemoDownload:
         get_mock.assert_not_called()
         self._assert_bands_in_filenames_and_contents(("SVI01", "SVM01", "GITCO", "GMTCO"), files, 2)
 
-    @mock.patch('satpy.demo.viirs_sdr.requests')
+    @mock.patch('satpy.demo.utils.requests')
     def test_download_channels_num_granules_dnb(self, _requests, tmpdir):
         """Test downloading and re-downloading VIIRS SDR DNB data with select granules."""
         from satpy.demo import get_viirs_sdr_20170128_1229
