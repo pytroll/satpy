@@ -36,8 +36,8 @@ def download_typhoon_surigae_ahi(base_dir=None,
                           4: 10}
     data_files = []
     for channel in channels:
+        resolution = channel_resolution.get(channel, 20)
         for segment in segments:
-            resolution = channel_resolution.get(channel, 20)
             data_files.append(f"HS_H08_20210417_0500_B{channel:02d}_FLDK_R{resolution:02d}_S{segment:02d}10.DAT.bz2")
 
     subdir = os.path.join(base_dir, 'ahi_hsd', '20210417_0500_random')
