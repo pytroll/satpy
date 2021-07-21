@@ -349,14 +349,12 @@ class TestReflectanceCorrectorModifier:
         rmock = rmock_obj.start()
         dem_fn = str(tmpdir.join(url))
         rmock.return_value = dem_fn
-        from netCDF4 import Dataset
+        from pyhdf.SD import SD, SDC
 
-        nc = Dataset(dem_fn, 'w')
-        nc.createDimension('y', 10)
-        nc.createDimension('x', 10)
-        dem_var = nc.createVariable('averaged elevation', np.float32,
-                                    ('y', 'x'))
-        dem_var[:] = 0
+        h = SD(dem_fn, SDC.WRITE | SDC.CREATE)
+        dem_var = h.create("averaged elevation", SDC.FLOAT32, (10, 10))
+        dem_var.setfillvalue(-999.0)
+        dem_var[:] = np.zeros((10, 10), dtype=np.float32)
         return rmock_obj
 
     def _stop_dem_mock(self, rmock_obj):
