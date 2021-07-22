@@ -30,7 +30,7 @@ class HimawariHSD(GeoBenchmarks):
 
     timeout = 600
     data_files = []
-    subdir = os.path.join("ahi_hsd", "20210417_0500_random")
+    subdir = os.path.join("ahi_hsd", "20210417_0500_typhoon_surigae")
     reader = 'ahi_hsd'
 
     def setup_cache(self):
