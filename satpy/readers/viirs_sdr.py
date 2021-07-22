@@ -308,13 +308,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     def concatenate_dataset(self, dataset_group, var_path):
         """Concatenate dataset."""
         scan_size = self._scan_size(dataset_group)
-        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
-        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
-        scans = []
-        for granule in range(self[nb_granules_path]):
-            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
-            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
-            scans.append(self[scans_path])
+        scans = self._get_scans_per_granule(dataset_group)
         start_scan = 0
         data_chunks = []
         scans = xr.DataArray(scans)
@@ -327,6 +321,16 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return xr.concat(data_chunks, 'y')
         else:
             return self.expand_single_values(variable, scans)
+
+    def _get_scans_per_granule(self, dataset_group):
+        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
+        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        scans = []
+        for granule in range(self[nb_granules_path]):
+            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
+            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
+            scans.append(self[scans_path])
+        return scans
 
     def mask_fill_values(self, data, ds_info):
         """Mask fill values."""
