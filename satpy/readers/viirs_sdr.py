@@ -234,7 +234,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         old_chunks = data.chunks
         dask_data = data.data.rechunk((tuple(rows_per_gran), data.data.chunks[1]))
         dask_data = da.map_blocks(_apply_factors, dask_data, factors,
-                                  chunks=data.chunks, dtype=data.dtype,
+                                  chunks=dask_data.chunks, dtype=data.dtype,
                                   meta=np.array([[]], dtype=data.dtype))
         data.data = dask_data.rechunk(old_chunks)
         return data
