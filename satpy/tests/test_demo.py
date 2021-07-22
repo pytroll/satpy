@@ -231,6 +231,7 @@ class _FakeRequest:
             x = bytes_io.read(chunk_size)
 
 
+@mock.patch('satpy.demo.utils.requests')
 class TestVIIRSSDRDemoDownload:
     """Test VIIRS SDR downloading."""
 
@@ -240,51 +241,66 @@ class TestVIIRSSDRDemoDownload:
                          "SVDNB")
     ALL_GEO_PREFIXES = ("GITCO", "GMTCO", "GDNBO")
 
-    @mock.patch('satpy.demo.utils.requests')
     def test_download(self, _requests, tmpdir):
-        """Test downloading and re-downloading VIIRS SDR data."""
+        """Test downloading VIIRS SDR data."""
         from satpy.demo import get_viirs_sdr_20170128_1229
         _requests.get.side_effect = _FakeRequest
-        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
-        assert len(files) == 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
-        self._assert_bands_in_filenames_and_contents(self.ALL_BAND_PREFIXES + self.ALL_GEO_PREFIXES, files, 10)
+        with mock_filesystem():
+            files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
+            assert len(files) == 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
+            self._assert_bands_in_filenames_and_contents(self.ALL_BAND_PREFIXES + self.ALL_GEO_PREFIXES, files, 10)
 
+    def test_do_not_download_the_files_twice(self, _requests, tmpdir):
+        """Test re-downloading VIIRS SDR data."""
+        from satpy.demo import get_viirs_sdr_20170128_1229
         get_mock = mock.MagicMock()
         _requests.get.return_value.__enter__ = get_mock
-        new_files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
-        assert len(new_files) == 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
-        get_mock.assert_not_called()
+        with mock_filesystem():
+            files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
+            new_files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
+
+        total_num_files = 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
+        assert len(new_files) == total_num_files
+        assert get_mock.call_count == total_num_files
         assert new_files == files
 
-    @mock.patch('satpy.demo.utils.requests')
     def test_download_channels_num_granules_im(self, _requests, tmpdir):
-        """Test downloading and re-downloading VIIRS SDR I/M data with select granules."""
+        """Test downloading VIIRS SDR I/M data with select granules."""
         from satpy.demo import get_viirs_sdr_20170128_1229
         _requests.get.side_effect = _FakeRequest
-        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
-                                            channels=("I01", "M01"))
-        assert len(files) == 10 * (1 + 1 + 2)  # 10 granules * (1 I band + 1 M band + 2 geolocation)
-        self._assert_bands_in_filenames_and_contents(("SVI01", "SVM01", "GITCO", "GMTCO"), files, 10)
+        with mock_filesystem():
+            files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
+                                                channels=("I01", "M01"))
+            assert len(files) == 10 * (1 + 1 + 2)  # 10 granules * (1 I band + 1 M band + 2 geolocation)
+            self._assert_bands_in_filenames_and_contents(("SVI01", "SVM01", "GITCO", "GMTCO"), files, 10)
 
+    def test_download_channels_num_granules_im_twice(self, _requests, tmpdir):
+        """Test re-downloading VIIRS SDR I/M data with select granules."""
+        from satpy.demo import get_viirs_sdr_20170128_1229
         get_mock = mock.MagicMock()
         _requests.get.return_value.__enter__ = get_mock
-        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
-                                            channels=("I01", "M01"),
-                                            granules=(2, 3))
-        assert len(files) == 2 * (1 + 1 + 2)  # 2 granules * (1 I band + 1 M band + 2 geolocation)
-        get_mock.assert_not_called()
-        self._assert_bands_in_filenames_and_contents(("SVI01", "SVM01", "GITCO", "GMTCO"), files, 2)
+        with mock_filesystem():
+            files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
+                                                channels=("I01", "M01"))
+            num_first_batch = 10 * (1 + 1 + 2)  # 10 granules * (1 I band + 1 M band + 2 geolocation)
+            assert len(files) == num_first_batch
 
-    @mock.patch('satpy.demo.utils.requests')
+            files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
+                                                channels=("I01", "M01"),
+                                                granules=(2, 3))
+            assert len(files) == 2 * (1 + 1 + 2)  # 2 granules * (1 I band + 1 M band + 2 geolocation)
+            assert get_mock.call_count == num_first_batch
+
     def test_download_channels_num_granules_dnb(self, _requests, tmpdir):
         """Test downloading and re-downloading VIIRS SDR DNB data with select granules."""
         from satpy.demo import get_viirs_sdr_20170128_1229
         _requests.get.side_effect = _FakeRequest
-        files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
-                                            channels=("DNB",),
-                                            granules=(5, 6, 7, 8, 9))
-        assert len(files) == 5 * (1 + 1)  # 5 granules * (1 DNB + 1 geolocation)
-        self._assert_bands_in_filenames_and_contents(("SVDNB", "GDNBO"), files, 5)
+        with mock_filesystem():
+            files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
+                                                channels=("DNB",),
+                                                granules=(5, 6, 7, 8, 9))
+            assert len(files) == 5 * (1 + 1)  # 5 granules * (1 DNB + 1 geolocation)
+            self._assert_bands_in_filenames_and_contents(("SVDNB", "GDNBO"), files, 5)
 
     def _assert_bands_in_filenames_and_contents(self, band_prefixes, filenames, num_files_per_band):
         self._assert_bands_in_filenames(band_prefixes, filenames, num_files_per_band)
