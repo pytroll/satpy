@@ -29,7 +29,7 @@ ZENODO_BASE_URL = "https://zenodo.org/api/files/dcc5ab29-d8a3-4fb5-ab2b-adc405d1
 FILENAME = "H-000-MSG4__-MSG4________-{channel:_<9s}-{segment:_<9s}-201802281500-__"
 
 
-def get_seviri_hrit_20180228_1500(base_dir=None, subset=None):
+def download_seviri_hrit_20180228_1500(base_dir=None, subset=None):
     """Download the SEVIRI HRIT files for 2018-02-28T15:00.
 
     *subset* is a dictionary with the channels as keys and granules to download
@@ -41,9 +41,11 @@ def get_seviri_hrit_20180228_1500(base_dir=None, subset=None):
     files = generate_subset_of_filenames(subset)
 
     base_dir = base_dir or config.get("demo_data_dir", ".")
+    subdir = os.path.join(base_dir, "seviri_hrit", "20180228_1500")
+    os.makedirs(subdir, exist_ok=True)
     targets = []
     for the_file in files:
-        target = os.path.join(base_dir, the_file)
+        target = os.path.join(subdir, the_file)
         targets.append(target)
         if os.path.isfile(target):
             continue

@@ -353,7 +353,8 @@ class TestSEVIRIHRITDemoDownload(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         from satpy.demo.seviri_hrit import generate_subset_of_filenames
-        self.files = generate_subset_of_filenames(base_dir=".")
+        self.subdir = os.path.join(".", "seviri_hrit", "20180228_1500")
+        self.files = generate_subset_of_filenames(base_dir=self.subdir)
 
         self.patcher = mock.patch('satpy.demo.utils.requests.get', autospec=True)
         self.get_mock = self.patcher.start()
@@ -366,10 +367,10 @@ class TestSEVIRIHRITDemoDownload(unittest.TestCase):
 
     def test_download_gets_files_with_contents(self):
         """Test downloading SEVIRI HRIT data with content."""
-        from satpy.demo import get_seviri_hrit_20180228_1500
+        from satpy.demo import download_seviri_hrit_20180228_1500
         self.get_mock.side_effect = _FakeRequest
         with mock_filesystem():
-            files = get_seviri_hrit_20180228_1500()
+            files = download_seviri_hrit_20180228_1500()
             assert len(files) == 114
             assert set(files) == set(self.files)
             for the_file in files:
@@ -378,41 +379,41 @@ class TestSEVIRIHRITDemoDownload(unittest.TestCase):
 
     def test_download_from_zenodo(self):
         """Test downloading SEVIRI HRIT data from zenodo."""
-        from satpy.demo import get_seviri_hrit_20180228_1500
+        from satpy.demo import download_seviri_hrit_20180228_1500
         self.get_mock.side_effect = _FakeRequest
         with mock_filesystem():
-            get_seviri_hrit_20180228_1500()
+            download_seviri_hrit_20180228_1500()
             assert _FakeRequest.requests_log[0].startswith("https://zenodo.org")
 
     def test_download_a_subset_of_files(self):
         """Test downloading a subset of files."""
-        from satpy.demo import get_seviri_hrit_20180228_1500
+        from satpy.demo import download_seviri_hrit_20180228_1500
         with mock_filesystem():
-            files = get_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
-            assert set(files) == set([
-                './H-000-MSG4__-MSG4________-_________-EPI______-201802281500-__',
-                './H-000-MSG4__-MSG4________-HRV______-000001___-201802281500-__',
-                './H-000-MSG4__-MSG4________-HRV______-000002___-201802281500-__',
-                './H-000-MSG4__-MSG4________-HRV______-000003___-201802281500-__',
-                './H-000-MSG4__-MSG4________-IR_108___-000001___-201802281500-__',
-                './H-000-MSG4__-MSG4________-IR_108___-000002___-201802281500-__',
+            files = download_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
+            assert set(files) == set(os.path.join(self.subdir, filename) for filename in [
+                'H-000-MSG4__-MSG4________-_________-EPI______-201802281500-__',
+                'H-000-MSG4__-MSG4________-HRV______-000001___-201802281500-__',
+                'H-000-MSG4__-MSG4________-HRV______-000002___-201802281500-__',
+                'H-000-MSG4__-MSG4________-HRV______-000003___-201802281500-__',
+                'H-000-MSG4__-MSG4________-IR_108___-000001___-201802281500-__',
+                'H-000-MSG4__-MSG4________-IR_108___-000002___-201802281500-__',
             ])
 
     def test_do_not_download_same_file_twice(self):
         """Test that files are not downloaded twice."""
-        from satpy.demo import get_seviri_hrit_20180228_1500
+        from satpy.demo import download_seviri_hrit_20180228_1500
         get_mock = mock.MagicMock()
         self.get_mock.return_value.__enter__ = get_mock
         with mock_filesystem():
-            files = get_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
-            new_files = get_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
+            files = download_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
+            new_files = download_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
             assert set(files) == set(new_files)
             assert get_mock.call_count == 6
 
     def test_download_to_output_directory(self):
         """Test downloading to an output directory."""
-        from satpy.demo import get_seviri_hrit_20180228_1500
+        from satpy.demo import download_seviri_hrit_20180228_1500
         with mock_filesystem():
             base_dir = "/somepath/"
-            files = get_seviri_hrit_20180228_1500(base_dir=base_dir)
+            files = download_seviri_hrit_20180228_1500(base_dir=base_dir)
             assert files[0].startswith(base_dir)
