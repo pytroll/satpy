@@ -50,32 +50,7 @@ To use these functions, do:
 
 """
 
-import tarfile
-import urllib.request
-
 from .abi_l1b import get_hurricane_florence_abi, get_us_midlatitude_cyclone_abi  # noqa
 from .ahi_hsd import download_typhoon_surigae_ahi  # noqa
 from .viirs_sdr import get_viirs_sdr_20170128_1229  # noqa
-
-
-def download_filestream(url):
-    """Download a file as a stream."""
-    return urllib.request.urlopen(url)
-
-
-def unpack_tarball_stream(datastream, destination):
-    """Unpack a tarball from a stream to a given destination directory."""
-    tarball = tarfile.open(fileobj=datastream, mode="r|gz")
-    names = []
-    for item in _tarfile_iter_info(tarball):
-        names.append(item.name)
-        tarball.extract(item, destination)
-    return names
-
-
-def _tarfile_iter_info(tarball):
-    """Iterate over the TarInfo elements of the tarball."""
-    item = tarball.next()  # noqa
-    while item is not None:
-        yield item
-        item = tarball.next()  # noqa
+from .seviri_hrit import get_seviri_hrit_20180228_1500  # noqa

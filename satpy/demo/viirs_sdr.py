@@ -389,7 +389,6 @@ def get_viirs_sdr_20170128_1229(
     """
     base_dir = base_dir or config.get("demo_data_dir", ".")
 
-    # assume directory in zip is the same as zip filename without the extension
     subdir = os.path.join(base_dir, "viirs_sdr", "20170128_1229")
     os.makedirs(subdir, exist_ok=True)
     urls = (ZENODO_BASE_URL + fn for fn in _get_filenames_to_download(channels, granules))

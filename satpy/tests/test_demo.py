@@ -16,11 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the satpy.demo module."""
+import contextlib
 import io
 import os
 import sys
 import unittest
-from contextlib import contextmanager
+from collections import defaultdict
 from unittest import mock
 
 
@@ -196,11 +197,14 @@ class TestAHIDemoDownload:
 
 
 class _FakeRequest:
-    """Fake object to act like a requests return value when downloading a zip file."""
+    """Fake object to act like a requests return value when downloading a file."""
+
+    requests_log = []
 
     def __init__(self, url, stream=None):
         self._filename = os.path.basename(url)
         self.headers = {}
+        self.requests_log.append(url)
         del stream  # just mimicking requests 'get'
 
     def __enter__(self):
@@ -212,7 +216,7 @@ class _FakeRequest:
     def raise_for_status(self):
         return
 
-    def _get_fake_viirs_sdr_bytesio(self):
+    def _get_fake_bytesio(self):
         filelike_obj = io.BytesIO()
         filelike_obj.write(self._filename.encode("ascii"))
         filelike_obj.seek(0)
@@ -220,7 +224,7 @@ class _FakeRequest:
 
     def iter_content(self, chunk_size):
         """Return generator of 'chunk_size' at a time."""
-        bytes_io = self._get_fake_viirs_sdr_bytesio()
+        bytes_io = self._get_fake_bytesio()
         x = bytes_io.read(chunk_size)
         while x:
             yield x
@@ -246,7 +250,7 @@ class TestVIIRSSDRDemoDownload:
         self._assert_bands_in_filenames_and_contents(self.ALL_BAND_PREFIXES + self.ALL_GEO_PREFIXES, files, 10)
 
         get_mock = mock.MagicMock()
-        _requests.get.return_value = get_mock
+        _requests.get.return_value.__enter__ = get_mock
         new_files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir))
         assert len(new_files) == 10 * (16 + 5 + 1 + 3)  # 10 granules * (5 I bands + 16 M bands + 1 DNB + 3 geolocation)
         get_mock.assert_not_called()
@@ -263,7 +267,7 @@ class TestVIIRSSDRDemoDownload:
         self._assert_bands_in_filenames_and_contents(("SVI01", "SVM01", "GITCO", "GMTCO"), files, 10)
 
         get_mock = mock.MagicMock()
-        _requests.get.return_value = get_mock
+        _requests.get.return_value.__enter__ = get_mock
         files = get_viirs_sdr_20170128_1229(base_dir=str(tmpdir),
                                             channels=("I01", "M01"),
                                             granules=(2, 3))
@@ -300,127 +304,115 @@ class TestVIIRSSDRDemoDownload:
                 assert fake_hdf5_file.read().decode("ascii") == os.path.basename(fn)
 
 
+@contextlib.contextmanager
+def mock_filesystem():
+    """Create a mock filesystem, patching `open` and `os.path.isfile`."""
+    class FakeFile:
+        """Fake file based on BytesIO."""
+
+        def __init__(self):
+            self.io = io.BytesIO()
+
+        def __enter__(self):
+            return self.io
+
+        def __exit__(self, *args, **kwargs):
+            self.io.seek(0)
+
+    fake_fs = defaultdict(FakeFile)
+    mo = mock.mock_open()
+
+    def fun(filename, *args, **kwargs):
+        return fake_fs[filename]
+
+    mo.side_effect = fun
+    with mock.patch("builtins.open", mo):
+        with mock.patch("os.path.isfile") as isfile:
+            isfile.side_effect = (lambda target: target in fake_fs)
+            yield
+
+
+def test_fs():
+    """Test the mock filesystem."""
+    with mock_filesystem():
+        with open("somefile", "w") as fd:
+            fd.write(b"bla")
+        with open("someotherfile", "w") as fd:
+            fd.write(b"bli")
+        with open("somefile", "r") as fd:
+            assert fd.read() == b"bla"
+        with open("someotherfile", "r") as fd:
+            assert fd.read() == b"bli"
+        assert os.path.isfile("somefile")
+        assert not os.path.isfile("missingfile")
+
+
 class TestSEVIRIHRITDemoDownload(unittest.TestCase):
     """Test case for downloading an hrit tarball."""
 
     def setUp(self):
         """Set up the test case."""
-        self.files = ['hrit',
-                      'hrit/H-000-MSG4__-MSG4________-_________-EPI______-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000001___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000002___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000003___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000004___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000005___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000009___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000010___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000011___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000012___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000013___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000014___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000015___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000016___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000017___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000018___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000019___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000020___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000021___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000022___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000023___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-HRV______-000024___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_016___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_016___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_016___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_039___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_039___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_039___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_087___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_087___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_087___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_097___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_097___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_097___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_108___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_108___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_108___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_120___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_120___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_120___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_134___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_134___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-IR_134___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-_________-PRO______-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-VIS006___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-VIS006___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-VIS006___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-VIS008___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-VIS008___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-VIS008___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-WV_062___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-WV_062___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-WV_062___-000008___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-WV_073___-000006___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-WV_073___-000007___-202003090800-__',
-                      'hrit/H-000-MSG4__-MSG4________-WV_073___-000008___-202003090800-__']
+        from satpy.demo.seviri_hrit import generate_subset_of_filenames
+        self.files = generate_subset_of_filenames(base_dir=".")
 
-    def test_download_filestream(self):
-        """Test that downloading a file works."""
-        from satpy.demo import download_filestream
-        from tempfile import NamedTemporaryFile
-        with NamedTemporaryFile(mode='w', delete=False) as fd:
-            fd.write('lots of data')
-            filename = fd.name
-        try:
-            url = "file:///" + filename
-            assert download_filestream(url).read() == b"lots of data"
-        finally:
-            from contextlib import suppress
-            with suppress(PermissionError):
-                os.remove(filename)
+        self.patcher = mock.patch('satpy.demo.utils.requests.get', autospec=True)
+        self.get_mock = self.patcher.start()
 
-    def test_unpack_tarball_stream(self):
-        """Test unpacking a tarball stream."""
-        from satpy.demo import unpack_tarball_stream
+        _FakeRequest.requests_log = []
 
-        from tempfile import TemporaryDirectory
-        import glob
+    def tearDown(self):
+        """Tear down the test case."""
+        self.patcher.stop()
 
-        with make_fake_tarball(self.files) as tmp_filename:
-            with TemporaryDirectory() as tmp_dirname_output:
-                with open(tmp_filename, 'rb') as fd:
-                    unpack_tarball_stream(fd, tmp_dirname_output)
-                    os.chdir(tmp_dirname_output)
-                    assert set(glob.glob(os.path.join("hrit", "*"))) == set(self.files[1:])
+    def test_download_gets_files_with_contents(self):
+        """Test downloading SEVIRI HRIT data with content."""
+        from satpy.demo import get_seviri_hrit_20180228_1500
+        self.get_mock.side_effect = _FakeRequest
+        with mock_filesystem():
+            files = get_seviri_hrit_20180228_1500()
+            assert len(files) == 114
+            assert set(files) == set(self.files)
+            for the_file in files:
+                with open(the_file, mode="r") as fd:
+                    assert fd.read().decode("utf8") == os.path.basename(the_file)
 
-    def test_unpack_tarball_stream_returns_filenames(self):
-        """Test unpacking a tarball returns the filenames."""
-        from satpy.demo import unpack_tarball_stream
-        from tempfile import TemporaryDirectory
+    def test_download_from_zenodo(self):
+        """Test downloading SEVIRI HRIT data from zenodo."""
+        from satpy.demo import get_seviri_hrit_20180228_1500
+        self.get_mock.side_effect = _FakeRequest
+        with mock_filesystem():
+            get_seviri_hrit_20180228_1500()
+            assert _FakeRequest.requests_log[0].startswith("https://zenodo.org")
 
-        with make_fake_tarball(self.files) as tmp_filename:
-            with TemporaryDirectory() as tmp_dirname_output:
-                with open(tmp_filename, 'rb') as fd:
-                    res_files = unpack_tarball_stream(fd, tmp_dirname_output)
-                    assert res_files == self.files
+    def test_download_a_subset_of_files(self):
+        """Test downloading a subset of files."""
+        from satpy.demo import get_seviri_hrit_20180228_1500
+        with mock_filesystem():
+            files = get_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
+            assert set(files) == set([
+                './H-000-MSG4__-MSG4________-_________-EPI______-201802281500-__',
+                './H-000-MSG4__-MSG4________-HRV______-000001___-201802281500-__',
+                './H-000-MSG4__-MSG4________-HRV______-000002___-201802281500-__',
+                './H-000-MSG4__-MSG4________-HRV______-000003___-201802281500-__',
+                './H-000-MSG4__-MSG4________-IR_108___-000001___-201802281500-__',
+                './H-000-MSG4__-MSG4________-IR_108___-000002___-201802281500-__',
+            ])
 
+    def test_do_not_download_same_file_twice(self):
+        """Test that files are not downloaded twice."""
+        from satpy.demo import get_seviri_hrit_20180228_1500
+        get_mock = mock.MagicMock()
+        self.get_mock.return_value.__enter__ = get_mock
+        with mock_filesystem():
+            files = get_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
+            new_files = get_seviri_hrit_20180228_1500(subset={"HRV": [1, 2, 3], "IR_108": [1, 2], "EPI": None})
+            assert set(files) == set(new_files)
+            assert get_mock.call_count == 6
 
-@contextmanager
-def make_fake_tarball(files):
-    """Make a fake tarball."""
-    from tempfile import TemporaryDirectory, NamedTemporaryFile
-    import tarfile
-    from pathlib import Path
-    with TemporaryDirectory() as tmp_dirname_input:
-        with NamedTemporaryFile(mode='wb') as tfd:
-            tmp_filename = tfd.name
-            tfd.close()
-            with tarfile.open(tmp_filename, mode="w:gz") as tf:
-                os.makedirs(os.path.join(tmp_dirname_input, "hrit"))
-                tf.add(os.path.join(tmp_dirname_input, "hrit"), arcname="hrit")
-                for filename in files[1:]:
-                    Path(os.path.join(tmp_dirname_input, filename)).touch()
-                    tf.add(os.path.join(tmp_dirname_input, filename), arcname=filename)
-            yield tmp_filename
+    def test_download_to_output_directory(self):
+        """Test downloading to an output directory."""
+        from satpy.demo import get_seviri_hrit_20180228_1500
+        with mock_filesystem():
+            base_dir = "/tmp/"
+            files = get_seviri_hrit_20180228_1500(base_dir=base_dir)
+            assert files[0].startswith(base_dir)
