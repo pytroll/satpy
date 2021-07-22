@@ -17,11 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark SEVIRI HRIT operations."""
 
+import os
+
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
 
 from benchmarks.utils import get_filenames, GeoBenchmarks
-import os
 
 
 class SEVIRIHRIT(GeoBenchmarks):

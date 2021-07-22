@@ -17,9 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark AHI HSD operations.."""
 
+import os
+
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
-import os
 
 from benchmarks.utils import get_filenames, GeoBenchmarks
 
