@@ -81,7 +81,7 @@ class HimawariHSD(GeoBenchmarks):
     def compute_B01(self):
         """Load and compute one channel."""
         composite = "B01"
-        scn = self.load(composite)
+        scn = self.load_no_padding(composite)
         scn[composite].compute()
 
     def compute_true_color(self):
