@@ -898,6 +898,6 @@ class TestTruncatedAggrVIIRSSDRReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         ds = r.load(["I01"])
         self.assertEqual(len(ds), 1)
-        i01_data = ds["I01"]
+        i01_data = ds["I01"].compute()
         expected_rows = sum(FakeTruncatedHDF5FileHandlerAggr._num_scans_per_gran) * DEFAULT_FILE_SHAPE[0]
         self.assertEqual(i01_data.shape, (expected_rows, 300))
