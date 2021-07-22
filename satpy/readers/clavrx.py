@@ -113,12 +113,12 @@ class _CLAVRxHelper:
     @staticmethod
     def _get_data(data: xr.DataArray, dataset_id: dict) -> xr.DataArray:
         """Get a dataset."""
-        if dataset_id.get('resolution', None):
+        if dataset_id.get('resolution'):
             data.attrs['resolution'] = dataset_id['resolution']
 
         attrs = data.attrs.copy()
 
-        fill = attrs.get('_FillValue', None)
+        fill = attrs.get('_FillValue')
         factor = attrs.pop('scale_factor', (np.ones(1, dtype=data.dtype))[0])
         offset = attrs.pop('add_offset', (np.zeros(1, dtype=data.dtype))[0])
         valid_range = attrs.get('valid_range', [None])
