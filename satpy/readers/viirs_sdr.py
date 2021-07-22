@@ -224,11 +224,14 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
-        scans_per_gran = self._get_scans_per_granule(dataset_group)
-        scan_size = self._scan_size(dataset_group)
-        rows_per_gran = [scan_size * num_scans for num_scans in scans_per_gran]
+        rows_per_gran = self._get_rows_per_granule(dataset_group)
         factors = scaling_factors.where(scaling_factors > -999, np.float32(np.nan))
         factors = factors.data.reshape((-1, 2)).rechunk((1, 2))  # make it so map_blocks happens per factor
+        data = self._map_and_apply_factors(data, factors, rows_per_gran)
+        return data
+
+    @staticmethod
+    def _map_and_apply_factors(data, factors, rows_per_gran):
         # The user may have requested a different chunking scheme, but we need
         # per granule chunking right now so factor chunks map 1:1 to data chunks
         old_chunks = data.chunks
@@ -236,7 +239,9 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         dask_data = da.map_blocks(_apply_factors, dask_data, factors,
                                   chunks=dask_data.chunks, dtype=data.dtype,
                                   meta=np.array([[]], dtype=data.dtype))
-        data.data = dask_data.rechunk(old_chunks)
+        data = xr.DataArray(dask_data.rechunk(old_chunks),
+                            dims=data.dims, coords=data.coords,
+                            attrs=data.attrs)
         return data
 
     @staticmethod
@@ -327,6 +332,11 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return xr.concat(data_chunks, 'y')
         else:
             return self.expand_single_values(variable, scans)
+
+    def _get_rows_per_granule(self, dataset_group):
+        scan_size = self._scan_size(dataset_group)
+        scans_per_gran = self._get_scans_per_granule(dataset_group)
+        return [scan_size * gran_scans for gran_scans in scans_per_gran]
 
     def _get_scans_per_granule(self, dataset_group):
         number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
