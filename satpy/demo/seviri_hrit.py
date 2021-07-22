@@ -59,13 +59,19 @@ def generate_subset_of_filenames(subset=None, base_dir=""):
         subset = _create_full_set()
     pattern = os.path.join(base_dir, FILENAME)
     files = []
-    for key, value in subset.items():
-        if key in ["PRO", "EPI"]:
-            files.append(pattern.format(channel="", segment=key))
-        else:
-            for segment in value:
-                files.append(pattern.format(channel=key, segment=f"{segment:06d}"))
+    for channel, segments in subset.items():
+        new_files = _generate_filenames(pattern, channel, segments)
+        files.extend(new_files)
     return files
+
+
+def _generate_filenames(pattern, channel, segments):
+    """Generate the filenames for *channel* and *segments*."""
+    if channel in ["PRO", "EPI"]:
+        new_files = [pattern.format(channel="", segment=channel)]
+    else:
+        new_files = (pattern.format(channel=channel, segment=f"{segment:06d}") for segment in segments)
+    return new_files
 
 
 def _create_full_set():
