@@ -413,6 +413,6 @@ class TestSEVIRIHRITDemoDownload(unittest.TestCase):
         """Test downloading to an output directory."""
         from satpy.demo import get_seviri_hrit_20180228_1500
         with mock_filesystem():
-            base_dir = "/tmp/"
+            base_dir = "/somepath/"
             files = get_seviri_hrit_20180228_1500(base_dir=base_dir)
             assert files[0].startswith(base_dir)
