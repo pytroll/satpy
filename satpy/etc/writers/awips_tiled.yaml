@@ -80,7 +80,7 @@ templates:
             value: '{standard_name}'
         encoding:
           dtype: "int16"
-          #_Unsigned: "true"
+          _Unsigned: "true"
       y:
         attributes:
           units: {}
@@ -88,7 +88,7 @@ templates:
             value: '{standard_name}'
         encoding:
           dtype: "int16"
-          #_Unsigned: "true"
+          _Unsigned: "true"
 
     # XXX: Variable attributes *CAN NOT* be tile-specific.
     variables:
