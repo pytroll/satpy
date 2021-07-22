@@ -15,17 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Benchmark SEVIRI HRIT operations.."""
+"""Benchmark SEVIRI HRIT operations."""
 
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
 
+from benchmarks.utils import get_filenames, GeoBenchmarks
+import os
 
-class SEVIRIHRIT:
+
+class SEVIRIHRIT(GeoBenchmarks):
     """Benchmark SEVIRI HRIT reading."""
 
     timeout = 600
     data_files = []
+    subdir = os.path.join("seviri_hrit", "20180228_1500")
+    reader = "seviri_l1b_hrit"
 
     def setup_cache(self):
         """Fetch the data files."""
@@ -33,22 +38,15 @@ class SEVIRIHRIT:
             from satpy.demo import download_seviri_hrit_20180228_1500
             download_seviri_hrit_20180228_1500()
         except ImportError:
-            assert len(self.get_filenames()) == 114
+            assert len(get_filenames(self.subdir)) == 114
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 
     def setup(self):
         """Set up the benchmarks."""
         import satpy
-        self.data_files = self.get_filenames()
+        self.data_files = get_filenames(self.subdir)
         satpy.CHUNK_SIZE = 2048
-
-    def get_filenames(self):
-        """Get the data filenames manually."""
-        import os
-        import glob
-        base_dir = os.environ.get("SATPY_DEMO_DATA_DIR", ".")
-        return glob.glob(os.path.join(base_dir, "seviri_hrit", "20180228_1500", "*"))
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""
@@ -74,17 +72,10 @@ class SEVIRIHRIT:
         """Check peak memory usage of the generation and saving of overview."""
         self.save_overview_as_geotiff()
 
-    def load(self, composite):
-        """Load one composite."""
-        from satpy import Scene
-        scn = Scene(filenames=self.data_files, reader='seviri_l1b_hrit')
-        scn.load([composite], pad_data=False)
-        return scn
-
     def compute_vis006(self):
         """Load and compute one channel."""
         composite = "VIS006"
-        scn = self.load(composite)
+        scn = self.load_no_padding(composite)
         scn[composite].compute()
 
     def compute_overview(self):
