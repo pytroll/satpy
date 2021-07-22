@@ -288,7 +288,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
             if self.use_tc is True:
                 return var_path + '_TC'
-            elif self.use_tc is None and var_path + '_TC' in self.file_content:
+            if self.use_tc is None and var_path + '_TC' in self.file_content:
                 return var_path + '_TC'
         return var_path
 
@@ -363,9 +363,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
         if not dataset_group:
             return
-        else:
-            dataset_group = dataset_group[0]
-            ds_info['dataset_group'] = dataset_group
+        dataset_group = dataset_group[0]
+        ds_info['dataset_group'] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
 
