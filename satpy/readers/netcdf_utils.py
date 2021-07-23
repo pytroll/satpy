@@ -199,7 +199,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         elif isinstance(val, netCDF4.Group):
             return self._get_group(key, val)
         return val
-        
+
     def _get_global_attrs(self):
         global_attrs = {}
         for _key, _val in self.file_content.items():
@@ -223,11 +223,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         else:
             val = self._get_var_from_xr(group, key)
         return val
-    
+
     def _get_group(self, key, val):
         # Full groups are conveniently read with xr even if file_handle is available
         with xr.open_dataset(self.filename, group=key,
-                                **self._xarray_kwargs) as nc:
+                             **self._xarray_kwargs) as nc:
             val = nc
         return val
 
