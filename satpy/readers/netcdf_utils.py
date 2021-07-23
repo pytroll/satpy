@@ -201,6 +201,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         return val
 
     def _get_global_attrs(self):
+        """Get the global attributes of the netcfd file."""
         global_attrs = {}
         for _key, _val in self.file_content.items():
             if _key.startswith('/attr/'):
