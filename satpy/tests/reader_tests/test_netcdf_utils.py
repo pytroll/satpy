@@ -154,7 +154,6 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertEqual(file_handler['/attr'], global_attrs)
         self.assertEqual(file_handler['/attrs'], global_attrs)
 
-
         self.assertIsInstance(file_handler.get('ds2_f')[:], xr.DataArray)
         self.assertIsNone(file_handler.get('fake_ds'))
         self.assertEqual(file_handler.get('fake_ds', 'test'), 'test')
