@@ -187,6 +187,12 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def __getitem__(self, key):
         """Get item for given key."""
+        if key in ('/attr', '/attrs'):
+            global_attrs = {}
+            for _key, _val in self.file_content.items():
+                if _key.startswith('/attr/'):
+                    global_attrs[_key] = _val
+            return global_attrs
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
             if key in self.cached_file_content:
