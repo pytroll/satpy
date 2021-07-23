@@ -82,7 +82,7 @@ class SEVIRIHRIT(GeoBenchmarks):
     def compute_overview(self):
         """Compute an overview image."""
         composite = "overview"
-        scn = self.load(composite)
+        scn = self.load_no_padding(composite)
         scn[composite].compute()
 
     def save_overview_as_geotiff(self):
