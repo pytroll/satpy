@@ -225,10 +225,14 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
         rows_per_gran = self._get_rows_per_granule(dataset_group)
-        factors = scaling_factors.where(scaling_factors > -999, np.float32(np.nan))
-        factors = factors.data.reshape((-1, 2)).rechunk((1, 2))  # make it so map_blocks happens per factor
+        factors = self._mask_and_reshape_factors(scaling_factors)
         data = self._map_and_apply_factors(data, factors, rows_per_gran)
         return data
+
+    @staticmethod
+    def _mask_and_reshape_factors(factors):
+        factors = factors.where(factors > -999, np.float32(np.nan))
+        return factors.data.reshape((-1, 2)).rechunk((1, 2))  # make it so map_blocks happens per factor
 
     @staticmethod
     def _map_and_apply_factors(data, factors, rows_per_gran):
