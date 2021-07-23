@@ -1522,11 +1522,11 @@ class AWIPSTiledWriter(Writer):
                 grid's pixels. By default this is False meaning that the
                 grid's tiles will be shifted to align with the data locations.
                 If True, the data is shifted. At most the data will be shifted
-                by 0.5 pixels. See :mod:`satpy.writers.scmi` for more
+                by 0.5 pixels. See :mod:`satpy.writers.awips_tiled` for more
                 information.
             template (str or dict): Name of the template configured in the
                 writer YAML file. This can also be a dictionary with a full
-                template configuration. See the :mod:`satpy.writers.scmi`
+                template configuration. See the :mod:`satpy.writers.awips_tiled`
                 documentation for more information on templates. Defaults to
                 the 'polar' builtin template.
             check_categories (bool): Whether category and flag products should
