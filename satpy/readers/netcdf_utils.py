@@ -192,32 +192,43 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __getitem__(self, key):
         """Get item for given key."""
         if key in ('/attr', '/attrs'):
-            global_attrs = {}
-            for _key, _val in self.file_content.items():
-                if _key.startswith('/attr/'):
-                    global_attrs[_key] = _val
-            return global_attrs
+            return self._get_global_attrs()
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
-            if key in self.cached_file_content:
-                return self.cached_file_content[key]
-            # these datasets are closed and inaccessible when the file is
-            # closed, need to reopen
-            # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
-            parts = key.rsplit('/', 1)
-            if len(parts) == 2:
-                group, key = parts
-            else:
-                group = None
-            if self.file_handle is not None:
-                val = self._get_var_from_filehandle(group, key)
-            else:
-                val = self._get_var_from_xr(group, key)
+            return self._get_variable(key, val)
         elif isinstance(val, netCDF4.Group):
-            # Full groups are conveniently read with xr even if file_handle is available
-            with xr.open_dataset(self.filename, group=key,
-                                 **self._xarray_kwargs) as nc:
-                val = nc
+            return self._get_group(key, val)
+        return val
+        
+    def _get_global_attrs(self):
+        global_attrs = {}
+        for _key, _val in self.file_content.items():
+            if _key.startswith('/attr/'):
+                global_attrs[_key] = _val
+        return global_attrs
+
+    def _get_variable(self, key, val):
+        if key in self.cached_file_content:
+            return self.cached_file_content[key]
+        # these datasets are closed and inaccessible when the file is
+        # closed, need to reopen
+        # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
+        parts = key.rsplit('/', 1)
+        if len(parts) == 2:
+            group, key = parts
+        else:
+            group = None
+        if self.file_handle is not None:
+            val = self._get_var_from_filehandle(group, key)
+        else:
+            val = self._get_var_from_xr(group, key)
+        return val
+    
+    def _get_group(self, key, val):
+        # Full groups are conveniently read with xr even if file_handle is available
+        with xr.open_dataset(self.filename, group=key,
+                                **self._xarray_kwargs) as nc:
+            val = nc
         return val
 
     def _get_var_from_xr(self, group, key):
