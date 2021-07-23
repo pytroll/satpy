@@ -17,15 +17,21 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark AHI HSD operations.."""
 
+import os
+
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
 
+from benchmarks.utils import get_filenames, GeoBenchmarks
 
-class HimawariHSD:
+
+class HimawariHSD(GeoBenchmarks):
     """Benchmark Himawari HSD reading."""
 
     timeout = 600
     data_files = []
+    subdir = os.path.join("ahi_hsd", "20210417_0500_typhoon_surigae")
+    reader = 'ahi_hsd'
 
     def setup_cache(self):
         """Fetch the data files."""
@@ -33,22 +39,15 @@ class HimawariHSD:
             from satpy.demo import download_typhoon_surigae_ahi
             download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
         except ImportError:
-            assert len(self.get_filenames()) == 4
+            assert len(get_filenames(self.subdir)) == 4
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 
     def setup(self):
         """Set up the benchmarks."""
         import satpy
-        self.data_files = self.get_filenames()
+        self.data_files = get_filenames(self.subdir)
         satpy.CHUNK_SIZE = 2048
-
-    def get_filenames(self):
-        """Get the data filenames manually."""
-        import os
-        import glob
-        base_dir = os.environ.get("SATPY_DEMO_DATA_DIR", ".")
-        return glob.glob(os.path.join(base_dir, "ahi_hsd", "20210417_0500_random", "*"))
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""
@@ -74,23 +73,15 @@ class HimawariHSD:
         """Check peak memory usage of the generation and saving of true_color_nocorr."""
         self.save_true_color_nocorr_as_geotiff()
 
-    def load(self, composite):
-        """Load one composite."""
-        from satpy import Scene
-        scn = Scene(filenames=self.data_files, reader='ahi_hsd')
-        scn.load([composite], pad_data=False)
-        return scn
-
     def load_and_native_resample(self, composite):
         """Load and native resample a composite."""
-        scn = self.load(composite)
-        lscn = scn.resample(resampler='native')
-        return lscn
+        scn = self.load_no_padding(composite)
+        return scn.resample(resampler='native')
 
     def compute_B01(self):
         """Load and compute one channel."""
         composite = "B01"
-        scn = self.load(composite)
+        scn = self.load_no_padding(composite)
         scn[composite].compute()
 
     def compute_true_color(self):
