@@ -862,14 +862,14 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
         np.testing.assert_allclose(lats, expected_lats)
 
 
-class FakeTruncatedHDF5FileHandlerAggr(FakeHDF5FileHandler2):
+class FakeShortHDF5FileHandlerAggr(FakeHDF5FileHandler2):
     """Fake file that has less scans than usual in a couple granules."""
 
     _num_test_granules = 3
     _num_scans_per_gran = [47, 48, 47]
 
 
-class TestTruncatedAggrVIIRSSDRReader(unittest.TestCase):
+class TestShortAggrVIIRSSDRReader(unittest.TestCase):
     """Test VIIRS SDR Reader with a file that has truncated granules."""
 
     yaml_file = "viirs_sdr.yaml"
@@ -880,7 +880,7 @@ class TestTruncatedAggrVIIRSSDRReader(unittest.TestCase):
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeTruncatedHDF5FileHandlerAggr,))
+        self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeShortHDF5FileHandlerAggr,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -899,5 +899,5 @@ class TestTruncatedAggrVIIRSSDRReader(unittest.TestCase):
         ds = r.load(["I01"])
         self.assertEqual(len(ds), 1)
         i01_data = ds["I01"].compute()
-        expected_rows = sum(FakeTruncatedHDF5FileHandlerAggr._num_scans_per_gran) * DEFAULT_FILE_SHAPE[0]
+        expected_rows = sum(FakeShortHDF5FileHandlerAggr._num_scans_per_gran) * DEFAULT_FILE_SHAPE[0]
         self.assertEqual(i01_data.shape, (expected_rows, 300))
