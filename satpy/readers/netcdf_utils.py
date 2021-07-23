@@ -196,7 +196,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
             return self._get_variable(key, val)
-        elif isinstance(val, netCDF4.Group):
+        if isinstance(val, netCDF4.Group):
             return self._get_group(key, val)
         return val
 
