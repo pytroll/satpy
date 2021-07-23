@@ -88,5 +88,5 @@ class SEVIRIHRIT(GeoBenchmarks):
     def save_overview_as_geotiff(self):
         """Save a overview to disk as geotiff."""
         composite = "overview"
-        scn = self.load(composite)
+        scn = self.load_no_padding(composite)
         scn.save_dataset(composite, filename='test.tif', tiled=True)
