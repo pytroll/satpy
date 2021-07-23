@@ -628,6 +628,39 @@ class TestIDQueryInteractions(unittest.TestCase):
         assert distances[0] < distances[1]
         assert distances[1] < distances[2]
 
+    def test_seviri_hrv_has_priority_over_vis008(self):
+        """Check that the HRV channel has priority over VIS008 when querying 0.8µm."""
+        dids = [DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="counts", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="counts", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="counts", modifiers=())]
+        dq = DataQuery(wavelength=0.8)
+        res, distances = dq.sort_dataids(dids)
+        assert res[0].name == "HRV"
+
 
 def test_wavelength_range():
     """Test the wavelength range object."""

@@ -39,7 +39,7 @@ LOG = logging.getLogger(__name__)
 
 
 # Old Name -> New Name
-PENDING_OLD_READER_NAMES = {}
+PENDING_OLD_READER_NAMES = {'fci_l1c_fdhsi': 'fci_l1c_nc'}
 OLD_READER_NAMES = {}
 
 

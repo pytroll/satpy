@@ -29,6 +29,7 @@ The following people have made contributions to this project:
 - [Blanka Gvozdikova (gvozdikb)](https://github.com/gvozdikb)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
 - [Ulrich Hamann](https://github.com/)
+- [Mitch Herbertson (mherbertson)](https://github.com/mherbertson)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)

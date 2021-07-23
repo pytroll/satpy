@@ -127,7 +127,15 @@ and loaded using pyresample's utility methods
     >>> from pyresample import load_area
     >>> my_area = load_area('my_areas.yaml', 'my_area')
 
-Examples coming soon...
+Or using :func:`satpy.resample.get_area_def`, which will search through all
+``areas.yaml`` files in your ``SATPY_CONFIG_PATH``::
+
+    >>> from satpy.resample import get_area_def
+    >>> area_eurol = get_area_def("eurol")
+
+For examples of area definitions, see the file ``etc/areas.yaml`` that is
+included with Satpy and where all the area definitions shipped with Satpy are
+defined.
 
 """
 import hashlib
@@ -205,7 +213,7 @@ def get_area_file():
 def get_area_def(area_name):
     """Get the definition of *area_name* from file.
 
-    The file is defined to use is to be placed in the $PPP_CONFIG_DIR
+    The file is defined to use is to be placed in the $SATPY_CONFIG_PATH
     directory, and its name is defined in satpy's configuration file.
     """
     try:

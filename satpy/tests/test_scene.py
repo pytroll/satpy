@@ -1745,6 +1745,16 @@ class TestSceneSaving(unittest.TestCase):
 class TestSceneConversions(unittest.TestCase):
     """Test Scene conversion to geoviews, xarray, etc."""
 
+    def test_to_xarray_dataset_with_empty_scene(self):
+        """Test converting empty Scene to xarray dataset."""
+        from satpy import Scene
+        from xarray import Dataset
+        scn = Scene()
+        xrds = scn.to_xarray_dataset()
+        assert isinstance(xrds, Dataset)
+        assert len(xrds.variables) == 0
+        assert len(xrds.coords) == 0
+
     def test_geoviews_basic_with_area(self):
         """Test converting a Scene to geoviews with an AreaDefinition."""
         from satpy import Scene
