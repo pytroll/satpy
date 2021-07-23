@@ -227,6 +227,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         return val
 
     def _get_group(self, key, val):
+        """"Get a group from the netcdf file."""
         # Full groups are conveniently read with xr even if file_handle is available
         with xr.open_dataset(self.filename, group=key,
                              **self._xarray_kwargs) as nc:
