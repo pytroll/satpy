@@ -209,6 +209,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         return global_attrs
 
     def _get_variable(self, key, val):
+        """Get a variable from the netcdf file."""
         if key in self.cached_file_content:
             return self.cached_file_content[key]
         # these datasets are closed and inaccessible when the file is
