@@ -102,17 +102,21 @@ class NC_ABI_L1B(NC_ABI_BASE):
         return res
 
     def _rad_calibrate(self, data):
-        """Calibrate any channel to radiances."""
-        """This no-op method is just to keep the flow consistent -"""
-        """each valid cal type results in a calibration method call"""
+        """Calibrate any channel to radiances.
+
+        This no-op method is just to keep the flow consistent -
+        each valid cal type results in a calibration method call
+        """
 
         res = data
         res.attrs = data.attrs
         return res
 
     def _raw_calibrate(self, data):
-        """Calibrate any channel to raw counts."""
-        """Useful for cases where a copy requires no calibration."""
+        """Calibrate any channel to raw counts.
+
+        Useful for cases where a copy requires no calibration.
+        """
 
         res = data
         res.attrs = data.attrs
