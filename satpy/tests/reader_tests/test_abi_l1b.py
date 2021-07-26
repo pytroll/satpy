@@ -296,8 +296,9 @@ class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
         # We expect the raw data to be unchanged
         expected = res.data
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
-        self.assertNotIn('scale_factor', res.attrs)
-        self.assertNotIn('_FillValue', res.attrs)
+        self.assertIn('scale_factor', res.attrs)
+        self.assertIn('add_offset', res.attrs)
+        self.assertIn('_FillValue', res.attrs)
         self.assertEqual(res.attrs['standard_name'],
                          'counts')
         self.assertEqual(res.attrs['long_name'],
