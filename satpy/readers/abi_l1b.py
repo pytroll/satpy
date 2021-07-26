@@ -46,10 +46,10 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
         # mapping of calibration types to calibration functions
         cal_dictionary = {
-            'reflectance' : self._vis_calibrate,
-            'brightness_temperature' : self._ir_calibrate,
-            'counts' : self._raw_calibrate,
-            'radiance' : self._rad_calibrate
+            'reflectance': self._vis_calibrate,
+            'brightness_temperature': self._ir_calibrate,
+            'counts': self._raw_calibrate,
+            'radiance': self._rad_calibrate
         }
 
         try:
