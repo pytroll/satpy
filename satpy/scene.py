@@ -905,6 +905,9 @@ class Scene:
         """
         dataarrays = self._get_dataarrays_from_identifiers(datasets)
 
+        if len(dataarrays) == 0:
+            return xr.Dataset()
+
         ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in dataarrays if i.attrs.get('area') is not None}
         mdata = combine_metadata(*tuple(i.attrs for i in dataarrays))
         if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):

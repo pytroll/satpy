@@ -73,7 +73,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
 
     def __call__(self, datasets, optional_datasets, **info):
         """Create modified DataArray object by applying the crefl algorithm."""
-        from satpy.composites.crefl_utils import get_coefficients
+        from satpy.modifiers._crefl_utils import get_coefficients
         refl_data, *angles = self._get_data_and_angles(datasets, optional_datasets)
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
@@ -86,7 +86,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         return results
 
     def _call_crefl(self, refl_data, coefficients, angles):
-        from satpy.composites.crefl_utils import run_crefl
+        from satpy.modifiers._crefl_utils import run_crefl
         avg_elevation = self._get_average_elevation()
         lons, lats = refl_data.attrs['area'].get_lonlats(chunks=refl_data.chunks)
         is_percent = refl_data.attrs["units"] == "%"
@@ -110,15 +110,34 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         LOG.debug("Loading CREFL averaged elevation information from: %s",
                   self.dem_cache_key)
         local_filename = retrieve(self.dem_cache_key)
+        avg_elevation = self._read_var_from_hdf4_file(local_filename, self.dem_sds).astype(np.float64)
+        if isinstance(avg_elevation, np.ma.MaskedArray):
+            avg_elevation = avg_elevation.filled(np.nan)
+        return avg_elevation
+
+    @staticmethod
+    def _read_var_from_hdf4_file(local_filename, var_name):
+        try:
+            return ReflectanceCorrector._read_var_from_hdf4_file_pyhdf(local_filename, var_name)
+        except (ImportError, OSError):
+            return ReflectanceCorrector._read_var_from_hdf4_file_netcdf4(local_filename, var_name)
+
+    @staticmethod
+    def _read_var_from_hdf4_file_netcdf4(local_filename, var_name):
         from netCDF4 import Dataset as NCDataset
         # HDF4 file, NetCDF library needs to be compiled with HDF4 support
         nc = NCDataset(local_filename, "r")
         # average elevation is stored as a 16-bit signed integer but with
         # scale factor 1 and offset 0, convert it to float here
-        avg_elevation = nc.variables[self.dem_sds][:].astype(np.float64)
-        if isinstance(avg_elevation, np.ma.MaskedArray):
-            avg_elevation = avg_elevation.filled(np.nan)
-        return avg_elevation
+        return nc.variables[var_name][:]
+
+    @staticmethod
+    def _read_var_from_hdf4_file_pyhdf(local_filename, var_name):
+        from pyhdf.SD import SD, SDC
+        f = SD(local_filename, SDC.READ)
+        var = f.select(var_name)
+        data = var[:]
+        return np.ma.MaskedArray(data, data == var.getfillvalue())
 
     def _get_data_and_angles(self, datasets, optional_datasets):
         angles = self._extract_angle_data_arrays(datasets, optional_datasets)

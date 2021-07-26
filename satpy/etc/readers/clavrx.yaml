@@ -2,18 +2,25 @@ reader:
   description: CLAVR-X Reader
   name: clavrx
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  sensors: [viirs, modis, avhrr, ahi]
+  sensors: [viirs, modis, avhrr, ahi, abi]
 
 file_types:
-  level2:
-    file_reader: !!python/name:satpy.readers.clavrx.CLAVRXFileHandler
-#    clavrx_npp_d20170520_t2055235_e2056477_b28822.level2.hdf'
-#    clavrx_H08_20180719_1300.level2.hdf
+  clavrx_hdf4:
+    #    clavrx_npp_d20170520_t2055235_e2056477_b28822.level2.hdf'
+    #    clavrx_H08_20180719_1300.level2.hdf
+    file_reader: !!python/name:satpy.readers.clavrx.CLAVRXHDF4FileHandler
     file_patterns:
-     - 'clavrx_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}.level2.hdf'
-     - 'clavrx_{platform_shortname}.{start_time:%y%j.%H%M}.{resolution:s}.level2.hdf'
-     - 'clavrx_hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit}.level2.hdf'
-     - 'clavrx_{platform_shortname}_{start_time:%Y%m%d_%H%M}.level2.hdf'
+      - 'clavrx_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}.level2.hdf'
+      - 'clavrx_{platform_shortname}.{start_time:%y%j.%H%M}.{resolution:s}.level2.hdf'
+      - 'clavrx_hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit}.level2.hdf'
+      - 'clavrx_{platform_shortname}_{start_time:%Y%m%d_%H%M}.level2.hdf'
+  clavrx_nc:
+    #    clavrx_OR_ABI-L1b-RadF-M6C01_G16_s20211101600189.level2.nc
+    #    clavrx_H08_20210322_0300_B01_FLDK_R.level2.nc
+    file_reader: !!python/name:satpy.readers.clavrx.CLAVRXNetCDFFileHandler
+    file_patterns:
+      - 'clavrx_OR_{sensor}-L1b-Rad{sector}-{mode}C{channel_number}_{platform_shortname}_s{start_time:%Y%j%H%M%S%f}.level2.nc'
+      - 'clavrx_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B{channel_number}_{sector}_R.level2.nc'
 
 #datasets:
 #  longitude:
