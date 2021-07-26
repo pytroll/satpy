@@ -58,7 +58,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
             raise ValueError("Unknown calibration '{}'".format(key['calibration']))
 
         # convert to satpy standard units
-        if res.attrs['units'] == '1':
+        if (res.attrs['units'] == '1') and (key['calibration'] != 'counts'):
             res *= 100
             res.attrs['units'] = '%'
 
@@ -107,7 +107,6 @@ class NC_ABI_L1B(NC_ABI_BASE):
         This no-op method is just to keep the flow consistent -
         each valid cal type results in a calibration method call
         """
-
         res = data
         res.attrs = data.attrs
         return res
@@ -117,7 +116,6 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
         Useful for cases where a copy requires no calibration.
         """
-
         res = data
         res.attrs = data.attrs
         res.attrs['units'] = '1'
