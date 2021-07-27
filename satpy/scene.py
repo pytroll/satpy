@@ -919,8 +919,8 @@ class Scene:
             if not isinstance(lons, DataArray):
                 lons = DataArray(lons, dims=('y', 'x'))
                 lats = DataArray(lats, dims=('y', 'x'))
-            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], lats),
-                                             "longitude": (["y", "x"], lons)})
+            ds = xr.Dataset(ds_dict, coords={"latitude": lats,
+                                             "longitude": lons})
 
         ds.attrs = mdata
         return ds
