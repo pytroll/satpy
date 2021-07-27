@@ -37,28 +37,15 @@ def _check_production_location(ds):
         assert len(ds.attrs[prod_loc_name]) == 31
 
 
-def check_required_common_attributes(ds):
+def check_required_properties(unmasked_ds, masked_ds):
+    """Check various aspects of coordinates and attributes for correctness."""
+    _check_scaled_x_coordinate_variable(unmasked_ds, masked_ds)
+    _check_scaled_y_coordinate_variable(unmasked_ds, masked_ds)
+    _check_required_common_attributes(unmasked_ds)
+
+
+def _check_required_common_attributes(ds):
     """Check common properties of the created AWIPS tiles for validity."""
-    assert 'x' in ds.coords
-    x_coord = ds.coords['x']
-    np.testing.assert_equal(np.diff(x_coord), 1)
-    x_attrs = x_coord.attrs
-    assert x_attrs.get('standard_name') == 'projection_x_coordinate'
-    assert x_attrs.get('units') == 'meters'
-    assert 'scale_factor' in x_attrs
-    assert x_attrs['scale_factor'] > 0
-    assert 'add_offset' in x_attrs
-
-    assert 'y' in ds.coords
-    y_coord = ds.coords['y']
-    np.testing.assert_equal(np.diff(y_coord), 1)
-    y_attrs = y_coord.attrs
-    assert y_attrs.get('standard_name') == 'projection_y_coordinate'
-    assert y_attrs.get('units') == 'meters'
-    assert 'scale_factor' in y_attrs
-    assert y_attrs['scale_factor'] < 0
-    assert 'add_offset' in y_attrs
-
     for attr_name in ('tile_row_offset', 'tile_column_offset',
                       'product_tile_height', 'product_tile_width',
                       'number_product_tiles',
@@ -74,6 +61,36 @@ def check_required_common_attributes(ds):
         assert data_arr.encoding.get('zlib', False)
         assert 'grid_mapping' in data_arr.attrs
         assert data_arr.attrs['grid_mapping'] in ds
+
+
+def _check_scaled_x_coordinate_variable(ds, masked_ds):
+    assert 'x' in ds.coords
+    x_coord = ds.coords['x']
+    np.testing.assert_equal(np.diff(x_coord), 1)
+    x_attrs = x_coord.attrs
+    assert x_attrs.get('standard_name') == 'projection_x_coordinate'
+    assert x_attrs.get('units') == 'meters'
+    assert 'scale_factor' in x_attrs
+    assert x_attrs['scale_factor'] > 0
+    assert 'add_offset' in x_attrs
+
+    unscaled_x = masked_ds.coords['x'].values
+    assert (np.diff(unscaled_x) > 0).all()
+
+
+def _check_scaled_y_coordinate_variable(ds, masked_ds):
+    assert 'y' in ds.coords
+    y_coord = ds.coords['y']
+    np.testing.assert_equal(np.diff(y_coord), 1)
+    y_attrs = y_coord.attrs
+    assert y_attrs.get('standard_name') == 'projection_y_coordinate'
+    assert y_attrs.get('units') == 'meters'
+    assert 'scale_factor' in y_attrs
+    assert y_attrs['scale_factor'] < 0
+    assert 'add_offset' in y_attrs
+
+    unscaled_y = masked_ds.coords['y'].values
+    assert (np.diff(unscaled_y) < 0).all()
 
 
 class TestAWIPSTiledWriter:
@@ -143,16 +160,12 @@ class TestAWIPSTiledWriter:
         assert len(all_files) == 1
         assert os.path.basename(all_files[0]) == 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc'
         for fn in all_files:
-            output_ds = xr.open_dataset(fn, mask_and_scale=False)
-            check_required_common_attributes(output_ds)
+            unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
             output_ds = xr.open_dataset(fn, mask_and_scale=True)
+            check_required_properties(unmasked_ds, output_ds)
             scale_factor = output_ds['data'].encoding['scale_factor']
             np.testing.assert_allclose(input_data_arr.values, output_ds['data'].data,
                                        atol=scale_factor / 2)
-            x_var = output_ds.coords['x']
-            assert (np.diff(x_var.values) > 0).all()
-            y_var = output_ds.coords['y']
-            assert (np.diff(y_var.values) < 0).all()
 
     @pytest.mark.parametrize(
         ("tile_count", "tile_size"),
@@ -190,12 +203,13 @@ class TestAWIPSTiledWriter:
         expected_num_files = 0 if should_error else 9
         assert len(all_files) == expected_num_files
         for fn in all_files:
-            ds = xr.open_dataset(fn, mask_and_scale=False)
-            check_required_common_attributes(ds)
-            assert ds.attrs['my_global'] == 'TEST'
-            assert ds.attrs['sector_id'] == 'TEST'
+            unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
+            masked_ds = xr.open_dataset(fn, mask_and_scale=True)
+            check_required_properties(unmasked_ds, masked_ds)
+            assert unmasked_ds.attrs['my_global'] == 'TEST'
+            assert unmasked_ds.attrs['sector_id'] == 'TEST'
             stime = input_data_arr.attrs['start_time']
-            assert ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
+            assert unmasked_ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid."""
@@ -232,9 +246,10 @@ class TestAWIPSTiledWriter:
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         assert len(all_files) == 16
         for fn in all_files:
-            ds = xr.open_dataset(fn, mask_and_scale=False)
-            check_required_common_attributes(ds)
-            assert ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
+            unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
+            masked_ds = xr.open_dataset(fn, mask_and_scale=True)
+            check_required_properties(unmasked_ds, masked_ds)
+            assert masked_ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_lettered_tiles_update_existing(self):
         """Test updating lettered tiles with additional data."""
@@ -379,9 +394,10 @@ class TestAWIPSTiledWriter:
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         assert len(all_files) == 16
         for fn in all_files:
-            ds = xr.open_dataset(fn, mask_and_scale=False)
-            check_required_common_attributes(ds)
-            assert ds.attrs['start_date_time'] == (now + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
+            unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
+            masked_ds = xr.open_dataset(fn, mask_and_scale=True)
+            check_required_properties(unmasked_ds, masked_ds)
+            assert masked_ds.attrs['start_date_time'] == (now + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_lettered_tiles_no_fit(self):
         """Test creating a lettered grid with no data overlapping the grid."""
@@ -528,8 +544,9 @@ class TestAWIPSTiledWriter:
         assert len(chan_files) == 9
         all_files.extend(chan_files)
         for fn in all_files:
-            ds = xr.open_dataset(fn, mask_and_scale=False)
-            check_required_common_attributes(ds)
+            unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
+            masked_ds = xr.open_dataset(fn, mask_and_scale=True)
+            check_required_properties(unmasked_ds, masked_ds)
 
     @pytest.mark.parametrize(
         "sector",
@@ -604,12 +621,13 @@ class TestAWIPSTiledWriter:
         all_files = glob(os.path.join(self.base_dir, fn_glob))
         assert len(all_files) == 9
         for fn in all_files:
-            ds = xr.open_dataset(fn, mask_and_scale=False)
-            check_required_common_attributes(ds)
+            unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
+            masked_ds = xr.open_dataset(fn, mask_and_scale=True)
+            check_required_properties(unmasked_ds, masked_ds)
             if sector == 'C':
-                assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                assert masked_ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
             else:  # 'F'
-                assert ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+                assert masked_ds.attrs['time_coverage_end'] == end_time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     @staticmethod
     def _get_glm_glob_filename(extra_kwargs):
