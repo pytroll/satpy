@@ -303,7 +303,7 @@ class NumberedTileGenerator(object):
         else:
             raise ValueError("Either 'tile_count' or 'tile_shape' must be provided")
 
-        # number of pixels per each tile
+        # number of pixels per each tile (rows, cols)
         self.tile_shape = tile_shape
         # number of tiles in each direction (rows, columns)
         self.tile_count = tile_count
@@ -342,9 +342,7 @@ class NumberedTileGenerator(object):
             new_extents,
         )
 
-        x, y = imaginary_grid_def.get_proj_coords()
-        x = x[0].squeeze()  # all rows should have the same coordinates
-        y = y[:, 0].squeeze()  # all columns should have the same coordinates
+        x, y = imaginary_grid_def.get_proj_vectors()
         return x, y
 
     def _get_xy_scaling_parameters(self):
@@ -352,7 +350,7 @@ class NumberedTileGenerator(object):
         gd = self.area_definition
         bx = self.x.min()
         mx = gd.pixel_size_x
-        by = self.y.min()
+        by = self.y.max()
         my = -abs(gd.pixel_size_y)
         return mx, bx, my, by
 

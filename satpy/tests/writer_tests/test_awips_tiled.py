@@ -46,6 +46,7 @@ def check_required_common_attributes(ds):
     assert x_attrs.get('standard_name') == 'projection_x_coordinate'
     assert x_attrs.get('units') == 'meters'
     assert 'scale_factor' in x_attrs
+    assert x_attrs['scale_factor'] > 0
     assert 'add_offset' in x_attrs
 
     assert 'y' in ds.coords
@@ -55,6 +56,7 @@ def check_required_common_attributes(ds):
     assert y_attrs.get('standard_name') == 'projection_y_coordinate'
     assert y_attrs.get('units') == 'meters'
     assert 'scale_factor' in y_attrs
+    assert y_attrs['scale_factor'] < 0
     assert 'add_offset' in y_attrs
 
     for attr_name in ('tile_row_offset', 'tile_column_offset',
@@ -147,6 +149,10 @@ class TestAWIPSTiledWriter:
             scale_factor = output_ds['data'].encoding['scale_factor']
             np.testing.assert_allclose(input_data_arr.values, output_ds['data'].data,
                                        atol=scale_factor / 2)
+            x_var = output_ds.coords['x']
+            assert (np.diff(x_var.values) > 0).all()
+            y_var = output_ds.coords['y']
+            assert (np.diff(y_var.values) < 0).all()
 
     @pytest.mark.parametrize(
         ("tile_count", "tile_size"),
