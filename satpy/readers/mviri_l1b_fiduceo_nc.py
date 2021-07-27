@@ -608,7 +608,7 @@ class FiduceoMviriBase(BaseFileHandler):
                 ds = qc.mask(ds)
             else:
                 qc.check()
-        ds['acq_time'] = ('y', self._get_acq_time(resolution))
+        ds['acq_time'] = self._get_acq_time(resolution)
         return ds
 
     @lru_cache(maxsize=8)  # 4 angle datasets with two resolutions each
