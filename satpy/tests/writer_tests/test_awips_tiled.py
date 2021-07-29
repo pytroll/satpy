@@ -374,7 +374,7 @@ class TestAWIPSTiledWriter:
         """Test creating a lettered grid with no valid data."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
-        data = da.full((2000, 1000), np.nan, chunks=500, dtype=np.float32),
+        data = da.full((2000, 1000), np.nan, chunks=500, dtype=np.float32)
         area_def = self._get_test_area(shape=(2000, 1000),
                                        extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = self._get_test_lcc_data(data, area_def)
