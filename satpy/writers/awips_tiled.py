@@ -227,7 +227,7 @@ from pyresample.geometry import AreaDefinition
 from trollsift.parser import StringFormatter, Parser
 
 import numpy as np
-from pyproj import Proj
+from pyproj import Proj, CRS, Transformer
 import dask
 import dask.array as da
 import xarray as xr
@@ -422,10 +422,20 @@ class NumberedTileGenerator(object):
 class LetteredTileGenerator(NumberedTileGenerator):
     """Helper class to generate per-tile metadata for lettered tiles."""
 
-    def __init__(self, area_definition, extents,
+    def __init__(self, area_definition, extents, sector_crs,
                  cell_size=(2000000, 2000000),
                  num_subtiles=None, use_sector_reference=False):
-        """Initialize tile information for later generation."""
+        """Initialize tile information for later generation.
+
+        Args:
+            area_definition (AreaDefinition): Area of the data being saved.
+            extents (tuple): Four element tuple of the configured lettered
+                 area.
+            sector_crs (pyproj.CRS): CRS of the configured lettered sector
+                area.
+            cell_size (tuple): Two element tuple of resolution of each tile
+                in sector projection units (y, x).
+        """
         # (row subtiles, col subtiles)
         self.num_subtiles = num_subtiles or (2, 2)
         self.cell_size = cell_size  # (row tile height, col tile width)
@@ -433,7 +443,8 @@ class LetteredTileGenerator(NumberedTileGenerator):
         self.ll_extents = extents[:2]  # (x min, y min)
         self.ur_extents = extents[2:]  # (x max, y max)
         self.use_sector_reference = use_sector_reference
-        super(LetteredTileGenerator, self).__init__(area_definition)
+        self._transformer = Transformer.from_crs(sector_crs, area_definition.crs)
+        super().__init__(area_definition)
 
     def _get_tile_properties(self, tile_shape, tile_count):
         """Calculate tile information for this particular sector/grid."""
@@ -445,8 +456,8 @@ class LetteredTileGenerator(NumberedTileGenerator):
         ad = self.area_definition
         x, y = ad.get_proj_vectors()
 
-        ll_xy = self.ll_extents
-        ur_xy = self.ur_extents
+        ll_xy = self._transformer.transform(*self.ll_extents)
+        ur_xy = self._transformer.transform(*self.ur_extents)
         cw = abs(ad.pixel_size_x)
         ch = abs(ad.pixel_size_y)
         st = self.num_subtiles
@@ -1261,6 +1272,7 @@ class AWIPSTiledWriter(Writer):
     def _fill_sector_info(self):
         """Convert sector extents if needed."""
         for sector_info in self.awips_sectors.values():
+            sector_info['projection'] = CRS.from_user_input(sector_info['projection'])
             p = Proj(sector_info['projection'])
             if 'lower_left_xy' in sector_info:
                 sector_info['lower_left_lonlat'] = p(*sector_info['lower_left_xy'], inverse=True)
@@ -1297,6 +1309,7 @@ class AWIPSTiledWriter(Writer):
             tile_gen = LetteredTileGenerator(
                 area_def,
                 sector_info['lower_left_xy'] + sector_info['upper_right_xy'],
+                sector_crs=sector_info['projection'],
                 cell_size=sector_info['resolution'],
                 num_subtiles=num_subtiles,
                 use_sector_reference=use_sector_reference,
@@ -1689,7 +1702,6 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
 
     img.save("test.png")
 
-    from pyresample.utils import proj4_str_to_dict
     new_extents = (
         ll_extent[0],
         ur_extent[1] - 1001. * meters_ppy,
@@ -1700,7 +1712,7 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
         'debug_grid',
         'debug_grid',
         'debug_grid',
-        proj4_str_to_dict(sector_info['projection']),
+        sector_info['projection'],
         1000,
         1000,
         new_extents

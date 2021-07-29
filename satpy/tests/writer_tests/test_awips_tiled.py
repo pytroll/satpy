@@ -251,6 +251,45 @@ class TestAWIPSTiledWriter:
             check_required_properties(unmasked_ds, masked_ds)
             assert masked_ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
 
+    def test_basic_lettered_tiles_diff_projection(self):
+        """Test creating a lettered grid from data with differing projection.."""
+        import xarray as xr
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=45 +lat_1=45 +units=m +no_defs',
+            1000,
+            2000,
+            (-1000000., -1500000., 1000000., 1500000.),
+        )
+        now = datetime(2018, 1, 1, 12, 0, 0)
+        ds = DataArray(
+            da.from_array(np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)), chunks=500),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
+        )
+        # tile_count should be ignored since we specified lettered_grid
+        w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
+        all_files = sorted(glob(os.path.join(self.base_dir, 'TESTS_AII*.nc')))
+        assert len(all_files) == 24
+        assert "TC02" in all_files[0]  # the first tile should be TC02
+        for fn in all_files:
+            unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
+            masked_ds = xr.open_dataset(fn, mask_and_scale=True)
+            check_required_properties(unmasked_ds, masked_ds)
+            assert masked_ds.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
+
     def test_lettered_tiles_update_existing(self):
         """Test updating lettered tiles with additional data."""
         import shutil
