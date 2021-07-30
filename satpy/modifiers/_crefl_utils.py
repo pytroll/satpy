@@ -220,13 +220,12 @@ def find_coefficient_index(sensor, wavelength_range, resolution=0):
     if isinstance(wavelength_range, str):
         # wavelength range is actually a band name
         return index_map[wavelength_range]
-    else:
-        for k, v in index_map.items():
-            if isinstance(k, str):
-                # we are analyzing wavelengths and ignoring dataset names
-                continue
-            if k[0] <= wavelength_range[1] <= k[2]:
-                return v
+    for k, v in index_map.items():
+        if isinstance(k, str):
+            # we are analyzing wavelengths and ignoring dataset names
+            continue
+        if k[0] <= wavelength_range[1] <= k[2]:
+            return v
 
 
 def get_coefficients(sensor, wavelength_range, resolution=0):
@@ -273,8 +272,8 @@ def _chand(phi, muv, mus, taur):
     #         int i, ib;
 
     xph1 = 1.0 + (3.0 * mus * mus - 1.0) * (3.0 * muv * muv - 1.0) * xfd / 8.0
-    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * da.sqrt(
-        1.0 - mus * mus) * da.sqrt(1.0 - muv * muv)
+    xph2 = -xfd * xbeta2 * 1.5 * mus * muv * np.sqrt(
+        1.0 - mus * mus) * np.sqrt(1.0 - muv * muv)
     xph3 = xfd * xbeta2 * 0.375 * (1.0 - mus * mus) * (1.0 - muv * muv)
 
     # pl[0] = 1.0
@@ -298,15 +297,15 @@ def _chand(phi, muv, mus, taur):
     # if ib is None:
     #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
 
-    xlntaur = da.log(taur)
+    xlntaur = np.log(taur)
 
     fs0 = fs01 + fs02 * xlntaur
     fs1 = as1[0] + xlntaur * as1[1]
     fs2 = as2[0] + xlntaur * as2[1]
     del xlntaur, fs01, fs02
 
-    trdown = da.exp(-taur / mus)
-    trup = da.exp(-taur / muv)
+    trdown = np.exp(-taur / mus)
+    trup = np.exp(-taur / muv)
 
     xitm1 = (1.0 - trdown * trup) / 4.0 / (mus + muv)
     xitm2 = (1.0 - trdown) * (1.0 - trup)
@@ -315,32 +314,22 @@ def _chand(phi, muv, mus, taur):
     xitot3 = xph3 * (xitm1 + xitm2 * fs2)
     del xph1, xph2, xph3, xitm1, xitm2, fs0, fs1, fs2
 
-    phios = da.deg2rad(phi + 180.0)
+    phios = np.deg2rad(phi + 180.0)
     xcos1 = 1.0
-    xcos2 = da.cos(phios)
-    xcos3 = da.cos(2.0 * phios)
+    xcos2 = np.cos(phios)
+    xcos3 = np.cos(2.0 * phios)
     del phios
 
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
     return rhoray, trdown, trup
 
 
-def _sphalb_index(index_arr, sphalb0):
-    # FIXME: if/when dask can support lazy index arrays then remove this
-    return sphalb0[index_arr]
-
-
 def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
-    tau_step = da.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES,
-                           chunks=int(MAXNUMSPHALBVALUES / 2))
+    tau_step = np.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES)
     sphalb0 = _csalbr(tau_step)
-    taur = tau * da.exp(-height / SCALEHEIGHT)
+    taur = tau * np.exp(-height / SCALEHEIGHT)
     rhoray, trdown, trup = _chand(phi, muv, mus, taur)
-    if isinstance(height, xr.DataArray):
-        sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0.compute(),
-                               dtype=sphalb0.dtype)
-    else:
-        sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
+    sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
     Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
     Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
     TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
@@ -351,16 +340,16 @@ def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb,
 def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
     """Get atmospheric variables for non-ABI instruments."""
     air_mass = 1.0 / mus + 1 / muv
-    air_mass = air_mass.where(air_mass <= MAXAIRMASS, -1.0)
+    air_mass[air_mass > MAXAIRMASS] = -1.0
     tO3 = 1.0
     tH2O = 1.0
     if ao3 != 0:
-        tO3 = da.exp(-air_mass * UO3 * ao3)
+        tO3 = np.exp(-air_mass * UO3 * ao3)
     if bh2o != 0:
         if bUseV171:
-            tH2O = da.exp(-da.exp(ah2o + bh2o * da.log(air_mass * UH2O)))
+            tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
         else:
-            tH2O = da.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
+            tH2O = np.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
     # Returns sphalb, rhoray, TtotraytH2O, tOG
     return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
 
@@ -370,16 +359,16 @@ def get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, a
     tO3 = 1.0
     tH2O = 1.0
     if ao3 != 0:
-        tO3 = da.exp(-G_O3 * ao3)
+        tO3 = np.exp(-G_O3 * ao3)
     if ah2o != 0:
-        tH2O = da.exp(-G_H2O * ah2o)
-    tO2 = da.exp(-G_O2 * ao2)
+        tH2O = np.exp(-G_H2O * ah2o)
+    tO2 = np.exp(-G_O2 * ao2)
     # Returns sphalb, rhoray, TtotraytH2O, tOG.
     return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
 
 
 def _G_calc(zenith, a_coeff):
-    return (da.cos(da.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
+    return (np.cos(np.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
 
 
 def _avg_elevation_index(avg_elevation, row, col):
@@ -421,41 +410,63 @@ def run_crefl(refl, coeffs,
         height = 0.
     else:
         LOG.debug("Using average elevation information provided to CREFL")
-        lat[(lat <= -90) | (lat >= 90)] = np.nan
-        lon[(lon <= -180) | (lon >= 180)] = np.nan
-        row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
-        col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
-        space_mask = da.isnull(lon) | da.isnull(lat)
-        row[space_mask] = 0
-        col[space_mask] = 0
-
-        height = da.map_blocks(_avg_elevation_index, avg_elevation, row, col, dtype=avg_elevation.dtype)
-        height = xr.DataArray(height, dims=['y', 'x'])
-        # negative heights aren't allowed, clip to 0
-        height = height.where((height >= 0.) & ~space_mask, 0.0)
-        del lat, lon, row, col
-    mus = da.cos(da.deg2rad(solar_zenith))
+        height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
+                               chunks=lon.chunks, dtype=avg_elevation.dtype)
+    mus = np.cos(np.deg2rad(solar_zenith))
     mus = mus.where(mus >= 0)
-    muv = da.cos(da.deg2rad(sensor_zenith))
+    muv = np.cos(np.deg2rad(sensor_zenith))
     phi = solar_azimuth - sensor_azimuth
 
     if use_abi:
         LOG.debug("Using ABI CREFL algorithm")
-        a_O3 = [268.45, 0.5, 115.42, -3.2922]
-        a_H2O = [0.0311, 0.1, 92.471, -1.3814]
-        a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
-        G_O3 = _G_calc(solar_zenith, a_O3) + _G_calc(sensor_zenith, a_O3)
-        G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
-        G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
-        # Note: bh2o values are actually ao2 values for abi
-        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
+        corr_refl = da.map_blocks(_run_crefl_abi, refl.data, mus.data, muv.data, phi.data,
+                                  solar_zenith, sensor_zenith, height, *coeffs, percent=percent)
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
-        sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
+        corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
+                                  height, *coeffs, chunks=refl.chunks, dtype=refl.dtype,
+                                  percent=percent)
+    return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
 
-    del solar_azimuth, solar_zenith, sensor_zenith, sensor_azimuth
-    # Note: Assume that fill/invalid values are either NaN or we are dealing
-    # with masked arrays
+
+def _space_mask_height(lon, lat, avg_elevation):
+    lat[(lat <= -90) | (lat >= 90)] = np.nan
+    lon[(lon <= -180) | (lon >= 180)] = np.nan
+    row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
+    col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
+    space_mask = np.isnan(lon) | np.isnan(lat)
+    row[space_mask] = 0
+    col[space_mask] = 0
+
+    height = avg_elevation[row, col]
+    # negative heights aren't allowed, clip to 0
+    height[(height < 0.0) | np.isnan(height) | space_mask] = 0.0
+    return height
+
+
+def _run_crefl(refl, mus, muv, phi, height, *coeffs, percent=True, computing_meta=False):
+    if computing_meta:
+        return refl
+    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent)
+
+
+def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
+                   *coeffs, percent=True, computing_meta=False):
+    if computing_meta:
+        return refl
+    a_O3 = [268.45, 0.5, 115.42, -3.2922]
+    a_H2O = [0.0311, 0.1, 92.471, -1.3814]
+    a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
+    G_O3 = _G_calc(solar_zenith, a_O3) + _G_calc(sensor_zenith, a_O3)
+    G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
+    G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
+    # Note: bh2o values are actually ao2 values for abi
+    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent)
+
+
+def _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent):
     if percent:
         corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
     else:

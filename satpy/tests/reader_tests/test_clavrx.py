@@ -98,7 +98,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
                 'flag_values': [0, 1, 2, 3, 4, 5],
-                'units': '1',
+                'units': 'none',
             })
         file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
 
@@ -217,9 +217,8 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
-            self.assertEqual(v.attrs['platform'], 'npp')
+            self.assertEqual(v.attrs['platform_name'], 'npp')
             self.assertEqual(v.attrs['sensor'], 'viirs')
             self.assertIsInstance(v.attrs['area'], SwathDefinition)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 16)
@@ -373,9 +372,13 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            assert 'calibration' not in v.attrs
+            self.assertNotIn('calibration', v.attrs)
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
+            if v.attrs["name"] == 'variable1':
+                self.assertIsInstance(v.attrs["valid_range"], list)
+            else:
+                self.assertNotIn('valid_range', v.attrs)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
     def test_load_all_new_donor(self):
@@ -406,10 +409,10 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            assert 'calibration' not in v.attrs
+            self.assertNotIn('calibration', v.attrs)
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
             self.assertTrue(v.attrs['area'].is_geostationary)
-            self.assertEqual(v.attrs['platform'], 'himawari8')
+            self.assertEqual(v.attrs['platform_name'], 'himawari8')
             self.assertEqual(v.attrs['sensor'], 'ahi')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
