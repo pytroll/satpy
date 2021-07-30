@@ -44,7 +44,7 @@ class FCI:
         cnt = len(fns)
         if cnt > 41:
             raise ValueError(f"Expected 41 files, found {cnt:d}")
-        elif cnt < 41:
+        if cnt < 41:
             fns = satpy.demo.download_fci_test_data()
         self.filenames = fnmatch.filter(fns, "*-CHK-BODY-*")
 
