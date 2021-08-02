@@ -38,9 +38,9 @@ class NC_ABI_L1B(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key['name'])
-        # For raw cal, don't apply scale and offset, use true file counts
-        if (key['calibration'] == 'counts'):
-            radiances = self.nc['Rad']
+        # For raw cal, don't apply scale and offset, return raw file counts
+        if key['calibration'] == 'counts':
+            return self._raw_calibrate(self.nc['Rad'])
         else:
             radiances = self['Rad']
 
@@ -48,7 +48,6 @@ class NC_ABI_L1B(NC_ABI_BASE):
         cal_dictionary = {
             'reflectance': self._vis_calibrate,
             'brightness_temperature': self._ir_calibrate,
-            'counts': self._raw_calibrate,
             'radiance': self._rad_calibrate
         }
 
@@ -58,7 +57,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
             raise ValueError("Unknown calibration '{}'".format(key['calibration']))
 
         # convert to satpy standard units
-        if (res.attrs['units'] == '1') and (key['calibration'] != 'counts'):
+        if res.attrs['units'] == '1' and key['calibration'] != 'counts':
             res *= 100
             res.attrs['units'] = '%'
 

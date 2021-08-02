@@ -103,7 +103,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c01
 
@@ -119,7 +119,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c02
 
@@ -135,7 +135,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c03
 
@@ -151,7 +151,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c04
 
@@ -167,7 +167,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c05
 
@@ -183,7 +183,7 @@ datasets:
         standard_name: toa_bidirectional_reflectance
         units: "%"
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c06
 
@@ -199,7 +199,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c07
 
@@ -215,7 +215,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c08
 
@@ -231,7 +231,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c09
 
@@ -247,7 +247,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c10
 
@@ -263,7 +263,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c11
 
@@ -279,7 +279,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c12
 
@@ -295,7 +295,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c13
 
@@ -311,7 +311,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c14
 
@@ -327,7 +327,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c15
 
@@ -343,6 +343,6 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
       counts:
-        standard_name: raw_counts
+        standard_name: counts
         units: "1"
     file_type: c16
