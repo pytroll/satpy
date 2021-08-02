@@ -296,7 +296,7 @@ class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
         # We expect the raw data to be unchanged
         expected = res.data
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
-        self.assertTrue(res.data.dtype == np.int16)
+        self.assertTrue(res.data.dtype == np.int16, "int16 data type expected")
         self.assertIn('scale_factor', res.attrs)
         self.assertIn('add_offset', res.attrs)
         self.assertIn('_FillValue', res.attrs)

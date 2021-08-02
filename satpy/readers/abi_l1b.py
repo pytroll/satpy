@@ -52,7 +52,8 @@ class NC_ABI_L1B(NC_ABI_BASE):
         }
 
         try:
-            res = cal_dictionary[key['calibration']](radiances)
+            func = cal_dictionary[key['calibration']]
+            res = func(radiances)
         except KeyError:
             raise ValueError("Unknown calibration '{}'".format(key['calibration']))
 
