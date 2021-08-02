@@ -69,8 +69,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
             data.attrs['units'] = ds_info['units']
             ds_info['valid_range'] = data.attrs['valid_range']
             return data
-
-        elif calibration in ['reflectance', 'radiance']:
+        if calibration in ['reflectance', 'radiance']:
             logger.debug("Calibrating to reflectances")
             # using the corresponding SCALE and OFFSET
             cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
@@ -90,7 +89,6 @@ class HDF_AGRI_L1(HDF5FileHandler):
                 ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
             else:
                 ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset)
-
         elif calibration == 'brightness_temperature':
             logger.debug("Calibrating to brightness_temperature")
             # the value of dn is the index of brightness_temperature
