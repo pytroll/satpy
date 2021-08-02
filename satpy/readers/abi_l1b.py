@@ -41,8 +41,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         # For raw cal, don't apply scale and offset, return raw file counts
         if key['calibration'] == 'counts':
             return self._raw_calibrate(self.nc['Rad'])
-        else:
-            radiances = self['Rad']
+        radiances = self['Rad']
 
         # mapping of calibration types to calibration functions
         cal_dictionary = {
