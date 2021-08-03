@@ -38,21 +38,26 @@ class NC_ABI_L1B(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key['name'])
+        # For raw cal, don't apply scale and offset, return raw file counts
+        if key['calibration'] == 'counts':
+            return self._raw_calibrate(self.nc['Rad'])
         radiances = self['Rad']
 
-        if key['calibration'] == 'reflectance':
-            logger.debug("Calibrating to reflectances")
-            res = self._vis_calibrate(radiances)
-        elif key['calibration'] == 'brightness_temperature':
-            logger.debug("Calibrating to brightness temperatures")
-            res = self._ir_calibrate(radiances)
-        elif key['calibration'] != 'radiance':
+        # mapping of calibration types to calibration functions
+        cal_dictionary = {
+            'reflectance': self._vis_calibrate,
+            'brightness_temperature': self._ir_calibrate,
+            'radiance': self._rad_calibrate
+        }
+
+        try:
+            func = cal_dictionary[key['calibration']]
+            res = func(radiances)
+        except KeyError:
             raise ValueError("Unknown calibration '{}'".format(key['calibration']))
-        else:
-            res = radiances
 
         # convert to satpy standard units
-        if res.attrs['units'] == '1':
+        if res.attrs['units'] == '1' and key['calibration'] != 'counts':
             res *= 100
             res.attrs['units'] = '%'
 
@@ -73,9 +78,11 @@ class NC_ABI_L1B(NC_ABI_BASE):
 
         res.attrs.update(key.to_dict())
         # remove attributes that could be confusing later
-        res.attrs.pop('_FillValue', None)
-        res.attrs.pop('scale_factor', None)
-        res.attrs.pop('add_offset', None)
+        # if calibration type is raw counts, we leave them in
+        if key['calibration'] != 'counts':
+            res.attrs.pop('_FillValue', None)
+            res.attrs.pop('scale_factor', None)
+            res.attrs.pop('add_offset', None)
         res.attrs.pop('_Unsigned', None)
         res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
         # although we could compute these, we'd have to update in calibration
@@ -91,7 +98,28 @@ class NC_ABI_L1B(NC_ABI_BASE):
         for attr in ('fusion_args',):
             if attr in self.nc.attrs:
                 res.attrs[attr] = self.nc.attrs[attr]
+        return res
 
+    def _rad_calibrate(self, data):
+        """Calibrate any channel to radiances.
+
+        This no-op method is just to keep the flow consistent -
+        each valid cal type results in a calibration method call
+        """
+        res = data
+        res.attrs = data.attrs
+        return res
+
+    def _raw_calibrate(self, data):
+        """Calibrate any channel to raw counts.
+
+        Useful for cases where a copy requires no calibration.
+        """
+        res = data
+        res.attrs = data.attrs
+        res.attrs['units'] = '1'
+        res.attrs['long_name'] = 'Raw Counts'
+        res.attrs['standard_name'] = 'counts'
         return res
 
     def _vis_calibrate(self, data):
