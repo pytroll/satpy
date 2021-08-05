@@ -35,6 +35,8 @@ logger = logging.getLogger(__name__)
 PLATFORM_NAMES = {
     'G16': 'GOES-16',
     'G17': 'GOES-17',
+    'G18': 'GOES-18',
+    'G19': 'GOES-19',
 }
 
 
