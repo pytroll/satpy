@@ -172,10 +172,9 @@ class NC_ABI_BASE(BaseFileHandler):
         """Get the area definition of the data at hand."""
         if 'goes_imager_projection' in self.nc:
             return self._get_areadef_fixedgrid(key)
-        elif 'goes_lat_lon_projection' in self.nc:
+        if 'goes_lat_lon_projection' in self.nc:
             return self._get_areadef_latlon(key)
-        else:
-            raise ValueError('Unsupported projection found in the dataset')
+        raise ValueError('Unsupported projection found in the dataset')
 
     def _get_areadef_latlon(self, key):
         """Get the area definition of the data at hand."""
