@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020,2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -14,7 +14,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""HY-2B L2B Reader, distributed by Eumetsat in HDF5 format."""
+"""HY-2B L2B Reader, distributed by Eumetsat in HDF5 format.
+Also handle the HDF5 files from NSOAS, based on a file example."""
 
 import numpy as np
 import xarray as xr
@@ -55,9 +56,12 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
             "Orbit_Number": self['/attr/Orbit_Number'],
             "Output_L2B_Filename": self['/attr/Output_L2B_Filename'],
             "Production_Date_Time": self['/attr/Production_Date_Time'],
-            "L2B_Expected_WVC_Rows": self['/attr/L2B_Expected_WVC_Rows'],
-            "L2B_Number_WVC_cells": self['/attr/L2B_Number_WVC_cells'],
+            "L2B_Expected_WVC_Rows": self['/attr/L2B_Expected_WVC_Rows']
         })
+        try:
+            info.update({"L2B_Number_WVC_cells": self['/attr/L2B_Number_WVC_cells']})
+        except KeyError:
+            info.update({"L2B_Expected_WVC_Cells": self['/attr/L2B_Expected_WVC_Cells']})
         return info
 
     def get_metadata(self):
@@ -91,6 +95,8 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         if self[key['name']].ndim == 3:
             dims = ['y', 'x', 'selection']
         data = self[key['name']]
+        if "valid range" in data.attrs:
+            data.attrs.update({'valid_range': data.attrs.pop('valid range')})
         if key['name'] in 'wvc_row_time':
             data = data.rename({data.dims[0]: 'y'})
         else:
@@ -115,7 +121,7 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
     def _mask_data(self, key_name, data):
         data = xr.where(data == self[key_name].attrs['fill_value'], np.nan, data)
 
-        valid_range = self[key_name].attrs['valid range']
+        valid_range = self[key_name].attrs['valid_range']
         data = xr.where(data < valid_range[0], np.nan, data)
         data = xr.where(data > valid_range[1], np.nan, data)
         return data
