@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -358,6 +358,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         test_content.update(data)
 
         return test_content
+
 
 class TestHY2SCATL2BH5Reader(unittest.TestCase):
     """Test HY2 Scatterometer L2B H5 Reader."""
