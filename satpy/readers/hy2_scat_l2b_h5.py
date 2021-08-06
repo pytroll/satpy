@@ -15,7 +15,9 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HY-2B L2B Reader, distributed by Eumetsat in HDF5 format.
+"""HY-2B L2B Reader
+
+Distributed by Eumetsat in HDF5 format.
 Also handle the HDF5 files from NSOAS, based on a file example.
 """
 
