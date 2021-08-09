@@ -219,18 +219,33 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             LOG.debug("Unknown units for file key '%s'", dataset_id)
         return file_units
 
-    def scale_swath_data(self, data, scaling_factors):
+    def scale_swath_data(self, data, scaling_factors, dataset_group):
         """Scale swath data using scaling factors and offsets.
 
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
-        num_grans = len(scaling_factors) // 2
-        gran_size = data.shape[0] // num_grans
-        factors = scaling_factors.where(scaling_factors > -999, np.float32(np.nan))
-        factors = factors.data.reshape((-1, 2))
-        factors = xr.DataArray(da.repeat(factors, gran_size, axis=0),
-                               dims=(data.dims[0], 'factors'))
-        data = data * factors[:, 0] + factors[:, 1]
+        rows_per_gran = self._get_rows_per_granule(dataset_group)
+        factors = self._mask_and_reshape_factors(scaling_factors)
+        data = self._map_and_apply_factors(data, factors, rows_per_gran)
+        return data
+
+    @staticmethod
+    def _mask_and_reshape_factors(factors):
+        factors = factors.where(factors > -999, np.float32(np.nan))
+        return factors.data.reshape((-1, 2)).rechunk((1, 2))  # make it so map_blocks happens per factor
+
+    @staticmethod
+    def _map_and_apply_factors(data, factors, rows_per_gran):
+        # The user may have requested a different chunking scheme, but we need
+        # per granule chunking right now so factor chunks map 1:1 to data chunks
+        old_chunks = data.chunks
+        dask_data = data.data.rechunk((tuple(rows_per_gran), data.data.chunks[1]))
+        dask_data = da.map_blocks(_apply_factors, dask_data, factors,
+                                  chunks=dask_data.chunks, dtype=data.dtype,
+                                  meta=np.array([[]], dtype=data.dtype))
+        data = xr.DataArray(dask_data.rechunk(old_chunks),
+                            dims=data.dims, coords=data.coords,
+                            attrs=data.attrs)
         return data
 
     @staticmethod
@@ -282,7 +297,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
             if self.use_tc is True:
                 return var_path + '_TC'
-            elif self.use_tc is None and var_path + '_TC' in self.file_content:
+            if self.use_tc is None and var_path + '_TC' in self.file_content:
                 return var_path + '_TC'
         return var_path
 
@@ -308,13 +323,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     def concatenate_dataset(self, dataset_group, var_path):
         """Concatenate dataset."""
         scan_size = self._scan_size(dataset_group)
-        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
-        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
-        scans = []
-        for granule in range(self[nb_granules_path]):
-            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
-            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
-            scans.append(self[scans_path])
+        scans = self._get_scans_per_granule(dataset_group)
         start_scan = 0
         data_chunks = []
         scans = xr.DataArray(scans)
@@ -327,6 +336,21 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return xr.concat(data_chunks, 'y')
         else:
             return self.expand_single_values(variable, scans)
+
+    def _get_rows_per_granule(self, dataset_group):
+        scan_size = self._scan_size(dataset_group)
+        scans_per_gran = self._get_scans_per_granule(dataset_group)
+        return [scan_size * gran_scans for gran_scans in scans_per_gran]
+
+    def _get_scans_per_granule(self, dataset_group):
+        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
+        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        scans = []
+        for granule in range(self[nb_granules_path]):
+            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
+            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
+            scans.append(self[scans_path])
+        return scans
 
     def mask_fill_values(self, data, ds_info):
         """Mask fill values."""
@@ -353,9 +377,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
         if not dataset_group:
             return
-        else:
-            dataset_group = dataset_group[0]
-            ds_info['dataset_group'] = dataset_group
+        dataset_group = dataset_group[0]
+        ds_info['dataset_group'] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
 
@@ -365,7 +388,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         output_units = ds_info.get("units", file_units)
         factors = self._get_scaling_factors(file_units, output_units, factor_var_path)
         if factors is not None:
-            data = self.scale_swath_data(data, factors)
+            data = self.scale_swath_data(data, factors, dataset_group)
         else:
             LOG.debug("No scaling factors found for %s", dataset_id)
 
@@ -446,6 +469,10 @@ def split_desired_other(fhs, req_geo, rem_geo):
         elif rem_geo in fh.datasets:
             other.append(fh)
     return desired, other
+
+
+def _apply_factors(data, factor_set):
+    return data * factor_set[0, 0] + factor_set[0, 1]
 
 
 class VIIRSSDRReader(FileYAMLReader):
