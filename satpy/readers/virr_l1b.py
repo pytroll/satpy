@@ -93,6 +93,8 @@ class VIRR_L1B(HDF5FileHandler):
         data = self[file_key]
         band_index = ds_info.get('band_index')
         valid_range = data.attrs.pop('valid_range', None)
+        if isinstance(valid_range, np.ndarray):
+            valid_range = valid_range.tolist()
         if band_index is not None:
             data = data[band_index]
             if valid_range:
