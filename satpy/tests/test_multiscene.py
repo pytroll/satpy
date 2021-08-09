@@ -24,6 +24,8 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
+import pytest
+
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
@@ -186,12 +188,13 @@ class TestMultiScene(unittest.TestCase):
             scn_mock.assert_has_calls(calls)
 
             scn_mock.reset_mock()
-            mscn = MultiScene.from_files(
-                    input_files_abi + input_files_glm,
-                    reader=('abi_l1b', "glm_l2"),
-                    group_keys=["start_time"],
-                    ensure_all_readers=True,
-                    time_threshold=30)
+            with pytest.warns(DeprecationWarning):
+                mscn = MultiScene.from_files(
+                        input_files_abi + input_files_glm,
+                        reader=('abi_l1b', "glm_l2"),
+                        group_keys=["start_time"],
+                        ensure_all_readers=True,
+                        time_threshold=30)
             assert len(mscn.scenes) == 2
             calls = [mock.call(
                 filenames={'abi_l1b': [in_file_abi], 'glm_l2': [in_file_glm]})
