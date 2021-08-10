@@ -627,7 +627,9 @@ class VIIRSSDRReader(FileYAMLReader):
                 c_info['dataset_groups'] = [rem_geo]
             else:
                 # concatenate all values
-                new_fhs = sum(self.create_filehandlers(geo_filenames).values(), [])
+                existing_filenames = set([fh.filename for fh in self.file_handlers['generic_file']])
+                geo_filenames = set(geo_filenames) - existing_filenames
+                new_fhs = sum(self.create_filehandlers(geo_filenames).values(), self.file_handlers['generic_file'])
                 desired, other = split_desired_other(new_fhs, req_geo, rem_geo)
                 if desired:
                     c_info['dataset_groups'].remove(rem_geo)

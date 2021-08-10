@@ -292,6 +292,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         if with_area:
             self.assertIn('area', data_arr.attrs)
             self.assertIsNotNone(data_arr.attrs['area'])
+            self.assertEqual(data_arr.attrs['area'].shape, data_arr.shape)
         else:
             self.assertNotIn('area', data_arr.attrs)
 
@@ -303,6 +304,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         if with_area:
             self.assertIn('area', data_arr.attrs)
             self.assertIsNotNone(data_arr.attrs['area'])
+            self.assertEqual(data_arr.attrs['area'].shape, data_arr.shape)
         else:
             self.assertNotIn('area', data_arr.attrs)
 
@@ -314,8 +316,14 @@ class TestVIIRSSDRReader(unittest.TestCase):
         if with_area:
             self.assertIn('area', data_arr.attrs)
             self.assertIsNotNone(data_arr.attrs['area'])
+            self.assertEqual(data_arr.attrs['area'].shape, data_arr.shape)
         else:
             self.assertNotIn('area', data_arr.attrs)
+
+    def _touch_geo_file(self, prefix):
+        geo_fn = prefix + '_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
+        open(geo_fn, 'w')
+        return geo_fn
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
@@ -437,9 +445,8 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'SVM10_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             'SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        # make a fake geo file
-        geo_fn = 'GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
-        open(geo_fn, 'w')
+        geo_fn1 = self._touch_geo_file("GMTCO")
+        geo_fn2 = self._touch_geo_file("GMODO")
 
         try:
             r.create_filehandlers(loadables)
@@ -456,7 +463,8 @@ class TestVIIRSSDRReader(unittest.TestCase):
                          'M11',
                          ])
         finally:
-            os.remove(geo_fn)
+            os.remove(geo_fn1)
+            os.remove(geo_fn2)
 
         self.assertEqual(len(ds), 11)
         for d in ds.values():
@@ -480,19 +488,25 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             'GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        r.create_filehandlers(loadables)
-        ds = r.load(['M01',
-                     'M02',
-                     'M03',
-                     'M04',
-                     'M05',
-                     'M06',
-                     'M07',
-                     'M08',
-                     'M09',
-                     'M10',
-                     'M11',
-                     ])
+        geo_fn1 = self._touch_geo_file("GMTCO")
+        geo_fn2 = self._touch_geo_file("GMODO")
+        try:
+            r.create_filehandlers(loadables)
+            ds = r.load(['M01',
+                         'M02',
+                         'M03',
+                         'M04',
+                         'M05',
+                         'M06',
+                         'M07',
+                         'M08',
+                         'M09',
+                         'M10',
+                         'M11',
+                         ])
+        finally:
+            os.remove(geo_fn1)
+            os.remove(geo_fn2)
         self.assertEqual(len(ds), 11)
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
@@ -520,19 +534,25 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             'GMODO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        r.create_filehandlers(loadables, {'use_tc': False})
-        ds = r.load(['M01',
-                     'M02',
-                     'M03',
-                     'M04',
-                     'M05',
-                     'M06',
-                     'M07',
-                     'M08',
-                     'M09',
-                     'M10',
-                     'M11',
-                     ])
+        geo_fn1 = self._touch_geo_file("GMTCO")
+        geo_fn2 = self._touch_geo_file("GMODO")
+        try:
+            r.create_filehandlers(loadables, {'use_tc': False})
+            ds = r.load(['M01',
+                         'M02',
+                         'M03',
+                         'M04',
+                         'M05',
+                         'M06',
+                         'M07',
+                         'M08',
+                         'M09',
+                         'M10',
+                         'M11',
+                         ])
+        finally:
+            os.remove(geo_fn1)
+            os.remove(geo_fn2)
         self.assertEqual(len(ds), 11)
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
@@ -559,19 +579,23 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             'GMODO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        r.create_filehandlers(loadables, {'use_tc': None})
-        ds = r.load(['M01',
-                     'M02',
-                     'M03',
-                     'M04',
-                     'M05',
-                     'M06',
-                     'M07',
-                     'M08',
-                     'M09',
-                     'M10',
-                     'M11',
-                     ])
+        geo_fn2 = self._touch_geo_file("GMODO")
+        try:
+            r.create_filehandlers(loadables, {'use_tc': None})
+            ds = r.load(['M01',
+                         'M02',
+                         'M03',
+                         'M04',
+                         'M05',
+                         'M06',
+                         'M07',
+                         'M08',
+                         'M09',
+                         'M10',
+                         'M11',
+                         ])
+        finally:
+            os.remove(geo_fn2)
         self.assertEqual(len(ds), 11)
         for d in ds.values():
             self._assert_reflectance_properties(d, with_area=True)
