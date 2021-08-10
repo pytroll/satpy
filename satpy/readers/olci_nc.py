@@ -217,13 +217,17 @@ class NCOLCI2(NCOLCIChannelBase):
 
 
 class NCOLCI2Flags(NCOLCIChannelBase):
-    """File handler for OLCI l2 flag files."""
+    """File handler for OLCI l2 flag files.
+
+    A correctly-initialized BitFlags instance is added to the "bitflags"
+    attribute in case the masked items are not defined (eg for wqsf).
+    """
 
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading %s.', key['name'])
         dataset = self.nc[info['nc_key']]
-        self._create_bitflags(dataset)
+        self.create_bitflags(dataset)
 
         if key['name'] == 'wqsf':
             dataset.attrs['_FillValue'] = 1
@@ -233,9 +237,9 @@ class NCOLCI2Flags(NCOLCIChannelBase):
         self._fill_dataarray_attrs(dataset, key)
         return dataset
 
-    def _create_bitflags(self, dataset):
+    def create_bitflags(self, dataset):
         """Create the bitflags attribute."""
-        bflags = BitFlags(dataset, dataset.attrs['flag_masks'],
+        bflags = BitFlags(dataset.attrs['flag_masks'],
                           dataset.attrs['flag_meanings'].split())
         dataset.attrs["bitflags"] = bflags
 
@@ -245,7 +249,7 @@ class NCOLCI2Flags(NCOLCIChannelBase):
             items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
-        return dataset.attrs["bitflags"].match_any(items)
+        return dataset.attrs["bitflags"].match_any(items, dataset)
 
 
 class NCOLCILowResData(NCOLCIBase):

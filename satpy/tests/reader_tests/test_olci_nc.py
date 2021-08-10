@@ -129,10 +129,12 @@ class TestOLCIReader(unittest.TestCase):
     def test_meanings_are_read_from_file(self, mocked_dataset):
         """Test that the flag meanings are read from the file."""
         fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset)
+        fh.create_bitflags(wqsf_data)
         res = fh.getbitmask(wqsf_data, ["CLOUD"])
         np.testing.assert_allclose(res, (np.arange(30) % 4).reshape(5, 6) == 3)
 
         fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, "NOTHING FISH SHRIMP TURTLES")
+        fh.create_bitflags(wqsf_data)
         res = fh.getbitmask(wqsf_data, ["TURTLES"])
         np.testing.assert_allclose(res, (np.arange(30) % 4).reshape(5, 6) == 3)
 
@@ -355,24 +357,52 @@ class TestBitFlags(unittest.TestCase):
 
     def test_bitflags(self):
         """Test the BitFlags class."""
-        from functools import reduce
-
         nb_flags = len(flag_list)
 
         # As a test, the data is just an array with the possible masks
         data = 2 ** np.arange(nb_flags)
         masks = 2 ** np.arange(nb_flags)
 
-        bflags = BitFlags(data, masks, flag_list)
+        bflags = BitFlags(masks, flag_list)
 
         items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
                  "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
                  "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
 
-        mask = reduce(np.logical_or, [bflags[item] for item in items])
+        mask = bflags.match_any(items, data)
         expected = np.array([True, False,  True,  True,  True,  True, False,
                              False,  True, True, False, False, False, False,
                              False, False, False,  True, False,  True, False,
                              False, False,  True,  True, False, False, True,
                              False])
         np.testing.assert_array_equal(mask, expected)
+
+    def test_match_item(self):
+        """Test matching one item."""
+        nb_flags = len(flag_list)
+
+        # As a test, the data is just an array with the possible masks
+        data = 2 ** np.arange(nb_flags)
+        masks = 2 ** np.arange(nb_flags)
+
+        bflags = BitFlags(masks, flag_list)
+        mask = bflags.match_item("INVALID", data)
+        expected = np.array([True, False, False, False, False, False, False,
+                             False, False, False, False, False, False, False,
+                             False, False, False, False, False, False, False,
+                             False, False, False, False, False, False, False,
+                             False])
+        np.testing.assert_array_equal(mask, expected)
+
+    def test_equality(self):
+        """Test equality."""
+        nb_flags = len(flag_list)
+
+        # As a test, the data is just an array with the possible masks
+        masks = 2 ** np.arange(nb_flags)
+
+        one = BitFlags(masks, flag_list)
+
+        two = BitFlags(masks, flag_list)
+
+        assert one == two
