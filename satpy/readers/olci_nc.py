@@ -63,22 +63,25 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 class BitFlags:
     """Manipulate flags stored bitwise."""
 
-    def __init__(self, data, masks, meanings):
+    def __init__(self, masks, meanings):
         """Init the flags."""
-        self._data = data
         self._masks = masks
         self._meanings = meanings
         self._map = dict(zip(meanings, masks))
 
-    def __getitem__(self, item):
-        """Get the item."""
+    def match_item(self, item, data):
+        """Match any of the item."""
         mask = self._map[item]
-        return np.bitwise_and(self._data, mask).astype(np.bool)
+        return np.bitwise_and(data, mask).astype(np.bool)
 
-    def match_any(self, items):
-        """Match any of the items."""
+    def match_any(self, items, data):
+        """Match any of the items in data."""
         mask = reduce(np.bitwise_or, [self._map[item] for item in items])
-        return np.bitwise_and(self._data, mask).astype(np.bool)
+        return np.bitwise_and(data, mask).astype(np.bool)
+
+    def __eq__(self, other):
+        """Check equality."""
+        return all(self._masks == other._masks) and self._meanings == other._meanings
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -131,11 +134,16 @@ class NCOLCIBase(BaseFileHandler):
         with suppress(IOError, OSError, AttributeError):
             self.nc.close()
 
-    def _fill_dataarray_attrs(self, data, key):
+    def _fill_dataarray_attrs(self, data, key, info=None):
         """Fill the dataarray with relevant attributes."""
         data.attrs['platform_name'] = self.platform_name
         data.attrs['sensor'] = self.sensor
         data.attrs.update(key.to_dict())
+        if info is not None:
+            info = info.copy()
+            for key in ["nc_key", "coordinates", "file_type", "name"]:
+                info.pop(key, None)
+            data.attrs.update(info)
 
 
 class NCOLCICal(NCOLCIBase):
@@ -212,7 +220,7 @@ class NCOLCI2(NCOLCIChannelBase):
         else:
             dataset = self.nc[info['nc_key']]
 
-        self._fill_dataarray_attrs(dataset, key)
+        self._fill_dataarray_attrs(dataset, key, info)
         return dataset
 
 

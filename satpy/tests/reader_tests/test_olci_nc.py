@@ -105,6 +105,34 @@ class TestOLCIReader(unittest.TestCase):
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.tests.utils import make_dataid
+        fh, _ = self._create_l2_filehandler(mocked_dataset)
+        ds_id = make_dataid(name='w_aer')
+        res = fh.get_dataset(ds_id, {'nc_key': 'T865', 'funky_attr': 'JBs'})
+        self.assertEqual(res.dtype, np.uint64)
+        assert res.attrs['funky_attr'] == 'JBs'
+        assert "nc_key" not in res.attrs.keys()
+
+    def _create_l2_filehandler(self, mocked_dataset):
+        """Create a filehandle for the l2 data."""
+        from satpy.readers.olci_nc import NCOLCI2
+        import xarray as xr
+        data = xr.DataArray((2 ** (np.arange(30))).astype(np.uint64).reshape(5, 6),
+                            dims=["rows", "columns"],
+                            coords={'rows': np.arange(5),
+                                    'columns': np.arange(6)})
+        mocked_dataset.return_value = xr.Dataset({'T865': data})
+        filename_info = {'mission_id': 'S3A', 'dataset_name': None, 'start_time': 0, 'end_time': 0}
+        fh = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
+        return fh, data
+
+
+@mock.patch('xarray.open_dataset')
+class TestOLCI2Flags(unittest.TestCase):
+    """Test the olci_nc flag filehandler."""
+
+    def test_get_dataset(self, mocked_dataset):
+        """Test reading datasets."""
+        from satpy.tests.utils import make_dataid
         fh, _ = self._create_wqsf_filehandler(mocked_dataset)
         ds_id = make_dataid(name='wqsf')
         res = fh.get_dataset(ds_id, {'nc_key': 'WQSF'})
