@@ -18,7 +18,9 @@
 """Module for testing the satpy.readers.olci_nc module."""
 import unittest
 import unittest.mock as mock
+
 import numpy as np
+from satpy.readers.olci_nc import BitFlags
 
 flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
              'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
@@ -153,6 +155,15 @@ class TestOLCIReader(unittest.TestCase):
                              False, False,  True,  True, False, False, True,
                              False, True]).reshape(5, 6)
         np.testing.assert_array_equal(res, expected)
+
+    def test_wqsf_has_bitflags_attribute(self, mocked_dataset):
+        """Test wqsf has a bitflags attribute."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        ds_id = make_dataid(name='wqsf')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF'})
+        assert isinstance(res.attrs["bitflags"], BitFlags)
 
     def test_get_cloud_mask(self, mocked_dataset):
         """Test reading the cloud_mask dataset."""
@@ -345,7 +356,6 @@ class TestBitFlags(unittest.TestCase):
     def test_bitflags(self):
         """Test the BitFlags class."""
         from functools import reduce
-        from satpy.readers.olci_nc import BitFlags
 
         nb_flags = len(flag_list)
 

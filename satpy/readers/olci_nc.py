@@ -223,6 +223,7 @@ class NCOLCI2Flags(NCOLCIChannelBase):
         """Load a dataset."""
         logger.debug('Reading %s.', key['name'])
         dataset = self.nc[info['nc_key']]
+        self._create_bitflags(dataset)
 
         if key['name'] == 'wqsf':
             dataset.attrs['_FillValue'] = 1
@@ -232,15 +233,19 @@ class NCOLCI2Flags(NCOLCIChannelBase):
         self._fill_dataarray_attrs(dataset, key)
         return dataset
 
-    def getbitmask(self, wqsf, items=None):
+    def _create_bitflags(self, dataset):
+        """Create the bitflags attribute."""
+        bflags = BitFlags(dataset, dataset.attrs['flag_masks'],
+                          dataset.attrs['flag_meanings'].split())
+        dataset.attrs["bitflags"] = bflags
+
+    def getbitmask(self, dataset, items=None):
         """Generate the bitmask."""
         if items is None:
             items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
-        bflags = BitFlags(wqsf, wqsf.attrs['flag_masks'],
-                          wqsf.attrs['flag_meanings'].split())
-        return bflags.match_any(items)
+        return dataset.attrs["bitflags"].match_any(items)
 
 
 class NCOLCILowResData(NCOLCIBase):
