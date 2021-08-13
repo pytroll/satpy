@@ -95,6 +95,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         file_content['variable3'] = xr.DataArray(
             da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.byte),
             attrs={
+                'SCALED': 0,
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
                 'flag_values': [0, 1, 2, 3, 4, 5],
@@ -291,6 +292,7 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
             DEFAULT_FILE_DATA.astype(np.byte),
             dims=('y', 'x'),
             attrs={
+                'SCALED': 0,
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
                 'flag_values': [0, 1, 2, 3, 4, 5],
@@ -375,10 +377,13 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             self.assertNotIn('calibration', v.attrs)
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
+            self.assertIn('_FillValue', v.attrs)
             if v.attrs["name"] == 'variable1':
                 self.assertIsInstance(v.attrs["valid_range"], list)
             else:
                 self.assertNotIn('valid_range', v.attrs)
+            if 'flag_values' in v.attrs:
+                np.issubdtype(v.dtype, int)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
     def test_load_all_new_donor(self):
