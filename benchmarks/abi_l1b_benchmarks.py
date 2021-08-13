@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Benchmark AHI HSD operations.."""
+"""Benchmark ABI L1B operations."""
 
 import os
 
@@ -25,21 +25,21 @@ from pyspectral.rsr_reader import check_and_download as download_rsr
 from benchmarks.utils import get_filenames, GeoBenchmarks
 
 
-class HimawariHSD(GeoBenchmarks):
-    """Benchmark Himawari HSD reading."""
+class ABIL1B(GeoBenchmarks):
+    """Benchmark ABI L1B reading."""
 
     timeout = 600
     data_files = []
-    subdir = os.path.join("ahi_hsd", "20210417_0500_typhoon_surigae")
-    reader = 'ahi_hsd'
+    subdir = os.path.join("abi_l1b", "20190314_us_midlatitude_cyclone")
+    reader = "abi_l1b"
 
     def setup_cache(self):
         """Fetch the data files."""
         try:
-            from satpy.demo import download_typhoon_surigae_ahi
-            download_typhoon_surigae_ahi(channels=[1, 2, 3, 4], segments=[4])
+            from satpy.demo import get_us_midlatitude_cyclone_abi
+            get_us_midlatitude_cyclone_abi()
         except ImportError:
-            assert len(get_filenames(self.subdir)) == 4
+            assert len(get_filenames(self.subdir)) == 16
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 
@@ -51,11 +51,11 @@ class HimawariHSD(GeoBenchmarks):
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""
-        self.compute_channel("B01")
+        self.compute_channel("C01")
 
     def peakmem_load_one_channel(self):
         """Check peak memory usage of loading one channel."""
-        self.compute_channel("B01")
+        self.compute_channel("C01")
 
     def time_load_true_color(self):
         """Time the loading of the generation of true_color."""

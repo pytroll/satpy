@@ -51,42 +51,24 @@ class SEVIRIHRIT(GeoBenchmarks):
 
     def time_load_one_channel(self):
         """Time the loading of one channel."""
-        self.compute_vis006()
+        self.compute_channel("VIS006")
 
     def peakmem_load_one_channel(self):
         """Check peak memory usage of loading one channel."""
-        self.compute_vis006()
+        self.compute_channel("VIS006")
 
     def time_load_overview(self):
         """Time the loading of the generation of overview."""
-        self.compute_overview()
+        self.compute_composite("overview")
 
     def peakmem_load_overview(self):
         """Check peak memory usage of the generation of overview."""
-        self.compute_overview()
+        self.compute_composite("overview")
 
     def time_save_overview_to_geotiff(self):
         """Time the generation and saving of overview."""
-        self.save_overview_as_geotiff()
+        self.save_composite_as_geotiff("overview")
 
     def peakmem_save_overview_to_geotiff(self):
         """Check peak memory usage of the generation and saving of overview."""
-        self.save_overview_as_geotiff()
-
-    def compute_vis006(self):
-        """Load and compute one channel."""
-        composite = "VIS006"
-        scn = self.load_no_padding(composite)
-        scn[composite].compute()
-
-    def compute_overview(self):
-        """Compute an overview image."""
-        composite = "overview"
-        scn = self.load_no_padding(composite)
-        scn[composite].compute()
-
-    def save_overview_as_geotiff(self):
-        """Save a overview to disk as geotiff."""
-        composite = "overview"
-        scn = self.load_no_padding(composite)
-        scn.save_dataset(composite, filename='test.tif', tiled=True)
+        self.save_composite_as_geotiff("overview")

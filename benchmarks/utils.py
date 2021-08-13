@@ -36,3 +36,23 @@ class GeoBenchmarks:
         scn = Scene(filenames=self.data_files, reader=self.reader)
         scn.load([composite], pad_data=False)
         return scn
+
+    def load_and_native_resample(self, composite):
+        """Load and native resample a composite."""
+        scn = self.load_no_padding(composite)
+        return scn.resample(resampler='native')
+
+    def compute_composite(self, composite):
+        """Compute a true color image."""
+        lscn = self.load_and_native_resample(composite)
+        lscn[composite].compute()
+
+    def save_composite_as_geotiff(self, composite):
+        """Save a true_color_nocorr to disk as geotiff."""
+        lscn = self.load_and_native_resample(composite)
+        lscn.save_dataset(composite, filename='test.tif', tiled=True)
+
+    def compute_channel(self, channel):
+        """Load and compute one channel."""
+        scn = self.load_no_padding(channel)
+        scn[channel].compute()
