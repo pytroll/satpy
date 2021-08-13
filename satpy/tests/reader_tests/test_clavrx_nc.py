@@ -92,7 +92,8 @@ def fake_test_content(filename, **kwargs):
     variable3 = xr.DataArray(DEFAULT_FILE_DATA.astype(np.byte),
                              dims=('scan_lines_along_track_direction',
                                    'pixel_elements_along_scan_direction'),
-                             attrs={'_FillValue': -128,
+                             attrs={'SCALED': 0,
+                                    '_FillValue': -128,
                                     'flag_meanings': 'clear water supercooled mixed ice unknown',
                                     'flag_values': [0, 1, 2, 3, 4, 5],
                                     'units': '1',
@@ -193,4 +194,8 @@ class TestCLAVRXReaderGeo:
                     assert 'rows_per_scan' not in v.coords.get('longitude').attrs
                     if v.attrs["name"] in ["variable1", "variable2"]:
                         assert isinstance(v.attrs["valid_range"], list)
-                assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
+                        assert v.dtype == np.float32
+                    else:
+                        assert (datasets['variable3'].attrs.get('flag_meanings')) is not None
+                        assert "_FillValue" in v.attrs.keys()
+                        assert np.issubdtype(v.dtype, np.integer)

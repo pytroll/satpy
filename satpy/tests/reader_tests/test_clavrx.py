@@ -377,14 +377,17 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             self.assertNotIn('calibration', v.attrs)
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
-            self.assertIn('_FillValue', v.attrs)
+            if v.attrs.get("flag_values"):
+                self.assertIn('_FillValue', v.attrs)
+            else:
+                self.assertNotIn('_FillValue', v.attrs)
             if v.attrs["name"] == 'variable1':
                 self.assertIsInstance(v.attrs["valid_range"], list)
             else:
                 self.assertNotIn('valid_range', v.attrs)
             if 'flag_values' in v.attrs:
-                np.issubdtype(v.dtype, int)
-        self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
+                self.assertTrue(np.issubdtype(v.dtype, np.integer))
+                self.assertIsNotNone(v.attrs.get('flag_meanings'))
 
     def test_load_all_new_donor(self):
         """Test loading all test datasets with new donor."""
