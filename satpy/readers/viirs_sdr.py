@@ -459,14 +459,14 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
                 yield is_avail, ds_info
 
 
-def split_desired_other(fhs, req_geo, rem_geo):
+def split_desired_other(fhs, prime_geo, second_geo):
     """Split the provided filehandlers *fhs* into desired filehandlers and others."""
     desired = []
     other = []
     for fh in fhs:
-        if req_geo in fh.datasets:
+        if prime_geo in fh.datasets:
             desired.append(fh)
-        elif rem_geo in fh.datasets:
+        elif second_geo in fh.datasets:
             other.append(fh)
     return desired, other
 
@@ -556,34 +556,34 @@ class VIIRSSDRReader(FileYAMLReader):
 
         return fns
 
-    def _get_req_rem_geo(self, ds_info):
+    def _get_primary_secondary_geo_groups(self, ds_info):
         """Find out which geolocation files are needed."""
         if ds_info['dataset_groups'][0].startswith('GM'):
             if self.use_tc is False:
-                req_geo = 'GMODO'
-                rem_geo = 'GMTCO'
+                prime_geo = 'GMODO'
+                second_geo = 'GMTCO'
             else:
-                req_geo = 'GMTCO'
-                rem_geo = 'GMODO'
+                prime_geo = 'GMTCO'
+                second_geo = 'GMODO'
         elif ds_info['dataset_groups'][0].startswith('GI'):
             if self.use_tc is False:
-                req_geo = 'GIMGO'
-                rem_geo = 'GITCO'
+                prime_geo = 'GIMGO'
+                second_geo = 'GITCO'
             else:
-                req_geo = 'GITCO'
-                rem_geo = 'GIMGO'
+                prime_geo = 'GITCO'
+                second_geo = 'GIMGO'
         else:
             raise ValueError('Unknown dataset group %s' % ds_info['dataset_groups'][0])
-        return req_geo, rem_geo
+        return prime_geo, second_geo
 
     def get_right_geo_fhs(self, dsid, fhs):
         """Find the right geographical file handlers for given dataset ID *dsid*."""
         ds_info = self.all_ids[dsid]
-        req_geo, rem_geo = self._get_req_rem_geo(ds_info)
-        desired, other = split_desired_other(fhs, req_geo, rem_geo)
+        prime_geo, second_geo = self._get_primary_secondary_geo_groups(ds_info)
+        desired, other = split_desired_other(fhs, prime_geo, second_geo)
         if desired:
             try:
-                ds_info['dataset_groups'].remove(rem_geo)
+                ds_info['dataset_groups'].remove(second_geo)
             except ValueError:
                 pass
             return desired
@@ -614,13 +614,13 @@ class VIIRSSDRReader(FileYAMLReader):
         for c_id in coords:
             c_info = self.all_ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
             self._get_file_handlers(c_id)
-            req_geo, rem_geo = self._geo_dataset_groups(c_info)
-            if req_geo is None:
+            prime_geo, second_geo = self._geo_dataset_groups(c_info)
+            if prime_geo is None:
                 continue
 
             # check the dataset file for the geolocation filename
             geo_filenames = self._load_filenames_from_geo_ref(dsid)
-            self._update_coords_groups_for_geo(c_info, geo_filenames, req_geo, rem_geo)
+            self._update_coords_groups_for_geo(c_info, geo_filenames, prime_geo, second_geo)
 
         return coords
 
@@ -628,27 +628,25 @@ class VIIRSSDRReader(FileYAMLReader):
         if len(c_info['dataset_groups']) == 1:  # filtering already done
             return None, None
         try:
-            req_geo, rem_geo = self._get_req_rem_geo(c_info)
-            return req_geo, rem_geo
+            prime_geo, second_geo = self._get_primary_secondary_geo_groups(c_info)
+            return prime_geo, second_geo
         except ValueError:  # DNB
             return None, None
 
-    def _update_coords_groups_for_geo(self, c_info, geo_filenames, req_geo, rem_geo):
+    def _update_coords_groups_for_geo(self, c_info, geo_filenames, prime_geo, second_geo):
         if not geo_filenames:
-            c_info['dataset_groups'] = [rem_geo]
+            c_info['dataset_groups'] = [second_geo]
         else:
             self._create_new_geo_file_handlers(geo_filenames)
-            self._remove_not_loaded_geo_dataset_group(c_info['dataset_groups'], req_geo, rem_geo)
+            self._remove_not_loaded_geo_dataset_group(c_info['dataset_groups'], prime_geo, second_geo)
 
     def _create_new_geo_file_handlers(self, geo_filenames):
         existing_filenames = set([fh.filename for fh in self.file_handlers['generic_file']])
         geo_filenames = set(geo_filenames) - existing_filenames
         self.create_filehandlers(geo_filenames)
 
-    def _remove_not_loaded_geo_dataset_group(self, c_dataset_groups, req_geo, rem_geo):
+    def _remove_not_loaded_geo_dataset_group(self, c_dataset_groups, prime_geo, second_geo):
         all_fhs = self.file_handlers['generic_file']
-        desired, other = split_desired_other(all_fhs, req_geo, rem_geo)
-        if desired:
-            c_dataset_groups.remove(rem_geo)
-        else:
-            c_dataset_groups.remove(req_geo)
+        desired, other = split_desired_other(all_fhs, prime_geo, second_geo)
+        group_to_remove = second_geo if desired else prime_geo
+        c_dataset_groups.remove(group_to_remove)
