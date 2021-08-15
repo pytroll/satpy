@@ -531,7 +531,7 @@ class VIIRSSDRReader(FileYAMLReader):
         """Load filenames from the N_GEO_Ref attribute of a dataset's file."""
         file_handlers = self._get_file_handlers(dsid)
         if not file_handlers:
-            return None
+            return []
 
         fns = []
         for fh in file_handlers:
@@ -620,7 +620,8 @@ class VIIRSSDRReader(FileYAMLReader):
 
             # check the dataset file for the geolocation filename
             geo_filenames = self._load_filenames_from_geo_ref(dsid)
-            self._update_coords_groups_for_geo(c_info, geo_filenames, prime_geo, second_geo)
+            self._create_new_geo_file_handlers(geo_filenames)
+            self._remove_not_loaded_geo_dataset_group(c_info['dataset_groups'], prime_geo, second_geo)
 
         return coords
 
@@ -632,13 +633,6 @@ class VIIRSSDRReader(FileYAMLReader):
             return prime_geo, second_geo
         except ValueError:  # DNB
             return None, None
-
-    def _update_coords_groups_for_geo(self, c_info, geo_filenames, prime_geo, second_geo):
-        if not geo_filenames:
-            c_info['dataset_groups'] = [second_geo]
-        else:
-            self._create_new_geo_file_handlers(geo_filenames)
-            self._remove_not_loaded_geo_dataset_group(c_info['dataset_groups'], prime_geo, second_geo)
 
     def _create_new_geo_file_handlers(self, geo_filenames):
         existing_filenames = set([fh.filename for fh in self.file_handlers['generic_file']])
