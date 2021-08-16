@@ -197,22 +197,32 @@ class TestAHIDemoDownload:
         assert len(files) == 6
 
 
+def _create_and_populate_dummy_tarfile(fn):
+    """Populate a dummy tarfile with dummy files."""
+    fn.parent.mkdir(exist_ok=True, parents=True)
+    with tarfile.open(fn, mode="x:gz") as tf:
+        for i in range(3):
+            with open(f"fci-rc{i:d}", "w"):
+                pass
+            tf.addfile(tf.gettarinfo(name=f"fci-rc{i:d}"))
+
+
 def test_fci_download(tmp_path, monkeypatch):
     """Test download of FCI test data."""
     from satpy.demo import download_fci_test_data
     monkeypatch.chdir(tmp_path)
 
     def fake_urlretrieve(url):
-        # create a dummy tarfile
-        fn = tmp_path / "tofu.tar.gz"
-        fn.parent.mkdir(exist_ok=True, parents=True)
+        """Create a dummy tarfile.
 
-        with tarfile.open(fn, mode="x:gz") as tf:
-            for i in range(3):
-                with open(f"fci-rc{i:d}", "w"):
-                    pass
-                tf.addfile(tf.gettarinfo(name=f"fci-rc{i:d}"))
+        Create a dummy tarfile.  Returns a fake urlretrieve result pointing there.
+
+        Intended as a drop-in replacement for urlretrieve.
+        """
+        fn = tmp_path / "tofu.tar.gz"
+        _create_and_populate_dummy_tarfile(fn)
         return (os.fspath(fn), None)
+
     with mock.patch("urllib.request.urlretrieve", new=fake_urlretrieve):
         files = download_fci_test_data(tmp_path)
     assert len(files) == 3
