@@ -102,6 +102,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c01
 
   C02:
@@ -115,6 +118,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c02
 
   C03:
@@ -128,6 +134,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c03
 
   C04:
@@ -141,6 +150,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c04
 
   C05:
@@ -154,6 +166,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c05
 
   C06:
@@ -167,6 +182,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c06
 
   C07:
@@ -180,6 +198,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c07
 
   C08:
@@ -193,6 +214,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c08
 
   C09:
@@ -206,6 +230,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c09
 
   C10:
@@ -219,6 +246,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c10
 
   C11:
@@ -232,6 +262,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c11
 
   C12:
@@ -245,6 +278,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c12
 
   C13:
@@ -258,6 +294,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c13
 
   C14:
@@ -271,6 +310,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c14
 
   C15:
@@ -284,6 +326,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c15
 
   C16:
@@ -297,4 +342,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
+      counts:
+        standard_name: counts
+        units: "1"
     file_type: c16
