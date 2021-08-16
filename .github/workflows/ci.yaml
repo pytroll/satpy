@@ -113,6 +113,7 @@ jobs:
           git+https://github.com/pydata/xarray;
 
       - name: Install satpy
+        shell: bash -l {0}
         run: |
           python -m pip install --no-deps -e .
 
