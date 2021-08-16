@@ -131,12 +131,14 @@ class _CLAVRxHelper:
             data = _CLAVRxHelper._scale_data(data, factor, offset)
             # don't need _FillValue if it has been applied.
             attrs.pop('_FillValue', None)
-            fill = _CLAVRxHelper._scale_data(fill, factor, offset)
 
         if all(valid_range):
             valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
             valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
-            data = data.where((data >= valid_min) & (data <= valid_max))
+            if flags:
+                data = data.where((data >= valid_min) & (data <= valid_max), fill)
+            else:
+                data = data.where((data >= valid_min) & (data <= valid_max))
             attrs['valid_range'] = [valid_min, valid_max]
 
         data.attrs = _CLAVRxHelper._remove_attributes(attrs)
