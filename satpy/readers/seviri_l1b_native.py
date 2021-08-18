@@ -84,7 +84,7 @@ class NativeMSGFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  calib_mode='nominal', fill_disk=False, ext_calib_coefs=None,
-                 mda_max_array_size=100):
+                 include_raw_metadata=False, mda_max_array_size=100):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
@@ -93,6 +93,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         self.calib_mode = calib_mode
         self.ext_calib_coefs = ext_calib_coefs or {}
         self.fill_disk = fill_disk
+        self.include_raw_metadata = include_raw_metadata
         self.mda_max_array_size = mda_max_array_size
 
         # Declare required variables.
@@ -588,9 +589,10 @@ class NativeMSGFileHandler(BaseFileHandler):
         except NoValidOrbitParams as err:
             logger.warning(err)
         dataset.attrs['orbital_parameters'] = orbital_parameters
-        dataset.attrs['raw_metadata'] = reduce_mda(
-            self.header, max_size=self.mda_max_array_size
-        )
+        if self.include_raw_metadata:
+            dataset.attrs['raw_metadata'] = reduce_mda(
+                self.header, max_size=self.mda_max_array_size
+            )
 
     @cached_property
     def satpos(self):

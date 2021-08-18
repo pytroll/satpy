@@ -210,7 +210,8 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT prologue reader."""
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None, mda_max_array_size=None, fill_hrv=None):
+                 ext_calib_coefs=None, include_raw_metadata=False,
+                 mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -282,7 +283,8 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT epilogue reader."""
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None, mda_max_array_size=None, fill_hrv=None):
+                 ext_calib_coefs=None, include_raw_metadata=False,
+                 mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -336,7 +338,8 @@ class HRITMSGFileHandler(HRITFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  prologue, epilogue, calib_mode='nominal',
-                 ext_calib_coefs=None, mda_max_array_size=100, fill_hrv=True):
+                 ext_calib_coefs=None, include_raw_metadata=False,
+                 mda_max_array_size=100, fill_hrv=True):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -349,6 +352,7 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
+        self.include_raw_metadata = include_raw_metadata
         self.mda_max_array_size = mda_max_array_size
         self.fill_hrv = fill_hrv
         self.calib_mode = calib_mode
@@ -625,7 +629,8 @@ class HRITMSGFileHandler(HRITFileHandler):
             'projection_altitude': self.mda['projection_parameters']['h']}
         res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
         res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
-        res.attrs['raw_metadata'] = self._get_raw_mda()
+        if self.include_raw_metadata:
+            res.attrs['raw_metadata'] = self._get_raw_mda()
 
     def _get_calib_coefs(self, channel_name):
         """Get coefficients for calibration from counts to radiance."""
