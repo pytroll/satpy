@@ -140,6 +140,7 @@ class Scene:
         """Join the sensors from all loaded readers."""
         # if the user didn't tell us what sensors to work with, let's figure it
         # out
+        # TODO: Update sensors based on currently loaded datasets
         if not self.attrs.get('sensor'):
             # reader finder could return multiple readers
             return set([sensor for reader_instance in self._readers.values()
@@ -1207,6 +1208,11 @@ class Scene:
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
+            self._composite_loader = CompositorLoader()
+            sensors = self.attrs['sensor'] | set(x for y in self.values() for x in y.attrs.get("sensor", []))
+            comps, mods = self._composite_loader.load_compositors(sensors)
+            self._dependency_tree.compositors.update(comps)
+            self._dependency_tree.modifiers.update(mods)
             self._dependency_tree.populate_with_keys(needed_datasets, query)
         except MissingDependencies as err:
             raise KeyError(str(err))

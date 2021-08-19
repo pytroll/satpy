@@ -1604,6 +1604,58 @@ class TestSceneResampling:
         assert 'comp10' in new_scn
         assert not new_scn.missing_datasets
 
+    def test_comp_loading_after_resampling_existing_sensor(self):
+        """Test requesting a composite after resampling."""
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(["ds1", "ds2"])
+        new_scn = scene.resample(resampler='native')
+
+        # Can't load from readers after resampling
+        with pytest.raises(KeyError):
+            new_scn.load(["ds3"])
+
+        # But we can load composites because the sensor composites were loaded
+        # when the reader datasets were accessed
+        new_scn.load(["comp2"])
+        assert "comp2" in new_scn
+
+    def test_comp_loading_after_resampling_new_sensor(self):
+        """Test requesting a composite after resampling when the sensor composites weren't loaded before."""
+        # this is our base Scene with sensor "fake_sensor2"
+        scene1 = Scene(filenames=['fake2_3ds_1.txt'], reader='fake2_3ds')
+        scene1.load(["ds2"])
+        new_scn = scene1.resample(resampler='native')
+
+        # Can't load from readers after resampling
+        with pytest.raises(KeyError):
+            new_scn.load(["ds3"])
+
+        # Can't load the composite from fake_sensor composites yet
+        # 'ds1' is missing
+        with pytest.raises(KeyError):
+            new_scn.load(["comp2"])
+
+        # artificial DataArray "created by the user"
+        # mimics a user adding their own data with the same sensor
+        user_da = scene1["ds2"].copy()
+        user_da.attrs["name"] = "ds1"
+        user_da.attrs["sensor"] = {"fake_sensor2"}
+        # Add 'ds1' that doesn't provide the 'fake_sensor' sensor
+        new_scn["ds1"] = user_da
+        with pytest.raises(KeyError):
+            new_scn.load(["comp2"])
+        assert "comp2" not in new_scn
+
+        # artificial DataArray "created by the user"
+        # mimics a user adding their own data with its own sensor to the Scene
+        user_da = scene1["ds2"].copy()
+        user_da.attrs["name"] = "ds1"
+        user_da.attrs["sensor"] = {"fake_sensor"}
+        # Now 'fake_sensor' composites have been loaded
+        new_scn["ds1"] = user_da
+        new_scn.load(["comp2"])
+        assert "comp2" in new_scn
+
     def test_comps_need_resampling_optional_mod_deps(self):
         """Test that a composite with complex dependencies.
 
