@@ -53,7 +53,7 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     Or for all of global attributes:
 
-        wrapper["/attr"] or wrapper["/attrs"]
+        wrapper["/attrs"]
 
     Note that loading datasets requires reopening the original file
     (unless those datasets are cached, see below), but to get just the
@@ -132,11 +132,24 @@ class NetCDF4FileHandler(BaseFileHandler):
             except RuntimeError:  # presumably closed already
                 pass
 
+    def _collect_global_attrs(self, obj):
+        """Collect all the global attributes for the provided file object."""
+        global_attrs = {}
+        for key in obj.ncattrs():
+            value = getattr(obj, key)
+            fc_key = f"/attr/{key}"
+            try:
+                value = np2str(value)
+            except ValueError:
+                pass
+            self.file_content[fc_key] = global_attrs[key] = value
+        self.file_content["/attrs"] = global_attrs
+
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""
         for key in obj.ncattrs():
             value = getattr(obj, key)
-            fc_key = "{}/attr/{}".format(name, key)
+            fc_key = f"{name}/attr/{key}"
             try:
                 self.file_content[fc_key] = np2str(value)
             except ValueError:
@@ -149,11 +162,21 @@ class NetCDF4FileHandler(BaseFileHandler):
         """
         # Look through each subgroup
         base_name = name + "/" if name else ""
+        self._collect_groups_info(base_name, obj)
+        self._collect_variables_info(base_name, obj)
+        if not name:
+            self._collect_global_attrs(obj)
+        else:
+            self._collect_attrs(name, obj)
+
+    def _collect_groups_info(self, base_name, obj):
         for group_name, group_obj in obj.groups.items():
             full_group_name = base_name + group_name
             self.file_content[full_group_name] = group_obj
             self._collect_attrs(full_group_name, group_obj)
             self.collect_metadata(full_group_name, group_obj)
+
+    def _collect_variables_info(self, base_name, obj):
         for var_name, var_obj in obj.variables.items():
             var_name = base_name + var_name
             self.file_content[var_name] = var_obj
@@ -161,7 +184,6 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.file_content[var_name + "/shape"] = var_obj.shape
             self.file_content[var_name + "/dimensions"] = var_obj.dimensions
             self._collect_attrs(var_name, var_obj)
-        self._collect_attrs(name, obj)
 
     def collect_dimensions(self, name, obj):
         """Collect dimensions."""
@@ -191,22 +213,12 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def __getitem__(self, key):
         """Get item for given key."""
-        if key in ('/attr', '/attrs'):
-            return self._get_global_attrs()
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
             return self._get_variable(key, val)
         if isinstance(val, netCDF4.Group):
             return self._get_group(key, val)
         return val
-
-    def _get_global_attrs(self):
-        """Get the global attributes of the netcfd file."""
-        global_attrs = {}
-        for _key, _val in self.file_content.items():
-            if _key.startswith('/attr/'):
-                global_attrs[_key] = _val
-        return global_attrs
 
     def _get_variable(self, key, val):
         """Get a variable from the netcdf file."""
