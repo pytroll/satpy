@@ -245,7 +245,7 @@ the base Satpy installation.
     * - IASI level 2 SO2 in BUFR format
       - `iasi_l2_so2_bufr`
       - Beta
-    * - HY-2B Scatterometer level 2b data in HDF5 format
+    * - HY-2B Scatterometer level 2b data in HDF5 format from both EUMETSAT and NSOAS
       - `hy2_scat_l2b_h5`
       - Beta
     * - OMPS EDR data in HDF5 format
