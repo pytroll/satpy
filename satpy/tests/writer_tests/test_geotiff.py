@@ -111,7 +111,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
         w.save_datasets(datasets)
 
     def test_dtype_for_enhance_false(self):
-        """Test that dtype of dataset is used if enhance=False."""
+        """Test that dtype of dataset is used if parameters enhance=False and dtype=None."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter(base_dir=self.base_dir, enhance=False)
@@ -119,6 +119,16 @@ class TestGeoTIFFWriter(unittest.TestCase):
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             self.assertEqual(save_method.call_args[1]['dtype'], np.float64)
+
+    def test_dtype_for_enhance_false_and_given_dtype(self):
+        """Test that dtype of dataset is used if enhance=False and dtype=uint8."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir, enhance=False, dtype=np.uint8)
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, compute=False)
+            self.assertEqual(save_method.call_args[1]['dtype'], np.uint8)
 
     def test_fill_value_from_config(self):
         """Test fill_value coming from the writer config."""

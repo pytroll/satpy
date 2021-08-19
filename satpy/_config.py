@@ -37,8 +37,9 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 _satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
     'cache_dir': _satpy_dirs.user_cache_dir,
-    'data_dir': _satpy_dirs.user_data_dir,
     'config_path': [],
+    'data_dir': _satpy_dirs.user_data_dir,
+    'demo_data_dir': '.',
     'download_aux': True,
 }
 
