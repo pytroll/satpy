@@ -136,24 +136,25 @@ class NetCDF4FileHandler(BaseFileHandler):
         """Collect all the global attributes for the provided file object."""
         global_attrs = {}
         for key in obj.ncattrs():
-            value = getattr(obj, key)
             fc_key = f"/attr/{key}"
-            try:
-                value = np2str(value)
-            except ValueError:
-                pass
+            value = self._get_attr_value(obj, key)
             self.file_content[fc_key] = global_attrs[key] = value
         self.file_content["/attrs"] = global_attrs
 
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""
         for key in obj.ncattrs():
-            value = getattr(obj, key)
             fc_key = f"{name}/attr/{key}"
-            try:
-                self.file_content[fc_key] = np2str(value)
-            except ValueError:
-                self.file_content[fc_key] = value
+            value = self._get_attr_value(obj, key)
+            self.file_content[fc_key] = value
+
+    def _get_attr_value(self, obj, key):
+        value = getattr(obj, key)
+        try:
+            value = np2str(value)
+        except ValueError:
+            pass
+        return value
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
