@@ -43,6 +43,7 @@ from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.seviri_base import dec10216
+from satpy.readers.utils import unzip_context
 
 logger = logging.getLogger('hrit_base')
 
@@ -157,17 +158,20 @@ class HRITFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
-        self.mda = {}
-        self._get_hd(hdr_info)
-
-        if self.mda.get('compression_flag_for_data'):
-            logger.debug('Unpacking %s', filename)
-            try:
-                self.filename = decompress(filename, gettempdir())
-            except IOError as err:
-                logger.warning("Unpacking failed: %s", str(err))
+        with unzip_context(filename) as fn:
+            if fn is not None:
+                self.filename = fn
             self.mda = {}
             self._get_hd(hdr_info)
+
+            if self.mda.get('compression_flag_for_data'):
+                logger.debug('Unpacking %s', filename)
+                try:
+                    self.filename = decompress(filename)
+                except IOError as err:
+                    logger.warning("Unpacking failed: %s", str(err))
+                self.mda = {}
+                self._get_hd(hdr_info)
 
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)

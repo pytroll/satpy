@@ -254,6 +254,33 @@ def unzip_file(filename):
 
     return None
 
+class unzip_context():
+    """Context manager for uncompressing a .bz2 file on the fly.
+
+    Uses `unzip_file`. Removes the uncompressed file on exit of the context manager.
+
+    Returns: the filename of the uncompressed file or of the original file if it was not
+    compressed.
+
+    """
+    def __init__(self, filename):
+        """Keep original filename."""
+        self.input_filename = filename
+
+    def __enter__(self):
+        """Uncompress file if necessary and return the relevant filename for the file handler."""
+        unzipped = unzip_file(self.input_filename)
+        if unzipped is not None:
+            self.unzipped_filename = unzipped
+            return unzipped
+        else:
+            self.unzipped_filename = None
+            return self.input_filename
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Remove temporary file."""
+        if self.unzipped_filename is not None:
+            print("Removing", self.unzipped_filename)
 
 def bbox(img):
     """Find the bounding box around nonzero elements in the given array.
