@@ -40,14 +40,16 @@ class NC_ABI_L1B(NC_ABI_BASE):
         logger.debug('Reading in get_dataset %s.', key['name'])
         # For raw cal, don't apply scale and offset, return raw file counts
         if key['calibration'] == 'counts':
-            return self._raw_calibrate(self.nc['Rad'])
-        radiances = self['Rad']
+            radiances = self.nc['Rad']
+        else:
+            radiances = self['Rad']
 
         # mapping of calibration types to calibration functions
         cal_dictionary = {
             'reflectance': self._vis_calibrate,
             'brightness_temperature': self._ir_calibrate,
-            'radiance': self._rad_calibrate
+            'radiance': self._rad_calibrate,
+            'counts': self._raw_calibrate,
         }
 
         try:
