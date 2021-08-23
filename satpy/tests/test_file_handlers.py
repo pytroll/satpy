@@ -21,6 +21,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import datetime
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -155,3 +156,14 @@ class TestBaseFileHandler(unittest.TestCase):
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
+
+    def test_combine_times_2(self):
+        """Test combining times with datetime objects."""
+        all_infos = [
+                {'start_time': datetime.datetime(2020, 1, 8, 8, 23, 15, 556000),
+                 'end_time': datetime.datetime(2020, 1, 8, 8, 23, 15, 557000)},
+                {'start_time': datetime.datetime(2020, 1, 8, 8, 23, 16, 556000),
+                 'end_time': datetime.datetime(2020, 1, 8, 8, 23, 16, 557000)}]
+        res = self.fh.combine_info(all_infos)
+        assert res["start_time"] == datetime.datetime(2020, 1, 8, 8, 23, 15, 556000)
+        assert res["end_time"] == datetime.datetime(2020, 1, 8, 8, 23, 16, 557000)

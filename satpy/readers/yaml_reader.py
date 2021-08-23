@@ -713,8 +713,8 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         proj = self._load_dataset(dsid, ds_info, file_handlers, **kwargs)
         # FIXME: areas could be concatenated here
         # Update the metadata
-        proj.attrs['start_time'] = file_handlers[0].start_time
-        proj.attrs['end_time'] = file_handlers[-1].end_time
+        proj.attrs.setdefault('start_time', file_handlers[0].start_time)
+        proj.attrs.setdefault('end_time', file_handlers[-1].end_time)
         return proj
 
     def _preferred_filetype(self, filetypes):

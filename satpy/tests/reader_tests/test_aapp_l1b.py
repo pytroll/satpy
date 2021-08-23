@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,10 +23,82 @@ import tempfile
 import unittest
 from contextlib import suppress
 
+import pytest
 import numpy as np
 
 from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
 from satpy.tests.utils import make_dataid
+
+
+def _getheader():
+    """Get fake header data."""
+    header = np.zeros(1, dtype=_HEADERTYPE)
+    header['satid'][0] = 13
+    header['radtempcnv'][0] = [[267194, -171669, 1002811],
+                               [930310,  -59084, 1001600],
+                               [828600,  -37854, 1001147]]
+    # first 3b is off, 3a is on
+    header['inststat1'][0] = 0b1111011100000000
+    # switch 3a off at position 1
+    header['statchrecnb'][0] = 1
+    # 3b is on, 3a is off
+    header['inststat2'][0] = 0b1111101100000000
+    return header
+
+
+def _getdata():
+    """Get fake content data."""
+    data = np.zeros(3, dtype=_SCANTYPE)
+    data['scnlinyr'][:] = 2020
+    data['scnlindy'][:] = 8
+    data['scnlintime'][0] = 30195225
+    data['scnlintime'][1] = 30195389
+    data['scnlintime'][2] = 30195556
+    data['scnlinbit'][0] = -16383
+    data['scnlinbit'][1] = -16383
+    data['scnlinbit'][2] = -16384
+    calvis = np.array([[[0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [543489984, -21941870, 1592440064, -545027008, 499]],
+                       [[0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [540780032,  -22145690, 1584350080, -543935616, 500]],
+                       [[0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [257550000, -10449420, 1812019968, -785690304, 499]]])
+    data['calvis'][:] = calvis
+    data['calir'] = [[[[0, -2675, 2655265],
+                     [0, 0, 0]],
+                    [[33605, -260786, 226818992],
+                     [0, 0, 0]],
+                    [[13869, -249508, 234624768],
+                     [0, 0, 0]]],
+                     [[[0, -2675, 2655265],
+                      [0, 0, 0]],
+                     [[33609, -260810, 226837328],
+                      [0, 0, 0]],
+                     [[13870, -249520, 234638704],
+                      [0, 0, 0]]],
+                     [[[0, 0, 0],
+                      [0, 0, 0]],
+                     [[33614, -260833, 226855664],
+                      [0, 0, 0]],
+                     [[13871, -249531, 234652640],
+                      [0, 0, 0]]]]
+    data['hrpt'] = np.ones_like(data['hrpt']) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
+    return data
+
+
+@pytest.fixture
+def fakeheader():
+    """Pytest fixture for fake header data."""
+    return _getheader()
+
+
+@pytest.fixture
+def fakedata():
+    """Pytest fixture for fake content data."""
+    return _getdata()
 
 
 class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
@@ -34,56 +106,8 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._header['satid'][0] = 13
-        self._header['radtempcnv'][0] = [[267194, -171669, 1002811],
-                                         [930310,  -59084, 1001600],
-                                         [828600,  -37854, 1001147]]
-        # first 3b is off, 3a is on
-        self._header['inststat1'][0] = 0b1111011100000000
-        # switch 3a off at position 1
-        self._header['statchrecnb'][0] = 1
-        # 3b is on, 3a is off
-        self._header['inststat2'][0] = 0b1111101100000000
-
-        self._data = np.zeros(3, dtype=_SCANTYPE)
-        self._data['scnlinyr'][:] = 2020
-        self._data['scnlindy'][:] = 8
-        self._data['scnlintime'][0] = 30195225
-        self._data['scnlintime'][1] = 30195389
-        self._data['scnlintime'][2] = 30195556
-        self._data['scnlinbit'][0] = -16383
-        self._data['scnlinbit'][1] = -16383
-        self._data['scnlinbit'][2] = -16384
-        calvis = np.array([[[0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0],
-                            [543489984, -21941870, 1592440064, -545027008, 499]],
-                           [[0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0],
-                            [540780032,  -22145690, 1584350080, -543935616, 500]],
-                           [[0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0],
-                            [257550000, -10449420, 1812019968, -785690304, 499]]])
-        self._data['calvis'][:] = calvis
-        self._data['calir'] = [[[[0, -2675, 2655265],
-                                 [0, 0, 0]],
-                                [[33605, -260786, 226818992],
-                                 [0, 0, 0]],
-                                [[13869, -249508, 234624768],
-                                 [0, 0, 0]]],
-                               [[[0, -2675, 2655265],
-                                 [0, 0, 0]],
-                                [[33609, -260810, 226837328],
-                                 [0, 0, 0]],
-                                [[13870, -249520, 234638704],
-                                 [0, 0, 0]]],
-                               [[[0, 0, 0],
-                                 [0, 0, 0]],
-                                [[33614, -260833, 226855664],
-                                 [0, 0, 0]],
-                                [[13871, -249531, 234652640],
-                                 [0, 0, 0]]]]
-        self._data['hrpt'] = np.ones_like(self._data['hrpt']) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
+        self._header = _getheader()
+        self._data = _getdata()
 
         self.filename_info = {'platform_shortname': 'metop03', 'start_time': datetime.datetime(2020, 1, 8, 8, 19),
                               'orbit_number': 6071}
@@ -152,6 +176,103 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
             key = make_dataid(name='latitude')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
+
+    def test_times(self):
+        """Test start time and end time are as expected."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            assert fh.start_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert fh.end_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
+            # test that attributes for 3a/3b are set as expected
+            ch3a = fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+            ch3b = fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
+            assert ch3a.attrs["start_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
+            assert ch3b.attrs["start_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert ch3a.attrs["end_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
+            assert ch3b.attrs["end_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 389000)
+
+        # Test that it handles gently a case where both bits are set BUT
+        # one of them doesn't have data.  This happens sometimes.
+        altheader = self._header.copy()
+        altheader['statchrecnb'][:] = 1
+        altdata = self._data.copy()
+        altdata['scnlinbit'][2] = -16383
+        with tempfile.TemporaryFile() as tmpfile:
+            altheader.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            altdata.tofile(tmpfile)
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            ch3a = fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+            ch3b = fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
+
+
+def test_load_single(fakeheader, fakedata, tmp_path):
+    """Test that loading via loader works and retains attributes."""
+    from satpy._config import config_search_paths
+    from satpy.readers import load_reader
+    nm = tmp_path / "hrpt_noaa19_20210423_1411_62891.l1b"
+    with nm.open(mode="wb") as tmpfile:
+        fakeheader.tofile(tmpfile)
+        tmpfile.seek(22016, 0)
+        fakedata.tofile(tmpfile)
+        yaml_file = "avhrr_l1b_aapp.yaml"
+
+        reader_configs = config_search_paths(os.path.join('readers', yaml_file))
+        r = load_reader(reader_configs)
+        loadables = r.select_files_from_pathnames([nm])
+        r.create_filehandlers(loadables)
+        ds = r.load(["3a", "3b"])
+        assert ds["3a"].attrs["start_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 15, 556000)
+        assert ds["3b"].attrs["start_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 15, 225000)
+        assert ds["3a"].attrs["end_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 15, 556000)
+        assert ds["3b"].attrs["end_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 15, 389000)
+
+
+def test_load_multiple(fakeheader, fakedata, tmp_path):
+    """Test that start/end time attributes are correct for multiple files."""
+    from satpy._config import config_search_paths
+    from satpy.readers import load_reader
+    nm1 = tmp_path / "hrpt_noaa19_20210423_1411_62891.l1b"
+    nm2 = tmp_path / "hrpt_noaa19_20210423_1431_62891.l1b"
+    with nm1.open(mode="wb") as tmp1, nm2.open(mode="wb") as tmp2:
+        fakeheader.tofile(tmp1)
+        tmp1.seek(22016, 0)
+        fakedata.tofile(tmp1)
+        data2 = fakedata.copy()
+        data2['scnlintime'] += 1000
+        fakeheader.tofile(tmp2)
+        tmp2.seek(22016, 0)
+        data2.tofile(tmp2)
+
+        yaml_file = "avhrr_l1b_aapp.yaml"
+
+        reader_configs = config_search_paths(os.path.join('readers', yaml_file))
+        r = load_reader(reader_configs)
+        loadables = r.select_files_from_pathnames([nm1, nm2])
+        r.create_filehandlers(loadables)
+        ds = r.load(["3a", "3b"])
+        assert ds["3a"].attrs["start_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 15, 556000)
+        assert ds["3b"].attrs["start_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 15, 225000)
+        assert ds["3a"].attrs["end_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 16, 556000)
+        assert ds["3b"].attrs["end_time"] == datetime.datetime(
+                2020, 1, 8, 8, 23, 16, 389000)
 
 
 class TestAAPPL1BChannel3AMissing(unittest.TestCase):
@@ -250,6 +371,28 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
                     assert status is False
                 else:
                     assert status is True
+
+    def test_times(self):
+        """Test start time and end time are as expected."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            assert fh.start_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert fh.end_time == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
+            # test that attributes for 3a/3b are set as expected and neither
+            # request fails
+            ch3a = fh.get_dataset(make_dataid(name="3a", calibration="reflectance"), {})
+            ch3b = fh.get_dataset(make_dataid(name="3b", calibration="brightness_temperature"), {})
+            assert ch3a is None
+            assert ch3b.attrs["start_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 225000)
+            assert ch3b.attrs["end_time"] == datetime.datetime(
+                    2020, 1, 8, 8, 23, 15, 556000)
 
 
 class TestNegativeCalibrationSlope(unittest.TestCase):

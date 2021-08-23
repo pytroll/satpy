@@ -113,19 +113,21 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             activated[channel_name] = bool(status >> bit & 1)
         return activated
 
+    def _get_time_for_idx(self, idx):
+        """Get the time for the observation at scanline(s) idx."""
+        return datetime(self._data['scnlinyr'][idx], 1, 1) + timedelta(
+            days=int(self._data['scnlindy'][idx]) - 1,
+            milliseconds=int(self._data['scnlintime'][idx]))
+
     @property
     def start_time(self):
         """Get the time of the first observation."""
-        return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][0]) - 1,
-            milliseconds=int(self._data['scnlintime'][0]))
+        return self._get_time_for_idx(0)
 
     @property
     def end_time(self):
         """Get the time of the final observation."""
-        return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][-1]) - 1,
-            milliseconds=int(self._data['scnlintime'][-1]))
+        return self._get_time_for_idx(-1)
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
@@ -241,6 +243,33 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         lats40km = self._data["pos"][:, :, 0] * 1e-4
         return lons40km, lats40km
 
+    def _get_ch3_times(self, name):
+        """Get start/end time attributes for 3a/3b.
+
+        Get a dictionary with the keys "start_time" and "end_time" for either
+        channel 3a or channel 3b.  The argument ``name`` should be either "3a"
+        or "3b".
+
+        If the desired channel is not present, return the empty dictionary.
+        Although normally one should not expect this code to be reached for a
+        channel that isn't present, sometimes data files claim to have all
+        channels present but the corresponding bits aren't set consistently.
+        """
+        if name == "3a":
+            mask = self._is3a
+        elif name == "3b":
+            mask = self._is3b
+        else:
+            raise ValueError(f"Invalid name for channel 3.  Expected 3a or 3b, got {name!s}")
+        idx = mask.nonzero()[0].compute()
+        if len(idx) > 0:
+            return {
+                    "start_time": self._get_time_for_idx(idx[0]),
+                    "end_time": self._get_time_for_idx(idx[-1]),
+                    }
+        else:
+            return {}
+
     def calibrate(self,
                   dataset_id,
                   pre_launch_coeffs=False,
@@ -254,12 +283,15 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                  'counts': '',
                  'radiance': 'W*m-2*sr-1*cm ?'}
 
+        extra_attrs = {}
         if dataset_id['name'] in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
             self._is3a = da.bitwise_and(da.from_array(self._data['scnlinbit'],
                                                       chunks=LINE_CHUNK), 3) == 0
             self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
                                                       chunks=LINE_CHUNK), 3) == 1
+        if dataset_id['name'] in ("3a", "3b"):
+            extra_attrs.update(self._get_ch3_times(dataset_id["name"]))
 
         try:
             vis_idx = ['1', '2', '3a'].index(dataset_id['name'])
@@ -292,6 +324,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         ds.attrs['units'] = units[dataset_id['calibration']]
         ds.attrs.update(dataset_id._asdict())
+        ds.attrs.update(extra_attrs)
         return ds
 
 
