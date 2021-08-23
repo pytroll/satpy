@@ -212,13 +212,17 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
                  ext_calib_coefs=None, mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
-        super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
-                                                         filetype_info,
-                                                         (msg_hdr_map,
-                                                          msg_variable_length_headers,
-                                                          msg_text_headers))
-        self.prologue = {}
-        self.read_prologue()
+        with utils.unzip_context(filename) as fn:
+            if fn is not None:
+                self.filename = fn
+
+            super(HRITMSGPrologueFileHandler, self).__init__(self.filename, filename_info,
+                                                             filetype_info,
+                                                             (msg_hdr_map,
+                                                              msg_variable_length_headers,
+                                                              msg_text_headers))
+            self.prologue = {}
+            self.read_prologue()
 
         service = filename_info['service']
         if service == '':
@@ -284,13 +288,16 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
                  ext_calib_coefs=None, mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
-        super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
-                                                         filetype_info,
-                                                         (msg_hdr_map,
-                                                          msg_variable_length_headers,
-                                                          msg_text_headers))
-        self.epilogue = {}
-        self.read_epilogue()
+        with utils.unzip_context(filename) as fn:
+            if fn is not None:
+                self.filename = fn
+            super(HRITMSGEpilogueFileHandler, self).__init__(self.filename, filename_info,
+                                                             filetype_info,
+                                                             (msg_hdr_map,
+                                                              msg_variable_length_headers,
+                                                              msg_text_headers))
+            self.epilogue = {}
+            self.read_epilogue()
 
         service = filename_info['service']
         if service == '':

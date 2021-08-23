@@ -282,7 +282,7 @@ class unzip_context():
     def __exit__(self, exc_type, exc_value, traceback):
         """Remove temporary file."""
         if self.unzipped_filename is not None:
-            print("Removing", self.unzipped_filename)
+            os.remove(self.unzipped_filename)
 
 
 def bbox(img):
