@@ -17,7 +17,10 @@ def parse_area(area_def):
             except TypeError:
                 area_def = known_area(area_def)
                 area = AreaDefinition(**area_def)
-    
+    else:
+        print("*** Error, unknown area_def")
+                
+                
     return area
 
 
