@@ -254,6 +254,7 @@ def unzip_file(filename):
 
     return None
 
+
 class unzip_context():
     """Context manager for uncompressing a .bz2 file on the fly.
 
@@ -263,6 +264,7 @@ class unzip_context():
     compressed.
 
     """
+
     def __init__(self, filename):
         """Keep original filename."""
         self.input_filename = filename
@@ -281,6 +283,7 @@ class unzip_context():
         """Remove temporary file."""
         if self.unzipped_filename is not None:
             print("Removing", self.unzipped_filename)
+
 
 def bbox(img):
     """Find the bounding box around nonzero elements in the given array.

@@ -30,7 +30,6 @@ temporary directory for reading.
 
 import logging
 from datetime import timedelta
-from tempfile import gettempdir
 import os
 from io import BytesIO
 from subprocess import Popen, PIPE
