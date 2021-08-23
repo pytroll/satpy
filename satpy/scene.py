@@ -1208,7 +1208,6 @@ class Scene:
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
-            self._composite_loader = CompositorLoader()
             sensors = self.attrs['sensor'] | set(x for y in self.values() for x in y.attrs.get("sensor", []))
             comps, mods = self._composite_loader.load_compositors(sensors)
             self._dependency_tree.compositors.update(comps)
