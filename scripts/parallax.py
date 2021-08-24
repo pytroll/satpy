@@ -10,7 +10,6 @@ import xarray as xr
 
 import projection
 
-
 def parallax_correct(sat_lon, sat_lat, sat_alt, lon, lat, height):
     X_sat = np.hstack(lonlat2xyz(sat_lon,sat_lat)) * sat_alt
     X = np.stack(lonlat2xyz(lon,lat), axis=-1) * EARTH_RADIUS
