@@ -9,6 +9,7 @@ The following people have made contributions to this project:
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
+- [Jonathan Beavers (jon4than)](https://github.com/jon4than)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Ray Bell (raybellwaves)](https://github.com/raybellwaves)
 - [Jorge Bravo (jhbravo)](https://github.com/jhbravo)
