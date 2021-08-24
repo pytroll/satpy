@@ -191,8 +191,9 @@ class TestAWIPSTiledWriter:
         with warnings.catch_warnings(record=True) as caught_warnings:
             w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
         assert len(caught_warnings) == 1
-        assert "too long" in caught_warnings[0].message
-        assert "this is a really long units string" in caught_warnings[0].message
+        warn_msg = caught_warnings[0].message.args[0]
+        assert "too long" in warn_msg
+        assert "this is a really long units string" in warn_msg
 
     @pytest.mark.parametrize(
         ("tile_count", "tile_size"),
