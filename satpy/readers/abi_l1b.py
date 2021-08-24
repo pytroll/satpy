@@ -40,7 +40,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
         logger.debug('Reading in get_dataset %s.', key['name'])
         # For raw cal, don't apply scale and offset, return raw file counts
         if key['calibration'] == 'counts':
-            radiances = self.nc['Rad']
+            radiances = self.nc['Rad'].copy()
         else:
             radiances = self['Rad']
 

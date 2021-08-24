@@ -318,7 +318,6 @@ class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
 
     def test_invalid_calibration(self):
         """Test detection of invalid calibration values."""
-
         # Need to use a custom DataID class because the real DataID class is
         # smart enough to detect the invalid calibration before the ABI L1B
         # get_dataset method gets a chance to run.
