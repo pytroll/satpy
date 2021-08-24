@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the AWIPS Tiled writer."""
 import os
+import warnings
 from glob import glob
 from datetime import datetime, timedelta
 
@@ -178,6 +179,20 @@ class TestAWIPSTiledWriter:
             scale_factor = output_ds['data'].encoding['scale_factor']
             np.testing.assert_allclose(input_data_arr.values, output_ds['data'].data,
                                        atol=scale_factor / 2)
+
+    def test_units_length_warning(self):
+        """Test long 'units' warnings are raised."""
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
+        data = self._get_test_data()
+        area_def = self._get_test_area()
+        input_data_arr = self._get_test_lcc_data(data, area_def)
+        input_data_arr.attrs["units"] = "this is a really long units string"
+        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
+        assert len(caught_warnings) == 1
+        assert "too long" in caught_warnings[0].message
+        assert "this is a really long units string" in caught_warnings[0].message
 
     @pytest.mark.parametrize(
         ("tile_count", "tile_size"),

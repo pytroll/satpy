@@ -1095,6 +1095,16 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds.attrs['creation_time'] = creation_time.strftime('%Y-%m-%dT%H:%M:%S')
         return new_ds
 
+    def _render_variable_attributes(self, var_config, input_metadata):
+        attrs = super()._render_variable_attributes(var_config, input_metadata)
+        # AWIPS validation checks
+        if len(attrs.get("units", "")) > 26:
+            warnings.warn(
+                "AWIPS 'units' must be limited to a maximum of 26 characters. "
+                "Units '{}' is too long and will be truncated.".format(attrs["units"]))
+            attrs["units"] = attrs["units"][:26]
+        return attrs
+
     def render(self, dataset_or_data_arrays, area_def,
                tile_info, sector_id, creator=None, creation_time=None,
                shared_attrs=None, extra_global_attrs=None):
