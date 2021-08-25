@@ -1033,11 +1033,11 @@ class EnhancementDecisionTree(DecisionTree):
         """Init the decision tree."""
         match_keys = kwargs.pop("match_keys",
                                 ("name",
+                                 "reader",
                                  "platform_name",
                                  "sensor",
                                  "standard_name",
                                  "units",
-                                 "reader",
                                  ))
         self.prefix = kwargs.pop("config_section", "enhancements")
         multival_keys = kwargs.pop("multival_keys", ["sensor"])
