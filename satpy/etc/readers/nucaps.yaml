@@ -2,7 +2,7 @@ reader:
   description: NUCAPS Retrieval Reader
   name: nucaps
   reader: !!python/name:satpy.readers.nucaps.NUCAPSReader
-  sensors: [cris, atms]
+  sensors: [cris, atms, viirs]
   data_identification_keys:
     name:
       required: true

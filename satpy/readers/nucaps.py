@@ -137,10 +137,10 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
                 res = str(res.astype(str))
             res = [x.strip() for x in res.split(',')]
             if len(res) == 1:
-                return res[0]
-            return res
+                return res[0].lower()
         except KeyError:
-            return ['CrIS', 'ATMS', 'VIIRS']
+            res = ['CrIS', 'ATMS', 'VIIRS']
+        return set(name.lower() for name in res)
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
