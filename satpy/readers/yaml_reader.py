@@ -777,10 +777,9 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
             lons, lats = self._get_lons_lats_from_coords(coords)
-
             sdef = self._make_swath_definition_from_lons_lats(lons, lats)
             return sdef
-        elif len(coords) != 0:
+        if len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
 

@@ -621,7 +621,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         def file_type_matches(self, ds_ftype):
             if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
                 return True
-            elif self.filetype_info['file_type'] in ds_ftype:
+            if self.filetype_info['file_type'] in ds_ftype:
                 return True
             return None
 
