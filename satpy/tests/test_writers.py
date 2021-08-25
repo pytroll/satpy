@@ -24,6 +24,7 @@ import warnings
 import pytest
 import numpy as np
 import xarray as xr
+import dask.array as da
 from trollimage.colormap import greys
 from unittest import mock
 
@@ -342,7 +343,6 @@ enhancements:
         """Test enhancing an image with a configuration section."""
         from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
-        import dask.array as da
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
@@ -525,7 +525,6 @@ class TestComputeWriterResults(unittest.TestCase):
         from datetime import datetime
 
         from satpy.scene import Scene
-        import dask.array as da
 
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -648,7 +647,6 @@ class TestBaseWriter:
         from datetime import datetime
 
         from satpy.scene import Scene
-        import dask.array as da
 
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -719,8 +717,6 @@ class TestOverlays(unittest.TestCase):
         """Create test data and mock pycoast/pydecorate."""
         from trollimage.xrimage import XRImage
         from pyresample.geometry import AreaDefinition
-        import xarray as xr
-        import dask.array as da
 
         proj_dict = {'proj': 'lcc', 'datum': 'WGS84', 'ellps': 'WGS84',
                      'lon_0': -95., 'lat_0': 25, 'lat_1': 25,

@@ -60,10 +60,9 @@ def listify_string(something):
     """
     if isinstance(something, str):
         return [something]
-    elif something is not None:
+    if something is not None:
         return list(something)
-    else:
-        return list()
+    return list()
 
 
 def _get_filebase(path, pattern):
@@ -221,8 +220,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         if sensor and not (set(self.info.get("sensors")) &
                            set(listify_string(sensor))):
             return False
-        else:
-            return True
+        return True
 
     def select_files_from_directory(
             self, directory=None, fs=None):
@@ -1346,11 +1344,10 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
     if empty_segment.shape[0] > new_height:
         # if current empty segment is too tall, slice the DataArray
         return empty_segment[:new_height, :]
-    elif empty_segment.shape[0] < new_height:
+    if empty_segment.shape[0] < new_height:
         # if current empty segment is too short, concatenate a slice of the DataArray
         return xr.concat([empty_segment, empty_segment[:new_height - empty_segment.shape[0], :]], dim=dim)
-    else:
-        return empty_segment
+    return empty_segment
 
 
 def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):

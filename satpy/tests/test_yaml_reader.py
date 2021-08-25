@@ -520,9 +520,8 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
         def _assign_array(dsid, *_args, **_kwargs):
             if dsid['name'] == 'longitude':
                 return self.lons
-            elif dsid['name'] == 'latitude':
+            if dsid['name'] == 'latitude':
                 return self.lats
-
             return self.data
 
         fake_fh.get_dataset.side_effect = _assign_array
@@ -660,8 +659,6 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_single_areas(self, ldwa):
         """Test _load_dataset_with_area() for single area definitions."""
-        import xarray as xr
-        import numpy as np
         from pyresample.geometry import AreaDefinition
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
@@ -768,8 +765,6 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_stacked_areas(self, ldwa):
         """Test _load_dataset_with_area() for stacked area definitions."""
-        import xarray as xr
-        import numpy as np
         from pyresample.geometry import AreaDefinition, StackedAreaDefinition
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
@@ -983,8 +978,6 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
     def test_get_empty_segment_with_height(self):
         """Test _get_empty_segment_with_height()."""
-        import xarray as xr
-        import numpy as np
         from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
 
         dim = 'y'
