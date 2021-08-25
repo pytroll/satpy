@@ -551,6 +551,7 @@ class TestFileYAMLReaderLoading(unittest.TestCase):
         assert 'area' in res['ch01'].attrs
         np.testing.assert_array_equal(res['ch01'].attrs['area'].lons, self.lons)
         np.testing.assert_array_equal(res['ch01'].attrs['area'].lats, self.lats)
+        assert res['ch01'].attrs.get("reader") == "fake"
 
 
 class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
