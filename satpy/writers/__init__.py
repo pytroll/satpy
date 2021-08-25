@@ -1036,7 +1036,9 @@ class EnhancementDecisionTree(DecisionTree):
                                  "platform_name",
                                  "sensor",
                                  "standard_name",
-                                 "units",))
+                                 "units",
+                                 "reader",
+                                 ))
         self.prefix = kwargs.pop("config_section", "enhancements")
         multival_keys = kwargs.pop("multival_keys", ["sensor"])
         super(EnhancementDecisionTree, self).__init__(
