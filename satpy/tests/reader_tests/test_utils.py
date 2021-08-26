@@ -301,7 +301,7 @@ class TestHelpers(unittest.TestCase):
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
-
+        """Test the bz2 file unzipping context manager."""
         filename = 'dummy.txt.bz2'
         expected_filename = filename[:-4]
 
