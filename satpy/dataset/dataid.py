@@ -587,7 +587,7 @@ class DataQuery:
         if self._shares_required_keys(dataid):
             keys_to_check = set(dataid.keys()) & set(self._fields)
         else:
-            keys_to_check = set(dataid._id_keys.keys()) & set(self._fields)
+            keys_to_check = set(self._fields)
         if not keys_to_check:
             return False
         return all(self._match_query_value(key, dataid.get(key)) for key in keys_to_check)
