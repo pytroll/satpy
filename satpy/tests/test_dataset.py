@@ -586,6 +586,19 @@ class TestIDQueryInteractions(unittest.TestCase):
         did = make_cid(name='static_image')
         assert len(dq.filter_dataids([did])) == 0
 
+    def test_id_filtering_no_id_wavelength(self):
+        """Test that a DataID with no wavelength doesn't match a query for a wavelength."""
+        did_keys = {
+            "name": {"required": True},
+            "level": {},
+            "modifiers": {"default": [], "type": ModifierTuple}
+        }
+        did1 = DataID(did_keys, name="test1")
+        did2 = DataID(did_keys, name="test2")
+        dq = DataQuery(wavelength=1.8, modifiers=())
+        matched_ids = dq.filter_dataids([did1, did2])
+        assert matched_ids == 0
+
     def test_inequality(self):
         """Check (in)equality."""
         assert DataQuery(wavelength=10) != DataID(self.default_id_keys_config, name="VIS006")
