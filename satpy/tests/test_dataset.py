@@ -597,7 +597,7 @@ class TestIDQueryInteractions(unittest.TestCase):
         did2 = DataID(did_keys, name="test2")
         dq = DataQuery(wavelength=1.8, modifiers=())
         matched_ids = dq.filter_dataids([did1, did2])
-        assert matched_ids == 0
+        assert len(matched_ids) == 0
 
     def test_inequality(self):
         """Check (in)equality."""
