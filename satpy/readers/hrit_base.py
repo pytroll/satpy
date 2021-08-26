@@ -30,6 +30,7 @@ temporary directory for reading.
 
 import logging
 from datetime import timedelta
+from tempfile import gettempdir
 import os
 from io import BytesIO
 from subprocess import Popen, PIPE
@@ -163,7 +164,7 @@ class HRITFileHandler(BaseFileHandler):
         if self.mda.get('compression_flag_for_data'):
             logger.debug('Unpacking %s', filename)
             try:
-                self.filename = decompress(filename)
+                self.filename = decompress(filename, gettempdir())
             except IOError as err:
                 logger.warning("Unpacking failed: %s", str(err))
             self.mda = {}
