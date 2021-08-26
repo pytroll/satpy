@@ -164,8 +164,6 @@ class HDF_AGRI_L1(HDF5FileHandler):
         pdict['ncols'] = pdict['ncols'] + 1
         area = get_area_definition(pdict, area_extent)
 
-        print('turnip')
-
         return area
 
     def dn2(self, dn, calibration, slope, offset):
