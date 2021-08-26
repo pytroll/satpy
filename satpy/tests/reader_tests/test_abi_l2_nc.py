@@ -151,6 +151,7 @@ class TestMCMIPReading:
                      'modifiers': (),
                      'name': 'C14',
                      'orbital_slot': None,
+                     'reader': 'abi_l2_nc',
                      'platform_name': 'GOES-16',
                      'platform_shortname': 'G16',
                      'production_site': None,
