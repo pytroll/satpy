@@ -20,6 +20,7 @@ from contextlib import contextmanager
 import numpy as np
 import pytest
 from dask import array as da
+import xarray as xr
 from pyresample.geometry import AreaDefinition
 
 
@@ -88,8 +89,6 @@ class TestViirsReflectanceCorrectorAnglesTest(unittest.TestCase):
     @mock.patch('satpy.modifiers._crefl.get_satpos')
     def test_get_angles(self, get_satpos):
         """Test sun and satellite angle calculation."""
-        import numpy as np
-        import dask.array as da
         from satpy.modifiers._crefl import ReflectanceCorrector
 
         # Patch methods
@@ -144,9 +143,6 @@ class TestReflectanceCorrectorModifier:
 
     def test_reflectance_corrector_abi(self):
         """Test ReflectanceCorrector modifier with ABI data."""
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
         from satpy.modifiers._crefl import ReflectanceCorrector
         from satpy.tests.utils import make_dsq
         ref_cor = ReflectanceCorrector(optional_prerequisites=[
@@ -226,9 +222,6 @@ class TestReflectanceCorrectorModifier:
         ])
     def test_reflectance_corrector_viirs(self, tmpdir, url, dem_mock_cm, dem_sds):
         """Test ReflectanceCorrector modifier with VIIRS data."""
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
         import datetime
         from satpy.modifiers._crefl import ReflectanceCorrector
         from satpy.tests.utils import make_dsq
@@ -313,9 +306,6 @@ class TestReflectanceCorrectorModifier:
 
     def test_reflectance_corrector_modis(self):
         """Test ReflectanceCorrector modifier with MODIS data."""
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
         import datetime
         from satpy.modifiers._crefl import ReflectanceCorrector
         from satpy.tests.utils import make_dsq
