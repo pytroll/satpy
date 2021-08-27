@@ -26,46 +26,45 @@ from pyresample.geometry import AreaDefinition
 @contextmanager
 def mock_cmgdem(tmpdir, url):
     """Create fake file representing CMGDEM.hdf."""
-    if not url:
-        yield None
-        return
-    rmock_obj = mock.patch('satpy.modifiers._crefl.retrieve')
-    rmock = rmock_obj.start()
-    dem_fn = str(tmpdir.join(url))
-    rmock.return_value = dem_fn
-    from pyhdf.SD import SD, SDC
-
-    h = SD(dem_fn, SDC.WRITE | SDC.CREATE)
-    dem_var = h.create("averaged elevation", SDC.INT16, (10, 10))
-    dem_var.setfillvalue(-9999)
-    dem_var[:] = np.zeros((10, 10), dtype=np.int16)
-    h.end()
-    try:
-        yield rmock_obj
-    finally:
-        rmock_obj.stop()
+    yield from _mock_and_create_dem_file(tmpdir, url, "averaged elevation", fill_value=-9999)
 
 
 @contextmanager
 def mock_tbase(tmpdir, url):
     """Create fake file representing tbase.hdf."""
+    yield from _mock_and_create_dem_file(tmpdir, url, "Elevation")
+
+
+def _mock_and_create_dem_file(tmpdir, url, var_name, fill_value=None):
     if not url:
         yield None
         return
-    rmock_obj = mock.patch('satpy.modifiers._crefl.retrieve')
-    rmock = rmock_obj.start()
-    dem_fn = str(tmpdir.join(url))
-    rmock.return_value = dem_fn
-    from pyhdf.SD import SD, SDC
 
-    h = SD(dem_fn, SDC.WRITE | SDC.CREATE)
-    dem_var = h.create("Elevation", SDC.INT16, (10, 10))
-    dem_var[:] = np.zeros((10, 10), dtype=np.int16)
-    h.end()
+    rmock_obj, dem_fn = _mock_dem_retrieve(tmpdir, url)
+    _create_fake_dem_file(dem_fn, var_name, fill_value)
+
     try:
         yield rmock_obj
     finally:
         rmock_obj.stop()
+
+
+def _mock_dem_retrieve(tmpdir, url):
+    rmock_obj = mock.patch('satpy.modifiers._crefl.retrieve')
+    rmock = rmock_obj.start()
+    dem_fn = str(tmpdir.join(url))
+    rmock.return_value = dem_fn
+    return rmock_obj, dem_fn
+
+
+def _create_fake_dem_file(dem_fn, var_name, fill_value):
+    from pyhdf.SD import SD, SDC
+    h = SD(dem_fn, SDC.WRITE | SDC.CREATE)
+    dem_var = h.create(var_name, SDC.INT16, (10, 10))
+    dem_var[:] = np.zeros((10, 10), dtype=np.int16)
+    if fill_value is not None:
+        dem_var.setfillvalue(fill_value)
+    h.end()
 
 
 class TestViirsReflectanceCorrectorAnglesTest(unittest.TestCase):
