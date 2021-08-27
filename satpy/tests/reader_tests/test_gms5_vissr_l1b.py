@@ -19,13 +19,13 @@ IR_NAVIGATION_REFERENCE = [
         'pixel': 1680,
         'lon': 139.990380,
         'lat': 35.047056,
-        'nav_params': nav.NavigationParameters(
-            attitude=nav.Attitude(
+        'nav_params': (
+            nav.Attitude(
                 angle_between_earth_and_sun=3.997397917902958,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            orbit=nav.Orbit(
+            nav.Orbit(
                 greenwich_sidereal_time=2.468529732418296,
                 declination_from_sat_to_sun=-0.208770861178982,
                 right_ascension_from_sat_to_sun=3.304369303579407,
@@ -38,7 +38,7 @@ IR_NAVIGATION_REFERENCE = [
                      [0.004496123789670, -0.000064242454080, 0.999989890320785]]
                 ),
             ),
-            proj_params=nav.ProjectionParameters(
+            nav.ProjectionParameters(
                 line_offset=1378.5,
                 pixel_offset=1672.5,
                 stepping_angle=0.000140000047395,
@@ -58,13 +58,13 @@ IR_NAVIGATION_REFERENCE = [
         'pixel': 1793,
         'lon': 144.996967,
         'lat': -34.959853,
-        'nav_params': nav.NavigationParameters(
-            attitude=nav.Attitude(
+        'nav_params': (
+            nav.Attitude(
                 angle_between_earth_and_sun=3.935707944355762,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            orbit=nav.Orbit(
+            nav.Orbit(
                 greenwich_sidereal_time=2.530392320846865,
                 declination_from_sat_to_sun=-0.208713576872247,
                 right_ascension_from_sat_to_sun=3.242660398458377,
@@ -77,7 +77,7 @@ IR_NAVIGATION_REFERENCE = [
                      [0.004496126086653, -0.000064239500295, 0.999989890310647]]
                 ),
             ),
-            proj_params=nav.ProjectionParameters(
+            nav.ProjectionParameters(
                 line_offset=1378.5,
                 pixel_offset=1672.5,
                 stepping_angle=0.000140000047395,
@@ -101,13 +101,13 @@ VIS_NAVIGATION_REFERENCE = [
         'pixel': 6720,
         'lon': 139.975527,
         'lat': 35.078028,
-        'nav_params': nav.NavigationParameters(
-            attitude=nav.Attitude(
+        'nav_params': (
+            nav.Attitude(
                 angle_between_earth_and_sun=3.997397918405798,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            orbit=nav.Orbit(
+            nav.Orbit(
                 greenwich_sidereal_time=2.468529731914041,
                 declination_from_sat_to_sun=-0.208770861179448,
                 right_ascension_from_sat_to_sun=3.304369304082406,
@@ -120,7 +120,7 @@ VIS_NAVIGATION_REFERENCE = [
                      [0.004496123789670, -0.000064242454080, 0.999989890320785]]
                 ),
             ),
-            proj_params=nav.ProjectionParameters(
+            nav.ProjectionParameters(
                 line_offset=5513.0,
                 pixel_offset=6688.5,
                 stepping_angle=0.000035000004573,
@@ -140,13 +140,13 @@ VIS_NAVIGATION_REFERENCE = [
         'pixel': 7172,
         'lon': 144.980104,
         'lat': -34.929123,
-        'nav_params': nav.NavigationParameters(
-            attitude=nav.Attitude(
+        'nav_params': (
+            nav.Attitude(
                 angle_between_earth_and_sun=3.935707944858620,
                 angle_between_sat_spin_and_z_axis=3.149118633034304,
                 angle_between_sat_spin_and_yz_plane=0.000546042025980,
             ),
-            orbit=nav.Orbit(
+            nav.Orbit(
                 greenwich_sidereal_time=2.530392320342610,
                 declination_from_sat_to_sun=-0.208713576872715,
                 right_ascension_from_sat_to_sun=3.242660398961383,
@@ -159,7 +159,7 @@ VIS_NAVIGATION_REFERENCE = [
                      [0.004496126086653, -0.000064239500295, 0.999989890310647]]
                 ),
             ),
-            proj_params=nav.ProjectionParameters(
+            nav.ProjectionParameters(
                 line_offset=5513.0,
                 pixel_offset=6688.5,
                 stepping_angle=0.000035000004573,
@@ -194,14 +194,15 @@ class TestSinglePixelNavigation:
     )
     def test_get_lon_lat(self, point, nav_params, expected):
         """Test getting lon/lat coordinates for a given pixel."""
-        lon, lat = nav.get_lon_lat(point, nav_params)
+        attitude, orbit, proj_params = nav_params
+        lon, lat = nav.get_lon_lat(point, attitude, orbit, proj_params)
         np.testing.assert_allclose((lon, lat), expected)
 
     def test_nav_matrices_are_contiguous(self):
         """Test that navigation matrices are stored as C-contiguous arrays."""
-        nav_params = NAVIGATION_REFERENCE[0]['nav_params']
-        assert nav_params.proj_params.misalignment.flags['C_CONTIGUOUS']
-        assert nav_params.orbit.nutation_precession.flags['C_CONTIGUOUS']
+        attitude, orbit, proj_params = NAVIGATION_REFERENCE[0]['nav_params']
+        assert proj_params.misalignment.flags['C_CONTIGUOUS']
+        assert orbit.nutation_precession.flags['C_CONTIGUOUS']
 
     def test_transform_image_coords_to_scanning_angles(self):
         """Test transformation from image coordinates to scanning angles."""
@@ -214,33 +215,41 @@ class TestSinglePixelNavigation:
 
     def test_transform_scanning_angles_to_satellite_coords(self):
         """Test transformation from scanning angles to satellite coordinates."""
-        transformer = nav.ScanningAnglesToSatelliteCoordsTransformer(
-            misalignment=np.diag([1, 2, 3]).astype(float)
+        scanning_angles = np.array([np.pi, np.pi / 2])
+        misalignment = np.diag([1, 2, 3]).astype(float)
+        point_sat = nav.transform_scanning_angles_to_satellite_coords(
+            scanning_angles, misalignment
         )
-        point_sat = transformer.transform(np.array([np.pi, np.pi/2]))
         np.testing.assert_allclose(point_sat, [0, 0, 3], atol=1E-12)
 
     def test_transform_satellite_to_earth_fixed_coords(self):
         """Test transformation from satellite to earth-fixed coordinates."""
-        transformer = nav.SatelliteToEarthFixedCoordsTransformer(
-            greenwich_sidereal_time=np.pi,
-            sat_sun_angles=np.array([np.pi, np.pi/2]),
-            earth_sun_angle=np.pi,
-            spin_angles=np.array([np.pi, np.pi/2]),
-            nutation_precession=np.diag([1, 2, 3]).astype(float)
+        point_sat = np.array([1, 2, 3], dtype=float)
+        greenwich_sidereal_time = np.pi
+        sat_sun_angles = np.array([np.pi, np.pi / 2])
+        earth_sun_angle = np.pi
+        spin_angles = np.array([np.pi, np.pi / 2])
+        nutation_precession = np.diag([1, 2, 3]).astype(float)
+        res = nav.transform_satellite_to_earth_fixed_coords(
+            point_sat,
+            greenwich_sidereal_time,
+            sat_sun_angles,
+            earth_sun_angle,
+            spin_angles,
+            nutation_precession
         )
-        res = transformer.transform(np.array([1, 2, 3], dtype=float))
         np.testing.assert_allclose(res, [-3, 1, -2])
 
     def test_intersect_view_vector_with_earth(self):
         """Test intersection of a view vector with the earth's surface."""
+        view_vector = np.array([-1, 0, 0], dtype=float)
+        sat_pos = np.array([36000 * 1000, 0, 0], dtype=float)
         eq_radius = 6371 * 1000
         flattening = 0.003
-        intersector = nav.EarthIntersector(
-            sat_pos=np.array([36000 * 1000, 0, 0], dtype=float),
-            ellipsoid=np.array([eq_radius, flattening])
+        ellipsoid = np.array([eq_radius, flattening])
+        point = nav.intersect_with_earth(
+            view_vector, sat_pos, ellipsoid
         )
-        point = intersector.intersect(np.array([-1, 0, 0], dtype=float))
         np.testing.assert_allclose(point, [eq_radius, 0, 0])
 
     @pytest.mark.parametrize(
