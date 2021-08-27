@@ -15,11 +15,57 @@
 """Tests for the CREFL ReflectanceCorrector modifier."""
 import unittest
 from unittest import mock
+from contextlib import contextmanager
 
 import numpy as np
 import pytest
 from dask import array as da
 from pyresample.geometry import AreaDefinition
+
+
+@contextmanager
+def mock_cmgdem(tmpdir, url):
+    """Create fake file representing CMGDEM.hdf."""
+    if not url:
+        yield None
+        return
+    rmock_obj = mock.patch('satpy.modifiers._crefl.retrieve')
+    rmock = rmock_obj.start()
+    dem_fn = str(tmpdir.join(url))
+    rmock.return_value = dem_fn
+    from pyhdf.SD import SD, SDC
+
+    h = SD(dem_fn, SDC.WRITE | SDC.CREATE)
+    dem_var = h.create("averaged elevation", SDC.INT16, (10, 10))
+    dem_var.setfillvalue(-9999)
+    dem_var[:] = np.zeros((10, 10), dtype=np.int16)
+    h.end()
+    try:
+        yield rmock_obj
+    finally:
+        rmock_obj.stop()
+
+
+@contextmanager
+def mock_tbase(tmpdir, url):
+    """Create fake file representing tbase.hdf."""
+    if not url:
+        yield None
+        return
+    rmock_obj = mock.patch('satpy.modifiers._crefl.retrieve')
+    rmock = rmock_obj.start()
+    dem_fn = str(tmpdir.join(url))
+    rmock.return_value = dem_fn
+    from pyhdf.SD import SD, SDC
+
+    h = SD(dem_fn, SDC.WRITE | SDC.CREATE)
+    dem_var = h.create("Elevation", SDC.INT16, (10, 10))
+    dem_var[:] = np.zeros((10, 10), dtype=np.int16)
+    h.end()
+    try:
+        yield rmock_obj
+    finally:
+        rmock_obj.stop()
 
 
 class TestViirsReflectanceCorrectorAnglesTest(unittest.TestCase):
@@ -172,8 +218,14 @@ class TestReflectanceCorrectorModifier:
                                             51.909142813383916, 58.8234273736508, 68.84706145641482, 69.91085190887961,
                                             71.10179768327806, 71.33161009169649])
 
-    @pytest.mark.parametrize('url', [None, 'CMGDEM.hdf'])
-    def test_reflectance_corrector_viirs(self, tmpdir, url):
+    @pytest.mark.parametrize(
+        'url,dem_mock_cm,dem_sds',
+        [
+            (None, mock_cmgdem, "average elevation"),
+            ("CMGDEM.hdf", mock_cmgdem, "averaged elevation"),
+            ("tbase.hdf", mock_tbase, "Elevation"),
+        ])
+    def test_reflectance_corrector_viirs(self, tmpdir, url, dem_mock_cm, dem_sds):
         """Test ReflectanceCorrector modifier with VIIRS data."""
         import xarray as xr
         import dask.array as da
@@ -196,7 +248,9 @@ class TestReflectanceCorrectorModifier:
             calibration='reflectance',
             modifiers=('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband'),
             sensor='viirs',
-            url=url)
+            url=url,
+            dem_sds=dem_sds,
+        )
 
         assert ref_cor.attrs['modifiers'] == ('sunz_corrected_iband', 'rayleigh_corrected_crefl_iband')
         assert ref_cor.attrs['calibration'] == 'reflectance'
@@ -234,9 +288,8 @@ class TestReflectanceCorrectorModifier:
         c04 = make_xarray('solar_azimuth_angle', 'solar_azimuth_angle')
         c05 = make_xarray('solar_zenith_angle', 'solar_zenith_angle')
 
-        rmock_obj = self._start_dem_mock(tmpdir, url)
-        res = ref_cor([c01], [c02, c03, c04, c05])
-        self._stop_dem_mock(rmock_obj)
+        with dem_mock_cm(tmpdir, url):
+            res = ref_cor([c01], [c02, c03, c04, c05])
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
@@ -341,22 +394,3 @@ class TestReflectanceCorrectorModifier:
         pytest.raises(ValueError, ref_cor, [1], [2, 3, 4])
         pytest.raises(ValueError, ref_cor, [1, 2, 3, 4], [])
         pytest.raises(ValueError, ref_cor, [], [1, 2, 3, 4])
-
-    def _start_dem_mock(self, tmpdir, url):
-        if not url:
-            return
-        rmock_obj = mock.patch('satpy.modifiers._crefl.retrieve')
-        rmock = rmock_obj.start()
-        dem_fn = str(tmpdir.join(url))
-        rmock.return_value = dem_fn
-        from pyhdf.SD import SD, SDC
-
-        h = SD(dem_fn, SDC.WRITE | SDC.CREATE)
-        dem_var = h.create("averaged elevation", SDC.FLOAT32, (10, 10))
-        dem_var.setfillvalue(-999.0)
-        dem_var[:] = np.zeros((10, 10), dtype=np.float32)
-        return rmock_obj
-
-    def _stop_dem_mock(self, rmock_obj):
-        if rmock_obj:
-            rmock_obj.stop()
