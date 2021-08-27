@@ -486,11 +486,13 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
                     }
 
         for index, band_name in enumerate(band_names):
-            self.assertEqual(1, res[band_name].attrs['sensor'].islower())
+            assert res[band_name].attrs['sensor'].islower()
             self.assertEqual((2, 5), res[band_name].shape)
             self.assertEqual('reflectance', res[band_name].attrs['calibration'])
             self.assertEqual('%', res[band_name].attrs['units'])
             self.assertTrue(np.allclose(res[band_name].values, expected[index + 1], equal_nan=True))
+            assert res[band_name].attrs['area'].area_extent == (-5495521.074086424, 5494521.070251633,
+                                                                -5491521.058747265, 5495521.074086424)
 
     def test_fy4a_500m_resolutions(self):
         """Test loading data when only 500m resolutions are available."""
@@ -530,3 +532,5 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             self.assertEqual('reflectance', res[band_name].attrs['calibration'])
             self.assertEqual('%', res[band_name].attrs['units'])
             self.assertTrue(np.allclose(res[band_name].values, expected, equal_nan=True))
+            assert res[band_name].attrs['area'].area_extent == (-5495771.007913081, 5495271.006001793,
+                                                                -5493771.000267932, 5495771.007913081)
