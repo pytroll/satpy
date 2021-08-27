@@ -648,16 +648,13 @@ class GMS5VISSRFileHandler(BaseFileHandler):
             earth_flattening=nav.EARTH_FLATTENING,
             earth_equatorial_radius=nav.EARTH_EQUATORIAL_RADIUS
         )
-        predicted_nav_params = nav.PredictedNavigationParameters(
-            attitude_prediction, orbit_prediction, proj_params
-        )
         lons, lats = nav.get_lons_lats(
             # lines=np.array([686, 2089]),
             # pixels=np.array([1680, 1793]),  # FIXME TODO
             lines=lines.astype(np.float64),
             pixels=pixels.astype(np.float64),
-            scan_params=scan_params,
-            predicted_nav_params=predicted_nav_params
+            static_params=(scan_params, proj_params),
+            predicted_params=(attitude_prediction, orbit_prediction)
         )
         return lons, lats
 

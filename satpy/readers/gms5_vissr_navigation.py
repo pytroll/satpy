@@ -17,16 +17,10 @@ EARTH_EQUATORIAL_RADIUS = 6378136.0
 """Constants taken from JMA's Msial library."""
 
 
-def get_jitclass_type(cls):
-    try:
-        return cls.class_type.instance_type
-    except AttributeError:
-        # With NUMBA_DISABLE_JIT=1
-        return cls
-
-
 @numba.njit
-def get_lons_lats(lines, pixels, scan_params, predicted_nav_params):
+def get_lons_lats(lines, pixels, static_params, predicted_params):
+    scan_params, proj_params = static_params
+    attitude_prediction, orbit_prediction = predicted_params
     num_lines = len(lines)
     num_pixels = len(pixels)
     output_shape = (num_lines, num_pixels)
@@ -36,7 +30,10 @@ def get_lons_lats(lines, pixels, scan_params, predicted_nav_params):
         for j in range(num_pixels):
             point = (lines[i], pixels[j])
             obs_time = get_observation_time(point, scan_params)
-            nav_params = predicted_nav_params.interpolate(obs_time)
+            attitude, orbit = interpolate_navigation_prediction(
+                attitude_prediction, orbit_prediction, obs_time
+            )
+            nav_params = (attitude, orbit, proj_params)
             lon, lat = get_lon_lat(point, nav_params)
             lons[i, j] = lon
             lats[i, j] = lat
@@ -67,17 +64,32 @@ def _get_relative_observation_time(point, scan_params):
 
 
 @numba.njit
-def get_lon_lat(point, attitude, orbit, proj_params):
+def interpolate_navigation_prediction(
+        attitude_prediction,
+        orbit_prediction,
+        observation_time
+):
+    attitude = interpolate_attitude_prediction(
+        attitude_prediction, observation_time
+    )
+    orbit = interpolate_orbit_prediction(
+        orbit_prediction, observation_time
+    )
+    return attitude, orbit
+
+
+@numba.njit
+def get_lon_lat(point, nav_params):
     """Get longitude and latitude coordinates for a given image pixel.
 
     Args:
         point: Point (line, pixel) in image coordinates.
-        attitude: Attitude parameters.
-        orbit: Orbital parameters.
-        proj_params: Projection parameters.
+        nav_params: Navigation parameters (Attitude, Orbit, Projection
+            Parameters)
     Returns:
         Longitude and latitude in degrees.
     """
+    attitude, orbit, proj_params = nav_params
     scan_angles = transform_image_coords_to_scanning_angles(
         point,
         _get_image_offset(proj_params),
@@ -119,31 +131,27 @@ def _get_sampling(proj_params):
 
 @numba.njit
 def _get_sat_sun_angles(orbit):
-    return np.array((
-        orbit.declination_from_sat_to_sun,
-        orbit.right_ascension_from_sat_to_sun
-    ))
+    return (orbit.declination_from_sat_to_sun,
+            orbit.right_ascension_from_sat_to_sun)
 
 
 @numba.njit
 def _get_spin_angles(attitude):
-    return np.array((
-        attitude.angle_between_sat_spin_and_z_axis,
-        attitude.angle_between_sat_spin_and_yz_plane
-    ))
+    return (attitude.angle_between_sat_spin_and_z_axis,
+            attitude.angle_between_sat_spin_and_yz_plane)
 
 
 @numba.njit
 def _get_sat_pos(orbit):
     return np.array((orbit.sat_position_earth_fixed_x,
-                     orbit.sat_position_earth_fixed_y,
-                     orbit.sat_position_earth_fixed_z))
+            orbit.sat_position_earth_fixed_y,
+            orbit.sat_position_earth_fixed_z))
 
 
 @numba.njit
 def _get_ellipsoid(proj_params):
-    return np.array((proj_params.earth_equatorial_radius,
-                     proj_params.earth_flattening))
+    return (proj_params.earth_equatorial_radius,
+            proj_params.earth_flattening)
 
 
 @numba.njit
@@ -416,53 +424,6 @@ ProjectionParameters = namedtuple(
 )
 
 
-# FIXME
-# @numba.experimental.jitclass(
-#     [
-#         ('attitude', get_jitclass_type(Attitude)),
-#         ('orbit', get_jitclass_type(Orbit)),
-#         ('proj_params', get_jitclass_type(ProjectionParameters)),
-#     ]
-# )
-# class NavigationParameters:
-#     def __init__(self, attitude, orbit, proj_params):
-#         self.attitude = attitude
-#         self.orbit = orbit
-#         self.proj_params = proj_params
-#
-#         # TODO: Remember that all angles are expected in rad
-#         # TODO: Watch out shape of 3x3 matrices! See msVissrNav.c
-#
-#     def get_image_offset(self):
-#         return self.proj_params.line_offset, self.proj_params.pixel_offset
-#
-#     def get_sampling(self):
-#         return self.proj_params.stepping_angle, self.proj_params.sampling_angle
-#
-#     def get_sat_sun_angles(self):
-#         return np.array([
-#             self.orbit.declination_from_sat_to_sun,
-#             self.orbit.right_ascension_from_sat_to_sun
-#         ])
-#
-#     def get_spin_angles(self):
-#         return np.array([
-#             self.attitude.angle_between_sat_spin_and_z_axis,
-#             self.attitude.angle_between_sat_spin_and_yz_plane
-#         ])
-#
-#     def get_ellipsoid(self):
-#         return np.array([
-#             self.proj_params.earth_equatorial_radius,
-#             self.proj_params.earth_flattening
-#         ])
-#
-#     def get_sat_position(self):
-#         return np.array((self.orbit.sat_position_earth_fixed_x,
-#                          self.orbit.sat_position_earth_fixed_y,
-#                          self.orbit.sat_position_earth_fixed_z))
-
-
 OrbitPrediction = namedtuple(
     'OrbitPrediction',
     [
@@ -561,29 +522,6 @@ def interpolate_attitude_prediction(attitude_prediction, observation_time):
     )
 
 
-# FIXME
-# @numba.experimental.jitclass(
-#     [
-#         ('attitude_prediction', get_jitclass_type(AttitudePrediction)),
-#         ('orbit_prediction', get_jitclass_type(OrbitPrediction)),
-#         ('proj_params', get_jitclass_type(ProjectionParameters)),
-#     ]
-# )
-# class PredictedNavigationParameters:
-#     def __init__(self, attitude_prediction, orbit_prediction, proj_params):
-#         self.attitude_prediction = attitude_prediction
-#         self.orbit_prediction = orbit_prediction
-#         self.proj_params = proj_params
-#
-#     def interpolate(self, observation_time):
-#         attitude = self.attitude_prediction.interpolate(observation_time)
-#         orbit = self.orbit_prediction.interpolate(observation_time)
-#         return self._get_nav_params(attitude, orbit)
-#
-#     def _get_nav_params(self, attitude, orbit):
-#         return NavigationParameters(attitude, orbit, self.proj_params)
-
-
 @numba.njit
 def interpolate_continuous(x, x_sample, y_sample):
     """Linear interpolation of continuous quantities.
@@ -593,7 +531,8 @@ def interpolate_continuous(x, x_sample, y_sample):
     """
     try:
         return _interpolate(x, x_sample, y_sample)
-    except Exception:
+    except:
+        # Numba cannot distinguish exception types
         return np.nan
 
 
@@ -607,7 +546,8 @@ def interpolate_angles(x, x_sample, y_sample):
     """
     try:
         return _wrap_2pi(_interpolate(x, x_sample, unwrap(y_sample)))
-    except Exception:
+    except:
+        # Numba cannot distinguish exception types
         return np.nan
 
 

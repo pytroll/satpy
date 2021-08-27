@@ -194,15 +194,8 @@ class TestSinglePixelNavigation:
     )
     def test_get_lon_lat(self, point, nav_params, expected):
         """Test getting lon/lat coordinates for a given pixel."""
-        attitude, orbit, proj_params = nav_params
-        lon, lat = nav.get_lon_lat(point, attitude, orbit, proj_params)
+        lon, lat = nav.get_lon_lat(point, nav_params)
         np.testing.assert_allclose((lon, lat), expected)
-
-    def test_nav_matrices_are_contiguous(self):
-        """Test that navigation matrices are stored as C-contiguous arrays."""
-        attitude, orbit, proj_params = NAVIGATION_REFERENCE[0]['nav_params']
-        assert proj_params.misalignment.flags['C_CONTIGUOUS']
-        assert orbit.nutation_precession.flags['C_CONTIGUOUS']
 
     def test_transform_image_coords_to_scanning_angles(self):
         """Test transformation from image coordinates to scanning angles."""
@@ -280,7 +273,13 @@ class TestSinglePixelNavigation:
 
 
 class TestImageNavigation:
-    def test_get_lons_lats(self, scan_params, predicted_nav_params):
+    def test_get_lons_lats(
+            self,
+            scan_params,
+            attitude_prediction,
+            orbit_prediction,
+            proj_params
+    ):
         lons_exp = [[-114.70480148, -112.23691703, -109.70496014],
                     [8.27367963, 8.74144293, 9.17639531],
                     [15.92344528, 16.27070079, 16.63288666]]
@@ -290,8 +289,8 @@ class TestImageNavigation:
         lons, lats = nav.get_lons_lats(
             lines=np.array([1000, 1500, 2000]),
             pixels=np.array([1000, 1500, 2000]),
-            scan_params=scan_params,
-            predicted_nav_params=predicted_nav_params
+            static_params=(scan_params, proj_params),
+            predicted_params=(attitude_prediction, orbit_prediction)
         )
         np.testing.assert_allclose(lons, lons_exp)
         np.testing.assert_allclose(lats, lats_exp)
@@ -361,21 +360,16 @@ class TestPredictionInterpolation:
         np.testing.assert_allclose(res, expected)
 
     def test_interpolate_orbit_prediction(self, obs_time, orbit_prediction, orbit_expected):
-        orbit = orbit_prediction.interpolate(obs_time)
-        assert_orbit_close(orbit, orbit_expected)
+        orbit = nav.interpolate_orbit_prediction(
+            orbit_prediction, obs_time
+        )
+        assert_namedtuple_close(orbit, orbit_expected)
 
     def test_interpolate_attitude_prediction(self, obs_time, attitude_prediction, attitude_expected):
-        attitude = attitude_prediction.interpolate(obs_time)
-        assert_attitude_close(attitude, attitude_expected)
-
-    def test_interpolate_prediction(self, obs_time, proj_params, attitude_prediction, orbit_prediction, nav_params_expected):
-        predicted_nav_params = nav.PredictedNavigationParameters(
-            proj_params=proj_params,
-            attitude_prediction=attitude_prediction,
-            orbit_prediction=orbit_prediction
+        attitude = nav.interpolate_attitude_prediction(
+            attitude_prediction, obs_time
         )
-        nav_params = predicted_nav_params.interpolate(obs_time)
-        assert_nav_params_close(nav_params, nav_params_expected)
+        assert_namedtuple_close(attitude, attitude_expected)
 
     @pytest.fixture
     def obs_time(self):
@@ -420,13 +414,6 @@ def scan_params(sampling_angle):
         spinning_rate=0.5,
         num_sensors=1,
         sampling_angle=sampling_angle
-    )
-
-
-@pytest.fixture
-def predicted_nav_params(attitude_prediction, orbit_prediction, proj_params):
-    return nav.PredictedNavigationParameters(
-        attitude_prediction, orbit_prediction, proj_params
     )
 
 
@@ -764,86 +751,11 @@ class TestFileHandler:
         return lons_exp, lats_exp
 
 
-def _get_attributes(obj):
-    import inspect
-    non_callable_attrs = inspect.getmembers(
-        obj, lambda x: not inspect.ismethod(x)
-    )
-    return set(attr for attr in non_callable_attrs if not attr.startswith('_'))
-
-
-def _assert_have_same_attributes(a, b):
-    a_attrs = _get_attributes(a)
-    b_attrs = _get_attributes(b)
-    assert a_attrs == b_attrs, "Different set of attribtues"
-    return a_attrs
-
-
-def assert_numba_objects_close(a, b):
-    _assert_have_same_attributes(a, b)
-    _assert_attrs_close(a, b)
-
-
-def assert_orbit_close(a, b):
-    """Assert that two Orbit instances are close.
-
-    This would probably make more sense in the Orbit class. However,
-    numba doesn't support np.allclose, yet.
-    """
-    attrs = [
-        'greenwich_sidereal_time',
-        'declination_from_sat_to_sun',
-        'right_ascension_from_sat_to_sun',
-        'sat_position_earth_fixed_x',
-        'sat_position_earth_fixed_y',
-        'sat_position_earth_fixed_z',
-        'nutation_precession',
-    ]
-    _assert_attrs_close(a, b, attrs, 'Orbit')
-
-
-def assert_attitude_close(a, b):
-    """Assert that two Attitude instances are close.
-
-    This would probably make more sense in the Attitude class. However,
-    numba doesn't support np.allclose, yet.
-    """
-    attrs = [
-        'angle_between_earth_and_sun',
-        'angle_between_sat_spin_and_z_axis',
-        'angle_between_sat_spin_and_yz_plane'
-    ]
-    _assert_attrs_close(a, b, attrs, 'Attitude')
-
-
-def assert_proj_params_close(a, b):
-    """Assert that two ProjectionParameters instances are close.
-
-    This would probably make more sense in the Attitude class. However,
-    numba doesn't support np.allclose, yet.
-    """
-    attrs = [
-        'line_offset',
-        'pixel_offset',
-        'stepping_angle',
-        'sampling_angle',
-        'misalignment',
-        'earth_flattening',
-        'earth_equatorial_radius',
-    ]
-    _assert_attrs_close(a, b, attrs, 'ProjectionParameters')
-
-
-def assert_nav_params_close(a, b):
-    assert_attitude_close(a.attitude, b.attitude)
-    assert_orbit_close(a.orbit, b.orbit)
-    assert_proj_params_close(a.proj_params, b.proj_params)
-
-
-def _assert_attrs_close(a, b):
-    for attr in _get_attributes(a):
+def assert_namedtuple_close(a, b):
+    assert a.__class__ == b.__class__
+    for attr in a._fields:
         np.testing.assert_allclose(
             getattr(a, attr),
             getattr(b, attr),
-            err_msg='{} attribute {} differs'.format(a._numba_type, attr)
+            err_msg='{} attribute {} differs'.format(a.__class__, attr)
         )
