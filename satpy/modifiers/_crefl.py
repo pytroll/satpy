@@ -137,7 +137,16 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         f = SD(local_filename, SDC.READ)
         var = f.select(var_name)
         data = var[:]
-        return np.ma.MaskedArray(data, data == var.getfillvalue())
+        fill = ReflectanceCorrector._read_fill_value_from_hdf4(var, data.dtype)
+        return np.ma.MaskedArray(data, data == fill)
+
+    @staticmethod
+    def _read_fill_value_from_hdf4(var, dtype):
+        from pyhdf.error import HDF4Error
+        try:
+            return var.getfillvalue()
+        except HDF4Error:
+            return np.iinfo(dtype).min
 
     def _get_data_and_angles(self, datasets, optional_datasets):
         angles = self._extract_angle_data_arrays(datasets, optional_datasets)
