@@ -1,1 +1,13 @@
 sensor_name: visir/fci
+
+
+composites:
+
+  binary_cloud_mask:
+    # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
+    # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
+    compositor: !!python/name:satpy.composites.CategoricalDataCompositor
+    prerequisites:
+      - name: 'cloud_state'
+    lut: [.nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan]
+    standard_name: binary_cloud_mask

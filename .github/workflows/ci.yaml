@@ -36,10 +36,10 @@ jobs:
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v2
         with:
-          miniconda-version: "latest"
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
           python-version: "3.8"
-          mamba-version: "*"
-          channels: conda-forge,defaults
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
 
@@ -83,10 +83,10 @@ jobs:
       - name: Setup Conda Environment
         uses: conda-incubator/setup-miniconda@v2
         with:
-          miniconda-version: "latest"
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          use-mamba: true
           python-version: ${{ matrix.python-version }}
-          mamba-version: "*"
-          channels: conda-forge,defaults
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
 
@@ -115,12 +115,12 @@ jobs:
       - name: Install satpy
         shell: bash -l {0}
         run: |
-          pip install --no-deps -e .
+          python -m pip install --no-deps -e .
 
       - name: Run unit tests
         shell: bash -l {0}
         run: |
-          pytest --cov=satpy satpy/tests --cov-report=xml
+          pytest --cov=satpy satpy/tests --cov-report=xml --cov-report=
 
       - name: Upload unittest coverage to Codecov
         uses: codecov/codecov-action@v1
@@ -128,6 +128,13 @@ jobs:
           flags: unittests
           file: ./coverage.xml
           env_vars: OS,PYTHON_VERSION,UNSTABLE
+
+      - name: Coveralls Parallel
+        uses: AndreMiras/coveralls-python-action@develop
+        with:
+          flag-name: run-${{ matrix.test_number }}
+          parallel: true
+        if: runner.os == 'Linux'
 
       - name: Run behaviour tests
         shell: bash -l {0}
@@ -141,3 +148,13 @@ jobs:
           flags: behaviourtests
           file: ./coverage.xml
           env_vars: OS,PYTHON_VERSION,UNSTABLE
+
+  coveralls:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: AndreMiras/coveralls-python-action@develop
+        with:
+          parallel-finished: true
+

@@ -227,7 +227,7 @@ from pyresample.geometry import AreaDefinition
 from trollsift.parser import StringFormatter, Parser
 
 import numpy as np
-from pyproj import Proj
+from pyproj import Proj, CRS, Transformer
 import dask
 import dask.array as da
 import xarray as xr
@@ -303,7 +303,7 @@ class NumberedTileGenerator(object):
         else:
             raise ValueError("Either 'tile_count' or 'tile_shape' must be provided")
 
-        # number of pixels per each tile
+        # number of pixels per each tile (rows, cols)
         self.tile_shape = tile_shape
         # number of tiles in each direction (rows, columns)
         self.tile_count = tile_count
@@ -342,9 +342,7 @@ class NumberedTileGenerator(object):
             new_extents,
         )
 
-        x, y = imaginary_grid_def.get_proj_coords()
-        x = x[0].squeeze()  # all rows should have the same coordinates
-        y = y[:, 0].squeeze()  # all columns should have the same coordinates
+        x, y = imaginary_grid_def.get_proj_vectors()
         return x, y
 
     def _get_xy_scaling_parameters(self):
@@ -352,7 +350,7 @@ class NumberedTileGenerator(object):
         gd = self.area_definition
         bx = self.x.min()
         mx = gd.pixel_size_x
-        by = self.y.min()
+        by = self.y.max()
         my = -abs(gd.pixel_size_y)
         return mx, bx, my, by
 
@@ -424,10 +422,20 @@ class NumberedTileGenerator(object):
 class LetteredTileGenerator(NumberedTileGenerator):
     """Helper class to generate per-tile metadata for lettered tiles."""
 
-    def __init__(self, area_definition, extents,
+    def __init__(self, area_definition, extents, sector_crs,
                  cell_size=(2000000, 2000000),
                  num_subtiles=None, use_sector_reference=False):
-        """Initialize tile information for later generation."""
+        """Initialize tile information for later generation.
+
+        Args:
+            area_definition (AreaDefinition): Area of the data being saved.
+            extents (tuple): Four element tuple of the configured lettered
+                 area.
+            sector_crs (pyproj.CRS): CRS of the configured lettered sector
+                area.
+            cell_size (tuple): Two element tuple of resolution of each tile
+                in sector projection units (y, x).
+        """
         # (row subtiles, col subtiles)
         self.num_subtiles = num_subtiles or (2, 2)
         self.cell_size = cell_size  # (row tile height, col tile width)
@@ -435,7 +443,8 @@ class LetteredTileGenerator(NumberedTileGenerator):
         self.ll_extents = extents[:2]  # (x min, y min)
         self.ur_extents = extents[2:]  # (x max, y max)
         self.use_sector_reference = use_sector_reference
-        super(LetteredTileGenerator, self).__init__(area_definition)
+        self._transformer = Transformer.from_crs(sector_crs, area_definition.crs)
+        super().__init__(area_definition)
 
     def _get_tile_properties(self, tile_shape, tile_count):
         """Calculate tile information for this particular sector/grid."""
@@ -447,8 +456,8 @@ class LetteredTileGenerator(NumberedTileGenerator):
         ad = self.area_definition
         x, y = ad.get_proj_vectors()
 
-        ll_xy = self.ll_extents
-        ur_xy = self.ur_extents
+        ll_xy = self._transformer.transform(*self.ll_extents)
+        ur_xy = self._transformer.transform(*self.ur_extents)
         cw = abs(ad.pixel_size_x)
         ch = abs(ad.pixel_size_y)
         st = self.num_subtiles
@@ -864,7 +873,6 @@ class NetCDFTemplate:
         for data_arr in data_arrays:
             new_var_name, new_data_arr = self._render_variable(data_arr)
             new_ds[new_var_name] = new_data_arr
-
         new_coords = self._render_coordinates(new_ds)
         new_ds.coords.update(new_coords)
         # use first data array as "representative" for global attributes
@@ -910,6 +918,11 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     def _global_awips_id(self, input_metadata):
         return "AWIPS_" + input_metadata['name']
+
+    def _global_physical_element(self, input_metadata):
+        var_config = self._var_tree.find_match(**input_metadata)
+        result = self._render_attrs(var_config["attributes"], input_metadata)
+        return result["physical_element"]
 
     def _global_production_location(self, input_metadata):
         """Get default global production_location attribute."""
@@ -964,6 +977,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
             new_encoding['scale_factor'] = sf
             new_encoding['add_offset'] = ao
             new_encoding['_FillValue'] = fill
+            new_encoding['coordinates'] = ' '.join([ele for ele in input_data_arr.dims])
         return new_encoding
 
     def _get_projection_attrs(self, area_def):
@@ -1060,7 +1074,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         return new_ds
 
     def _add_sector_id_global(self, new_ds, sector_id):
-        if not self._template_dict.get('apply_sector_id_global'):
+        if not self._template_dict.get('add_sector_id_global'):
             return
 
         if sector_id is None:
@@ -1080,6 +1094,16 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         new_ds.attrs['creator'] = creator
         new_ds.attrs['creation_time'] = creation_time.strftime('%Y-%m-%dT%H:%M:%S')
         return new_ds
+
+    def _render_variable_attributes(self, var_config, input_metadata):
+        attrs = super()._render_variable_attributes(var_config, input_metadata)
+        # AWIPS validation checks
+        if len(attrs.get("units", "")) > 26:
+            warnings.warn(
+                "AWIPS 'units' must be limited to a maximum of 26 characters. "
+                "Units '{}' is too long and will be truncated.".format(attrs["units"]))
+            attrs["units"] = attrs["units"][:26]
+        return attrs
 
     def render(self, dataset_or_data_arrays, area_def,
                tile_info, sector_id, creator=None, creation_time=None,
@@ -1263,6 +1287,7 @@ class AWIPSTiledWriter(Writer):
     def _fill_sector_info(self):
         """Convert sector extents if needed."""
         for sector_info in self.awips_sectors.values():
+            sector_info['projection'] = CRS.from_user_input(sector_info['projection'])
             p = Proj(sector_info['projection'])
             if 'lower_left_xy' in sector_info:
                 sector_info['lower_left_lonlat'] = p(*sector_info['lower_left_xy'], inverse=True)
@@ -1299,6 +1324,7 @@ class AWIPSTiledWriter(Writer):
             tile_gen = LetteredTileGenerator(
                 area_def,
                 sector_info['lower_left_xy'] + sector_info['upper_right_xy'],
+                sector_crs=sector_info['projection'],
                 cell_size=sector_info['resolution'],
                 num_subtiles=num_subtiles,
                 use_sector_reference=use_sector_reference,
@@ -1522,11 +1548,11 @@ class AWIPSTiledWriter(Writer):
                 grid's pixels. By default this is False meaning that the
                 grid's tiles will be shifted to align with the data locations.
                 If True, the data is shifted. At most the data will be shifted
-                by 0.5 pixels. See :mod:`satpy.writers.scmi` for more
+                by 0.5 pixels. See :mod:`satpy.writers.awips_tiled` for more
                 information.
             template (str or dict): Name of the template configured in the
                 writer YAML file. This can also be a dictionary with a full
-                template configuration. See the :mod:`satpy.writers.scmi`
+                template configuration. See the :mod:`satpy.writers.awips_tiled`
                 documentation for more information on templates. Defaults to
                 the 'polar' builtin template.
             check_categories (bool): Whether category and flag products should
@@ -1691,7 +1717,6 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
 
     img.save("test.png")
 
-    from pyresample.utils import proj4_str_to_dict
     new_extents = (
         ll_extent[0],
         ur_extent[1] - 1001. * meters_ppy,
@@ -1702,7 +1727,7 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
         'debug_grid',
         'debug_grid',
         'debug_grid',
-        proj4_str_to_dict(sector_info['projection']),
+        sector_info['projection'],
         1000,
         1000,
         new_extents

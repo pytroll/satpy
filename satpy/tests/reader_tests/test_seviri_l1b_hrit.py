@@ -275,7 +275,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        HRITMSGPrologueFileHandler(filename=None,
+        HRITMSGPrologueFileHandler(filename='dummy_prologue_filename',
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},
@@ -308,7 +308,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        self.reader = HRITMSGEpilogueFileHandler(filename=None,
+        self.reader = HRITMSGEpilogueFileHandler(filename='dummy_epilogue_filename',
                                                  filename_info={'service': ''},
                                                  filetype_info=None,
                                                  calib_mode='nominal')
@@ -323,7 +323,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        HRITMSGEpilogueFileHandler(filename=None,
+        HRITMSGEpilogueFileHandler(filename='dummy_epilogue_filename',
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},

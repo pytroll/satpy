@@ -286,7 +286,18 @@ class Scene:
         Some readers dynamically determine what is available based on the
         contents of the files provided.
 
-        Returns: list of available dataset names
+        By default, only returns non-composite dataset IDs.  To include
+        composite dataset IDs, pass ``composites=True``.
+
+        Args:
+            reader_name (str, optional): Name of reader for which to return
+                dataset IDs.  If not passed, return dataset IDs for all
+                readers.
+            composites (bool, optional): If True, return dataset IDs including
+                composites.  If False (default), return only non-composite
+                dataset IDs.
+
+        Returns: list of available dataset IDs
 
         """
         try:
@@ -305,14 +316,39 @@ class Scene:
         return available_datasets
 
     def available_dataset_names(self, reader_name=None, composites=False):
-        """Get the list of the names of the available datasets."""
+        """Get the list of the names of the available datasets.
+
+        By default, this only shows names of datasets directly defined in (one
+        of the) readers.  Names of composites are not returned unless the
+        argument ``composites=True`` is passed.
+
+        Args:
+            reader_name (str, optional): Name of reader for which to return
+                dataset IDs.  If not passed, return dataset names for all
+                readers.
+            composites (bool, optional): If True, return dataset IDs including
+                composites.  If False (default), return only non-composite
+                dataset names.
+
+        Returns: list of available dataset names
+        """
         return sorted(set(x['name'] for x in self.available_dataset_ids(
             reader_name=reader_name, composites=composites)))
 
     def all_dataset_ids(self, reader_name=None, composites=False):
-        """Get names of all datasets from loaded readers or `reader_name` if specified.
+        """Get IDs of all datasets from loaded readers or `reader_name` if specified.
 
-        Returns: list of all dataset names
+        Excludes composites unless ``composites=True`` is passed.
+
+        Args:
+            reader_name (str, optional): Name of reader for which to return
+                dataset IDs.  If not passed, return dataset IDs for all
+                readers.
+            composites (bool, optional): If True, return dataset IDs including
+                composites.  If False (default), return only non-composite
+                dataset IDs.
+
+        Returns: list of all dataset IDs
 
         """
         try:
@@ -338,6 +374,18 @@ class Scene:
         that the list of datasets returned by this method may change depending
         on what files are provided even if a product/dataset is a "standard"
         product for a particular reader.
+
+        Excludes composites unless ``composites=True`` is passed.
+
+        Args:
+            reader_name (str, optional): Name of reader for which to return
+                dataset IDs.  If not passed, return dataset names for all
+                readers.
+            composites (bool, optional): If True, return dataset IDs including
+                composites.  If False (default), return only non-composite
+                dataset names.
+
+        Returns: list of all dataset names
 
         """
         return sorted(set(x['name'] for x in self.all_dataset_ids(
@@ -366,11 +414,11 @@ class Scene:
         return sorted(available_comps & all_comps)
 
     def available_composite_ids(self):
-        """Get names of composites that can be generated from the available datasets."""
+        """Get IDs of composites that can be generated from the available datasets."""
         return self._check_known_composites(available_only=True)
 
     def available_composite_names(self):
-        """All configured composites known to this Scene."""
+        """Names of all configured composites known to this Scene."""
         return sorted(set(x['name'] for x in self.available_composite_ids()))
 
     def all_composite_ids(self):
@@ -905,6 +953,9 @@ class Scene:
         """
         dataarrays = self._get_dataarrays_from_identifiers(datasets)
 
+        if len(dataarrays) == 0:
+            return xr.Dataset()
+
         ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in dataarrays if i.attrs.get('area') is not None}
         mdata = combine_metadata(*tuple(i.attrs for i in dataarrays))
         if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
@@ -916,8 +967,8 @@ class Scene:
             if not isinstance(lons, DataArray):
                 lons = DataArray(lons, dims=('y', 'x'))
                 lats = DataArray(lats, dims=('y', 'x'))
-            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], lats),
-                                             "longitude": (["y", "x"], lons)})
+            ds = xr.Dataset(ds_dict, coords={"latitude": lats,
+                                             "longitude": lons})
 
         ds.attrs = mdata
         return ds

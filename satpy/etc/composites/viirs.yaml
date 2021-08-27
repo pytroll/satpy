@@ -162,6 +162,21 @@ composites:
     standard_name: true_color
     high_resolution_band: red
 
+  true_color_crefl:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: M05
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+      - name: M04
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+      - name: M03
+        modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    optional_prerequisites:
+      - name: I01
+        modifiers: [sunz_corrected_iband, rayleigh_corrected_crefl_iband]
+    standard_name: true_color
+    high_resolution_band: red
+
   true_color_lowres:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:

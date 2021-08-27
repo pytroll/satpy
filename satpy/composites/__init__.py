@@ -252,6 +252,51 @@ class SingleBandCompositor(CompositeBase):
                             dims=data.dims, coords=data.coords)
 
 
+class CategoricalDataCompositor(CompositeBase):
+    """Compositor used to recategorize categorical data using a look-up-table.
+
+    Each value in the data array will be recategorized to a new category defined in
+    the look-up-table using the original value as an index for that look-up-table.
+
+    Example:
+        data = [[1, 3, 2], [4, 2, 0]]
+        lut = [10, 20, 30, 40, 50]
+        res = [[20, 40, 30], [50, 30, 10]]
+    """
+
+    def __init__(self, name, lut=None, **kwargs):
+        """Get look-up-table used to recategorize data.
+
+        Args:
+            lut (list): a list of new categories. The lenght must be greater than the
+                        maximum value in the data array that should be recategorized.
+        """
+        self.lut = np.array(lut)
+        super(CategoricalDataCompositor, self).__init__(name, **kwargs)
+
+    def _update_attrs(self, new_attrs):
+        """Modify name and add LUT."""
+        new_attrs['name'] = self.attrs['name']
+        new_attrs['composite_lut'] = list(self.lut)
+
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block]
+
+    def __call__(self, projectables, **kwargs):
+        """Recategorize the data."""
+        if len(projectables) != 1:
+            raise ValueError("Can't have more than one dataset for a categorical data composite")
+
+        data = projectables[0].astype(int)
+        res = data.data.map_blocks(self._getitem, self.lut, dtype=self.lut.dtype)
+
+        new_attrs = data.attrs.copy()
+        self._update_attrs(new_attrs)
+
+        return xr.DataArray(res, dims=data.dims, attrs=new_attrs, coords=data.coords)
+
+
 class GenericCompositor(CompositeBase):
     """Basic colored composite builder."""
 
@@ -948,7 +993,7 @@ class SandwichCompositor(GenericCompositor):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
         luminance = projectables[0]
-        luminance /= 100.
+        luminance = luminance / 100.
         # Limit between min(luminance) ... 1.0
         luminance = luminance.clip(max=1.)
 

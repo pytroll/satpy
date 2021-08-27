@@ -160,6 +160,7 @@ class TestVIRRL1BReader(unittest.TestCase):
                 self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
             self.assertEqual(band_values[dataset['name']],
                              round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
+            assert "valid_range" not in ds.attrs
 
     def test_fy3b_file(self):
         """Test that FY3B files are recognized."""

@@ -157,6 +157,7 @@ class HRITFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
+
         self.mda = {}
         self._get_hd(hdr_info)
 
