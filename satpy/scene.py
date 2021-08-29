@@ -964,6 +964,10 @@ class Scene:
         else:
             # we have a swath definition and should use lon/lat values
             lons, lats = mdata['area'].get_lonlats()
+            # remove lons and lats, because we add them later as the coordinates
+            var_to_remove = ('longitude', 'latitude')
+            for var in var_to_remove:
+                ds_dict.pop(var, None)
             if not isinstance(lons, DataArray):
                 lons = DataArray(lons, dims=('y', 'x'))
                 lats = DataArray(lats, dims=('y', 'x'))

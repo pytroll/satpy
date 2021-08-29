@@ -1755,6 +1755,49 @@ class TestSceneConversions(unittest.TestCase):
         assert len(xrds.variables) == 0
         assert len(xrds.coords) == 0
 
+    def test_to_xarray_dataset_with_swath_scene(self):
+        """Test converting a Scene to xarray dataset with a SwathDefinition."""
+        from satpy import Scene
+        from xarray import Dataset
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import SwathDefinition
+        scn = Scene()
+        lons = xr.DataArray(da.zeros((2, 2)))
+        lats = xr.DataArray(da.zeros((2, 2)))
+        area = SwathDefinition(lons, lats)
+        scn['ds1'] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                                  attrs={'start_time': datetime(2018, 1, 1),
+                                         'area': area})
+        xrds = scn.to_xarray_dataset()
+        assert xrds is not None
+        assert isinstance(xrds, Dataset)
+        assert len(xrds.variables) == 3
+        assert len(xrds.coords) == 2
+
+    def test_to_xarray_dataset_with_swath_scene_lonlat(self):
+        """Test converting a Scene to xarray dataset (lon/lat as var) with a SwathDefinition."""
+        from satpy import Scene
+        from xarray import Dataset
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import SwathDefinition
+        scn = Scene()
+        lons = xr.DataArray(da.zeros((2, 2)))
+        lats = xr.DataArray(da.zeros((2, 2)))
+        area = SwathDefinition(lons, lats)
+        zero_dataarray = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                                      attrs={'start_time': datetime(2018, 1, 1),
+                                             'area': area})
+        scn['longitude'] = zero_dataarray
+        scn['latitude'] = zero_dataarray
+        scn['ds1'] = zero_dataarray
+        xrds = scn.to_xarray_dataset()
+        assert xrds is not None
+        assert isinstance(xrds, Dataset)
+        assert len(xrds.variables) == 3
+        assert len(xrds.coords) == 2
+
     def test_geoviews_basic_with_area(self):
         """Test converting a Scene to geoviews with an AreaDefinition."""
         from satpy import Scene
