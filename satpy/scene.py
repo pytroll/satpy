@@ -957,6 +957,10 @@ class Scene:
             return xr.Dataset()
 
         ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in dataarrays if i.attrs.get('area') is not None}
+        # remove the coordinates conflicts with DataArray names
+        for key in ds_dict.keys():
+            remove_coords = list(set(ds_dict[key].coords).intersection(ds_dict.keys()))
+            ds_dict[key] = ds_dict[key].drop(remove_coords)
         mdata = combine_metadata(*tuple(i.attrs for i in dataarrays))
         if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
             # either don't know what the area is or we have an AreaDefinition
