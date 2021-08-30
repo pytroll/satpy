@@ -31,6 +31,19 @@ from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 RESOLUTIONS = [500, 1000, 2000, 4000]
 
+CHANNELS_BY_RESOLUTION = {500: ["C02"],
+                          1000: ["C01", "C02", "C03"],
+                          2000: ["C01", "C02", "C03", "C04", "C05", "C06", "C07"],
+                          4000: ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
+                                 "C08", "C09", "C10", "C11", "C12", "C13", "C14"]}
+
+AREA_EXTENTS_BY_RESOLUTION = {
+    500:  (-5495771.007913081, 5495271.006001793, -5493771.000267932, 5495771.007913081),
+    1000: (-5495521.074086424, 5494521.070251633, -5491521.058747265, 5495521.074086424),
+    2000: (-5495021.206414789, 5493021.198696349, -5487021.175541028, 5495021.206414789),
+    4000: (-5494021.20255557, 5490021.187118688, -5478021.140808046, 5494021.20255557)
+}
+
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
@@ -70,81 +83,44 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
         elif prefix == 'COEF':
             if file_type == '500':
-                data = xr.DataArray(
-                                da.from_array((np.arange(2.).reshape((1, 2)) + 1.) / np.array([1E4, 1E2]), [1, 2]),
-                                attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': 0,
-                                    'units': 'NUL',
-                                    'band_names': 'NUL',
-                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                    'valid_range': [-500, 500],
-                                },
-                                dims=('_num_channel', '_coefs'))
+                data = self._create_coeff_array(1)
 
             elif file_type == '1000':
-                data = xr.DataArray(
-                                da.from_array((np.arange(6.).reshape((3, 2)) + 1.) / np.array([1E4, 1E2]), [3, 2]),
-                                attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': 0,
-                                    'units': 'NUL',
-                                    'band_names': 'NUL',
-                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                    'valid_range': [-500, 500],
-                                },
-                                dims=('_num_channel', '_coefs'))
+                data = self._create_coeff_array(3)
 
             elif file_type == '2000':
-                data = xr.DataArray(
-                                da.from_array((np.arange(14.).reshape((7, 2)) + 1.) / np.array([1E4, 1E2]), [7, 2]),
-                                attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': 0,
-                                    'units': 'NUL',
-                                    'band_names': 'NUL',
-                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                    'valid_range': [-500, 500],
-                                },
-                                dims=('_num_channel', '_coefs'))
+                data = self._create_coeff_array(7)
 
             elif file_type == '4000':
-                data = xr.DataArray(
-                                da.from_array((np.arange(28.).reshape((14, 2)) + 1.)
-                                              / np.array([1E4, 1E2]), [14, 2]),
-                                attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': 0,
-                                    'units': 'NUL',
-                                    'band_names': 'NUL',
-                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                    'valid_range': [-500, 500],
-                                },
-                                dims=('_num_channel', '_coefs'))
+                data = self._create_coeff_array(14)
 
+        return data
+
+    def _create_coeff_array(self, nb_channels):
+        data = xr.DataArray(
+            da.from_array((np.arange(nb_channels * 2).reshape((nb_channels, 2)) + 1.) /
+                          np.array([1E4, 1E2]), [nb_channels, 2]),
+            attrs={
+                'Slope': 1., 'Intercept': 0.,
+                'FillValue': 0,
+                'units': 'NUL',
+                'band_names': 'NUL',
+                'long_name': b'Calibration coefficient (SCALE and OFFSET)',
+                'valid_range': [-500, 500],
+            },
+            dims=('_num_channel', '_coefs'))
         return data
 
     def _get_500m_data(self, file_type):
-        dim_0 = 2
-        dim_1 = 5
         chs = [2]
         cwls = [0.65]
-        data = {}
-        for index, _cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
-                                                                           [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
-                                                                           [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                                         [dim_0, dim_1], file_type)
+        data = self._create_channel_data(chs, cwls, file_type)
 
         return data
 
-    def _get_1km_data(self, file_type):
+    def _create_channel_data(self, chs, cwls, file_type):
         dim_0 = 2
         dim_1 = 5
-        chs = np.linspace(1, 3, 3)
-        cwls = [0.47, 0.65, 0.83]
         data = {}
         for index, _cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
@@ -153,38 +129,26 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                                                            [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
                                                                          [dim_0, dim_1], file_type)
+        return data
+
+    def _get_1km_data(self, file_type):
+        chs = np.linspace(1, 3, 3)
+        cwls = [0.47, 0.65, 0.83]
+        data = self._create_channel_data(chs, cwls, file_type)
 
         return data
 
     def _get_2km_data(self, file_type):
-        dim_0 = 2
-        dim_1 = 5
         chs = np.linspace(1, 7, 7)
         cwls = [0.47, 0.65, 0.83, 1.37, 1.61, 2.22, 3.72]
-        data = {}
-        for index, _cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
-                                                                           [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
-                                                                           [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                                         [dim_0, dim_1], file_type)
+        data = self._create_channel_data(chs, cwls, file_type)
 
         return data
 
     def _get_4km_data(self, file_type):
-        dim_0 = 2
-        dim_1 = 5
         chs = np.linspace(1, 14, 14)
         cwls = [0.47, 0.65, 0.83, 1.37, 1.61, 2.22, 3.72, 3.72, 6.25, 7.10, 8.50, 10.8, 12, 13.5]
-        data = {}
-        for index, _cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
-                                                                           [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
-                                                                           [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                                         [dim_0, dim_1], file_type)
+        data = self._create_channel_data(chs, cwls, file_type)
 
         return data
 
@@ -238,6 +202,23 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
+        self.expected = {
+                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
+                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
+                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]]),
+                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
+                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
+                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]]),
+                    7: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+                    8: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+                    9: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+                    10: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+                    11: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+                    12: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+                    13: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]]),
+                    14: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
+                    }
+
     def tearDown(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
@@ -251,21 +232,21 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         available_datasets = reader.available_dataset_ids
 
         # 500m
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(2, 2, 1)]
+        band_names = CHANNELS_BY_RESOLUTION[500]
         for band_name in band_names:
             ds_q = make_dsq(name=band_name, resolution=500)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
 
         # 1km
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 3, 3)]
+        band_names = CHANNELS_BY_RESOLUTION[1000]
         for band_name in band_names:
             ds_q = make_dsq(name=band_name, resolution=1000)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
 
         # 2km
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 7, 7)]
+        band_names = CHANNELS_BY_RESOLUTION[2000]
         for band_name in band_names:
             ds_q = make_dsq(name=band_name, resolution=2000)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
@@ -274,20 +255,13 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             else:
                 self.assertEqual(3, len(res))
 
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 14, 14)]
+        band_names = CHANNELS_BY_RESOLUTION[4000]
         res = reader.load(band_names)
         self.assertEqual(14, len(res))
 
         for band_name in band_names:
             self.assertEqual((2, 5), res[band_name].shape)
-            if band_name < 'C07':
-                self.assertEqual('reflectance', res[band_name].attrs['calibration'])
-            else:
-                self.assertEqual('brightness_temperature', res[band_name].attrs['calibration'])
-            if band_name < 'C07':
-                self.assertEqual('%', res[band_name].attrs['units'])
-            else:
-                self.assertEqual('K', res[band_name].attrs['units'])
+            self._check_units(band_name, res)
 
         # check whether the data type of orbital_parameters is float
         orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
@@ -309,7 +283,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
 
         ds_ids = []
-        band_names = ['C' + '%02d' % ch for ch in range(1, 15)]
+        band_names = CHANNELS_BY_RESOLUTION[4000]
         for band_name in band_names:
             ds_ids.append(make_dsq(name=band_name, calibration='counts'))
         res = reader.load(ds_ids)
@@ -339,34 +313,34 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # Verify that the resolution is only 4km
         available_datasets = reader.available_dataset_ids
-        band_names = ['C' + '%02d' % ch for ch in range(1, 15)]
+        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
 
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
 
         res = reader.load(band_names)
-        self.assertEqual(14, len(res))
-        expected = {
-                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
-                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]]),
-                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
-                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
-                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]])
-                    }
-        for i in range(7, 15):
-            expected[i] = np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
+        self.assertEqual(len(band_names), len(res))
 
+        self._check_calibration_and_units(band_names, res)
+
+        for band_name in band_names:
+            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
+
+    def _check_calibration_and_units(self, band_names, result):
         for index, band_name in enumerate(band_names):
-            self.assertEqual((2, 5), res[band_name].shape)
-            if band_name < 'C07':
-                self.assertEqual('reflectance', res[band_name].attrs['calibration'])
-            else:
-                self.assertEqual('brightness_temperature', res[band_name].attrs['calibration'])
-            if band_name < 'C07':
-                self.assertEqual('%', res[band_name].attrs['units'])
-            else:
-                self.assertEqual('K', res[band_name].attrs['units'])
-            self.assertTrue(np.allclose(res[band_name].values, expected[index + 1], equal_nan=True))
+            assert result[band_name].attrs['sensor'].islower()
+            self.assertEqual((2, 5), result[band_name].shape)
+            self.assertTrue(np.allclose(result[band_name].values, self.expected[index + 1], equal_nan=True))
+            self._check_units(band_name, result)
+
+    def _check_units(self, band_name, result):
+        if band_name < 'C07':
+            self.assertEqual('reflectance', result[band_name].attrs['calibration'])
+        else:
+            self.assertEqual('brightness_temperature', result[band_name].attrs['calibration'])
+        if band_name < 'C07':
+            self.assertEqual('%', result[band_name].attrs['units'])
+        else:
+            self.assertEqual('K', result[band_name].attrs['units'])
 
     def _assert_which_channels_are_loaded(self, available_datasets, band_names, resolution_to_test):
         from satpy.tests.utils import make_dsq
@@ -394,33 +368,17 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # Verify that the resolution is only 2km
         available_datasets = reader.available_dataset_ids
-        band_names = ['C' + '%02d' % ch for ch in range(1, 8)]
+        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
 
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
 
         res = reader.load(band_names)
-        self.assertEqual(7, len(res))
-        expected = {
-                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
-                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]]),
-                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
-                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
-                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]]),
-                    7: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
-                    }
+        self.assertEqual(len(band_names), len(res))
 
-        for index, band_name in enumerate(band_names):
-            self.assertEqual((2, 5), res[band_name].shape)
-            if band_name < 'C07':
-                self.assertEqual('reflectance', res[band_name].attrs['calibration'])
-            else:
-                self.assertEqual('brightness_temperature', res[band_name].attrs['calibration'])
-            if band_name < 'C07':
-                self.assertEqual('%', res[band_name].attrs['units'])
-            else:
-                self.assertEqual('K', res[band_name].attrs['units'])
-            self.assertTrue(np.allclose(res[band_name].values, expected[index + 1], equal_nan=True))
+        self._check_calibration_and_units(band_names, res)
+
+        for band_name in band_names:
+            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
 
     def test_fy4a_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
@@ -429,26 +387,17 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # Verify that the resolution is only 1km
         available_datasets = reader.available_dataset_ids
-        band_names = ['C' + '%02d' % ch for ch in range(1, 4)]
+        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
 
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
 
         res = reader.load(band_names)
-        self.assertEqual(3, len(res))
-        expected = {
-                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
-                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]])
-                    }
+        self.assertEqual(len(band_names), len(res))
 
-        for index, band_name in enumerate(band_names):
-            assert res[band_name].attrs['sensor'].islower()
-            self.assertEqual((2, 5), res[band_name].shape)
-            self.assertEqual('reflectance', res[band_name].attrs['calibration'])
-            self.assertEqual('%', res[band_name].attrs['units'])
-            self.assertTrue(np.allclose(res[band_name].values, expected[index + 1], equal_nan=True))
-            assert res[band_name].attrs['area'].area_extent == (-5495521.074086424, 5494521.070251633,
-                                                                -5491521.058747265, 5495521.074086424)
+        self._check_calibration_and_units(band_names, res)
+
+        for band_name in band_names:
+            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
 
     def test_fy4a_500m_resolutions(self):
         """Test loading data when only 500m resolutions are available."""
@@ -457,18 +406,14 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # Verify that the resolution is only 500m
         available_datasets = reader.available_dataset_ids
-        band_names = ['C' + '%02d' % ch for ch in [2]]
+        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
 
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
 
         res = reader.load(band_names)
-        self.assertEqual(1, len(res))
-        expected = np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]])
+        self.assertEqual(len(band_names), len(res))
+
+        self._check_calibration_and_units(band_names, res)
 
         for band_name in band_names:
-            self.assertEqual((2, 5), res[band_name].shape)
-            self.assertEqual('reflectance', res[band_name].attrs['calibration'])
-            self.assertEqual('%', res[band_name].attrs['units'])
-            self.assertTrue(np.allclose(res[band_name].values, expected, equal_nan=True))
-            assert res[band_name].attrs['area'].area_extent == (-5495771.007913081, 5495271.006001793,
-                                                                -5493771.000267932, 5495771.007913081)
+            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
