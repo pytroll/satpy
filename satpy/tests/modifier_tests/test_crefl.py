@@ -345,7 +345,7 @@ class TestReflectanceCorrectorModifier:
                                 })
 
         c01 = make_xarray('1', 'reflectance', wavelength=(0.62, 0.645, 0.67), modifiers='sunz_corrected',
-                          resolution=500, file_type='hdf_eos_data_500m')
+                          resolution=500)
         c02 = make_xarray('satellite_azimuth_angle', None)
         c03 = make_xarray('satellite_zenith_angle', None)
         c04 = make_xarray('solar_azimuth_angle', None)
@@ -358,7 +358,6 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['modifiers'] == ('sunz_corrected', 'rayleigh_corrected_crefl',)
         assert res.attrs['calibration'] == 'reflectance'
         assert res.attrs['resolution'] == 500
-        assert res.attrs['file_type'] == 'hdf_eos_data_500m'
         assert res.attrs['name'] == '1'
         assert res.attrs['platform_name'] == 'EOS-Aqua'
         assert res.attrs['sensor'] == 'modis'
