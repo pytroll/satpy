@@ -143,6 +143,11 @@ TEST_DATA = {
                      'fill_value': -32767,
                      'attrs': {'dim_labels': ['2*nscans:MODIS_SWATH_Type_L1B', '1KM_geo_dim:MODIS_SWATH_Type_L1B'],
                                'scale_factor': 0.01}},
+    'SensorAzimuth': {'data': TEST_SATZ,
+                      'type': SDC.INT16,
+                      'fill_value': -32767,
+                      'attrs': {'dim_labels': ['2*nscans:MODIS_SWATH_Type_L1B', '1KM_geo_dim:MODIS_SWATH_Type_L1B'],
+                                'scale_factor': 0.01}},
 }
 
 
@@ -259,7 +264,7 @@ class TestModisL2(unittest.TestCase):
         """Test that datasets are available."""
         scene = Scene(reader='modis_l1b', filenames=[self.file_name])
         available_datasets = scene.all_dataset_names()
-        self.assertTrue(len(available_datasets) > 0)
+        assert len(available_datasets) > 0
         self.assertIn('longitude', available_datasets)
         self.assertIn('latitude', available_datasets)
         for chan_num in list(range(1, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 37)):
@@ -295,6 +300,16 @@ class TestModisL2(unittest.TestCase):
             self.assertEqual(longitude_5km.shape, TEST_DATA[dataset_name.capitalize()]['data'].shape)
             test_func(dataset_name, longitude_5km.values, 0)
             self._check_shared_metadata(longitude_5km)
+
+    def test_load_sat_zenith_angle(self):
+        """Test loading satellite zenith angle band."""
+        scene = Scene(reader='modis_l1b', filenames=[self.file_name])
+        dataset_name = 'satellite_zenith_angle'
+        scene.load([dataset_name])
+        dataset = scene[dataset_name]
+        self.assertEqual(dataset.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
+        assert dataset.attrs['resolution'] == 1000
+        self._check_shared_metadata(dataset)
 
     def test_load_vis(self):
         """Test loading visible band."""
