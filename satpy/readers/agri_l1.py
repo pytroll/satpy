@@ -34,7 +34,7 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 logger = logging.getLogger(__name__)
 
 # info of 500 m, 1 km, 2 km and 4 km data
-_resolution_list = [500, 1000, 2000, 4000]
+RESOLUTION_LIST = [500, 1000, 2000, 4000]
 _COFF_list = [10991.5, 5495.5, 2747.5, 1373.5]
 _CFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
 _LOFF_list = [10991.5, 5495.5, 2747.5, 1373.5]
@@ -120,10 +120,10 @@ class HDF_AGRI_L1(HDF5FileHandler):
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key['resolution']
         pdict = {}
-        pdict['coff'] = _COFF_list[_resolution_list.index(res)]
-        pdict['loff'] = _LOFF_list[_resolution_list.index(res)]
-        pdict['cfac'] = _CFAC_list[_resolution_list.index(res)]
-        pdict['lfac'] = _LFAC_list[_resolution_list.index(res)]
+        pdict['coff'] = _COFF_list[RESOLUTION_LIST.index(res)]
+        pdict['loff'] = _LOFF_list[RESOLUTION_LIST.index(res)]
+        pdict['cfac'] = _CFAC_list[RESOLUTION_LIST.index(res)]
+        pdict['lfac'] = _LFAC_list[RESOLUTION_LIST.index(res)]
         pdict['a'] = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
         pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
         pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)

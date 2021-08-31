@@ -26,8 +26,8 @@ import pytest
 import xarray as xr
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+from satpy.readers.agri_l1 import RESOLUTION_LIST
 
-RESOLUTIONS = [500, 1000, 2000, 4000]
 
 ALL_BAND_NAMES = ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
                   "C08", "C09", "C10", "C11", "C12", "C13", "C14"]
@@ -233,16 +233,16 @@ class Test_HDF_AGRI_L1_cal:
 
     def test_fy4a_channels_are_loaded_with_right_resolution(self):
         """Test all channels are loaded with the right resolution."""
-        reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
+        reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
         available_datasets = reader.available_dataset_ids
 
-        for resolution_to_test in [500, 1000, 2000, 4000]:
+        for resolution_to_test in RESOLUTION_LIST:
             self._check_keys_for_dsq(available_datasets, resolution_to_test)
 
     def test_fy4a_all_bands_have_right_units(self):
         """Test all bands have the right units."""
-        reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
+        reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
         band_names = ALL_BAND_NAMES
         res = reader.load(band_names)
@@ -254,7 +254,7 @@ class Test_HDF_AGRI_L1_cal:
 
     def test_fy4a_orbital_parameters_are_correct(self):
         """Test orbital parameters are set correctly."""
-        reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
+        reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
         band_names = ALL_BAND_NAMES
         res = reader.load(band_names)
@@ -284,7 +284,7 @@ class Test_HDF_AGRI_L1_cal:
     def test_fy4a_counts_calibration(self):
         """Test loading data at counts calibration."""
         from satpy.tests.utils import make_dsq
-        reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
+        reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
         ds_ids = []
         band_names = CHANNELS_BY_RESOLUTION[4000]
@@ -310,7 +310,7 @@ class Test_HDF_AGRI_L1_cal:
         assert reader.file_handlers
         return reader
 
-    @pytest.mark.parametrize("resolution_to_test", RESOLUTIONS)
+    @pytest.mark.parametrize("resolution_to_test", RESOLUTION_LIST)
     def test_fy4a_for_one_resolution(self, resolution_to_test):
         """Test loading data when only one resolution is available."""
         reader = self._create_reader_for_resolutions(resolution_to_test)
@@ -347,7 +347,7 @@ class Test_HDF_AGRI_L1_cal:
         from satpy.tests.utils import make_dsq
         from satpy.dataset.data_dict import get_key
 
-        other_resolutions = RESOLUTIONS.copy()
+        other_resolutions = RESOLUTION_LIST.copy()
         other_resolutions.remove(resolution_to_test)
         for band_name in band_names:
             for resolution in other_resolutions:
