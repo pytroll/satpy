@@ -31,11 +31,14 @@ from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 RESOLUTIONS = [500, 1000, 2000, 4000]
 
+ALL_BAND_NAMES = ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
+                  "C08", "C09", "C10", "C11", "C12", "C13", "C14"]
+
 CHANNELS_BY_RESOLUTION = {500: ["C02"],
                           1000: ["C01", "C02", "C03"],
                           2000: ["C01", "C02", "C03", "C04", "C05", "C06", "C07"],
-                          4000: ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
-                                 "C08", "C09", "C10", "C11", "C12", "C13", "C14"]}
+                          4000: ALL_BAND_NAMES
+                          }
 
 AREA_EXTENTS_BY_RESOLUTION = {
     500:  (-5495771.007913081, 5495271.006001793, -5493771.000267932, 5495771.007913081),
@@ -187,6 +190,13 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         return test_content
 
 
+def _create_filenames_from_resolutions(*resolutions):
+    """Create filenames from the given resolutions."""
+    pattern = ("FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
+               "{resolution:04d}M_V0001.HDF")
+    return [pattern.format(resolution=resolution) for resolution in resolutions]
+
+
 class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     """Test VIRR L1B Reader."""
 
@@ -223,45 +233,33 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_fy4a_all_resolutions(self):
-        """Test loading data when all resolutions are available."""
-        from satpy.tests.utils import make_dsq
-        from satpy.dataset.data_dict import get_key
+    def test_fy4a_channels_are_loaded_with_right_resolution(self):
+        """Test all channels are loaded with the right resolution."""
         reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
 
         available_datasets = reader.available_dataset_ids
 
-        # 500m
-        band_names = CHANNELS_BY_RESOLUTION[500]
-        for band_name in band_names:
-            ds_q = make_dsq(name=band_name, resolution=500)
-            res = get_key(ds_q, available_datasets, num_results=0, best=False)
-            self.assertEqual(2, len(res))
+        for resolution_to_test in [500, 1000, 2000, 4000]:
+            self._check_keys_for_dsq(available_datasets, resolution_to_test)
 
-        # 1km
-        band_names = CHANNELS_BY_RESOLUTION[1000]
-        for band_name in band_names:
-            ds_q = make_dsq(name=band_name, resolution=1000)
-            res = get_key(ds_q, available_datasets, num_results=0, best=False)
-            self.assertEqual(2, len(res))
+    def test_fy4a_all_bands_have_right_units(self):
+        """Test all bands have the right units."""
+        reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
 
-        # 2km
-        band_names = CHANNELS_BY_RESOLUTION[2000]
-        for band_name in band_names:
-            ds_q = make_dsq(name=band_name, resolution=2000)
-            res = get_key(ds_q, available_datasets, num_results=0, best=False)
-            if band_name < 'C07':
-                self.assertEqual(2, len(res))
-            else:
-                self.assertEqual(3, len(res))
-
-        band_names = CHANNELS_BY_RESOLUTION[4000]
+        band_names = ALL_BAND_NAMES
         res = reader.load(band_names)
         self.assertEqual(14, len(res))
 
         for band_name in band_names:
             self.assertEqual((2, 5), res[band_name].shape)
             self._check_units(band_name, res)
+
+    def test_fy4a_orbital_parameters_are_correct(self):
+        """Test orbital parameters are set correctly."""
+        reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
+
+        band_names = ALL_BAND_NAMES
+        res = reader.load(band_names)
 
         # check whether the data type of orbital_parameters is float
         orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
@@ -271,11 +269,18 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         self.assertEqual(orbital_parameters['satellite_nominal_longitude'], 104.7)
         self.assertEqual(orbital_parameters['satellite_nominal_altitude'], 3.5786E7)
 
-    def _create_filenames_from_resolutions(self, *resolutions):
-        """Create filenames from the given resolutions."""
-        pattern = ("FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
-                   "{resolution:04d}M_V0001.HDF")
-        return [pattern.format(resolution=resolution) for resolution in resolutions]
+    def _check_keys_for_dsq(self, available_datasets, resolution_to_test):
+        from satpy.tests.utils import make_dsq
+        from satpy.dataset.data_dict import get_key
+
+        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
+        for band_name in band_names:
+            ds_q = make_dsq(name=band_name, resolution=resolution_to_test)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
+            if band_name < 'C07':
+                self.assertEqual(2, len(res))
+            else:
+                self.assertEqual(3, len(res))
 
     def test_fy4a_counts_calib(self):
         """Test loading data at counts calibration."""
@@ -297,7 +302,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
     def _create_reader_for_resolutions(self, *resolutions):
         from satpy.readers import load_reader
-        filenames = self._create_filenames_from_resolutions(*resolutions)
+        filenames = _create_filenames_from_resolutions(*resolutions)
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
         self.assertEqual(len(filenames), len(files))
