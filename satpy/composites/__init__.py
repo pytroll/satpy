@@ -166,6 +166,13 @@ class CompositeBase:
         of chunks.
 
         """
+        arr_pairs = self._data_arr_to_dask_array_dim_pairs(data_arrays)
+        _, new_dask_arrs = da.core.unify_chunks(*arr_pairs)
+        for data_arr, dask_arr in zip(data_arrays, new_dask_arrs):
+            data_arr.data = dask_arr  # inplace
+        return data_arrays
+
+    def _data_arr_to_dask_array_dim_pairs(self, data_arrays):
         all_dims = set.union(*(set(x.dims) for x in data_arrays))
         dim_map = dict(zip(all_dims, string.ascii_lowercase))
         arr_pairs = []
@@ -173,10 +180,7 @@ class CompositeBase:
             dask_arr = data_arr.data
             dims = data_arr.dims
             arr_pairs.extend([dask_arr, "".join(dim_map[dim_name] for dim_name in dims)])
-        _, new_dask_arrs = da.core.unify_chunks(*arr_pairs)
-        for data_arr, dask_arr in zip(data_arrays, new_dask_arrs):
-            data_arr.data = dask_arr  # inplace
-        return data_arrays
+        return arr_pairs
 
     def drop_coordinates(self, data_arrays):
         """Drop neglible non-dimensional coordinates."""
