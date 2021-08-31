@@ -58,7 +58,48 @@ logger = logging.getLogger(__name__)
 
 
 class ModisL2HDFFileHandler(HDFEOSGeoReader):
-    """File handler for MODIS HDF-EOS Level 2 files."""
+    """File handler for MODIS HDF-EOS Level 2 files.
+
+    Includes error handling for files produced by IMAPP produced files.
+
+    """
+
+    def _load_all_metadata_attributes(self):
+        try:
+            return super()._load_all_metadata_attributes()
+        except KeyError:
+            return {}
+
+    @property
+    def start_time(self):
+        """Get the start time of the dataset."""
+        try:
+            return super().start_time
+        except KeyError:
+            try:
+                return self.filename_info["start_time"]
+            except KeyError:
+                return self.filename_info["acquisition_time"]
+
+    @property
+    def end_time(self):
+        """Get the end time of the dataset."""
+        try:
+            return super().end_time
+        except KeyError:
+            return self.start_time
+
+    @staticmethod
+    def read_geo_resolution(metadata):
+        """Parse metadata to find the geolocation resolution.
+
+        It is implemented as a staticmethod to match read_mda pattern.
+
+        """
+        try:
+            return super().read_geo_resolution(metadata)
+        except RuntimeError:
+            return 1000
 
     def _select_hdf_dataset(self, hdf_dataset_name, byte_dimension):
         """Load a dataset from HDF-EOS level 2 file."""

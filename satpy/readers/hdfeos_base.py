@@ -67,14 +67,17 @@ class HDFEOSBaseFileReader(BaseFileHandler):
             error_message = "Could not load data from file {}: {}".format(self.filename, err)
             raise ValueError(error_message)
 
-        # Read metadata
-        self.metadata = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
-        self.metadata.update(self.read_mda(
+        self.metadata = self._load_all_metadata_attributes()
+
+    def _load_all_metadata_attributes(self):
+        metadata = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
+        metadata.update(self.read_mda(
             self.sd.attributes()['StructMetadata.0'])
         )
-        self.metadata.update(self.read_mda(
+        metadata.update(self.read_mda(
             self.sd.attributes()['ArchiveMetadata.0'])
         )
+        return metadata
 
     @staticmethod
     def read_mda(attribute):
