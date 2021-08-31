@@ -70,13 +70,15 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         self.metadata = self._load_all_metadata_attributes()
 
     def _load_all_metadata_attributes(self):
-        metadata = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
-        metadata.update(self.read_mda(
-            self.sd.attributes()['StructMetadata.0'])
-        )
-        metadata.update(self.read_mda(
-            self.sd.attributes()['ArchiveMetadata.0'])
-        )
+        metadata = {}
+        attrs = self.sd.attributes()
+        for md_key in ("CoreMetadata.0", "StructMetadata.0", "ArchiveMetadata.0"):
+            try:
+                str_val = attrs[md_key]
+            except KeyError:
+                continue
+            else:
+                metadata.update(self.read_mda(str_val))
         return metadata
 
     @staticmethod
