@@ -543,7 +543,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
                                                        16704186.692027, 5568062.23065902]))
 
         # check that the projection is read in properly
-        assert area_def.crs.coordinate_operation._check_keys_for_dsq == 'Geostationary Satellite (Sweep Y)'
+        assert area_def.crs.coordinate_operation.method_name == 'Geostationary Satellite (Sweep Y)'
         assert area_def.crs.coordinate_operation.params[0].value == 0.0  # projection origin longitude
         assert area_def.crs.coordinate_operation.params[1].value == 35786400.0  # projection height
         assert area_def.crs.ellipsoid.semi_major_metre == 6378137.0

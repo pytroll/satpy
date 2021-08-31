@@ -1031,7 +1031,7 @@ def _get_projection_type(dataset_area_attr):
     else:
         area_crs = dataset_area_attr.crs
 
-    return area_crs.coordinate_operation._check_keys_for_dsq
+    return area_crs.coordinate_operation.method_name
 
 
 def _get_target_scene_orientation(upper_right_corner):
