@@ -175,7 +175,28 @@ class CompositeBase:
         return new_arrays
 
     def check_geolocation(self, data_arrays):
-        """Check that the geolocations of the *data_arrays* are compatible."""
+        """Check that the geolocations of the ``data_arrays`` are compatible.
+
+        Check that the geolocation of a list of data arrays is consistent.
+        The dimension ``x`` and ``y`` should be equal between all data arrays,
+        all data arrays should have an ``area`` attribute, and all area
+        attributes should be the same.  If there are inconsistent shapes or
+        inconsistent areas, raises :class:`IncompatibleAreas`.  If at least
+        one data array is lacking an ``area`` attribute, raises
+        :class:`AttributeError`.
+
+        Args:
+            data_array (Collection[xarray.DataArray]):
+                Collection of :class:`xarray.DataArray` objects (such as satpy
+                datasets) that all have an ``area`` attribute.  There must be
+                at least one array in the collection.
+
+        Returns:
+            None, meaning everything seems fine.
+
+        Raises:
+            AttributeError, IncompatibleAreas
+        """
         if len(data_arrays) == 1:
             return
 
@@ -191,8 +212,10 @@ class CompositeBase:
         areas = [ds.attrs.get('area') for ds in data_arrays]
         if all(a is None for a in areas):
             return
-        elif any(a is None for a in areas):
-            raise ValueError("Missing 'area' attribute")
+        for ds in data_arrays:
+            if "area" not in ds.attrs:
+                raise AttributeError(f"Dataset {ds.attrs.get('name', ds.name)!s}"
+                                     " missing 'area' attribute")
 
         if not all(areas[0] == x for x in areas[1:]):
             LOG.debug("Not all areas are the same in "
