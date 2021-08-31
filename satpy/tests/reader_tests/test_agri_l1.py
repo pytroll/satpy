@@ -18,7 +18,6 @@
 """The agri_l1 reader tests package."""
 
 import os
-import unittest
 from unittest import mock
 
 import dask.array as da
@@ -27,7 +26,6 @@ import pytest
 import xarray as xr
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-
 
 RESOLUTIONS = [500, 1000, 2000, 4000]
 
@@ -197,12 +195,12 @@ def _create_filenames_from_resolutions(*resolutions):
     return [pattern.format(resolution=resolution) for resolution in resolutions]
 
 
-class Test_HDF_AGRI_L1_cal(unittest.TestCase):
+class Test_HDF_AGRI_L1_cal:
     """Test VIRR L1B Reader."""
 
     yaml_file = "agri_l1.yaml"
 
-    def setUp(self):
+    def setup(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.agri_l1 import HDF_AGRI_L1
         from satpy._config import config_search_paths
@@ -229,7 +227,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
                     14: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
                     }
 
-    def tearDown(self):
+    def teardown(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
@@ -248,10 +246,10 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         band_names = ALL_BAND_NAMES
         res = reader.load(band_names)
-        self.assertEqual(14, len(res))
+        assert len(res) == 14
 
         for band_name in band_names:
-            self.assertEqual((2, 5), res[band_name].shape)
+            assert res[band_name].shape == (2, 5)
             self._check_units(band_name, res)
 
     def test_fy4a_orbital_parameters_are_correct(self):
@@ -264,12 +262,13 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         # check whether the data type of orbital_parameters is float
         orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
         for attr in orbital_parameters:
-            self.assertEqual(type(orbital_parameters[attr]), float)
-        self.assertEqual(orbital_parameters['satellite_nominal_latitude'], 0.)
-        self.assertEqual(orbital_parameters['satellite_nominal_longitude'], 104.7)
-        self.assertEqual(orbital_parameters['satellite_nominal_altitude'], 3.5786E7)
+            assert isinstance(orbital_parameters[attr], float)
+        assert orbital_parameters['satellite_nominal_latitude'] == 0.
+        assert orbital_parameters['satellite_nominal_longitude'] == 104.7
+        assert orbital_parameters['satellite_nominal_altitude'] == 3.5786E7
 
-    def _check_keys_for_dsq(self, available_datasets, resolution_to_test):
+    @staticmethod
+    def _check_keys_for_dsq(available_datasets, resolution_to_test):
         from satpy.tests.utils import make_dsq
         from satpy.dataset.data_dict import get_key
 
@@ -278,11 +277,11 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             ds_q = make_dsq(name=band_name, resolution=resolution_to_test)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
             if band_name < 'C07':
-                self.assertEqual(2, len(res))
+                assert len(res) == 2
             else:
-                self.assertEqual(3, len(res))
+                assert len(res) == 3
 
-    def test_fy4a_counts_calib(self):
+    def test_fy4a_counts_calibration(self):
         """Test loading data at counts calibration."""
         from satpy.tests.utils import make_dsq
         reader = self._create_reader_for_resolutions(500, 1000, 2000, 4000)
@@ -292,38 +291,35 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         for band_name in band_names:
             ds_ids.append(make_dsq(name=band_name, calibration='counts'))
         res = reader.load(ds_ids)
-        self.assertEqual(14, len(res))
+        assert len(res) == 14
 
         for band_name in band_names:
-            self.assertEqual((2, 5), res[band_name].shape)
-            self.assertEqual('counts', res[band_name].attrs['calibration'])
-            self.assertEqual(res[band_name].dtype, np.uint16)
-            self.assertEqual('1', res[band_name].attrs['units'])
+            assert res[band_name].shape == (2, 5)
+            assert res[band_name].attrs['calibration'] == "counts"
+            assert res[band_name].dtype == np.uint16
+            assert res[band_name].attrs['units'] == "1"
 
     def _create_reader_for_resolutions(self, *resolutions):
         from satpy.readers import load_reader
         filenames = _create_filenames_from_resolutions(*resolutions)
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertEqual(len(filenames), len(files))
+        assert len(filenames) == len(files)
         reader.create_filehandlers(files)
         # Make sure we have some files
-        self.assertTrue(reader.file_handlers)
+        assert reader.file_handlers
         return reader
 
-    def test_fy4a_4km_resolutions(self):
-        """Test loading data when only 4km resolutions are available."""
-        resolution_to_test = 4000
-        self._test_fy4a_resolution(resolution_to_test)
-
-    def _test_fy4a_resolution(self, resolution_to_test):
+    @pytest.mark.parametrize("resolution_to_test", RESOLUTIONS)
+    def test_fy4a_for_one_resolution(self, resolution_to_test):
+        """Test loading data when only one resolution is available."""
         reader = self._create_reader_for_resolutions(resolution_to_test)
-        # Verify that the resolution is only 4km
+
         available_datasets = reader.available_dataset_ids
         band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
         res = reader.load(band_names)
-        self.assertEqual(len(band_names), len(res))
+        assert len(res) == len(band_names)
         self._check_calibration_and_units(band_names, res)
         for band_name in band_names:
             assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
@@ -331,21 +327,23 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def _check_calibration_and_units(self, band_names, result):
         for index, band_name in enumerate(band_names):
             assert result[band_name].attrs['sensor'].islower()
-            self.assertEqual((2, 5), result[band_name].shape)
-            self.assertTrue(np.allclose(result[band_name].values, self.expected[index + 1], equal_nan=True))
+            assert result[band_name].shape == (2, 5)
+            np.testing.assert_allclose(result[band_name].values, self.expected[index + 1], equal_nan=True)
             self._check_units(band_name, result)
 
-    def _check_units(self, band_name, result):
+    @staticmethod
+    def _check_units(band_name, result):
         if band_name < 'C07':
-            self.assertEqual('reflectance', result[band_name].attrs['calibration'])
+            assert result[band_name].attrs['calibration'] == "reflectance"
         else:
-            self.assertEqual('brightness_temperature', result[band_name].attrs['calibration'])
+            assert result[band_name].attrs['calibration'] == 'brightness_temperature'
         if band_name < 'C07':
-            self.assertEqual('%', result[band_name].attrs['units'])
+            assert result[band_name].attrs['units'] == "%"
         else:
-            self.assertEqual('K', result[band_name].attrs['units'])
+            assert result[band_name].attrs['units'] == "K"
 
-    def _assert_which_channels_are_loaded(self, available_datasets, band_names, resolution_to_test):
+    @staticmethod
+    def _assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test):
         from satpy.tests.utils import make_dsq
         from satpy.dataset.data_dict import get_key
 
@@ -360,21 +358,6 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             ds_q = make_dsq(name=band_name, resolution=resolution_to_test)
             res = get_key(ds_q, available_datasets, num_results=0, best=False)
             if band_name < 'C07':
-                self.assertEqual(2, len(res))
+                assert len(res) == 2
             else:
-                self.assertEqual(3, len(res))
-
-    def test_fy4a_2km_resolutions(self):
-        """Test loading data when only 2km resolutions are available."""
-        resolution_to_test = 2000
-        self._test_fy4a_resolution(resolution_to_test)
-
-    def test_fy4a_1km_resolutions(self):
-        """Test loading data when only 1km resolutions are available."""
-        resolution_to_test = 1000
-        self._test_fy4a_resolution(resolution_to_test)
-
-    def test_fy4a_500m_resolutions(self):
-        """Test loading data when only 500m resolutions are available."""
-        resolution_to_test = 500
-        self._test_fy4a_resolution(resolution_to_test)
+                assert len(res) == 3
