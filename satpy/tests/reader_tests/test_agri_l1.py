@@ -309,19 +309,17 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def test_fy4a_4km_resolutions(self):
         """Test loading data when only 4km resolutions are available."""
         resolution_to_test = 4000
-        reader = self._create_reader_for_resolutions(resolution_to_test)
+        self._test_fy4a_resolution(resolution_to_test)
 
+    def _test_fy4a_resolution(self, resolution_to_test):
+        reader = self._create_reader_for_resolutions(resolution_to_test)
         # Verify that the resolution is only 4km
         available_datasets = reader.available_dataset_ids
         band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
-
         self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
-
         res = reader.load(band_names)
         self.assertEqual(len(band_names), len(res))
-
         self._check_calibration_and_units(band_names, res)
-
         for band_name in band_names:
             assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
 
@@ -364,56 +362,14 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     def test_fy4a_2km_resolutions(self):
         """Test loading data when only 2km resolutions are available."""
         resolution_to_test = 2000
-        reader = self._create_reader_for_resolutions(resolution_to_test)
-
-        # Verify that the resolution is only 2km
-        available_datasets = reader.available_dataset_ids
-        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
-
-        self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
-
-        res = reader.load(band_names)
-        self.assertEqual(len(band_names), len(res))
-
-        self._check_calibration_and_units(band_names, res)
-
-        for band_name in band_names:
-            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
+        self._test_fy4a_resolution(resolution_to_test)
 
     def test_fy4a_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
         resolution_to_test = 1000
-        reader = self._create_reader_for_resolutions(resolution_to_test)
-
-        # Verify that the resolution is only 1km
-        available_datasets = reader.available_dataset_ids
-        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
-
-        self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
-
-        res = reader.load(band_names)
-        self.assertEqual(len(band_names), len(res))
-
-        self._check_calibration_and_units(band_names, res)
-
-        for band_name in band_names:
-            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
+        self._test_fy4a_resolution(resolution_to_test)
 
     def test_fy4a_500m_resolutions(self):
         """Test loading data when only 500m resolutions are available."""
         resolution_to_test = 500
-        reader = self._create_reader_for_resolutions(resolution_to_test)
-
-        # Verify that the resolution is only 500m
-        available_datasets = reader.available_dataset_ids
-        band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
-
-        self._assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test)
-
-        res = reader.load(band_names)
-        self.assertEqual(len(band_names), len(res))
-
-        self._check_calibration_and_units(band_names, res)
-
-        for band_name in band_names:
-            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
+        self._test_fy4a_resolution(resolution_to_test)
