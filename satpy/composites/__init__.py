@@ -172,7 +172,8 @@ class CompositeBase:
             data_arr.data = dask_arr  # inplace
         return data_arrays
 
-    def _data_arr_to_dask_array_dim_pairs(self, data_arrays):
+    @staticmethod
+    def _data_arr_to_dask_array_dim_pairs(data_arrays):
         all_dims = set.union(*(set(x.dims) for x in data_arrays))
         dim_map = dict(zip(all_dims, string.ascii_lowercase))
         arr_pairs = []
