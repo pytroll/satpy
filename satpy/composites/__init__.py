@@ -19,7 +19,6 @@
 
 import logging
 import os
-import string
 import warnings
 
 import dask.array as da
@@ -156,32 +155,7 @@ class CompositeBase:
         """Match data arrays so that they can be used together in a composite."""
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
-        return self.unify_chunks(new_arrays)
-
-    def unify_chunks(self, data_arrays):
-        """Unify chunk sizes across multiple DataArray objects.
-
-        Useful to avoid errors when calling dask's "map_blocks" or other
-        similar functions where inputs are expected to have the same number
-        of chunks.
-
-        """
-        arr_pairs = self._data_arr_to_dask_array_dim_pairs(data_arrays)
-        _, new_dask_arrs = da.core.unify_chunks(*arr_pairs)
-        for data_arr, dask_arr in zip(data_arrays, new_dask_arrs):
-            data_arr.data = dask_arr  # inplace
-        return data_arrays
-
-    @staticmethod
-    def _data_arr_to_dask_array_dim_pairs(data_arrays):
-        all_dims = set.union(*(set(x.dims) for x in data_arrays))
-        dim_map = dict(zip(all_dims, string.ascii_lowercase))
-        arr_pairs = []
-        for data_arr in data_arrays:
-            dask_arr = data_arr.data
-            dims = data_arr.dims
-            arr_pairs.extend([dask_arr, "".join(dim_map[dim_name] for dim_name in dims)])
-        return arr_pairs
+        return xr.unify_chunks(*new_arrays)
 
     def drop_coordinates(self, data_arrays):
         """Drop neglible non-dimensional coordinates."""
