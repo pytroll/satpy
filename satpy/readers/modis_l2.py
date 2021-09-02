@@ -97,9 +97,10 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
         """
         try:
-            return super().read_geo_resolution(metadata)
+            return HDFEOSGeoReader.read_geo_resolution(metadata)
         except RuntimeError:
-            return 1000
+            # most L2 products are 5000m
+            return 5000
 
     def _select_hdf_dataset(self, hdf_dataset_name, byte_dimension):
         """Load a dataset from HDF-EOS level 2 file."""
@@ -133,7 +134,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
         dataset_name = dataset_id['name']
-        if dataset_name in HDFEOSGeoReader.DATASET_NAMES:
+        if self.is_geo_loadable_dataset(dataset_name):
             return HDFEOSGeoReader.get_dataset(self, dataset_id, dataset_info)
         dataset_name_in_file = dataset_info['file_key']
 

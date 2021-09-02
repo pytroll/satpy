@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base HDF-EOS reader."""
 
+from __future__ import annotations
+
 import re
 import logging
 
@@ -27,7 +29,7 @@ import numpy as np
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from satpy import CHUNK_SIZE
+from satpy import CHUNK_SIZE, DataID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -154,26 +156,34 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         from satpy.readers.hdf4_utils import from_sds
 
         dataset = self._read_dataset_in_file(dataset_name)
-        fill_value = dataset._FillValue
         dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
         dims = ('y', 'x') if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
 
-        # preserve integer data types if possible
-        if np.issubdtype(data.dtype, np.integer):
-            new_fill = fill_value
-        else:
-            new_fill = np.nan
-            data.attrs.pop('_FillValue', None)
-        good_mask = data != fill_value
-
+        good_mask, new_fill = self._get_good_data_mask(dataset, data)
         scale_factor = data.attrs.get('scale_factor')
         if scale_factor is not None:
             data = data * scale_factor
 
-        data = data.where(good_mask, new_fill)
+        if good_mask is not None:
+            data = data.where(good_mask, new_fill)
         return data
+
+    def _get_good_data_mask(self, pyhdf_dataset, data_arr):
+        try:
+            fill_value = pyhdf_dataset._FillValue
+        except AttributeError:
+            return None, None
+
+        # preserve integer data types if possible
+        if np.issubdtype(data_arr.dtype, np.integer):
+            new_fill = fill_value
+        else:
+            new_fill = np.nan
+            data_arr.attrs.pop('_FillValue', None)
+        good_mask = data_arr != fill_value
+        return good_mask, new_fill
 
 
 class HDFEOSGeoReader(HDFEOSBaseFileReader):
@@ -196,12 +206,13 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         self.cache = {}
 
     @staticmethod
+    def is_geo_loadable_dataset(dataset_name: str) -> bool:
+        """Determine if this dataset should be loaded as a Geo dataset."""
+        return dataset_name in HDFEOSGeoReader.DATASET_NAMES
+
+    @staticmethod
     def read_geo_resolution(metadata):
-        """Parse metadata to find the geolocation resolution.
-
-        It is implemented as a staticmethod to match read_mda pattern.
-
-        """
+        """Parse metadata to find the geolocation resolution."""
         # level 1 files
         try:
             ds = metadata['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
@@ -256,14 +267,14 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             self.cache[(name1, resolution)] = result1
             self.cache[(name2, resolution)] = result2 + offset
 
-    def get_dataset(self, dataset_keys, dataset_info):
+    def get_dataset(self, dataset_id: DataID, dataset_info: dict) -> xr.DataArray:
         """Get the geolocation dataset."""
         # Name of the dataset as it appears in the HDF EOS file
         in_file_dataset_name = dataset_info.get('file_key')
         # Name of the dataset in the YAML file
-        dataset_name = dataset_keys['name']
+        dataset_name = dataset_id['name']
         # Resolution asked
-        resolution = dataset_keys['resolution']
+        resolution = dataset_id['resolution']
         if in_file_dataset_name is not None:
             # if the YAML was configured with a specific name use that
             data = self.load_dataset(in_file_dataset_name)
