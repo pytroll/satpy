@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -233,8 +233,8 @@ def create_test_data():
     return base_dir, file_name
 
 
-class TestModisL2(unittest.TestCase):
-    """Test MODIS L2 reader."""
+class TestModisL1b(unittest.TestCase):
+    """Test MODIS L1b reader."""
 
     def setUp(self):
         """Create fake HDF4 MODIS file."""
