@@ -155,7 +155,7 @@ class CompositeBase:
         """Match data arrays so that they can be used together in a composite."""
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
-        return xr.unify_chunks(*new_arrays)
+        return list(xr.unify_chunks(*new_arrays))
 
     def drop_coordinates(self, data_arrays):
         """Drop neglible non-dimensional coordinates."""
