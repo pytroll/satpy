@@ -628,6 +628,7 @@ class DayNightCompositor(GenericCompositor):
         day_portion = coszen * (day_data if day_data is not None else 0)
         night_portion = (1 - coszen) * (night_data if night_data is not None else 0)
         data = night_portion + day_portion
+        data.attrs = attrs
 
         # Split to separate bands so the mode is correct
         data = [data.sel(bands=b) for b in data['bands']]
