@@ -18,7 +18,7 @@
 """Unit tests for MODIS L1b HDF reader."""
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -152,7 +152,7 @@ TEST_DATA = {
 }
 
 
-def generate_file_name(prefix="MOD021km"):
+def generate_nasa_l1b_filename(prefix):
     """Generate a filename that follows MODIS L1b convention."""
     now = datetime.now()
     return f'{prefix}_A{now:%y%j_%H%M%S}_{now:%Y%j%H%M%S}.hdf'
@@ -160,8 +160,6 @@ def generate_file_name(prefix="MOD021km"):
 
 def create_test_data(filename):
     """Create a fake MODIS L1b HDF4 file with headers."""
-    from datetime import datetime, timedelta
-
     h = SD(filename, SDC.WRITE | SDC.CREATE)
     # Set hdf file attributes
     beginning_date = datetime.now()
@@ -225,9 +223,36 @@ def create_test_data(filename):
 
 
 @pytest.fixture
-def modis_l1b_mod021km_file(tmpdir):
-    """Create a single MOD021km file."""
-    filename = generate_file_name()
+def modis_l1b_nasa_mod021km_file(tmpdir):
+    """Create a single MOD021KM file following standard NASA file scheme."""
+    filename = generate_nasa_l1b_filename("MOD021km")
+    full_path = os.path.join(str(tmpdir), filename)
+    create_test_data(full_path)
+    yield full_path
+
+
+@pytest.fixture
+def modis_l1b_nasa_mod02hkm_file(tmpdir):
+    """Create a single MOD02HKM file following standard NASA file scheme."""
+    filename = generate_nasa_l1b_filename("MOD02Hkm")
+    full_path = os.path.join(str(tmpdir), filename)
+    create_test_data(full_path)
+    yield full_path
+
+
+@pytest.fixture
+def modis_l1b_nasa_mod02qkm_file(tmpdir):
+    """Create a single MOD02QKM file following standard NASA file scheme."""
+    filename = generate_nasa_l1b_filename("MOD02Qkm")
+    full_path = os.path.join(str(tmpdir), filename)
+    create_test_data(full_path)
+    yield full_path
+
+
+@pytest.fixture
+def modis_l1b_nasa_mod03_file(tmpdir):
+    """Create a single MOD03 file following standard NASA file scheme."""
+    filename = generate_nasa_l1b_filename("MOD03")
     full_path = os.path.join(str(tmpdir), filename)
     create_test_data(full_path)
     yield full_path
@@ -248,9 +273,9 @@ class TestModisL1b:
         """Test that MODIS L1b reader is available."""
         assert 'modis_l1b' in available_readers()
 
-    def test_scene_available_datasets(self, modis_l1b_mod021km_file):
+    def test_scene_available_datasets(self, modis_l1b_nasa_mod021km_file):
         """Test that datasets are available."""
-        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_nasa_mod021km_file])
         available_datasets = scene.all_dataset_names()
         assert len(available_datasets) > 0
         assert 'longitude' in available_datasets
@@ -258,7 +283,7 @@ class TestModisL1b:
         for chan_num in list(range(1, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 37)):
             assert str(chan_num) in available_datasets
 
-    def test_load_longitude_latitude(self, modis_l1b_mod021km_file):
+    def test_load_longitude_latitude(self, modis_l1b_nasa_mod021km_file):
         """Test that longitude and latitude datasets are loaded correctly."""
         from satpy.tests.utils import make_dataid
 
@@ -270,7 +295,7 @@ class TestModisL1b:
                 # assert greater
                 np.testing.assert_array_less(y, x)
 
-        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_nasa_mod021km_file])
         for dataset_name in ['longitude', 'latitude']:
             # Default resolution should be the interpolated 1km
             scene.load([dataset_name])
@@ -288,9 +313,9 @@ class TestModisL1b:
             test_func(dataset_name, longitude_5km.values, 0)
             self._check_shared_metadata(longitude_5km)
 
-    def test_load_sat_zenith_angle(self, modis_l1b_mod021km_file):
+    def test_load_sat_zenith_angle(self, modis_l1b_nasa_mod021km_file):
         """Test loading satellite zenith angle band."""
-        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_nasa_mod021km_file])
         dataset_name = 'satellite_zenith_angle'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
@@ -298,9 +323,9 @@ class TestModisL1b:
         assert dataset.attrs['resolution'] == 1000
         self._check_shared_metadata(dataset)
 
-    def test_load_vis(self, modis_l1b_mod021km_file):
+    def test_load_vis(self, modis_l1b_nasa_mod021km_file):
         """Test loading visible band."""
-        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_nasa_mod021km_file])
         dataset_name = '1'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
