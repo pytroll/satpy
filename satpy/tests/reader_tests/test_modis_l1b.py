@@ -30,6 +30,11 @@ from pyhdf.SD import SD, SDC
 from satpy import available_readers, Scene
 
 # Mock MODIS HDF4 file
+AVAILABLE_1KM_PRODUCT_NAMES = list(range(1, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 37))
+AVAILABLE_1KM_PRODUCT_NAMES = [str(x) for x in AVAILABLE_1KM_PRODUCT_NAMES]
+AVAILABLE_HKM_PRODUCT_NAMES = [str(x) for x in list(range(3, 8))]
+AVAILABLE_QKM_PRODUCT_NAMES = ['1', '2']
+
 SCAN_WIDTH = 406
 SCAN_LEN = 270
 SCALE_FACTOR = 1
@@ -273,7 +278,7 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir) -> list[str]:
     filename = generate_nasa_l1b_filename("MOD02Hkm")
     full_path = os.path.join(str(tmpdir), filename)
     create_test_data(full_path)
-    return full_path
+    return [full_path]
 
 
 @pytest.fixture
@@ -282,7 +287,7 @@ def modis_l1b_nasa_mod02qkm_file(tmpdir) -> list[str]:
     filename = generate_nasa_l1b_filename("MOD02Qkm")
     full_path = os.path.join(str(tmpdir), filename)
     create_test_data(full_path)
-    return full_path
+    return [full_path]
 
 
 @pytest.fixture
@@ -291,7 +296,7 @@ def modis_l1b_nasa_mod03_file(tmpdir) -> list[str]:
     filename = generate_nasa_l1b_filename("MOD03")
     full_path = os.path.join(str(tmpdir), filename)
     create_test_data(full_path)
-    return full_path
+    return [full_path]
 
 
 class TestModisL1b:
@@ -310,21 +315,24 @@ class TestModisL1b:
         assert 'modis_l1b' in available_readers()
 
     @pytest.mark.parametrize(
-        'input_files',
+        ('input_files', 'expected_names'),
         [
-            pytest.lazy_fixture('modis_l1b_nasa_mod021km_file'),
-            pytest.lazy_fixture('modis_l1b_imapp_1000m_file'),
+            [pytest.lazy_fixture('modis_l1b_nasa_mod021km_file'), AVAILABLE_1KM_PRODUCT_NAMES],
+            [pytest.lazy_fixture('modis_l1b_imapp_1000m_file'), AVAILABLE_1KM_PRODUCT_NAMES],
+            [pytest.lazy_fixture('modis_l1b_nasa_mod02hkm_file'), AVAILABLE_HKM_PRODUCT_NAMES],
+            [pytest.lazy_fixture('modis_l1b_nasa_mod02qkm_file'), AVAILABLE_QKM_PRODUCT_NAMES],
         ]
     )
-    def test_scene_available_datasets(self, input_files):
+    def test_scene_available_datasets(self, input_files, expected_names):
         """Test that datasets are available."""
         scene = Scene(reader='modis_l1b', filenames=input_files)
         available_datasets = scene.all_dataset_names()
         assert len(available_datasets) > 0
         assert 'longitude' in available_datasets
         assert 'latitude' in available_datasets
-        for chan_num in list(range(1, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 37)):
-            assert str(chan_num) in available_datasets
+        for chan_name in expected_names:
+            assert chan_name in available_datasets
+        # TODO: Check resolutions of DataIDs returned (specifically geo)
 
     def test_load_longitude_latitude(self, modis_l1b_nasa_mod021km_file):
         """Test that longitude and latitude datasets are loaded correctly."""
