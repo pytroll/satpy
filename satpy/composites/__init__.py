@@ -555,7 +555,7 @@ def _insert_palette_colors(channels, palette):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, name, lim_low=85., lim_high=88., chose_day_night="day_and_night", **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_only", **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -563,124 +563,74 @@ class DayNightCompositor(GenericCompositor):
                              blending of the given channels
             lim_high (float): upper limit of Sun zenith angle for the
                              blending of the given channels
-            chose_day_night (string): "day_and_night" means both day and night parts will be kept
-                                      "only_day" means only day part will be kept
-                                      "only_night" means only night part will be kept
+            day_night (string): "day_night" means both day and night portions will be kept
+                                "day_only" means only day portion will be kept
+                                "night_only" means only night portion will be kept
 
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
-        self.chose_day_night = chose_day_night
+        self.day_night = day_night
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite."""
         projectables = self.match_data_arrays(projectables)
 
-        data_1 = projectables[0]
+        foreground_data = projectables[0]
+        background_data = projectables[1] if self.day_night == "day_night" else foreground_data
 
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            coszen = np.cos(np.deg2rad(projectables[2]))
+            coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
             try:
-                chunks = data_1.sel(bands=data_1['bands'][0]).chunks
+                chunks = foreground_data.sel(bands=foreground_data['bands'][0]).chunks
             except KeyError:
-                chunks = data_1.chunks
-            lons, lats = data_1.attrs["area"].get_lonlats(chunks=chunks)
-            coszen = xr.DataArray(cos_zen(data_1.attrs["start_time"],
+                chunks = foreground_data.chunks
+            lons, lats = foreground_data.attrs["area"].get_lonlats(chunks=chunks)
+            coszen = xr.DataArray(cos_zen(foreground_data.attrs["start_time"],
                                           lons, lats),
                                   dims=['y', 'x'],
-                                  coords=[data_1['y'], data_1['x']])
+                                  coords=[foreground_data['y'], foreground_data['x']])
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
         coszen = coszen.clip(0, 1)
 
-        if self.chose_day_night == "day_and_night":
-            # This means both day and night part will be kept
-            data_2 = projectables[1]
-            day_data = data_1
-            night_data = data_2
+        # Apply enhancements to get images
+        foreground_data = enhance2dataset(foreground_data)
+        background_data = enhance2dataset(background_data)
 
-            # Apply enhancements to get images
-            day_data = enhance2dataset(day_data)
-            night_data = enhance2dataset(night_data)
+        # Adjust bands so that they match
+        # L/RGB -> RGB/RGB
+        # LA/RGB -> RGBA/RGBA
+        # RGB/RGBA -> RGBA/RGBA
+        foreground_data = add_bands(foreground_data, background_data['bands'])
+        background_data = add_bands(background_data, foreground_data['bands'])
 
-            # Adjust bands so that they match
-            # L/RGB -> RGB/RGB
-            # LA/RGB -> RGBA/RGBA
-            # RGB/RGBA -> RGBA/RGBA
-            day_data = add_bands(day_data, night_data['bands'])
-            night_data = add_bands(night_data, day_data['bands'])
+        # Replace missing channel data with zeros
+        foreground_data = zero_missing_data(foreground_data, background_data)
+        background_data = zero_missing_data(background_data, foreground_data)
 
-            # Replace missing channel data with zeros
-            day_data = zero_missing_data(day_data, night_data)
-            night_data = zero_missing_data(night_data, day_data)
+        # Get merged metadata
+        attrs = combine_metadata(foreground_data, background_data)
 
-            # Get merged metadata
-            attrs = combine_metadata(day_data, night_data)
+        # Blend the two images together
+        day_data = foreground_data if "day" in self.day_night else None
+        night_data = foreground_data if self.day_night == "night_only" else None
+        night_data = background_data if self.day_night == "day_night" else night_data
 
-            # Blend the two images together
-            data = (1 - coszen) * night_data + coszen * day_data
-            data.attrs = attrs
+        day_portion = coszen * (day_data if day_data is not None else 0)
+        night_portion = (1 - coszen) * (night_data if night_data is not None else 0)
+        data = night_portion + day_portion
 
-            # Split to separate bands so the mode is correct
-            data = [data.sel(bands=b) for b in data['bands']]
-
-        elif self.chose_day_night == "only_day":
-            # This means only day part will be kept
-            day_data = data_1
-
-            # Apply enhancements to get images
-            day_data = enhance2dataset(day_data)
-
-            # Add alpha band
-            # L -> LA
-            # RGB -> RGBA
-            day_data = add_bands(day_data, day_data['bands'])
-
-            # Replace missing channel data with zeros
-            day_data = zero_missing_data(day_data, day_data)
-
-            # Get merged metadata
-            attrs = combine_metadata(day_data, day_data)
-
-            # Set night part to 0 and get the maskout image
-            data = (1 - coszen) * 0 + coszen * day_data
-            data.attrs = attrs
-
-            # Split to separate bands so the mode is correct
-            data = [data.sel(bands=b) for b in data['bands']]
-
-        elif self.chose_day_night == "only_night":
-            # This means only night part will be kept
-            night_data = data_1
-
-            # Apply enhancements to get images
-            night_data = enhance2dataset(night_data)
-
-            # Add alpha band
-            # L -> LA
-            # RGB -> RGBA
-            night_data = add_bands(night_data, night_data['bands'])
-
-            # Replace missing channel data with zeros
-            night_data = zero_missing_data(night_data, night_data)
-
-            # Get merged metadata
-            attrs = combine_metadata(night_data, night_data)
-
-            # Set night part to 0 and get the maskout image
-            data = (1 - coszen) * night_data + coszen * 0
-            data.attrs = attrs
-
-            # Split to separate bands so the mode is correct
-            data = [data.sel(bands=b) for b in data['bands']]
+        # Split to separate bands so the mode is correct
+        data = [data.sel(bands=b) for b in data['bands']]
 
         return super(DayNightCompositor, self).__call__(data, **kwargs)
 
@@ -741,7 +691,7 @@ def add_bands(data, bands):
         data['bands'] = new_bands
         data.attrs['mode'] = mode
     # Add alpha band
-    if 'A' not in data['bands'].data and 'A' in bands.data:
+    if ('A' not in data['bands'].data and 'A' in bands.data) or ('A' not in data['bands'].data):
         new_data = [data.sel(bands=band) for band in data['bands'].data]
         # Create alpha band based on a copy of the first "real" band
         alpha = new_data[0].copy()
@@ -754,20 +704,6 @@ def add_bands(data, bands):
         new_data = xr.concat(new_data, dim='bands')
         new_data.attrs['mode'] = data.attrs['mode'] + 'A'
         data = new_data
-    elif 'A' not in data['bands'].data:
-        new_data = [data.sel(bands=band) for band in data['bands'].data]
-        # Create alpha band based on a copy of the first "real" band
-        alpha = new_data[0].copy()
-        alpha.data = da.ones((data.sizes['y'],
-                              data.sizes['x']),
-                             chunks=new_data[0].chunks)
-        # Rename band to indicate it's alpha
-        alpha['bands'] = 'A'
-        new_data.append(alpha)
-        new_data = xr.concat(new_data, dim='bands')
-        new_data.attrs['mode'] = data.attrs['mode'] + 'A'
-        data = new_data
-
     return data
 
 
