@@ -315,24 +315,44 @@ class TestModisL1b:
         assert 'modis_l1b' in available_readers()
 
     @pytest.mark.parametrize(
-        ('input_files', 'expected_names'),
+        ('input_files', 'expected_names', 'expected_data_res', 'expected_geo_res'),
         [
-            [pytest.lazy_fixture('modis_l1b_nasa_mod021km_file'), AVAILABLE_1KM_PRODUCT_NAMES],
-            [pytest.lazy_fixture('modis_l1b_imapp_1000m_file'), AVAILABLE_1KM_PRODUCT_NAMES],
-            [pytest.lazy_fixture('modis_l1b_nasa_mod02hkm_file'), AVAILABLE_HKM_PRODUCT_NAMES],
-            [pytest.lazy_fixture('modis_l1b_nasa_mod02qkm_file'), AVAILABLE_QKM_PRODUCT_NAMES],
+            [pytest.lazy_fixture('modis_l1b_nasa_mod021km_file'),
+             AVAILABLE_1KM_PRODUCT_NAMES, [1000], [5000, 1000]],
+            [pytest.lazy_fixture('modis_l1b_imapp_1000m_file'),
+             AVAILABLE_1KM_PRODUCT_NAMES, [1000], [5000, 1000]],
+            [pytest.lazy_fixture('modis_l1b_nasa_mod02hkm_file'),
+             AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES, [500], [1000, 500, 250]],
+            [pytest.lazy_fixture('modis_l1b_nasa_mod02qkm_file'),
+             AVAILABLE_QKM_PRODUCT_NAMES, [250], [1000, 500, 250]],
         ]
     )
-    def test_scene_available_datasets(self, input_files, expected_names):
+    def test_scene_available_datasets(self, input_files, expected_names, expected_data_res, expected_geo_res):
         """Test that datasets are available."""
         scene = Scene(reader='modis_l1b', filenames=input_files)
-        available_datasets = scene.all_dataset_names()
+        available_datasets = scene.available_dataset_names()
         assert len(available_datasets) > 0
         assert 'longitude' in available_datasets
         assert 'latitude' in available_datasets
         for chan_name in expected_names:
             assert chan_name in available_datasets
-        # TODO: Check resolutions of DataIDs returned (specifically geo)
+
+        available_data_ids = scene.available_dataset_ids()
+        available_datas = {x: [] for x in expected_data_res}
+        available_geos = {x: [] for x in expected_geo_res}
+        for data_id in available_data_ids:
+            res = data_id['resolution']
+            if data_id['name'] in ['longitude', 'latitude']:
+                assert res in expected_geo_res
+                available_geos[res].append(data_id)
+            else:
+                assert res in expected_data_res
+                available_datas[res].append(data_id)
+
+        for exp_res, avail_id in available_datas.items():
+            assert avail_id, f"Missing datasets for data resolution {exp_res}"
+        for exp_res, avail_id in available_geos.items():
+            assert avail_id, f"Missing geo datasets for geo resolution {exp_res}"
 
     def test_load_longitude_latitude(self, modis_l1b_nasa_mod021km_file):
         """Test that longitude and latitude datasets are loaded correctly."""

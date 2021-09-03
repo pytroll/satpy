@@ -412,11 +412,13 @@ datasets:
         # For EUM reduced (thinned) files
         file_type: hdf_eos_data_1000m
       1000:
-        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m, hdf_eos_data_500m, hdf_eos_data_250m]
+      # Both 500m and 250m files have 1km resolution Longitude/Latitude
+      # 1km Longitude/Latitude can be interpolated to 500m or 250m resolution
       500:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
       250:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
     standard_name: longitude
     units: degree
 
@@ -427,11 +429,13 @@ datasets:
         # For EUM reduced (thinned) files
         file_type: hdf_eos_data_1000m
       1000:
-        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m, hdf_eos_data_500m, hdf_eos_data_250m]
+      # Both 500m and 250m files have 1km resolution Longitude/Latitude
+      # 1km Longitude/Latitude can be interpolated to 500m or 250m resolution
       500:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
       250:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
     standard_name: latitude
     units: degree
 
