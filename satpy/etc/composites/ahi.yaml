@@ -14,29 +14,17 @@ modifiers:
     - solar_azimuth_angle
     - solar_zenith_angle
 
-  tcr_rayleigh_corrected:
+  true_color_reproduction_rayleigh_corrected:
     modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
     - name: B03
-      modifiers: [tcr_sunz_corrected]
+      modifiers: [sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
     - satellite_zenith_angle
     - solar_azimuth_angle
-    - solar_zenith_angle
-
-  tcr_sunz_corrected:
-    compositor: !!python/name:satpy.modifiers.SunZenithCorrector
-    correction_limit: 90.
-    optional_prerequisites:
-    - solar_zenith_angle
-
-  tcr_sunz_corrected_no_corr:
-    compositor: !!python/name:satpy.modifiers.SunZenithCorrector
-    correction_limit: 65.
-    optional_prerequisites:
     - solar_zenith_angle
 
 composites:
@@ -58,23 +46,11 @@ composites:
     fractions: [0.6321, 0.2928, 0.0751]
     prerequisites:
     - name: B02
-      modifiers: [tcr_sunz_corrected, tcr_rayleigh_corrected]
+      modifiers: [sunz_corrected, true_color_reproduction_rayleigh_corrected]
     - name: B03
-      modifiers: [tcr_sunz_corrected, tcr_rayleigh_corrected]
+      modifiers: [sunz_corrected, true_color_reproduction_rayleigh_corrected]
     - name: B04
-      modifiers: [tcr_sunz_corrected]
-    standard_name: none
-
-  green_true_color_reproduction_no_corr:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
-    fractions: [0.6321, 0.2928, 0.0751]
-    prerequisites:
-    - name: B02
-      modifiers: [tcr_sunz_corrected_no_corr]
-    - name: B03
-      modifiers: [tcr_sunz_corrected_no_corr]
-    - name: B04
-      modifiers: [tcr_sunz_corrected_no_corr]
+      modifiers: [sunz_corrected]
     standard_name: none
 
   green_nocorr:
@@ -254,34 +230,15 @@ composites:
     high_resolution_band: red
     standard_name: true_color
 
-  true_color_reproduction_no_corr:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - name: B03
-      modifiers: [tcr_sunz_corrected_no_corr]
-    - name: green_true_color_reproduction_no_corr
-    - name: B01
-      modifiers: [tcr_sunz_corrected_no_corr]
-    standard_name: true_color_reproduction
-
   true_color_reproduction:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: B03
-        modifiers: [tcr_sunz_corrected, tcr_rayleigh_corrected]
+        modifiers: [sunz_corrected, true_color_reproduction_rayleigh_corrected]
       - name: green_true_color_reproduction
       - name: B01
-        modifiers: [tcr_sunz_corrected, tcr_rayleigh_corrected]
+        modifiers: [sunz_corrected, true_color_reproduction_rayleigh_corrected]
     standard_name: true_color_reproduction
-
-  true_color_reproduction_blend:
-    compositor: !!python/name:satpy.composites.DayNightCompositor
-    standard_name: none
-    lim_low: 70.0
-    lim_high: 85.0
-    prerequisites:
-      - true_color_reproduction
-      - true_color_reproduction_no_corr
 
 #  true_color_reducedsize_land:
 #    compositor: !!python/name:satpy.composites.GenericCompositor

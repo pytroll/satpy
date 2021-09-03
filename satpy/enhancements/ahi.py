@@ -37,7 +37,6 @@ def jma_true_color_reproduction(img, **kwargs):
             [-0.0386, 0.9587, 0.0559],
             [-0.0189, -0.1161, 1.0777]
         ])
-
         output = da.dot(img_data.T, ccm.T)
         return output.T
 
