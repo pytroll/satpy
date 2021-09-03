@@ -128,6 +128,12 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         return mda
 
     @property
+    def metadata_platform_name(self):
+        """Platform name from the internal file metadata."""
+        return self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+
+    @property
     def start_time(self):
         """Get the start time of the dataset."""
         date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
@@ -164,7 +170,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         good_mask, new_fill = self._get_good_data_mask(dataset, data)
         scale_factor = data.attrs.get('scale_factor')
         if scale_factor is not None:
-            data = data * scale_factor
+            data = data * np.float32(scale_factor)
 
         if good_mask is not None:
             data = data.where(good_mask, new_fill)
@@ -184,6 +190,28 @@ class HDFEOSBaseFileReader(BaseFileHandler):
             data_arr.attrs.pop('_FillValue', None)
         good_mask = data_arr != fill_value
         return good_mask, new_fill
+
+    def _add_satpy_metadata(self, data_id: DataID, data_arr: xr.DataArray):
+        """Add metadata that is specific to Satpy."""
+        new_attrs = {
+            'platform_name': 'EOS-' + self.metadata_platform_name,
+            'sensor': 'modis',
+        }
+
+        res = data_id["resolution"]
+        rps = self._resolution_to_rows_per_scan(res)
+        new_attrs["rows_per_scan"] = rps
+
+        data_arr.attrs.update(new_attrs)
+
+    def _resolution_to_rows_per_scan(self, resolution: int) -> int:
+        known_rps = {
+            5000: 2,
+            1000: 10,
+            500: 20,
+            250: 40,
+        }
+        return known_rps.get(resolution, 10)
 
 
 class HDFEOSGeoReader(HDFEOSBaseFileReader):
@@ -309,5 +337,6 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         for key in ('standard_name', 'units'):
             if key in dataset_info:
                 data.attrs[key] = dataset_info[key]
+        self._add_satpy_metadata(dataset_id, data)
 
         return data
