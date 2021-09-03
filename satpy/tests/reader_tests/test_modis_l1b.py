@@ -18,9 +18,10 @@
 """Unit tests for MODIS L1b HDF reader."""
 
 import os
-import unittest
+import shutil
 
 import numpy as np
+import pytest
 
 from pyhdf.SD import SD, SDC
 
@@ -165,11 +166,10 @@ def generate_file_name():
     return base_dir, file_name
 
 
-def create_test_data():
+def create_test_data(file_name):
     """Create a fake MODIS L1b HDF4 file with headers."""
     from datetime import datetime, timedelta
 
-    base_dir, file_name = generate_file_name()
     h = SD(file_name, SDC.WRITE | SDC.CREATE)
     # Set hdf file attributes
     beginning_date = datetime.now()
@@ -230,23 +230,23 @@ def create_test_data():
                 continue
             setattr(v, attr_key, attr_val)
     h.end()
-    return base_dir, file_name
 
 
-class TestModisL1b(unittest.TestCase):
+@pytest.fixture
+def modis_l1b_mod021km_file():
+    """Create a single MOD021km file."""
+    base_dir, filename = generate_file_name()
+    full_path = os.path.join(base_dir, filename)
+    create_test_data(full_path)
+
+    try:
+        yield full_path
+    finally:
+        shutil.rmtree(base_dir, ignore_errors=True)
+
+
+class TestModisL1b:
     """Test MODIS L1b reader."""
-
-    def setUp(self):
-        """Create fake HDF4 MODIS file."""
-        self.base_dir, self.file_name = create_test_data()
-
-    def tearDown(self):
-        """Remove the temporary directory created for the test."""
-        try:
-            import shutil
-            shutil.rmtree(self.base_dir, ignore_errors=True)
-        except OSError:
-            pass
 
     @staticmethod
     def _check_shared_metadata(data_arr):
@@ -258,19 +258,19 @@ class TestModisL1b(unittest.TestCase):
 
     def test_available_reader(self):
         """Test that MODIS L1b reader is available."""
-        self.assertIn('modis_l1b', available_readers())
+        assert 'modis_l1b' in available_readers()
 
-    def test_scene_available_datasets(self):
+    def test_scene_available_datasets(self, modis_l1b_mod021km_file):
         """Test that datasets are available."""
-        scene = Scene(reader='modis_l1b', filenames=[self.file_name])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
         available_datasets = scene.all_dataset_names()
         assert len(available_datasets) > 0
-        self.assertIn('longitude', available_datasets)
-        self.assertIn('latitude', available_datasets)
+        assert 'longitude' in available_datasets
+        assert 'latitude' in available_datasets
         for chan_num in list(range(1, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 37)):
-            self.assertIn(str(chan_num), available_datasets)
+            assert str(chan_num) in available_datasets
 
-    def test_load_longitude_latitude(self):
+    def test_load_longitude_latitude(self, modis_l1b_mod021km_file):
         """Test that longitude and latitude datasets are loaded correctly."""
         from satpy.tests.utils import make_dataid
 
@@ -280,16 +280,15 @@ class TestModisL1b(unittest.TestCase):
                 np.testing.assert_array_less(x, y)
             else:
                 # assert greater
-                # np.testing.assert_equal(x > y, True)
                 np.testing.assert_array_less(y, x)
 
-        scene = Scene(reader='modis_l1b', filenames=[self.file_name])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
         for dataset_name in ['longitude', 'latitude']:
             # Default resolution should be the interpolated 1km
             scene.load([dataset_name])
             longitude_1km_id = make_dataid(name=dataset_name, resolution=1000)
             longitude_1km = scene[longitude_1km_id]
-            self.assertEqual(longitude_1km.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
+            assert longitude_1km.shape == (5*SCAN_WIDTH, 5*SCAN_LEN+4)
             test_func(dataset_name, longitude_1km.values, 0)
             self._check_shared_metadata(longitude_1km)
 
@@ -297,25 +296,25 @@ class TestModisL1b(unittest.TestCase):
             scene.load([dataset_name], resolution=5000)
             longitude_5km_id = make_dataid(name=dataset_name, resolution=5000)
             longitude_5km = scene[longitude_5km_id]
-            self.assertEqual(longitude_5km.shape, TEST_DATA[dataset_name.capitalize()]['data'].shape)
+            assert longitude_5km.shape == TEST_DATA[dataset_name.capitalize()]['data'].shape
             test_func(dataset_name, longitude_5km.values, 0)
             self._check_shared_metadata(longitude_5km)
 
-    def test_load_sat_zenith_angle(self):
+    def test_load_sat_zenith_angle(self, modis_l1b_mod021km_file):
         """Test loading satellite zenith angle band."""
-        scene = Scene(reader='modis_l1b', filenames=[self.file_name])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
         dataset_name = 'satellite_zenith_angle'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
-        self.assertEqual(dataset.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
+        assert dataset.shape == (5*SCAN_WIDTH, 5*SCAN_LEN+4)
         assert dataset.attrs['resolution'] == 1000
         self._check_shared_metadata(dataset)
 
-    def test_load_vis(self):
+    def test_load_vis(self, modis_l1b_mod021km_file):
         """Test loading visible band."""
-        scene = Scene(reader='modis_l1b', filenames=[self.file_name])
+        scene = Scene(reader='modis_l1b', filenames=[modis_l1b_mod021km_file])
         dataset_name = '1'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
-        self.assertEqual(dataset.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
+        assert dataset.shape == (5*SCAN_WIDTH, 5*SCAN_LEN+4)
         self._check_shared_metadata(dataset)
