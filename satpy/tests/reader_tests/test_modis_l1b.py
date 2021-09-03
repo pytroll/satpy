@@ -152,11 +152,10 @@ TEST_DATA = {
 }
 
 
-def generate_file_name():
+def generate_file_name(prefix="MOD021km"):
     """Generate a filename that follows MODIS L1b convention."""
-    return 'MOD021km_A{0:%y%j_%H%M%S}_{0:%Y%j%H%M%S}.hdf'.format(
-        datetime.now()
-    )
+    now = datetime.now()
+    return f'{prefix}_A{now:%y%j_%H%M%S}_{now:%Y%j%H%M%S}.hdf'
 
 
 def create_test_data(filename):
