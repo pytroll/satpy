@@ -158,25 +158,54 @@ def generate_nasa_l1b_filename(prefix):
     return f'{prefix}_A{now:%y%j_%H%M%S}_{now:%Y%j%H%M%S}.hdf'
 
 
-def create_test_data(filename):
+def create_test_data(filename, include_metadata=True):
     """Create a fake MODIS L1b HDF4 file with headers."""
     h = SD(filename, SDC.WRITE | SDC.CREATE)
-    # Set hdf file attributes
+
+    if include_metadata:
+        setattr(h, 'CoreMetadata.0', _create_core_metadata())  # noqa
+        setattr(h, 'StructMetadata.0', _create_struct_metadata())  # noqa
+        setattr(h, 'ArchiveMetadata.0', _create_header_metadata())  # noqa
+
+    for var_name, var_info in TEST_DATA.items():
+        _add_variable_to_file(h, var_name, var_info)
+
+    h.end()
+
+
+def _add_variable_to_file(h, var_name, var_info):
+    v = h.create(var_name, var_info['type'], var_info['data'].shape)
+    v[:] = var_info['data']
+    dim_count = 0
+    for dimension_name in var_info['attrs']['dim_labels']:
+        v.dim(dim_count).setname(dimension_name)
+        dim_count += 1
+    v.setfillvalue(var_info['fill_value'])
+    v.scale_factor = var_info['attrs'].get('scale_factor', SCALE_FACTOR)
+    for attr_key, attr_val in var_info['attrs'].items():
+        if attr_key == 'dim_labels':
+            continue
+        setattr(v, attr_key, attr_val)
+
+
+def _create_core_metadata() -> str:
     beginning_date = datetime.now()
     ending_date = beginning_date + timedelta(minutes=5)
     core_metadata_header = "GROUP = INVENTORYMETADATA\nGROUPTYPE = MASTERGROUP\n\n" \
                            "GROUP = RANGEDATETIME\n\nOBJECT = RANGEBEGINNINGDATE\nNUM_VAL = 1\nVALUE = \"{}\"\n" \
-                           "END_OBJECT = RANGEBEGINNINGDATE\n\nOBJECT = RANGEBEGINNINGTIME\n"\
-                           "NUM_VAL = 1\nVALUE = \"{}\"\n"\
-                           "END_OBJECT = RANGEBEGINNINGTIME\n\nOBJECT = RANGEENDINGDATE\nNUM_VAL = 1\nVALUE = \"{}\"\n"\
+                           "END_OBJECT = RANGEBEGINNINGDATE\n\nOBJECT = RANGEBEGINNINGTIME\n" \
+                           "NUM_VAL = 1\nVALUE = \"{}\"\n" \
+                           "END_OBJECT = RANGEBEGINNINGTIME\n\nOBJECT = RANGEENDINGDATE\n" \
+                           "NUM_VAL = 1\nVALUE = \"{}\"\n" \
                            "END_OBJECT = RANGEENDINGDATE\n\nOBJECT = RANGEENDINGTIME\nNUM_VAL = 1\nVALUE = \"{}\"\n" \
-                           "END_OBJECT = RANGEENDINGTIME\nEND_GROUP = RANGEDATETIME".format(
-                               beginning_date.strftime("%Y-%m-%d"),
-                               beginning_date.strftime("%H:%M:%S.%f"),
-                               ending_date.strftime("%Y-%m-%d"),
-                               ending_date.strftime("%H:%M:%S.%f")
-                           )
-    inst_metadata = "GROUP = ASSOCIATEDPLATFORMINSTRUMENTSENSOR\n\n"\
+                           "END_OBJECT = RANGEENDINGTIME\nEND_GROUP = RANGEDATETIME"
+    core_metadata_header = core_metadata_header.format(
+        beginning_date.strftime("%Y-%m-%d"),
+        beginning_date.strftime("%H:%M:%S.%f"),
+        ending_date.strftime("%Y-%m-%d"),
+        ending_date.strftime("%H:%M:%S.%f")
+    )
+    inst_metadata = "GROUP = ASSOCIATEDPLATFORMINSTRUMENTSENSOR\n\n" \
                     "OBJECT = ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER\nCLASS = \"1\"\n\n" \
                     "OBJECT = ASSOCIATEDSENSORSHORTNAME\nCLASS = \"1\"\nNUM_VAL = 1\n" \
                     "VALUE = \"MODIS\"\nEND_OBJECT = ASSOCIATEDSENSORSHORTNAME\n\n" \
@@ -186,40 +215,30 @@ def create_test_data(filename):
                     "VALUE = \"MODIS\"\nEND_OBJECT = ASSOCIATEDINSTRUMENTSHORTNAME\n\n" \
                     "END_OBJECT = ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER\n\n" \
                     "END_GROUP              = ASSOCIATEDPLATFORMINSTRUMENTSENSOR\n\n"
-    collection_metadata = "GROUP = COLLECTIONDESCRIPTIONCLASS\n\nOBJECT = SHORTNAME\nNUM_VAL = 1\n"\
-                          "VALUE = \"MOD021KM\"\nEND_OBJECT = SHORTNAME\n\n"\
-                          "OBJECT = VERSIONID\nNUM_VAL = 1\nVALUE = 6\nEND_OBJECT = VERSIONID\n\n"\
+    collection_metadata = "GROUP = COLLECTIONDESCRIPTIONCLASS\n\nOBJECT = SHORTNAME\nNUM_VAL = 1\n" \
+                          "VALUE = \"MOD021KM\"\nEND_OBJECT = SHORTNAME\n\n" \
+                          "OBJECT = VERSIONID\nNUM_VAL = 1\nVALUE = 6\nEND_OBJECT = VERSIONID\n\n" \
                           "END_GROUP = COLLECTIONDESCRIPTIONCLASS\n\n"
     core_metadata_header += "\n\n" + inst_metadata + collection_metadata
-    struct_metadata_header = "GROUP=SwathStructure\n"\
-                             "GROUP=SWATH_1\n"\
-                             "GROUP=DimensionMap\n"\
-                             "OBJECT=DimensionMap_2\n"\
-                             "GeoDimension=\"2*nscans\"\n"\
-                             "END_OBJECT=DimensionMap_2\n"\
-                             "END_GROUP=DimensionMap\n"\
-                             "END_GROUP=SWATH_1\n"\
-                             "END_GROUP=SwathStructure\nEND"
-    archive_metadata_header = "GROUP = ARCHIVEDMETADATA\nEND_GROUP = ARCHIVEDMETADATA\nEND"
-    setattr(h, 'CoreMetadata.0', core_metadata_header)  # noqa
-    setattr(h, 'StructMetadata.0', struct_metadata_header)  # noqa
-    setattr(h, 'ArchiveMetadata.0', archive_metadata_header)  # noqa
+    return core_metadata_header
 
-    # Fill datasets
-    for dataset in TEST_DATA:
-        v = h.create(dataset, TEST_DATA[dataset]['type'], TEST_DATA[dataset]['data'].shape)
-        v[:] = TEST_DATA[dataset]['data']
-        dim_count = 0
-        for dimension_name in TEST_DATA[dataset]['attrs']['dim_labels']:
-            v.dim(dim_count).setname(dimension_name)
-            dim_count += 1
-        v.setfillvalue(TEST_DATA[dataset]['fill_value'])
-        v.scale_factor = TEST_DATA[dataset]['attrs'].get('scale_factor', SCALE_FACTOR)
-        for attr_key, attr_val in TEST_DATA[dataset]['attrs'].items():
-            if attr_key == 'dim_labels':
-                continue
-            setattr(v, attr_key, attr_val)
-    h.end()
+
+def _create_struct_metadata() -> str:
+    struct_metadata_header = "GROUP=SwathStructure\n" \
+                             "GROUP=SWATH_1\n" \
+                             "GROUP=DimensionMap\n" \
+                             "OBJECT=DimensionMap_2\n" \
+                             "GeoDimension=\"2*nscans\"\n" \
+                             "END_OBJECT=DimensionMap_2\n" \
+                             "END_GROUP=DimensionMap\n" \
+                             "END_GROUP=SWATH_1\n" \
+                             "END_GROUP=SwathStructure\nEND"
+    return struct_metadata_header
+
+
+def _create_header_metadata() -> str:
+    archive_metadata_header = "GROUP = ARCHIVEDMETADATA\nEND_GROUP = ARCHIVEDMETADATA\nEND"
+    return archive_metadata_header
 
 
 @pytest.fixture
