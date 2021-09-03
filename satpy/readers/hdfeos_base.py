@@ -267,27 +267,31 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         """Parse metadata to find the geolocation resolution."""
         # level 1 files
         try:
-            ds = metadata['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
-            if ds.endswith('D03'):
-                return 1000
-            else:
-                # 1km files have 5km geolocation usually
-                return 5000
+            return HDFEOSGeoReader._geo_resolution_for_l1b(metadata)
         except KeyError:
-            pass
+            try:
+                return HDFEOSGeoReader._geo_resolution_for_l2_l1b(metadata)
+            except (AttributeError, KeyError):
+                raise RuntimeError("Could not determine resolution from file metadata")
 
+    @staticmethod
+    def _geo_resolution_for_l1b(metadata):
+        ds = metadata['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+        if ds.endswith('D03'):
+            return 1000
+        else:
+            # 1km files have 5km geolocation usually
+            return 5000
+
+    @staticmethod
+    def _geo_resolution_for_l2_l1b(metadata):
         # data files probably have this level 2 files
         # this does not work for L1B 1KM data files because they are listed
         # as 1KM data but the geo data inside is at 5km
-        try:
-            latitude_dim = metadata['SwathStructure']['SWATH_1']['DimensionMap']['DimensionMap_2']['GeoDimension']
-            resolution_regex = re.compile(r'(?P<resolution>\d+)(km|KM)')
-            resolution_match = resolution_regex.search(latitude_dim)
-            return int(resolution_match.group('resolution')) * 1000
-        except (AttributeError, KeyError):
-            pass
-
-        raise RuntimeError("Could not determine resolution from file metadata")
+        latitude_dim = metadata['SwathStructure']['SWATH_1']['DimensionMap']['DimensionMap_2']['GeoDimension']
+        resolution_regex = re.compile(r'(?P<resolution>\d+)(km|KM)')
+        resolution_match = resolution_regex.search(latitude_dim)
+        return int(resolution_match.group('resolution')) * 1000
 
     @property
     def geo_resolution(self):
