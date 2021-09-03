@@ -438,28 +438,52 @@ datasets:
   solar_zenith_angle:
     name: solar_zenith_angle
     sensor: modis
-    resolution: [1000, 500, 250]
+    resolution:
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: [hdf_eos_geo]
+      250:
+        file_type: [hdf_eos_geo]
     coordinates: [longitude, latitude]
     file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     sensor: modis
-    resolution: [1000, 500, 250]
+    resolution:
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: [hdf_eos_geo]
+      250:
+        file_type: [hdf_eos_geo]
     coordinates: [longitude, latitude]
     file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     sensor: modis
-    resolution: [1000, 500, 250]
+    resolution:
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: [hdf_eos_geo]
+      250:
+        file_type: [hdf_eos_geo]
     coordinates: [longitude, latitude]
     file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     sensor: modis
-    resolution: [1000, 500, 250]
+    resolution:
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: [hdf_eos_geo]
+      250:
+        file_type: [hdf_eos_geo]
     coordinates: [longitude, latitude]
     file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
