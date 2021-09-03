@@ -130,22 +130,46 @@ class HDFEOSBaseFileReader(BaseFileHandler):
     @property
     def metadata_platform_name(self):
         """Platform name from the internal file metadata."""
-        return self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
-            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+        try:
+            # Example: 'Terra' or 'Aqua'
+            return self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+                'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+        except KeyError:
+            return self._platform_name_from_filename()
+
+    def _platform_name_from_filename(self):
+        platform_indicator = self.filename_info["platform_indicator"]
+        if platform_indicator in ("t", "O"):
+            # t1.* or MOD*
+            return "Terra"
+        # a1.* or MYD*
+        return "Aqua"
 
     @property
     def start_time(self):
         """Get the start time of the dataset."""
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
-                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
-        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+        try:
+            date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
+                    self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
+            return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+        except KeyError:
+            return self._start_time_from_filename()
+
+    def _start_time_from_filename(self):
+        for fn_key in ("start_time", "acquisition_time"):
+            if fn_key in self.filename_info:
+                return self.filename_info[fn_key]
+        raise RuntimeError("Could not determine file start time")
 
     @property
     def end_time(self):
         """Get the end time of the dataset."""
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
-                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
-        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+        try:
+            date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
+                    self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
+            return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
+        except KeyError:
+            return self.start_time
 
     def _read_dataset_in_file(self, dataset_name):
         if dataset_name not in self.sd.datasets():
