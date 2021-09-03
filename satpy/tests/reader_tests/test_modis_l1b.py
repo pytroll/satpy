@@ -18,7 +18,7 @@
 """Unit tests for MODIS L1b HDF reader."""
 
 import os
-import shutil
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -153,24 +153,17 @@ TEST_DATA = {
 
 
 def generate_file_name():
-    """Generate a file name that follows MODIS 35 L2 convention in a temporary directory."""
-    import tempfile
-    from datetime import datetime
-
-    file_name = 'MOD021km_A{0:%y%j_%H%M%S}_{0:%Y%j%H%M%S}.hdf'.format(
+    """Generate a filename that follows MODIS L1b convention."""
+    return 'MOD021km_A{0:%y%j_%H%M%S}_{0:%Y%j%H%M%S}.hdf'.format(
         datetime.now()
     )
 
-    base_dir = tempfile.mkdtemp()
-    file_name = os.path.join(base_dir, file_name)
-    return base_dir, file_name
 
-
-def create_test_data(file_name):
+def create_test_data(filename):
     """Create a fake MODIS L1b HDF4 file with headers."""
     from datetime import datetime, timedelta
 
-    h = SD(file_name, SDC.WRITE | SDC.CREATE)
+    h = SD(filename, SDC.WRITE | SDC.CREATE)
     # Set hdf file attributes
     beginning_date = datetime.now()
     ending_date = beginning_date + timedelta(minutes=5)
@@ -233,16 +226,12 @@ def create_test_data(file_name):
 
 
 @pytest.fixture
-def modis_l1b_mod021km_file():
+def modis_l1b_mod021km_file(tmpdir):
     """Create a single MOD021km file."""
-    base_dir, filename = generate_file_name()
-    full_path = os.path.join(base_dir, filename)
+    filename = generate_file_name()
+    full_path = os.path.join(str(tmpdir), filename)
     create_test_data(full_path)
-
-    try:
-        yield full_path
-    finally:
-        shutil.rmtree(base_dir, ignore_errors=True)
+    yield full_path
 
 
 class TestModisL1b:
