@@ -30,133 +30,172 @@ from pyhdf.SD import SD, SDC
 from satpy import available_readers, Scene
 
 # Mock MODIS HDF4 file
-AVAILABLE_1KM_PRODUCT_NAMES = list(range(1, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 37))
-AVAILABLE_1KM_PRODUCT_NAMES = [str(x) for x in AVAILABLE_1KM_PRODUCT_NAMES]
+AVAILABLE_1KM_VIS_PRODUCT_NAMES = list(range(8, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 20))
+AVAILABLE_1KM_VIS_PRODUCT_NAMES = [str(x) for x in AVAILABLE_1KM_VIS_PRODUCT_NAMES]
+AVAILABLE_1KM_IR_PRODUCT_NAMES = [str(x) for x in range(20, 37)]
+AVAILABLE_1KM_PRODUCT_NAMES = AVAILABLE_1KM_VIS_PRODUCT_NAMES + AVAILABLE_1KM_IR_PRODUCT_NAMES
 AVAILABLE_HKM_PRODUCT_NAMES = [str(x) for x in list(range(3, 8))]
 AVAILABLE_QKM_PRODUCT_NAMES = ['1', '2']
 
-SCAN_WIDTH = 406
-SCAN_LEN = 270
+SCAN_LEN_5KM = 406
+SCAN_WIDTH_5KM = 270
 SCALE_FACTOR = 1
-TEST_LAT = np.repeat(np.linspace(35., 45., SCAN_WIDTH)[:, None], SCAN_LEN, 1)
-TEST_LAT *= np.linspace(0.9, 1.1, SCAN_LEN)
-TEST_LON = np.repeat(np.linspace(-45., -35., SCAN_LEN)[None, :], SCAN_WIDTH, 0)
-TEST_LON *= np.linspace(0.9, 1.1, SCAN_WIDTH)[:, None]
-TEST_SATZ = (np.repeat(abs(np.linspace(-65.2, 65.4, SCAN_LEN))[None, :], SCAN_WIDTH, 0) * 100).astype(np.int16)
-TEST_DATA = {
-    'Latitude': {'data': TEST_LAT.astype(np.float32),
-                 'type': SDC.FLOAT32,
-                 'fill_value': -999,
-                 'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
-    'Longitude': {'data': TEST_LON.astype(np.float32),
-                  'type': SDC.FLOAT32,
-                  'fill_value': -999,
-                  'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
-    'EV_1KM_RefSB': {
-        'data': np.zeros((15, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint16),
-        'type': SDC.UINT16,
-        'fill_value': 0,
-        'attrs': {
-            'dim_labels': ['Band_1KM_RefSB:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-            'valid_range': (0, 32767),
-            'reflectance_scales': (1,) * 15,
-            'reflectance_offsets': (0,) * 15,
-            'band_names': '8,9,10,11,12,13lo,13hi,14lo,14hi,15,16,17,18,19,26',
-        },
-    },
-    'EV_1KM_RefSB_Uncert_Indexes': {
-        'data': np.zeros((15, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint8),
-        'type': SDC.UINT8,
-        'fill_value': 255,
-        'attrs': {
-            'dim_labels': ['Band_1KM_RefSB:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-        },
-    },
-    'EV_500_Aggr1km_RefSB': {
-        'data': np.zeros((5, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint16),
-        'type': SDC.UINT16,
-        'fill_value': 0,
-        'attrs': {
-            'dim_labels': ['Band_500M:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-            'valid_range': (0, 32767),
-            'reflectance_scales': (1,) * 5,
-            'reflectance_offsets': (0,) * 5,
-            'band_names': '3,4,5,6,7',
-        },
-    },
-    'EV_500_Aggr1km_RefSB_Uncert_Indexes': {
-        'data': np.zeros((5, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint8),
-        'type': SDC.UINT8,
-        'fill_value': 255,
-        'attrs': {
-            'dim_labels': ['Band_500M:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-        },
-    },
-    'EV_250_Aggr1km_RefSB': {
-        'data': np.zeros((2, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint16),
-        'type': SDC.UINT16,
-        'fill_value': 0,
-        'attrs': {
-            'dim_labels': ['Band_250M:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-            'valid_range': (0, 32767),
-            'reflectance_scales': (1,) * 2,
-            'reflectance_offsets': (0,) * 2,
-            'band_names': '1,2',
-        },
-    },
-    'EV_250_Aggr1km_RefSB_Uncert_Indexes': {
-        'data': np.zeros((2, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint8),
-        'type': SDC.UINT8,
-        'fill_value': 255,
-        'attrs': {
-            'dim_labels': ['Band_250M:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-        },
-    },
-    'EV_1KM_Emmissive': {
-        'data': np.zeros((16, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint16),
-        'type': SDC.UINT16,
-        'fill_value': 0,
-        'attrs': {
-            'dim_labels': ['Band_1KM_Emissive:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-            'valid_range': (0, 32767),
-            'band_names': '20,21,22,23,24,25,27,28,29,30,31,32,33,34,35,36',
-        },
-    },
-    'EV_1KM_Emissive_Uncert_Indexes': {
-        'data': np.zeros((16, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.uint8),
-        'type': SDC.UINT8,
-        'fill_value': 255,
-        'attrs': {
-            'dim_labels': ['Band_1KM_Emissive:MODIS_SWATH_Type_L1B',
-                           '10*nscans:MODIS_SWATH_Type_L1B',
-                           'Max_EV_frames:MODIS_SWATH_Type_L1B'],
-        },
-    },
-    'SensorZenith': {'data': TEST_SATZ,
-                     'type': SDC.INT16,
-                     'fill_value': -32767,
-                     'attrs': {'dim_labels': ['2*nscans:MODIS_SWATH_Type_L1B', '1KM_geo_dim:MODIS_SWATH_Type_L1B'],
-                               'scale_factor': 0.01}},
-    'SensorAzimuth': {'data': TEST_SATZ,
-                      'type': SDC.INT16,
-                      'fill_value': -32767,
-                      'attrs': {'dim_labels': ['2*nscans:MODIS_SWATH_Type_L1B', '1KM_geo_dim:MODIS_SWATH_Type_L1B'],
-                                'scale_factor': 0.01}},
+
+
+RES_TO_REPEAT_FACTOR = {
+    250: 20,
+    500: 10,
+    1000: 5,
+    5000: 1,
 }
+
+
+def _shape_for_resolution(resolution: int) -> tuple[int, int]:
+    assert resolution in RES_TO_REPEAT_FACTOR
+    factor = RES_TO_REPEAT_FACTOR[resolution]
+    if factor == 1:
+        return SCAN_LEN_5KM, SCAN_WIDTH_5KM
+
+    factor_1km = RES_TO_REPEAT_FACTOR[1000]
+    shape_1km = (factor_1km * SCAN_LEN_5KM, factor_1km * SCAN_WIDTH_5KM + 4)
+    factor //= 5
+    return factor * shape_1km[0], factor * shape_1km[1]
+
+
+def _generate_lonlat_data(resolution: int) -> np.ndarray:
+    shape = _shape_for_resolution(resolution)
+    lat = np.repeat(np.linspace(35., 45., shape[0])[:, None], shape[1], 1)
+    lat *= np.linspace(0.9, 1.1, shape[1])
+    lon = np.repeat(np.linspace(-45., -35., shape[1])[None, :], shape[0], 0)
+    lon *= np.linspace(0.9, 1.1, shape[0])[:, None]
+    return lon.astype(np.float32), lat.astype(np.float32)
+
+
+def _generate_angle_data(resolution: int) -> np.ndarray:
+    shape = _shape_for_resolution(resolution)
+    data = np.repeat(abs(np.linspace(-65.2, 65.4, shape[1]))[None, :], shape[0], 0)
+    return (data * 100).astype(np.int16)
+
+
+def _generate_visible_data(resolution: int, num_bands: int, dtype=np.uint16) -> np.ndarray:
+    shape = _shape_for_resolution(resolution)
+    data = np.zeros((num_bands, shape[0], shape[1]), dtype=dtype)
+    return data
+
+
+def _get_lonlat_variable_info(resolution: int) -> dict:
+    lon_5km, lat_5km = _generate_lonlat_data(resolution)
+    return {
+        'Latitude': {'data': lat_5km,
+                     'type': SDC.FLOAT32,
+                     'fill_value': -999,
+                     'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
+        'Longitude': {'data': lon_5km,
+                      'type': SDC.FLOAT32,
+                      'fill_value': -999,
+                      'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
+    }
+
+
+def _get_angles_variable_info(resolution: int) -> dict:
+    angle_data = _generate_angle_data(resolution)
+    dim_factor = RES_TO_REPEAT_FACTOR[resolution] * 2
+    angle_info = {
+        'data': angle_data,
+        'type': SDC.INT16,
+        'fill_value': -32767,
+        'attrs': {
+            'dim_labels': [
+                f'{dim_factor}*nscans:MODIS_SWATH_Type_L1B',
+                '1KM_geo_dim:MODIS_SWATH_Type_L1B'],
+            'scale_factor': 0.01
+        },
+    }
+    angles_info = {}
+    for var_name in ('SensorAzimuth', 'SensorZenith', 'SolarAzimuth', 'SolarZenith'):
+        angles_info[var_name] = angle_info
+    return angles_info
+
+
+def _get_visible_variable_info(var_name: str, resolution: int, bands: list[str]):
+    num_bands = len(bands)
+    data = _generate_visible_data(resolution, len(bands))
+    dim_factor = RES_TO_REPEAT_FACTOR[resolution] * 2
+    band_dim_name = f"Band_{resolution}_{num_bands}_RefSB:MODIS_SWATH_Type_L1B"
+    row_dim_name = f'{dim_factor}*nscans:MODIS_SWATH_Type_L1B'
+    col_dim_name = 'Max_EV_frames:MODIS_SWATH_Type_L1B'
+    return {
+        var_name: {
+            'data': data,
+            'type': SDC.UINT16,
+            'fill_value': 0,
+            'attrs': {
+                # dim_labels are just unique dimension names, may not match exactly with real world files
+                'dim_labels': [band_dim_name,
+                               row_dim_name,
+                               col_dim_name],
+                'valid_range': (0, 32767),
+                'reflectance_scales': (1,) * num_bands,
+                'reflectance_offsets': (0,) * num_bands,
+                'band_names': ",".join(bands),
+            },
+        },
+        var_name + '_Uncert_Indexes': {
+            'data': np.zeros(data.shape, dtype=np.uint8),
+            'type': SDC.UINT8,
+            'fill_value': 255,
+            'attrs': {
+                'dim_labels': [band_dim_name,
+                               row_dim_name,
+                               col_dim_name],
+            },
+        },
+
+    }
+
+
+def _get_emissive_variable_info(var_name: str, resolution: int, bands: list[str]):
+    num_bands = len(bands)
+    data = _generate_visible_data(resolution, len(bands))
+    dim_factor = RES_TO_REPEAT_FACTOR[resolution] * 2
+    band_dim_name = f"Band_{resolution}_{num_bands}_Emissive:MODIS_SWATH_Type_L1B"
+    row_dim_name = f'{dim_factor}*nscans:MODIS_SWATH_Type_L1B'
+    col_dim_name = 'Max_EV_frames:MODIS_SWATH_Type_L1B'
+    return {
+        var_name: {
+            'data': data,
+            'type': SDC.UINT16,
+            'fill_value': 0,
+            'attrs': {
+                'dim_labels': [band_dim_name,
+                               row_dim_name,
+                               col_dim_name],
+                'valid_range': (0, 32767),
+                'band_names': ",".join(bands),
+            },
+        },
+        var_name + '_Uncert_Indexes': {
+            'data': np.zeros(data.shape, dtype=np.uint8),
+            'type': SDC.UINT8,
+            'fill_value': 255,
+            'attrs': {
+                'dim_labels': [band_dim_name,
+                               row_dim_name,
+                               col_dim_name],
+            },
+        },
+    }
+
+
+def _get_l1b_geo_variable_info(filename: str,
+                               geo_resolution: int,
+                               include_angles: bool = True
+                               ) -> dict:
+    variables_info = {}
+    variables_info.update(_get_lonlat_variable_info(geo_resolution))
+    if include_angles:
+        variables_info.update(_get_angles_variable_info(geo_resolution))
+    return variables_info
 
 
 def generate_nasa_l1b_filename(prefix):
@@ -171,7 +210,9 @@ def generate_imapp_l1b_filename(suffix):
     return f'a1.{now:%y%j.%H%M}.{suffix}.hdf'
 
 
-def create_test_data(filename, include_metadata=True):
+def create_hdfeos_test_file(filename: str,
+                            variable_infos: dict,
+                            include_metadata: bool = True):
     """Create a fake MODIS L1b HDF4 file with headers."""
     h = SD(filename, SDC.WRITE | SDC.CREATE)
 
@@ -180,7 +221,7 @@ def create_test_data(filename, include_metadata=True):
         setattr(h, 'StructMetadata.0', _create_struct_metadata())  # noqa
         setattr(h, 'ArchiveMetadata.0', _create_header_metadata())  # noqa
 
-    for var_name, var_info in TEST_DATA.items():
+    for var_name, var_info in variable_infos.items():
         _add_variable_to_file(h, var_name, var_info)
 
     h.end()
@@ -259,7 +300,12 @@ def modis_l1b_nasa_mod021km_file(tmpdir) -> list[str]:
     """Create a single MOD021KM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD021km")
     full_path = os.path.join(str(tmpdir), filename)
-    create_test_data(full_path)
+    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
+    variable_infos.update(_get_visible_variable_info("EV_1KM_RefSB", 1000, AVAILABLE_1KM_VIS_PRODUCT_NAMES))
+    variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
+    variable_infos.update(_get_visible_variable_info("EV_250_Aggr1km_RefSB", 1000, AVAILABLE_QKM_PRODUCT_NAMES))
+    variable_infos.update(_get_emissive_variable_info("EV_1KM_Emissive", 1000, AVAILABLE_1KM_IR_PRODUCT_NAMES))
+    create_hdfeos_test_file(full_path, variable_infos)
     return [full_path]
 
 
@@ -268,7 +314,12 @@ def modis_l1b_imapp_1000m_file(tmpdir) -> list[str]:
     """Create a single MOD021KM file following IMAPP file scheme."""
     filename = generate_imapp_l1b_filename("1000m")
     full_path = os.path.join(str(tmpdir), filename)
-    create_test_data(full_path)
+    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
+    variable_infos.update(_get_visible_variable_info("EV_1KM_RefSB", 1000, AVAILABLE_1KM_VIS_PRODUCT_NAMES))
+    variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
+    variable_infos.update(_get_visible_variable_info("EV_250_Aggr1km_RefSB", 1000, AVAILABLE_QKM_PRODUCT_NAMES))
+    variable_infos.update(_get_emissive_variable_info("EV_1KM_Emissive", 1000, AVAILABLE_1KM_IR_PRODUCT_NAMES))
+    create_hdfeos_test_file(full_path, variable_infos)
     return [full_path]
 
 
@@ -277,7 +328,9 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir) -> list[str]:
     """Create a single MOD02HKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Hkm")
     full_path = os.path.join(str(tmpdir), filename)
-    create_test_data(full_path)
+    variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
+    variable_infos.update(_get_visible_variable_info("EV_500_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
+    create_hdfeos_test_file(full_path, variable_infos)
     return [full_path]
 
 
@@ -286,7 +339,9 @@ def modis_l1b_nasa_mod02qkm_file(tmpdir) -> list[str]:
     """Create a single MOD02QKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Qkm")
     full_path = os.path.join(str(tmpdir), filename)
-    create_test_data(full_path)
+    variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
+    variable_infos.update(_get_visible_variable_info("EV_250_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
+    create_hdfeos_test_file(full_path, variable_infos)
     return [full_path]
 
 
@@ -295,7 +350,8 @@ def modis_l1b_nasa_mod03_file(tmpdir) -> list[str]:
     """Create a single MOD03 file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD03")
     full_path = os.path.join(str(tmpdir), filename)
-    create_test_data(full_path)
+    variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=True)
+    create_hdfeos_test_file(full_path, variable_infos)
     return [full_path]
 
 
@@ -318,9 +374,11 @@ class TestModisL1b:
         ('input_files', 'expected_names', 'expected_data_res', 'expected_geo_res'),
         [
             [pytest.lazy_fixture('modis_l1b_nasa_mod021km_file'),
-             AVAILABLE_1KM_PRODUCT_NAMES, [1000], [5000, 1000]],
+             AVAILABLE_1KM_PRODUCT_NAMES + AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES,
+             [1000], [5000, 1000]],
             [pytest.lazy_fixture('modis_l1b_imapp_1000m_file'),
-             AVAILABLE_1KM_PRODUCT_NAMES, [1000], [5000, 1000]],
+             AVAILABLE_1KM_PRODUCT_NAMES + AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES,
+             [1000], [5000, 1000]],
             [pytest.lazy_fixture('modis_l1b_nasa_mod02hkm_file'),
              AVAILABLE_HKM_PRODUCT_NAMES + AVAILABLE_QKM_PRODUCT_NAMES, [500], [1000, 500, 250]],
             [pytest.lazy_fixture('modis_l1b_nasa_mod02qkm_file'),
@@ -340,6 +398,7 @@ class TestModisL1b:
         available_data_ids = scene.available_dataset_ids()
         available_datas = {x: [] for x in expected_data_res}
         available_geos = {x: [] for x in expected_geo_res}
+        # Make sure that every resolution from the reader is what we expect
         for data_id in available_data_ids:
             res = data_id['resolution']
             if data_id['name'] in ['longitude', 'latitude']:
@@ -349,6 +408,7 @@ class TestModisL1b:
                 assert res in expected_data_res
                 available_datas[res].append(data_id)
 
+        # Make sure that every resolution we expect has at least one dataset
         for exp_res, avail_id in available_datas.items():
             assert avail_id, f"Missing datasets for data resolution {exp_res}"
         for exp_res, avail_id in available_geos.items():
@@ -372,7 +432,7 @@ class TestModisL1b:
             scene.load([dataset_name])
             longitude_1km_id = make_dataid(name=dataset_name, resolution=1000)
             longitude_1km = scene[longitude_1km_id]
-            assert longitude_1km.shape == (5*SCAN_WIDTH, 5*SCAN_LEN+4)
+            assert longitude_1km.shape == (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
             test_func(dataset_name, longitude_1km.values, 0)
             self._check_shared_metadata(longitude_1km)
 
@@ -380,7 +440,7 @@ class TestModisL1b:
             scene.load([dataset_name], resolution=5000)
             longitude_5km_id = make_dataid(name=dataset_name, resolution=5000)
             longitude_5km = scene[longitude_5km_id]
-            assert longitude_5km.shape == TEST_DATA[dataset_name.capitalize()]['data'].shape
+            assert longitude_5km.shape == (SCAN_LEN_5KM, SCAN_WIDTH_5KM)
             test_func(dataset_name, longitude_5km.values, 0)
             self._check_shared_metadata(longitude_5km)
 
@@ -390,7 +450,7 @@ class TestModisL1b:
         dataset_name = 'satellite_zenith_angle'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
-        assert dataset.shape == (5*SCAN_WIDTH, 5*SCAN_LEN+4)
+        assert dataset.shape == (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
         assert dataset.attrs['resolution'] == 1000
         self._check_shared_metadata(dataset)
 
@@ -400,5 +460,5 @@ class TestModisL1b:
         dataset_name = '1'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
-        assert dataset.shape == (5*SCAN_WIDTH, 5*SCAN_LEN+4)
+        assert dataset.shape == (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
         self._check_shared_metadata(dataset)
