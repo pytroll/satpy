@@ -27,7 +27,7 @@ on both ends of the scale, but these can be overridden with
       method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: linear
-        cutoffs: (0.003, 0.005)
+        cutoffs: [0.003, 0.005]
 
 .. note::
 
