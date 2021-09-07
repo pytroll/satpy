@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timedelta
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -212,13 +213,17 @@ def generate_imapp_l1b_filename(suffix):
 
 def create_hdfeos_test_file(filename: str,
                             variable_infos: dict,
+                            geo_resolution: Optional[int] = None,
+                            file_shortname: Optional[str] = None,
                             include_metadata: bool = True):
     """Create a fake MODIS L1b HDF4 file with headers."""
     h = SD(filename, SDC.WRITE | SDC.CREATE)
 
     if include_metadata:
-        setattr(h, 'CoreMetadata.0', _create_core_metadata())  # noqa
-        setattr(h, 'StructMetadata.0', _create_struct_metadata())  # noqa
+        if geo_resolution is None or file_shortname is None:
+            raise ValueError("'geo_resolution' and 'file_shortname' are required when including metadata.")
+        setattr(h, 'CoreMetadata.0', _create_core_metadata(file_shortname))  # noqa
+        setattr(h, 'StructMetadata.0', _create_struct_metadata(geo_resolution))  # noqa
         setattr(h, 'ArchiveMetadata.0', _create_header_metadata())  # noqa
 
     for var_name, var_info in variable_infos.items():
@@ -242,7 +247,7 @@ def _add_variable_to_file(h, var_name, var_info):
         setattr(v, attr_key, attr_val)
 
 
-def _create_core_metadata() -> str:
+def _create_core_metadata(file_shortname: str) -> str:
     beginning_date = datetime.now()
     ending_date = beginning_date + timedelta(minutes=5)
     core_metadata_header = "GROUP = INVENTORYMETADATA\nGROUPTYPE = MASTERGROUP\n\n" \
@@ -270,19 +275,20 @@ def _create_core_metadata() -> str:
                     "END_OBJECT = ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER\n\n" \
                     "END_GROUP              = ASSOCIATEDPLATFORMINSTRUMENTSENSOR\n\n"
     collection_metadata = "GROUP = COLLECTIONDESCRIPTIONCLASS\n\nOBJECT = SHORTNAME\nNUM_VAL = 1\n" \
-                          "VALUE = \"MOD021KM\"\nEND_OBJECT = SHORTNAME\n\n" \
+                          f"VALUE = \"{file_shortname}\"\nEND_OBJECT = SHORTNAME\n\n" \
                           "OBJECT = VERSIONID\nNUM_VAL = 1\nVALUE = 6\nEND_OBJECT = VERSIONID\n\n" \
                           "END_GROUP = COLLECTIONDESCRIPTIONCLASS\n\n"
     core_metadata_header += "\n\n" + inst_metadata + collection_metadata
     return core_metadata_header
 
 
-def _create_struct_metadata() -> str:
+def _create_struct_metadata(geo_resolution: int) -> str:
+    geo_dim_factor = RES_TO_REPEAT_FACTOR[geo_resolution] * 2
     struct_metadata_header = "GROUP=SwathStructure\n" \
                              "GROUP=SWATH_1\n" \
                              "GROUP=DimensionMap\n" \
                              "OBJECT=DimensionMap_2\n" \
-                             "GeoDimension=\"2*nscans\"\n" \
+                             f"GeoDimension=\"{geo_dim_factor}*nscans\"\n" \
                              "END_OBJECT=DimensionMap_2\n" \
                              "END_GROUP=DimensionMap\n" \
                              "END_GROUP=SWATH_1\n" \
@@ -305,7 +311,7 @@ def modis_l1b_nasa_mod021km_file(tmpdir) -> list[str]:
     variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
     variable_infos.update(_get_visible_variable_info("EV_250_Aggr1km_RefSB", 1000, AVAILABLE_QKM_PRODUCT_NAMES))
     variable_infos.update(_get_emissive_variable_info("EV_1KM_Emissive", 1000, AVAILABLE_1KM_IR_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos)
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD021KM")
     return [full_path]
 
 
@@ -319,7 +325,7 @@ def modis_l1b_imapp_1000m_file(tmpdir) -> list[str]:
     variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
     variable_infos.update(_get_visible_variable_info("EV_250_Aggr1km_RefSB", 1000, AVAILABLE_QKM_PRODUCT_NAMES))
     variable_infos.update(_get_emissive_variable_info("EV_1KM_Emissive", 1000, AVAILABLE_1KM_IR_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos)
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD021KM")
     return [full_path]
 
 
@@ -330,7 +336,7 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir) -> list[str]:
     full_path = os.path.join(str(tmpdir), filename)
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
     variable_infos.update(_get_visible_variable_info("EV_500_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos)
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD02HKM")
     return [full_path]
 
 
@@ -341,7 +347,7 @@ def modis_l1b_nasa_mod02qkm_file(tmpdir) -> list[str]:
     full_path = os.path.join(str(tmpdir), filename)
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
     variable_infos.update(_get_visible_variable_info("EV_250_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
-    create_hdfeos_test_file(full_path, variable_infos)
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD02QKM")
     return [full_path]
 
 
@@ -351,8 +357,14 @@ def modis_l1b_nasa_mod03_file(tmpdir) -> list[str]:
     filename = generate_nasa_l1b_filename("MOD03")
     full_path = os.path.join(str(tmpdir), filename)
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=True)
-    create_hdfeos_test_file(full_path, variable_infos)
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD03")
     return [full_path]
+
+
+@pytest.fixture
+def modis_l1b_nasa_1km_mod03_files(modis_l1b_nasa_mod021km_file, modis_l1b_nasa_mod03_file) -> list[str]:
+    """Create input files including the 1KM and MOD03 files."""
+    return modis_l1b_nasa_mod021km_file + modis_l1b_nasa_mod03_file
 
 
 class TestModisL1b:
@@ -414,7 +426,22 @@ class TestModisL1b:
         for exp_res, avail_id in available_geos.items():
             assert avail_id, f"Missing geo datasets for geo resolution {exp_res}"
 
-    def test_load_longitude_latitude(self, modis_l1b_nasa_mod021km_file):
+    @pytest.mark.parametrize(
+        ('input_files', 'has_5km', 'has_500', 'has_250', 'default_res'),
+        [
+            [pytest.lazy_fixture('modis_l1b_nasa_mod021km_file'),
+             True, False, False, 1000],
+            [pytest.lazy_fixture('modis_l1b_imapp_1000m_file'),
+             True, False, False, 1000],
+            [pytest.lazy_fixture('modis_l1b_nasa_mod02hkm_file'),
+             False, True, True, 250],
+            [pytest.lazy_fixture('modis_l1b_nasa_mod02qkm_file'),
+             False, True, True, 250],
+            [pytest.lazy_fixture('modis_l1b_nasa_1km_mod03_files'),
+             True, True, True, 250],
+        ]
+    )
+    def test_load_longitude_latitude(self, input_files, has_5km, has_500, has_250, default_res):
         """Test that longitude and latitude datasets are loaded correctly."""
         from satpy.tests.utils import make_dataid
 
@@ -426,23 +453,58 @@ class TestModisL1b:
                 # assert greater
                 np.testing.assert_array_less(y, x)
 
-        scene = Scene(reader='modis_l1b', filenames=modis_l1b_nasa_mod021km_file)
+        scene = Scene(reader='modis_l1b', filenames=input_files)
+        shape_5km = (SCAN_LEN_5KM, SCAN_WIDTH_5KM)
+        shape_1km = (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
+        shape_500m = (shape_1km[0] * 2, shape_1km[1] * 2)
+        shape_250m = (shape_1km[0] * 4, shape_1km[1] * 4)
+        res_to_shape = {
+            250: shape_250m,
+            500: shape_500m,
+            1000: shape_1km,
+            5000: shape_5km,
+        }
+        default_shape = res_to_shape[default_res]
         for dataset_name in ['longitude', 'latitude']:
-            # Default resolution should be the interpolated 1km
+            # default resolution should be the maximum resolution from these datasets
             scene.load([dataset_name])
-            longitude_1km_id = make_dataid(name=dataset_name, resolution=1000)
-            longitude_1km = scene[longitude_1km_id]
-            assert longitude_1km.shape == (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
-            test_func(dataset_name, longitude_1km.values, 0)
-            self._check_shared_metadata(longitude_1km)
+            longitude_def_id = make_dataid(name=dataset_name, resolution=default_res)
+            longitude_def = scene[longitude_def_id]
+            assert longitude_def.shape == default_shape
+            test_func(dataset_name, longitude_def.values, 0)
+            self._check_shared_metadata(longitude_def)
 
             # Specify original 5km scale
             scene.load([dataset_name], resolution=5000)
             longitude_5km_id = make_dataid(name=dataset_name, resolution=5000)
-            longitude_5km = scene[longitude_5km_id]
-            assert longitude_5km.shape == (SCAN_LEN_5KM, SCAN_WIDTH_5KM)
-            test_func(dataset_name, longitude_5km.values, 0)
-            self._check_shared_metadata(longitude_5km)
+            if has_5km:
+                longitude_5km = scene[longitude_5km_id]
+                assert longitude_5km.shape == shape_5km
+                test_func(dataset_name, longitude_5km.values, 0)
+                self._check_shared_metadata(longitude_5km)
+            else:
+                pytest.raises(KeyError, scene.__getitem__, longitude_5km_id)
+
+            # Specify higher resolution geolocation
+            scene.load([dataset_name], resolution=500)
+            longitude_500_id = make_dataid(name=dataset_name, resolution=500)
+            if has_500:
+                longitude_500 = scene[longitude_500_id]
+                assert longitude_500.shape == shape_500m
+                test_func(dataset_name, longitude_500.values, 0)
+                self._check_shared_metadata(longitude_500)
+            else:
+                pytest.raises(KeyError, scene.__getitem__, longitude_500_id)
+
+            scene.load([dataset_name], resolution=250)
+            longitude_250_id = make_dataid(name=dataset_name, resolution=250)
+            if has_250:
+                longitude_250 = scene[longitude_250_id]
+                assert longitude_250.shape == shape_250m
+                test_func(dataset_name, longitude_250.values, 0)
+                self._check_shared_metadata(longitude_250)
+            else:
+                pytest.raises(KeyError, scene.__getitem__, longitude_250_id)
 
     def test_load_sat_zenith_angle(self, modis_l1b_nasa_mod021km_file):
         """Test loading satellite zenith angle band."""

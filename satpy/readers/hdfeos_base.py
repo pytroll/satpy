@@ -277,7 +277,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     @staticmethod
     def _geo_resolution_for_l1b(metadata):
         ds = metadata['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
-        if ds.endswith('D03'):
+        if ds.endswith('D03') or ds.endswith('HKM') or ds.endswith('QKM'):
             return 1000
         else:
             # 1km files have 5km geolocation usually
