@@ -37,42 +37,54 @@ logger = logging.getLogger(__name__)
 
 def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
     """Interpolate two parallel datasets jointly."""
+    if csatz is None:
+        return _interpolate_no_angles(clons, clats, src_resolution, dst_resolution)
+    return _interpolate_with_angles(clons, clats, csatz, src_resolution, dst_resolution)
+
+
+def _interpolate_with_angles(clons, clats, csatz, src_resolution, dst_resolution):
     from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
     # (src_res, dst_res, is satz not None) -> interp function
     interpolation_functions = {
-        (5000, 1000, True): modis_5km_to_1km,
-        (1000, 500, True): modis_1km_to_500m,
-        (1000, 250, True): modis_1km_to_250m
+        (5000, 1000): modis_5km_to_1km,
+        (1000, 500): modis_1km_to_500m,
+        (1000, 250): modis_1km_to_250m
     }
+    return _find_and_run_interpolation(interpolation_functions, src_resolution, dst_resolution,
+                                       (clons, clats, csatz))
+
+
+def _interpolate_no_angles(clons, clats, src_resolution, dst_resolution):
+    interpolation_functions = {}
 
     try:
         from geotiepoints.simple_modis_interpolator import (
             modis_1km_to_250m as simple_1km_to_250m,
             modis_1km_to_500m as simple_1km_to_500m)
     except ImportError:
-        if csatz is None:
-            raise NotImplementedError(
-                f"Interpolation from {src_resolution}m to {dst_resolution}m "
-                "without satellite zenith angle information is not "
-                "implemented. Try updating your version of "
-                "python-geotiepoints.")
+        raise NotImplementedError(
+            f"Interpolation from {src_resolution}m to {dst_resolution}m "
+            "without satellite zenith angle information is not "
+            "implemented. Try updating your version of "
+            "python-geotiepoints.")
     else:
-        interpolation_functions[(1000, 500, False)] = simple_1km_to_500m
-        interpolation_functions[(1000, 250, False)] = simple_1km_to_250m
+        interpolation_functions[(1000, 500)] = simple_1km_to_500m
+        interpolation_functions[(1000, 250)] = simple_1km_to_250m
 
+    return _find_and_run_interpolation(interpolation_functions, src_resolution, dst_resolution,
+                                       (clons, clats))
+
+
+def _find_and_run_interpolation(interpolation_functions, src_resolution, dst_resolution, args):
     try:
-        interpolation_function = interpolation_functions[(src_resolution, dst_resolution, csatz is not None)]
+        interpolation_function = interpolation_functions[(src_resolution, dst_resolution)]
     except KeyError:
         error_message = "Interpolation from {}m to {}m not implemented".format(
             src_resolution, dst_resolution)
         raise NotImplementedError(error_message)
 
     logger.debug("Interpolating from {} to {}".format(src_resolution, dst_resolution))
-
-    if csatz is not None:
-        return interpolation_function(clons, clats, csatz)
-    else:
-        return interpolation_function(clons, clats)
+    return interpolation_function(*args)
 
 
 class HDFEOSBaseFileReader(BaseFileHandler):
