@@ -38,15 +38,30 @@ logger = logging.getLogger(__name__)
 def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
     """Interpolate two parallel datasets jointly."""
     from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
-
+    # (src_res, dst_res, is satz not None) -> interp function
     interpolation_functions = {
-        (5000, 1000): modis_5km_to_1km,
-        (1000, 500): modis_1km_to_500m,
-        (1000, 250): modis_1km_to_250m
+        (5000, 1000, True): modis_5km_to_1km,
+        (1000, 500, True): modis_1km_to_500m,
+        (1000, 250, True): modis_1km_to_250m
     }
 
     try:
-        interpolation_function = interpolation_functions[(src_resolution, dst_resolution)]
+        from geotiepoints.simple_modis_interpolator import (
+            modis_1km_to_250m as simple_1km_to_250m,
+            modis_1km_to_500m as simple_1km_to_500m)
+    except ImportError:
+        if csatz is None:
+            raise NotImplementedError(
+                f"Interpolation from {src_resolution}m to {dst_resolution}m "
+                "without satellite zenith angle information is not "
+                "implemented. Try updating your version of "
+                "python-geotiepoints.")
+    else:
+        interpolation_functions[(1000, 500, False)] = simple_1km_to_500m
+        interpolation_functions[(1000, 250, False)] = simple_1km_to_250m
+
+    try:
+        interpolation_function = interpolation_functions[(src_resolution, dst_resolution, csatz is not None)]
     except KeyError:
         error_message = "Interpolation from {}m to {}m not implemented".format(
             src_resolution, dst_resolution)
@@ -54,7 +69,10 @@ def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
 
     logger.debug("Interpolating from {} to {}".format(src_resolution, dst_resolution))
 
-    return interpolation_function(clons, clats, csatz)
+    if csatz is not None:
+        return interpolation_function(clons, clats, csatz)
+    else:
+        return interpolation_function(clons, clats)
 
 
 class HDFEOSBaseFileReader(BaseFileHandler):
@@ -308,7 +326,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                 return self.load_dataset(var_names[1])
         return self.load_dataset(var_names)
 
-    def get_interpolated_dataset(self, name1, name2, resolution, sensor_zenith, offset=0):
+    def get_interpolated_dataset(self, name1, name2, resolution, offset=0):
         """Load and interpolate datasets."""
         try:
             result1 = self.cache[(name1, resolution)]
@@ -316,6 +334,12 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         except KeyError:
             result1 = self._load_ds_by_name(name1)
             result2 = self._load_ds_by_name(name2) - offset
+            try:
+                sensor_zenith = self._load_ds_by_name('satellite_zenith_angle')
+            except KeyError:
+                # no sensor zenith angle, do "simple" interpolation
+                sensor_zenith = None
+
             result1, result2 = interpolate(
                 result1, result2, sensor_zenith,
                 self.geo_resolution, resolution
@@ -346,19 +370,18 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                     "configured".format(dataset_name))
 
             # The data must be interpolated
-            sensor_zenith = self._load_ds_by_name('satellite_zenith_angle')
             logger.debug("Loading %s", dataset_name)
             if dataset_name in ['longitude', 'latitude']:
                 self.get_interpolated_dataset('longitude', 'latitude',
-                                              resolution, sensor_zenith)
+                                              resolution)
             elif dataset_name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
                 # Sensor dataset names differs between L1b and L2 products
                 self.get_interpolated_dataset('satellite_azimuth_angle', 'satellite_zenith_angle',
-                                              resolution, sensor_zenith, offset=90)
+                                              resolution, offset=90)
             elif dataset_name in ['solar_azimuth_angle', 'solar_zenith_angle']:
                 # Sensor dataset names differs between L1b and L2 products
                 self.get_interpolated_dataset('solar_azimuth_angle', 'solar_zenith_angle',
-                                              resolution, sensor_zenith, offset=90)
+                                              resolution, offset=90)
 
             data = self.cache[dataset_name, resolution]
 
