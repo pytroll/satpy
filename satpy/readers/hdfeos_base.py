@@ -216,7 +216,10 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         from satpy.readers.hdf4_utils import from_sds
 
         dataset = self._read_dataset_in_file(dataset_name)
-        dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
+        # make sure that chunk size is aligned with modis 250m scan size
+        # even if this is not a 250m dataset, this will still be scan-aligned
+        scan_aligned_csize = (CHUNK_SIZE // 40) * 40
+        dask_arr = from_sds(dataset, chunks=scan_aligned_csize)
         dims = ('y', 'x') if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
