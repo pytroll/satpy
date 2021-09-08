@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -29,7 +28,7 @@ import pytest
 from pyhdf.SD import SD, SDC
 
 from satpy import available_readers, Scene
-from ..utils import CustomScheduler
+from ..utils import CustomScheduler, make_dataid
 
 # Mock MODIS HDF4 file
 AVAILABLE_1KM_VIS_PRODUCT_NAMES = list(range(8, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 20))
@@ -302,11 +301,11 @@ def _create_header_metadata() -> str:
     return archive_metadata_header
 
 
-@pytest.fixture
-def modis_l1b_nasa_mod021km_file(tmpdir) -> list[str]:
+@pytest.fixture(scope="session")
+def modis_l1b_nasa_mod021km_file(tmpdir_factory) -> list[str]:
     """Create a single MOD021KM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD021km")
-    full_path = os.path.join(str(tmpdir), filename)
+    full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_visible_variable_info("EV_1KM_RefSB", 1000, AVAILABLE_1KM_VIS_PRODUCT_NAMES))
     variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
@@ -316,11 +315,11 @@ def modis_l1b_nasa_mod021km_file(tmpdir) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture
-def modis_l1b_imapp_1000m_file(tmpdir) -> list[str]:
+@pytest.fixture(scope="session")
+def modis_l1b_imapp_1000m_file(tmpdir_factory) -> list[str]:
     """Create a single MOD021KM file following IMAPP file scheme."""
     filename = generate_imapp_l1b_filename("1000m")
-    full_path = os.path.join(str(tmpdir), filename)
+    full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_visible_variable_info("EV_1KM_RefSB", 1000, AVAILABLE_1KM_VIS_PRODUCT_NAMES))
     variable_infos.update(_get_visible_variable_info("EV_500_Aggr1km_RefSB", 1000, AVAILABLE_HKM_PRODUCT_NAMES))
@@ -330,11 +329,11 @@ def modis_l1b_imapp_1000m_file(tmpdir) -> list[str]:
     return [full_path]
 
 
-@pytest.fixture
-def modis_l1b_nasa_mod02hkm_file(tmpdir) -> list[str]:
+@pytest.fixture(scope="session")
+def modis_l1b_nasa_mod02hkm_file(tmpdir_factory) -> list[str]:
     """Create a single MOD02HKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Hkm")
-    full_path = os.path.join(str(tmpdir), filename)
+    full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
     variable_infos.update(_get_visible_variable_info("EV_500_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
     create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD02HKM")
@@ -342,27 +341,27 @@ def modis_l1b_nasa_mod02hkm_file(tmpdir) -> list[str]:
 
 
 @pytest.fixture
-def modis_l1b_nasa_mod02qkm_file(tmpdir) -> list[str]:
+def modis_l1b_nasa_mod02qkm_file(tmpdir_factory) -> list[str]:
     """Create a single MOD02QKM file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD02Qkm")
-    full_path = os.path.join(str(tmpdir), filename)
+    full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=False)
     variable_infos.update(_get_visible_variable_info("EV_250_RefSB", 250, AVAILABLE_QKM_PRODUCT_NAMES))
     create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD02QKM")
     return [full_path]
 
 
-@pytest.fixture
-def modis_l1b_nasa_mod03_file(tmpdir) -> list[str]:
+@pytest.fixture(scope="session")
+def modis_l1b_nasa_mod03_file(tmpdir_factory) -> list[str]:
     """Create a single MOD03 file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD03")
-    full_path = os.path.join(str(tmpdir), filename)
+    full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=True)
     create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD03")
     return [full_path]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def modis_l1b_nasa_1km_mod03_files(modis_l1b_nasa_mod021km_file, modis_l1b_nasa_mod03_file) -> list[str]:
     """Create input files including the 1KM and MOD03 files."""
     return modis_l1b_nasa_mod021km_file + modis_l1b_nasa_mod03_file
@@ -444,26 +443,24 @@ class TestModisL1b:
     )
     def test_load_longitude_latitude(self, input_files, has_5km, has_500, has_250, default_res):
         """Test that longitude and latitude datasets are loaded correctly."""
-        from satpy.tests.utils import make_dataid
-
-        def test_func(dname, x, y):
-            if dname == 'longitude':
-                # assert less
-                np.testing.assert_array_less(x, y)
-            else:
-                # assert greater
-                np.testing.assert_array_less(y, x)
-
-        def _load_and_check(data_id, resolution, exp_res, exp_shape, has_res):
-            scene.load([dataset_name], resolution=resolution)
-            longitude_5km_id = make_dataid(name=dataset_name, resolution=exp_res)
+        def _load_and_check(resolution, exp_res, exp_shape, has_res):
+            scene.load(["longitude", "latitude"], resolution=resolution)
+            lon_id = make_dataid(name="longitude", resolution=exp_res)
+            lat_id = make_dataid(name="latitude", resolution=exp_res)
             if has_res:
-                longitude_5km = scene[longitude_5km_id]
-                assert longitude_5km.shape == exp_shape
-                test_func(dataset_name, longitude_5km.values, 0)
-                self._check_shared_metadata(longitude_5km)
+                lon_arr = scene[lon_id]
+                lat_arr = scene[lat_id]
+                assert lon_arr.shape == exp_shape
+                assert lat_arr.shape == exp_shape
+                # compute lon/lat at the same time to avoid wasted computation
+                lon_vals, lat_vals = dask.compute(lon_arr, lat_arr)
+                np.testing.assert_array_less(lon_vals, 0)
+                np.testing.assert_array_less(0, lat_vals)
+                self._check_shared_metadata(lon_arr)
+                self._check_shared_metadata(lat_arr)
             else:
-                pytest.raises(KeyError, scene.__getitem__, longitude_5km_id)
+                pytest.raises(KeyError, scene.__getitem__, lon_id)
+                pytest.raises(KeyError, scene.__getitem__, lat_id)
 
         scene = Scene(reader='modis_l1b', filenames=input_files)
         shape_5km = _shape_for_resolution(5000)
@@ -477,12 +474,11 @@ class TestModisL1b:
             5000: shape_5km,
         }
         default_shape = res_to_shape[default_res]
-        for dataset_name in ['longitude', 'latitude']:
-            with dask.config.set(scheduler=CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)):
-                _load_and_check(dataset_name, "*", default_res, default_shape, True)
-                _load_and_check(dataset_name, 5000, 5000, shape_5km, has_5km)
-                _load_and_check(dataset_name, 500, 500, shape_500m, has_500)
-                _load_and_check(dataset_name, 250, 250, shape_250m, has_250)
+        with dask.config.set(scheduler=CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)):
+            _load_and_check("*", default_res, default_shape, True)
+            _load_and_check(5000, 5000, shape_5km, has_5km)
+            _load_and_check(500, 500, shape_500m, has_500)
+            _load_and_check(250, 250, shape_250m, has_250)
 
     def test_load_sat_zenith_angle(self, modis_l1b_nasa_mod021km_file):
         """Test loading satellite zenith angle band."""
