@@ -453,6 +453,17 @@ class TestModisL1b:
                 # assert greater
                 np.testing.assert_array_less(y, x)
 
+        def _load_and_check(data_id, resolution, exp_res, exp_shape, has_res):
+            scene.load([dataset_name], resolution=resolution)
+            longitude_5km_id = make_dataid(name=dataset_name, resolution=exp_res)
+            if has_res:
+                longitude_5km = scene[longitude_5km_id]
+                assert longitude_5km.shape == exp_shape
+                test_func(dataset_name, longitude_5km.values, 0)
+                self._check_shared_metadata(longitude_5km)
+            else:
+                pytest.raises(KeyError, scene.__getitem__, longitude_5km_id)
+
         scene = Scene(reader='modis_l1b', filenames=input_files)
         shape_5km = _shape_for_resolution(5000)
         shape_1km = _shape_for_resolution(1000)
@@ -466,45 +477,10 @@ class TestModisL1b:
         }
         default_shape = res_to_shape[default_res]
         for dataset_name in ['longitude', 'latitude']:
-            # default resolution should be the maximum resolution from these datasets
-            scene.load([dataset_name])
-            longitude_def_id = make_dataid(name=dataset_name, resolution=default_res)
-            longitude_def = scene[longitude_def_id]
-            assert longitude_def.shape == default_shape
-            test_func(dataset_name, longitude_def.values, 0)
-            self._check_shared_metadata(longitude_def)
-
-            # Specify original 5km scale
-            scene.load([dataset_name], resolution=5000)
-            longitude_5km_id = make_dataid(name=dataset_name, resolution=5000)
-            if has_5km:
-                longitude_5km = scene[longitude_5km_id]
-                assert longitude_5km.shape == shape_5km
-                test_func(dataset_name, longitude_5km.values, 0)
-                self._check_shared_metadata(longitude_5km)
-            else:
-                pytest.raises(KeyError, scene.__getitem__, longitude_5km_id)
-
-            # Specify higher resolution geolocation
-            scene.load([dataset_name], resolution=500)
-            longitude_500_id = make_dataid(name=dataset_name, resolution=500)
-            if has_500:
-                longitude_500 = scene[longitude_500_id]
-                assert longitude_500.shape == shape_500m
-                test_func(dataset_name, longitude_500.values, 0)
-                self._check_shared_metadata(longitude_500)
-            else:
-                pytest.raises(KeyError, scene.__getitem__, longitude_500_id)
-
-            scene.load([dataset_name], resolution=250)
-            longitude_250_id = make_dataid(name=dataset_name, resolution=250)
-            if has_250:
-                longitude_250 = scene[longitude_250_id]
-                assert longitude_250.shape == shape_250m
-                test_func(dataset_name, longitude_250.values, 0)
-                self._check_shared_metadata(longitude_250)
-            else:
-                pytest.raises(KeyError, scene.__getitem__, longitude_250_id)
+            _load_and_check(dataset_name, "*", default_res, default_shape, True)
+            _load_and_check(dataset_name, 5000, 5000, shape_5km, has_5km)
+            _load_and_check(dataset_name, 500, 500, shape_500m, has_500)
+            _load_and_check(dataset_name, 250, 250, shape_250m, has_250)
 
     def test_load_sat_zenith_angle(self, modis_l1b_nasa_mod021km_file):
         """Test loading satellite zenith angle band."""
