@@ -454,10 +454,10 @@ class TestModisL1b:
                 np.testing.assert_array_less(y, x)
 
         scene = Scene(reader='modis_l1b', filenames=input_files)
-        shape_5km = (SCAN_LEN_5KM, SCAN_WIDTH_5KM)
-        shape_1km = (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
-        shape_500m = (shape_1km[0] * 2, shape_1km[1] * 2)
-        shape_250m = (shape_1km[0] * 4, shape_1km[1] * 4)
+        shape_5km = _shape_for_resolution(5000)
+        shape_1km = _shape_for_resolution(1000)
+        shape_500m = _shape_for_resolution(500)
+        shape_250m = _shape_for_resolution(250)
         res_to_shape = {
             250: shape_250m,
             500: shape_500m,
@@ -512,7 +512,7 @@ class TestModisL1b:
         dataset_name = 'satellite_zenith_angle'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
-        assert dataset.shape == (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
+        assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000
         self._check_shared_metadata(dataset)
 
@@ -522,5 +522,6 @@ class TestModisL1b:
         dataset_name = '1'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
-        assert dataset.shape == (5 * SCAN_LEN_5KM, 5 * SCAN_WIDTH_5KM + 4)
+        assert dataset.shape == _shape_for_resolution(1000)
+        assert dataset.attrs['resolution'] == 1000
         self._check_shared_metadata(dataset)
