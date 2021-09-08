@@ -23,12 +23,13 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
+import dask
 import numpy as np
 import pytest
-
 from pyhdf.SD import SD, SDC
 
 from satpy import available_readers, Scene
+from ..utils import CustomScheduler
 
 # Mock MODIS HDF4 file
 AVAILABLE_1KM_VIS_PRODUCT_NAMES = list(range(8, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 20))
@@ -477,10 +478,11 @@ class TestModisL1b:
         }
         default_shape = res_to_shape[default_res]
         for dataset_name in ['longitude', 'latitude']:
-            _load_and_check(dataset_name, "*", default_res, default_shape, True)
-            _load_and_check(dataset_name, 5000, 5000, shape_5km, has_5km)
-            _load_and_check(dataset_name, 500, 500, shape_500m, has_500)
-            _load_and_check(dataset_name, 250, 250, shape_250m, has_250)
+            with dask.config.set(scheduler=CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)):
+                _load_and_check(dataset_name, "*", default_res, default_shape, True)
+                _load_and_check(dataset_name, 5000, 5000, shape_5km, has_5km)
+                _load_and_check(dataset_name, 500, 500, shape_500m, has_500)
+                _load_and_check(dataset_name, 250, 250, shape_250m, has_250)
 
     def test_load_sat_zenith_angle(self, modis_l1b_nasa_mod021km_file):
         """Test loading satellite zenith angle band."""
