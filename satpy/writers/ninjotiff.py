@@ -173,6 +173,8 @@ class NinjoTIFFWriter(ImageWriter):
                     raise NotImplementedError(
                         "Don't know how to handle non-scale/offset-based enhancements yet."
                     )
+        if img.mode.startswith("P"):
+            img.data = img.data.astype(np.uint8)
         return nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)
 
     def save_dataset(
