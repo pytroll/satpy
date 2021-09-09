@@ -45,13 +45,11 @@ MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
 
-    pass
 
 
 class IncompatibleTimes(Exception):
     """Error raised upon compositing things from different times."""
 
-    pass
 
 
 def check_times(projectables):
@@ -76,8 +74,8 @@ def check_times(projectables):
         # Is there a more gracious way to handle this ?
         if np.max(times) - np.min(times) > np.timedelta64(1, 's'):
             raise IncompatibleTimes
-        else:
-            mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
+
+        mid_time = (np.max(times) - np.min(times)) / 2 + np.min(times)
         return mid_time
 
 
@@ -191,7 +189,7 @@ class CompositeBase:
         areas = [ds.attrs.get('area') for ds in data_arrays]
         if all(a is None for a in areas):
             return
-        elif any(a is None for a in areas):
+        if any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
         if not all(areas[0] == x for x in areas[1:]):
