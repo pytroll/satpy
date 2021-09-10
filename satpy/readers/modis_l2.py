@@ -163,6 +163,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         else:
             dataset = self.load_dataset(dataset_name_in_file)
 
+        self._add_satpy_metadata(dataset_id, dataset)
         return dataset
 
 
