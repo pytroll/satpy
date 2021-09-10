@@ -323,19 +323,19 @@ class TestDayNightCompositor(unittest.TestCase):
         # not used except to check that it matches the data arrays
         self.sza.attrs['area'] = my_area
 
-    def test_basic_sza(self):
-        """Test compositor when SZA data is included."""
+    def test_daynight_sza(self):
+        """Test compositor with both sides when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test')
+        comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b, self.sza))
         res = res.compute()
         expected = np.array([[0., 0.22122352], [0.5, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
     def test_basic_area(self):
-        """Test compositor when SZA data is not provided."""
+        """Test compositor with both sides when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test')
+        comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b))
         res = res.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
