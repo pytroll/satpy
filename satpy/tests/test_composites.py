@@ -324,7 +324,7 @@ class TestDayNightCompositor(unittest.TestCase):
         self.sza.attrs['area'] = my_area
 
     def test_daynight_sza(self):
-        """Test compositor with both sides when SZA data is included."""
+        """Test compositor with both day and night portions when SZA data is included."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b, self.sza))
@@ -332,8 +332,8 @@ class TestDayNightCompositor(unittest.TestCase):
         expected = np.array([[0., 0.22122352], [0.5, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
-    def test_basic_area(self):
-        """Test compositor with both sides when SZA data is not provided."""
+    def test_daynight_area(self):
+        """Test compositor both day and night portions when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b))
