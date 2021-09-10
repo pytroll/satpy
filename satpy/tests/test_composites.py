@@ -865,13 +865,13 @@ class TestAddBands(unittest.TestCase):
         """Test adding bands."""
         from satpy.composites import add_bands
 
-        # L + RGB -> RGB
+        # L + RGB -> RGBA
         data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
                             coords={'bands': ['L']})
         new_bands = xr.DataArray(da.array(['R', 'G', 'B']), dims=('bands'),
                                  coords={'bands': ['R', 'G', 'B']})
         res = add_bands(data, new_bands)
-        res_bands = ['R', 'G', 'B']
+        res_bands = ['R', 'G', 'B', 'A']
         self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
