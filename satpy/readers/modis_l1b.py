@@ -81,6 +81,12 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
                   'EV_500_RefSB'],
             250: ['EV_250_RefSB']}
 
+        platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+
+        info.update({'platform_name': 'EOS-' + platform_name})
+        info.update({'sensor': 'modis'})
+
         if self.resolution != key['resolution']:
             return
 
@@ -175,7 +181,6 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             #         satscene[band].area = geometry.SwathDefinition(
             #             lons=satscene[band].area.lons[indices, :],
             #             lats=satscene[band].area.lats[indices, :])
-            self._add_satpy_metadata(key, projectable)
             return projectable
 
 

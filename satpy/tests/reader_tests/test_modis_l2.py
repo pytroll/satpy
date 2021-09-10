@@ -103,17 +103,6 @@ def create_test_data():
                                ending_date.strftime("%Y-%m-%d"),
                                ending_date.strftime("%H:%M:%S.%f")
                            )
-    inst_metadata = "GROUP = ASSOCIATEDPLATFORMINSTRUMENTSENSOR\n\n"\
-                    "OBJECT = ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER\nCLASS = \"1\"\n\n" \
-                    "OBJECT = ASSOCIATEDSENSORSHORTNAME\nCLASS = \"1\"\nNUM_VAL = 1\n" \
-                    "VALUE = \"MODIS\"\nEND_OBJECT = ASSOCIATEDSENSORSHORTNAME\n\n" \
-                    "OBJECT = ASSOCIATEDPLATFORMSHORTNAME\nCLASS = \"1\"\nNUM_VAL = 1\n" \
-                    "VALUE = \"Terra\"\nEND_OBJECT = ASSOCIATEDPLATFORMSHORTNAME\n\n" \
-                    "OBJECT = ASSOCIATEDINSTRUMENTSHORTNAME\nCLASS = \"1\"\nNUM_VAL = 1\n" \
-                    "VALUE = \"MODIS\"\nEND_OBJECT = ASSOCIATEDINSTRUMENTSHORTNAME\n\n" \
-                    "END_OBJECT = ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER\n\n" \
-                    "END_GROUP              = ASSOCIATEDPLATFORMINSTRUMENTSENSOR\n\n"
-    core_metadata_header += "\n\n" + inst_metadata
     struct_metadata_header = "GROUP=SwathStructure\n"\
                              "GROUP=SWATH_1\n"\
                              "GROUP=DimensionMap\n"\
@@ -157,14 +146,6 @@ class TestModisL2(unittest.TestCase):
         except OSError:
             pass
 
-    @staticmethod
-    def _check_shared_metadata(data_arr):
-        assert data_arr.attrs["sensor"] == "modis"
-        assert data_arr.attrs["platform_name"] == "EOS-Terra"
-        assert "rows_per_scan" in data_arr.attrs
-        assert isinstance(data_arr.attrs["rows_per_scan"], int)
-        assert data_arr.attrs['reader'] == 'modis_l2'
-
     def test_available_reader(self):
         """Test that MODIS L2 reader is available."""
         self.assertIn('modis_l2', available_readers())
@@ -199,15 +180,12 @@ class TestModisL2(unittest.TestCase):
             longitude_1km = scene[longitude_1km_id]
             self.assertEqual(longitude_1km.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
             test_func(dataset_name, longitude_1km.values, 0)
-            self._check_shared_metadata(longitude_1km)
-
             # Specify original 5km scale
             scene.load([dataset_name], resolution=5000)
             longitude_5km_id = make_dataid(name=dataset_name, resolution=5000)
             longitude_5km = scene[longitude_5km_id]
             self.assertEqual(longitude_5km.shape, TEST_DATA[dataset_name.capitalize()]['data'].shape)
             test_func(dataset_name, longitude_5km.values, 0)
-            self._check_shared_metadata(longitude_5km)
 
     def test_load_quality_assurance(self):
         """Test loading quality assurance."""
@@ -219,7 +197,6 @@ class TestModisL2(unittest.TestCase):
         self.assertIn(quality_assurance_id, scene)
         quality_assurance = scene[quality_assurance_id]
         self.assertEqual(quality_assurance.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
-        self._check_shared_metadata(quality_assurance)
 
     def test_load_1000m_cloud_mask_dataset(self):
         """Test loading 1000m cloud mask."""
@@ -231,7 +208,6 @@ class TestModisL2(unittest.TestCase):
         self.assertIn(cloud_mask_id, scene)
         cloud_mask = scene[cloud_mask_id]
         self.assertEqual(cloud_mask.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
-        self._check_shared_metadata(cloud_mask)
 
     def test_load_250m_cloud_mask_dataset(self):
         """Test loading 250m cloud mask."""
@@ -243,4 +219,3 @@ class TestModisL2(unittest.TestCase):
         self.assertIn(cloud_mask_id, scene)
         cloud_mask = scene[cloud_mask_id]
         self.assertEqual(cloud_mask.shape, (4*5*SCAN_WIDTH, 4*(5*SCAN_LEN+4)))
-        self._check_shared_metadata(cloud_mask)

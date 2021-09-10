@@ -51,7 +51,7 @@ class TestMatchDataArrays(unittest.TestCase):
         ds1 = self._get_test_ds()
         comp = CompositeBase('test_comp')
         ret_datasets = comp.match_data_arrays((ds1,))
-        assert ret_datasets[0].identical(ds1)
+        self.assertIs(ret_datasets[0], ds1)
 
     def test_mult_ds_area(self):
         """Test multiple datasets successfully pass."""
@@ -60,8 +60,8 @@ class TestMatchDataArrays(unittest.TestCase):
         ds2 = self._get_test_ds()
         comp = CompositeBase('test_comp')
         ret_datasets = comp.match_data_arrays((ds1, ds2))
-        assert ret_datasets[0].identical(ds1)
-        assert ret_datasets[1].identical(ds2)
+        self.assertIs(ret_datasets[0], ds1)
+        self.assertIs(ret_datasets[1], ds2)
 
     def test_mult_ds_no_area(self):
         """Test that all datasets must have an area attribute."""
@@ -96,8 +96,8 @@ class TestMatchDataArrays(unittest.TestCase):
         ds2 = self._get_test_ds(shape=(3, 100, 50), dims=('bands', 'x', 'y'))
         comp = CompositeBase('test_comp')
         ret_datasets = comp.match_data_arrays((ds1, ds2))
-        assert ret_datasets[0].identical(ds1)
-        assert ret_datasets[1].identical(ds2)
+        self.assertIs(ret_datasets[0], ds1)
+        self.assertIs(ret_datasets[1], ds2)
 
     def test_mult_ds_diff_size(self):
         """Test that datasets with different sizes fail."""
