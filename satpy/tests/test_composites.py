@@ -341,6 +341,42 @@ class TestDayNightCompositor(unittest.TestCase):
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
+    def test_night_only_sza(self):
+        """Test compositor with night portion when SZA data is included."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="night_only")
+        res = comp((self.data_b, self.sza))
+        res = res.compute()
+        expected = np.array([[np.nan, 0.], [0.5, 1.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_night_only_area(self):
+        """Test compositor with night portion when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="night_only")
+        res = comp((self.data_b))
+        res = res.compute()
+        expected = np.array([[np.nan, 0.], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_day_only_sza(self):
+        """Test compositor with day portion when SZA data is included."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only")
+        res = comp((self.data_a, self.sza))
+        res = res.compute()
+        expected = np.array([[0., 0.22122352], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_day_only_area(self):
+        """Test compositor with day portion when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only")
+        res = comp((self.data_a))
+        res = res.compute()
+        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
 
 class TestFillingCompositor(unittest.TestCase):
     """Test case for the filling compositor."""
@@ -1049,7 +1085,6 @@ class TestBackgroundCompositor(unittest.TestCase):
     def test_call(self):
         """Test the background compositing."""
         from satpy.composites import BackgroundCompositor
-        import numpy as np
         comp = BackgroundCompositor("name")
 
         # L mode images
@@ -1131,7 +1166,6 @@ class TestBackgroundCompositor(unittest.TestCase):
     def test_multiple_sensors(self):
         """Test the background compositing from multiple sensor data."""
         from satpy.composites import BackgroundCompositor
-        import numpy as np
         comp = BackgroundCompositor("name")
 
         # L mode images
