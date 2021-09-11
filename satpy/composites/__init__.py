@@ -629,9 +629,9 @@ class DayNightCompositor(GenericCompositor):
         # LA/RGB -> RGBA/RGBA
         # RGB/RGBA -> RGBA/RGBA
         background_bands = new_background_data['bands'] if 'A' not in background_data['bands'].data \
-                           else background_data['bands']
+                                                        else background_data['bands']
         foreground_bands = new_foreground_data['bands'] if 'A' not in foreground_data['bands'].data \
-                           else foreground_data['bands']
+                                                        else foreground_data['bands']
         foreground_data = add_bands(foreground_data, background_bands)
         background_data = add_bands(background_data, foreground_bands)
 
