@@ -551,7 +551,7 @@ def _insert_palette_colors(channels, palette):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_only", **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., day_night="day_night", **kwargs):
         """Collect custom configuration values.
 
         Args:
