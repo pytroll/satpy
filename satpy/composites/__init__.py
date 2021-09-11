@@ -602,7 +602,6 @@ class DayNightCompositor(GenericCompositor):
         foreground_data = enhance2dataset(foreground_data)
         background_data = enhance2dataset(background_data)
 
-
         # Add an alpha band for L or RGB mode
         new_foreground_data = [foreground_data.sel(bands=band) for band in foreground_data['bands'].data]
         new_background_data = [background_data.sel(bands=band) for band in background_data['bands'].data]
@@ -610,10 +609,10 @@ class DayNightCompositor(GenericCompositor):
         background_alpha = new_background_data[0].copy()
         foreground_alpha.data = da.ones((foreground_data.sizes['y'],
                                          foreground_data.sizes['x']),
-                                         chunks=new_foreground_data[0].chunks)
+                                        chunks=new_foreground_data[0].chunks)
         background_alpha.data = da.ones((background_data.sizes['y'],
                                          background_data.sizes['x']),
-                                         chunks=new_background_data[0].chunks)
+                                        chunks=new_background_data[0].chunks)
         foreground_alpha['bands'] = 'A'
         background_alpha['bands'] = 'A'
         new_foreground_data.append(foreground_alpha)
@@ -626,11 +625,13 @@ class DayNightCompositor(GenericCompositor):
         # Adjust bands so that they match
         # L -> LA
         # RGB -> RGBA
-        # L/RGB -> RGB/RGB
+        # L/RGB -> RGBA/RGBA
         # LA/RGB -> RGBA/RGBA
         # RGB/RGBA -> RGBA/RGBA
-        background_bands = new_background_data['bands'] if 'A' not in background_data['bands'].data else background_data['bands']
-        foreground_bands = new_foreground_data['bands'] if 'A' not in foreground_data['bands'].data else foreground_data['bands']
+        background_bands = new_background_data['bands'] if 'A' not in background_data['bands'].data \
+                           else background_data['bands']
+        foreground_bands = new_foreground_data['bands'] if 'A' not in foreground_data['bands'].data \
+                           else foreground_data['bands']
         foreground_data = add_bands(foreground_data, background_bands)
         background_data = add_bands(background_data, foreground_bands)
 
