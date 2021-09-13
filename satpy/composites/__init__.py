@@ -632,7 +632,7 @@ class DayNightCompositor(GenericCompositor):
             foreground_data = add_bands(foreground_data, background_data['bands'])
             background_data = add_bands(background_data, foreground_data['bands'])
 
-            # Replace missing channel data with zeros                            
+            # Replace missing channel data with zeros
             foreground_data = zero_missing_data(foreground_data, background_data)
             background_data = zero_missing_data(background_data, foreground_data)
 
