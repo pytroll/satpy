@@ -605,15 +605,13 @@ class DayNightCompositor(GenericCompositor):
 
         if "only" in self.day_night:
             # Only one portion (day or night) is selected. One composite is requested.
-
             # Add alpha band to single L/RGB composite to make the masked-out portion transparent
             # L -> LA
             # RGB -> RGBA
             foreground_data = add_alpha_bands(foreground_data)
 
             # No need to replace missing channel data with zeros
-                                                                                           
-            # Get metadata                                                                 
+            # Get metadata
             attrs = foreground_data.attrs.copy()
 
             # Determine the composite position
