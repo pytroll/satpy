@@ -402,8 +402,6 @@ def _get_cloud_mask_variable_info(var_name: str, resolution: int) -> dict:
 
 def generate_nasa_l2_filename(prefix: str) -> str:
     """Generate a file name that follows MODIS 35 L2 convention in a temporary directory."""
-    from datetime import datetime
-
     now = datetime.now()
     return f'{prefix}_L2.A{now:%Y%j.%H%M}.061.{now:%Y%j%H%M%S}.hdf'
 
