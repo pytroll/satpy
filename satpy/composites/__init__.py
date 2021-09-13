@@ -660,6 +660,7 @@ def add_alpha_bands(data):
         data = new_data
     return data
 
+
 def enhance2dataset(dset, convert_p=False):
     """Return the enhancement dataset *dset* as an array.
 
