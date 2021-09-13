@@ -639,7 +639,8 @@ class DayNightCompositor(GenericCompositor):
 
         return super(DayNightCompositor, self).__call__(data, **kwargs)
 
-def add_alpha_bands (data):
+
+def add_alpha_bands(data):
     """Only used for DayNightCompositor.
     Add an alpha band to L or RGB composite as prerequisites for the following band matching
     to make the masked-out area transparent.
