@@ -575,10 +575,8 @@ class DayNightCompositor(GenericCompositor):
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
-
+        # At least one composite is requested.
         foreground_data = projectables[0]
-        background_data = projectables[1] if self.day_night == "day_night" else foreground_data
 
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
@@ -602,35 +600,54 @@ class DayNightCompositor(GenericCompositor):
         coszen /= np.abs(lim_low - lim_high)
         coszen = coszen.clip(0, 1)
 
-        # Apply enhancements to get images
+        # Apply enhancements
         foreground_data = enhance2dataset(foreground_data)
-        background_data = enhance2dataset(background_data)
 
-        # Adjust bands so that they match
-        # L -> LA
-        # RGB -> RGBA
-        # L/RGB -> RGBA/RGBA
-        # LA/RGB -> RGBA/RGBA
-        # RGB/RGBA -> RGBA/RGBA
-        background_data_alpha = add_alpha_bands(background_data)
-        foreground_data_alpha = add_alpha_bands(foreground_data)
-        foreground_data = add_bands(foreground_data, foreground_data_alpha['bands'])
-        background_data = add_bands(background_data, background_data_alpha['bands'])
+        if "only" in self.day_night:
+            # Only one portion (day or night) is selected. One composite is requested.
 
-        # Replace missing channel data with zeros
-        foreground_data = zero_missing_data(foreground_data, background_data)
-        background_data = zero_missing_data(background_data, foreground_data)
+            # Add alpha band to single L/RGB composite to make the masked-out portion transparent
+            # L -> LA
+            # RGB -> RGBA
+            foreground_data = add_alpha_bands(foreground_data)
 
-        # Get merged metadata
-        attrs = combine_metadata(foreground_data, background_data)
+            # No need to replace missing channel data with zeros
+                                                                                           
+            # Get metadata                                                                 
+            attrs = foreground_data.attrs.copy()
+
+            # Determine the composite position
+            day_data = foreground_data if "day" in self.day_night else 0
+            night_data = foreground_data if "night" in self.day_night else 0
+
+        else:
+            # Both day and night portions are selected. Two composites are requested. Get the second one merged.
+            background_data = projectables[1]
+
+            # Apply enhancements
+            background_data = enhance2dataset(background_data)
+
+            # Adjust bands so that they match
+            # L/RGB -> RGB/RGB
+            # LA/RGB -> RGBA/RGBA
+            # RGB/RGBA -> RGBA/RGBA
+            foreground_data = add_bands(foreground_data, background_data['bands'])
+            background_data = add_bands(background_data, foreground_data['bands'])
+
+            # Replace missing channel data with zeros                            
+            foreground_data = zero_missing_data(foreground_data, background_data)
+            background_data = zero_missing_data(background_data, foreground_data)
+
+            # Get merged metadata
+            attrs = combine_metadata(foreground_data, background_data)
+
+            # Determine the composite position
+            day_data = foreground_data
+            night_data = background_data
 
         # Blend the two images together
-        day_data = foreground_data if "day" in self.day_night else None
-        night_data = foreground_data if self.day_night == "night_only" else None
-        night_data = background_data if self.day_night == "day_night" else night_data
-
-        day_portion = coszen * (day_data if day_data is not None else 0)
-        night_portion = (1 - coszen) * (night_data if night_data is not None else 0)
+        day_portion = coszen * day_data
+        night_portion = (1 - coszen) * night_data
         data = night_portion + day_portion
         data.attrs = attrs
 
