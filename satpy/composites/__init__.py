@@ -578,12 +578,12 @@ class DayNightCompositor(GenericCompositor):
         projectables = self.match_data_arrays(projectables)
 
         foreground_data = projectables[0]
-        background_data = projectables[1] if len(projectables) > 1 else foreground_data
+        background_data = projectables[1] if self.day_night == "day_night" else foreground_data
 
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            coszen = np.cos(np.deg2rad(projectables[2 if len(projectables) == 3 else 1]))
+            coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
