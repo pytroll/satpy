@@ -26,4 +26,5 @@ from ._modis_fixtures import (
     modis_l1b_nasa_1km_mod03_files,
     modis_l2_nasa_mod35_file,
     modis_l2_nasa_mod35_mod03_files,
+    modis_l2_nasa_mod06_file,
 )

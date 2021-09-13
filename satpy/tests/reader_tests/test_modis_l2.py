@@ -120,3 +120,21 @@ class TestModisL2:
             assert cloud_mask.attrs.get('area') is not None
         else:
             assert 'area' not in cloud_mask.attrs
+
+    @pytest.mark.parametrize(
+        ('input_files', 'loadables', 'exp_resolution'),
+        [
+            [lazy_fixture('modis_l2_nasa_mod06_file'), ["surface_pressure"], 5000],
+        ]
+    )
+    def test_load_l2_dataset(self, input_files, loadables, exp_resolution):
+        """Load and check an L2 variable."""
+        scene = Scene(reader='modis_l2', filenames=input_files)
+        scene.load(loadables)
+        for ds_name in loadables:
+            assert ds_name in scene
+            data_arr = scene[ds_name]
+            assert data_arr.shape == _shape_for_resolution(exp_resolution)
+            assert data_arr.attrs.get('resolution') == exp_resolution
+            _check_shared_metadata(data_arr)
+            assert data_arr.attrs.get('area') is not None

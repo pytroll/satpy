@@ -361,6 +361,29 @@ def modis_l1b_nasa_1km_mod03_files(modis_l1b_nasa_mod021km_file, modis_l1b_nasa_
 
 # Level 2 Fixtures
 
+
+def _get_basic_variable_info(var_name: str, resolution: int) -> dict:
+    shape = _shape_for_resolution(resolution)
+    data = np.zeros((shape[0], shape[1]), dtype=np.uint16)
+    row_dim_name = f'Cell_Along_Swath_{resolution}m:modl2'
+    col_dim_name = f'Cell_Across_Swath_{resolution}m:modl2'
+    return {
+        var_name: {
+            'data': data,
+            'type': SDC.UINT16,
+            'fill_value': 0,
+            'attrs': {
+                # dim_labels are just unique dimension names, may not match exactly with real world files
+                'dim_labels': [row_dim_name,
+                               col_dim_name],
+                'valid_range': (0, 32767),
+                'scale_factor': 1.,
+                'add_offset': 0.,
+            },
+        },
+    }
+
+
 def _get_cloud_mask_variable_info(var_name: str, resolution: int) -> dict:
     num_bytes = 6
     shape = _shape_for_resolution(resolution)
@@ -421,3 +444,14 @@ def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
 def modis_l2_nasa_mod35_mod03_files(modis_l2_nasa_mod35_file, modis_l1b_nasa_mod03_file) -> list[str]:
     """Create a MOD35 L2 HDF4 file and MOD03 L1b geolocation file."""
     return modis_l2_nasa_mod35_file + modis_l1b_nasa_mod03_file
+
+
+@pytest.fixture(scope="session")
+def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
+    """Create a single MOD06 L2 HDF4 file with headers."""
+    filename = generate_nasa_l2_filename("MOD06")
+    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
+    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
+    variable_infos.update(_get_basic_variable_info("Surface_Pressure", 5000))
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD06")
+    return [full_path]
