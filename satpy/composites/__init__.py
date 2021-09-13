@@ -578,12 +578,12 @@ class DayNightCompositor(GenericCompositor):
         projectables = self.match_data_arrays(projectables)
 
         foreground_data = projectables[0]
-        background_data = projectables[1] if self.day_night == "day_night" else foreground_data
+        background_data = projectables[1] if len(projectables) > 1 else foreground_data
 
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
+            coszen = np.cos(np.deg2rad(projectables[2 if len(projectables) == 3 else 1]))
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
@@ -606,38 +606,16 @@ class DayNightCompositor(GenericCompositor):
         foreground_data = enhance2dataset(foreground_data)
         background_data = enhance2dataset(background_data)
 
-        # Add an alpha band for L or RGB mode
-        new_foreground_data = [foreground_data.sel(bands=band) for band in foreground_data['bands'].data]
-        new_background_data = [background_data.sel(bands=band) for band in background_data['bands'].data]
-        foreground_alpha = new_foreground_data[0].copy()
-        background_alpha = new_background_data[0].copy()
-        foreground_alpha.data = da.ones((foreground_data.sizes['y'],
-                                         foreground_data.sizes['x']),
-                                        chunks=new_foreground_data[0].chunks)
-        background_alpha.data = da.ones((background_data.sizes['y'],
-                                         background_data.sizes['x']),
-                                        chunks=new_background_data[0].chunks)
-        foreground_alpha['bands'] = 'A'
-        background_alpha['bands'] = 'A'
-        new_foreground_data.append(foreground_alpha)
-        new_background_data.append(background_alpha)
-        new_foreground_data = xr.concat(new_foreground_data, dim='bands')
-        new_background_data = xr.concat(new_background_data, dim='bands')
-        new_foreground_data.attrs['mode'] = foreground_data.attrs['mode'] + 'A'
-        new_background_data.attrs['mode'] = background_data.attrs['mode'] + 'A'
-
         # Adjust bands so that they match
         # L -> LA
         # RGB -> RGBA
         # L/RGB -> RGBA/RGBA
         # LA/RGB -> RGBA/RGBA
         # RGB/RGBA -> RGBA/RGBA
-        background_bands = (new_background_data['bands'] if 'A' not in background_data['bands'].data
-                            else background_data['bands'])
-        foreground_bands = (new_foreground_data['bands'] if 'A' not in foreground_data['bands'].data
-                            else foreground_data['bands'])
-        foreground_data = add_bands(foreground_data, background_bands)
-        background_data = add_bands(background_data, foreground_bands)
+        background_data_alpha = add_alpha_bands(background_data)
+        foreground_data_alpha = add_alpha_bands(foreground_data)
+        foreground_data = add_bands(foreground_data, foreground_data_alpha['bands'])
+        background_data = add_bands(background_data, background_data_alpha['bands'])
 
         # Replace missing channel data with zeros
         foreground_data = zero_missing_data(foreground_data, background_data)
@@ -661,6 +639,25 @@ class DayNightCompositor(GenericCompositor):
 
         return super(DayNightCompositor, self).__call__(data, **kwargs)
 
+def add_alpha_bands (data):
+    """Only used for DayNightCompositor.
+    Add an alpha band to L or RGB composite as prerequisites for the following band matching
+    to make the masked-out area transparent.
+    """
+    if 'A' not in data['bands'].data:
+        new_data = [data.sel(bands=band) for band in data['bands'].data]
+        # Create alpha band based on a copy of the first "real" band
+        alpha = new_data[0].copy()
+        alpha.data = da.ones((data.sizes['y'],
+                              data.sizes['x']),
+                             chunks=new_data[0].chunks)
+        # Rename band to indicate it's alpha
+        alpha['bands'] = 'A'
+        new_data.append(alpha)
+        new_data = xr.concat(new_data, dim='bands')
+        new_data.attrs['mode'] = data.attrs['mode'] + 'A'
+        data = new_data
+    return data
 
 def enhance2dataset(dset, convert_p=False):
     """Return the enhancement dataset *dset* as an array.
