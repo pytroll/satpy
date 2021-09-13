@@ -22,6 +22,7 @@ from __future__ import annotations
 import dask
 import numpy as np
 import pytest
+from pytest_lazyfixture import lazy_fixture
 
 from satpy import available_readers, Scene
 from ._modis_fixtures import _shape_for_resolution
@@ -55,7 +56,7 @@ class TestModisL2:
     @pytest.mark.parametrize(
         ('input_files', 'has_5km', 'has_500', 'has_250', 'default_res'),
         [
-            [pytest.lazy_fixture('modis_l2_nasa_mod35_file'),
+            [lazy_fixture('modis_l2_nasa_mod35_file'),
              True, False, False, 1000],
         ]
     )
@@ -118,8 +119,8 @@ class TestModisL2:
     @pytest.mark.parametrize(
         ('input_files', 'exp_area'),
         [
-            [pytest.lazy_fixture('modis_l2_nasa_mod35_file'), False],
-            [pytest.lazy_fixture('modis_l2_nasa_mod35_mod03_files'), True],
+            [lazy_fixture('modis_l2_nasa_mod35_file'), False],
+            [lazy_fixture('modis_l2_nasa_mod35_mod03_files'), True],
         ]
     )
     def test_load_250m_cloud_mask_dataset(self, input_files, exp_area):

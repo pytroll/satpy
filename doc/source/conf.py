@@ -66,12 +66,9 @@ MOCK_MODULES = ['h5py']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
-# Mock optional dependencies so that docs can still be generated
-# We must mock 'pytest' even if it is installed because pytest plugins won't
-# be initialized properly (ex. pytest.lazy_fixture).
 autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4',
                         'pygac', 'pygrib', 'pyhdf', 'pyninjotiff',
-                        'pyorbital', 'pytest', 'pyspectral', 'rasterio', 'trollimage',
+                        'pyorbital', 'pyspectral', 'rasterio', 'trollimage',
                         'zarr']
 autoclass_content = 'both'  # append class __init__ docstring to the class docstring
 
