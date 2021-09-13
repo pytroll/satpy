@@ -21,82 +21,11 @@ from __future__ import annotations
 
 import dask
 import numpy as np
-from pyhdf.SD import SDC
 import pytest
 
 from satpy import available_readers, Scene
-from .test_modis_l1b import (
-    create_hdfeos_test_file,
-    _get_l1b_geo_variable_info,
-    _shape_for_resolution,
-)
-from .test_modis_l1b import modis_l1b_nasa_mod03_file  # noqa
+from ._modis_fixtures import _shape_for_resolution
 from ..utils import CustomScheduler, make_dataid
-
-
-def _get_cloud_mask_variable_info(var_name: str, resolution: int) -> dict:
-    num_bytes = 6
-    shape = _shape_for_resolution(resolution)
-    data = np.zeros((num_bytes, shape[0], shape[1]), dtype=np.int8)
-    byte_dim_name = "Byte_Segment:mod35"
-    row_dim_name = 'Cell_Along_Swath_1km:mod35'
-    col_dim_name = 'Cell_Across_Swath_1km:mod35'
-    return {
-        var_name: {
-            'data': data,
-            'type': SDC.INT8,
-            'fill_value': 0,
-            'attrs': {
-                # dim_labels are just unique dimension names, may not match exactly with real world files
-                'dim_labels': [byte_dim_name,
-                               row_dim_name,
-                               col_dim_name],
-                'valid_range': (0, -1),
-                'scale_factor': 1.,
-                'add_offset': 0.,
-            },
-        },
-        'Quality_Assurance': {
-            'data': np.ones((shape[0], shape[1], 10), dtype=np.int8),
-            'type': SDC.INT8,
-            'fill_value': 0,
-            'attrs': {
-                # dim_labels are just unique dimension names, may not match exactly with real world files
-                'dim_labels': [row_dim_name,
-                               col_dim_name,
-                               'Quality_Dimension:mod35'],
-                'valid_range': (0, -1),
-                'scale_factor': 1.,
-                'add_offset': 0.,
-            },
-        },
-    }
-
-
-def generate_nasa_l2_filename(prefix: str) -> str:
-    """Generate a file name that follows MODIS 35 L2 convention in a temporary directory."""
-    from datetime import datetime
-
-    now = datetime.now()
-    return f'{prefix}_L2.A{now:%Y%j.%H%M}.061.{now:%Y%j%H%M%S}.hdf'
-
-
-@pytest.fixture(scope="session")
-def modis_l2_nasa_mod35_file(tmpdir_factory) -> list[str]:
-    """Create a single MOD35 L2 HDF4 file with headers."""
-    filename = generate_nasa_l2_filename("MOD35")
-    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
-    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
-    variable_infos.update(_get_cloud_mask_variable_info("Cloud_Mask", 1000))
-    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD35")
-    return [full_path]
-
-
-@pytest.fixture(scope="session")
-def modis_l2_nasa_mod35_mod03_files(modis_l2_nasa_mod35_file, modis_l1b_nasa_mod03_file) -> list[str]:  # noqa
-    """Create a MOD35 L2 HDF4 file and MOD03 L1b geolocation file."""
-    # FIXME: Remove noqa after fixtures are moved somewhere more useful
-    return modis_l2_nasa_mod35_file + modis_l1b_nasa_mod03_file
 
 
 class TestModisL2:
