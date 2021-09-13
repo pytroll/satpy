@@ -151,7 +151,6 @@ def _get_visible_variable_info(var_name: str, resolution: int, bands: list[str])
                                col_dim_name],
             },
         },
-
     }
 
 
@@ -464,16 +463,9 @@ class TestModisL1b:
 
         scene = Scene(reader='modis_l1b', filenames=input_files)
         shape_5km = _shape_for_resolution(5000)
-        shape_1km = _shape_for_resolution(1000)
         shape_500m = _shape_for_resolution(500)
         shape_250m = _shape_for_resolution(250)
-        res_to_shape = {
-            250: shape_250m,
-            500: shape_500m,
-            1000: shape_1km,
-            5000: shape_5km,
-        }
-        default_shape = res_to_shape[default_res]
+        default_shape = _shape_for_resolution(default_res)
         with dask.config.set(scheduler=CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)):
             _load_and_check("*", default_res, default_shape, True)
             _load_and_check(5000, 5000, shape_5km, has_5km)
