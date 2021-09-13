@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import dask
-import numpy as np
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
@@ -29,16 +28,16 @@ from ._modis_fixtures import _shape_for_resolution
 from ..utils import CustomScheduler, make_dataid
 
 
+def _check_shared_metadata(data_arr):
+    assert data_arr.attrs["sensor"] == "modis"
+    assert data_arr.attrs["platform_name"] == "EOS-Terra"
+    assert "rows_per_scan" in data_arr.attrs
+    assert isinstance(data_arr.attrs["rows_per_scan"], int)
+    assert data_arr.attrs['reader'] == 'modis_l2'
+
+
 class TestModisL2:
     """Test MODIS L2 reader."""
-
-    @staticmethod
-    def _check_shared_metadata(data_arr):
-        assert data_arr.attrs["sensor"] == "modis"
-        assert data_arr.attrs["platform_name"] == "EOS-Terra"
-        assert "rows_per_scan" in data_arr.attrs
-        assert isinstance(data_arr.attrs["rows_per_scan"], int)
-        assert data_arr.attrs['reader'] == 'modis_l2'
 
     def test_available_reader(self):
         """Test that MODIS L2 reader is available."""
@@ -62,39 +61,24 @@ class TestModisL2:
     )
     def test_load_longitude_latitude(self, input_files, has_5km, has_500, has_250, default_res):
         """Test that longitude and latitude datasets are loaded correctly."""
-        def _load_and_check(resolution, exp_res, exp_shape, has_res):
-            scene.load(["longitude", "latitude"], resolution=resolution)
-            lon_id = make_dataid(name="longitude", resolution=exp_res)
-            lat_id = make_dataid(name="latitude", resolution=exp_res)
-            if has_res:
-                lon_arr = scene[lon_id]
-                lat_arr = scene[lat_id]
-                assert lon_arr.shape == exp_shape
-                assert lat_arr.shape == exp_shape
-                # compute lon/lat at the same time to avoid wasted computation
-                lon_vals, lat_vals = dask.compute(lon_arr, lat_arr)
-                np.testing.assert_array_less(lon_vals, 0)
-                np.testing.assert_array_less(0, lat_vals)
-                self._check_shared_metadata(lon_arr)
-                self._check_shared_metadata(lat_arr)
-            else:
-                pytest.raises(KeyError, scene.__getitem__, lon_id)
-                pytest.raises(KeyError, scene.__getitem__, lat_id)
-
+        from .test_modis_l1b import _load_and_check_geolocation
         scene = Scene(reader='modis_l2', filenames=input_files)
         shape_5km = _shape_for_resolution(5000)
         shape_500m = _shape_for_resolution(500)
         shape_250m = _shape_for_resolution(250)
         default_shape = _shape_for_resolution(default_res)
         with dask.config.set(scheduler=CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)):
-            _load_and_check("*", default_res, default_shape, True)
-            _load_and_check(5000, 5000, shape_5km, has_5km)
-            _load_and_check(500, 500, shape_500m, has_500)
-            _load_and_check(250, 250, shape_250m, has_250)
+            _load_and_check_geolocation(scene, "*", default_res, default_shape, True,
+                                        check_callback=_check_shared_metadata)
+            _load_and_check_geolocation(scene, 5000, 5000, shape_5km, has_5km,
+                                        check_callback=_check_shared_metadata)
+            _load_and_check_geolocation(scene, 500, 500, shape_500m, has_500,
+                                        check_callback=_check_shared_metadata)
+            _load_and_check_geolocation(scene, 250, 250, shape_250m, has_250,
+                                        check_callback=_check_shared_metadata)
 
     def test_load_quality_assurance(self, modis_l2_nasa_mod35_file):
         """Test loading quality assurance."""
-        from satpy.tests.utils import make_dataid
         scene = Scene(reader='modis_l2', filenames=modis_l2_nasa_mod35_file)
         dataset_name = 'quality_assurance'
         scene.load([dataset_name])
@@ -102,11 +86,10 @@ class TestModisL2:
         assert quality_assurance_id in scene
         quality_assurance = scene[quality_assurance_id]
         assert quality_assurance.shape == _shape_for_resolution(1000)
-        self._check_shared_metadata(quality_assurance)
+        _check_shared_metadata(quality_assurance)
 
     def test_load_1000m_cloud_mask_dataset(self, modis_l2_nasa_mod35_file):
         """Test loading 1000m cloud mask."""
-        from satpy.tests.utils import make_dataid
         scene = Scene(reader='modis_l2', filenames=modis_l2_nasa_mod35_file)
         dataset_name = 'cloud_mask'
         scene.load([dataset_name], resolution=1000)
@@ -114,7 +97,7 @@ class TestModisL2:
         assert cloud_mask_id in scene
         cloud_mask = scene[cloud_mask_id]
         assert cloud_mask.shape == _shape_for_resolution(1000)
-        self._check_shared_metadata(cloud_mask)
+        _check_shared_metadata(cloud_mask)
 
     @pytest.mark.parametrize(
         ('input_files', 'exp_area'),
@@ -125,7 +108,6 @@ class TestModisL2:
     )
     def test_load_250m_cloud_mask_dataset(self, input_files, exp_area):
         """Test loading 250m cloud mask."""
-        from satpy.tests.utils import make_dataid
         scene = Scene(reader='modis_l2', filenames=input_files)
         dataset_name = 'cloud_mask'
         scene.load([dataset_name], resolution=250)
@@ -133,7 +115,7 @@ class TestModisL2:
         assert cloud_mask_id in scene
         cloud_mask = scene[cloud_mask_id]
         assert cloud_mask.shape == _shape_for_resolution(250)
-        self._check_shared_metadata(cloud_mask)
+        _check_shared_metadata(cloud_mask)
         if exp_area:
             assert cloud_mask.attrs.get('area') is not None
         else:

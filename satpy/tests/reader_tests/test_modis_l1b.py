@@ -34,16 +34,37 @@ from ._modis_fixtures import (
 )
 
 
+def _check_shared_metadata(data_arr):
+    assert data_arr.attrs["sensor"] == "modis"
+    assert data_arr.attrs["platform_name"] == "EOS-Terra"
+    assert "rows_per_scan" in data_arr.attrs
+    assert isinstance(data_arr.attrs["rows_per_scan"], int)
+    assert data_arr.attrs['reader'] == 'modis_l1b'
+
+
+def _load_and_check_geolocation(scene, resolution, exp_res, exp_shape, has_res,
+                                check_callback=_check_shared_metadata):
+    scene.load(["longitude", "latitude"], resolution=resolution)
+    lon_id = make_dataid(name="longitude", resolution=exp_res)
+    lat_id = make_dataid(name="latitude", resolution=exp_res)
+    if has_res:
+        lon_arr = scene[lon_id]
+        lat_arr = scene[lat_id]
+        assert lon_arr.shape == exp_shape
+        assert lat_arr.shape == exp_shape
+        # compute lon/lat at the same time to avoid wasted computation
+        lon_vals, lat_vals = dask.compute(lon_arr, lat_arr)
+        np.testing.assert_array_less(lon_vals, 0)
+        np.testing.assert_array_less(0, lat_vals)
+        check_callback(lon_arr)
+        check_callback(lat_arr)
+    else:
+        pytest.raises(KeyError, scene.__getitem__, lon_id)
+        pytest.raises(KeyError, scene.__getitem__, lat_id)
+
+
 class TestModisL1b:
     """Test MODIS L1b reader."""
-
-    @staticmethod
-    def _check_shared_metadata(data_arr):
-        assert data_arr.attrs["sensor"] == "modis"
-        assert data_arr.attrs["platform_name"] == "EOS-Terra"
-        assert "rows_per_scan" in data_arr.attrs
-        assert isinstance(data_arr.attrs["rows_per_scan"], int)
-        assert data_arr.attrs['reader'] == 'modis_l1b'
 
     def test_available_reader(self):
         """Test that MODIS L1b reader is available."""
@@ -110,35 +131,16 @@ class TestModisL1b:
     )
     def test_load_longitude_latitude(self, input_files, has_5km, has_500, has_250, default_res):
         """Test that longitude and latitude datasets are loaded correctly."""
-        def _load_and_check(resolution, exp_res, exp_shape, has_res):
-            scene.load(["longitude", "latitude"], resolution=resolution)
-            lon_id = make_dataid(name="longitude", resolution=exp_res)
-            lat_id = make_dataid(name="latitude", resolution=exp_res)
-            if has_res:
-                lon_arr = scene[lon_id]
-                lat_arr = scene[lat_id]
-                assert lon_arr.shape == exp_shape
-                assert lat_arr.shape == exp_shape
-                # compute lon/lat at the same time to avoid wasted computation
-                lon_vals, lat_vals = dask.compute(lon_arr, lat_arr)
-                np.testing.assert_array_less(lon_vals, 0)
-                np.testing.assert_array_less(0, lat_vals)
-                self._check_shared_metadata(lon_arr)
-                self._check_shared_metadata(lat_arr)
-            else:
-                pytest.raises(KeyError, scene.__getitem__, lon_id)
-                pytest.raises(KeyError, scene.__getitem__, lat_id)
-
         scene = Scene(reader='modis_l1b', filenames=input_files)
         shape_5km = _shape_for_resolution(5000)
         shape_500m = _shape_for_resolution(500)
         shape_250m = _shape_for_resolution(250)
         default_shape = _shape_for_resolution(default_res)
         with dask.config.set(scheduler=CustomScheduler(max_computes=1 + has_5km + has_500 + has_250)):
-            _load_and_check("*", default_res, default_shape, True)
-            _load_and_check(5000, 5000, shape_5km, has_5km)
-            _load_and_check(500, 500, shape_500m, has_500)
-            _load_and_check(250, 250, shape_250m, has_250)
+            _load_and_check_geolocation(scene, "*", default_res, default_shape, True)
+            _load_and_check_geolocation(scene, 5000, 5000, shape_5km, has_5km)
+            _load_and_check_geolocation(scene, 500, 500, shape_500m, has_500)
+            _load_and_check_geolocation(scene, 250, 250, shape_250m, has_250)
 
     def test_load_sat_zenith_angle(self, modis_l1b_nasa_mod021km_file):
         """Test loading satellite zenith angle band."""
@@ -148,7 +150,7 @@ class TestModisL1b:
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000
-        self._check_shared_metadata(dataset)
+        _check_shared_metadata(dataset)
 
     def test_load_vis(self, modis_l1b_nasa_mod021km_file):
         """Test loading visible band."""
@@ -158,4 +160,4 @@ class TestModisL1b:
         dataset = scene[dataset_name]
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000
-        self._check_shared_metadata(dataset)
+        _check_shared_metadata(dataset)
