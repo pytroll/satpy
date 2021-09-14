@@ -11,6 +11,19 @@ modifiers:
     - IR_108
     - IR_134
 
+  rayleigh_corrected:
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: VIS006
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
 composites:
 
   ct_masked_ir:
@@ -492,6 +505,20 @@ composites:
     standard_name: natural_color_with_night_ir_hires
     prerequisites:
       - natural_color
+      - night_ir_with_background_hires
+
+  natural_enh_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    prerequisites:
+      - natural_enh
+      - night_ir_with_background
+
+  natural_enh_with_night_ir_hires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir_hires
+    prerequisites:
+      - natural_enh
       - night_ir_with_background_hires
 
   night_ir_alpha:
