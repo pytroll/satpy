@@ -148,20 +148,18 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         # what dimension is per-byte
         byte_dimension = None if self.is_imapp_mask_byte1 else dataset_info['byte_dimension']
         dataset = self._select_hdf_dataset(var_name, byte_dimension)
-        # category products always have factor=1/offset=0
+        # category products always have factor=1/offset=0 so don't apply them
+        # also remove them so they don't screw up future satpy processing
         dataset.attrs.pop('scale_factor', None)
         dataset.attrs.pop('add_offset', None)
         # Don't do this byte work if we are using the IMAPP mask_byte1 file
         if self.is_imapp_mask_byte1:
             return dataset
 
-        byte_information = dataset_info['byte']
-        # At which bit starts the information
-        bit_start = dataset_info['bit_start']
-        # How many bits store the information
-        bit_count = dataset_info['bit_count']
-        dataset = _extract_byte_mask(dataset, byte_information, bit_start, bit_count)
-
+        dataset = _extract_byte_mask(dataset,
+                                     dataset_info['byte'],
+                                     dataset_info['bit_start'],
+                                     dataset_info['bit_count'])
         dataset = self._mask_with_quality_assurance_if_needed(dataset, dataset_info, dataset_id)
         return dataset
 
