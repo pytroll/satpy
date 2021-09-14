@@ -106,9 +106,15 @@ datasets:
         file_type: mod35_hdf
         # Quality Assurance flag is necessary for 250m resolution dataset
         quality_assurance: True
+        byte: [4, 5]
+        bit_start: 0
+        bit_count: 1
       1000:
         file_type: [mod35_hdf, mask_byte1_hdf]
         quality_assurance: False
+        byte: 0
+        bit_start: 1
+        bit_count: 2
     # NOTE: byte information and file_key below are unused for the
     #   mask_byte1_hdf file type.
     # The dimension of the dataset where the byte information is stored
@@ -116,16 +122,6 @@ datasets:
     imapp_file_key: MODIS_Cloud_Mask
     category: True
     byte_dimension: 0
-    # Different logic depending on the resolution
-    byte:
-      - 1000: 0
-      - 250: [4, 5]
-    bit_start:
-      - 1000: 1
-      - 250: 0
-    bit_count:
-      - 1000: 2
-      - 250: 1
 
   quality_assurance:
     # byte Quality_Assurance(Cell_Along_Swath_1km, Cell_Across_Swath_1km, QA_Dimension)

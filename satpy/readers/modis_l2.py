@@ -125,21 +125,6 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
             dataset = dataset.transpose('i', 'y', 'x')
         return dataset
 
-    def _parse_resolution_info(self, info, resolution):
-        if isinstance(info, list):
-            if len(info) == 1 and isinstance(info[0], int):
-                return info[0]
-            # Check if the values are stored in a with resolution as a key
-            if isinstance(info[0], dict):
-                for elem in info:
-                    try:
-                        return elem[resolution]
-                    except KeyError:
-                        pass
-            # The information doesn't concern the current resolution
-            return None
-        return info
-
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
         dataset_name = dataset_id['name']
@@ -170,11 +155,11 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         if self.is_imapp_mask_byte1:
             return dataset
 
-        byte_information = self._parse_resolution_info(dataset_info['byte'], dataset_id['resolution'])
+        byte_information = dataset_info['byte']
         # At which bit starts the information
-        bit_start = self._parse_resolution_info(dataset_info['bit_start'], dataset_id['resolution'])
+        bit_start = dataset_info['bit_start']
         # How many bits store the information
-        bit_count = self._parse_resolution_info(dataset_info['bit_count'], dataset_id['resolution'])
+        bit_count = dataset_info['bit_count']
         dataset = _extract_byte_mask(dataset, byte_information, bit_start, bit_count)
 
         dataset = self._mask_with_quality_assurance_if_needed(dataset, dataset_info, dataset_id)
@@ -190,9 +175,9 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         )
         quality_assurance_dataset_info = {
             'name': 'quality_assurance',
-            'resolution': [1000],
+            'resolution': 1000,
             'byte_dimension': 2,
-            'byte': [0],
+            'byte': 0,
             'bit_start': 0,
             'bit_count': 1,
             'file_key': 'Quality_Assurance'
@@ -211,13 +196,11 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
 
 def _extract_byte_mask(dataset, byte_information, bit_start, bit_count):
-    # Only one byte: select the byte information
     if isinstance(byte_information, int):
+        # Only one byte: select the byte information
         byte_dataset = dataset[byte_information, :, :]
-
-    # Two bytes: recombine the two bytes
-    elif isinstance(byte_information, list) and len(byte_information) == 2:
-        # We recombine the two bytes
+    elif isinstance(byte_information, (list, tuple)) and len(byte_information) == 2:
+        # Two bytes: recombine the two bytes
         dataset_a = dataset[byte_information[0], :, :]
         dataset_b = dataset[byte_information[1], :, :]
         dataset_a = np.uint16(dataset_a)
