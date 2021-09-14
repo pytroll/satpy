@@ -575,6 +575,7 @@ class DayNightCompositor(GenericCompositor):
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
         # At least one composite is requested.
         foreground_data = projectables[0]
 
