@@ -447,6 +447,55 @@ def _get_cloud_mask_variable_info(var_name: str, resolution: int) -> dict:
     }
 
 
+def _get_mask_byte1_variable_info() -> dict:
+    shape = _shape_for_resolution(1000)
+    data = np.zeros((shape[0], shape[1]), dtype=np.uint16)
+    row_dim_name = 'Cell_Along_Swath_1km:mod35'
+    col_dim_name = 'Cell_Across_Swath_1km:mod35'
+    return {
+        "MODIS_Cloud_Mask": {
+            'data': data,
+            'type': SDC.UINT16,
+            'fill_value': 9999,
+            'attrs': {
+                # dim_labels are just unique dimension names, may not match exactly with real world files
+                'dim_labels': [row_dim_name,
+                               col_dim_name],
+                'valid_range': (0, 4),
+                'scale_factor': 1.,
+                'add_offset': 0.,
+            },
+
+        },
+        "MODIS_Simple_LandSea_Mask": {
+            'data': data,
+            'type': SDC.UINT16,
+            'fill_value': 9999,
+            'attrs': {
+                # dim_labels are just unique dimension names, may not match exactly with real world files
+                'dim_labels': [row_dim_name,
+                               col_dim_name],
+                'valid_range': (0, 4),
+                'scale_factor': 1.,
+                'add_offset': 0.,
+            },
+        },
+        "MODIS_Snow_Ice_Flag": {
+            'data': data,
+            'type': SDC.UINT16,
+            'fill_value': 9999,
+            'attrs': {
+                # dim_labels are just unique dimension names, may not match exactly with real world files
+                'dim_labels': [row_dim_name,
+                               col_dim_name],
+                'valid_range': (0, 2),
+                'scale_factor': 1.,
+                'add_offset': 0.,
+            },
+        },
+    }
+
+
 def generate_nasa_l2_filename(prefix: str) -> str:
     """Generate a file name that follows MODIS 35 L2 convention in a temporary directory."""
     now = datetime.now()
@@ -493,6 +542,23 @@ def modis_l2_imapp_snowmask_file(tmpdir_factory) -> list[str]:
 
 
 @pytest.fixture(scope="session")
-def modis_l2_imapp_snowmask_geo_file(modis_l2_imapp_snowmask_file, modis_l1b_nasa_mod03_file):
+def modis_l2_imapp_snowmask_geo_files(modis_l2_imapp_snowmask_file, modis_l1b_nasa_mod03_file) -> list[str]:
     """Create the IMAPP snowmask and geo HDF4 files."""
     return modis_l2_imapp_snowmask_file + modis_l1b_nasa_mod03_file
+
+
+@pytest.fixture(scope="session")
+def modis_l2_imapp_mask_byte1_file(tmpdir_factory) -> list[str]:
+    """Create a single IMAPP mask_byte1 L2 HDF4 file with headers."""
+    filename = generate_imapp_filename("mask_byte1")
+    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
+    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=False)
+    variable_infos.update(_get_mask_byte1_variable_info())
+    create_hdfeos_test_file(full_path, variable_infos, include_metadata=False)
+    return [full_path]
+
+
+@pytest.fixture(scope="session")
+def modis_l2_imapp_mask_byte1_geo_files(modis_l2_imapp_mask_byte1_file, modis_l1b_nasa_mod03_file) -> list[str]:
+    """Create the IMAPP mask_byte1 and geo HDF4 files."""
+    return modis_l2_imapp_mask_byte1_file + modis_l1b_nasa_mod03_file

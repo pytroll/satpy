@@ -29,5 +29,7 @@ from ._modis_fixtures import (
     modis_l2_nasa_mod35_mod03_files,
     modis_l2_nasa_mod06_file,
     modis_l2_imapp_snowmask_file,
-    modis_l2_imapp_snowmask_geo_file,
+    modis_l2_imapp_snowmask_geo_files,
+    modis_l2_imapp_mask_byte1_file,
+    modis_l2_imapp_mask_byte1_geo_files,
 )

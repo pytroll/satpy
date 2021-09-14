@@ -1069,3 +1069,25 @@ datasets:
     coordinates: [longitude, latitude]
     resolution: 1000
     file_key: Snow_Mask
+
+  # mask_byte1
+  # NOTE: This is an additional DataID to the cloud_mask above. Metadata is
+  #   configured in such a way that it will not override the other configuration
+#  cloud_mask_mask_byte1:
+#    name: cloud_mask
+#    resolution: 1000
+#    file_key: MODIS_Cloud_Mask
+#    file_type: mask_byte1_hdf
+#    coordinates: [longitude, latitude]
+  land_sea_mask_mask_byte1:
+    name: land_sea_mask
+    resolution: 1000
+    file_key: MODIS_Simple_LandSea_Mask
+    file_type: mask_byte1_hdf
+    coordinates: [longitude, latitude]
+  snow_ice_mask_mask_byte1:
+    name: snow_ice_mask
+    resolution: 1000
+    file_key: MODIS_Snow_Ice_Flag
+    file_type: mask_byte1_hdf
+    coordinates: [longitude, latitude]

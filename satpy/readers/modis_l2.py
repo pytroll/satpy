@@ -107,9 +107,11 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         hdf_dataset = self.sd.select(hdf_dataset_name)
         if byte_dimension == 0:
             dataset = xr.DataArray(from_sds(hdf_dataset, chunks=CHUNK_SIZE),
+                                   attrs=hdf_dataset.attributes(),
                                    dims=['i', 'y', 'x']).astype(np.uint8)
         elif byte_dimension == 2:
             dataset = xr.DataArray(from_sds(hdf_dataset, chunks=CHUNK_SIZE),
+                                   attrs=hdf_dataset.attributes(),
                                    dims=['y', 'x', 'i']).astype(np.uint8)
             # Reorder dimensions for consistency
             dataset = dataset.transpose('i', 'y', 'x')
@@ -142,6 +144,9 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         if 'byte' in dataset_info and 'byte_dimension' in dataset_info:
             byte_dimension = dataset_info['byte_dimension']  # Where the information is stored
             dataset = self._select_hdf_dataset(dataset_name_in_file, byte_dimension)
+            # category products always have factor=1/offset=0
+            dataset.attrs.pop('scale_factor', None)
+            dataset.attrs.pop('add_offset', None)
 
             byte_information = self._parse_resolution_info(dataset_info['byte'], dataset_id['resolution'])
             # At which bit starts the information
@@ -169,7 +174,9 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
                 bit_start = np.tile(bit_start, (shape[0], shape[1]))
 
             # Compute the final bit mask
+            attrs = dataset.attrs.copy()
             dataset = bits_strip(bit_start, bit_count, byte_dataset)
+            dataset.attrs = attrs
 
             # Apply quality assurance filter
             if 'quality_assurance' in dataset_info:
@@ -199,7 +206,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
                                           in zip(dataset.shape, quality_assurance.shape)]
                     quality_assurance = np.tile(quality_assurance, duplication_factor)
                     # Replace unassured data by NaN value
-                    dataset[np.where(quality_assurance == 0)] = np.NaN
+                    dataset[np.where(quality_assurance == 0)] = dataset.attrs["_FillValue"]
 
         # No byte manipulation required
         else:
