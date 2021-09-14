@@ -46,10 +46,12 @@ file_types:
   mod07_hdf:
     file_patterns:
       - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod07.hdf'
+      - 'M{platform_indicator:1s}D07_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   mod28_hdf:
     file_patterns:
       - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.mod28.hdf'
+      - 'M{platform_indicator:1s}D28_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   modlst_hdf:
     file_patterns:
