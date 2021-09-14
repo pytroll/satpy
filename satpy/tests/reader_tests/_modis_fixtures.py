@@ -197,10 +197,10 @@ def generate_nasa_l1b_filename(prefix):
     return f'{prefix}_A{now:%y%j_%H%M%S}_{now:%Y%j%H%M%S}.hdf'
 
 
-def generate_imapp_l1b_filename(suffix):
+def generate_imapp_filename(suffix):
     """Generate a filename that follows IMAPP MODIS L1b convention."""
     now = datetime.now()
-    return f'a1.{now:%y%j.%H%M}.{suffix}.hdf'
+    return f't1.{now:%y%j.%H%M}.{suffix}.hdf'
 
 
 def create_hdfeos_test_file(filename: str,
@@ -208,7 +208,21 @@ def create_hdfeos_test_file(filename: str,
                             geo_resolution: Optional[int] = None,
                             file_shortname: Optional[str] = None,
                             include_metadata: bool = True):
-    """Create a fake MODIS L1b HDF4 file with headers."""
+    """Create a fake MODIS L1b HDF4 file with headers.
+
+    Args:
+        filename: Full path of filename to be created.
+        variable_infos: Dictionary mapping HDF4 variable names to dictionary
+            of variable information (see ``_add_variable_to_file``).
+        geo_resolution: Resolution of geolocation datasets to be stored in the
+            metadata strings stored in the global metadata attributes. Only
+            used if ``include_metadata`` is ``True`` (default).
+        file_shortname: Short name of the file to be stored in global metadata
+            attributes. Only used if ``include_metadata`` is ``True``
+            (default).
+        include_metadata: Include global metadata attributes (default: True).
+
+    """
     h = SD(filename, SDC.WRITE | SDC.CREATE)
 
     if include_metadata:
@@ -310,7 +324,7 @@ def modis_l1b_nasa_mod021km_file(tmpdir_factory) -> list[str]:
 @pytest.fixture(scope="session")
 def modis_l1b_imapp_1000m_file(tmpdir_factory) -> list[str]:
     """Create a single MOD021KM file following IMAPP file scheme."""
-    filename = generate_imapp_l1b_filename("1000m")
+    filename = generate_imapp_filename("1000m")
     full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=True)
     variable_infos.update(_get_visible_variable_info("EV_1KM_RefSB", 1000, AVAILABLE_1KM_VIS_PRODUCT_NAMES))
@@ -347,6 +361,16 @@ def modis_l1b_nasa_mod02qkm_file(tmpdir_factory) -> list[str]:
 def modis_l1b_nasa_mod03_file(tmpdir_factory) -> list[str]:
     """Create a single MOD03 file following standard NASA file scheme."""
     filename = generate_nasa_l1b_filename("MOD03")
+    full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
+    variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=True)
+    create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD03")
+    return [full_path]
+
+
+@pytest.fixture(scope="session")
+def modis_l1b_imapp_geo_file(tmpdir_factory) -> list[str]:
+    """Create a single geo file following standard IMAPP file scheme."""
+    filename = generate_imapp_filename("geo")
     full_path = str(tmpdir_factory.mktemp("modis_l1b").join(filename))
     variable_infos = _get_l1b_geo_variable_info(filename, 1000, include_angles=True)
     create_hdfeos_test_file(full_path, variable_infos, geo_resolution=1000, file_shortname="MOD03")
@@ -455,3 +479,20 @@ def modis_l2_nasa_mod06_file(tmpdir_factory) -> list[str]:
     variable_infos.update(_get_basic_variable_info("Surface_Pressure", 5000))
     create_hdfeos_test_file(full_path, variable_infos, geo_resolution=5000, file_shortname="MOD06")
     return [full_path]
+
+
+@pytest.fixture(scope="session")
+def modis_l2_imapp_snowmask_file(tmpdir_factory) -> list[str]:
+    """Create a single IMAPP snowmask L2 HDF4 file with headers."""
+    filename = generate_imapp_filename("snowmask")
+    full_path = str(tmpdir_factory.mktemp("modis_l2").join(filename))
+    variable_infos = _get_l1b_geo_variable_info(filename, 5000, include_angles=False)
+    variable_infos.update(_get_basic_variable_info("Snow_Mask", 1000))
+    create_hdfeos_test_file(full_path, variable_infos, include_metadata=False)
+    return [full_path]
+
+
+@pytest.fixture(scope="session")
+def modis_l2_imapp_snowmask_geo_file(modis_l2_imapp_snowmask_file, modis_l1b_nasa_mod03_file):
+    """Create the IMAPP snowmask and geo HDF4 files."""
+    return modis_l2_imapp_snowmask_file + modis_l1b_nasa_mod03_file
