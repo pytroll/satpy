@@ -99,9 +99,9 @@ class TestModisL2:
             [lazy_fixture('modis_l2_nasa_mod35_mod03_files'),
              ["cloud_mask"],
              1000, 1000, True],
-            # [lazy_fixture('modis_l2_imapp_mask_byte1_geo_files'),
-            #  ["cloud_mask", "land_sea_mask", "snow_ice_mask"],
-            #  None, 1000, True],
+            [lazy_fixture('modis_l2_imapp_mask_byte1_geo_files'),
+             ["cloud_mask", "land_sea_mask", "snow_ice_mask"],
+             None, 1000, True],
         ]
     )
     def test_load_category_dataset(self, input_files, loadables, request_resolution, exp_resolution, exp_area):

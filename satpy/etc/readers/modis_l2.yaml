@@ -100,8 +100,21 @@ datasets:
   cloud_mask:
     # byte Cloud_Mask(Byte_Segment, Cell_Along_Swath_1km, Cell_Across_Swath_1km)
     name: cloud_mask
-    resolution: [1000, 250]
+    coordinates: [longitude, latitude]
+    resolution:
+      250:
+        file_type: mod35_hdf
+        # Quality Assurance flag is necessary for 250m resolution dataset
+        quality_assurance: True
+      1000:
+        file_type: [mod35_hdf, mask_byte1_hdf]
+        quality_assurance: False
+    # NOTE: byte information and file_key below are unused for the
+    #   mask_byte1_hdf file type.
     # The dimension of the dataset where the byte information is stored
+    file_key: Cloud_Mask
+    imapp_file_key: MODIS_Cloud_Mask
+    category: True
     byte_dimension: 0
     # Different logic depending on the resolution
     byte:
@@ -113,12 +126,6 @@ datasets:
     bit_count:
       - 1000: 2
       - 250: 1
-    # Quality Assurance flag is necessary for 250m resolution dataset
-    quality_assurance:
-      - 250: True
-    file_key: Cloud_Mask
-    file_type: mod35_hdf
-    coordinates: [longitude, latitude]
 
   quality_assurance:
     # byte Quality_Assurance(Cell_Along_Swath_1km, Cell_Across_Swath_1km, QA_Dimension)
@@ -130,6 +137,7 @@ datasets:
     byte: 0
     bit_start: 0
     bit_count: 1
+    category: True
     file_key: Quality_Assurance
     file_type: mod35_hdf
     coordinates: [longitude, latitude]
@@ -529,6 +537,7 @@ datasets:
     units: None
     comment: "0: cloud free, 1: water cloud, 2: ice cloud, 3: mixed phase cloud, 6: undetermined phase"
     coordinates: [longitude, latitude]
+    category: True
     resolution:
       1000:
         file_key: Cloud_Phase_Infrared_1km
@@ -543,6 +552,7 @@ datasets:
     units: None
     file_type: [mod06_hdf, mod06ct_hdf]
     coordinates: [longitude, latitude]
+    category: True
     resolution:
       5000:
         file_key: Cloud_Phase_Infrared_Night
@@ -553,6 +563,7 @@ datasets:
     units: None
     file_type: [mod06_hdf, mod06ct_hdf]
     coordinates: [longitude, latitude]
+    category: True
     resolution:
       5000:
         file_key: Cloud_Phase_Infrared_Day
@@ -564,6 +575,7 @@ datasets:
     comment: "0: stratospheric cloud test not performed, 1: stratospheric cloud not indicated, 2: stratospheric cloud indicated (BTD35-33 > 0.5K)"
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
+    category: True
     resolution:
       1000:
         file_key: os_top_flag_1km
@@ -586,6 +598,7 @@ datasets:
               4: CO2-slicing retrieval, bands 34/33, 6: IR-window retrieval, band 31"
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
+    category: True
     resolution:
       1000:
         file_key: cloud_top_method_1km
@@ -957,6 +970,7 @@ datasets:
     comment: "0: cloud mask undetermined, 1: clear sky, 2: liquid water cloud, 3: ice  cloud, 4: undetermined phase cloud (but attempted as liquid water)"
     file_type: [mod06_hdf, mod06ct_hdf]
     coordinates: [longitude, latitude]
+    category: True
     resolution:
       1000:
         file_key: Cloud_Phase_Optical_Properties
@@ -967,6 +981,7 @@ datasets:
     units: None
     file_type: [mod06_hdf, mod06ct_hdf]
     coordinates: [longitude, latitude]
+    category: True
     resolution:
       1000:
         file_key: Cloud_Multi_Layer_Flag
@@ -1004,6 +1019,7 @@ datasets:
     name: ice_mask
     file_type: icecon_hdf
     coordinates: [longitude, latitude]
+    category: True
     resolution: 1000
     file_key: Ice_Mask
 
@@ -1067,27 +1083,23 @@ datasets:
     name: snow_mask
     file_type: snowmask_hdf
     coordinates: [longitude, latitude]
+    category: True
     resolution: 1000
     file_key: Snow_Mask
 
   # mask_byte1
-  # NOTE: This is an additional DataID to the cloud_mask above. Metadata is
-  #   configured in such a way that it will not override the other configuration
-#  cloud_mask_mask_byte1:
-#    name: cloud_mask
-#    resolution: 1000
-#    file_key: MODIS_Cloud_Mask
-#    file_type: mask_byte1_hdf
-#    coordinates: [longitude, latitude]
+  # See the MOD35 cloud_mask entry which also handles mask_byte1 cloud_mask
   land_sea_mask_mask_byte1:
     name: land_sea_mask
     resolution: 1000
     file_key: MODIS_Simple_LandSea_Mask
     file_type: mask_byte1_hdf
+    category: True
     coordinates: [longitude, latitude]
   snow_ice_mask_mask_byte1:
     name: snow_ice_mask
     resolution: 1000
     file_key: MODIS_Snow_Ice_Flag
     file_type: mask_byte1_hdf
+    category: True
     coordinates: [longitude, latitude]

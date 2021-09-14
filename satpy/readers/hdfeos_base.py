@@ -211,7 +211,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         dataset = self.sd.select(dataset_name)
         return dataset
 
-    def load_dataset(self, dataset_name):
+    def load_dataset(self, dataset_name, is_category=False):
         """Load the dataset from HDF EOS file."""
         from satpy.readers.hdf4_utils import from_sds
 
@@ -220,28 +220,37 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         dims = ('y', 'x') if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
+        data = self._scale_and_mask_data_array(data, is_category=is_category)
 
-        good_mask, new_fill = self._get_good_data_mask(dataset, data)
-        scale_factor = data.attrs.get('scale_factor')
-        if scale_factor is not None:
+        return data
+
+    def _scale_and_mask_data_array(self, data, is_category=False):
+        good_mask, new_fill = self._get_good_data_mask(data, is_category=is_category)
+        scale_factor = data.attrs.pop('scale_factor', None)
+        add_offset = data.attrs.pop('add_offset', None)
+        # don't scale category products, even though scale_factor may equal 1
+        # we still need to convert integers to floats
+        if scale_factor is not None and not is_category:
             data = data * np.float32(scale_factor)
+            if add_offset is not None and add_offset != 0:
+                data = data + add_offset
 
         if good_mask is not None:
             data = data.where(good_mask, new_fill)
         return data
 
-    def _get_good_data_mask(self, pyhdf_dataset, data_arr):
+    def _get_good_data_mask(self, data_arr, is_category=False):
         try:
-            fill_value = pyhdf_dataset._FillValue
-        except AttributeError:
+            fill_value = data_arr.attrs["_FillValue"]
+        except KeyError:
             return None, None
 
         # preserve integer data types if possible
-        if np.issubdtype(data_arr.dtype, np.integer):
-            new_fill = fill_value
-        else:
-            new_fill = np.nan
-            data_arr.attrs.pop('_FillValue', None)
+        if is_category and np.issubdtype(data_arr.dtype, np.integer):
+            # no need to mask, the fill value is already what it needs to be
+            return None, None
+        new_fill = np.nan
+        data_arr.attrs.pop('_FillValue', None)
         good_mask = data_arr != fill_value
         return good_mask, new_fill
 
