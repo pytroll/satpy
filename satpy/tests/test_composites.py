@@ -1045,120 +1045,64 @@ def _enhance2dataset(dataset, convert_p=False):
 class TestBackgroundCompositor:
     """Test case for the background compositor."""
 
+    @classmethod
+    def setup_class(cls):
+        """Create shared input data arrays."""
+        foreground_data = {
+            "L": np.array([[[1., 0.5], [0., np.nan]]]),
+            "LA": np.array([[[1., 0.5], [0., np.nan]], [[0.5, 0.5], [0.5, 0.5]]]),
+            "RGB": np.array([
+                [[1., 0.5], [0., np.nan]],
+                [[1., 0.5], [0., np.nan]],
+                [[1., 0.5], [0., np.nan]]]),
+            "RGBA": np.array([
+                [[1.0, 0.5], [0.0, np.nan]],
+                [[1.0, 0.5], [0.0, np.nan]],
+                [[1.0, 0.5], [0.0, np.nan]],
+                [[0.5, 0.5], [0.5, 0.5]]]),
+        }
+        cls.foreground_data = foreground_data
+
     @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
-    def test_call(self):
+    @pytest.mark.parametrize(
+        ('foreground_bands', 'background_bands', 'exp_bands', 'exp_result'),
+        [
+            ('L', 'L', 'L', np.array([[1.0, 0.5], [0.0, 1.0]])),
+            ('LA', 'LA', 'L', np.array([[1.0, 0.75], [0.5, 1.0]])),
+            ('RGB', 'RGB', 'RGB', np.array([
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]],
+                [[1., 0.5], [0., 1.]]])),
+            ('RGBA', 'RGBA', 'RGB', np.array([
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]]])),
+            ('RGBA', 'RGB', 'RGB', np.array([
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]],
+                [[1., 0.75], [0.5, 1.]]])),
+        ]
+    )
+    def test_call(self, foreground_bands, background_bands, exp_bands, exp_result):
         """Test the background compositing."""
         from satpy.composites import BackgroundCompositor
-        import numpy as np
         comp = BackgroundCompositor("name")
 
         # L mode images
-        attrs = {'mode': 'L', 'area': 'foo'}
-        foreground = xr.DataArray(np.array([[[1., 0.5],
-                                             [0., np.nan]]]),
-                                  dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-        background = xr.DataArray(np.ones((1, 2, 2)), dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-        res = comp([foreground, background])
-        assert res.attrs['area'] == 'foo'
-        np.testing.assert_allclose(res, np.array([[1., 0.5], [0., 1.]]))
-        assert res.attrs['mode'] == 'L'
-
-        # LA mode images
-        attrs = {'mode': 'LA', 'area': 'foo'}
-        foreground = xr.DataArray(np.array([[[1., 0.5],
-                                             [0., np.nan]],
-                                            [[0.5, 0.5],
-                                             [0.5, 0.5]]]),
-                                  dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-        background = xr.DataArray(np.ones((2, 2, 2)), dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-        res = comp([foreground, background])
-        np.testing.assert_allclose(res, np.array([[1., 0.75], [0.5, 1.]]))
-        assert res.attrs['mode'] == 'L'
-
-        # RGB mode images
-        attrs = {'mode': 'RGB', 'area': 'foo'}
-        foreground = xr.DataArray(np.array([[[1., 0.5],
-                                             [0., np.nan]],
-                                            [[1., 0.5],
-                                             [0., np.nan]],
-                                            [[1., 0.5],
-                                             [0., np.nan]]]),
-                                  dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-        background = xr.DataArray(np.ones((3, 2, 2)), dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-
-        res = comp([foreground, background])
-        np.testing.assert_allclose(res, np.array([[[1., 0.5], [0., 1.]],
-                                                  [[1., 0.5], [0., 1.]],
-                                                  [[1., 0.5], [0., 1.]]]))
-        assert res.attrs['mode'] == 'RGB'
-
-        # RGBA mode images
-        attrs = {'mode': 'RGBA', 'area': 'foo'}
-        foreground = xr.DataArray(np.array([[[1., 0.5],
-                                             [0., np.nan]],
-                                            [[1., 0.5],
-                                             [0., np.nan]],
-                                            [[1., 0.5],
-                                             [0., np.nan]],
-                                            [[0.5, 0.5],
-                                             [0.5, 0.5]]]),
-                                  dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-        background = xr.DataArray(np.ones((4, 2, 2)), dims=('bands', 'y', 'x'),
-                                  coords={'bands': [c for c in attrs['mode']]},
-                                  attrs=attrs)
-
-        res = comp([foreground, background])
-        np.testing.assert_allclose(res, np.array([[[1., 0.75], [0.5, 1.]],
-                                                  [[1., 0.75], [0.5, 1.]],
-                                                  [[1., 0.75], [0.5, 1.]]]))
-        assert res.attrs['mode'] == 'RGB'
-
-    @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
-    def test_joining_rgb_rgba(self):
-        """Test combining an RGB foreground to an RGBA background."""
-        from satpy.composites import BackgroundCompositor
-        import numpy as np
-        import dask.array as da
-        comp = BackgroundCompositor("name")
-
-        attrs = {'mode': 'RGBA', 'area': 'foo'}
-        foreground_data = np.array([[[1., 0.5],
-                                     [0., np.nan]],
-                                    [[1., 0.5],
-                                     [0., np.nan]],
-                                    [[1., 0.5],
-                                     [0., np.nan]],
-                                    [[0.5, 0.5],
-                                     [0.5, 0.5]]])
+        foreground_data = self.foreground_data[foreground_bands]
+        attrs = {'mode': foreground_bands, 'area': 'foo'}
         foreground = xr.DataArray(da.from_array(foreground_data),
                                   dims=('bands', 'y', 'x'),
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
-        attrs = {'mode': 'RGB', 'area': 'foo'}
-        background = xr.DataArray(da.ones((3, 2, 2)), dims=('bands', 'y', 'x'),
+        attrs = {'mode': background_bands, 'area': 'foo'}
+        background = xr.DataArray(da.ones((len(background_bands), 2, 2)), dims=('bands', 'y', 'x'),
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
-
         res = comp([foreground, background])
-        np.testing.assert_allclose(res.values,
-                                   np.array([[[1., 0.75], [0.5, 1.]],
-                                             [[1., 0.75], [0.5, 1.]],
-                                             [[1., 0.75], [0.5, 1.]]]))
-        assert res.attrs['mode'] == 'RGB'
+        assert res.attrs['area'] == 'foo'
+        np.testing.assert_allclose(res, exp_result)
+        assert res.attrs['mode'] == exp_bands
 
     @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
     def test_multiple_sensors(self):
@@ -1169,13 +1113,13 @@ class TestBackgroundCompositor:
 
         # L mode images
         attrs = {'mode': 'L', 'area': 'foo'}
-        foreground = xr.DataArray(np.array([[[1., 0.5],
-                                             [0., np.nan]]]),
+        foreground_data = self.foreground_data["L"]
+        foreground = xr.DataArray(da.from_array(foreground_data),
                                   dims=('bands', 'y', 'x'),
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs.copy())
         foreground.attrs['sensor'] = 'abi'
-        background = xr.DataArray(np.ones((1, 2, 2)), dims=('bands', 'y', 'x'),
+        background = xr.DataArray(da.ones((1, 2, 2)), dims=('bands', 'y', 'x'),
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs.copy())
         background.attrs['sensor'] = 'glm'
