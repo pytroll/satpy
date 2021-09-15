@@ -1125,7 +1125,40 @@ class TestBackgroundCompositor(unittest.TestCase):
         self.assertTrue(np.all(res == np.array([[[1., 0.75], [0.5, 1.]],
                                                 [[1., 0.75], [0.5, 1.]],
                                                 [[1., 0.75], [0.5, 1.]]])))
-        self.assertEqual(res.attrs['mode'], 'RGBA')
+        self.assertEqual(res.attrs['mode'], 'RGBA')  # This is wrong!!!
+
+    @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
+    def test_joining_rgb_rgba(self):
+        """Test combining an RGB foreground to an RGBA background."""
+        from satpy.composites import BackgroundCompositor
+        import numpy as np
+        import dask.array as da
+        comp = BackgroundCompositor("name")
+
+        attrs = {'mode': 'RGBA', 'area': 'foo'}
+        foreground_data = np.array([[[1., 0.5],
+                                     [0., np.nan]],
+                                    [[1., 0.5],
+                                     [0., np.nan]],
+                                    [[1., 0.5],
+                                     [0., np.nan]],
+                                    [[0.5, 0.5],
+                                     [0.5, 0.5]]])
+        foreground = xr.DataArray(da.from_array(foreground_data),
+                                  dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+        attrs = {'mode': 'RGB', 'area': 'foo'}
+        background = xr.DataArray(da.ones((3, 2, 2)), dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+
+        res = comp([foreground, background])
+        np.testing.assert_allclose(res.values,
+                                   np.array([[[1., 0.75], [0.5, 1.]],
+                                             [[1., 0.75], [0.5, 1.]],
+                                             [[1., 0.75], [0.5, 1.]]]))
+        assert res.attrs['mode'] == 'RGBA'  # FIXME: This is wrong!!!
 
     @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
     def test_multiple_sensors(self):

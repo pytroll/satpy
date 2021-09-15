@@ -155,7 +155,14 @@ class CompositeBase:
         """Match data arrays so that they can be used together in a composite."""
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
-        return list(xr.unify_chunks(*new_arrays))
+        # Only unify chunks for pure y/x DataArrays
+        # Other dimensions like 'bands' may have different sizes which is
+        # allowed and expected in certain cases. It is not possible to
+        # unify chunks in those cases.
+        if hasattr(xr, 'unify_chunks') and not any(set(x.dims) - {'y', 'x'} for x in data_arrays):
+            # xarray 0.19+
+            new_arrays = list(xr.unify_chunks(*new_arrays))
+        return new_arrays
 
     def drop_coordinates(self, data_arrays):
         """Drop neglible non-dimensional coordinates."""
