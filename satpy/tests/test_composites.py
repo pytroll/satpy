@@ -1081,7 +1081,7 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   attrs=attrs)
         res = comp([foreground, background])
         self.assertTrue(np.all(res == np.array([[1., 0.75], [0.5, 1.]])))
-        self.assertEqual(res.attrs['mode'], 'LA')
+        self.assertEqual(res.attrs['mode'], 'L')
 
         # RGB mode images
         attrs = {'mode': 'RGB', 'area': 'foo'}
@@ -1125,7 +1125,7 @@ class TestBackgroundCompositor(unittest.TestCase):
         self.assertTrue(np.all(res == np.array([[[1., 0.75], [0.5, 1.]],
                                                 [[1., 0.75], [0.5, 1.]],
                                                 [[1., 0.75], [0.5, 1.]]])))
-        self.assertEqual(res.attrs['mode'], 'RGBA')  # This is wrong!!!
+        self.assertEqual(res.attrs['mode'], 'RGB')
 
     @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
     def test_joining_rgb_rgba(self):
@@ -1158,7 +1158,7 @@ class TestBackgroundCompositor(unittest.TestCase):
                                    np.array([[[1., 0.75], [0.5, 1.]],
                                              [[1., 0.75], [0.5, 1.]],
                                              [[1., 0.75], [0.5, 1.]]]))
-        assert res.attrs['mode'] == 'RGBA'  # FIXME: This is wrong!!!
+        assert res.attrs['mode'] == 'RGB'
 
     @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
     def test_multiple_sensors(self):
