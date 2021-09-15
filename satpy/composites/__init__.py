@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes for composite objects."""
+from __future__ import annotations
 
 import logging
 import os
@@ -1193,6 +1194,16 @@ class BackgroundCompositor(GenericCompositor):
         foreground = add_bands(foreground, background['bands'])
         background = add_bands(background, foreground['bands'])
 
+        attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
+        data = self._get_merged_image_data(foreground, background)
+        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
+        res.attrs.update(attrs)
+        return res
+
+    def _combine_metadata_with_mode_and_sensor(self,
+                                               foreground: xr.DataArray,
+                                               background: xr.DataArray
+                                               ) -> dict:
         # Get merged metadata
         attrs = combine_metadata(foreground, background)
         # 'mode' is no longer valid after we've remove the 'A'
@@ -1200,9 +1211,13 @@ class BackgroundCompositor(GenericCompositor):
         attrs.pop("mode", None)
         if attrs.get('sensor') is None:
             # sensor can be a set
-            attrs['sensor'] = self._get_sensors(projectables)
+            attrs['sensor'] = self._get_sensors([foreground, background])
+        return attrs
 
-        # Stack the images
+    @staticmethod
+    def _get_merged_image_data(foreground: xr.DataArray,
+                               background: xr.DataArray
+                               ) -> list[xr.DataArray]:
         if 'A' in foreground.attrs['mode']:
             # Use alpha channel as weight and blend the two composites
             alpha = foreground.sel(bands='A')
@@ -1220,9 +1235,7 @@ class BackgroundCompositor(GenericCompositor):
             # Split to separate bands so the mode is correct
             data = [data.sel(bands=b) for b in data['bands']]
 
-        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
-        res.attrs.update(attrs)
-        return res
+        return data
 
 
 class MaskingCompositor(GenericCompositor):
