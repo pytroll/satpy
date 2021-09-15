@@ -1042,7 +1042,7 @@ def _enhance2dataset(dataset, convert_p=False):
     return dataset
 
 
-class TestBackgroundCompositor(unittest.TestCase):
+class TestBackgroundCompositor:
     """Test case for the background compositor."""
 
     @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
@@ -1063,9 +1063,9 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
         res = comp([foreground, background])
-        self.assertEqual(res.attrs['area'], 'foo')
-        self.assertTrue(np.all(res == np.array([[1., 0.5], [0., 1.]])))
-        self.assertEqual(res.attrs['mode'], 'L')
+        assert res.attrs['area'] == 'foo'
+        np.testing.assert_allclose(res, np.array([[1., 0.5], [0., 1.]]))
+        assert res.attrs['mode'] == 'L'
 
         # LA mode images
         attrs = {'mode': 'LA', 'area': 'foo'}
@@ -1080,8 +1080,8 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
         res = comp([foreground, background])
-        self.assertTrue(np.all(res == np.array([[1., 0.75], [0.5, 1.]])))
-        self.assertEqual(res.attrs['mode'], 'L')
+        np.testing.assert_allclose(res, np.array([[1., 0.75], [0.5, 1.]]))
+        assert res.attrs['mode'] == 'L'
 
         # RGB mode images
         attrs = {'mode': 'RGB', 'area': 'foo'}
@@ -1099,10 +1099,10 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   attrs=attrs)
 
         res = comp([foreground, background])
-        self.assertTrue(np.all(res == np.array([[[1., 0.5], [0., 1.]],
-                                                [[1., 0.5], [0., 1.]],
-                                                [[1., 0.5], [0., 1.]]])))
-        self.assertEqual(res.attrs['mode'], 'RGB')
+        np.testing.assert_allclose(res, np.array([[[1., 0.5], [0., 1.]],
+                                                  [[1., 0.5], [0., 1.]],
+                                                  [[1., 0.5], [0., 1.]]]))
+        assert res.attrs['mode'] == 'RGB'
 
         # RGBA mode images
         attrs = {'mode': 'RGBA', 'area': 'foo'}
@@ -1122,10 +1122,10 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   attrs=attrs)
 
         res = comp([foreground, background])
-        self.assertTrue(np.all(res == np.array([[[1., 0.75], [0.5, 1.]],
-                                                [[1., 0.75], [0.5, 1.]],
-                                                [[1., 0.75], [0.5, 1.]]])))
-        self.assertEqual(res.attrs['mode'], 'RGB')
+        np.testing.assert_allclose(res, np.array([[[1., 0.75], [0.5, 1.]],
+                                                  [[1., 0.75], [0.5, 1.]],
+                                                  [[1., 0.75], [0.5, 1.]]]))
+        assert res.attrs['mode'] == 'RGB'
 
     @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
     def test_joining_rgb_rgba(self):
@@ -1180,10 +1180,10 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   attrs=attrs.copy())
         background.attrs['sensor'] = 'glm'
         res = comp([foreground, background])
-        self.assertEqual(res.attrs['area'], 'foo')
-        self.assertTrue(np.all(res == np.array([[1., 0.5], [0., 1.]])))
-        self.assertEqual(res.attrs['mode'], 'L')
-        self.assertEqual(res.attrs['sensor'], {'abi', 'glm'})
+        assert res.attrs['area'] == 'foo'
+        np.testing.assert_allclose(res, np.array([[1., 0.5], [0., 1.]]))
+        assert res.attrs['mode'] == 'L'
+        assert res.attrs['sensor'] == {'abi', 'glm'}
 
 
 class TestMaskingCompositor(unittest.TestCase):
