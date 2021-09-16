@@ -16,14 +16,18 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of utils."""
+from __future__ import annotations
 
 import logging
+import typing
 import unittest
 import warnings
 from unittest import mock
 
 import pytest
 from numpy import sqrt
+import xarray as xr
+import dask.array as da
 
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters, get_satpos
 
@@ -357,3 +361,59 @@ def test_logging_on_and_off(caplog):
     with caplog.at_level(logging.DEBUG):
         logger.warning("You've got a nice army base here, Colonel.")
     assert "You've got a nice army base here, Colonel." not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("shapes", "chunks", "dims", "exp_unified"),
+    [
+        (
+                ((3, 5, 5), (5, 5)),
+                (-1, -1),
+                (("bands", "y", "x"), ("y", "x")),
+                True,
+        ),
+        (
+                ((3, 5, 5), (5, 5)),
+                (-1, 2),
+                (("bands", "y", "x"), ("y", "x")),
+                True,
+        ),
+        (
+                ((4, 5, 5), (3, 5, 5)),
+                (-1, -1),
+                (("bands", "y", "x"), ("bands", "y", "x")),
+                False,
+        ),
+    ],
+)
+def test_unify_chunks(shapes, chunks, dims, exp_unified):
+    """Test unify_chunks utility function."""
+    from satpy.utils import unify_chunks
+    inputs = list(_data_arrays_from_params(shapes, chunks, dims))
+    results = unify_chunks(*inputs)
+    if exp_unified:
+        _verify_unified(results)
+    else:
+        _verify_unchanged_chunks(results, inputs)
+
+
+def _data_arrays_from_params(shapes: list[tuple[int, ...], ...],
+                             chunks: list[tuple[int, ...], ...],
+                             dims: list[tuple[int, ...], ...]
+                             ) -> typing.Generator[xr.DataArray, None, None]:
+    for shape, chunk, dim in zip(shapes, chunks, dims):
+        yield xr.DataArray(da.ones(shape, chunks=chunk), dims=dim)
+
+
+def _verify_unified(data_arrays: list[xr.DataArray, ...]) -> None:
+    dim_chunks = {}
+    for data_arr in data_arrays:
+        for dim, chunk_size in zip(data_arr.dims, data_arr.chunks):
+            exp_chunks = dim_chunks.setdefault(dim, chunk_size)
+            assert exp_chunks == chunk_size
+
+
+def _verify_unchanged_chunks(data_arrays: list[xr.DataArray, ...],
+                             orig_arrays: list[xr.DataArray, ...]) -> None:
+    for data_arr, orig_arr in zip(data_arrays, orig_arrays):
+        assert data_arr.chunks == orig_arr.chunks
