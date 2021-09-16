@@ -412,11 +412,13 @@ datasets:
         # For EUM reduced (thinned) files
         file_type: hdf_eos_data_1000m
       1000:
-        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m, hdf_eos_data_500m, hdf_eos_data_250m]
+      # Both 500m and 250m files have 1km resolution Longitude/Latitude
+      # 1km Longitude/Latitude can be interpolated to 500m or 250m resolution
       500:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
       250:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
     standard_name: longitude
     units: degree
 
@@ -427,11 +429,13 @@ datasets:
         # For EUM reduced (thinned) files
         file_type: hdf_eos_data_1000m
       1000:
-        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m, hdf_eos_data_500m, hdf_eos_data_250m]
+      # Both 500m and 250m files have 1km resolution Longitude/Latitude
+      # 1km Longitude/Latitude can be interpolated to 500m or 250m resolution
       500:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
       250:
-        file_type: hdf_eos_geo
+        file_type: [hdf_eos_geo, hdf_eos_data_500m, hdf_eos_data_250m]
     standard_name: latitude
     units: degree
 
@@ -496,7 +500,7 @@ file_types:
     - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D02QKM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.250m.hdf'
-    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSBandReader
+    file_reader: !!python/name:satpy.readers.modis_l1b.MixedHDFEOSReader
   hdf_eos_data_500m:
     file_patterns:
     - 'M{platform_indicator:1s}D02Hkm_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
@@ -504,7 +508,7 @@ file_types:
     - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D02HKM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.500m.hdf'
-    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSBandReader
+    file_reader: !!python/name:satpy.readers.modis_l1b.MixedHDFEOSReader
   hdf_eos_data_1000m:
     file_patterns:
     - 'M{platform_indicator:1s}D021km_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'

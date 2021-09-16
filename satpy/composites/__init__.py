@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes for composite objects."""
+from __future__ import annotations
 
 import logging
 import os
@@ -30,6 +31,7 @@ from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.aux_download import DataDownloadMixin
 from satpy.writers import get_enhanced_image
+from satpy.utils import unify_chunks
 
 
 LOG = logging.getLogger(__name__)
@@ -155,7 +157,8 @@ class CompositeBase:
         """Match data arrays so that they can be used together in a composite."""
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
-        return list(xr.unify_chunks(*new_arrays))
+        new_arrays = list(unify_chunks(*new_arrays))
+        return new_arrays
 
     def drop_coordinates(self, data_arrays):
         """Drop neglible non-dimensional coordinates."""
@@ -884,8 +887,10 @@ class RatioSharpenedRGB(GenericCompositor):
         new_attrs = {}
         if optional_datasets:
             datasets = self.match_data_arrays(datasets + optional_datasets)
-            high_res = datasets[-1]
-            p1, p2, p3 = datasets[:3]
+            p1 = datasets[0]
+            p2 = datasets[1]
+            p3 = datasets[2]
+            high_res = datasets[3]
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
@@ -910,7 +915,9 @@ class RatioSharpenedRGB(GenericCompositor):
             b = self._get_band(high_res, p3, 'blue', ratio)
         else:
             datasets = self.match_data_arrays(datasets)
-            r, g, b = datasets[:3]
+            r = datasets[0]
+            g = datasets[1]
+            b = datasets[2]
 
         # combine the masks
         mask = ~(r.isnull() | g.isnull() | b.isnull())
@@ -1240,13 +1247,30 @@ class BackgroundCompositor(GenericCompositor):
         foreground = add_bands(foreground, background['bands'])
         background = add_bands(background, foreground['bands'])
 
+        attrs = self._combine_metadata_with_mode_and_sensor(foreground, background)
+        data = self._get_merged_image_data(foreground, background)
+        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
+        res.attrs.update(attrs)
+        return res
+
+    def _combine_metadata_with_mode_and_sensor(self,
+                                               foreground: xr.DataArray,
+                                               background: xr.DataArray
+                                               ) -> dict:
         # Get merged metadata
         attrs = combine_metadata(foreground, background)
+        # 'mode' is no longer valid after we've remove the 'A'
+        # let the base class __call__ determine mode
+        attrs.pop("mode", None)
         if attrs.get('sensor') is None:
             # sensor can be a set
-            attrs['sensor'] = self._get_sensors(projectables)
+            attrs['sensor'] = self._get_sensors([foreground, background])
+        return attrs
 
-        # Stack the images
+    @staticmethod
+    def _get_merged_image_data(foreground: xr.DataArray,
+                               background: xr.DataArray
+                               ) -> list[xr.DataArray]:
         if 'A' in foreground.attrs['mode']:
             # Use alpha channel as weight and blend the two composites
             alpha = foreground.sel(bands='A')
@@ -1264,9 +1288,7 @@ class BackgroundCompositor(GenericCompositor):
             # Split to separate bands so the mode is correct
             data = [data.sel(bands=b) for b in data['bands']]
 
-        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
-        res.attrs.update(attrs)
-        return res
+        return data
 
 
 class MaskingCompositor(GenericCompositor):
