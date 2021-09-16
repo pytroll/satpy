@@ -553,6 +553,7 @@ def _insert_palette_colors(channels, palette):
 
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends day data with night data.
+
     Using the `day_night` flag it is also possible to provide only a day product
     or only a night product and mask out (make transparent) the opposite portion
     of the image (night or day). See the documentation below for more details.
@@ -661,6 +662,7 @@ class DayNightCompositor(GenericCompositor):
 
 def add_alpha_bands(data):
     """Only used for DayNightCompositor.
+
     Add an alpha band to L or RGB composite as prerequisites for the following band matching
     to make the masked-out area transparent.
     """
