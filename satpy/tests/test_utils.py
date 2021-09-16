@@ -25,7 +25,7 @@ import warnings
 from unittest import mock
 
 import pytest
-from numpy import sqrt
+import numpy as np
 import xarray as xr
 import dask.array as da
 
@@ -68,14 +68,14 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(z__, -1)
 
         x__, y__, z__ = lonlat2xyz(0, 45)
-        self.assertAlmostEqual(x__, sqrt(2) / 2)
+        self.assertAlmostEqual(x__, np.sqrt(2) / 2)
         self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, sqrt(2) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
 
         x__, y__, z__ = lonlat2xyz(0, 60)
-        self.assertAlmostEqual(x__, sqrt(1) / 2)
+        self.assertAlmostEqual(x__, np.sqrt(1) / 2)
         self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, sqrt(3) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(3) / 2)
 
     def test_angle2xyz(self):
         """Test the lonlat2xyz function."""
@@ -131,13 +131,13 @@ class TestUtils(unittest.TestCase):
 
         x__, y__, z__ = angle2xyz(0, 45)
         self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, sqrt(2) / 2)
-        self.assertAlmostEqual(z__, sqrt(2) / 2)
+        self.assertAlmostEqual(y__, np.sqrt(2) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
 
         x__, y__, z__ = angle2xyz(0, 60)
         self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, sqrt(3) / 2)
-        self.assertAlmostEqual(z__, sqrt(1) / 2)
+        self.assertAlmostEqual(y__, np.sqrt(3) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(1) / 2)
 
     def test_xyz2lonlat(self):
         """Test xyz2lonlat."""
@@ -157,7 +157,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(lon, 0)
         self.assertAlmostEqual(lat, 90)
 
-        lon, lat = xyz2lonlat(sqrt(2) / 2, sqrt(2) / 2, 0)
+        lon, lat = xyz2lonlat(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
         self.assertAlmostEqual(lon, 45)
         self.assertAlmostEqual(lat, 0)
 
@@ -179,7 +179,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(azi, 0)
         self.assertAlmostEqual(zen, 0)
 
-        azi, zen = xyz2angle(sqrt(2) / 2, sqrt(2) / 2, 0)
+        azi, zen = xyz2angle(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
         self.assertAlmostEqual(azi, 45)
         self.assertAlmostEqual(zen, 90)
 
@@ -266,9 +266,6 @@ def test_make_fake_scene():
     purposes, it has grown sufficiently complex that it needs its own
     testing.
     """
-    import numpy as np
-    import dask.array as da
-    import xarray as xr
     from satpy.tests.utils import make_fake_scene
 
     assert make_fake_scene({}).keys() == []
