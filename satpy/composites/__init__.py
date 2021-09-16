@@ -833,8 +833,10 @@ class RatioSharpenedRGB(GenericCompositor):
         new_attrs = {}
         if optional_datasets:
             datasets = self.match_data_arrays(datasets + optional_datasets)
-            high_res = datasets[-1]
-            p1, p2, p3 = datasets[:3]
+            p1 = datasets[0]
+            p2 = datasets[1]
+            p3 = datasets[2]
+            high_res = datasets[3]
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
@@ -859,7 +861,9 @@ class RatioSharpenedRGB(GenericCompositor):
             b = self._get_band(high_res, p3, 'blue', ratio)
         else:
             datasets = self.match_data_arrays(datasets)
-            r, g, b = datasets[:3]
+            r = datasets[0]
+            g = datasets[1]
+            b = datasets[2]
 
         # combine the masks
         mask = ~(r.isnull() | g.isnull() | b.isnull())
