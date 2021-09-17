@@ -120,6 +120,7 @@ They can be defined when initializing the compositor::
  - day_night (string): "day_night" means both day and night portions will be kept
                        "day_only" means only day portion will be kept
                        "night_only" means only night portion will be kept
+
 Usage (with default values)::
 
     >>> from satpy.composites import DayNightCompositor
