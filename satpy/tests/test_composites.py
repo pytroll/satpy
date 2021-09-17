@@ -323,20 +323,56 @@ class TestDayNightCompositor(unittest.TestCase):
         # not used except to check that it matches the data arrays
         self.sza.attrs['area'] = my_area
 
-    def test_basic_sza(self):
-        """Test compositor when SZA data is included."""
+    def test_daynight_sza(self):
+        """Test compositor with both day and night portions when SZA data is included."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test')
+        comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b, self.sza))
         res = res.compute()
         expected = np.array([[0., 0.22122352], [0.5, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
-    def test_basic_area(self):
-        """Test compositor when SZA data is not provided."""
+    def test_daynight_area(self):
+        """Test compositor both day and night portions when SZA data is not provided."""
         from satpy.composites import DayNightCompositor
-        comp = DayNightCompositor(name='dn_test')
+        comp = DayNightCompositor(name='dn_test', day_night="day_night")
         res = comp((self.data_a, self.data_b))
+        res = res.compute()
+        expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_night_only_sza(self):
+        """Test compositor with night portion when SZA data is included."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="night_only")
+        res = comp((self.data_b, self.sza))
+        res = res.compute()
+        expected = np.array([[np.nan, 0.], [0.5, 1.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_night_only_area(self):
+        """Test compositor with night portion when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="night_only")
+        res = comp((self.data_b))
+        res = res.compute()
+        expected = np.array([[np.nan, 0.], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_day_only_sza(self):
+        """Test compositor with day portion when SZA data is included."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only")
+        res = comp((self.data_a, self.sza))
+        res = res.compute()
+        expected = np.array([[0., 0.22122352], [0., 0.]])
+        np.testing.assert_allclose(res.values[0], expected)
+
+    def test_day_only_area(self):
+        """Test compositor with day portion when SZA data is not provided."""
+        from satpy.composites import DayNightCompositor
+        comp = DayNightCompositor(name='dn_test', day_night="day_only")
+        res = comp((self.data_a))
         res = res.compute()
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
@@ -1108,7 +1144,6 @@ class TestBackgroundCompositor:
     def test_multiple_sensors(self):
         """Test the background compositing from multiple sensor data."""
         from satpy.composites import BackgroundCompositor
-        import numpy as np
         comp = BackgroundCompositor("name")
 
         # L mode images
