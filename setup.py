@@ -79,6 +79,7 @@ extras_require = {
     # Other
     'geoviews': ['geoviews'],
     'overlays': ['pycoast', 'pydecorate'],
+    'tests': test_requires,
 }
 all_extras = []
 for extra_deps in extras_require.values():
@@ -154,7 +155,6 @@ setup(name=NAME,
       use_scm_version={'write_to': 'satpy/version.py'},
       setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
       install_requires=requires,
-      tests_require=test_requires,
       python_requires='>=3.7',
       extras_require=extras_require,
       entry_points=entry_points,
