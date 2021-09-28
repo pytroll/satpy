@@ -154,16 +154,15 @@ class TestConfigObject:
         """Test that multiple config paths are accepted."""
         from importlib import reload
         import satpy
+        exp_paths, env_paths = _os_specific_multipaths()
         old_vars = {
-            'SATPY_CONFIG_PATH': _os_specific_multipaths(),
+            'SATPY_CONFIG_PATH': env_paths,
         }
 
         with mock.patch.dict('os.environ', old_vars):
             reload(satpy._config)
             reload(satpy)
-            assert satpy.config.get('config_path') == ['/my/configs1',
-                                                       '/my/configs2',
-                                                       '/my/configs3']
+            assert satpy.config.get('config_path') == exp_paths
 
     def test_config_path_multiple_load(self):
         """Test that config paths from subprocesses load properly.
@@ -174,8 +173,9 @@ class TestConfigObject:
         """
         from importlib import reload
         import satpy
+        exp_paths, env_paths = _os_specific_multipaths()
         old_vars = {
-            'SATPY_CONFIG_PATH': _os_specific_multipaths(),
+            'SATPY_CONFIG_PATH': env_paths,
         }
 
         with mock.patch.dict('os.environ', old_vars):
@@ -186,9 +186,7 @@ class TestConfigObject:
             # load the updated env variable and parse it again.
             reload(satpy._config)
             reload(satpy)
-            assert satpy.config.get('config_path') == ['/my/configs1',
-                                                       '/my/configs2',
-                                                       '/my/configs3']
+            assert satpy.config.get('config_path') == exp_paths
 
     def test_bad_str_config_path(self):
         """Test that a str config path isn't allowed."""
@@ -210,7 +208,9 @@ class TestConfigObject:
 
 
 def _os_specific_multipaths():
-    path_str = "/my/configs1:/my/configs2:/my/configs3"
+    exp_paths = ['/my/configs1', '/my/configs2', '/my/configs3']
+    path_str = ":".join(exp_paths)
     if sys.platform.startswith("win"):
-        path_str = path_str.replace(":", ";").replace("/my", "C:/my")
-    return path_str
+        exp_paths = ["C:" + p for p in exp_paths]
+        path_str = ";".join(exp_paths)
+    return exp_paths, path_str
