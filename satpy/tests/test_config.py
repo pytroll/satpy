@@ -18,6 +18,7 @@
 """Test objects and functions in the satpy.config module."""
 
 import os
+import sys
 import unittest
 from unittest import mock
 import pytest
@@ -154,7 +155,7 @@ class TestConfigObject:
         from importlib import reload
         import satpy
         old_vars = {
-            'SATPY_CONFIG_PATH': '/my/configs1:/my/configs2:/my/configs3',
+            'SATPY_CONFIG_PATH': _os_specific_multipaths(),
         }
 
         with mock.patch.dict('os.environ', old_vars):
@@ -174,7 +175,7 @@ class TestConfigObject:
         from importlib import reload
         import satpy
         old_vars = {
-            'SATPY_CONFIG_PATH': '/my/configs1:/my/configs2:/my/configs3',
+            'SATPY_CONFIG_PATH': _os_specific_multipaths(),
         }
 
         with mock.patch.dict('os.environ', old_vars):
@@ -206,3 +207,10 @@ class TestConfigObject:
         # strings are not allowed, lists are
         with satpy.config.set(config_path='/single/string/paths/are/bad'):
             pytest.raises(ValueError, satpy._config.get_config_path_safe)
+
+
+def _os_specific_multipaths():
+    path_str = "/my/configs1:/my/configs2:/my/configs3"
+    if sys.platform.startswith("win"):
+        path_str = path_str.replace(":", ";").replace("/my", "C:/my")
+    return path_str
