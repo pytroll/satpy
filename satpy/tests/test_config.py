@@ -209,8 +209,7 @@ class TestConfigObject:
 
 def _os_specific_multipaths():
     exp_paths = ['/my/configs1', '/my/configs2', '/my/configs3']
-    path_str = ":".join(exp_paths)
     if sys.platform.startswith("win"):
         exp_paths = ["C:" + p for p in exp_paths]
-        path_str = ";".join(exp_paths)
+    path_str = os.pathsep.join(exp_paths)
     return exp_paths, path_str
