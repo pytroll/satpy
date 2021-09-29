@@ -27,8 +27,7 @@ workers by doing the following at the **top** of your python code:
 .. code-block:: python
 
     import dask
-    from multiprocessing.pool import ThreadPool
-    dask.config.set(pool=ThreadPool(8))
+    dask.config.set(num_workers=8)
     # all other Satpy imports and code
 
 This will limit dask to using 8 workers. Typically numbers between 4 and 8
