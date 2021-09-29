@@ -39,17 +39,19 @@ def test_ninjogeotiff(fake_datasets):
     """Test that it writes a GeoTIFF with the appropriate NinJo-tags."""
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     w = NinJoGeoTIFFWriter()
-    with unittest.mock.patch("satpy.writers.geotiff.GeoTIFFWriter") as swgg:
+    with unittest.mock.patch("satpy.writers.geotiff.GeoTIFFWriter.save_datasets") as swggs:
         w.save_datasets(
                 fake_datasets,
-                physic_unit="C",
-                sat_id=6400014,
-                chan_id=900015,
-                data_cat="GORN",
-                data_source="EUMETCAST",
-                ch_min_measurement_unit=-87.5,
-                ch_max_measurement_unit=40)
-        assert swgg.save_datasets.called_with(
+                ninjo_tags=dict(
+                    physic_unit="C",
+                    sat_id="6400014",
+                    chan_id="900015",
+                    data_cat="GORN",
+                    data_source="EUMETCAST",
+                    ch_min_measurement_unit="-87.5",
+                    ch_max_measurement_unit="40"))
+        swggs.assert_called_with(
+                fake_datasets,
                 tags={"ninjo_physic_unit": "C",
                       "ninjo_sat_id": "6400014",
                       "ninjo_chan_id": "900015",
