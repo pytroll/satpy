@@ -22,8 +22,18 @@ import math
 import unittest.mock
 
 import dask.array as da
+import numpy as np
 import pytest
 import xarray as xr
+
+
+def _get_fake_da(lo, hi, shp, dtype="f4"):
+    """Generate dask array with synthetic data.
+
+    This is more or less a 2d linspace: it'll return a 2-d dask array of shape
+    shape, lowest value is lo, highest value is hi.
+    """
+    return da.arange(lo, hi, (hi-lo)/math.prod(shp), chunks=50, dtype=dtype).reshape(shp)
 
 
 @pytest.fixture(scope="module")
@@ -80,9 +90,8 @@ def test_area_small_stereographic_wgs84():
 def test_dataset_small_mid_atlantic_L(test_area_small_eqc_sphere):
     """Get a small testdataset in mode L, over Atlantic."""
     arr = xr.DataArray(
-        da.zeros(test_area_small_eqc_sphere.shape, chunks=50),
+        _get_fake_da(-80, 40, test_area_small_eqc_sphere.shape + (1,)),
         dims=("y", "x", "bands"),
-        coords={"bands": ["L"]},
         attrs={
             "name": "test-small-mid-atlantic",
             "start_time": datetime.datetime(1985, 8, 13, 15, 0),
@@ -94,7 +103,7 @@ def test_dataset_small_mid_atlantic_L(test_area_small_eqc_sphere):
 def test_dataset_large_asia_RGB(test_area_large_eqc_wgs84):
     """Get a large-ish test dataset in mode RGB, over Asia."""
     arr = xr.DataArray(
-        da.zeros(test_area_large_eqc_wgs84.shape + (3,), chunks=50),
+        _get_fake_da(0, 255, test_area_large_eqc_wgs84.shape + (3,), "uint8"),
         dims=("y", "x", "bands"),
         coords={"bands": ["R", "G", "B"]},
         attrs={
@@ -109,7 +118,7 @@ def test_dataset_large_asia_RGB(test_area_large_eqc_wgs84):
 def test_dataset_small_arctic_P(test_area_small_stereographic_wgs84):
     """Get a small-ish test dataset in mode P, over Arctic."""
     arr = xr.DataArray(
-        da.zeros(test_area_small_stereographic_wgs84.shape + (1,), chunks=50),
+        _get_fake_da(0, 10, test_area_small_stereographic_wgs84.shape + (1,), "uint8"),
         dims=("y", "x", "bands"),
         coords={"bands": ["P"]},
         attrs={
@@ -162,6 +171,22 @@ def ntg3(test_dataset_small_arctic_P):
              "DataSource": "FIXME",
              "DataType": "PPRN",
              "SatelliteNameID": 6500014})
+
+
+@pytest.fixture
+def patch_datetime_now(monkeypatch):
+    """Get a fake datetime.datetime.now()."""
+    # Source: https://stackoverflow.com/a/20503374/974555, CC-BY-SA 4.0
+
+    class mydatetime(datetime.datetime):
+        """Drop-in replacement for datetime.datetime."""
+
+        @classmethod
+        def now(cls):
+            """Drop-in replacement for datetime.datetime.now."""
+            return datetime.datetime(2033, 5, 18, 5, 33, 20)
+
+    monkeypatch.setattr(datetime, 'datetime', mydatetime)
 
 
 exp_tags = {"AxisIntercept": -88,
@@ -231,10 +256,12 @@ def test_calc_tags(fake_datasets):
     assert tags == exp_tags
 
 
-def test_calc_single_tag_by_name(ntg1):
+def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
     """Test calculating single tag from dataset."""
     assert ntg1.get_tag("Magic") == "NINJO"
     assert ntg1.get_tag("DataType") == "GPRN"
+    assert ntg2.get_tag("DataType") == "GORN"
+    assert ntg3.get_tag("DataType") == "PPRN"
     assert ntg1.get_tag("IsCalibrated") == 1
     with pytest.raises(ValueError):
         ntg1.get_tag("invalid")
@@ -244,49 +271,64 @@ def test_get_axis_intercept(ntg1):
     """Test calculating the axis intercept."""
     intercept = ntg1.get_axis_intercept()
     assert isinstance(intercept, float)
-    assert math.isclose(intercept, -88.0)
+    np.testing.assert_allclose(intercept, -88.0)
+    # FIXME: needs more tests
 
 
 def test_get_central_meridian(ntg1):
     """Test calculating the central meridian."""
     cm = ntg1.get_central_meridian()
     assert isinstance(cm, float)
-    assert math.isclose(cm, 0.0)
+    np.testing.assert_allclose(cm, 0.0)
+    # FIXME: needs more tests
 
 
-def test_get_color_depth(ntg1):
+def test_get_color_depth(ntg1, ntg2, ntg3):
     """Test extracting the color depth."""
     cd = ntg1.get_color_depth()
     assert isinstance(cd, int)
-    assert cd == 24
+    assert cd == 8  # mode L
+    assert ntg2.get_color_depth() == 24  # mode RGB
+    assert ntg3.get_color_depth() == 8  # mode P
 
 
-def test_get_creation_date_id(ntg1):
-    """Test getting the creation date ID."""
+def test_get_creation_date_id(ntg1, patch_datetime_now):
+    """Test getting the creation date ID.
+
+    This is the time at which the file was created.
+    """
     cdid = ntg1.get_creation_date_id()
     assert isinstance(cdid, int)
-    assert cdid == 1632820093
+    assert cdid == 2000000000
+    assert ntg2.get_creation_date_id() == 2000000000
+    assert ntg3.get_creation_date_id() == 2000000000
 
 
 def test_get_date_id(ntg1):
     """Test getting the date ID."""
     did = ntg1.get_date_id()
     assert isinstance(did, int)
-    assert did == 1623581777
+    assert did == 492786000
+    assert ntg2.get_date_id() == 1445459100
+    assert ntg3.get_date_id() == 1817194800
 
 
-def test_get_earth_radius_large(ntg1):
+def test_get_earth_radius_large(ntg1, ntg2, ntg3):
     """Test getting the Earth semi-major axis."""
     erl = ntg1.get_earth_radius_large()
     assert isinstance(erl, float)
-    assert math.isclose(erl, 6378137.0)
+    np.testing.assert_allclose(erl, 6370997.0)
+    np.testing.assert_allclose(ntg2.get_earth_radius_large(), 6378137.0)
+    np.testing.assert_allclose(ntg3.get_earth_radius_large(), 6378137.0)
 
 
-def test_get_earth_radius_small(ntg1):
+def test_get_earth_radius_small(ntg1, ntg2, ntg3):
     """Test getting the Earth semi-minor axis."""
     ers = ntg1.get_earth_radius_small()
     assert isinstance(ers, float)
-    assert math.isclose(ers, 6356752.5)
+    np.testing.assert_allclose(ers, 6370997.0)
+    np.testing.assert_allclose(ntg2.get_earth_radius_small(), 6356752.314245179)
+    np.testing.assert_allclose(ntg3.get_earth_radius_small(), 6356752.314245179)
 
 
 def test_get_filename(ntg1):
@@ -298,7 +340,7 @@ def test_get_gradient(ntg1):
     """Test getting the gradient."""
     grad = ntg1.get_gradient()
     assert isinstance(grad, float)
-    assert math.isclose(grad, 0.5)
+    np.testing.assert_allclose(grad, 0.5)
 
 
 def test_get_atmosphere_corrected(ntg1):
@@ -340,14 +382,14 @@ def test_get_meridian_east(ntg1):
     """Test getting east meridian."""
     me = ntg1.get_meridian_east()
     assert isinstance(me, float)
-    assert math.isclose(me, 45.0)
+    np.testing.assert_allclose(me, 45.0)
 
 
 def test_get_meridian_west(ntg1):
     """Test getting west meridian."""
     mw = ntg1.get_meridian_west()
     assert isinstance(mw, float)
-    assert math.isclose(mw, -135.0)
+    np.testing.assert_allclose(mw, -135.0)
 
 
 def test_get_min_gray_value(ntg1):
@@ -366,14 +408,14 @@ def test_get_ref_lat_1(ntg1):
     """Test getting reference latitude 1."""
     rl1 = ntg1.get_ref_lat_1()
     assert isinstance(rl1, float)
-    assert math.isclose(rl1, 60.0)
+    np.testing.assert_allclose(rl1, 60.0)
 
 
 def test_get_ref_lat_2(ntg1):
     """Test getting reference latitude 2."""
     rl2 = ntg1.get_ref_lat_2()
     assert isinstance(rl2, float)
-    assert math.isclose(rl2, 0.0)
+    np.testing.assert_allclose(rl2, 0.0)
 
 
 def test_get_transparent_pixel(ntg1):

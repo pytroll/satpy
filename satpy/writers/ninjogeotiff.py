@@ -187,7 +187,7 @@ class NinJoTagGenerator:
 
     def get_ref_lat_2(self):
         """Get reference latitude two."""
-        return 0.0  # FIXME: derive from area
+        return 0  # FIXME: derive from area
 
     def get_transparent_pixel(self):
         """Get transparent pixel value."""
