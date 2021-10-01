@@ -27,7 +27,7 @@ from .geotiff import GeoTIFFWriter
 class NinJoGeoTIFFWriter(GeoTIFFWriter):
     """Writer for GeoTIFFs with NinJo tags."""
 
-    def save_dataset(self, dataset, ninjo_tags):
+    def save_dataset(self, dataset, ninjo_tags, **kwargs):
         """Save dataset along with NinJo tags.
 
         Save dataset along with NinJo tags.  Interface as for GeoTIFF, except
@@ -38,10 +38,11 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             dataset (xr.DataArray): Data array to save.
             ninjo_tags (Mapping[str, str|numeric): tags to add
         """
-        tags = calc_tags_from_dataset(dataset, ninjo_tags)
+        tags = calc_tags_from_dataset(dataset, ninjo_tags, writer_args=kwargs)
         super().save_dataset(
                 dataset,
-                tags={"ninjo_" + k: v for (k, v) in tags.items()})
+                tags={"ninjo_" + k: v for (k, v) in tags.items()},
+                **kwargs)
 
 
 class NinJoTagGenerator:
@@ -86,13 +87,14 @@ class NinJoTagGenerator:
         "YMaximum": "ymaximum"
         }
 
-    def __init__(self, dataset, args):
+    def __init__(self, dataset, args, writer_args):
         """Initialise tag generator."""
         self.dataset = dataset
         self.args = args
         self.tag_names = (self.fixed_tags.keys() |
                           self.passed_tags |
                           self.dynamic_tags.keys())
+        self.writer_args = writer_args
 
     def get_all_tags(self):
         """Get a dictionary with all tags for NinJo."""
@@ -146,20 +148,34 @@ class NinJoTagGenerator:
         return 0.5  # FIXME: derive from content
 
     def get_atmosphere_corrected(self):
-        """Return whether atmosphere is corrected."""
-        return 0  # FIXME: derive from metadata
+        """Return whether atmosphere is corrected.
+
+        Always 0.
+        """
+        return 0
 
     def get_black_line_corrected(self):
-        """Return whether black line correction applied."""
-        return 0  # FIXME: derive from metadata
+        """Return whether black line correction applied.
+
+        Always 0.
+
+        (What is black line correction?)
+        """
+        return 0
 
     def get_is_calibrated(self):
-        """Return whether calibration has been applied."""
-        return 1  # FIXME: derive from metadata
+        """Return whether calibration has been applied.
+
+        Always 1.
+        """
+        return 1
 
     def get_is_normalized(self):
-        """Return whether data have been normalized."""
-        return 0  # FIXME: derive from metadata
+        """Return whether data have been normalized.
+
+        Not sure what this means exactly.  Always 0.
+        """
+        return 0
 
     def get_max_gray_value(self):
         """Calculate maximum gray value."""
@@ -202,10 +218,10 @@ class NinJoTagGenerator:
         return self.dataset.sizes["y"]
 
 
-def calc_tags_from_dataset(dataset, args):
+def calc_tags_from_dataset(dataset, args, writer_args):
     """Calculate NinJo tags from dataset.
 
     For a dataset (xarray.DataArray), calculate content-dependent tags.
     """
-    ntg = NinJoTagGenerator(dataset, args)
+    ntg = NinJoTagGenerator(dataset, args, writer_args)
     return ntg.get_all_tags()

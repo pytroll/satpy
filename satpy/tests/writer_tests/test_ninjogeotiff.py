@@ -49,7 +49,7 @@ def test_area_small_eqc_sphere():
         units="m",
         shape=shp,
         resolution=1000,
-        center=(40, -30))
+        center=(-3330000.0, 4440000.0))
     return test_area
 
 
@@ -59,14 +59,12 @@ def test_area_large_eqc_wgs84():
     from pyresample import create_area_def
     shp = (1000, 2000)
     test_area = create_area_def(
-        "test-area",
-        {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
-         "x_0": 0, "y_0": 0, "ellps": "wgs84", "units": "m",
-         "no_defs": None, "type": "crs"},
-        units="m",
-        shape=shp,
-        resolution=1000,
-        center=(50, 90))
+            "test-area",
+            {"proj": "eqc", "lat_0": 2.5, "lon_0": 1, "ellps": "WGS84"},
+            units="m",
+            shape=shp,
+            resolution=1000,
+            center=(10000000.0, 6000000.0))
     return test_area
 
 
@@ -77,12 +75,12 @@ def test_area_small_stereographic_wgs84():
     shp = (200, 100)
     test_area = create_area_def(
         "test-area",
-        {"proj": "stere", "lat_0": 75.0, "lon_0": 0.0, "lat_ts": 60.0,
+        {"proj": "stere", "lat_0": 75.0, "lon_0": 2.0, "lat_ts": 60.0,
             "ellps": "WGS84", "units": "m", "type": "crs"},
         units="m",
         shape=shp,
         resolution=1000,
-        center=(90, 0))
+        center=(0.0, 1500000.0))
     return test_area
 
 
@@ -146,7 +144,8 @@ def ntg1(test_dataset_small_mid_atlantic_L):
              "DataSource": "FIXME",
              "DataType": "GPRN",
              "PhysicUnit": "C",
-             "SatelliteNameID": 6400014})
+             "SatelliteNameID": 6400014},
+            writer_args={"fill_value": 255})
 
 
 @pytest.fixture(scope="module")
@@ -158,7 +157,8 @@ def ntg2(test_dataset_large_asia_RGB):
             {"ChannelID": 1000015,
              "DataSource": "FIXME",
              "DataType": "GORN",
-             "SatelliteNameID": 6400014})
+             "SatelliteNameID": 6400014},
+            writer_args={})
 
 
 @pytest.fixture(scope="module")
@@ -170,7 +170,8 @@ def ntg3(test_dataset_small_arctic_P):
             {"ChannelID": 800012,
              "DataSource": "FIXME",
              "DataType": "PPRN",
-             "SatelliteNameID": 6500014})
+             "SatelliteNameID": 6500014},
+            writer_args={"fill_value": 12})
 
 
 @pytest.fixture
@@ -252,7 +253,8 @@ def test_calc_tags(fake_datasets):
              "DataSource": "FIXME",
              "DataType": "GPRN",
              "PhysicUnit": "C",
-             "SatelliteNameID": 6400014})
+             "SatelliteNameID": 6400014},
+            writer_args={})
     assert tags == exp_tags
 
 
@@ -267,20 +269,22 @@ def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
         ntg1.get_tag("invalid")
 
 
-def test_get_axis_intercept(ntg1):
+def test_get_axis_intercept(ntg1, ntg2, ntg3):
     """Test calculating the axis intercept."""
     intercept = ntg1.get_axis_intercept()
     assert isinstance(intercept, float)
-    np.testing.assert_allclose(intercept, -88.0)
-    # FIXME: needs more tests
+    np.testing.assert_allclose(intercept, -80.0)
+    np.testing.assert_allclose(ntg2.get_axis_intercept(), 0.0)
+    np.testing.assert_allclose(ntg3.get_axis_intercept(), 0.0)
 
 
-def test_get_central_meridian(ntg1):
+def test_get_central_meridian(ntg1, ntg2, ntg3):
     """Test calculating the central meridian."""
     cm = ntg1.get_central_meridian()
     assert isinstance(cm, float)
     np.testing.assert_allclose(cm, 0.0)
-    # FIXME: needs more tests
+    np.testing.assert_allclose(ntg2.get_central_meridian(), 1.0)
+    np.testing.assert_allclose(ntg3.get_central_meridian(), 2.0)
 
 
 def test_get_color_depth(ntg1, ntg2, ntg3):
@@ -296,6 +300,8 @@ def test_get_creation_date_id(ntg1, patch_datetime_now):
     """Test getting the creation date ID.
 
     This is the time at which the file was created.
+
+    This test believes it is run at 2033-5-18 05:33:20Z.
     """
     cdid = ntg1.get_creation_date_id()
     assert isinstance(cdid, int)
@@ -304,7 +310,7 @@ def test_get_creation_date_id(ntg1, patch_datetime_now):
     assert ntg3.get_creation_date_id() == 2000000000
 
 
-def test_get_date_id(ntg1):
+def test_get_date_id(ntg1, ntg2, ntg3):
     """Test getting the date ID."""
     did = ntg1.get_date_id()
     assert isinstance(did, int)
@@ -333,107 +339,136 @@ def test_get_earth_radius_small(ntg1, ntg2, ntg3):
 
 def test_get_filename(ntg1):
     """Test getting the filename."""
+    # FIXME: make this test more realistic
     assert ntg1.get_filename() == "papapath.tif"
 
 
-def test_get_gradient(ntg1):
+def test_get_gradient(ntg1, ntg2, ntg3):
     """Test getting the gradient."""
     grad = ntg1.get_gradient()
     assert isinstance(grad, float)
-    np.testing.assert_allclose(grad, 0.5)
+    np.testing.assert_allclose(grad, (40--80)/255)
+    # RGB and P images have gradient == 1
+    np.testing.assert_allclose(ntg2.get_gradient(), 1.0)
+    np.testing.assert_allclose(ntg3.get_gradient(), 1.0)
 
 
-def test_get_atmosphere_corrected(ntg1):
+def test_get_atmosphere_corrected(ntg1, ntg2, ntg3):
     """Test whether the atmosphere is corrected."""
     corr = ntg1.get_atmosphere_corrected()
     assert isinstance(corr, int)  # on purpose not a boolean
     assert corr == 0
+    assert ntg2.get_atmosphere_corrected() == 0
+    assert ntg3.get_atmosphere_corrected() == 0
 
 
-def test_get_black_line_corrected(ntg1):
+def test_get_black_line_corrected(ntg1, ntg2, ntg3):
     """Test whether black line correction applied."""
     blc = ntg1.get_black_line_corrected()
     assert isinstance(blc, int)  # on purpose not a boolean
     assert blc == 0
+    assert ntg2.get_black_line_corrected() == 0
+    assert ntg3.get_black_line_corrected() == 0
 
 
-def test_is_calibrated(ntg1):
+def test_is_calibrated(ntg1, ntg2, ntg3):
     """Test whether calibrated."""
     calib = ntg1.get_is_calibrated()
     assert isinstance(calib, int)
     assert calib == 1
+    assert ntg2.get_is_calibrated() == 1
+    assert ntg3.get_is_calibrated() == 1
 
 
-def test_is_normalized(ntg1):
+def test_is_normalized(ntg1, ntg2, ntg3):
     """Test whether normalized."""
     is_norm = ntg1.get_is_normalized()
     assert isinstance(is_norm, int)
     assert is_norm == 0
+    assert ntg2.get_is_normalized() == 0
+    assert ntg3.get_is_normalized() == 0
 
 
-def test_get_max_gray(ntg1):
-    """Test getting max gray value."""
-    mg = ntg1.get_max_gray_value()
-    assert isinstance(mg, int)
-    assert mg == 255
-
-
-def test_get_meridian_east(ntg1):
-    """Test getting east meridian."""
-    me = ntg1.get_meridian_east()
-    assert isinstance(me, float)
-    np.testing.assert_allclose(me, 45.0)
-
-
-def test_get_meridian_west(ntg1):
-    """Test getting west meridian."""
-    mw = ntg1.get_meridian_west()
-    assert isinstance(mw, float)
-    np.testing.assert_allclose(mw, -135.0)
-
-
-def test_get_min_gray_value(ntg1):
+def test_get_min_gray_value(ntg1, ntg2, ntg3):
     """Test getting min gray value."""
     mg = ntg1.get_min_gray_value()
     assert isinstance(mg, int)
     assert mg == 0
+    assert ntg2.get_min_gray_value() == 0
+    assert ntg3.get_min_gray_value() == 0
 
 
-def test_get_projection(ntg1):
+def test_get_max_gray(ntg1, ntg2, ntg3):
+    """Test getting max gray value."""
+    mg = ntg1.get_max_gray_value()
+    assert isinstance(mg, int)
+    assert mg == 255
+    assert ntg2.get_max_gray_value() == 255
+    # the P-image has only values up to 10 --> max gray value 10?
+    assert ntg3.get_max_gray_value() == 10
+
+
+def test_get_meridian_east(ntg1, ntg2, ntg3):
+    """Test getting east meridian."""
+    np.testing.assert_allclose(ntg1.get_meridian_east(), -29.048101549452294)
+    np.testing.assert_allclose(ntg2.get_meridian_east(), 180.0)
+    np.testing.assert_allclose(ntg3.get_meridian_east(), 99.81468125314737)
+
+
+def test_get_meridian_west(ntg1, ntg2, ntg3):
+    """Test getting west meridian."""
+    np.testing.assert_allclose(ntg1.get_meridian_west(), -30.846745608241903)
+    np.testing.assert_allclose(ntg2.get_meridian_east(), -180.0)
+    np.testing.assert_allclose(ntg3.get_meridian_west(), 81.84837557075694)
+
+
+def test_get_projection(ntg1, ntg2, ntg3):
     """Test getting projection string."""
-    assert ntg1.get_projection() == "NPOL"
+    assert ntg1.get_projection() == "PLAT"
+    assert ntg2.get_projection() == "NPOL"
+    assert ntg3.get_projection() == "PLAT"
 
 
-def test_get_ref_lat_1(ntg1):
+def test_get_ref_lat_1(ntg1, ntg2, ntg3):
     """Test getting reference latitude 1."""
     rl1 = ntg1.get_ref_lat_1()
     assert isinstance(rl1, float)
-    np.testing.assert_allclose(rl1, 60.0)
+    np.testing.assert_allclose(rl1, 0.0)
+    np.testing.assert_allclose(ntg2.get_ref_lat_1(), 2.5)
+    np.testing.assert_allclose(ntg3.get_ref_lat_1(), 75)
 
 
-def test_get_ref_lat_2(ntg1):
+def test_get_ref_lat_2(ntg1, ntg2, ntg3):
     """Test getting reference latitude 2."""
     rl2 = ntg1.get_ref_lat_2()
     assert isinstance(rl2, float)
     np.testing.assert_allclose(rl2, 0.0)
+    np.testing.assert_allclose(ntg2.get_ref_lat_2(), 0.0)
+    np.testing.assert_allclose(ntg2.get_ref_lat_3(), 0.0)
 
 
-def test_get_transparent_pixel(ntg1):
+def test_get_transparent_pixel(ntg1, ntg2, ntg3):
     """Test getting fill value."""
     tp = ntg1.get_transparent_pixel()
     assert isinstance(tp, int)
-    assert tp == 0
+    assert tp == 255
+    assert ntg2.get_transparent_pixel() == 0  # when not set ??
+    assert ntg3.get_transparent_pixel() == 12
 
 
-def test_get_xmax(ntg1):
+def test_get_xmax(ntg1, ntg2, ntg3):
     """Test getting maximum x."""
     xmax = ntg1.get_xmaximum()
     assert isinstance(xmax, int)
     assert xmax == 200
+    assert ntg2.get_xmaximum() == 2000
+    assert ntg3.get_xmaximum() == 100
 
 
-def test_get_ymax(ntg1):
+def test_get_ymax(ntg1, ntg2, ntg3):
     """Test getting maximum y."""
     ymax = ntg1.get_ymaximum()
     assert isinstance(ymax, int)
     assert ymax == 100
+    assert ntg2.get_ymaximum() == 1000
+    assert ntg3.get_ymaximum() == 200
