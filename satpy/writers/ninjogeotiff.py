@@ -17,7 +17,8 @@
 
 Since NinJo version 7 (released spring 2022), NinJo is able to read standard
 GeoTIFF images, with required metadata encoded as a set of XML tags in the
-GDALMetadata TIFF tag.  Each of the XML tags must be prepended with 'NINJO_'.
+GDALMetadata TIFF tag.  Each of the XML tags must be prepended with
+``'NINJO_'``.
 """
 
 from .geotiff import GeoTIFFWriter
@@ -95,11 +96,7 @@ class NinJoTagGenerator:
 
     def get_all_tags(self):
         """Get a dictionary with all tags for NinJo."""
-        D = {}
-        for tag in self.tag_names:
-            value = self.get_tag(tag)
-            D[tag] = value
-        return D
+        return {tag: self.get_tag(tag) for tag in self.tag_names}
 
     def get_tag(self, tag):
         """Get value for NinJo tag."""
@@ -114,7 +111,7 @@ class NinJoTagGenerator:
 
     def get_axis_intercept(self):
         """Calculate the axis intercept."""
-        return -88  # FIXME: derive from content
+        return -88.0  # FIXME: derive from content
 
     def get_central_meridian(self):
         """Calculate central meridian."""
@@ -190,7 +187,7 @@ class NinJoTagGenerator:
 
     def get_ref_lat_2(self):
         """Get reference latitude two."""
-        return 0  # FIXME: derive from area
+        return 0.0  # FIXME: derive from area
 
     def get_transparent_pixel(self):
         """Get transparent pixel value."""
