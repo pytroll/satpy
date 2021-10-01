@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Writer for GeoTIFF images with tags for the NinJo visualization tool.
 
 Since NinJo version 7 (released spring 2022), NinJo is able to read standard
@@ -20,6 +21,11 @@ GeoTIFF images, with required metadata encoded as a set of XML tags in the
 GDALMetadata TIFF tag.  Each of the XML tags must be prepended with
 ``'NINJO_'``.
 """
+
+# Although the way the tags are stored in the file has changed, their
+# interpretation has not, so the old documentation is still relevant:
+#
+# https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html.
 
 from .geotiff import GeoTIFFWriter
 
