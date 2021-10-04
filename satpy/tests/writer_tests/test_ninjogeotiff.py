@@ -141,11 +141,12 @@ def ntg1(test_dataset_small_mid_atlantic_L):
     return NinJoTagGenerator(
             test_dataset_small_mid_atlantic_L,
             {"ChannelID": 900015,
-             "DataSource": "FIXME",
-             "DataType": "GPRN",
+             "DataType": "GORN",
              "PhysicUnit": "C",
-             "SatelliteNameID": 6400014},
-            writer_args={"fill_value": 255})
+             "PhysicValue": "Temperature",
+             "SatelliteNameID": 6400014,
+             "DataSource": "dowsing rod",
+             "fill_value": 255})
 
 
 @pytest.fixture(scope="module")
@@ -155,10 +156,10 @@ def ntg2(test_dataset_large_asia_RGB):
     return NinJoTagGenerator(
             test_dataset_large_asia_RGB,
             {"ChannelID": 1000015,
-             "DataSource": "FIXME",
              "DataType": "GORN",
-             "SatelliteNameID": 6400014},
-            writer_args={})
+             "PhysicUnit": "N/A",
+             "PhysicValue": "N/A",
+             "SatelliteNameID": 6400014})
 
 
 @pytest.fixture(scope="module")
@@ -168,10 +169,12 @@ def ntg3(test_dataset_small_arctic_P):
     return NinJoTagGenerator(
             test_dataset_small_arctic_P,
             {"ChannelID": 800012,
-             "DataSource": "FIXME",
              "DataType": "PPRN",
-             "SatelliteNameID": 6500014},
-            writer_args={"fill_value": 12})
+             "PhysicUnit": "N/A",
+             "PhysicValue": "N/A",
+             "SatelliteNameID": 6500014,
+             "fill_value": 12,
+             "OverFlightTime": 42})
 
 
 @pytest.fixture
@@ -203,10 +206,6 @@ exp_tags = {"AxisIntercept": -88,
             "FileName": "papapath.tif",
             "Gradient": 0.5,
             "HeaderVersion": 2,
-            "IsAtmosphereCorrected": 0,
-            "IsBlackLineCorrection": 0,
-            "IsCalibrated": 1,
-            "IsNormalized": 0,
             "Magic": "NINJO",
             "MaxGrayValue": 255,
             "MeridianEast": 45.0,
@@ -232,12 +231,12 @@ def test_ninjogeotiff(fake_datasets):
     with unittest.mock.patch("satpy.writers.geotiff.GeoTIFFWriter.save_dataset") as swggs:
         w.save_dataset(
                 fake_datasets[0],
-                ninjo_tags=dict(
-                    PhysicUnit="C",
-                    SatelliteNameID=6400014,
-                    ChannelID=900015,
-                    DataType="GPRN",
-                    DataSource="FIXME"))
+                PhysicUnit="C",
+                PhysicValue="Temperature",
+                SatelliteNameID=6400014,
+                ChannelID=900015,
+                DataType="GPRN",
+                DataSource="dowsing rod")
         swggs.assert_called_with(
                 fake_datasets[0],
                 tags={f"ninjo_{k:s}": v for (k, v) in exp_tags.items()})
@@ -253,20 +252,42 @@ def test_calc_tags(fake_datasets):
              "DataSource": "FIXME",
              "DataType": "GPRN",
              "PhysicUnit": "C",
-             "SatelliteNameID": 6400014},
-            writer_args={})
+             "PhysicValue": "Temperature",
+             "SatelliteNameID": 6400014})
     assert tags == exp_tags
+
+
+def test_get_all_tags(ntg1, ntg3):
+    """Test getting all tags from dataset."""
+    # test that passed, dynamic, and mandatory tags are all included, and
+    # nothing more
+    t1 = ntg1.get_all_tags()
+    assert set(t1.keys()) == (
+            ntg1.fixed_tags.keys() |
+            ntg1.passed_tags |
+            ntg1.dynamic_tags.keys() |
+            {"DataSource"})
+    # test that when extra tag is passed this is also included
+    t3 = ntg3.get_all_tags()
+    assert t3.keys() == (
+            ntg3.fixed_tags.keys() |
+            ntg3.passed_tags |
+            ntg3.dynamic_tags.keys() |
+            {"OverFlightTime"})
+    assert t3["OverFlightTime"] == 42
 
 
 def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
     """Test calculating single tag from dataset."""
     assert ntg1.get_tag("Magic") == "NINJO"
-    assert ntg1.get_tag("DataType") == "GPRN"
+    assert ntg1.get_tag("DataType") == "GORN"
     assert ntg2.get_tag("DataType") == "GORN"
     assert ntg3.get_tag("DataType") == "PPRN"
-    assert ntg1.get_tag("IsCalibrated") == 1
+    assert ntg1.get_tag("DataSource") == "dowsing rod"
     with pytest.raises(ValueError):
         ntg1.get_tag("invalid")
+    with pytest.raises(ValueError):
+        ntg1.get_tag("OriginalHeader")
 
 
 def test_get_axis_intercept(ntg1, ntg2, ntg3):
@@ -351,42 +372,6 @@ def test_get_gradient(ntg1, ntg2, ntg3):
     # RGB and P images have gradient == 1
     np.testing.assert_allclose(ntg2.get_gradient(), 1.0)
     np.testing.assert_allclose(ntg3.get_gradient(), 1.0)
-
-
-def test_get_atmosphere_corrected(ntg1, ntg2, ntg3):
-    """Test whether the atmosphere is corrected."""
-    corr = ntg1.get_atmosphere_corrected()
-    assert isinstance(corr, int)  # on purpose not a boolean
-    assert corr == 0
-    assert ntg2.get_atmosphere_corrected() == 0
-    assert ntg3.get_atmosphere_corrected() == 0
-
-
-def test_get_black_line_corrected(ntg1, ntg2, ntg3):
-    """Test whether black line correction applied."""
-    blc = ntg1.get_black_line_corrected()
-    assert isinstance(blc, int)  # on purpose not a boolean
-    assert blc == 0
-    assert ntg2.get_black_line_corrected() == 0
-    assert ntg3.get_black_line_corrected() == 0
-
-
-def test_is_calibrated(ntg1, ntg2, ntg3):
-    """Test whether calibrated."""
-    calib = ntg1.get_is_calibrated()
-    assert isinstance(calib, int)
-    assert calib == 1
-    assert ntg2.get_is_calibrated() == 1
-    assert ntg3.get_is_calibrated() == 1
-
-
-def test_is_normalized(ntg1, ntg2, ntg3):
-    """Test whether normalized."""
-    is_norm = ntg1.get_is_normalized()
-    assert isinstance(is_norm, int)
-    assert is_norm == 0
-    assert ntg2.get_is_normalized() == 0
-    assert ntg3.get_is_normalized() == 0
 
 
 def test_get_min_gray_value(ntg1, ntg2, ntg3):

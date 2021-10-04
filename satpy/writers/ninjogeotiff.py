@@ -20,12 +20,13 @@ Since NinJo version 7 (released spring 2022), NinJo is able to read standard
 GeoTIFF images, with required metadata encoded as a set of XML tags in the
 GDALMetadata TIFF tag.  Each of the XML tags must be prepended with
 ``'NINJO_'``.
-"""
 
-# Although the way the tags are stored in the file has changed, their
-# interpretation has not, so the old documentation is still relevant:
-#
-# https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html.
+The reference documentation for valid NinJo tags and their meaning is contained
+in NinJoPedia at
+https://ninjopedia.com/tiki-index.php?page=adm_SatelliteServer_SatelliteImportFormats_en.
+Since this page is not in the public web, a (possibly outdated) mirror is
+located at https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html.
+"""
 
 from .geotiff import GeoTIFFWriter
 
@@ -33,18 +34,18 @@ from .geotiff import GeoTIFFWriter
 class NinJoGeoTIFFWriter(GeoTIFFWriter):
     """Writer for GeoTIFFs with NinJo tags."""
 
-    def save_dataset(self, dataset, ninjo_tags, **kwargs):
+    def save_dataset(self, dataset, **kwargs):
         """Save dataset along with NinJo tags.
 
-        Save dataset along with NinJo tags.  Interface as for GeoTIFF, except
-        it takes an additional keyword argument ninjo_tags.  Those tags will be
+        Save dataset along with NinJo tags.  Interface as for GeoTIFF,
+        except NinJo expects some additional tags.  Those tags will be
         prepended with ninjo_ and added as GDALMetaData.
 
         Args:
             dataset (xr.DataArray): Data array to save.
             ninjo_tags (Mapping[str, str|numeric): tags to add
         """
-        tags = calc_tags_from_dataset(dataset, ninjo_tags, writer_args=kwargs)
+        tags = calc_tags_from_dataset(dataset, args=kwargs)
         super().save_dataset(
                 dataset,
                 tags={"ninjo_" + k: v for (k, v) in tags.items()},
@@ -52,21 +53,36 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
 
 class NinJoTagGenerator:
-    """Class to calculate NinJo tags from content."""
+    """Class to collect NinJo tags.
+
+    This class contains functionality to collect NinJo tags.  Tags are gathered
+    from three sources:
+
+    - Fixed tags, contained in the attribute ``fixed_tags``.  The value of
+      those tags is hardcoded and never changes.
+    - Tags passed by the user, contained in the attribute ``passed_tags``.
+      Those tags must be passed by the user as arguments to the writer, which
+      will pass them on when instantiating the class.
+    - Tags calculated from data and metadata.  Those tags are defined in the
+      attribute ``dynamic_tags``.
+
+    Some tags are mandatory (defined in ``mandatory_tags``).  All tags that are
+    not mandatory are optional.  By default, no optional tags are generated.
+    Optional tags are only generated if passed on to the writer.
+    """
 
     # tags that never change
     fixed_tags = {
         "Magic": "NINJO",
         "HeaderVersion": 2,
         "XMinimum": 1,
-        "YMinimum": 1,
-        "PhysicValue": "unknown"}
+        "YMinimum": 1}
 
     # tags that should be passed directly by the user
-    passed_tags = {"ChannelID", "DataSource", "DataType", "PhysicUnit",
-                   "SatelliteNameID"}
+    passed_tags = {"ChannelID", "DataType", "PhysicUnit",
+                   "SatelliteNameID", "PhysicValue"}
 
-    # tags that are calculated dynamically
+    # tags that are calculated dynamically from (meta)data
     dynamic_tags = {
         "AxisIntercept": "axis_intercept",
         "CentralMeridian": "central_meridian",
@@ -77,10 +93,6 @@ class NinJoTagGenerator:
         "EarthRadiusSmall": "earth_radius_small",
         "FileName": "filename",
         "Gradient": "gradient",
-        "IsAtmosphereCorrected": "atmosphere_corrected",
-        "IsBlackLineCorrection": "black_line_corrected",
-        "IsCalibrated": "is_calibrated",
-        "IsNormalized": "is_normalized",
         "MaxGrayValue": "max_gray_value",
         "MeridianEast": "meridian_east",
         "MeridianWest": "meridian_west",
@@ -93,14 +105,33 @@ class NinJoTagGenerator:
         "YMaximum": "ymaximum"
         }
 
-    def __init__(self, dataset, args, writer_args):
+    # mandatory tags according to documentation
+    mandatory_tags = {"SatelliteNameID", "DateID", "CreationDateID",
+                      "ChannelID", "HeaderVersion", "DataType",
+                      "SatelliteNumber", "ColorDepth", "XMinimum", "XMaximum",
+                      "YMinimum", "YMaximum", "Projection", "PhysicValue",
+                      "PhysicUnit", "MinGrayValue", "MaxGrayValue", "Gradient",
+                      "AxisIntercept", "TransparentPixel"}
+
+    optional_tags = {"DataSource", "MeridianWest", "MeridianEast",
+                     "EarthRadiusLarge", "EarthRadiusSmall", "GeodeticDate",
+                     "ReferenceLatitude1", "ReferenceLatitude2",
+                     "CentralMeridian", "ColorTable", "Description",
+                     "OverflightDirection", "GeoLatitude", "GeoLongitude",
+                     "Altitude", "AOSAzimuth", "LOSAzimuth", "MaxElevation",
+                     "OverFlightTime", "IsBlackLinesCorrection",
+                     "IsAtmosphereCorrected", "IsCalibrated", "IsNormalized",
+                     "OriginalHeader", "IsValueTableAvailable",
+                     "ValueTableFloatField"}
+
+    def __init__(self, dataset, args):
         """Initialise tag generator."""
         self.dataset = dataset
         self.args = args
         self.tag_names = (self.fixed_tags.keys() |
                           self.passed_tags |
-                          self.dynamic_tags.keys())
-        self.writer_args = writer_args
+                          self.dynamic_tags.keys() |
+                          (self.args.keys() & self.optional_tags))
 
     def get_all_tags(self):
         """Get a dictionary with all tags for NinJo."""
@@ -110,12 +141,17 @@ class NinJoTagGenerator:
         """Get value for NinJo tag."""
         if tag in self.fixed_tags:
             return self.fixed_tags[tag]
-        elif tag in self.passed_tags:
+        if tag in self.passed_tags:
             return self.args[tag]
-        elif tag in self.dynamic_tags:
+        if tag in self.dynamic_tags:
             return getattr(self, f"get_{self.dynamic_tags[tag]:s}")()
-        else:
-            raise ValueError(f"Unknown tag: {tag!s}")
+        if tag in self.optional_tags and tag in self.args:
+            return self.args[tag]
+        if tag in self.optional_tags:
+            raise ValueError(
+                f"Optional tag {tag!s} must be supplied by user if user wants to "
+                "request the value, but wasn't.")
+        raise ValueError(f"Unknown tag: {tag!s}")
 
     def get_axis_intercept(self):
         """Calculate the axis intercept."""
@@ -152,36 +188,6 @@ class NinJoTagGenerator:
     def get_gradient(self):
         """Return the gradient."""
         return 0.5  # FIXME: derive from content
-
-    def get_atmosphere_corrected(self):
-        """Return whether atmosphere is corrected.
-
-        Always 0.
-        """
-        return 0
-
-    def get_black_line_corrected(self):
-        """Return whether black line correction applied.
-
-        Always 0.
-
-        (What is black line correction?)
-        """
-        return 0
-
-    def get_is_calibrated(self):
-        """Return whether calibration has been applied.
-
-        Always 1.
-        """
-        return 1
-
-    def get_is_normalized(self):
-        """Return whether data have been normalized.
-
-        Not sure what this means exactly.  Always 0.
-        """
-        return 0
 
     def get_max_gray_value(self):
         """Calculate maximum gray value."""
@@ -224,10 +230,10 @@ class NinJoTagGenerator:
         return self.dataset.sizes["y"]
 
 
-def calc_tags_from_dataset(dataset, args, writer_args):
+def calc_tags_from_dataset(dataset, args):
     """Calculate NinJo tags from dataset.
 
     For a dataset (xarray.DataArray), calculate content-dependent tags.
     """
-    ntg = NinJoTagGenerator(dataset, args, writer_args)
+    ntg = NinJoTagGenerator(dataset, args)
     return ntg.get_all_tags()
