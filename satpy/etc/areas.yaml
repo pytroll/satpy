@@ -292,28 +292,6 @@ sve:
   area_extent:
     lower_left_xy: [-342379.698, 6032580.06]
     upper_right_xy: [1423701.52, 8029648.75]
-iber:
-  description:
-    North half of the Iberian Peninsula and the Gulf of Biscay
-    image 0 degrees
-  projection:
-    proj: tmerc
-    lat_0: 0
-    lon_0: -183
-    k: 0.9996
-    x_0: 500000
-    y_0: 0
-    datum: WGS84
-    units: m
-    no_defs: true
-  shape:
-    height: 1000
-    width: 2000
-  area_extent:
-    lower_left_xy: [-342379.698, 4432580.06]
-    upper_right_xy: [723701.52, 5029648.75]
-    units: m
-
 brazil2:
   description: brazil, platecarree
   projection:
