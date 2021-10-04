@@ -285,7 +285,7 @@ sve:
   description:
     Sweden and baltic sea
   projection:
-    init: epsg:3006
+    EPSG: 3006
   shape:
     height: 2000
     width: 2000
@@ -297,7 +297,15 @@ iber:
     North half of the Iberian Peninsula and the Gulf of Biscay
     image 0 degrees
   projection:
-    proj: utm
+    proj: tmerc
+    lat_0: 0
+    lon_0: -183
+    k: 0.9996
+    x_0: 500000
+    y_0: 0
+    datum: WGS84
+    units: m
+    no_defs: true
   shape:
     height: 1000
     width: 2000
