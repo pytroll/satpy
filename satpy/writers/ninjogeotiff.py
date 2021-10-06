@@ -28,28 +28,45 @@ Since this page is not in the public web, a (possibly outdated) mirror is
 located at https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html.
 """
 
+import datetime
+
 from .geotiff import GeoTIFFWriter
+from . import get_enhanced_image
 
 
 class NinJoGeoTIFFWriter(GeoTIFFWriter):
-    """Writer for GeoTIFFs with NinJo tags."""
+    """Writer for GeoTIFFs with NinJo tags.
 
-    def save_dataset(self, dataset, **kwargs):
+    This writer is experimental.  API may be subject to change.
+    """
+
+    def save_dataset(
+            self, dataset, fill_value=None,
+            tags=None, **kwargs):
         """Save dataset along with NinJo tags.
 
         Save dataset along with NinJo tags.  Interface as for GeoTIFF,
         except NinJo expects some additional tags.  Those tags will be
         prepended with ninjo_ and added as GDALMetaData.
 
+        This requires trollimage 1.16 or newer.
+
         Args:
             dataset (xr.DataArray): Data array to save.
-            ninjo_tags (Mapping[str, str|numeric): tags to add
+            FIXME DOC
         """
-        tags = calc_tags_from_dataset(dataset, args=kwargs)
-        super().save_dataset(
+        # some tag calculations, such as image depth, need the image to be
+        # present already
+        image = get_enhanced_image(dataset)
+        ntg = NinJoTagGenerator(image, fill_value=fill_value, args=kwargs)
+        ninjo_tags = {f"ninjo_{k:s}": v for (k, v) in ntg.get_all_tags().items()}
+        # FIXME: Not really, I've already calculated the image!  What can
+        # possibly go wrong?
+        return super().save_dataset(
                 dataset,
-                tags={"ninjo_" + k: v for (k, v) in tags.items()},
-                **kwargs)
+                fill_value=fill_value,
+                tags=(tags or {}) | ninjo_tags, scale_label="Gradient",
+                offset_label="AxisIntercept", **kwargs)
 
 
 class NinJoTagGenerator:
@@ -82,9 +99,8 @@ class NinJoTagGenerator:
     passed_tags = {"ChannelID", "DataType", "PhysicUnit",
                    "SatelliteNameID", "PhysicValue"}
 
-    # tags that are calculated dynamically from (meta)data
+    # tags that can be calculated dynamically from (meta)data
     dynamic_tags = {
-        "AxisIntercept": "axis_intercept",
         "CentralMeridian": "central_meridian",
         "ColorDepth": "color_depth",
         "CreationDateID": "creation_date_id",
@@ -92,14 +108,10 @@ class NinJoTagGenerator:
         "EarthRadiusLarge": "earth_radius_large",
         "EarthRadiusSmall": "earth_radius_small",
         "FileName": "filename",
-        "Gradient": "gradient",
         "MaxGrayValue": "max_gray_value",
-        "MeridianEast": "meridian_east",
-        "MeridianWest": "meridian_west",
         "MinGrayValue": "min_gray_value",
         "Projection": "projection",
         "ReferenceLatitude1": "ref_lat_1",
-        "ReferenceLatitude2": "ref_lat_2",
         "TransparentPixel": "transparent_pixel",
         "XMaximum": "xmaximum",
         "YMaximum": "ymaximum"
@@ -124,9 +136,19 @@ class NinJoTagGenerator:
                      "OriginalHeader", "IsValueTableAvailable",
                      "ValueTableFloatField"}
 
-    def __init__(self, dataset, args):
-        """Initialise tag generator."""
-        self.dataset = dataset
+    # tags that are added later in other ways
+    postponed_tags = {"AxisIntercept", "Gradient"}
+
+    def __init__(self, image, fill_value, args):
+        """Initialise tag generator.
+
+        Args:
+            img (trollimage.XRImage): Corresponding image.
+            args: Other information.
+        """
+        self.image = image
+        self.dataset = image.data
+        self.fill_value = fill_value
         self.args = args
         self.tag_names = (self.fixed_tags.keys() |
                           self.passed_tags |
@@ -147,79 +169,133 @@ class NinJoTagGenerator:
             return getattr(self, f"get_{self.dynamic_tags[tag]:s}")()
         if tag in self.optional_tags and tag in self.args:
             return self.args[tag]
+        if tag in self.postponed_tags:
+            raise ValueError(f"Tag {tag!s} is added later by the GeoTIFF writer.")
         if tag in self.optional_tags:
             raise ValueError(
                 f"Optional tag {tag!s} must be supplied by user if user wants to "
                 "request the value, but wasn't.")
         raise ValueError(f"Unknown tag: {tag!s}")
 
-    def get_axis_intercept(self):
-        """Calculate the axis intercept."""
-        return -88.0  # FIXME: derive from content
-
     def get_central_meridian(self):
         """Calculate central meridian."""
-        return 0.0  # FIXME: derive from area
+        pams = self.dataset.attrs["area"].crs.coordinate_operation.params
+        lon_0 = {p.name: p.value for p in pams}["Longitude of natural origin"]
+        return lon_0
 
     def get_color_depth(self):
         """Return the color depth."""
-        return 24  # FIXME: derive from image type
+        # FIXME: Can I easily and reliably get this from the dataset rather
+        # than from the image?
+        if self.image.mode in "LP":
+            return 8
+        if self.image.mode in ("LA", "PA"):
+            return 16
+        if self.image.mode == "RGB":
+            return 24
+        if self.image.mode == "RGBA":
+            return 32
+        raise ValueError(
+                f"Unsupported image mode: {self.image.mode:s}")
 
     def get_creation_date_id(self):
-        """Calculate the creation date ID."""
-        return 1632820093  # FIXME: derive from metadata
+        """Calculate the creation date ID.
+
+        That's seconds since UNIX Epoch for the time the image is created.
+        """
+        return int(datetime.datetime.now().timestamp())
 
     def get_date_id(self):
-        """Calculate the date ID."""
-        return 1623581777  # FIXME: derive from metadata
+        """Calculate the date ID.
+
+        That's seconds since UNIX Epoch for the time corresponding to the
+        satellite image.
+        """
+        return int(self.dataset.attrs["start_time"].timestamp())
 
     def get_earth_radius_large(self):
-        """Return the Earth semi-major axis."""
-        return 6378137.0  # FIXME: derive from area
+        """Return the Earth semi-major axis in metre."""
+        return self.dataset.attrs["area"].crs.ellipsoid.semi_major_metre
 
     def get_earth_radius_small(self):
-        """Return the Earth semi-minor axis."""
-        return 6356752.5  # FIXME: derive from area
+        """Return the Earth semi-minor axis in metre."""
+        return self.dataset.attrs["area"].crs.ellipsoid.semi_minor_metre
 
     def get_filename(self):
         """Return the filename."""
         return "papapath.tif"  # FIXME: derive
 
-    def get_gradient(self):
-        """Return the gradient."""
-        return 0.5  # FIXME: derive from content
-
     def get_max_gray_value(self):
         """Calculate maximum gray value."""
-        return 255  # FIXME: calculate
+        # FIXME: this is wrong - the data have been stretched to [0, 1] by
+        # get_enhanced_image, and will only be scaled to [0, 255] later by the
+        # GeoTIFFWriter finalize method; how to tell what is correct here?
+        return self.dataset.max()
 
     def get_meridian_east(self):
-        """Calculate meridian east."""
-        return 45.0  # FIXME: derive from area
+        """Get the easternmost longitude of the area.
+
+        Currently not implemented.  In pyninjotiff it was implemented but the
+        answer was incorrect.
+        """
+        raise NotImplementedError("This is difficult and probably not needed.")
 
     def get_meridian_west(self):
-        """Calculate meridian west."""
-        return -135.0  # FIXME: derive from area
+        """Get the westernmost longitude of the area.
+
+        Currently not implemented.  In pyninjotiff it was implemented but the
+        answer was incorrect.
+        """
+        raise NotImplementedError("This is difficult and probably not needed.")
 
     def get_min_gray_value(self):
         """Calculate minimum gray value."""
-        return 0  # FIXME: derive from content
+        return self.dataset.min()
 
     def get_projection(self):
-        """Get projection."""
-        return "NPOL"  # FIXME: derive from area
+        """Get NinJo projection string.
+
+        From the documentation, valid values are:
+
+        - NPOL/SPOL: polar-sterographic North/South
+        - PLAT: „Plate Carrée“, equirectangular projection
+        - MERC: Mercator projection
+        """
+        name = self.dataset.attrs["area"].crs.coordinate_operation.method_name
+        if "Equidistant Cylindrical" in name:
+            return "PLAT"
+        if "Mercator" in name:
+            return "MERC"
+        if "Stereographic" in name:
+            if self.get_ref_lat_1() >= 0:
+                return "NPOL"
+            else:
+                return "SPOL"
+        raise ValueError(
+                f"Area {self.dataset.attrs['area'].name} has a CRS coordinate "
+                f"operation names {name:s}.  I don't know what that corresponds "
+                "to in NinJo, which understands only equidistanc cylindrical, "
+                "mercator, or stereographic projections.")
 
     def get_ref_lat_1(self):
         """Get reference latitude one."""
-        return 60.0  # FIXME: derive from area
+        pams = {p.name: p.value for p in self.dataset.attrs["area"].crs.coordinate_operation.params}
+        for label in ["Latitude of standard parallel",
+                      "Latitude of natural origin",
+                      "Latitude of 1st standard parallel"]:
+            if label in pams:
+                return pams[label]
+        raise ValueError(
+                "Could not find reference latitude for area "
+                f"{self.dataset.attrs['area'].name}")
 
     def get_ref_lat_2(self):
         """Get reference latitude two."""
-        return 0  # FIXME: derive from area
+        raise NotImplementedError("Second reference latitude not implemented.")
 
     def get_transparent_pixel(self):
         """Get transparent pixel value."""
-        return 0  # FIXME: derive from arguments
+        return self.fill_value
 
     def get_xmaximum(self):
         """Get xmaximum."""
@@ -228,12 +304,3 @@ class NinJoTagGenerator:
     def get_ymaximum(self):
         """Get ymaximum."""
         return self.dataset.sizes["y"]
-
-
-def calc_tags_from_dataset(dataset, args):
-    """Calculate NinJo tags from dataset.
-
-    For a dataset (xarray.DataArray), calculate content-dependent tags.
-    """
-    ntg = NinJoTagGenerator(dataset, args)
-    return ntg.get_all_tags()
