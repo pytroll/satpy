@@ -30,6 +30,8 @@ located at https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Imp
 
 import datetime
 
+import numpy as np
+
 from .geotiff import GeoTIFFWriter
 from . import get_enhanced_image
 
@@ -41,7 +43,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
     """
 
     def save_dataset(
-            self, dataset, fill_value=None,
+            self, dataset, filename=None, fill_value=None,
+            overlay=None, decorate=None, compute=True,
             tags=None, **kwargs):
         """Save dataset along with NinJo tags.
 
@@ -57,16 +60,29 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         """
         # some tag calculations, such as image depth, need the image to be
         # present already
-        image = get_enhanced_image(dataset)
-        ntg = NinJoTagGenerator(image, fill_value=fill_value, args=kwargs)
+        image = get_enhanced_image(
+            dataset.squeeze(),
+            enhance=self.enhancer,
+            overlay=overlay,
+            decorate=decorate,
+            fill_value=fill_value)
+
+        ntg = NinJoTagGenerator(
+            image,
+            fill_value=fill_value,
+            filename=filename,
+            args=kwargs)
         ninjo_tags = {f"ninjo_{k:s}": v for (k, v) in ntg.get_all_tags().items()}
-        # FIXME: Not really, I've already calculated the image!  What can
-        # possibly go wrong?
-        return super().save_dataset(
-                dataset,
-                fill_value=fill_value,
-                tags=(tags or {}) | ninjo_tags, scale_label="Gradient",
-                offset_label="AxisIntercept", **kwargs)
+
+        return self.save_image(
+            image,
+            filename=filename,
+            compute=compute,
+            fill_value=fill_value,
+            tags=(tags or {}) | ninjo_tags,
+            scale_label="Gradient",
+            offset_label="AxisIntercept",
+            **kwargs)
 
 
 class NinJoTagGenerator:
@@ -139,7 +155,7 @@ class NinJoTagGenerator:
     # tags that are added later in other ways
     postponed_tags = {"AxisIntercept", "Gradient"}
 
-    def __init__(self, image, fill_value, args):
+    def __init__(self, image, fill_value, filename, args):
         """Initialise tag generator.
 
         Args:
@@ -149,6 +165,7 @@ class NinJoTagGenerator:
         self.image = image
         self.dataset = image.data
         self.fill_value = fill_value
+        self.filename = filename
         self.args = args
         self.tag_names = (self.fixed_tags.keys() |
                           self.passed_tags |
@@ -223,14 +240,14 @@ class NinJoTagGenerator:
 
     def get_filename(self):
         """Return the filename."""
-        return "papapath.tif"  # FIXME: derive
+        return self.filename
 
     def get_max_gray_value(self):
         """Calculate maximum gray value."""
-        # FIXME: this is wrong - the data have been stretched to [0, 1] by
-        # get_enhanced_image, and will only be scaled to [0, 255] later by the
-        # GeoTIFFWriter finalize method; how to tell what is correct here?
-        return self.dataset.max()
+        return self.image._scale_to_dtype(
+            self.dataset.max(),
+            np.uint8,
+            self.fill_value).astype(np.uint8)
 
     def get_meridian_east(self):
         """Get the easternmost longitude of the area.
@@ -250,7 +267,10 @@ class NinJoTagGenerator:
 
     def get_min_gray_value(self):
         """Calculate minimum gray value."""
-        return self.dataset.min()
+        return self.image._scale_to_dtype(
+            self.dataset.min(),
+            np.uint8,
+            self.fill_value).astype(np.uint8)
 
     def get_projection(self):
         """Get NinJo projection string.

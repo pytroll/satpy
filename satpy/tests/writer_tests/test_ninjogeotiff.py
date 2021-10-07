@@ -19,7 +19,7 @@
 
 import datetime
 import math
-import unittest.mock
+import os
 
 import dask.array as da
 import numpy as np
@@ -40,9 +40,9 @@ def _get_fake_da(lo, hi, shp, dtype="f4"):
 
 
 @pytest.fixture(scope="module")
-def test_area_small_eqc_sphere():
-    """Create 100x200 test equirectangular area centered on (40, -30), spherical geoid."""
-    shp = (100, 200)
+def test_area_tiny_eqc_sphere():
+    """Create 10x00 test equirectangular area centered on (40, -30), spherical geoid."""
+    shp = (10, 20)
     test_area = create_area_def(
         "test-area-eqc-sphere",
         {"proj": "eqc", "lat_ts": 0., "lat_0": 0., "lon_0": 0.,
@@ -56,9 +56,9 @@ def test_area_small_eqc_sphere():
 
 
 @pytest.fixture(scope="module")
-def test_area_large_eqc_wgs84():
-    """Create 1000x2000 test equirectangular area centered on (50, 90), wgs84."""
-    shp = (1000, 2000)
+def test_area_small_eqc_wgs84():
+    """Create 50x100 test equirectangular area centered on (50, 90), wgs84."""
+    shp = (50, 100)
     test_area = create_area_def(
             "test-area-eqc-wgs84",
             {"proj": "eqc", "lat_0": 2.5, "lon_0": 1., "ellps": "WGS84"},
@@ -70,9 +70,9 @@ def test_area_large_eqc_wgs84():
 
 
 @pytest.fixture(scope="module")
-def test_area_small_stereographic_wgs84():
-    """Create a 200x100 test stereographic area centered on the north pole, wgs84."""
-    shp = (200, 100)
+def test_area_tiny_stereographic_wgs84():
+    """Create a 20x10 test stereographic area centered on the north pole, wgs84."""
+    shp = (20, 10)
     test_area = create_area_def(
         "test-area-north-stereo",
         {"proj": "stere", "lat_0": 75.0, "lon_0": 2.0, "lat_ts": 60.0,
@@ -85,44 +85,44 @@ def test_area_small_stereographic_wgs84():
 
 
 @pytest.fixture(scope="module")
-def test_image_small_mid_atlantic_L(test_area_small_eqc_sphere):
+def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
     """Get a small test image in mode L, over Atlantic."""
     arr = xr.DataArray(
-        _get_fake_da(-80, 40, test_area_small_eqc_sphere.shape + (1,)),
+        _get_fake_da(-80, 40, test_area_tiny_eqc_sphere.shape + (1,)),
         dims=("y", "x", "bands"),
         attrs={
             "name": "test-small-mid-atlantic",
             "start_time": datetime.datetime(1985, 8, 13, 15, 0),
-            "area": test_area_small_eqc_sphere})
+            "area": test_area_tiny_eqc_sphere})
     return get_enhanced_image(arr)
 
 
 @pytest.fixture(scope="module")
-def test_image_large_asia_RGB(test_area_large_eqc_wgs84):
+def test_image_large_asia_RGB(test_area_small_eqc_wgs84):
     """Get a large-ish test image in mode RGB, over Asia."""
     arr = xr.DataArray(
-        _get_fake_da(0, 255, test_area_large_eqc_wgs84.shape + (3,), "uint8"),
+        _get_fake_da(0, 255, test_area_small_eqc_wgs84.shape + (3,), "uint8"),
         dims=("y", "x", "bands"),
         coords={"bands": ["R", "G", "B"]},
         attrs={
             "name": "test-large-asia",
             "start_time": datetime.datetime(2015, 10, 21, 22, 25, 0),
-            "area": test_area_large_eqc_wgs84,
+            "area": test_area_small_eqc_wgs84,
             "mode": "RGB"})
     return get_enhanced_image(arr)
 
 
 @pytest.fixture(scope="module")
-def test_image_small_arctic_P(test_area_small_stereographic_wgs84):
+def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
     """Get a small-ish test image in mode P, over Arctic."""
     arr = xr.DataArray(
-        _get_fake_da(0, 10, test_area_small_stereographic_wgs84.shape + (1,), "uint8"),
+        _get_fake_da(0, 10, test_area_tiny_stereographic_wgs84.shape + (1,), "uint8"),
         dims=("y", "x", "bands"),
         coords={"bands": ["P"]},
         attrs={
             "name": "test-small-arctic",
             "start_time": datetime.datetime(2027, 8, 2, 10, 20),
-            "area": test_area_small_stereographic_wgs84,
+            "area": test_area_tiny_stereographic_wgs84,
             "mode": "P"})
     return get_enhanced_image(arr)
 
@@ -142,6 +142,7 @@ def ntg1(test_image_small_mid_atlantic_L):
     return NinJoTagGenerator(
             test_image_small_mid_atlantic_L,
             255,
+            "quinoa.tif",
             {"ChannelID": 900015,
              "DataType": "GORN",
              "PhysicUnit": "C",
@@ -157,6 +158,7 @@ def ntg2(test_image_large_asia_RGB):
     return NinJoTagGenerator(
             test_image_large_asia_RGB,
             0,
+            "seitan.tif",
             {"ChannelID": 1000015,
              "DataType": "GORN",
              "PhysicUnit": "N/A",
@@ -171,6 +173,7 @@ def ntg3(test_image_small_arctic_P):
     return NinJoTagGenerator(
             test_image_small_arctic_P,
             12,
+            "spelt.tif",
             {"ChannelID": 800012,
              "DataType": "PPRN",
              "PhysicUnit": "N/A",
@@ -195,53 +198,26 @@ def patch_datetime_now(monkeypatch):
     monkeypatch.setattr(datetime, 'datetime', mydatetime)
 
 
-exp_tags = {"AxisIntercept": -88,
-            "CentralMeridian": 0.0,
-            "ChannelID": 900015,
-            "ColorDepth": 24,
-            "CreationDateID": 1632820093,
-            "DataSource": "FIXME",
-            "DataType": "GPRN",
-            "DateID": 1623581777,
-            "EarthRadiusLarge": 6378137.0,
-            "EarthRadiusSmall": 6356752.5,
-            "FileName": "papapath.tif",
-            "Gradient": 0.5,
-            "HeaderVersion": 2,
-            "Magic": "NINJO",
-            "MaxGrayValue": 255,
-            "MeridianEast": 45.0,
-            "MeridianWest": -135.0,
-            "MinGrayValue": 0,
-            "PhysicUnit": "C",
-            "PhysicValue": "unknown",
-            "Projection": "NPOL",
-            "ReferenceLatitude1": 60.0,
-            "ReferenceLatitude2": 0.0,
-            "SatelliteNameID": 6400014,
-            "TransparentPixel": 0,
-            "XMaximum": 200,
-            "XMinimum": 1,
-            "YMaximum": 100,
-            "YMinimum": 1}
-
-
-def test_ninjogeotiff(fake_images):
+def test_write_and_read_file(fake_images, tmp_path):
     """Test that it writes a GeoTIFF with the appropriate NinJo-tags."""
+    import rasterio
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
-    w = NinJoGeoTIFFWriter()
-    with unittest.mock.patch("satpy.writers.geotiff.GeoTIFFWriter.save_dataset") as swggs:
-        w.save_dataset(
-                fake_images[0].data,
-                PhysicUnit="C",
-                PhysicValue="Temperature",
-                SatelliteNameID=6400014,
-                ChannelID=900015,
-                DataType="GPRN",
-                DataSource="dowsing rod")
-        swggs.assert_called_with(
-                fake_images[0].data,
-                tags={f"ninjo_{k:s}": v for (k, v) in exp_tags.items()})
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    ngtw.save_dataset(
+        fake_images[0].data,
+        filename=fn,
+        fill_value=0,
+        PhysicUnit="C",
+        PhysicValue="Temperature",
+        SatelliteNameID=6400014,
+        ChannelID=900015,
+        DataType="GORN",
+        DataSource="dowsing rod")
+    src = rasterio.open(fn)
+    tgs = src.tags()
+    assert tgs["ninjo_FileName"] == fn
+    assert tgs["ninjo_DataSource"] == "dowsing rod"
 
 
 def test_get_all_tags(ntg1, ntg3):
@@ -336,29 +312,49 @@ def test_get_earth_radius_small(ntg1, ntg2, ntg3):
     np.testing.assert_allclose(ntg3.get_earth_radius_small(), 6356752.314245179)
 
 
-def test_get_filename(ntg1):
+def test_get_filename(ntg1, ntg2, ntg3):
     """Test getting the filename."""
-    # FIXME: make this test more realistic
-    assert ntg1.get_filename() == "papapath.tif"
+    assert ntg1.get_filename() == "quinoa.tif"
+    assert ntg2.get_filename() == "seitan.tif"
+    assert ntg3.get_filename() == "spelt.tif"
 
 
-def test_get_min_gray_value(ntg1, ntg2, ntg3):
-    """Test getting min gray value."""
+def test_get_min_gray_value_L(ntg1):
+    """Test getting min gray value for mode L."""
     mg = ntg1.get_min_gray_value()
-    assert isinstance(mg, int)
-    assert mg == 0
-    assert ntg2.get_min_gray_value() == 0
-    assert ntg3.get_min_gray_value() == 0
+    assert isinstance(mg.compute().item(), int)
+    assert mg.compute() == 0
 
 
-def test_get_max_gray_value(ntg1, ntg2, ntg3):
-    """Test getting max gray value."""
+def test_get_min_gray_value_RGB(ntg2):
+    """Test getting min gray value for RGB.
+
+    Note that min/max gray value is mandatory in NinJo even for RGBs?
+    """
+    assert ntg2.get_min_gray_value().compute().item() == 1  # fill value 0
+
+
+def test_get_min_gray_value_P(ntg3):
+    """Test getting min gray value for mode P."""
+    assert ntg3.get_min_gray_value().compute().item() == 0
+
+
+def test_get_max_gray_value_L(ntg1):
+    """Test getting max gray value for mode L."""
     mg = ntg1.get_max_gray_value().compute().item()
     assert isinstance(mg, int)
-    assert mg == 255
+    assert mg == 254  # fill value is 255
+
+
+def test_get_max_gray_value_RGB(ntg2):
+    """Test max gray value for RGB."""
     assert ntg2.get_max_gray_value() == 255
-    # the P-image has only values up to 10 --> max gray value 10?
-    assert ntg3.get_max_gray_value() == 10
+
+
+@pytest.mark.xfail(reason="Needs GeoTIFF P fixes, see GH#1844")
+def test_get_max_gray_value_P(ntg3):
+    """Test getting max gray value for mode P."""
+    assert ntg3.get_max_gray_value().compute().item() == 10
 
 
 @pytest.mark.xfail(reason="not easy, not needed, not implemented")
@@ -416,15 +412,15 @@ def test_get_xmax(ntg1, ntg2, ntg3):
     """Test getting maximum x."""
     xmax = ntg1.get_xmaximum()
     assert isinstance(xmax, int)
-    assert xmax == 200
-    assert ntg2.get_xmaximum() == 2000
-    assert ntg3.get_xmaximum() == 100
+    assert xmax == 20
+    assert ntg2.get_xmaximum() == 100
+    assert ntg3.get_xmaximum() == 10
 
 
 def test_get_ymax(ntg1, ntg2, ntg3):
     """Test getting maximum y."""
     ymax = ntg1.get_ymaximum()
     assert isinstance(ymax, int)
-    assert ymax == 100
-    assert ntg2.get_ymaximum() == 1000
-    assert ntg3.get_ymaximum() == 200
+    assert ymax == 10
+    assert ntg2.get_ymaximum() == 50
+    assert ntg3.get_ymaximum() == 20
