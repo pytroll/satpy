@@ -56,7 +56,17 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
         Args:
             dataset (xr.DataArray): Data array to save.
-            FIXME DOC
+            filename (str): Where to save the file.
+            fill_value (int): Which pixel value is fill value?
+            overlay (dict): Overlays to add.
+            decorate (dict): Decorations to add.
+            compute (bool): To compute or not to compute, that is the question.
+            tags: Extra (not NinJo) tags to add to GDAL MetaData
+            ChannelID (int): NinJo Channel ID
+            DataType (int): NinJo Data Type
+            PhysicUnit (str): NinJo label for unit (example: "C")
+            PhysicValue (str): NinJo label for quantity (example: "temperature")
+            SatelliteNameID (int): NinJo Satellite ID
         """
         # some tag calculations, such as image depth, need the image to be
         # present already
@@ -202,8 +212,6 @@ class NinJoTagGenerator:
 
     def get_color_depth(self):
         """Return the color depth."""
-        # FIXME: Can I easily and reliably get this from the dataset rather
-        # than from the image?
         if self.image.mode in "LP":
             return 8
         if self.image.mode in ("LA", "PA"):
@@ -289,8 +297,7 @@ class NinJoTagGenerator:
         if "Stereographic" in name:
             if self.get_ref_lat_1() >= 0:
                 return "NPOL"
-            else:
-                return "SPOL"
+            return "SPOL"
         raise ValueError(
                 f"Area {self.dataset.attrs['area'].name} has a CRS coordinate "
                 f"operation names {name:s}.  I don't know what that corresponds "
