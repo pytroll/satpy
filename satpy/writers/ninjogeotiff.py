@@ -19,7 +19,9 @@
 Since NinJo version 7 (released spring 2022), NinJo is able to read standard
 GeoTIFF images, with required metadata encoded as a set of XML tags in the
 GDALMetadata TIFF tag.  Each of the XML tags must be prepended with
-``'NINJO_'``.
+``'NINJO_'``.  For NinJo delivery, these GeoTIFF files supersede the old
+NinJoTIFF format.  The :class:`NinJoGeoTIFFWriter` therefore supersedes the
+old Satpy NinJoTIFF writer and the pyninjotiff package.
 
 The reference documentation for valid NinJo tags and their meaning is contained
 in NinJoPedia at
@@ -45,12 +47,13 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
     def save_dataset(
             self, dataset, filename=None, fill_value=None,
             overlay=None, decorate=None, compute=True,
-            tags=None, **kwargs):
+            tags=None, *, ChannelID, DataType, PhysicUnit, PhysicValue,
+            SatelliteNameID, **kwargs):
         """Save dataset along with NinJo tags.
 
         Save dataset along with NinJo tags.  Interface as for GeoTIFF,
         except NinJo expects some additional tags.  Those tags will be
-        prepended with ninjo_ and added as GDALMetaData.
+        prepended with ``ninjo_`` and added as GDALMetaData.
 
         This requires trollimage 1.16 or newer.
 
@@ -61,7 +64,15 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             overlay (dict): Overlays to add.
             decorate (dict): Decorations to add.
             compute (bool): To compute or not to compute, that is the question.
-            tags: Extra (not NinJo) tags to add to GDAL MetaData
+            tags (dict): Extra (not NinJo) tags to add to GDAL MetaData
+
+        Remaining keyword arguments are passed to :class:`NinJoTagGenerator`,
+        which will include them as NinJo tags in GDALMetadata.  Supported tags
+        are defined in ``NinJoTagGenerator.optional_tags``.  The meaning of
+        those (and other) tags are defined in the NinJo documentation at
+        https://ninjopedia.com/tiki-index.php?page=adm_SatelliteServer_SatelliteImportFormats_en.
+        The following tags must be provided as keyword arguments:
+
             ChannelID (int): NinJo Channel ID
             DataType (int): NinJo Data Type
             PhysicUnit (str): NinJo label for unit (example: "C")
@@ -81,7 +92,12 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             image,
             fill_value=fill_value,
             filename=filename,
-            args=kwargs)
+            ChannelID=ChannelID,
+            DataType=DataType,
+            PhysicUnit=PhysicUnit,
+            PhysicValue=PhysicValue,
+            SatelliteNameID=SatelliteNameID,
+            **kwargs)
         ninjo_tags = {f"ninjo_{k:s}": v for (k, v) in ntg.get_all_tags().items()}
 
         return self.save_image(
@@ -89,7 +105,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             filename=filename,
             compute=compute,
             fill_value=fill_value,
-            tags=(tags or {}) | ninjo_tags,
+            tags={**(tags or {}), **ninjo_tags},
             scale_label="Gradient",
             offset_label="AxisIntercept",
             **kwargs)
@@ -105,13 +121,14 @@ class NinJoTagGenerator:
       those tags is hardcoded and never changes.
     - Tags passed by the user, contained in the attribute ``passed_tags``.
       Those tags must be passed by the user as arguments to the writer, which
-      will pass them on when instantiating the class.
+      will pass them on when instantiating this class.
     - Tags calculated from data and metadata.  Those tags are defined in the
-      attribute ``dynamic_tags``.
+      attribute ``dynamic_tags``.  They are either calculated from image data,
+      from image metadata, or from arguments passed by the user to the writer.
 
     Some tags are mandatory (defined in ``mandatory_tags``).  All tags that are
-    not mandatory are optional.  By default, no optional tags are generated.
-    Optional tags are only generated if passed on to the writer.
+    not mandatory are optional.  By default, optional tags are generated if and
+    only if the required information is available.
     """
 
     # tags that never change
@@ -121,7 +138,7 @@ class NinJoTagGenerator:
         "XMinimum": 1,
         "YMinimum": 1}
 
-    # tags that should be passed directly by the user
+    # tags that must be passed directly by the user
     passed_tags = {"ChannelID", "DataType", "PhysicUnit",
                    "SatelliteNameID", "PhysicValue"}
 
@@ -151,6 +168,7 @@ class NinJoTagGenerator:
                       "PhysicUnit", "MinGrayValue", "MaxGrayValue", "Gradient",
                       "AxisIntercept", "TransparentPixel"}
 
+    # optional tags are added on best effort or if passed by user
     optional_tags = {"DataSource", "MeridianWest", "MeridianEast",
                      "EarthRadiusLarge", "EarthRadiusSmall", "GeodeticDate",
                      "ReferenceLatitude1", "ReferenceLatitude2",
@@ -165,22 +183,28 @@ class NinJoTagGenerator:
     # tags that are added later in other ways
     postponed_tags = {"AxisIntercept", "Gradient"}
 
-    def __init__(self, image, fill_value, filename, args):
+    def __init__(self, image, fill_value, filename, **kwargs):
         """Initialise tag generator.
 
         Args:
-            img (trollimage.XRImage): Corresponding image.
-            args: Other information.
+            image (trollimage.XRImage): XRImage for which NinJo tags should be
+                calculated.
+            fill_value (int): Fill value corresponding to image.
+            filename (str): Filename to be written.
+            **kwargs: Any additional tags to be included as-is.
         """
         self.image = image
         self.dataset = image.data
         self.fill_value = fill_value
         self.filename = filename
-        self.args = args
+        self.args = kwargs
         self.tag_names = (self.fixed_tags.keys() |
                           self.passed_tags |
                           self.dynamic_tags.keys() |
                           (self.args.keys() & self.optional_tags))
+        if self.args.keys() - self.tag_names:
+            raise ValueError("The following tags were not recognised: " +
+                             " ".join(self.args.keys() - self.tag_names))
 
     def get_all_tags(self):
         """Get a dictionary with all tags for NinJo."""
@@ -288,6 +312,8 @@ class NinJoTagGenerator:
         - NPOL/SPOL: polar-sterographic North/South
         - PLAT: „Plate Carrée“, equirectangular projection
         - MERC: Mercator projection
+
+        Derived from AreaDefinition.
         """
         name = self.dataset.attrs["area"].crs.coordinate_operation.method_name
         if "Equidistant Cylindrical" in name:
@@ -305,7 +331,10 @@ class NinJoTagGenerator:
                 "mercator, or stereographic projections.")
 
     def get_ref_lat_1(self):
-        """Get reference latitude one."""
+        """Get reference latitude one.
+
+        Derived from area definition.
+        """
         pams = {p.name: p.value for p in self.dataset.attrs["area"].crs.coordinate_operation.params}
         for label in ["Latitude of standard parallel",
                       "Latitude of natural origin",
@@ -317,17 +346,32 @@ class NinJoTagGenerator:
                 f"{self.dataset.attrs['area'].name}")
 
     def get_ref_lat_2(self):
-        """Get reference latitude two."""
+        """Get reference latitude two.
+
+        This is not implemented and never was correctly implemented in
+        pyninjotiff either.  It doesn't appear to be used by NinJo.
+        """
         raise NotImplementedError("Second reference latitude not implemented.")
 
     def get_transparent_pixel(self):
-        """Get transparent pixel value."""
+        """Get transparent pixel value.
+
+        Get the transparent pixel value, also known as the fill value.
+        """
         return self.fill_value
 
     def get_xmaximum(self):
-        """Get xmaximum."""
+        """Get xmaximum.
+
+        Get the maximum value of x, i.e. the meridional extent of the image in
+        pixels.
+        """
         return self.dataset.sizes["x"]
 
     def get_ymaximum(self):
-        """Get ymaximum."""
+        """Get ymaximum.
+
+        Get the maximum value of y, i.e. the zonal extent of the image in
+        pixels.
+        """
         return self.dataset.sizes["y"]

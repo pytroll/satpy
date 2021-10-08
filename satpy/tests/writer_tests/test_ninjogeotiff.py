@@ -86,6 +86,51 @@ def test_area_tiny_stereographic_wgs84():
 
 
 @pytest.fixture(scope="module")
+def test_area_tiny_antarctic():
+    """Create a 20x10 test stereographic area centered on the north pole, wgs84."""
+    shp = (20, 10)
+    test_area = create_area_def(
+        "test-area-south-stereo",
+        {"proj": "stere", "lat_0": -75.0, "lon_0": 2.0, "lat_ts": 60.0,
+            "ellps": "WGS84", "units": "m", "type": "crs"},
+        units="m",
+        shape=shp,
+        resolution=1000,
+        center=(0.0, -1500000.0))
+    return test_area
+
+
+@pytest.fixture(scope="module")
+def test_area_merc():
+    """Create a mercator area."""
+    from pyproj import CRS
+    shp = (20, 10)
+    test_area = create_area_def(
+        "test-area-merc",
+        CRS("+proj=merc"),
+        units="m",
+        shape=shp,
+        resolution=1000,
+        center=(0.0, 0.0))
+    return test_area
+
+
+@pytest.fixture(scope="module")
+def test_area_weird():
+    """Create a weird area to test error handling."""
+    from pyproj import CRS
+    shp = (20, 10)
+    test_area = create_area_def(
+        "test-area-north-stereo",
+        CRS("+proj=igh"),
+        units="m",
+        shape=shp,
+        resolution=1000,
+        center=(0.0, 1500000.0))
+    return test_area
+
+
+@pytest.fixture(scope="module")
 def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
     """Get a small test image in mode L, over Atlantic."""
     arr = xr.DataArray(
@@ -129,6 +174,51 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
 
 
 @pytest.fixture(scope="module")
+def test_image_weird(test_area_weird):
+    """Get a small image with some weird properties to test error handling."""
+    da = xr.DataArray(
+        _get_fake_da(1, 2, test_area_weird.shape + (2,), "uint8"),
+        dims=("y", "x", "bands"),
+        coords={"bands": ["L", "A"]},
+        attrs={
+            "name": "interrupted image",
+            "start_time": datetime.datetime(1970, 1, 1),
+            "area": test_area_weird,
+            "mode": "LA"})
+    return get_enhanced_image(da)
+
+
+@pytest.fixture(scope="module")
+def test_image_rgba_merc(test_area_merc):
+    """Get a small test image in mode RGBA and mercator."""
+    arr = xr.DataArray(
+        _get_fake_da(-80, 40, test_area_merc.shape + (4,)),
+        dims=("y", "x", "bands"),
+        coords={"bands": ["R", "G", "B", "A"]},
+        attrs={
+            "name": "test-rgba",
+            "start_time": datetime.datetime(2013, 2, 22, 12, 0),
+            "area": test_area_merc,
+            "mode": "RGBA"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
+def test_image_cmyk_antarctic(test_area_tiny_antarctic):
+    """Get a small test image in mode CMYK on south pole."""
+    arr = xr.DataArray(
+        _get_fake_da(-80, 40, test_area_tiny_antarctic.shape + (4,)),
+        dims=("y", "x", "bands"),
+        coords={"bands": ["C", "M", "Y", "K"]},
+        attrs={
+            "name": "test-cmyk",
+            "start_time": datetime.datetime(2065, 11, 22, 11),
+            "area": test_area_tiny_antarctic,
+            "mode": "CMYK"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
 def fake_images(test_image_small_mid_atlantic_L, test_image_large_asia_RGB,
                 test_image_small_arctic_P):
     """Create fake datasets for testing writing routines."""
@@ -144,12 +234,12 @@ def ntg1(test_image_small_mid_atlantic_L):
             test_image_small_mid_atlantic_L,
             255,
             "quinoa.tif",
-            {"ChannelID": 900015,
-             "DataType": "GORN",
-             "PhysicUnit": "C",
-             "PhysicValue": "Temperature",
-             "SatelliteNameID": 6400014,
-             "DataSource": "dowsing rod"})
+            ChannelID=900015,
+            DataType="GORN",
+            PhysicUnit="C",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            DataSource="dowsing rod")
 
 
 @pytest.fixture(scope="module")
@@ -160,11 +250,11 @@ def ntg2(test_image_large_asia_RGB):
             test_image_large_asia_RGB,
             0,
             "seitan.tif",
-            {"ChannelID": 1000015,
-             "DataType": "GORN",
-             "PhysicUnit": "N/A",
-             "PhysicValue": "N/A",
-             "SatelliteNameID": 6400014})
+            ChannelID=1000015,
+            DataType="GORN",
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID=6400014)
 
 
 @pytest.fixture(scope="module")
@@ -175,12 +265,57 @@ def ntg3(test_image_small_arctic_P):
             test_image_small_arctic_P,
             12,
             "spelt.tif",
-            {"ChannelID": 800012,
-             "DataType": "PPRN",
-             "PhysicUnit": "N/A",
-             "PhysicValue": "N/A",
-             "SatelliteNameID": 6500014,
-             "OverFlightTime": 42})
+            ChannelID=800012,
+            DataType="PPRN",
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID=6500014,
+            OverFlightTime=42)
+
+
+@pytest.fixture(scope="module")
+def ntg_weird(test_image_weird):
+    """Create NinJoTagGenerator instance with weird image."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_weird,
+            12,
+            "tempeh.tif",
+            ChannelID=800012,
+            DataType="PPRN",
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID=6500014)
+
+
+@pytest.fixture(scope="module")
+def ntg_rgba(test_image_rgba_merc):
+    """Create NinJoTagGenerator instance with RGBA image."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_rgba_merc,
+            12,
+            "soy.tif",
+            ChannelID=800042,
+            DataType="GORN",
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID=6500014)
+
+
+@pytest.fixture(scope="module")
+def ntg_cmyk(test_image_cmyk_antarctic):
+    """Create NinJoTagGenerator instance with RGBA image."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_cmyk_antarctic,
+            0,
+            "tvp.tif",
+            ChannelID=123042,
+            DataType="PPRN",
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID=6500014)
 
 
 @pytest.fixture
@@ -266,6 +401,8 @@ def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
         ntg1.get_tag("invalid")
     with pytest.raises(ValueError):
         ntg1.get_tag("OriginalHeader")
+    with pytest.raises(ValueError):
+        ntg1.get_tag("Gradient")
 
 
 def test_get_central_meridian(ntg1, ntg2, ntg3):
@@ -277,13 +414,17 @@ def test_get_central_meridian(ntg1, ntg2, ntg3):
     np.testing.assert_allclose(ntg3.get_central_meridian(), 2.0)
 
 
-def test_get_color_depth(ntg1, ntg2, ntg3):
+def test_get_color_depth(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
     """Test extracting the color depth."""
     cd = ntg1.get_color_depth()
     assert isinstance(cd, int)
     assert cd == 8  # mode L
     assert ntg2.get_color_depth() == 24  # mode RGB
     assert ntg3.get_color_depth() == 8  # mode P
+    assert ntg_weird.get_color_depth() == 16  # mode LA
+    assert ntg_rgba.get_color_depth() == 32  # mode RGBA
+    with pytest.raises(ValueError):
+        ntg_cmyk.get_color_depth()
 
 
 def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now, utc):
@@ -388,20 +529,26 @@ def test_get_meridian_west(ntg1, ntg2, ntg3):
     np.testing.assert_allclose(ntg3.get_meridian_west(), 81.84837557075694)
 
 
-def test_get_projection(ntg1, ntg2, ntg3):
+def test_get_projection(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
     """Test getting projection string."""
     assert ntg1.get_projection() == "PLAT"
     assert ntg2.get_projection() == "PLAT"
     assert ntg3.get_projection() == "NPOL"
+    assert ntg_cmyk.get_projection() == "SPOL"
+    assert ntg_rgba.get_projection() == "MERC"
+    with pytest.raises(ValueError):
+        ntg_weird.get_projection()
 
 
-def test_get_ref_lat_1(ntg1, ntg2, ntg3):
+def test_get_ref_lat_1(ntg1, ntg2, ntg3, ntg_weird):
     """Test getting reference latitude 1."""
     rl1 = ntg1.get_ref_lat_1()
     assert isinstance(rl1, float)
     np.testing.assert_allclose(rl1, 0.0)
     np.testing.assert_allclose(ntg2.get_ref_lat_1(), 2.5)
     np.testing.assert_allclose(ntg3.get_ref_lat_1(), 75)
+    with pytest.raises(ValueError):
+        ntg_weird.get_ref_lat_1()
 
 
 @pytest.mark.xfail(reason="Not implemented, what is this?")
@@ -439,3 +586,19 @@ def test_get_ymax(ntg1, ntg2, ntg3):
     assert ymax == 10
     assert ntg2.get_ymaximum() == 50
     assert ntg3.get_ymaximum() == 20
+
+
+def test_create_unknown_tags(test_image_small_arctic_P):
+    """Test that unknown tags raise ValueError."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    with pytest.raises(ValueError):
+        NinJoTagGenerator(
+            test_image_small_arctic_P,
+            42,
+            "quorn.tif",
+            ChannelID=800012,
+            DataType="GPRN",
+            PhysicUnit="N/A",
+            PhysicValue="N/A",
+            SatelliteNameID=6500014,
+            Locatie="Hozomeen")
