@@ -30,6 +30,12 @@ Since this page is not in the public web, a (possibly outdated) mirror is
 located at https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html.
 """
 
+# TODO:
+#  - ch_min_measumerement_unit
+#  - ch_max_measurement_unit
+#
+# override min/max grey value?  used for crude stretch?
+
 import datetime
 
 import numpy as np
@@ -55,7 +61,9 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         except NinJo expects some additional tags.  Those tags will be
         prepended with ``ninjo_`` and added as GDALMetaData.
 
-        This requires trollimage 1.16 or newer.
+        Writing such images requires trollimage 1.16 or newer.
+
+        Importing such images with NinJo requires NinJo 7 or newer.
 
         Args:
             dataset (xr.DataArray): Data array to save.
@@ -73,11 +81,16 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         https://ninjopedia.com/tiki-index.php?page=adm_SatelliteServer_SatelliteImportFormats_en.
         The following tags must be provided as keyword arguments:
 
-            ChannelID (int): NinJo Channel ID
-            DataType (int): NinJo Data Type
-            PhysicUnit (str): NinJo label for unit (example: "C")
-            PhysicValue (str): NinJo label for quantity (example: "temperature")
-            SatelliteNameID (int): NinJo Satellite ID
+            ChannelID (int)
+                NinJo Channel ID
+            DataType (int)
+                NinJo Data Type
+            PhysicUnit (str)
+                NinJo label for unit (example: "C")
+            PhysicValue (str)
+                NinJo label for quantity (example: "temperature")
+            SatelliteNameID (int)
+                NinJo Satellite ID
         """
         # some tag calculations, such as image depth, need the image to be
         # present already
