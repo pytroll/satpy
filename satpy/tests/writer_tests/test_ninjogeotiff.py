@@ -20,6 +20,7 @@
 import datetime
 import math
 import os
+import time
 
 import dask.array as da
 import numpy as np
@@ -92,7 +93,7 @@ def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
         dims=("y", "x", "bands"),
         attrs={
             "name": "test-small-mid-atlantic",
-            "start_time": datetime.datetime(1985, 8, 13, 15, 0),
+            "start_time": datetime.datetime(1985, 8, 13, 13, 0),
             "area": test_area_tiny_eqc_sphere})
     return get_enhanced_image(arr)
 
@@ -106,7 +107,7 @@ def test_image_large_asia_RGB(test_area_small_eqc_wgs84):
         coords={"bands": ["R", "G", "B"]},
         attrs={
             "name": "test-large-asia",
-            "start_time": datetime.datetime(2015, 10, 21, 22, 25, 0),
+            "start_time": datetime.datetime(2015, 10, 21, 20, 25, 0),
             "area": test_area_small_eqc_wgs84,
             "mode": "RGB"})
     return get_enhanced_image(arr)
@@ -121,7 +122,7 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
         coords={"bands": ["P"]},
         attrs={
             "name": "test-small-arctic",
-            "start_time": datetime.datetime(2027, 8, 2, 10, 20),
+            "start_time": datetime.datetime(2027, 8, 2, 8, 20),
             "area": test_area_tiny_stereographic_wgs84,
             "mode": "P"})
     return get_enhanced_image(arr)
@@ -183,7 +184,21 @@ def ntg3(test_image_small_arctic_P):
 
 
 @pytest.fixture
-def patch_datetime_now(monkeypatch):
+def utc():
+    """Set timezone to UTC.
+
+    Set the timezone to UTC, so that any tests that test against (fixtured)
+    times pass independently of system timezone.
+    """
+    tz = time.tzname[time.daylight]
+    os.environ["TZ"] = "UTC"
+    time.tzset()
+    yield
+    os.environ["TZ"] = tz
+
+
+@pytest.fixture
+def patch_datetime_now(monkeypatch, utc):
     """Get a fake datetime.datetime.now()."""
     # Source: https://stackoverflow.com/a/20503374/974555, CC-BY-SA 4.0
 
@@ -193,7 +208,7 @@ def patch_datetime_now(monkeypatch):
         @classmethod
         def now(cls):
             """Drop-in replacement for datetime.datetime.now."""
-            return datetime.datetime(2033, 5, 18, 5, 33, 20)
+            return datetime.datetime(2033, 5, 18, 3, 33, 20)
 
     monkeypatch.setattr(datetime, 'datetime', mydatetime)
 
@@ -271,7 +286,7 @@ def test_get_color_depth(ntg1, ntg2, ntg3):
     assert ntg3.get_color_depth() == 8  # mode P
 
 
-def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now):
+def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now, utc):
     """Test getting the creation date ID.
 
     This is the time at which the file was created.
@@ -285,7 +300,7 @@ def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now):
     assert ntg3.get_creation_date_id() == 2000000000
 
 
-def test_get_date_id(ntg1, ntg2, ntg3):
+def test_get_date_id(ntg1, ntg2, ntg3, utc):
     """Test getting the date ID."""
     did = ntg1.get_date_id()
     assert isinstance(did, int)
