@@ -16,24 +16,60 @@
 
 """Writer for GeoTIFF images with tags for the NinJo visualization tool.
 
-Since NinJo version 7 (released spring 2022), NinJo is able to read standard
-GeoTIFF images, with required metadata encoded as a set of XML tags in the
-GDALMetadata TIFF tag.  Each of the XML tags must be prepended with
-``'NINJO_'``.  For NinJo delivery, these GeoTIFF files supersede the old
-NinJoTIFF format.  The :class:`NinJoGeoTIFFWriter` therefore supersedes the
-old Satpy NinJoTIFF writer and the pyninjotiff package.
+The next version of NinJo (release expected spring 2022) will be able
+to read standard GeoTIFF images, with required metadata encoded as a set
+of XML tags in the GDALMetadata TIFF tag.  Each of the XML tags must be
+prepended with ``'NINJO_'``.  For NinJo delivery, these GeoTIFF files
+supersede the old NinJoTIFF format.  The :class:`NinJoGeoTIFFWriter`
+therefore supersedes the old Satpy NinJoTIFF writer and the pyninjotiff
+package.
 
 The reference documentation for valid NinJo tags and their meaning is contained
-in NinJoPedia at
-https://ninjopedia.com/tiki-index.php?page=adm_SatelliteServer_SatelliteImportFormats_en.
-Since this page is not in the public web, a (possibly outdated) mirror is
-located at https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html.
+in `NinJoPedia`_.
+Since this page is not in the public web, there is a (possibly outdated)
+`mirror`_.
+
+.. _NinJoPedia: https://ninjopedia.com/tiki-index.php?page=adm_SatelliteServer_SatelliteImportFormats_en
+.. _mirror: https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html
+
+There are some user-facing differences between the old NinJoTIFF writer and the new
+NinJoGeoTIFF writer.  Most notably, keyword arguments that correspond to tags
+directly passed by the user are now identical, including case, to how they will
+be written to the GDALMetaData and interpreted by NinJo.  That means some
+keyword arguments have changed, such as summarised in this table:
+
+.. list-table:: Migrating to NinJoGeoTIFF, keyword arguments for the writer
+   :header-rows: 1
+
+   * - ninjotiff (old)
+     - ninjogeotiff (new)
+     - Notes
+   * - ``chan_id``
+     - ``ChannelID``
+     -
+   * - ``data_type``
+     - ``DataType``
+     -
+   * - ``physic_unit``
+     - ``PhysicUnit``
+     -
+   * - ``physic_val``
+     - ``PhysicValue``
+     -
+   * - ``sat_id``
+     - ``SatelliteNameID``
+     -
+   * - ``data_source``
+     - ``DataSource``
+     - optional
+
+Moreover, two keyword arguments are no longer supported because their
+functionality has become redundant.  This applies to
+``chan_min_measurement_unit`` and ``chan_max_measurement_unit``.  Instead, pass
+those values in source units to the :func:`~satpy.enhancements.stretch`
+enhancement with the ``min_stretch`` and ``max_stretch`` arguments.
 """
 
-# TODO:
-#  - ch_min_measumerement_unit
-#  - ch_max_measurement_unit
-#
 # override min/max grey value?  used for crude stretch?
 
 import datetime
@@ -77,8 +113,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         Remaining keyword arguments are passed to :class:`NinJoTagGenerator`,
         which will include them as NinJo tags in GDALMetadata.  Supported tags
         are defined in ``NinJoTagGenerator.optional_tags``.  The meaning of
-        those (and other) tags are defined in the NinJo documentation at
-        https://ninjopedia.com/tiki-index.php?page=adm_SatelliteServer_SatelliteImportFormats_en.
+        those (and other) tags are defined in the NinJo documentation (see
+        module documentation).
         The following tags must be provided as keyword arguments:
 
             ChannelID (int)
@@ -91,6 +127,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
                 NinJo label for quantity (example: "temperature")
             SatelliteNameID (int)
                 NinJo Satellite ID
+
         """
         # some tag calculations, such as image depth, need the image to be
         # present already
@@ -127,8 +164,10 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 class NinJoTagGenerator:
     """Class to collect NinJo tags.
 
-    This class contains functionality to collect NinJo tags.  Tags are gathered
-    from three sources:
+    This class is used by :class:`NinJoGeoTIFFWriter` to collect NinJo tags.
+    Most end-users will not need to create instances of this class directly.
+
+    Tags are gathered from three sources:
 
     - Fixed tags, contained in the attribute ``fixed_tags``.  The value of
       those tags is hardcoded and never changes.

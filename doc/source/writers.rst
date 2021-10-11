@@ -41,7 +41,7 @@ One common parameter across almost all Writers is ``filename`` and
       -
     * - NinJo TIFF (using ``pyninjotiff`` package)
       - :class:`ninjotiff <satpy.writers.ninjotiff.NinjoTIFFWriter>`
-      - To be deprecated
+      - To be deprecated (use ninjogeotiff)
       -
     * - NetCDF (Standard CF)
       - :class:`cf <satpy.writers.cf_writer.CFWriter>`
