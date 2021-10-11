@@ -215,10 +215,9 @@ def _create_filenames_from_resolutions(*resolutions):
     """Create filenames from the given resolutions."""
     if 'GEO' in resolutions:
         return ["FY4A-_AGRI--_N_REGC_1047E_L1-_GEO-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF"]
-    else:
-        pattern = ("FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
-                   "{resolution:04d}M_V0001.HDF")
-        return [pattern.format(resolution=resolution) for resolution in resolutions]
+    pattern = ("FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
+               "{resolution:04d}M_V0001.HDF")
+    return [pattern.format(resolution=resolution) for resolution in resolutions]
 
 
 class Test_HDF_AGRI_L1_cal:
