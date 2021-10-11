@@ -89,7 +89,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
     def save_dataset(
             self, dataset, filename=None, fill_value=None,
             overlay=None, decorate=None, compute=True,
-            tags=None, *, ChannelID, DataType, PhysicUnit, PhysicValue,
+            tags=None, config_files=None,
+            *, ChannelID, DataType, PhysicUnit, PhysicValue,
             SatelliteNameID, **kwargs):
         """Save dataset along with NinJo tags.
 
@@ -109,13 +110,15 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             decorate (dict): Decorations to add.
             compute (bool): To compute or not to compute, that is the question.
             tags (dict): Extra (not NinJo) tags to add to GDAL MetaData
+            config_files (Any): Not directly used by this writer, supported
+                for compatibility with other writers.
 
         Remaining keyword arguments are passed to :class:`NinJoTagGenerator`,
         which will include them as NinJo tags in GDALMetadata.  Supported tags
         are defined in ``NinJoTagGenerator.optional_tags``.  The meaning of
         those (and other) tags are defined in the NinJo documentation (see
-        module documentation).
-        The following tags must be provided as keyword arguments:
+        module documentation for alink).
+        The following tags are mandatory and must be provided as keyword arguments:
 
             ChannelID (int)
                 NinJo Channel ID

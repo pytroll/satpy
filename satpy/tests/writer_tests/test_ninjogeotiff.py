@@ -131,6 +131,20 @@ def test_area_weird():
 
 
 @pytest.fixture(scope="module")
+def test_area_epsg4326():
+    """Test with EPSG4326 (latlong) area, which has no coordinate operation."""
+    from pyproj import CRS
+    shp = (16, 8)
+    euro4326 = create_area_def(
+        "epgs4326europa",
+        CRS.from_epsg(4326),
+        resolution=1/128,
+        shape=shp,
+        center=(0, 0))
+    return euro4326
+
+
+@pytest.fixture(scope="module")
 def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
     """Get a small test image in mode L, over Atlantic."""
     arr = xr.DataArray(
@@ -215,6 +229,21 @@ def test_image_cmyk_antarctic(test_area_tiny_antarctic):
             "start_time": datetime.datetime(2065, 11, 22, 11),
             "area": test_area_tiny_antarctic,
             "mode": "CMYK"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
+def test_image_latlon(test_area_epsg4326):
+    """Get image with latlon areadefinition."""
+    arr = xr.DataArray(
+        _get_fake_da(-50, 30, test_area_epsg4326.shape + (1,)),
+        dims=("y", "x", "bands"),
+        coords={"bands": ["L"]},
+        attrs={
+            "name": "test-latlon",
+            "start_time": datetime.datetime(2001, 1, 1, 0),
+            "area": test_area_epsg4326,
+            "mode": "L"})
     return get_enhanced_image(arr)
 
 
@@ -318,6 +347,21 @@ def ntg_cmyk(test_image_cmyk_antarctic):
             SatelliteNameID=6500014)
 
 
+@pytest.fixture(scope="module")
+def ntg_latlon(test_image_latlon):
+    """Create NinJoTagGenerator with latlon-area image."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_latlon,
+            0,
+            "latlon.tif",
+            ChannelID=123456,
+            DataType="GORN",
+            PhysicUnit="%",
+            PhysicValue="Reflectance",
+            SatelliteNameID=654321)
+
+
 @pytest.fixture
 def utc():
     """Set timezone to UTC.
@@ -405,13 +449,14 @@ def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
         ntg1.get_tag("Gradient")
 
 
-def test_get_central_meridian(ntg1, ntg2, ntg3):
+def test_get_central_meridian(ntg1, ntg2, ntg3, ntg_latlon):
     """Test calculating the central meridian."""
     cm = ntg1.get_central_meridian()
     assert isinstance(cm, float)
     np.testing.assert_allclose(cm, 0.0)
     np.testing.assert_allclose(ntg2.get_central_meridian(), 1.0)
     np.testing.assert_allclose(ntg3.get_central_meridian(), 2.0)
+    np.testing.assert_allclose(ntg_latlon.get_central_meridian(), 0.0)
 
 
 def test_get_color_depth(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
