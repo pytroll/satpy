@@ -73,11 +73,14 @@ enhancement with the ``min_stretch`` and ``max_stretch`` arguments.
 # override min/max grey value?  used for crude stretch?
 
 import datetime
+import logging
 
 import numpy as np
 
 from .geotiff import GeoTIFFWriter
 from . import get_enhanced_image
+
+logger = logging.getLogger(__name__)
 
 
 class NinJoGeoTIFFWriter(GeoTIFFWriter):
@@ -113,12 +116,13 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             config_files (Any): Not directly used by this writer, supported
                 for compatibility with other writers.
 
-        Remaining keyword arguments are passed to :class:`NinJoTagGenerator`,
-        which will include them as NinJo tags in GDALMetadata.  Supported tags
-        are defined in ``NinJoTagGenerator.optional_tags``.  The meaning of
-        those (and other) tags are defined in the NinJo documentation (see
-        module documentation for alink).
-        The following tags are mandatory and must be provided as keyword arguments:
+        Remaining keyword arguments are passed to
+        :class:`NinJoTagGenerator`, which will include them as
+        NinJo tags in GDALMetadata.  Supported tags are defined in
+        ``NinJoTagGenerator.optional_tags``.  The meaning of those (and
+        other) tags are defined in the NinJo documentation (see module
+        documentation for alink).  The following tags are mandatory and
+        must be provided as keyword arguments:
 
             ChannelID (int)
                 NinJo Channel ID
@@ -263,7 +267,17 @@ class NinJoTagGenerator:
 
     def get_all_tags(self):
         """Get a dictionary with all tags for NinJo."""
-        return {tag: self.get_tag(tag) for tag in self.tag_names}
+        tags = {}
+        for tag in self.tag_names:
+            try:
+                tags[tag] = self.get_tag(tag)
+            except AttributeError as e:
+                if tag in self.mandatory_tags:
+                    raise
+                logger.debug(
+                    f"Unable to obtain value for optional NinJo tag {tag:s}. "
+                    f"This is probably expected.  The reason is: {e.args[0]}")
+        return tags
 
     def get_tag(self, tag):
         """Get value for NinJo tag."""
@@ -370,6 +384,9 @@ class NinJoTagGenerator:
 
         Derived from AreaDefinition.
         """
+        if self.dataset.attrs["area"].crs.coordinate_system.name == "ellipsoidal":
+            # For lat/lon coordinates, we say it's PLAT
+            return "PLAT"
         name = self.dataset.attrs["area"].crs.coordinate_operation.method_name
         if "Equidistant Cylindrical" in name:
             return "PLAT"

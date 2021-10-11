@@ -18,6 +18,7 @@
 """Tests for writing GeoTIFF files with NinJoTIFF tags."""
 
 import datetime
+import logging
 import math
 import os
 import time
@@ -414,7 +415,7 @@ def test_write_and_read_file(fake_images, tmp_path):
     assert tgs["ninjo_DataSource"] == "dowsing rod"
 
 
-def test_get_all_tags(ntg1, ntg3):
+def test_get_all_tags(ntg1, ntg3, ntg_latlon, caplog):
     """Test getting all tags from dataset."""
     # test that passed, dynamic, and mandatory tags are all included, and
     # nothing more
@@ -432,6 +433,10 @@ def test_get_all_tags(ntg1, ntg3):
             ntg3.dynamic_tags.keys() |
             {"OverFlightTime"})
     assert t3["OverFlightTime"] == 42
+    # test that CentralMeridian skipped and warning logged
+    with caplog.at_level(logging.DEBUG):
+        t_latlon = ntg_latlon.get_all_tags()
+    assert "CentralMeridian" not in t_latlon.keys()
 
 
 def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
@@ -456,7 +461,9 @@ def test_get_central_meridian(ntg1, ntg2, ntg3, ntg_latlon):
     np.testing.assert_allclose(cm, 0.0)
     np.testing.assert_allclose(ntg2.get_central_meridian(), 1.0)
     np.testing.assert_allclose(ntg3.get_central_meridian(), 2.0)
-    np.testing.assert_allclose(ntg_latlon.get_central_meridian(), 0.0)
+    with pytest.raises(AttributeError):
+        # latlon area has no central meridian
+        ntg_latlon.get_central_meridian()
 
 
 def test_get_color_depth(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
@@ -574,18 +581,20 @@ def test_get_meridian_west(ntg1, ntg2, ntg3):
     np.testing.assert_allclose(ntg3.get_meridian_west(), 81.84837557075694)
 
 
-def test_get_projection(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
+def test_get_projection(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk,
+                        ntg_latlon):
     """Test getting projection string."""
     assert ntg1.get_projection() == "PLAT"
     assert ntg2.get_projection() == "PLAT"
     assert ntg3.get_projection() == "NPOL"
     assert ntg_cmyk.get_projection() == "SPOL"
     assert ntg_rgba.get_projection() == "MERC"
+    assert ntg_latlon.get_projection() == "PLAT"
     with pytest.raises(ValueError):
         ntg_weird.get_projection()
 
 
-def test_get_ref_lat_1(ntg1, ntg2, ntg3, ntg_weird):
+def test_get_ref_lat_1(ntg1, ntg2, ntg3, ntg_weird, ntg_latlon):
     """Test getting reference latitude 1."""
     rl1 = ntg1.get_ref_lat_1()
     assert isinstance(rl1, float)
@@ -594,6 +603,8 @@ def test_get_ref_lat_1(ntg1, ntg2, ntg3, ntg_weird):
     np.testing.assert_allclose(ntg3.get_ref_lat_1(), 75)
     with pytest.raises(ValueError):
         ntg_weird.get_ref_lat_1()
+    with pytest.raises(AttributeError):
+        ntg_latlon.get_ref_lat_1()
 
 
 @pytest.mark.xfail(reason="Not implemented, what is this?")
