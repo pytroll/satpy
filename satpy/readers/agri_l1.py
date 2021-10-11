@@ -61,13 +61,21 @@ class HDF_AGRI_L1(HDF5FileHandler):
         lut = self.get(lut_key)
         if data.ndim >= 2:
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
-
         # calibration
-        calibration = ds_info['calibration']
+        # Check if calibration is present, if not assume dataset is an angle
+        if 'calibration' in ds_info.keys():
+            calibration = ds_info['calibration']
+        else:
+            # If angle, there is no calibration
+            calibration = None
 
-        if calibration == 'counts':
+        # Return raw data in case of counts or no calibration
+        if calibration == 'counts' or calibration is None:
             data.attrs['units'] = ds_info['units']
             ds_info['valid_range'] = data.attrs['valid_range']
+            # Apply fill value for angles
+            if calibration is None:
+                data = xr.where(data == ds_info['fill_value'], np.nan, data)
             return data
         if calibration in ['reflectance', 'radiance']:
             logger.debug("Calibrating to reflectances")

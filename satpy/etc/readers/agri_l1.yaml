@@ -293,6 +293,7 @@ datasets:
     resolution: 4000
     file_type: agri_l1_4000m_geo
     file_key: NOMSunZenith
+    fill_value: 65535
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
@@ -301,6 +302,7 @@ datasets:
     resolution: 4000
     file_type: agri_l1_4000m_geo
     file_key: NOMSunAzimuth
+    fill_value: 65535
 
   solar_glint_angle:
     name: solar_glint_angle
@@ -309,6 +311,7 @@ datasets:
     resolution: 4000
     file_type: agri_l1_4000m_geo
     file_key: NOMSunGlintAngle
+    fill_value: 65535
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
@@ -317,6 +320,7 @@ datasets:
     resolution: 4000
     file_type: agri_l1_4000m_geo
     file_key: NOMSatelliteZenith
+    fill_value: 65535
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
@@ -325,3 +329,4 @@ datasets:
     resolution: 4000
     file_type: agri_l1_4000m_geo
     file_key: NOMSatelliteAzimuth
+    fill_value: 65535
