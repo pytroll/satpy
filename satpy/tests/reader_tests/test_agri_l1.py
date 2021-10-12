@@ -56,14 +56,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             data = xr.DataArray(
                                 da.from_array((np.arange(10.) + 1.) / 10., [dims[0] * dims[1]]),
                                 attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': -65535.0,
+                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                                    'FillValue': np.array(-65535.0),
                                     'units': 'NUL',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                                     'band_names': 'band{}(band number is range from 1 to 14)'
                                                   .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                                    'valid_range': [0, 1.5],
+                                    'valid_range': np.array([0, 1.5]),
                                 },
                                 dims='_const')
 
@@ -72,14 +72,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                 da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1,
                                               [dim for dim in dims]),
                                 attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': 65535,
+                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                                    'FillValue': np.array(65535),
                                     'units': 'DN',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                                     'band_names': 'band{}(band number is range from 1 to 14)'
                                                   .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                                    'valid_range': [0, 4095],
+                                    'valid_range': np.array([0, 4095]),
                                 },
                                 dims=('_RegLength', '_RegWidth'))
 
@@ -88,11 +88,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                 da.from_array(np.arange(10, dtype=np.float32).reshape((2, 5)) + 1,
                                               [dim for dim in dims]),
                                 attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': 65535.,
+                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                                    'FillValue': np.array(65535.),
                                     'units': 'NUL',
                                     'band_names': 'NUL',
-                                    'valid_range': [0., 360.],
+                                    'valid_range': np.array([0., 360.]),
                                 },
                                 dims=('_RegLength', '_RegWidth'))
 
