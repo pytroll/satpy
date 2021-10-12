@@ -178,38 +178,67 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
         return self.special_values["SATURATED"]
 
 
+def _fill_swath_edges(angles):
+    """Fill gaps at edges of swath."""
+    darr = DataArray(angles, dims=['y', 'x'])
+    darr = darr.bfill('x')
+    darr = darr.ffill('x')
+    darr = darr.bfill('y')
+    darr = darr.ffill('y')
+    angles = darr.data
+    return angles
+
+
 class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     """File handle for sentinel 2 safe XML tile metadata."""
 
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=False):
+        """Init the reader."""
+        super().__init__(filename, filename_info, filetype_info, mask_saturated)
+        self.geocoding = self.root.find('.//Tile_Geocoding')
+
     def get_area_def(self, dsid):
         """Get the area definition of the dataset."""
+        area_extent = self._area_extent(dsid['resolution'])
+        cols, rows = self._shape(dsid['resolution'])
+        area = geometry.AreaDefinition(
+            self.tile,
+            "On-the-fly area",
+            self.tile,
+            self.projection,
+            cols,
+            rows,
+            area_extent)
+        return area
+
+    @cached_property
+    def projection(self):
+        """Get the geographic projection."""
         try:
             from pyproj import CRS
         except ImportError:
             CRS = None
-        geocoding = self.root.find('.//Tile_Geocoding')
-        epsg = geocoding.find('HORIZONTAL_CS_CODE').text
-        rows = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NROWS').text)
-        cols = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NCOLS').text)
-        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid['resolution']) + '"]')
+        epsg = self.geocoding.find('HORIZONTAL_CS_CODE').text
+        if CRS is not None:
+            proj = CRS(epsg)
+        else:
+            proj = {'init': epsg}
+        return proj
+
+    def _area_extent(self, resolution):
+        cols, rows = self._shape(resolution)
+        geoposition = self.geocoding.find('Geoposition[@resolution="' + str(resolution) + '"]')
         ulx = float(geoposition.find('ULX').text)
         uly = float(geoposition.find('ULY').text)
         xdim = float(geoposition.find('XDIM').text)
         ydim = float(geoposition.find('YDIM').text)
         area_extent = (ulx, uly + rows * ydim, ulx + cols * xdim, uly)
-        if CRS is not None:
-            proj = CRS(epsg)
-        else:
-            proj = {'init': epsg}
-        area = geometry.AreaDefinition(
-                    self.tile,
-                    "On-the-fly area",
-                    self.tile,
-                    proj,
-                    cols,
-                    rows,
-                    area_extent)
-        return area
+        return area_extent
+
+    def _shape(self, resolution):
+        rows = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NROWS').text)
+        cols = int(self.geocoding.find('Size[@resolution="' + str(resolution) + '"]/NCOLS').text)
+        return cols, rows
 
     @staticmethod
     def _do_interp(minterp, xcoord, ycoord):
@@ -221,9 +250,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         """Interpolate the angles."""
         from geotiepoints.multilinear import MultilinearInterpolator
 
-        geocoding = self.root.find('.//Tile_Geocoding')
-        rows = int(geocoding.find('Size[@resolution="' + str(resolution) + '"]/NROWS').text)
-        cols = int(geocoding.find('Size[@resolution="' + str(resolution) + '"]/NCOLS').text)
+        cols, rows = self._shape(resolution)
 
         smin = [0, 0]
         smax = np.array(angles.shape) - 1
@@ -240,19 +267,30 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         """Get the coarse dataset refered to by `key` from the XML data."""
         angles = self.root.find('.//Tile_Angles')
         if key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle']:
-            elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
-            return np.array([[val for val in elt.text.split()] for elt in elts],
-                            dtype=np.float64)
-
+            angles = self._get_solar_angles(angles, info)
         elif key['name'] in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
-            arrays = []
-            elts = angles.findall(info['xml_tag'] + '[@bandId="1"]')
-            for elt in elts:
-                items = elt.findall(info['xml_item'] + '/Values_List/VALUES')
-                arrays.append(np.array([[val for val in item.text.split()] for item in items],
-                                       dtype=np.float64))
-            return np.nanmean(np.dstack(arrays), -1)
-        return None
+            angles = self._get_satellite_angles(angles, info)
+        else:
+            angles = None
+        return angles
+
+    def _get_solar_angles(self, angles, info):
+        angles = self._get_values_from_tag(angles, info['xml_tag'])
+        return angles
+
+    @staticmethod
+    def _get_values_from_tag(xml_tree, xml_tag):
+        elts = xml_tree.findall(xml_tag + '/Values_List/VALUES')
+        return np.array([[val for val in elt.text.split()] for elt in elts],
+                        dtype=np.float64)
+
+    def _get_satellite_angles(self, angles, info):
+        arrays = []
+        elts = angles.findall(info['xml_tag'] + '[@bandId="1"]')
+        for elt in elts:
+            arrays.append(self._get_values_from_tag(elt, info['xml_item']))
+        angles = np.nanmean(np.dstack(arrays), -1)
+        return angles
 
     def get_dataset(self, key, info):
         """Get the dataset referred to by `key`."""
@@ -260,13 +298,7 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
         if angles is None:
             return None
 
-        # Fill gaps at edges of swath
-        darr = DataArray(angles, dims=['y', 'x'])
-        darr = darr.bfill('x')
-        darr = darr.ffill('x')
-        darr = darr.bfill('y')
-        darr = darr.ffill('y')
-        angles = darr.data
+        angles = _fill_swath_edges(angles)
 
         res = self.interpolate_angles(angles, key['resolution'])
 
