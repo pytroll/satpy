@@ -290,14 +290,6 @@ def test_image_latlon(test_area_epsg4326):
 
 
 @pytest.fixture(scope="module")
-def fake_images(test_image_small_mid_atlantic_L, test_image_large_asia_RGB,
-                test_image_small_arctic_P):
-    """Create fake datasets for testing writing routines."""
-    return [test_image_small_mid_atlantic_L, test_image_large_asia_RGB,
-            test_image_small_arctic_P]
-
-
-@pytest.fixture(scope="module")
 def ntg1(test_image_small_mid_atlantic_L):
     """Create instance of NinJoTagGenerator class."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
