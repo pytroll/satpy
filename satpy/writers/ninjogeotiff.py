@@ -163,8 +163,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             compute=compute,
             fill_value=fill_value,
             tags={**(tags or {}), **ninjo_tags},
-            scale_label="Gradient",
-            offset_label="AxisIntercept",
+            scale_offset_tags=("ninjo_Gradient", "ninjo_AxisIntercept"),
             **kwargs)
 
 

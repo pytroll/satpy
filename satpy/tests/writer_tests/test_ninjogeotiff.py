@@ -470,6 +470,10 @@ def test_write_and_read_file(fake_images, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
+    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
+                               0.4653780307919959)
+    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
+                               -79.86837954904149)
 
 
 def test_get_all_tags(ntg1, ntg3, ntg_latlon, ntg_northpole, caplog):
