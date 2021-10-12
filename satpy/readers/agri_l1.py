@@ -69,7 +69,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         if calibration in ('counts', None):
             data.attrs['units'] = ds_info['units']
             ds_info['valid_range'] = data.attrs['valid_range']
-        elif calibration in ['reflectance', 'radiance']:
+        elif calibration == 'reflectance':
             logger.debug("Calibrating to reflectances")
             # using the corresponding SCALE and OFFSET
             cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
@@ -77,23 +77,23 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
             if num_channel == 1:
                 # only channel_2, resolution = 500 m
-                data.attrs['slope'] = self.get(cal_coef)[0, 0].values.item()
-                data.attrs['offset'] = self.get(cal_coef)[0, 1].values.item()
+                data.attrs['scale_factor'] = self.get(cal_coef)[0, 0].values.item()
+                data.attrs['add_offset'] = self.get(cal_coef)[0, 1].values.item()
             else:
-                data.attrs['slope'] = self.get(cal_coef)[int(file_key[-2:])-1, 0].values.item()
-                data.attrs['offset'] = self.get(cal_coef)[int(file_key[-2:])-1, 1].values.item()
+                data.attrs['scale_factor'] = self.get(cal_coef)[int(file_key[-2:])-1, 0].values.item()
+                data.attrs['add_offset'] = self.get(cal_coef)[int(file_key[-2:])-1, 1].values.item()
 
-            data = self.dn2(data, calibration, data.attrs['slope'], data.attrs['offset'])
+            data = self.dn2(data, calibration, data.attrs['scale_factor'], data.attrs['add_offset'])
+            ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['scale_factor'] + data.attrs['add_offset'])
+            ds_info['valid_range'] = ds_info['valid_range'] * 100
 
-            if calibration == 'reflectance':
-                ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['slope'] + data.attrs['offset']) * 100
-            else:
-                ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['slope'] + data.attrs['offset'])
         elif calibration == 'brightness_temperature':
             logger.debug("Calibrating to brightness_temperature")
             # the value of dn is the index of brightness_temperature
             data = self.calibrate(data, lut)
             ds_info['valid_range'] = lut.attrs['valid_range']
+        elif calibration == 'radiance':
+            raise NotImplementedError("Calibration to radiance is not supported.")
 
         satname = PLATFORM_NAMES.get(self['/attr/Satellite Name'], self['/attr/Satellite Name'])
         data.attrs.update({'platform_name': satname,
