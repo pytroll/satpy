@@ -19,7 +19,6 @@
 
 import datetime
 import logging
-import math
 import os
 import time
 
@@ -49,7 +48,7 @@ def _get_fake_da(lo, hi, shp, dtype="f4"):
     This is more or less a 2d linspace: it'll return a 2-d dask array of shape
     shape, lowest value is lo, highest value is hi.
     """
-    return da.arange(lo, hi, (hi-lo)/math.prod(shp), chunks=50, dtype=dtype).reshape(shp)
+    return da.arange(lo, hi, (hi-lo)/prod(shp), chunks=50, dtype=dtype).reshape(shp)
 
 
 @pytest.fixture(scope="module")
