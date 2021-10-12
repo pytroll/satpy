@@ -871,7 +871,7 @@ class TestMTDXML(unittest.TestCase):
         filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A")
         self.xml_tile_fh = SAFEMSITileMDXML(BytesIO(mtd_tile_xml), filename_info, mock.MagicMock())
         self.old_xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock())
-        self.xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock())
+        self.xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock(), mask_saturated=True)
 
     def test_satellite_zenith_array(self):
         """Test reading the satellite zenith array."""
@@ -909,10 +909,23 @@ class TestMTDXML(unittest.TestCase):
                                  dims=["band", "x", "y"])
         result = self.old_xml_fh.calibrate(fake_data, "B01")
         np.testing.assert_allclose(result, [[[np.nan, 0.01, 0.02, 0.03],
-                                             [0.04, 10, 655.34, 655.35]]])
+                                             [0.04, 10, 655.34, np.inf]]])
 
     def test_xml_calibration(self):
         """Test the calibration with radiometric offset."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh.calibrate(fake_data, "B01")
+        np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
+                                             [0.04 - 10, 0, 655.34 - 10, np.inf]]])
+
+    def test_xml_calibration_unmasked_saturated(self):
+        """Test the calibration with radiometric offset but unmasked saturated pixels."""
+        from satpy.readers.msi_safe import SAFEMSIMDXML
+        filename_info = dict(observation_time=None, dtile_number=None, fmission_id="S2A")
+        self.xml_fh = SAFEMSIMDXML(StringIO(mtd_l1c_xml), filename_info, mock.MagicMock(), mask_saturated=False)
+
         fake_data = xr.DataArray([[[0, 1, 2, 3],
                                    [4, 1000, 65534, 65535]]],
                                  dims=["band", "x", "y"])
@@ -927,7 +940,7 @@ class TestMTDXML(unittest.TestCase):
                                  dims=["band", "x", "y"])
         result = self.xml_fh.calibrate(fake_data, "B10")
         np.testing.assert_allclose(result, [[[np.nan, 0.01 - 20, 0.02 - 20, 0.03 - 20],
-                                             [0.04 - 20, -10, 655.34 - 20, 655.35 - 20]]])
+                                             [0.04 - 20, -10, 655.34 - 20, np.inf]]])
 
 
 class TestSAFEMSIL1C:
