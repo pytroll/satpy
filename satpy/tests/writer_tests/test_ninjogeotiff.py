@@ -32,6 +32,17 @@ from pyresample import create_area_def
 from satpy.writers import get_enhanced_image
 
 
+try:
+    from math import prod
+except ImportError:  # Remove when dropping Python < 3.8
+    from functools import reduce
+    from operator import mul
+
+    def prod(iterable):
+        """Drop-in replacement for math.prod."""
+        return reduce(mul, iterable, 1)
+
+
 def _get_fake_da(lo, hi, shp, dtype="f4"):
     """Generate dask array with synthetic data.
 
