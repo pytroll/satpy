@@ -70,9 +70,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
             data.attrs['units'] = ds_info['units']
             ds_info['valid_range'] = data.attrs['valid_range']
             # Apply fill value for angles
-            data = xr.where(data == data.attrs['FillValue'], np.nan, data)
-            return data
-        if calibration in ['reflectance', 'radiance']:
+           # data = xr.where(data == data.attrs['FillValue'], np.nan, data)
+        elif calibration in ['reflectance', 'radiance']:
             logger.debug("Calibrating to reflectances")
             # using the corresponding SCALE and OFFSET
             cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
@@ -108,12 +107,15 @@ class HDF_AGRI_L1(HDF5FileHandler):
         data.attrs.update(ds_info)
 
         # remove attributes that could be confusing later
+        data.attrs['_FillValue'] = data.attrs['FillValue']
         data.attrs.pop('FillValue', None)
         data.attrs.pop('Intercept', None)
         data.attrs.pop('Slope', None)
 
-        data = data.where((data >= min(data.attrs['valid_range'])) &
-                          (data <= max(data.attrs['valid_range'])))
+        # Apply range limits, but not for counts or we convert to float!
+        if calibration != 'counts':
+            data = data.where((data >= min(data.attrs['valid_range'])) &
+                              (data <= max(data.attrs['valid_range'])))
 
         return data
 
