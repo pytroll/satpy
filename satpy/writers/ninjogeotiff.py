@@ -396,7 +396,7 @@ class NinJoTagGenerator:
                 return "NPOL"
             return "SPOL"
         raise ValueError(
-                f"Area {self.dataset.attrs['area'].name} has a CRS coordinate "
+                f"Area '{self.dataset.attrs['area'].description}' has a CRS coordinate "
                 f"operation names {name:s}.  I don't know what that corresponds "
                 "to in NinJo, which understands only equidistanc cylindrical, "
                 "mercator, or stereographic projections.")
@@ -414,7 +414,7 @@ class NinJoTagGenerator:
                 return pams[label]
         raise ValueError(
                 "Could not find reference latitude for area "
-                f"{self.dataset.attrs['area'].name}")
+                f"{self.dataset.attrs['area'].description}")
 
     def get_ref_lat_2(self):
         """Get reference latitude two.

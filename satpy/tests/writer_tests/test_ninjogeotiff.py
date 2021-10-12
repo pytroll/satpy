@@ -278,14 +278,14 @@ def test_image_cmyk_antarctic(test_area_tiny_antarctic):
 def test_image_latlon(test_area_epsg4326):
     """Get image with latlon areadefinition."""
     arr = xr.DataArray(
-        _get_fake_da(-50, 30, test_area_epsg4326.shape + (1,)),
+        _get_fake_da(-50, 30, test_area_epsg4326.shape + (2,)),
         dims=("y", "x", "bands"),
-        coords={"bands": ["L"]},
+        coords={"bands": ["L", "A"]},
         attrs={
             "name": "test-latlon",
             "start_time": datetime.datetime(2001, 1, 1, 0),
             "area": test_area_epsg4326,
-            "mode": "L"})
+            "mode": "LA"})
     return get_enhanced_image(arr)
 
 
@@ -326,7 +326,7 @@ def ntg3(test_image_small_arctic_P):
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
     return NinJoTagGenerator(
             test_image_small_arctic_P,
-            12,
+            255,
             "spelt.tif",
             ChannelID=800012,
             DataType="PPRN",
@@ -490,6 +490,32 @@ def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
     assert "ninjo_Gradient" not in tgs.keys()
     assert "ninjo_AxisIntercept" not in tgs.keys()
     assert tgs["ninjo_PhysicValue"] == "N/A"
+
+
+@pytest.mark.xfail(reason="LA images not supported due to scale/offset handling")
+def test_write_and_read_file_LA(test_image_latlon, tmp_path):
+    """Test writing and reading LA image."""
+    import rasterio
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    ngtw.save_dataset(
+        test_image_latlon.data,
+        filename=fn,
+        fill_value=0,
+        PhysicUnit="%",
+        PhysicValue="Reflectance",
+        SatelliteNameID=6400014,
+        ChannelID=900015,
+        DataType="GORN",
+        DataSource="dowsing rod")
+    src = rasterio.open(fn)
+    tgs = src.tags()
+    assert tgs["ninjo_FileName"] == fn
+    assert tgs["ninjo_DataSource"] == "dowsing rod"
+    assert tgs["ninjo_Gradient"] == 0
+    assert tgs["ninjo_AxisIntercept"] == 0
+    assert tgs["ninjo_PhysicValue"] == "Reflectance"
 
 
 def test_get_all_tags(ntg1, ntg3, ntg_latlon, ntg_northpole, caplog):
@@ -707,7 +733,7 @@ def test_get_transparent_pixel(ntg1, ntg2, ntg3):
     assert isinstance(tp, int)
     assert tp == 255
     assert ntg2.get_transparent_pixel() == 0  # when not set ??
-    assert ntg3.get_transparent_pixel() == 12
+    assert ntg3.get_transparent_pixel() == 255
 
 
 def test_get_xmax(ntg1, ntg2, ntg3):
