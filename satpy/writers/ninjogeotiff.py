@@ -271,7 +271,7 @@ class NinJoTagGenerator:
         for tag in self.tag_names:
             try:
                 tags[tag] = self.get_tag(tag)
-            except AttributeError as e:
+            except (AttributeError, KeyError) as e:
                 if tag in self.mandatory_tags:
                     raise
                 logger.debug(

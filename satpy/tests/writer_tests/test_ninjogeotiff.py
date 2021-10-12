@@ -84,7 +84,7 @@ def test_area_small_eqc_wgs84():
 
 @pytest.fixture(scope="module")
 def test_area_tiny_stereographic_wgs84():
-    """Create a 20x10 test stereographic area centered on the north pole, wgs84."""
+    """Create a 20x10 test stereographic area centered near the north pole, wgs84."""
     shp = (20, 10)
     test_area = create_area_def(
         "test-area-north-stereo",
@@ -99,7 +99,7 @@ def test_area_tiny_stereographic_wgs84():
 
 @pytest.fixture(scope="module")
 def test_area_tiny_antarctic():
-    """Create a 20x10 test stereographic area centered on the north pole, wgs84."""
+    """Create a 20x10 test stereographic area centered near the south pole, wgs84."""
     shp = (20, 10)
     test_area = create_area_def(
         "test-area-south-stereo",
@@ -109,6 +109,22 @@ def test_area_tiny_antarctic():
         shape=shp,
         resolution=1000,
         center=(0.0, -1500000.0))
+    return test_area
+
+
+@pytest.fixture(scope="module")
+def test_area_northpole():
+    """Create a 20x10 test area centered exactly on the north pole.
+
+    This has no well-defined central meridian so needs separate testing.
+    """
+    shp = (20, 10)
+    test_area = create_area_def(
+            "test-area-north-pole",
+            {"proj": "stere", "lat_0": 90, "lat_ts": 60, "ellps": "WGS84"},
+            shape=shp,
+            resolution=1000,
+            center=(0.0, 15000000.0))
     return test_area
 
 
@@ -196,6 +212,21 @@ def test_image_small_arctic_P(test_area_tiny_stereographic_wgs84):
             "start_time": datetime.datetime(2027, 8, 2, 8, 20),
             "area": test_area_tiny_stereographic_wgs84,
             "mode": "P"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
+def test_image_northpole(test_area_northpole):
+    """Test image with area exactly on northpole."""
+    arr = xr.DataArray(
+        _get_fake_da(1, 100, test_area_northpole.shape + (1,), "uint8"),
+        dims=("y", "x", "bands"),
+        coords={"bands": ["L"]},
+        attrs={
+            "name": "test-northpole",
+            "start_time": datetime.datetime(1926, 5, 12, 0),
+            "area": test_area_northpole,
+            "mode": "L"})
     return get_enhanced_image(arr)
 
 
@@ -315,6 +346,21 @@ def ntg3(test_image_small_arctic_P):
 
 
 @pytest.fixture(scope="module")
+def ntg_northpole(test_image_northpole):
+    """Create NinJoTagGenerator with north pole image."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_northpole,
+            255,
+            "lentils.tif",
+            ChannelID=900012,
+            DataType="PORN",
+            PhysicUnit="Temperature",
+            PhysicValue="K",
+            SatelliteNameID=7500014)
+
+
+@pytest.fixture(scope="module")
 def ntg_weird(test_image_weird):
     """Create NinJoTagGenerator instance with weird image."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
@@ -426,7 +472,7 @@ def test_write_and_read_file(fake_images, tmp_path):
     assert tgs["ninjo_DataSource"] == "dowsing rod"
 
 
-def test_get_all_tags(ntg1, ntg3, ntg_latlon, caplog):
+def test_get_all_tags(ntg1, ntg3, ntg_latlon, ntg_northpole, caplog):
     """Test getting all tags from dataset."""
     # test that passed, dynamic, and mandatory tags are all included, and
     # nothing more
@@ -447,7 +493,11 @@ def test_get_all_tags(ntg1, ntg3, ntg_latlon, caplog):
     # test that CentralMeridian skipped and warning logged
     with caplog.at_level(logging.DEBUG):
         t_latlon = ntg_latlon.get_all_tags()
+    assert ("Unable to obtain value for optional NinJo tag CentralMeridian"
+            in caplog.text)
     assert "CentralMeridian" not in t_latlon.keys()
+    t_northpole = ntg_northpole.get_all_tags()
+    assert "CentralMeridian" not in t_northpole.keys()
 
 
 def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
@@ -465,7 +515,7 @@ def test_calc_single_tag_by_name(ntg1, ntg2, ntg3):
         ntg1.get_tag("Gradient")
 
 
-def test_get_central_meridian(ntg1, ntg2, ntg3, ntg_latlon):
+def test_get_central_meridian(ntg1, ntg2, ntg3, ntg_latlon, ntg_northpole):
     """Test calculating the central meridian."""
     cm = ntg1.get_central_meridian()
     assert isinstance(cm, float)
@@ -475,6 +525,9 @@ def test_get_central_meridian(ntg1, ntg2, ntg3, ntg_latlon):
     with pytest.raises(AttributeError):
         # latlon area has no central meridian
         ntg_latlon.get_central_meridian()
+    with pytest.raises(KeyError):
+        # nor does area exactly on northpole
+        ntg_northpole.get_central_meridian()
 
 
 def test_get_color_depth(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
