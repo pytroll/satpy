@@ -116,7 +116,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             config_files (Any): Not directly used by this writer, supported
                 for compatibility with other writers.
 
-        Remaining keyword arguments are passed to
+        Remaining keyword arguments are either passed as GDAL options, if
+        contained in ``self.GDAL_OPTIONS``, or they are passed to
         :class:`NinJoTagGenerator`, which will include them as
         NinJo tags in GDALMetadata.  Supported tags are defined in
         ``NinJoTagGenerator.optional_tags``.  The meaning of those (and
@@ -145,6 +146,14 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             decorate=decorate,
             fill_value=fill_value)
 
+        gdal_opts = {}
+        ntg_opts = {}
+        for (k, v) in kwargs.items():
+            if k in self.GDAL_OPTIONS:
+                gdal_opts[k] = v
+            else:
+                ntg_opts[k] = v
+
         ntg = NinJoTagGenerator(
             image,
             fill_value=fill_value,
@@ -154,7 +163,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             PhysicUnit=PhysicUnit,
             PhysicValue=PhysicValue,
             SatelliteNameID=SatelliteNameID,
-            **kwargs)
+            **ntg_opts)
         ninjo_tags = {f"ninjo_{k:s}": v for (k, v) in ntg.get_all_tags().items()}
 
         return self.save_image(
@@ -164,7 +173,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             fill_value=fill_value,
             tags={**(tags or {}), **ninjo_tags},
             scale_offset_tags=None if image.mode.startswith("RGB") else ("ninjo_Gradient", "ninjo_AxisIntercept"),
-            **kwargs)
+            **gdal_opts)
 
 
 class NinJoTagGenerator:
