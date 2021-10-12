@@ -18,15 +18,14 @@
 """SAFE MSI L1C reader.
 
 The MSI data has a special value for saturated pixels. By default, these
-pixels are left with the max value for the sensor, but some for some
-applications, it might be desirable to have these pixels masked out.
-To mask these pixels with np.inf value, the `mask_saturated` flag is
-available in the reader, and can be activated with ``reader_kwargs`` upon
-Scene creation::
+pixels are set to np.inf, but some for some applications, it might be desirable
+to have these pixels left untouched.
+For this case, the `mask_saturated` flag is available in the reader, and can be
+toggled with ``reader_kwargs`` upon Scene creation::
 
     scene = satpy.Scene(filenames,
                         reader='msi_safe',
-                        reader_kwargs={'mask_saturated': True})
+                        reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
 """
 
@@ -55,7 +54,7 @@ PLATFORMS = {'S2A': "Sentinel-2A",
 class SAFEMSIL1C(BaseFileHandler):
     """File handler for SAFE MSI files (jp2)."""
 
-    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=False):
+    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=True):
         """Initialize the reader."""
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
@@ -106,7 +105,7 @@ class SAFEMSIL1C(BaseFileHandler):
 class SAFEMSIXMLMetadata(BaseFileHandler):
     """Base class for SAFE MSI XML metadata filehandlers."""
 
-    def __init__(self, filename, filename_info, filetype_info, mask_saturated=False):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info)
         self._start_time = filename_info['observation_time']
@@ -192,7 +191,7 @@ def _fill_swath_edges(angles):
 class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     """File handle for sentinel 2 safe XML tile metadata."""
 
-    def __init__(self, filename, filename_info, filetype_info, mask_saturated=False):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True):
         """Init the reader."""
         super().__init__(filename, filename_info, filetype_info, mask_saturated)
         self.geocoding = self.root.find('.//Tile_Geocoding')

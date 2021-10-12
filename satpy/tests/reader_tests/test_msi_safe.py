@@ -938,7 +938,7 @@ class TestSAFEMSIL1C:
         from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
         fake_data = xr.DataArray([[[0, 1], [2, 3]]], dims=["band", "x", "y"])
         filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)
-        mda = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock())
+        mda = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock(), mask_saturated=False)
         tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml), filename_info, mock.MagicMock())
         self.jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), mda, tile_mda)
 
