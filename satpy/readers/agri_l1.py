@@ -108,7 +108,6 @@ class HDF_AGRI_L1(HDF5FileHandler):
         if calibration != 'counts':
             data = data.where((data >= min(data.attrs['valid_range'])) &
                               (data <= max(data.attrs['valid_range'])))
-            data.attrs['_FillValue'] = np.nan
         else:
             data.attrs['_FillValue'] = data.attrs['FillValue'].item()
 
