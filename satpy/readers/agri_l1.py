@@ -63,19 +63,14 @@ class HDF_AGRI_L1(HDF5FileHandler):
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
         # calibration
         # Check if calibration is present, if not assume dataset is an angle
-        if 'calibration' in ds_info.keys():
-            calibration = ds_info['calibration']
-        else:
-            # If angle, there is no calibration
-            calibration = None
+        calibration = ds_info.get('calibration')
 
         # Return raw data in case of counts or no calibration
-        if calibration == 'counts' or calibration is None:
+        if calibration in ('counts', None):
             data.attrs['units'] = ds_info['units']
             ds_info['valid_range'] = data.attrs['valid_range']
             # Apply fill value for angles
-            if calibration is None:
-                data = xr.where(data == ds_info['fill_value'], np.nan, data)
+            data = xr.where(data == data.attrs['FillValue'], np.nan, data)
             return data
         if calibration in ['reflectance', 'radiance']:
             logger.debug("Calibrating to reflectances")
@@ -85,18 +80,18 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
             if num_channel == 1:
                 # only channel_2, resolution = 500 m
-                slope = self.get(cal_coef)[0, 0].values
-                offset = self.get(cal_coef)[0, 1].values
+                data.attrs['slope'] = self.get(cal_coef)[0, 0].values
+                data.attrs['offset'] = self.get(cal_coef)[0, 1].values
             else:
-                slope = self.get(cal_coef)[int(file_key[-2:])-1, 0].values
-                offset = self.get(cal_coef)[int(file_key[-2:])-1, 1].values
+                data.attrs['slope'] = self.get(cal_coef)[int(file_key[-2:])-1, 0].values
+                data.attrs['offset'] = self.get(cal_coef)[int(file_key[-2:])-1, 1].values
 
-            data = self.dn2(data, calibration, slope, offset)
+            data = self.dn2(data, calibration, data.attrs['slope'], data.attrs['offset'])
 
             if calibration == 'reflectance':
-                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
+                ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['slope'] + data.attrs['offset']) * 100
             else:
-                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset)
+                ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['slope'] + data.attrs['offset'])
         elif calibration == 'brightness_temperature':
             logger.debug("Calibrating to brightness_temperature")
             # the value of dn is the index of brightness_temperature
@@ -148,13 +143,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
 
-        if (key['name'] in b500):
+        if key['name'] in b500:
             pdict['a_name'] = self.filename_info['observation_type']+'_500m'
             pdict['p_id'] = 'FY-4A, 500m'
-        elif (key['name'] in b1000):
+        elif key['name'] in b1000:
             pdict['a_name'] = self.filename_info['observation_type']+'_1000m'
             pdict['p_id'] = 'FY-4A, 1000m'
-        elif (key['name'] in b2000):
+        elif key['name'] in b2000:
             pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
             pdict['p_id'] = 'FY-4A, 2000m'
         else:
@@ -179,6 +174,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         Args:
             dn: Raw detector digital number
+            calibration: Calibration type, 'reflectance' or 'radiance'
             slope: Slope
             offset: Offset
 
@@ -202,7 +198,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         """Calibrate digital number (DN) to brightness_temperature.
 
         Args:
-            dn: Raw detector digital number
+            data: Raw detector digital number
             lut: the look up table
         Returns:
             brightness_temperature [K]
