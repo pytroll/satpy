@@ -146,6 +146,10 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             decorate=decorate,
             fill_value=fill_value)
 
+        # filename not passed on to writer by Scene.save_dataset, but I need
+        # it!
+        filename = filename or self.get_filename(**dataset.attrs)
+
         gdal_opts = {}
         ntg_opts = {}
         for (k, v) in kwargs.items():

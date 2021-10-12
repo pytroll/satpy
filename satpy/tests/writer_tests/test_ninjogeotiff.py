@@ -29,6 +29,7 @@ import xarray as xr
 
 from pyresample import create_area_def
 from satpy.writers import get_enhanced_image
+from satpy import Scene
 
 
 try:
@@ -520,6 +521,32 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     assert tgs["ninjo_Gradient"] == 0
     assert tgs["ninjo_AxisIntercept"] == 0
     assert tgs["ninjo_PhysicValue"] == "Reflectance"
+
+
+def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):
+    """Test that all attributes are written also when writing from scene.
+
+    It appears that :func:`Satpy.Scene.save_dataset` does not pass the filename
+    to the writer.  Test that filename is still written to header when saving
+    this way (the regular way).
+    """
+    import rasterio
+    sc = Scene()
+    fn = os.fspath(tmp_path / "test-{name}.tif")
+    sc["montanha-do-pico"] = test_image_small_mid_atlantic_L.data
+    sc.save_dataset(
+        "montanha-do-pico",
+        writer="ninjogeotiff",
+        filename=fn,
+        fill_value=0,
+        PhysicUnit="C",
+        PhysicValue="Temperature",
+        SatelliteNameID=6400014,
+        ChannelID=900015,
+        DataType="GORN")
+    src = rasterio.open(tmp_path / "test-montanha-do-pico.tif")
+    tgs = src.tags()
+    assert tgs["ninjo_FileName"] == os.fspath(tmp_path / "test-montanha-do-pico.tif")
 
 
 def test_get_all_tags(ntg1, ntg3, ntg_latlon, ntg_northpole, caplog):
