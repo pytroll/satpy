@@ -15,18 +15,32 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE MSI L1C reader."""
+"""SAFE MSI L1C reader.
+
+The MSI data has a special value for saturated pixels. By default, these
+pixels are left with the max value for the sensor, but some for some
+applications, it might be desirable to have these pixels masked out.
+To mask these pixels with np.inf value, the `mask_saturated` flag is
+available in the reader, and can be activated with ``reader_kwargs`` upon
+Scene creation::
+
+    scene = satpy.Scene(filenames,
+                        reader='msi_safe',
+                        reader_kwargs={'mask_saturated': True})
+    scene.load(['B01'])
+"""
 
 import logging
-
-import rioxarray
-import numpy as np
-from xarray import DataArray
-import dask.array as da
 import xml.etree.ElementTree as ET
+
+import dask.array as da
+import numpy as np
+import rioxarray
 from pyresample import geometry
+from xarray import DataArray
 
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -41,14 +55,15 @@ PLATFORMS = {'S2A': "Sentinel-2A",
 class SAFEMSIL1C(BaseFileHandler):
     """File handler for SAFE MSI files (jp2)."""
 
-    def __init__(self, filename, filename_info, filetype_info, mda):
-        """Init the reader."""
+    def __init__(self, filename, filename_info, filetype_info, mda, tile_mda, mask_saturated=False):
+        """Initialize the reader."""
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
-
+        del mask_saturated
         self._start_time = filename_info['observation_time']
         self._end_time = filename_info['observation_time']
         self._channel = filename_info['band_name']
+        self._tile_mda = tile_mda
         self._mda = mda
         self.platform_name = PLATFORMS[filename_info['fmission_id']]
 
@@ -68,11 +83,8 @@ class SAFEMSIL1C(BaseFileHandler):
         proj = rioxarray.open_rasterio(self.filename, chunks=CHUNK_SIZE)
         return self._calibrate(proj.squeeze("band"))
 
-    @staticmethod
-    def _calibrate(proj):
-        proj = proj.where(proj > 0)
-        quantification_value = 10000.
-        return proj / quantification_value * 100
+    def _calibrate(self, proj):
+        return self._mda.calibrate(proj, self._channel)
 
     @property
     def start_time(self):
@@ -88,34 +100,86 @@ class SAFEMSIL1C(BaseFileHandler):
         """Get the area def."""
         if self._channel != dsid['name']:
             return
-        return self._mda.get_area_def(dsid)
+        return self._tile_mda.get_area_def(dsid)
 
 
-class SAFEMSIMDXML(BaseFileHandler):
-    """File handle for sentinel 2 safe XML manifest."""
+class SAFEMSIXMLMetadata(BaseFileHandler):
+    """Base class for SAFE MSI XML metadata filehandlers."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=False):
         """Init the reader."""
-        super(SAFEMSIMDXML, self).__init__(filename, filename_info,
-                                           filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
         self._start_time = filename_info['observation_time']
         self._end_time = filename_info['observation_time']
         self.root = ET.parse(self.filename)
-        self.tile = filename_info['gtile_number']
+        self.tile = filename_info['dtile_number']
         self.platform_name = PLATFORMS[filename_info['fmission_id']]
-
+        self.mask_saturated = mask_saturated
         import geotiepoints  # noqa
         import bottleneck  # noqa
+
+    @property
+    def end_time(self):
+        """Get end time."""
+        return self._start_time
 
     @property
     def start_time(self):
         """Get start time."""
         return self._start_time
 
+
+class SAFEMSIMDXML(SAFEMSIXMLMetadata):
+    """File handle for sentinel 2 safe XML generic metadata."""
+
+    def calibrate(self, data, band_name):
+        """Calibrate *data* using the radiometric information for the metadata."""
+        quantification = int(self.root.find('.//QUANTIFICATION_VALUE').text)
+        data = data.where(data != self.no_data)
+        if self.mask_saturated:
+            data = data.where(data != self.saturated, np.inf)
+        return (data + self.band_offset(band_name)) / quantification * 100
+
+    def band_offset(self, band):
+        """Get the band offset for *band*."""
+        spectral_info = self.root.findall('.//Spectral_Information')
+        band_indices = {spec.attrib["physicalBand"]: int(spec.attrib["bandId"]) for spec in spectral_info}
+        band_conversions = {"B01": "B1", "B02": "B2", "B03": "B3", "B04": "B4", "B05": "B5", "B06": "B6", "B07": "B7",
+                            "B08": "B8", "B8A": "B8A", "B09": "B9", "B10": "B10", "B11": "B11", "B12": "B12"}
+        band_index = band_indices[band_conversions[band]]
+        band_offset = self.band_offsets.get(band_index, 0)
+        return band_offset
+
+    @cached_property
+    def band_offsets(self):
+        """Get the band offsets from the metadata."""
+        offsets = self.root.find('.//Radiometric_Offset_List')
+        if offsets is not None:
+            band_offsets = {int(off.attrib["band_id"]): float(off.text) for off in offsets}
+        else:
+            band_offsets = {}
+        return band_offsets
+
+    @cached_property
+    def special_values(self):
+        """Get the special values from the metadata."""
+        special_values = self.root.findall('.//Special_Values')
+        special_values_dict = {value[0].text: float(value[1].text) for value in special_values}
+        return special_values_dict
+
     @property
-    def end_time(self):
-        """Get end time."""
-        return self._start_time
+    def no_data(self):
+        """Get the nodata value from the metadata."""
+        return self.special_values["NODATA"]
+
+    @property
+    def saturated(self):
+        """Get the saturated value from the metadata."""
+        return self.special_values["SATURATED"]
+
+
+class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
+    """File handle for sentinel 2 safe XML tile metadata."""
 
     def get_area_def(self, dsid):
         """Get the area definition of the dataset."""
