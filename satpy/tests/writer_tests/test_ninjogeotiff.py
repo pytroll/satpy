@@ -279,14 +279,14 @@ def test_image_cmyk_antarctic(test_area_tiny_antarctic):
 def test_image_latlon(test_area_epsg4326):
     """Get image with latlon areadefinition."""
     arr = xr.DataArray(
-        _get_fake_da(-50, 30, test_area_epsg4326.shape + (2,)),
+        _get_fake_da(-50, 30, test_area_epsg4326.shape + (1,)),
         dims=("y", "x", "bands"),
-        coords={"bands": ["L", "A"]},
+        coords={"bands": ["L"]},
         attrs={
             "name": "test-latlon",
             "start_time": datetime.datetime(2001, 1, 1, 0),
             "area": test_area_epsg4326,
-            "mode": "LA"})
+            "mode": "L"})
     return get_enhanced_image(arr)
 
 
@@ -497,7 +497,6 @@ def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
     assert tgs["ninjo_PhysicValue"] == "N/A"
 
 
-@pytest.mark.xfail(reason="LA images not supported due to scale/offset handling")
 def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     """Test writing and reading LA image."""
     import rasterio
@@ -507,7 +506,7 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     ngtw.save_dataset(
         test_image_latlon.data,
         filename=fn,
-        fill_value=0,
+        fill_value=None,  # to make it LA
         PhysicUnit="%",
         PhysicValue="Reflectance",
         SatelliteNameID=6400014,
@@ -515,11 +514,12 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
         DataType="GORN",
         DataSource="dowsing rod")
     src = rasterio.open(fn)
+    assert len(src.indexes) == 2  # mode LA
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
-    assert tgs["ninjo_Gradient"] == 0
-    assert tgs["ninjo_AxisIntercept"] == 0
+    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.30816176470588236)
+    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]), -49.603125)
     assert tgs["ninjo_PhysicValue"] == "Reflectance"
 
 
