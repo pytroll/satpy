@@ -128,12 +128,12 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
                 NinJo Channel ID
             DataType (int)
                 NinJo Data Type
+            SatelliteNameID (int)
+                NinJo Satellite ID
             PhysicUnit (str)
                 NinJo label for unit (example: "C")
             PhysicValue (str)
                 NinJo label for quantity (example: "temperature")
-            SatelliteNameID (int)
-                NinJo Satellite ID
 
         """
         # some tag calculations, such as image depth, need the image to be
@@ -163,7 +163,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             compute=compute,
             fill_value=fill_value,
             tags={**(tags or {}), **ninjo_tags},
-            scale_offset_tags=("ninjo_Gradient", "ninjo_AxisIntercept"),
+            scale_offset_tags=None if image.mode.startswith("RGB") else ("ninjo_Gradient", "ninjo_AxisIntercept"),
             **kwargs)
 
 

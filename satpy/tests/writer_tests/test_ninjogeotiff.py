@@ -449,14 +449,14 @@ def patch_datetime_now(monkeypatch, utc):
     monkeypatch.setattr(datetime, 'datetime', mydatetime)
 
 
-def test_write_and_read_file(fake_images, tmp_path):
+def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
     """Test that it writes a GeoTIFF with the appropriate NinJo-tags."""
     import rasterio
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
     ngtw.save_dataset(
-        fake_images[0].data,
+        test_image_small_mid_atlantic_L.data,
         filename=fn,
         fill_value=0,
         PhysicUnit="C",
@@ -473,6 +473,31 @@ def test_write_and_read_file(fake_images, tmp_path):
                                0.4653780307919959)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
                                -79.86837954904149)
+
+
+def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
+    """Test writing and reading RGB."""
+    import rasterio
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    ngtw.save_dataset(
+        test_image_large_asia_RGB.data,
+        filename=fn,
+        fill_value=0,
+        PhysicUnit="N/A",
+        PhysicValue="N/A",
+        SatelliteNameID=6400014,
+        ChannelID=900015,
+        DataType="GORN",
+        DataSource="dowsing rod")
+    src = rasterio.open(fn)
+    tgs = src.tags()
+    assert tgs["ninjo_FileName"] == fn
+    assert tgs["ninjo_DataSource"] == "dowsing rod"
+    assert "ninjo_Gradient" not in tgs.keys()
+    assert "ninjo_AxisIntercept" not in tgs.keys()
+    assert tgs["ninjo_PhysicValue"] == "N/A"
 
 
 def test_get_all_tags(ntg1, ntg3, ntg_latlon, ntg_northpole, caplog):
