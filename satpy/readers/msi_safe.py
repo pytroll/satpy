@@ -88,7 +88,7 @@ class SAFEMSIL1C(BaseFileHandler):
         proj = proj.squeeze("band")
         if key["calibration"] == "reflectance":
             return self._mda.calibrate_to_reflectances(proj, self._channel)
-        elif key["calibration"] == "radiance":
+        if key["calibration"] == "radiance":
             return self._mda.calibrate_to_radiances(proj, self._channel)
 
     @property
