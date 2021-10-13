@@ -27,6 +27,11 @@ toggled with ``reader_kwargs`` upon Scene creation::
                         reader='msi_safe',
                         reader_kwargs={'mask_saturated': False})
     scene.load(['B01'])
+
+L1B format description for the files read here:
+
+  https://sentinels.copernicus.eu/documents/247904/0/Sentinel-2-product-specifications-document-V14-9.pdf/
+
 """
 
 import logging
@@ -72,18 +77,19 @@ class SAFEMSIL1C(BaseFileHandler):
             return
 
         logger.debug('Reading %s.', key['name'])
-        proj = self._read_from_file()
+        proj = self._read_from_file(key)
         proj.attrs = info.copy()
         proj.attrs['units'] = '%'
         proj.attrs['platform_name'] = self.platform_name
         return proj
 
-    def _read_from_file(self):
+    def _read_from_file(self, key):
         proj = rioxarray.open_rasterio(self.filename, chunks=CHUNK_SIZE)
-        return self._calibrate(proj.squeeze("band"))
-
-    def _calibrate(self, proj):
-        return self._mda.calibrate(proj, self._channel)
+        proj = proj.squeeze("band")
+        if key["calibration"] == "reflectance":
+            return self._mda.calibrate_to_reflectances(proj, self._channel)
+        elif key["calibration"] == "radiance":
+            return self._mda.calibrate_to_radiances(proj, self._channel)
 
     @property
     def start_time(self):
@@ -131,23 +137,36 @@ class SAFEMSIXMLMetadata(BaseFileHandler):
 class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     """File handle for sentinel 2 safe XML generic metadata."""
 
-    def calibrate(self, data, band_name):
+    def calibrate_to_reflectances(self, data, band_name):
         """Calibrate *data* using the radiometric information for the metadata."""
         quantification = int(self.root.find('.//QUANTIFICATION_VALUE').text)
+        data = self._sanitize_data(data)
+        return (data + self.band_offset(band_name)) / quantification * 100
+
+    def _sanitize_data(self, data):
         data = data.where(data != self.no_data)
         if self.mask_saturated:
             data = data.where(data != self.saturated, np.inf)
-        return (data + self.band_offset(band_name)) / quantification * 100
+        return data
 
     def band_offset(self, band):
         """Get the band offset for *band*."""
-        spectral_info = self.root.findall('.//Spectral_Information')
-        band_indices = {spec.attrib["physicalBand"]: int(spec.attrib["bandId"]) for spec in spectral_info}
+        band_index = self._band_index(band)
+        return self.band_offsets.get(band_index, 0)
+
+    def _band_index(self, band):
+        band_indices = self.band_indices
         band_conversions = {"B01": "B1", "B02": "B2", "B03": "B3", "B04": "B4", "B05": "B5", "B06": "B6", "B07": "B7",
                             "B08": "B8", "B8A": "B8A", "B09": "B9", "B10": "B10", "B11": "B11", "B12": "B12"}
         band_index = band_indices[band_conversions[band]]
-        band_offset = self.band_offsets.get(band_index, 0)
-        return band_offset
+        return band_index
+
+    @cached_property
+    def band_indices(self):
+        """Get the band indices from the metadata."""
+        spectral_info = self.root.findall('.//Spectral_Information')
+        band_indices = {spec.attrib["physicalBand"]: int(spec.attrib["bandId"]) for spec in spectral_info}
+        return band_indices
 
     @cached_property
     def band_offsets(self):
@@ -175,6 +194,23 @@ class SAFEMSIMDXML(SAFEMSIXMLMetadata):
     def saturated(self):
         """Get the saturated value from the metadata."""
         return self.special_values["SATURATED"]
+
+    def calibrate_to_radiances(self, data, band_name):
+        """Calibrate *data* to radiance using the radiometric information for the metadata."""
+        physical_gain = self.physical_gain(band_name)
+        data = self._sanitize_data(data)
+        return (data + self.band_offset(band_name)) / physical_gain
+
+    def physical_gain(self, band_name):
+        """Get the physical gain for a given *band_name*."""
+        band_index = self._band_index(band_name)
+        return self.physical_gains[band_index]
+
+    @cached_property
+    def physical_gains(self):
+        """Get the physical gains dictionary."""
+        physical_gains = {int(elt.attrib["bandId"]): float(elt.text) for elt in self.root.findall(".//PHYSICAL_GAINS")}
+        return physical_gains
 
 
 def _fill_swath_edges(angles):

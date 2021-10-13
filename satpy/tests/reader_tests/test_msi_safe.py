@@ -24,6 +24,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.tests.utils import make_dataid
+import pytest
 
 mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <n1:Level-1C_Tile_ID xmlns:n1="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd /gpfs/dpc/app/s2ipf/FORMAT_METADATA_TILE_L1C/02.14.00/scripts/../../../schemas/02.17.00/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd">
@@ -907,7 +908,7 @@ class TestMTDXML(unittest.TestCase):
         fake_data = xr.DataArray([[[0, 1, 2, 3],
                                    [4, 1000, 65534, 65535]]],
                                  dims=["band", "x", "y"])
-        result = self.old_xml_fh.calibrate(fake_data, "B01")
+        result = self.old_xml_fh.calibrate_to_reflectances(fake_data, "B01")
         np.testing.assert_allclose(result, [[[np.nan, 0.01, 0.02, 0.03],
                                              [0.04, 10, 655.34, np.inf]]])
 
@@ -916,7 +917,7 @@ class TestMTDXML(unittest.TestCase):
         fake_data = xr.DataArray([[[0, 1, 2, 3],
                                    [4, 1000, 65534, 65535]]],
                                  dims=["band", "x", "y"])
-        result = self.xml_fh.calibrate(fake_data, "B01")
+        result = self.xml_fh.calibrate_to_reflectances(fake_data, "B01")
         np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
                                              [0.04 - 10, 0, 655.34 - 10, np.inf]]])
 
@@ -929,7 +930,7 @@ class TestMTDXML(unittest.TestCase):
         fake_data = xr.DataArray([[[0, 1, 2, 3],
                                    [4, 1000, 65534, 65535]]],
                                  dims=["band", "x", "y"])
-        result = self.xml_fh.calibrate(fake_data, "B01")
+        result = self.xml_fh.calibrate_to_reflectances(fake_data, "B01")
         np.testing.assert_allclose(result, [[[np.nan, 0.01 - 10, 0.02 - 10, 0.03 - 10],
                                              [0.04 - 10, 0, 655.34 - 10, 655.35 - 10]]])
 
@@ -938,36 +939,44 @@ class TestMTDXML(unittest.TestCase):
         fake_data = xr.DataArray([[[0, 1, 2, 3],
                                    [4, 1000, 65534, 65535]]],
                                  dims=["band", "x", "y"])
-        result = self.xml_fh.calibrate(fake_data, "B10")
+        result = self.xml_fh.calibrate_to_reflectances(fake_data, "B10")
         np.testing.assert_allclose(result, [[[np.nan, 0.01 - 20, 0.02 - 20, 0.03 - 20],
                                              [0.04 - 20, -10, 655.34 - 20, np.inf]]])
+
+    def test_xml_calibration_to_radiance(self):
+        """Test the calibration with a different offset."""
+        fake_data = xr.DataArray([[[0, 1, 2, 3],
+                                   [4, 1000, 65534, 65535]]],
+                                 dims=["band", "x", "y"])
+        result = self.xml_fh.calibrate_to_radiances(fake_data, "B01")
+        expected = np.array([[[np.nan, -251.584265, -251.332429, -251.080593],
+                              [-250.828757, 0., 16251.99095, np.inf]]])
+        np.testing.assert_allclose(result, expected)
 
 
 class TestSAFEMSIL1C:
     """Test case for image reading (jp2k)."""
 
-    def test_no_data_masked(self):
-        """Test that no-data is masked with nans."""
-        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
-        fake_data = xr.DataArray([[[0, 1], [2, 3]]], dims=["band", "x", "y"])
-        filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)
-        mda = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock(), mask_saturated=False)
-        tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml), filename_info, mock.MagicMock())
-        self.jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), mda, tile_mda)
+    def setup(self):
+        """Set up the test."""
+        from satpy.readers.msi_safe import SAFEMSITileMDXML
+        self.filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)
+        self.fake_data = xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])
+        self.tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml),
+                                                               self.filename_info, mock.MagicMock())
 
-        with mock.patch("satpy.readers.msi_safe.rioxarray.open_rasterio", return_value=fake_data):
-            res = self.jp2_fh.get_dataset(make_dataid(name="B01"), info=dict())
-            np.testing.assert_allclose(res, [[np.nan, 0.01], [0.02, 0.03]])
+    @pytest.mark.parametrize("mask_saturated,calibration,expected",
+                             [(True, "reflectance", [[np.nan, 0.01 - 10], [645.34, np.inf]]),
+                              (False, "reflectance", [[np.nan, 0.01 - 10], [645.34, 645.35]]),
+                              (True, "radiance", [[np.nan, -251.58426503], [16251.99095011, np.inf]])])
+    def test_calibration_and_masking(self, mask_saturated, calibration, expected):
+        """Test that saturated is masked with inf when requested and that calibration is performed."""
+        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML
 
-    def test_saturated_masked(self):
-        """Test that saturated is masked with inf when requested."""
-        from satpy.readers.msi_safe import SAFEMSIL1C, SAFEMSIMDXML, SAFEMSITileMDXML
-        fake_data = xr.DataArray([[[0, 1], [65534, 65535]]], dims=["band", "x", "y"])
-        filename_info = dict(observation_time=None, fmission_id="S2A", band_name="B01", dtile_number=None)
-        mda = SAFEMSIMDXML(StringIO(mtd_l1c_old_xml), filename_info, mock.MagicMock(), mask_saturated=True)
-        tile_mda = mock.create_autospec(SAFEMSITileMDXML)(BytesIO(mtd_tile_xml), filename_info, mock.MagicMock())
-        self.jp2_fh = SAFEMSIL1C("somefile", filename_info, mock.MagicMock(), mda, tile_mda)
+        mda = SAFEMSIMDXML(StringIO(mtd_l1c_xml), self.filename_info, mock.MagicMock(),
+                           mask_saturated=mask_saturated)
+        self.jp2_fh = SAFEMSIL1C("somefile", self.filename_info, mock.MagicMock(), mda, self.tile_mda)
 
-        with mock.patch("satpy.readers.msi_safe.rioxarray.open_rasterio", return_value=fake_data):
-            res = self.jp2_fh.get_dataset(make_dataid(name="B01"), info=dict())
-            np.testing.assert_allclose(res, [[np.nan, 0.01], [655.34, np.inf]])
+        with mock.patch("satpy.readers.msi_safe.rioxarray.open_rasterio", return_value=self.fake_data):
+            res = self.jp2_fh.get_dataset(make_dataid(name="B01", calibration=calibration), info=dict())
+            np.testing.assert_allclose(res, expected)
