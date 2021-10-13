@@ -90,7 +90,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
 
     def save_image(
             self, image, filename=None, fill_value=None,
-            overlay=None, decorate=None, compute=True,
+            compute=True, keep_palette=False, cmap=None, overviews=None,
+            overviews_minsize=256, overviews_resampling=None,
             tags=None, config_files=None,
             *, ChannelID, DataType, PhysicUnit, PhysicValue,
             SatelliteNameID, **kwargs):
@@ -109,9 +110,17 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
                 Image to save.
             filename (str): Where to save the file.
             fill_value (int): Which pixel value is fill value?
-            overlay (dict): Overlays to add.
-            decorate (dict): Decorations to add.
             compute (bool): To compute or not to compute, that is the question.
+            keep_palette (bool):
+                As for parent GeoTIFF :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
+            cmap (:class:`trollimage.colormap.Colormap`):
+                As for parent :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
+            overviews (list):
+                As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
+            overviews_minsize (int):
+                As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
+            overviews_resampling (str):
+                As for :meth:`~satpy.writers.geotiff.GeoTIFFWriter.save_image`.
             tags (dict): Extra (not NinJo) tags to add to GDAL MetaData
             config_files (Any): Not directly used by this writer, supported
                 for compatibility with other writers.
@@ -122,7 +131,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         NinJo tags in GDALMetadata.  Supported tags are defined in
         ``NinJoTagGenerator.optional_tags``.  The meaning of those (and
         other) tags are defined in the NinJo documentation (see module
-        documentation for alink).  The following tags are mandatory and
+        documentation for a link to NinJoPedia).  The following tags are mandatory and
         must be provided as keyword arguments:
 
             ChannelID (int)
@@ -166,8 +175,13 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         return super().save_image(
             image,
             filename=filename,
-            compute=compute,
             fill_value=fill_value,
+            compute=compute,
+            keep_palette=keep_palette,
+            cmap=cmap,
+            overviews=overviews,
+            overviews_minsize=overviews_minsize,
+            overviews_resampling=overviews_resampling,
             tags={**(tags or {}), **ninjo_tags},
             scale_offset_tags=None if image.mode.startswith("RGB") else ("ninjo_Gradient", "ninjo_AxisIntercept"),
             **gdal_opts)

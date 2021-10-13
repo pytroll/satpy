@@ -523,6 +523,33 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     assert tgs["ninjo_PhysicValue"] == "Reflectance"
 
 
+def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
+    """Test writing and reading P image."""
+    import rasterio
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    from trollimage.colormap import Colormap
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    ngtw.save_image(
+        test_image_small_arctic_P,
+        filename=fn,
+        fill_value=255,
+        PhysicUnit="N/A",
+        PhysicValue="N/A",
+        SatelliteNameID=6400014,
+        ChannelID=900015,
+        DataType="PPRN",
+        DataSource="dowsing rod",
+        keep_palette=True,
+        cmap=Colormap(*enumerate(zip(*([np.linspace(0, 1, 256)]*3)))))
+    src = rasterio.open(fn)
+    assert len(src.indexes) == 1  # mode P
+    assert src.colorinterp[0] == rasterio.enums.ColorInterp.palette
+    tgs = src.tags()
+    assert tgs["ninjo_FileName"] == fn
+    assert tgs["ninjo_DataSource"] == "dowsing rod"
+
+
 def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):
     """Test that all attributes are written also when writing from scene.
 
