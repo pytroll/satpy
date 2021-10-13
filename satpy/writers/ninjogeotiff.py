@@ -78,7 +78,6 @@ import logging
 import numpy as np
 
 from .geotiff import GeoTIFFWriter
-from . import get_enhanced_image
 
 logger = logging.getLogger(__name__)
 
@@ -89,15 +88,15 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
     This writer is experimental.  API may be subject to change.
     """
 
-    def save_dataset(
-            self, dataset, filename=None, fill_value=None,
+    def save_image(
+            self, image, filename=None, fill_value=None,
             overlay=None, decorate=None, compute=True,
             tags=None, config_files=None,
             *, ChannelID, DataType, PhysicUnit, PhysicValue,
             SatelliteNameID, **kwargs):
-        """Save dataset along with NinJo tags.
+        """Save image along with NinJo tags.
 
-        Save dataset along with NinJo tags.  Interface as for GeoTIFF,
+        Save image along with NinJo tags.  Interface as for GeoTIFF,
         except NinJo expects some additional tags.  Those tags will be
         prepended with ``ninjo_`` and added as GDALMetaData.
 
@@ -106,7 +105,8 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         Importing such images with NinJo requires NinJo 7 or newer.
 
         Args:
-            dataset (xr.DataArray): Data array to save.
+            image (:class:`~trollimage.xrimage.XRImage`):
+                Image to save.
             filename (str): Where to save the file.
             fill_value (int): Which pixel value is fill value?
             overlay (dict): Overlays to add.
@@ -137,14 +137,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
                 NinJo label for quantity (example: "temperature")
 
         """
-        # some tag calculations, such as image depth, need the image to be
-        # present already
-        image = get_enhanced_image(
-            dataset.squeeze(),
-            enhance=self.enhancer,
-            overlay=overlay,
-            decorate=decorate,
-            fill_value=fill_value)
+        dataset = image.data
 
         # filename not passed on to writer by Scene.save_dataset, but I need
         # it!
@@ -170,7 +163,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             **ntg_opts)
         ninjo_tags = {f"ninjo_{k:s}": v for (k, v) in ntg.get_all_tags().items()}
 
-        return self.save_image(
+        return super().save_image(
             image,
             filename=filename,
             compute=compute,
