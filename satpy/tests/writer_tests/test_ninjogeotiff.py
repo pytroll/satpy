@@ -20,7 +20,6 @@
 import datetime
 import logging
 import os
-import time
 
 import dask.array as da
 import numpy as np
@@ -413,21 +412,7 @@ def ntg_latlon(test_image_latlon):
 
 
 @pytest.fixture
-def utc():
-    """Set timezone to UTC.
-
-    Set the timezone to UTC, so that any tests that test against (fixtured)
-    times pass independently of system timezone.
-    """
-    tz = time.tzname[time.daylight]
-    os.environ["TZ"] = "UTC"
-    time.tzset()
-    yield
-    os.environ["TZ"] = tz
-
-
-@pytest.fixture
-def patch_datetime_now(monkeypatch, utc):
+def patch_datetime_now(monkeypatch):
     """Get a fake datetime.datetime.now()."""
     # Source: https://stackoverflow.com/a/20503374/974555, CC-BY-SA 4.0
 
@@ -435,9 +420,10 @@ def patch_datetime_now(monkeypatch, utc):
         """Drop-in replacement for datetime.datetime."""
 
         @classmethod
-        def now(cls):
+        def now(cls, tz=datetime.timezone.utc):
             """Drop-in replacement for datetime.datetime.now."""
-            return datetime.datetime(2033, 5, 18, 3, 33, 20)
+            return datetime.datetime(2033, 5, 18, 3, 33, 20,
+                                     tzinfo=tz)
 
     monkeypatch.setattr(datetime, 'datetime', mydatetime)
 
@@ -647,7 +633,7 @@ def test_get_color_depth(ntg1, ntg2, ntg3, ntg_weird, ntg_rgba, ntg_cmyk):
         ntg_cmyk.get_color_depth()
 
 
-def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now, utc):
+def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now):
     """Test getting the creation date ID.
 
     This is the time at which the file was created.
@@ -661,7 +647,7 @@ def test_get_creation_date_id(ntg1, ntg2, ntg3, patch_datetime_now, utc):
     assert ntg3.get_creation_date_id() == 2000000000
 
 
-def test_get_date_id(ntg1, ntg2, ntg3, utc):
+def test_get_date_id(ntg1, ntg2, ntg3):
     """Test getting the date ID."""
     did = ntg1.get_date_id()
     assert isinstance(did, int)

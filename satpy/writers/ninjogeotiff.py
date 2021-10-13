@@ -335,12 +335,15 @@ class NinJoTagGenerator:
         raise ValueError(
                 f"Unsupported image mode: {self.image.mode:s}")
 
+    _epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+
     def get_creation_date_id(self):
         """Calculate the creation date ID.
 
         That's seconds since UNIX Epoch for the time the image is created.
         """
-        return int(datetime.datetime.now().timestamp())
+        delta = datetime.datetime.now(tz=datetime.timezone.utc) - self._epoch
+        return int(delta.total_seconds())
 
     def get_date_id(self):
         """Calculate the date ID.
@@ -348,7 +351,9 @@ class NinJoTagGenerator:
         That's seconds since UNIX Epoch for the time corresponding to the
         satellite image.
         """
-        return int(self.dataset.attrs["start_time"].timestamp())
+        tm = self.dataset.attrs["start_time"]
+        delta = tm.replace(tzinfo=datetime.timezone.utc) - self._epoch
+        return int(delta.total_seconds())
 
     def get_earth_radius_large(self):
         """Return the Earth semi-major axis in metre."""
