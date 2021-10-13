@@ -24,19 +24,19 @@ supersede the old NinJoTIFF format.  The :class:`NinJoGeoTIFFWriter`
 therefore supersedes the old Satpy NinJoTIFF writer and the pyninjotiff
 package.
 
-The reference documentation for valid NinJo tags and their meaning is contained
-in `NinJoPedia`_.
-Since this page is not in the public web, there is a (possibly outdated)
-`mirror`_.
+The reference documentation for valid NinJo tags and their meaning is
+contained in `NinJoPedia`_.  Since this page is not in the public web,
+there is a (possibly outdated) `mirror`_.
 
 .. _NinJoPedia: https://ninjopedia.com/tiki-index.php?page=adm_SatelliteServer_SatelliteImportFormats_en
 .. _mirror: https://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html
 
-There are some user-facing differences between the old NinJoTIFF writer and the new
-NinJoGeoTIFF writer.  Most notably, keyword arguments that correspond to tags
-directly passed by the user are now identical, including case, to how they will
-be written to the GDALMetaData and interpreted by NinJo.  That means some
-keyword arguments have changed, such as summarised in this table:
+There are some user-facing differences between the old NinJoTIFF writer
+and the new NinJoGeoTIFF writer.  Most notably, keyword arguments that
+correspond to tags directly passed by the user are now identical,
+including case, to how they will be written to the GDALMetaData and
+interpreted by NinJo.  That means some keyword arguments have changed,
+such as summarised in this table:
 
 .. list-table:: Migrating to NinJoGeoTIFF, keyword arguments for the writer
    :header-rows: 1
@@ -63,14 +63,13 @@ keyword arguments have changed, such as summarised in this table:
      - ``DataSource``
      - optional
 
-Moreover, two keyword arguments are no longer supported because their
-functionality has become redundant.  This applies to
-``chan_min_measurement_unit`` and ``chan_max_measurement_unit``.  Instead, pass
-those values in source units to the :func:`~satpy.enhancements.stretch`
-enhancement with the ``min_stretch`` and ``max_stretch`` arguments.
+Moreover, two keyword arguments are no longer supported because
+their functionality has become redundant.  This applies to
+``chan_min_measurement_unit`` and ``chan_max_measurement_unit``.
+Instead, pass those values in source units to the
+:func:`~satpy.enhancements.stretch` enhancement with the ``min_stretch``
+and ``max_stretch`` arguments.
 """
-
-# override min/max grey value?  used for crude stretch?
 
 import datetime
 import logging
@@ -86,6 +85,9 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
     """Writer for GeoTIFFs with NinJo tags.
 
     This writer is experimental.  API may be subject to change.
+
+    For information, see module docstring and documentation for
+    :meth:`~NinJoGeoTIFFWriter.save_image`.
     """
 
     def save_image(
@@ -125,14 +127,14 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             config_files (Any): Not directly used by this writer, supported
                 for compatibility with other writers.
 
-        Remaining keyword arguments are either passed as GDAL options, if
-        contained in ``self.GDAL_OPTIONS``, or they are passed to
-        :class:`NinJoTagGenerator`, which will include them as
+        Remaining keyword arguments are either passed as GDAL options,
+        if contained in ``self.GDAL_OPTIONS``, or they are passed
+        to :class:`NinJoTagGenerator`, which will include them as
         NinJo tags in GDALMetadata.  Supported tags are defined in
         ``NinJoTagGenerator.optional_tags``.  The meaning of those (and
         other) tags are defined in the NinJo documentation (see module
-        documentation for a link to NinJoPedia).  The following tags are mandatory and
-        must be provided as keyword arguments:
+        documentation for a link to NinJoPedia).  The following tags
+        are mandatory and must be provided as keyword arguments:
 
             ChannelID (int)
                 NinJo Channel ID
@@ -265,8 +267,8 @@ class NinJoTagGenerator:
         """Initialise tag generator.
 
         Args:
-            image (trollimage.XRImage): XRImage for which NinJo tags should be
-                calculated.
+            image (:class:`trollimage.xrimage.XRImage`): XRImage for which
+                NinJo tags should be calculated.
             fill_value (int): Fill value corresponding to image.
             filename (str): Filename to be written.
             **kwargs: Any additional tags to be included as-is.
@@ -335,6 +337,8 @@ class NinJoTagGenerator:
         raise ValueError(
                 f"Unsupported image mode: {self.image.mode:s}")
 
+    # Set unix epoch here explicitly, because datetime.timestamp() is
+    # apparently not supported on Windows.
     _epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
 
     def get_creation_date_id(self):
@@ -349,7 +353,7 @@ class NinJoTagGenerator:
         """Calculate the date ID.
 
         That's seconds since UNIX Epoch for the time corresponding to the
-        satellite image.
+        satellite image start of measurement time.
         """
         tm = self.dataset.attrs["start_time"]
         delta = tm.replace(tzinfo=datetime.timezone.utc) - self._epoch
@@ -367,33 +371,17 @@ class NinJoTagGenerator:
         """Return the filename."""
         return self.filename
 
-    def get_max_gray_value(self):
-        """Calculate maximum gray value."""
-        return self.image._scale_to_dtype(
-            self.dataset.max(),
-            np.uint8,
-            self.fill_value).astype(np.uint8)
-
-    def get_meridian_east(self):
-        """Get the easternmost longitude of the area.
-
-        Currently not implemented.  In pyninjotiff it was implemented but the
-        answer was incorrect.
-        """
-        raise NotImplementedError("This is difficult and probably not needed.")
-
-    def get_meridian_west(self):
-        """Get the westernmost longitude of the area.
-
-        Currently not implemented.  In pyninjotiff it was implemented but the
-        answer was incorrect.
-        """
-        raise NotImplementedError("This is difficult and probably not needed.")
-
     def get_min_gray_value(self):
         """Calculate minimum gray value."""
         return self.image._scale_to_dtype(
             self.dataset.min(),
+            np.uint8,
+            self.fill_value).astype(np.uint8)
+
+    def get_max_gray_value(self):
+        """Calculate maximum gray value."""
+        return self.image._scale_to_dtype(
+            self.dataset.max(),
             np.uint8,
             self.fill_value).astype(np.uint8)
 
@@ -441,14 +429,6 @@ class NinJoTagGenerator:
                 "Could not find reference latitude for area "
                 f"{self.dataset.attrs['area'].description}")
 
-    def get_ref_lat_2(self):
-        """Get reference latitude two.
-
-        This is not implemented and never was correctly implemented in
-        pyninjotiff either.  It doesn't appear to be used by NinJo.
-        """
-        raise NotImplementedError("Second reference latitude not implemented.")
-
     def get_transparent_pixel(self):
         """Get transparent pixel value.
 
@@ -471,3 +451,27 @@ class NinJoTagGenerator:
         pixels.
         """
         return self.dataset.sizes["y"]
+
+    def get_meridian_east(self):
+        """Get the easternmost longitude of the area.
+
+        Currently not implemented.  In pyninjotiff it was implemented but the
+        answer was incorrect.
+        """
+        raise NotImplementedError("This is difficult and probably not needed.")
+
+    def get_meridian_west(self):
+        """Get the westernmost longitude of the area.
+
+        Currently not implemented.  In pyninjotiff it was implemented but the
+        answer was incorrect.
+        """
+        raise NotImplementedError("This is difficult and probably not needed.")
+
+    def get_ref_lat_2(self):
+        """Get reference latitude two.
+
+        This is not implemented and never was correctly implemented in
+        pyninjotiff either.  It doesn't appear to be used by NinJo.
+        """
+        raise NotImplementedError("Second reference latitude not implemented.")

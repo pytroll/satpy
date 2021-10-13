@@ -46,14 +46,14 @@ def _get_fake_da(lo, hi, shp, dtype="f4"):
     """Generate dask array with synthetic data.
 
     This is more or less a 2d linspace: it'll return a 2-d dask array of shape
-    shape, lowest value is lo, highest value is hi.
+    ``shp``, lowest value is ``lo``, highest value is ``hi``.
     """
     return da.arange(lo, hi, (hi-lo)/prod(shp), chunks=50, dtype=dtype).reshape(shp)
 
 
 @pytest.fixture(scope="module")
 def test_area_tiny_eqc_sphere():
-    """Create 10x00 test equirectangular area centered on (40, -30), spherical geoid."""
+    """Create 10x00 test equirectangular area centered on (40, -30), spherical geoid, m."""
     shp = (10, 20)
     test_area = create_area_def(
         "test-area-eqc-sphere",
@@ -144,7 +144,7 @@ def test_area_merc():
 
 @pytest.fixture(scope="module")
 def test_area_weird():
-    """Create a weird area to test error handling."""
+    """Create a weird area (interrupted goode homolosine) to test error handling."""
     from pyproj import CRS
     shp = (20, 10)
     test_area = create_area_def(
@@ -159,7 +159,7 @@ def test_area_weird():
 
 @pytest.fixture(scope="module")
 def test_area_epsg4326():
-    """Test with EPSG4326 (latlong) area, which has no coordinate operation."""
+    """Test with EPSG4326 (latlong) area, which has no CRS coordinate operation."""
     from pyproj import CRS
     shp = (16, 8)
     euro4326 = create_area_def(
@@ -383,7 +383,7 @@ def ntg_rgba(test_image_rgba_merc):
 
 @pytest.fixture(scope="module")
 def ntg_cmyk(test_image_cmyk_antarctic):
-    """Create NinJoTagGenerator instance with RGBA image."""
+    """Create NinJoTagGenerator instance with CMYK image."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
     return NinJoTagGenerator(
             test_image_cmyk_antarctic,
