@@ -16,15 +16,20 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the AWIPS Tiled writer."""
+
+import logging
 import os
 import warnings
 from glob import glob
 from datetime import datetime, timedelta
 
 import numpy as np
+import dask
 import dask.array as da
+import xarray as xr
 from pyproj import CRS
 import pytest
+from satpy.resample import update_resampled_coords
 
 
 def _check_production_location(ds):
@@ -71,7 +76,7 @@ def _check_scaled_x_coordinate_variable(ds, masked_ds):
     np.testing.assert_equal(np.diff(x_coord), 1)
     x_attrs = x_coord.attrs
     assert x_attrs.get('standard_name') == 'projection_x_coordinate'
-    assert x_attrs.get('units') == 'meters'
+    assert x_attrs.get('units') == 'meter'
     assert 'scale_factor' in x_attrs
     assert x_attrs['scale_factor'] > 0
     assert 'add_offset' in x_attrs
@@ -86,7 +91,7 @@ def _check_scaled_y_coordinate_variable(ds, masked_ds):
     np.testing.assert_equal(np.diff(y_coord), 1)
     y_attrs = y_coord.attrs
     assert y_attrs.get('standard_name') == 'projection_y_coordinate'
-    assert y_attrs.get('units') == 'meters'
+    assert y_attrs.get('units') == 'meter'
     assert 'scale_factor' in y_attrs
     assert y_attrs['scale_factor'] < 0
     assert 'add_offset' in y_attrs
@@ -140,35 +145,38 @@ class TestAWIPSTiledWriter:
         return da.from_array(data, chunks=chunks)
 
     def _get_test_lcc_data(self, dask_arr, area_def):
-        from xarray import DataArray
-        ds = DataArray(
+        ds = xr.DataArray(
             dask_arr,
+            dims=('y', 'x') if dask_arr.ndim == 2 else ('bands', 'y', 'x'),
             attrs=dict(
                 name='test_ds',
                 platform_name='PLAT',
                 sensor='SENSOR',
                 units='1',
+                standard_name='toa_bidirectional_reflectance',
                 area=area_def,
                 start_time=self.start_time,
                 end_time=self.end_time)
         )
-        return ds
+        return update_resampled_coords(ds, ds, area_def)
 
     @pytest.mark.parametrize('use_save_dataset',
                              [(False,), (True,)])
-    def test_basic_numbered_1_tile(self, use_save_dataset):
+    def test_basic_numbered_1_tile(self, use_save_dataset, caplog):
         """Test creating a single numbered tile."""
-        import xarray as xr
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = self._get_test_data()
         area_def = self._get_test_area()
         input_data_arr = self._get_test_lcc_data(data, area_def)
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
-        if use_save_dataset:
-            w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
-        else:
-            w.save_datasets([input_data_arr], sector_id='TEST', source_name='TESTS')
+        with caplog.at_level(logging.DEBUG):
+            w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+            if use_save_dataset:
+                w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
+            else:
+                w.save_datasets([input_data_arr], sector_id='TEST', source_name='TESTS')
 
+        assert "no routine matching" not in caplog.text
+        assert "Can't format string" not in caplog.text
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         assert len(all_files) == 1
         assert os.path.basename(all_files[0]) == 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc'
@@ -205,8 +213,6 @@ class TestAWIPSTiledWriter:
     )
     def test_basic_numbered_tiles(self, tile_count, tile_size):
         """Test creating a multiple numbered tiles."""
-        import xarray as xr
-        import dask
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         from satpy.tests.utils import CustomScheduler
         data = self._get_test_data()
