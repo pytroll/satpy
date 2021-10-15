@@ -76,8 +76,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             if len(shape) == 3:
                 if shape[0] != 1:
                     raise ValueError("Not sure how to load 3D Dataset with more than 1 time")
-                else:
-                    shape = shape[1:]
+                shape = shape[1:]
         return shape
 
     @staticmethod
