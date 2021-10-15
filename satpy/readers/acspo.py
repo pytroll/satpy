@@ -134,6 +134,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         add_offset = self.get(var_path + '/attr/add_offset')
 
         data = self[var_path]
+        data = data.rename({"ni": "x", "nj": "y"})
         if isinstance(file_shape, tuple) and len(file_shape) == 3:
             # can only read 3D arrays with size 1 in the first dimension
             data = data[0]
@@ -144,6 +145,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         if ds_info.get('cloud_clear', False):
             # clear-sky if bit 15-16 are 00
             clear_sky_mask = (self['l2p_flags'][0] & 0b1100000000000000) != 0
+            clear_sky_mask = clear_sky_mask.rename({"ni": "x", "nj": "y"})
             data = data.where(~clear_sky_mask)
 
         data.attrs.update(metadata)
