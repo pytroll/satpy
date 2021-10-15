@@ -921,7 +921,8 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     def _global_physical_element(self, input_metadata):
         var_config = self._var_tree.find_match(**input_metadata)
-        result = self._render_attrs(var_config["attributes"], input_metadata, prefix="_data_")
+        attr_config = {"physical_element": var_config["attributes"]["physical_element"]}
+        result = self._render_attrs(attr_config, input_metadata, prefix="_data_")
         return result["physical_element"]
 
     def _global_production_location(self, input_metadata):
