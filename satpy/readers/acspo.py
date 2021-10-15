@@ -46,8 +46,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         res = self['/attr/platform']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
-        else:
-            return res
+        return res
 
     @property
     def sensor_name(self):
@@ -55,8 +54,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         res = self['/attr/sensor']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
-        else:
-            return res
+        return res
 
     def get_shape(self, ds_id, ds_info):
         """Get numpy array shape for the specified dataset.
