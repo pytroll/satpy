@@ -180,6 +180,9 @@ class GeoTIFFWriter(ImageWriter):
                 tag.  The value of this argument should be a keyword argument
                 ``(scale_label, offset_label)``, for example, ``("scale",
                 "offset")``, indicating the labels to be used.
+            include_scale_offset (deprecated, bool): Deprecated.
+                Use ``scale_offset_tags=("scale", "offset")`` to include scale
+                and offset tags.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
