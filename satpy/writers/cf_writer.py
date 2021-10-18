@@ -155,6 +155,17 @@ logger = logging.getLogger(__name__)
 
 EPOCH = u"seconds since 1970-01-01 00:00:00"
 
+# Check availability of either netCDF4 or h5netcdf package
+try:
+    import netCDF4
+except ImportError:
+    netCDF4 = None
+
+try:
+    import h5netcdf
+except ImportError:
+    h5netcdf = None
+
 # Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
 # excluded because h5py (and thus h5netcdf) has problems with unicode, see
 # https://github.com/h5py/h5py/issues/624."""
@@ -743,6 +754,10 @@ class CFWriter(Writer):
         else:
             warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
                           "DataArrays to tune compression from now on.", FutureWarning)
+
+        # Ensure that either netCDF4 or h5netcdf is available to avoid silent failure
+        if not netCDF4 and not h5netcdf:
+            raise ImportError('Ensure that the netCDF4 or h5netcdf package is installed.')
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
