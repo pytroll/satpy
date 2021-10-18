@@ -13,7 +13,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Writer for GeoTIFF images with tags for the NinJo visualization tool.
 
 The next version of NinJo (release expected spring 2022) will be able
@@ -430,26 +429,15 @@ class NinJoTagGenerator:
                 f"{self.dataset.attrs['area'].description}")
 
     def get_transparent_pixel(self):
-        """Get transparent pixel value.
-
-        Get the transparent pixel value, also known as the fill value.
-        """
+        """Get the transparent pixel value, also known as the fill value."""
         return self.fill_value
 
     def get_xmaximum(self):
-        """Get xmaximum.
-
-        Get the maximum value of x, i.e. the meridional extent of the image in
-        pixels.
-        """
+        """Get the maximum value of x, i.e. the meridional extent of the image in pixels."""
         return self.dataset.sizes["x"]
 
     def get_ymaximum(self):
-        """Get ymaximum.
-
-        Get the maximum value of y, i.e. the zonal extent of the image in
-        pixels.
-        """
+        """Get the maximum value of y, i.e. the zonal extent of the image in pixels."""
         return self.dataset.sizes["y"]
 
     def get_meridian_east(self):
