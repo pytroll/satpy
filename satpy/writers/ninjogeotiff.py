@@ -325,7 +325,7 @@ class NinJoTagGenerator:
 
     def get_color_depth(self):
         """Return the color depth."""
-        if self.image.mode in "LP":
+        if self.image.mode in ("L", "P"):
             return 8
         if self.image.mode in ("LA", "PA"):
             return 16
