@@ -26,6 +26,7 @@ libraries maintained by the Pytroll group including:
 - `pycoast <https://pycoast.readthedocs.io/en/latest/>`_
 - `pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
 - `python-geotiepoints <https://python-geotiepoints.readthedocs.io/en/latest/>`_
+- `pyninjotiff <https://github.com/pytroll/pyninjotiff>`_
 
 Go to the Satpy project_ page for source code and downloads.
 
