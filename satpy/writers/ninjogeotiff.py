@@ -47,26 +47,26 @@ such as summarised in this table:
      - Notes
    * - ``chan_id``
      - ``ChannelID``
-     -
+     - mandatory
    * - ``data_type``
      - ``DataType``
-     -
+     - mandatory
    * - ``physic_unit``
      - ``PhysicUnit``
-     -
+     - mandatory
    * - ``physic_val``
      - ``PhysicValue``
-     -
+     - mandatory
    * - ``sat_id``
      - ``SatelliteNameID``
-     -
+     - mandatory
    * - ``data_source``
      - ``DataSource``
      - optional
 
 Moreover, two keyword arguments are no longer supported because
 their functionality has become redundant.  This applies to
-``chan_min_measurement_unit`` and ``chan_max_measurement_unit``.
+``ch_min_measurement_unit`` and ``ch_max_measurement_unit``.
 Instead, pass those values in source units to the
 :func:`~satpy.enhancements.stretch` enhancement with the ``min_stretch``
 and ``max_stretch`` arguments.
