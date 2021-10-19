@@ -448,7 +448,7 @@ class NinJoTagGenerator:
         Currently not implemented.  In pyninjotiff it was implemented but the
         answer was incorrect.
         """
-        raise NotImplementedError("This is difficult and probably not needed.")
+        raise NotImplementedError()
 
     def get_meridian_west(self):
         """Get the westernmost longitude of the area.
@@ -456,7 +456,7 @@ class NinJoTagGenerator:
         Currently not implemented.  In pyninjotiff it was implemented but the
         answer was incorrect.
         """
-        raise NotImplementedError("This is difficult and probably not needed.")
+        raise NotImplementedError()
 
     def get_ref_lat_2(self):
         """Get reference latitude two.
