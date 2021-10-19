@@ -167,7 +167,7 @@ except ImportError:
     h5netcdf = None
 
 # Ensure that either netCDF4 or h5netcdf is available to avoid silent failure
-if not netCDF4 and not h5netcdf:
+if netCDF4 is None and h5netcdf is None:
     raise ImportError('Ensure that the netCDF4 or h5netcdf package is installed.')
 
 # Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
