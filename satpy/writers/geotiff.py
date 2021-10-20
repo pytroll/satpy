@@ -111,7 +111,7 @@ class GeoTIFFWriter(ImageWriter):
                    compute=True, keep_palette=False, cmap=None, tags=None,
                    overviews=None, overviews_minsize=256,
                    overviews_resampling=None, include_scale_offset=False,
-                   **kwargs):
+                   scale_offset_tags=None, **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -175,9 +175,14 @@ class GeoTIFFWriter(ImageWriter):
                 provided. Common values include `nearest` (default),
                 `bilinear`, `average`, and many others. See the rasterio
                 documentation for more information.
-            include_scale_offset (bool): Activate inclusion of scale and offset
-                factors in the geotiff to allow retrieving original values from
-                the pixel values. ``False`` by default.
+            scale_offset_tags (Tuple[str, str]): If set, include inclusion of
+                scale and offset in the GeoTIFF headers in the GDALMetaData
+                tag.  The value of this argument should be a keyword argument
+                ``(scale_label, offset_label)``, for example, ``("scale",
+                "offset")``, indicating the labels to be used.
+            include_scale_offset (deprecated, bool): Deprecated.
+                Use ``scale_offset_tags=("scale", "offset")`` to include scale
+                and offset tags.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
@@ -219,10 +224,12 @@ class GeoTIFFWriter(ImageWriter):
         if tags is None:
             tags = {}
         tags.update(self.tags)
+
         return img.save(filename, fformat='tif', fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
                         tags=tags, include_scale_offset_tags=include_scale_offset,
+                        scale_offset_tags=scale_offset_tags,
                         overviews=overviews,
                         overviews_resampling=overviews_resampling,
                         overviews_minsize=overviews_minsize,
