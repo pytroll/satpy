@@ -18,7 +18,7 @@
 """SAFE MSI L1C reader.
 
 The MSI data has a special value for saturated pixels. By default, these
-pixels are set to np.inf, but some for some applications, it might be desirable
+pixels are set to np.inf, but for some applications it might be desirable
 to have these pixels left untouched.
 For this case, the `mask_saturated` flag is available in the reader, and can be
 toggled with ``reader_kwargs`` upon Scene creation::
