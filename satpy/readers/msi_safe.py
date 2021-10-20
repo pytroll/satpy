@@ -249,20 +249,13 @@ class SAFEMSITileMDXML(SAFEMSIXMLMetadata):
     @cached_property
     def projection(self):
         """Get the geographic projection."""
-        try:
-            from pyproj import CRS
-        except ImportError:
-            CRS = None
+        from pyproj import CRS
         epsg = self.geocoding.find('HORIZONTAL_CS_CODE').text
-        if CRS is not None:
-            proj = CRS(epsg)
-        else:
-            proj = {'init': epsg}
-        return proj
+        return CRS(epsg)
 
     def _area_extent(self, resolution):
         cols, rows = self._shape(resolution)
-        geoposition = self.geocoding.find('Geoposition[@resolution="' + str(resolution) + '"]')
+        geoposition = self.geocoding.find(f'Geoposition[@resolution="{resolution}"]')
         ulx = float(geoposition.find('ULX').text)
         uly = float(geoposition.find('ULY').text)
         xdim = float(geoposition.find('XDIM').text)

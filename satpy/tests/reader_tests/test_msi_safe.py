@@ -953,6 +953,18 @@ class TestMTDXML(unittest.TestCase):
                               [-250.828757, 0., 16251.99095, np.inf]]])
         np.testing.assert_allclose(result, expected)
 
+    def test_xml_navigation(self):
+        """Test the navigation."""
+        from pyproj import CRS
+        crs = CRS('EPSG:32616')
+
+        dsid = make_dataid(name="B01", resolution=60)
+        result = self.xml_tile_fh.get_area_def(dsid)
+
+        area_extents = (499980.0, 3590220.0, 609780.0, 3700020.0)
+        assert result.crs == crs
+        np.testing.assert_allclose(result.area_extent, area_extents)
+
 
 class TestSAFEMSIL1C:
     """Test case for image reading (jp2k)."""
