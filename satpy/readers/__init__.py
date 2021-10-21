@@ -468,25 +468,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     reader_kwargs['filter_parameters'] = filter_parameters
 
     for reader_configs in configs_for_reader(reader):
-        try:
-            reader_instance = load_reader(reader_configs, **reader_kwargs)
-        except (KeyError, IOError, yaml.YAMLError) as err:
-            LOG.info('Cannot use %s', str(reader_configs))
-            LOG.debug(str(err))
-            if reader and (isinstance(reader, str) or len(reader) == 1):
-                # if it is a single reader then give a more usable error
-                raise
-            continue
-
-        if not reader_instance.supports_sensor(sensor):
-            continue
-        elif sensor is not None:
-            # sensor was specified and a reader supports it
-            sensor_supported = True
-        loadables = reader_instance.select_files_from_directory(base_dir, fs)
-        if loadables:
-            loadables = list(
-                reader_instance.filter_selected_filenames(loadables))
+        (reader_instance, loadables, this_sensor_supported) = _get_loadables_for_reader_config(
+                base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
+        sensor_supported = sensor_supported or this_sensor_supported
         if loadables:
             reader_files[reader_instance.name] = list(loadables)
 
@@ -496,6 +480,44 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     if not (reader_files or missing_ok):
         raise ValueError("No supported files found")
     return reader_files
+
+
+def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
+                                     reader_kwargs, fs):
+    """Get loadables for reader configs.
+
+    Helper for find_files_and_readers.
+
+    Args:
+        base_dir: as for `find_files_and_readers`
+        reader: as for `find_files_and_readers`
+        sensor: as for `find_files_and_readers`
+        reader_configs: reader metadata such as returned by
+            `configs_for_reader`.
+        reader_kwargs: Keyword arguments to be passed to reader.
+        fs (FileSystem): as for `find_files_and_readers`
+    """
+    sensor_supported = False
+    try:
+        reader_instance = load_reader(reader_configs, **reader_kwargs)
+    except (KeyError, IOError, yaml.YAMLError) as err:
+        LOG.info('Cannot use %s', str(reader_configs))
+        LOG.debug(str(err))
+        if reader and (isinstance(reader, str) or len(reader) == 1):
+            # if it is a single reader then give a more usable error
+            raise
+        return (None, [], False)
+
+    if not reader_instance.supports_sensor(sensor):
+        return (reader_instance, [], False)
+    if sensor is not None:
+        # sensor was specified and a reader supports it
+        sensor_supported = True
+    loadables = reader_instance.select_files_from_directory(base_dir, fs)
+    if loadables:
+        loadables = list(
+            reader_instance.filter_selected_filenames(loadables))
+    return (reader_instance, loadables, sensor_supported)
 
 
 def load_readers(filenames=None, reader=None, reader_kwargs=None):
