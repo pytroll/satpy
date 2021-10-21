@@ -263,7 +263,7 @@ def _filter_groups(groups, missing="pass"):
     if missing == "pass":
         yield from groups
         return
-    elif missing not in ("raise", "skip"):
+    if missing not in ("raise", "skip"):
         raise ValueError("Invalid value for ``missing`` argument.  Expected "
                          f"'raise', 'skip', or 'pass', got '{missing!s}'")
     for (i, grp) in enumerate(groups):
@@ -519,13 +519,13 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     if not filenames and not reader:
         # used for an empty Scene
         return {}
-    elif reader and filenames is not None and not filenames:
+    if reader and filenames is not None and not filenames:
         # user made a mistake in their glob pattern
         raise ValueError("'filenames' was provided but is empty.")
-    elif not filenames:
+    if not filenames:
         LOG.warning("'filenames' required to create readers and load data")
         return {}
-    elif reader is None and isinstance(filenames, dict):
+    if reader is None and isinstance(filenames, dict):
         # filenames is a dictionary of reader_name -> filenames
         reader = list(filenames.keys())
         remaining_filenames = set(f for fl in filenames.values() for f in fl)
@@ -571,7 +571,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
         LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
     if not reader_instances:
         raise ValueError("No supported files found")
-    elif not any(list(r.available_dataset_ids) for r in reader_instances.values()):
+    if not any(list(r.available_dataset_ids) for r in reader_instances.values()):
         raise ValueError("No dataset could be loaded. Either missing "
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
