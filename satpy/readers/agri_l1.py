@@ -45,6 +45,48 @@ PLATFORM_NAMES = {'FY4A': 'FY-4A',
                   'FY4C': 'FY-4C'}
 
 
+def scale(dn, slope, offset):
+    """Convert digital number (DN) to calibrated quantity through scaling.
+
+    Args:
+        dn: Raw detector digital number
+        slope: Slope
+        offset: Offset
+
+    Returns:
+        Scaled data
+
+    """
+    ref = dn * slope + offset
+    ref = ref.clip(min=0)
+    ref.attrs = dn.attrs
+
+    return ref
+
+
+def apply_lut(data, lut):
+    """Calibrate digital number (DN) by applying a LUT.
+
+    Args:
+        data: Raw detector digital number
+        lut: the look up table
+    Returns:
+        Calibrated quantity
+    """
+    # append nan to the end of lut for fillvalue
+    lut = np.append(lut, np.nan)
+    data.data = da.where(data.data > lut.shape[0], lut.shape[0] - 1, data.data)
+    res = data.data.map_blocks(_getitem, lut, dtype=lut.dtype)
+    res = xr.DataArray(res, dims=data.dims,
+                       attrs=data.attrs, coords=data.coords)
+
+    return res
+
+
+def _getitem(block, lut):
+    return lut[block]
+
+
 class HDF_AGRI_L1(HDF5FileHandler):
     """AGRI l1 file handler."""
 
@@ -54,47 +96,21 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', dataset_id['name'])
-        file_key = ds_info.get('file_key', dataset_id['name'])
-        lut_key = ds_info.get('lut_key', dataset_id['name'])
+        ds_name = dataset_id['name']
+        logger.debug('Reading in get_dataset %s.', ds_name)
+        file_key = ds_info.get('file_key', ds_name)
         data = self.get(file_key)
-        lut = self.get(lut_key)
         if data.ndim >= 2:
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
 
-        # calibration
-        calibration = ds_info['calibration']
+        data = self.calibrate(data, ds_info, ds_name, file_key)
 
-        if calibration == 'counts':
-            data.attrs['units'] = ds_info['units']
-            ds_info['valid_range'] = data.attrs['valid_range']
-            return data
-        if calibration in ['reflectance', 'radiance']:
-            logger.debug("Calibrating to reflectances")
-            # using the corresponding SCALE and OFFSET
-            cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
-            num_channel = self.get(cal_coef).shape[0]
+        self.adjust_attrs(data, ds_info)
 
-            if num_channel == 1:
-                # only channel_2, resolution = 500 m
-                slope = self.get(cal_coef)[0, 0].values
-                offset = self.get(cal_coef)[0, 1].values
-            else:
-                slope = self.get(cal_coef)[int(file_key[-2:])-1, 0].values
-                offset = self.get(cal_coef)[int(file_key[-2:])-1, 1].values
+        return data
 
-            data = self.dn2(data, calibration, slope, offset)
-
-            if calibration == 'reflectance':
-                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
-            else:
-                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset)
-        elif calibration == 'brightness_temperature':
-            logger.debug("Calibrating to brightness_temperature")
-            # the value of dn is the index of brightness_temperature
-            data = self.calibrate(data, lut)
-            ds_info['valid_range'] = lut.attrs['valid_range']
-
+    def adjust_attrs(self, data, ds_info):
+        """Adjust the attrs of the data."""
         satname = PLATFORM_NAMES.get(self['/attr/Satellite Name'], self['/attr/Satellite Name'])
         data.attrs.update({'platform_name': satname,
                            'sensor': self['/attr/Sensor Identification Code'].lower(),
@@ -103,15 +119,60 @@ class HDF_AGRI_L1(HDF5FileHandler):
                                'satellite_nominal_longitude': self['/attr/NOMCenterLon'].item(),
                                'satellite_nominal_altitude': self['/attr/NOMSatHeight'].item()}})
         data.attrs.update(ds_info)
-
         # remove attributes that could be confusing later
         data.attrs.pop('FillValue', None)
         data.attrs.pop('Intercept', None)
         data.attrs.pop('Slope', None)
 
-        data = data.where((data >= min(data.attrs['valid_range'])) &
-                          (data <= max(data.attrs['valid_range'])))
+    def calibrate(self, data, ds_info, ds_name, file_key):
+        """Calibrate the data."""
+        # Check if calibration is present, if not assume dataset is an angle
+        calibration = ds_info.get('calibration')
+        # Return raw data in case of counts or no calibration
+        if calibration in ('counts', None):
+            data.attrs['units'] = ds_info['units']
+            ds_info['valid_range'] = data.attrs['valid_range']
+        elif calibration == 'reflectance':
+            channel_index = int(file_key[-2:]) - 1
+            data = self.calibrate_to_reflectance(data, channel_index, ds_info)
 
+        elif calibration == 'brightness_temperature':
+            data = self.calibrate_to_bt(data, ds_info, ds_name)
+        elif calibration == 'radiance':
+            raise NotImplementedError("Calibration to radiance is not supported.")
+        # Apply range limits, but not for counts or we convert to float!
+        if calibration != 'counts':
+            data = data.where((data >= min(data.attrs['valid_range'])) &
+                              (data <= max(data.attrs['valid_range'])))
+        else:
+            data.attrs['_FillValue'] = data.attrs['FillValue'].item()
+        return data
+
+    def calibrate_to_reflectance(self, data, channel_index, ds_info):
+        """Calibrate to reflectance [%]."""
+        logger.debug("Calibrating to reflectances")
+        # using the corresponding SCALE and OFFSET
+        cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
+        num_channel = self.get(cal_coef).shape[0]
+        if num_channel == 1:
+            # only channel_2, resolution = 500 m
+            channel_index = 0
+        data.attrs['scale_factor'] = self.get(cal_coef)[channel_index, 0].values.item()
+        data.attrs['add_offset'] = self.get(cal_coef)[channel_index, 1].values.item()
+        data = scale(data, data.attrs['scale_factor'], data.attrs['add_offset'])
+        data *= 100
+        ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['scale_factor'] + data.attrs['add_offset'])
+        ds_info['valid_range'] = ds_info['valid_range'] * 100
+        return data
+
+    def calibrate_to_bt(self, data, ds_info, ds_name):
+        """Calibrate to Brightness Temperatures [K]."""
+        logger.debug("Calibrating to brightness_temperature")
+        lut_key = ds_info.get('lut_key', ds_name)
+        lut = self.get(lut_key)
+        # the value of dn is the index of brightness_temperature
+        data = apply_lut(data, lut)
+        ds_info['valid_range'] = lut.attrs['valid_range']
         return data
 
     def get_area_def(self, key):
@@ -140,13 +201,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
 
-        if (key['name'] in b500):
+        if key['name'] in b500:
             pdict['a_name'] = self.filename_info['observation_type']+'_500m'
             pdict['p_id'] = 'FY-4A, 500m'
-        elif (key['name'] in b1000):
+        elif key['name'] in b1000:
             pdict['a_name'] = self.filename_info['observation_type']+'_1000m'
             pdict['p_id'] = 'FY-4A, 1000m'
-        elif (key['name'] in b2000):
+        elif key['name'] in b2000:
             pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
             pdict['p_id'] = 'FY-4A, 2000m'
         else:
@@ -165,48 +226,6 @@ class HDF_AGRI_L1(HDF5FileHandler):
         area = get_area_definition(pdict, area_extent)
 
         return area
-
-    def dn2(self, dn, calibration, slope, offset):
-        """Convert digital number (DN) to reflectance or radiance.
-
-        Args:
-            dn: Raw detector digital number
-            slope: Slope
-            offset: Offset
-
-        Returns:
-            Reflectance [%]
-            or Radiance [mW/ (m2 cm-1 sr)]
-        """
-        ref = dn * slope + offset
-        if calibration == 'reflectance':
-            ref *= 100  # set unit to %
-        ref = ref.clip(min=0)
-        ref.attrs = dn.attrs
-
-        return ref
-
-    @staticmethod
-    def _getitem(block, lut):
-        return lut[block]
-
-    def calibrate(self, data, lut):
-        """Calibrate digital number (DN) to brightness_temperature.
-
-        Args:
-            dn: Raw detector digital number
-            lut: the look up table
-        Returns:
-            brightness_temperature [K]
-        """
-        # append nan to the end of lut for fillvalue
-        lut = np.append(lut, np.nan)
-        data.data = da.where(data.data > lut.shape[0], lut.shape[0] - 1, data.data)
-        res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
-        res = xr.DataArray(res, dims=data.dims,
-                           attrs=data.attrs, coords=data.coords)
-
-        return res
 
     @property
     def start_time(self):
