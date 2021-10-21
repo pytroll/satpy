@@ -119,13 +119,20 @@ Note that this value must be a list. In Python, this could be set by doing:
     satpy.config.set(config_path=['/path/custom1', '/path/custom2'])
 
 If setting an environment variable then it must be a
-colon-separated string and must be set **before** calling/importing Satpy.
+colon-separated (``:``) string on Linux/OSX or semicolon-separate (``;``)
+separated string and must be set **before** calling/importing Satpy.
 If the environment variable is a single path it will be converted to a list
 when Satpy is imported.
 
 .. code-block:: bash
 
     export SATPY_CONFIG_PATH="/path/custom1:/path/custom2"
+
+On Windows, with paths on the `C:` drive, these paths would be:
+
+.. code-block:: bash
+
+    set SATPY_CONFIG_PATH="C:/path/custom1;C:/path/custom2"
 
 Satpy will always include the builtin configuration files that it
 is distributed with regardless of this setting. When a component supports
@@ -149,6 +156,16 @@ defaults to a different path depending on your operating system following the
 "user data dir".
 
 .. _download_aux_setting:
+
+Demo Data Directory
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_DEMO_DATA_DIR``
+* **YAML/Config Key**: ``demo_data_dir``
+* **Default**: <current working directory>
+
+Directory where demo data functions will download data files to. Available
+demo data functions can be found in :mod:`satpy.demo` subpackage.
 
 Download Auxiliary Data
 ^^^^^^^^^^^^^^^^^^^^^^^

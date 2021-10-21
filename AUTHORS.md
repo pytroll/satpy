@@ -9,6 +9,7 @@ The following people have made contributions to this project:
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
+- [Jonathan Beavers (jon4than)](https://github.com/jon4than)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Ray Bell (raybellwaves)](https://github.com/raybellwaves)
 - [Jorge Bravo (jhbravo)](https://github.com/jhbravo)
@@ -42,6 +43,7 @@ The following people have made contributions to this project:
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)
+- [Lu Liu (yukaribbba)](https://github.com/yukaribbba)
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
@@ -68,6 +70,7 @@ The following people have made contributions to this project:
 - [Johan Strandgren (strandgren)](https://github.com/strandgren)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
 - [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
+- [Christian Versloot (christianversloot)](https://github.com/christianversloot)
 - [Helga Weber (helgaweb)](https://github.com/helgaweb)
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
 - [oananicola (oananicola)](https://github.com/oananicola)
