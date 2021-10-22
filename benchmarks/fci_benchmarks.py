@@ -30,13 +30,16 @@ import os
 import satpy
 import satpy.demo.fci
 
+from .utils import GeoBenchmarks
 
-class FCI:
+
+class FCI(GeoBenchmarks):
     """Benchmark FCI FDHSI test data reading."""
 
     timeout = 600
     data_files = []
     region = "maspalomas"
+    reader = "fci_l1c_nc"
 
     def setup(self, *args):
         """Fetch the data files."""
@@ -56,90 +59,101 @@ class FCI:
 
     def time_create_scene(self, chunk):
         """Time to create a scene."""
-        self.create_scene(chunk)
+        names = self._get_filename_selection(chunk)
+        self.create_scene(names)
     time_create_scene.params = ["some", "all"]
 
     def peakmem_create_scene(self, chunk):
         """Peak RAM to create a scene."""
-        self.create_scene(chunk)
+        names = self._get_filename_selection(chunk)
+        self.create_scene(names)
     peakmem_create_scene.params = time_create_scene.params
 
     def time_load(self, chunk, loadable):
         """Time to create a scene and load one channel or composite."""
-        self.get_loaded_scene(chunk, loadable)
+        names = self._get_filename_selection(chunk)
+        self.load_no_padding(loadable, names)
     time_load.params = (time_create_scene.params,
                         ["ir_105", "natural_color_raw"])
 
     def peakmem_load(self, chunk, loadable):
         """Peak RAM to create a scene and load one channel or composite."""
-        self.get_loaded_scene(chunk, loadable)
+        names = self._get_filename_selection(chunk)
+        self.load_no_padding(loadable, names)
     peakmem_load.params = time_load.params
 
     def time_compute(self, chunk, loadable):
         """Time to create a scene and load and compute one channel."""
-        sc = self.get_loaded_scene(chunk, loadable)
-        sc[loadable].compute()
+        names = self._get_filename_selection(chunk)
+        self.compute_channel(loadable, names)
     time_compute.params = time_load.params
 
     def peakmem_compute(self, chunk, loadable):
         """Peak memory for creating a scene and loading and computing one channel."""
-        sc = self.get_loaded_scene(chunk, loadable)
-        sc[loadable].compute()
+        names = self._get_filename_selection(chunk)
+        self.compute_channel(loadable, names)
     peakmem_compute.params = time_compute.params
 
     def time_load_resample_compute(self, chunk, loadable, mode):
         """Time to load all chunks, resample, and compute."""
-        ls = self.get_resampled_scene(
-                chunk, loadable, self.region, mode)
-        ls[loadable].compute()
+        # fails with NetCDF RuntimeError
+        names = self._get_filename_selection(chunk)
+        self.compute_composite(loadable, mode, self.region, names)
+#        ls = self.get_resampled_scene(
+#                chunk, loadable, self.region, mode)
+#        ls[loadable].compute()
     time_load_resample_compute.params = time_load.params + (
             ["nearest", "bilinear", "gradient_search"],)
 
     def peakmem_load_resample_compute(self, chunk, loadable, mode):
         """Peak memory to load all chunks, resample, and compute."""
-        ls = self.get_resampled_scene(
-                chunk, loadable, self.region, mode)
-        ls[loadable].compute()
+        # fails with RuntimeError
+        names = self._get_filename_selection(chunk)
+        self.compute_composite(loadable, mode, self.region, names)
+#        ls = self.get_resampled_scene(
+#                chunk, loadable, self.region, mode)
+#        ls[loadable].compute()
     peakmem_load_resample_compute.params = time_load_resample_compute.params
 
     def time_load_resample_save(self, chunk, loadable, mode):
         """Time to load all chunks, resample, and save."""
-        self.load_resample_save(chunk, loadable, self.region, mode)
+        # fails with RuntimeError
+        names = self._get_filename_selection(chunk)
+        self.save_composite_as_geotiff(loadable, mode, self.region, names)
+#        self.load_resample_save(chunk, loadable, self.region, mode)
     time_load_resample_save.params = time_load_resample_compute.params
 
     def peakmem_load_resample_save(self, chunk, loadable, mode):
         """Peak memory to load all chunks, resample, and save."""
-        self.load_resample_save(chunk, loadable, self.region, mode)
+        # fails with RuntimeError
+        names = self._get_filename_selection(chunk)
+        self.save_composite_as_geotiff(loadable, mode, self.region, names)
+#        self.load_resample_save(chunk, loadable, self.region, mode)
     peakmem_load_resample_save.params = time_load_resample_save.params
 
-    def create_scene(self, selection):
-        """Create a scene with FCI, and return it."""
+    def _get_filename_selection(self, selection):
         if selection == "some":
-            names = fnmatch.filter(self.filenames, "*3[0123].nc")
-        elif selection == "all":
-            names = self.filenames
-        else:
-            raise ValueError("Expected selection some or all, got " +
-                             selection)
-        return satpy.Scene(filenames=names, reader="fci_l1c_nc")
-
-    def get_loaded_scene(self, selection, loadable):
-        """Return a FCI scene with a loaded channel or composite."""
-        sc = self.create_scene(selection)
-        sc.load([loadable])
-        return sc
+            return fnmatch.filter(self.filenames, "*3[0123].nc")
+        if selection == "all":
+            return self.filenames
+        raise ValueError("Expected selection some or all, got " +
+                         selection)
 
     def get_resampled_scene(self, selection, loadable, area, resampler):
         """Load and resample an FCI scene with a composite."""
-        sc = self.get_loaded_scene(selection, loadable)
-        # if I don't put this here, computing fails with RuntimeError: NetCDF:
-        # Not a valid ID.  Apparently the original scene object gets destroyed
-        # and garbage collected.  I can't reproduce this in a MCVE, but it
-        # happens when running through asv.
-        self._sc = sc
-        return sc.resample(area, resampler=resampler)
+        names = self._get_filename_selection(selection)
+        return self.load_and_resample(loadable, resampler, area, names)
+#        sc = self.get_loaded_scene(selection, loadable)
+#        # if I don't put this here, computing fails with RuntimeError: NetCDF:
+#        # Not a valid ID.  Apparently the original scene object gets destroyed
+#        # and garbage collected.  I can't reproduce this in a MCVE, but it
+#        # happens when running through asv.
+#        self._sc = sc
+#        return sc.resample(area, resampler=resampler)
 
     def load_resample_save(self, selection, loadable, area, resampler):
         """Load, resample, and save FCI scene with composite."""
-        ls = self.get_resampled_scene(selection, loadable, area, resampler)
-        ls.save_datasets()
+        names = self._get_filename_selection(selection)
+        self.save_composite_as_geotiff(loadable, resampler, area, names)
+#        ls = self.get_resampled_scene(selection, loadable, area, resampler)
+#        ls.save_datasets()
