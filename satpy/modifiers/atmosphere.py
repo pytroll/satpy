@@ -21,12 +21,12 @@ import logging
 from weakref import WeakValueDictionary
 
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.modifiers._angles import get_angles
+from satpy.modifiers._angles import get_angles, get_satellite_zenith_angle
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
-from satpy.utils import get_satpos
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,14 @@ class PSPRayleighReflectance(ModifierBase):
         return proj
 
 
+def _call_mapped_correction(satz, band_data, corrector, band_name):
+    # need to convert to masked array
+    orig_dtype = band_data.dtype
+    band_data = np.ma.masked_where(np.isnan(band_data), band_data)
+    res = corrector.get_correction(satz, band_name, band_data)
+    return res.filled(np.nan).astype(orig_dtype, copy=False)
+
+
 class PSPAtmosphericalCorrection(ModifierBase):
     """Correct for atmospheric effects."""
 
@@ -109,26 +117,16 @@ class PSPAtmosphericalCorrection(ModifierBase):
         if optional_datasets:
             satz = optional_datasets[0]
         else:
-            from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
-            sat_lon, sat_lat, sat_alt = get_satpos(band)
-            try:
-                _, satel = get_observer_look(sat_lon,
-                                             sat_lat,
-                                             sat_alt / 1000.0,  # km
-                                             band.attrs['start_time'],
-                                             lons, lats, 0)
-            except KeyError:
-                raise KeyError(
-                    'Band info is missing some meta data!')
-            satz = 90 - satel
-            del satel
+            satz = get_satellite_zenith_angle(band)
 
         logger.info('Correction for limb cooling')
         corrector = AtmosphericalCorrection(band.attrs['platform_name'],
                                             band.attrs['sensor'])
 
-        atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
+        atm_corr = da.map_blocks(_call_mapped_correction, satz, band.data,
+                                 corrector=corrector,
+                                 band_name=band.attrs['name'],
+                                 meta=np.array((), dtype=band.dtype))
         proj = xr.DataArray(atm_corr, attrs=band.attrs,
                             dims=band.dims, coords=band.coords)
         self.apply_modifier_info(band, proj)

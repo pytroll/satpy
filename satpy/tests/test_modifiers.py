@@ -341,48 +341,41 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
     """Test the pyspectral-based atmospheric correction modifier."""
 
-    def setUp(self):
-        """Patch in-class imports."""
-        self.orbital = mock.MagicMock()
-        modules = {
-            'pyspectral.atm_correction_ir': mock.MagicMock(),
-            'pyorbital.orbital': self.orbital,
-        }
-        self.module_patcher = mock.patch.dict('sys.modules', modules)
-        self.module_patcher.start()
-
-    def tearDown(self):
-        """Unpatch in-class imports."""
-        self.module_patcher.stop()
-
-    @mock.patch('satpy.modifiers.PSPAtmosphericalCorrection.apply_modifier_info')
-    @mock.patch('satpy.modifiers.atmosphere.get_satpos')
-    def test_call(self, get_satpos, *mocks):
+    def test_call(self):
         """Test atmospherical correction."""
         from satpy.modifiers import PSPAtmosphericalCorrection
+        from pyresample.geometry import SwathDefinition
 
         # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        self.orbital.get_observer_look.return_value = 0, 0
-        area = mock.MagicMock()
-        area.get_lonlats.return_value = 'lons', 'lats'
-        band = mock.MagicMock(attrs={'area': area,
-                                     'start_time': 'start_time',
-                                     'name': 'name',
-                                     'platform_name': 'platform',
-                                     'sensor': 'sensor'}, dims=['y'])
+        lons = np.zeros((5, 5))
+        lons[1, 1] = np.inf
+        lons = da.from_array(lons, chunks=5)
+        lats = np.zeros((5, 5))
+        lats[1, 1] = np.inf
+        lats = da.from_array(lats, chunks=5)
+        area = SwathDefinition(lons, lats)
+        stime = datetime(2020, 1, 1, 12, 0, 0)
+        orb_params = {
+            "satellite_actual_altitude": 12345678,
+            "nadir_longitude": 0.0,
+            "nadir_latitude": 0.0,
+        }
+        band = xr.DataArray(da.zeros((5, 5)),
+                            attrs={'area': area,
+                                   'start_time': stime,
+                                   'name': 'name',
+                                   'platform_name': 'platform',
+                                   'sensor': 'sensor',
+                                   'orbital_parameters': orb_params},
+                            dims=('y', 'x'))
 
         # Perform atmospherical correction
         psp = PSPAtmosphericalCorrection(name='dummy')
-        psp(projectables=[band])
-
-        # Check arguments of get_orbserver_look() call, especially the altitude
-        # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_with(
-            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
+        res = psp(projectables=[band])
+        res.compute()
 
 
-class TestPSPRayleighReflectance(unittest.TestCase):
+class TestAngleGeneration(unittest.TestCase):
     """Test the angle generation utility functions."""
 
     @mock.patch('satpy.modifiers._angles.get_satpos')
@@ -405,8 +398,7 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         lats = da.from_array(lats, chunks=5)
         area.get_lonlats.return_value = (lons, lats)
         stime = datetime(2020, 1, 1, 12, 0, 0)
-        vis = mock.MagicMock(attrs={'area': area,
-                                    'start_time': stime})
+        vis = mock.MagicMock(attrs={'area': area, 'start_time': stime})
 
         # Compute angles
         get_angles(vis)

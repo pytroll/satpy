@@ -19,6 +19,7 @@
 
 import dask.array as da
 import numpy as np
+import xarray as xr
 from satpy.utils import get_satpos
 from pyorbital.orbital import get_observer_look
 from pyorbital.astronomy import get_alt_az, sun_zenith_angle
@@ -31,6 +32,13 @@ def get_angles(vis):
     sat_angles = _get_sensor_angles(vis, lons, lats)
     # sata, satz, suna, sunz
     return sat_angles + sun_angles
+
+
+def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
+    """Generate satellite zenith angle for the provided data."""
+    lons, lats = _get_valid_lonlats(data_arr)
+    satz = _get_sensor_angles(data_arr, lons, lats)[1]
+    return satz
 
 
 def _get_valid_lonlats(vis):
