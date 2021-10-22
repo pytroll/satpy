@@ -20,11 +20,11 @@
 import logging
 from weakref import WeakValueDictionary
 
-import numpy as np
 import dask.array as da
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
+from satpy.modifiers._angles import get_angles
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
 from satpy.utils import get_satpos
 
@@ -36,28 +36,6 @@ class PSPRayleighReflectance(ModifierBase):
 
     _rayleigh_cache = WeakValueDictionary()
 
-    def get_angles(self, vis):
-        """Get the sun and satellite angles from the current dataarray."""
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        from pyorbital.orbital import get_observer_look
-
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz, suna, sunz
-
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.
 
@@ -66,7 +44,7 @@ class PSPRayleighReflectance(ModifierBase):
         from pyspectral.rayleigh import Rayleigh
         if not optional_datasets or len(optional_datasets) != 4:
             vis, red = self.match_data_arrays(projectables)
-            sata, satz, suna, sunz = self.get_angles(vis)
+            sata, satz, suna, sunz = get_angles(vis)
             red.data = da.rechunk(red.data, vis.data.chunks)
         else:
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(
@@ -135,11 +113,11 @@ class PSPAtmosphericalCorrection(ModifierBase):
             lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
             sat_lon, sat_lat, sat_alt = get_satpos(band)
             try:
-                dummy, satel = get_observer_look(sat_lon,
-                                                 sat_lat,
-                                                 sat_alt / 1000.0,  # km
-                                                 band.attrs['start_time'],
-                                                 lons, lats, 0)
+                _, satel = get_observer_look(sat_lon,
+                                             sat_lat,
+                                             sat_alt / 1000.0,  # km
+                                             band.attrs['start_time'],
+                                             lons, lats, 0)
             except KeyError:
                 raise KeyError(
                     'Band info is missing some meta data!')
