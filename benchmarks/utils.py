@@ -49,7 +49,9 @@ class GeoBenchmarks:
     def load_and_resample(self, composite, resampler, area=None, filenames=None):
         """Load and resample a composite or channel with resampler and area."""
         scn = self.load_no_padding(composite, filenames=filenames)
-        return scn.resample(area, resampler=resampler)
+        ls = scn.resample(area, resampler=resampler)
+        ls._readers = scn._readers  # workaround for GH#1861
+        return ls
 
     def compute_composite(self, composite, resampler="native",
                           area=None, filenames=None):
