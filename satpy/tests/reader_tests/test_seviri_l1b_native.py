@@ -1157,6 +1157,7 @@ class TestNativeMSGDataset:
             fh.fill_disk = False
             fh.calib_mode = 'NOMINAL'
             fh.ext_calib_coefs = {}
+            fh.include_raw_metadata = False
             fh.mda_max_array_size = 100
             return fh
 
@@ -1204,9 +1205,24 @@ class TestNativeMSGDataset:
                                       np.datetime64('1958-01-02 00:00:03'),
                                       np.datetime64('1958-01-02 00:00:04')])
         xr.testing.assert_equal(dataset, expected)
-        assert 'raw_metadata' in dataset.attrs
-        dataset.attrs.pop('raw_metadata')
+        assert 'raw_metadata' not in dataset.attrs
         assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_get_dataset_with_raw_metadata(self, file_handler):
+        """Test provision of raw metadata."""
+        file_handler.include_raw_metadata = True
+        dataset_id = make_dataid(
+            name='VIS006',
+            resolution=3000,
+            calibration='counts'
+        )
+        dataset_info = {
+            'units': '1',
+            'wavelength': (1, 2, 3),
+            'standard_name': 'counts'
+        }
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'raw_metadata' in res.attrs
 
     def test_satpos_no_valid_orbit_polynomial(self, file_handler):
         """Test satellite position if there is no valid orbit polynomial."""

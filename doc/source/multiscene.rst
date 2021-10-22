@@ -174,7 +174,7 @@ This will compute one video frame (image) at a time and write it to the MPEG-4
 video file. For users with more powerful systems it is possible to use
 the ``client`` and ``batch_size`` keyword arguments to compute multiple frames
 in parallel using the dask ``distributed`` library (if installed).
-See the :doc:`dask distributed <dask:setup/single-distributed>` documentation
+See the :doc:`dask distributed <dask:how-to/deploy-dask/single-distributed>` documentation
 for information on creating a ``Client`` object. If working on a cluster
 you may want to use :doc:`dask jobqueue <jobqueue:index>` to take advantage
 of multiple nodes at a time.

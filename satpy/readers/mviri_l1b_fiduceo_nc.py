@@ -148,9 +148,7 @@ References
     - `[Handbook]`_ MFG User Handbook
     - `[PUG]`_ FIDUCEO MVIRI FCDR Product User Guide
 
-.. _[Handbook]: http://www.eumetsat.int/\
-website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TD06_MARF&\
-RevisionSelectionMethod=LatestReleased&Rendition=Web
+.. _[Handbook]: https://www.eumetsat.int/media/7323
 .. _[PUG]: http://doi.org/10.15770/EUM_SEC_CLM_0009
 """
 

@@ -18,7 +18,14 @@
 """Satpy Package initializer."""
 
 import os
-from satpy.version import version as __version__  # noqa
+
+try:
+    from satpy.version import version as __version__  # noqa
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "No module named satpy.version. This could mean "
+        "you didn't install 'satpy' properly. Try reinstalling ('pip "
+        "install').")
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 

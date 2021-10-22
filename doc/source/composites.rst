@@ -107,14 +107,35 @@ first composite will be placed on the day-side of the scene, and the
 second one on the night side.  The transition from day to night is
 done by calculating solar zenith angle (SZA) weighed average of the
 two composites.  The SZA can optionally be given as third dataset, and
-if not given, the angles will be calculated.  Width of the blending
-zone can be defined when initializing the compositor (default values
-shown in the example below).
+if not given, the angles will be calculated.  Three arguments are used
+to generate the image (default values shown in the example below).
+They can be defined when initializing the compositor::
+
+ - lim_low (float): lower limit of Sun zenith angle for the
+                    blending of the given channels
+ - lim_high (float): upper limit of Sun zenith angle for the
+                     blending of the given channels
+                     Together with `lim_low` they define the width
+                     of the blending zone
+ - day_night (string): "day_night" means both day and night portions will be kept
+                       "day_only" means only day portion will be kept
+                       "night_only" means only night portion will be kept
+
+Usage (with default values)::
 
     >>> from satpy.composites import DayNightCompositor
-    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88.)
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_night")
     >>> composite = compositor([local_scene['true_color'],
     ...                         local_scene['night_fog']])
+
+As above, with `day_night` flag it is also available to use only
+a day product or only a night product and mask out (make transparent)
+the opposite portion of the image (night or day). The example below
+provides only a day product with night portion masked-out::
+
+    >>> from satpy.composites import DayNightCompositor
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88., day_night="day_only")
+    >>> composite = compositor([local_scene['true_color'])
 
 RealisticColors
 ---------------
@@ -340,7 +361,7 @@ the day side, and another for the night side::
         - night_fog
       standard_name: natural_with_night_fog
 
-This compositor has two additional keyword arguments that can be
+This compositor has three additional keyword arguments that can be
 defined (shown with the default values, thus identical result as
 above)::
 
@@ -350,7 +371,8 @@ above)::
         - natural_color
         - night_fog
       lim_low: 85.0
-      lim_high: 95.0
+      lim_high: 88.0
+      day_night: "day_night"
       standard_name: natural_with_night_fog
 
 Defining other composites in-line
