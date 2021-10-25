@@ -70,22 +70,19 @@ templates:
 #        value: "{physical_element}"   #special variable created by awips_tiled.py
       satellite_id:
         value: "{platform_name!u}-{sensor!u}"
-      sector_id: {}  # special handler in awips_tiled.py
 
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
           _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
           _Unsigned: "true"
@@ -815,17 +812,15 @@ templates:
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
 #          _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
 #          _Unsigned: "true"
@@ -990,17 +985,15 @@ templates:
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
       #          _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
     #          _Unsigned: "true"

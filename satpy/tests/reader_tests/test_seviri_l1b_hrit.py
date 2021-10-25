@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
-import copy
 import unittest
 from unittest import mock
 from datetime import datetime
@@ -43,11 +42,6 @@ class TestHRITMSGBase(unittest.TestCase):
 
     def assert_attrs_equal(self, attrs, attrs_exp):
         """Assert equality of dataset attributes."""
-        attrs = copy.deepcopy(attrs)
-        attrs_exp = copy.deepcopy(attrs_exp)
-        # Raw metadata: Check existence only
-        self.assertIn('raw_metadata', attrs)
-        attrs.pop('raw_metadata')
         assert_attrs_equal(attrs, attrs_exp, tolerance=1e-4)
 
 
@@ -165,6 +159,12 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             projection_longitude=self.projection_longitude
         )
 
+    def _get_fake_data(self):
+        return xr.DataArray(
+            data=np.zeros((self.nlines, self.ncols)),
+            dims=('y', 'x')
+        )
+
     def test_get_area_def(self):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
@@ -204,10 +204,7 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset(self, calibrate, parent_get_dataset):
         """Test getting the dataset."""
-        data = xr.DataArray(
-            data=np.zeros((self.nlines, self.ncols)),
-            dims=('y', 'x')
-        )
+        data = self._get_fake_data()
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = data
 
@@ -226,6 +223,17 @@ class TestHRITMSGFileHandler(TestHRITMSGBase):
             res.attrs,
             setup.get_attrs_exp(self.projection_longitude)
         )
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
+    def test_get_dataset_with_raw_metadata(self, calibrate, parent_get_dataset):
+        """Test getting the dataset."""
+        calibrate.return_value = self._get_fake_data()
+        key = make_dataid(name='VIS006', calibration='reflectance')
+        info = setup.get_fake_dataset_info()
+        self.reader.include_raw_metadata = True
+        res = self.reader.get_dataset(key, info)
+        assert 'raw_metadata' in res.attrs
 
     def test_get_raw_mda(self):
         """Test provision of raw metadata."""
@@ -275,7 +283,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        HRITMSGPrologueFileHandler(filename=None,
+        HRITMSGPrologueFileHandler(filename='dummy_prologue_filename',
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},
@@ -308,7 +316,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        self.reader = HRITMSGEpilogueFileHandler(filename=None,
+        self.reader = HRITMSGEpilogueFileHandler(filename='dummy_epilogue_filename',
                                                  filename_info={'service': ''},
                                                  filetype_info=None,
                                                  calib_mode='nominal')
@@ -323,7 +331,7 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
 
         init.side_effect = init_patched
 
-        HRITMSGEpilogueFileHandler(filename=None,
+        HRITMSGEpilogueFileHandler(filename='dummy_epilogue_filename',
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},

@@ -71,7 +71,7 @@ def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
         )
         newopen.return_value.__enter__.return_value.tell.return_value = 1
         prologue = HRITMSGPrologueFileHandler(
-            filename=None,
+            filename='dummy_prologue_filename',
             filename_info=filename_info,
             filetype_info={}
         )

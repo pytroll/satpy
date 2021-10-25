@@ -38,7 +38,7 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 
 # These are the default channel adjustment factors.
 # Defined in the product notice: S3.PN-SLSTR-L1.06
-# https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_S3A_PN_SLSTR_L1_06&RevisionSelectionMethod=LatestReleased&Rendition=Web
+# https://www4-int.eumetsat.int/media/42788
 CHANCALIB_FACTORS = {'S1_nadir': 1.0,
                      'S2_nadir': 1.0,
                      'S3_nadir': 1.0,

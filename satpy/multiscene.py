@@ -19,6 +19,7 @@
 
 import copy
 import logging
+import warnings
 from queue import Queue
 from threading import Thread
 
@@ -196,6 +197,10 @@ class MultiScene(object):
             scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
         if ensure_all_readers:
+            warnings.warn(
+                "Argument ensure_all_readers is deprecated.  Use "
+                "missing='skip' instead.",
+                DeprecationWarning)
             file_groups = [fg for fg in file_groups if all(fg.values())]
         scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)
@@ -292,6 +297,18 @@ class MultiScene(object):
 
     def blend(self, blend_function=stack, scene=None):
         """Blend the datasets into one scene.
+
+        Reduce the :class:`MultiScene` to a single :class:`~satpy.scene.Scene`.  Datasets
+        occurring in each scene will be passed to a blending
+        function, which shall take as input a list of datasets
+        (:class:`xarray.DataArray` objects) and shall return a single
+        dataset (:class:`xarray.DataArray` object).  The blend method
+        then assigns those datasets to the blended scene.
+
+        Blending functions provided in this module are :func:`stack`
+        (the default) and :func:`timeseries`, but the Python built-in
+        function :func:`sum` also works and may be appropriate for
+        some types of data.
 
         .. note::
 

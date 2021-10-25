@@ -298,6 +298,19 @@ class TestHelpers(unittest.TestCase):
         new_fname = hf.unzip_file(filename)
         self.assertIsNone(new_fname)
 
+    @mock.patch("os.remove")
+    @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
+    def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
+        """Test the bz2 file unzipping context manager."""
+        filename = 'dummy.txt.bz2'
+        expected_filename = filename[:-4]
+
+        with hf.unzip_context(filename) as new_filename:
+            self.assertEqual(new_filename, expected_filename)
+
+        fake_unzip_file.assert_called_with(filename)
+        fake_remove.assert_called_with(expected_filename)
+
     def test_apply_rad_correction(self):
         """Test radiance correction technique using user-supplied coefs."""
         slope = 0.5

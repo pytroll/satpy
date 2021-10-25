@@ -137,23 +137,32 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         f = SD(local_filename, SDC.READ)
         var = f.select(var_name)
         data = var[:]
-        return np.ma.MaskedArray(data, data == var.getfillvalue())
+        fill = ReflectanceCorrector._read_fill_value_from_hdf4(var, data.dtype)
+        return np.ma.MaskedArray(data, data == fill)
+
+    @staticmethod
+    def _read_fill_value_from_hdf4(var, dtype):
+        from pyhdf.error import HDF4Error
+        try:
+            return var.getfillvalue()
+        except HDF4Error:
+            return np.iinfo(dtype).min
 
     def _get_data_and_angles(self, datasets, optional_datasets):
-        angles = self._extract_angle_data_arrays(datasets, optional_datasets)
+        vis, angles = self._extract_angle_data_arrays(datasets, optional_datasets)
         angles = [xr.DataArray(dask_arr, dims=('y', 'x')) for dask_arr in angles]
-        return [datasets[0]] + angles
+        return [vis] + angles
 
     def _extract_angle_data_arrays(self, datasets, optional_datasets):
         all_datasets = datasets + optional_datasets
         if len(all_datasets) == 1:
             vis = self.match_data_arrays(datasets)[0]
-            return self.get_angles(vis)
+            return vis, self.get_angles(vis)
         if len(all_datasets) == 5:
             vis, *angles = self.match_data_arrays(
                 datasets + optional_datasets)
             # get the dask array underneath
-            return [data_arr.data for data_arr in angles]
+            return vis, [data_arr.data for data_arr in angles]
         raise ValueError("Not sure how to handle provided dependencies. "
                          "Either all 4 angles must be provided or none of "
                          "of them.")
