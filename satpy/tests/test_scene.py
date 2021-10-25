@@ -18,6 +18,7 @@
 """Unit tests for scene.py."""
 
 import os
+from datetime import datetime
 import unittest
 from unittest import mock
 import string
@@ -31,6 +32,7 @@ from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 import pytest
 
 
@@ -93,13 +95,11 @@ class TestScene:
 
     def test_init_alone(self):
         """Test simple initialization."""
-        from satpy.scene import Scene
         scn = Scene()
         assert not scn._readers, 'Empty scene should not load any readers'
 
     def test_init_no_files(self):
         """Test that providing an empty list of filenames fails."""
-        from satpy.scene import Scene
         pytest.raises(ValueError, Scene, reader='viirs_sdr', filenames=[])
 
     def test_create_reader_instances_with_filenames(self):
@@ -118,7 +118,6 @@ class TestScene:
 
     def test_init_with_empty_filenames(self):
         """Test initialization with empty filename list."""
-        from satpy.scene import Scene
         filenames = []
         Scene(filenames=filenames)
 
@@ -172,7 +171,6 @@ class TestScene:
 
     def test_create_reader_instances_with_reader(self):
         """Test createring a reader instance providing the reader name."""
-        from satpy.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
         with mock.patch('satpy.scene.load_readers') as findermock:
@@ -222,25 +220,21 @@ class TestScene:
 
     def test_iter(self):
         """Test iteration over the scene."""
-        from satpy import Scene
-        from xarray import DataArray
         scene = Scene()
-        scene["1"] = DataArray(np.arange(5))
-        scene["2"] = DataArray(np.arange(5))
-        scene["3"] = DataArray(np.arange(5))
+        scene["1"] = xr.DataArray(np.arange(5))
+        scene["2"] = xr.DataArray(np.arange(5))
+        scene["3"] = xr.DataArray(np.arange(5))
         for x in scene:
-            assert isinstance(x, DataArray)
+            assert isinstance(x, xr.DataArray)
 
     def test_iter_by_area_swath(self):
         """Test iterating by area on a swath."""
-        from satpy import Scene
-        from xarray import DataArray
         from pyresample.geometry import SwathDefinition
         scene = Scene()
         sd = SwathDefinition(lons=np.arange(5), lats=np.arange(5))
-        scene["1"] = DataArray(np.arange(5), attrs={'area': sd})
-        scene["2"] = DataArray(np.arange(5), attrs={'area': sd})
-        scene["3"] = DataArray(np.arange(5))
+        scene["1"] = xr.DataArray(np.arange(5), attrs={'area': sd})
+        scene["2"] = xr.DataArray(np.arange(5), attrs={'area': sd})
+        scene["3"] = xr.DataArray(np.arange(5))
         for area_obj, ds_list in scene.iter_by_area():
             ds_list_names = set(ds['name'] for ds in ds_list)
             if area_obj is sd:
@@ -251,15 +245,12 @@ class TestScene:
 
     def test_bad_setitem(self):
         """Test setting an item wrongly."""
-        from satpy import Scene
         scene = Scene()
         pytest.raises(ValueError, scene.__setitem__, '1', np.arange(5))
 
     def test_setitem(self):
         """Test setting an item."""
-        from satpy import Scene
         from satpy.tests.utils import make_dataid
-        import xarray as xr
         scene = Scene()
         scene["1"] = ds1 = xr.DataArray(np.arange(5))
         expected_id = make_cid(**ds1.attrs)
@@ -279,12 +270,10 @@ class TestScene:
 
     def test_getitem(self):
         """Test __getitem__ with names only."""
-        from satpy import Scene
-        from xarray import DataArray
         scene = Scene()
-        scene["1"] = ds1 = DataArray(np.arange(5))
-        scene["2"] = ds2 = DataArray(np.arange(5))
-        scene["3"] = ds3 = DataArray(np.arange(5))
+        scene["1"] = ds1 = xr.DataArray(np.arange(5))
+        scene["2"] = ds2 = xr.DataArray(np.arange(5))
+        scene["3"] = ds3 = xr.DataArray(np.arange(5))
         assert scene['1'] is ds1
         assert scene['2'] is ds2
         assert scene['3'] is ds3
@@ -294,31 +283,28 @@ class TestScene:
 
     def test_getitem_modifiers(self):
         """Test __getitem__ with names and modifiers."""
-        from satpy import Scene
-        from xarray import DataArray
-
         # Return least modified item
         scene = Scene()
-        scene['1'] = ds1_m0 = DataArray(np.arange(5))
+        scene['1'] = ds1_m0 = xr.DataArray(np.arange(5))
         scene[make_dataid(name='1', modifiers=('mod1',))
-              ] = ds1_m1 = DataArray(np.arange(5))
+              ] = xr.DataArray(np.arange(5))
         assert scene['1'] is ds1_m0
         assert len(list(scene.keys())) == 2
 
         scene = Scene()
-        scene['1'] = ds1_m0 = DataArray(np.arange(5))
+        scene['1'] = ds1_m0 = xr.DataArray(np.arange(5))
         scene[make_dataid(name='1', modifiers=('mod1',))
-              ] = ds1_m1 = DataArray(np.arange(5))
+              ] = xr.DataArray(np.arange(5))
         scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
-              ] = ds1_m2 = DataArray(np.arange(5))
+              ] = xr.DataArray(np.arange(5))
         assert scene['1'] is ds1_m0
         assert len(list(scene.keys())) == 3
 
         scene = Scene()
         scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
-              ] = ds1_m2 = DataArray(np.arange(5))
+              ] = ds1_m2 = xr.DataArray(np.arange(5))
         scene[make_dataid(name='1', modifiers=('mod1',))
-              ] = ds1_m1 = DataArray(np.arange(5))
+              ] = ds1_m1 = xr.DataArray(np.arange(5))
         assert scene['1'] is ds1_m1
         assert scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))] is ds1_m2
         pytest.raises(KeyError, scene.__getitem__,
@@ -327,8 +313,6 @@ class TestScene:
 
     def test_getitem_slices(self):
         """Test __getitem__ with slices."""
-        from satpy import Scene
-        from xarray import DataArray
         from pyresample.geometry import AreaDefinition, SwathDefinition
         from pyresample.utils import proj4_str_to_dict
         scene1 = Scene()
@@ -347,25 +331,25 @@ class TestScene:
         )
         swath_def = SwathDefinition(lons=np.zeros((5, 10)),
                                     lats=np.zeros((5, 10)))
-        scene1["1"] = scene2["1"] = DataArray(np.zeros((5, 10)))
-        scene1["2"] = scene2["2"] = DataArray(np.zeros((5, 10)),
-                                              dims=('y', 'x'))
-        scene1["3"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
-                                attrs={'area': area_def})
-        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
-                                                       'area': area_def})]
+        scene1["1"] = scene2["1"] = xr.DataArray(np.zeros((5, 10)))
+        scene1["2"] = scene2["2"] = xr.DataArray(np.zeros((5, 10)),
+                                                 dims=('y', 'x'))
+        scene1["3"] = xr.DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                                   attrs={'area': area_def})
+        anc_vars = [xr.DataArray(np.ones((5, 10)),
+                                 attrs={'name': 'anc_var', 'area': area_def})]
         attrs = {'ancillary_variables': anc_vars, 'area': area_def}
-        scene1["3a"] = DataArray(np.zeros((5, 10)),
-                                 dims=('y', 'x'),
-                                 attrs=attrs)
-        scene2["4"] = DataArray(np.zeros((5, 10)), dims=('y', 'x'),
-                                attrs={'area': swath_def})
-        anc_vars = [DataArray(np.ones((5, 10)), attrs={'name': 'anc_var',
-                                                       'area': swath_def})]
+        scene1["3a"] = xr.DataArray(np.zeros((5, 10)),
+                                    dims=('y', 'x'),
+                                    attrs=attrs)
+        scene2["4"] = xr.DataArray(np.zeros((5, 10)), dims=('y', 'x'),
+                                   attrs={'area': swath_def})
+        anc_vars = [xr.DataArray(np.ones((5, 10)),
+                                 attrs={'name': 'anc_var', 'area': swath_def})]
         attrs = {'ancillary_variables': anc_vars, 'area': swath_def}
-        scene2["4a"] = DataArray(np.zeros((5, 10)),
-                                 dims=('y', 'x'),
-                                 attrs=attrs)
+        scene2["4a"] = xr.DataArray(np.zeros((5, 10)),
+                                    dims=('y', 'x'),
+                                    attrs=attrs)
         new_scn1 = scene1[2:5, 2:8]
         new_scn2 = scene2[2:5, 2:8]
         for new_scn in [new_scn1, new_scn2]:
@@ -389,8 +373,6 @@ class TestScene:
 
     def test_crop(self):
         """Test the crop method."""
-        from satpy import Scene
-        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
@@ -417,12 +399,12 @@ class TestScene:
             y_size // 2,
             area_extent,
         )
-        scene1["1"] = DataArray(np.zeros((y_size, x_size)))
-        scene1["2"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
-        scene1["3"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def})
-        scene1["4"] = DataArray(np.zeros((y_size // 2, x_size // 2)), dims=('y', 'x'),
-                                attrs={'area': area_def2})
+        scene1["1"] = xr.DataArray(np.zeros((y_size, x_size)))
+        scene1["2"] = xr.DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
+        scene1["3"] = xr.DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
+                                   attrs={'area': area_def})
+        scene1["4"] = xr.DataArray(np.zeros((y_size // 2, x_size // 2)), dims=('y', 'x'),
+                                   attrs={'area': area_def2})
 
         # by area
         crop_area = AreaDefinition(
@@ -466,8 +448,6 @@ class TestScene:
 
     def test_crop_epsg_crs(self):
         """Test the crop method when source area uses an EPSG code."""
-        from satpy import Scene
-        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
 
         scene1 = Scene()
@@ -481,8 +461,8 @@ class TestScene:
             y_size,
             area_extent,
         )
-        scene1["1"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def})
+        scene1["1"] = xr.DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
+                                   attrs={'area': area_def})
         # by x/y bbox
         new_scn1 = scene1.crop(xy_bbox=(719695.7781587119, 5427887.407618969, 725068.1609052602, 5433708.364368956))
         assert '1' in new_scn1
@@ -490,8 +470,6 @@ class TestScene:
 
     def test_crop_rgb(self):
         """Test the crop method on multi-dimensional data."""
-        from satpy import Scene
-        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
@@ -518,9 +496,12 @@ class TestScene:
             y_size // 2,
             area_extent,
             )
-        scene1["1"] = DataArray(np.zeros((3, y_size, x_size)), dims=('bands', 'y', 'x'), attrs={'area': area_def})
-        scene1["2"] = DataArray(np.zeros((y_size // 2, 3, x_size // 2)), dims=('y', 'bands', 'x'),
-                                attrs={'area': area_def2})
+        scene1["1"] = xr.DataArray(np.zeros((3, y_size, x_size)),
+                                   dims=('bands', 'y', 'x'),
+                                   attrs={'area': area_def})
+        scene1["2"] = xr.DataArray(np.zeros((y_size // 2, 3, x_size // 2)),
+                                   dims=('y', 'bands', 'x'),
+                                   attrs={'area': area_def2})
 
         # by lon/lat bbox
         new_scn1 = scene1.crop(ll_bbox=(-20., -5., 0, 0))
@@ -533,21 +514,20 @@ class TestScene:
 
     def test_contains(self):
         """Test contains."""
-        from satpy import Scene
-        from xarray import DataArray
         scene = Scene()
-        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
-                                                    '_satpy_id_keys': default_id_keys_config})
+        scene["1"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.1, 0.2, 0.3),
+                                         '_satpy_id_keys': default_id_keys_config})
         assert '1' in scene
         assert 0.15 in scene
         assert '2' not in scene
         assert 0.31 not in scene
 
         scene = Scene()
-        scene['blueberry'] = DataArray(np.arange(5))
-        scene['blackberry'] = DataArray(np.arange(5))
-        scene['strawberry'] = DataArray(np.arange(5))
-        scene['raspberry'] = DataArray(np.arange(5))
+        scene['blueberry'] = xr.DataArray(np.arange(5))
+        scene['blackberry'] = xr.DataArray(np.arange(5))
+        scene['strawberry'] = xr.DataArray(np.arange(5))
+        scene['raspberry'] = xr.DataArray(np.arange(5))
         #  deepcode ignore replace~keys~list~compare: This is on purpose
         assert make_cid(name='blueberry') in scene.keys()
         assert make_cid(name='blueberry') in scene
@@ -556,15 +536,16 @@ class TestScene:
 
     def test_delitem(self):
         """Test deleting an item."""
-        from satpy import Scene
-        from xarray import DataArray
         scene = Scene()
-        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
-                                                    '_satpy_id_keys': default_id_keys_config})
-        scene["2"] = DataArray(np.arange(5), attrs={'wavelength': (0.4, 0.5, 0.6),
-                                                    '_satpy_id_keys': default_id_keys_config})
-        scene["3"] = DataArray(np.arange(5), attrs={'wavelength': (0.7, 0.8, 0.9),
-                                                    '_satpy_id_keys': default_id_keys_config})
+        scene["1"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.1, 0.2, 0.3),
+                                         '_satpy_id_keys': default_id_keys_config})
+        scene["2"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.4, 0.5, 0.6),
+                                         '_satpy_id_keys': default_id_keys_config})
+        scene["3"] = xr.DataArray(np.arange(5),
+                                  attrs={'wavelength': (0.7, 0.8, 0.9),
+                                         '_satpy_id_keys': default_id_keys_config})
         del scene['1']
         del scene['3']
         del scene[0.45]
@@ -574,7 +555,6 @@ class TestScene:
 
     def test_all_datasets_no_readers(self):
         """Test all datasets with no reader."""
-        from satpy import Scene
         scene = Scene()
         pytest.raises(KeyError, scene.all_dataset_ids, reader_name='fake')
         id_list = scene.all_dataset_ids()
@@ -585,7 +565,6 @@ class TestScene:
 
     def test_all_dataset_names_no_readers(self):
         """Test all dataset names with no reader."""
-        from satpy import Scene
         scene = Scene()
         pytest.raises(KeyError, scene.all_dataset_names, reader_name='fake')
         name_list = scene.all_dataset_names()
@@ -596,7 +575,6 @@ class TestScene:
 
     def test_available_dataset_no_readers(self):
         """Test the available datasets without a reader."""
-        from satpy import Scene
         scene = Scene()
         pytest.raises(
             KeyError, scene.available_dataset_ids, reader_name='fake')
@@ -608,7 +586,6 @@ class TestScene:
 
     def test_available_dataset_names_no_readers(self):
         """Test the available dataset names without a reader."""
-        from satpy import Scene
         scene = Scene()
         pytest.raises(
             KeyError, scene.available_dataset_names, reader_name='fake')
@@ -624,20 +601,19 @@ class TestFinestCoarsestArea:
 
     def setup_method(self):
         """Set common variables."""
-        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         self.scene = Scene()
-        self.scene["1"] = DataArray(np.arange(10).reshape((2, 5)),
-                                    attrs={'wavelength': (0.1, 0.2, 0.3)})
+        self.scene["1"] = xr.DataArray(np.arange(10).reshape((2, 5)),
+                                       attrs={'wavelength': (0.1, 0.2, 0.3)})
         self.ds1 = self.scene["1"]
 
-        self.scene["2"] = DataArray(np.arange(40).reshape((4, 10)),
-                                    attrs={'wavelength': (0.4, 0.5, 0.6)})
+        self.scene["2"] = xr.DataArray(np.arange(40).reshape((4, 10)),
+                                       attrs={'wavelength': (0.4, 0.5, 0.6)})
         self.ds2 = self.scene["2"]
 
-        self.scene["3"] = DataArray(np.arange(40).reshape((4, 10)),
-                                    attrs={'wavelength': (0.7, 0.8, 0.9)})
+        self.scene["3"] = xr.DataArray(np.arange(40).reshape((4, 10)),
+                                       attrs={'wavelength': (0.7, 0.8, 0.9)})
         self.ds3 = self.scene["3"]
 
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
@@ -1463,8 +1439,6 @@ class TestSceneResampling:
     def test_resample_reduce_data_toggle(self, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
         from pyresample.geometry import AreaDefinition
-        import dask.array as da
-        import xarray as xr
 
         rs.side_effect = self._fake_resample_dataset_force_20x20
         proj_str = ('+proj=lcc +datum=WGS84 +ellps=WGS84 '
@@ -1707,10 +1681,6 @@ class TestSceneSaving(unittest.TestCase):
 
     def test_save_datasets_default(self):
         """Save a dataset using 'save_datasets'."""
-        from satpy.scene import Scene
-        import xarray as xr
-        import dask.array as da
-        from datetime import datetime
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -1724,10 +1694,6 @@ class TestSceneSaving(unittest.TestCase):
 
     def test_save_datasets_by_ext(self):
         """Save a dataset using 'save_datasets' with 'filename'."""
-        from satpy.scene import Scene
-        import xarray as xr
-        import dask.array as da
-        from datetime import datetime
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -1746,10 +1712,6 @@ class TestSceneSaving(unittest.TestCase):
 
     def test_save_datasets_bad_writer(self):
         """Save a dataset using 'save_datasets' and a bad writer."""
-        from satpy.scene import Scene
-        import xarray as xr
-        import dask.array as da
-        from datetime import datetime
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -1765,7 +1727,6 @@ class TestSceneSaving(unittest.TestCase):
 
     def test_save_datasets_missing_wishlist(self):
         """Calling 'save_datasets' with no valid datasets."""
-        from satpy.scene import Scene
         scn = Scene()
         scn._wishlist.add(make_cid(name='true_color'))
         pytest.raises(RuntimeError,
@@ -1778,10 +1739,6 @@ class TestSceneSaving(unittest.TestCase):
 
     def test_save_dataset_default(self):
         """Save a dataset using 'save_dataset'."""
-        from satpy.scene import Scene
-        import xarray as xr
-        import dask.array as da
-        from datetime import datetime
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -1799,20 +1756,14 @@ class TestSceneConversions(unittest.TestCase):
 
     def test_to_xarray_dataset_with_empty_scene(self):
         """Test converting empty Scene to xarray dataset."""
-        from satpy import Scene
-        from xarray import Dataset
         scn = Scene()
         xrds = scn.to_xarray_dataset()
-        assert isinstance(xrds, Dataset)
+        assert isinstance(xrds, xr.Dataset)
         assert len(xrds.variables) == 0
         assert len(xrds.coords) == 0
 
     def test_geoviews_basic_with_area(self):
         """Test converting a Scene to geoviews with an AreaDefinition."""
-        from satpy import Scene
-        import xarray as xr
-        import dask.array as da
-        from datetime import datetime
         from pyresample.geometry import AreaDefinition
         scn = Scene()
         area = AreaDefinition('test', 'test', 'test',
@@ -1827,10 +1778,6 @@ class TestSceneConversions(unittest.TestCase):
 
     def test_geoviews_basic_with_swath(self):
         """Test converting a Scene to geoviews with a SwathDefinition."""
-        from satpy import Scene
-        import xarray as xr
-        import dask.array as da
-        from datetime import datetime
         from pyresample.geometry import SwathDefinition
         scn = Scene()
         lons = xr.DataArray(da.zeros((2, 2)))
@@ -1860,8 +1807,6 @@ class TestSceneAggregation(unittest.TestCase):
 
     @staticmethod
     def _create_test_data(x_size, y_size):
-        from satpy import Scene
-        from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
@@ -1877,14 +1822,18 @@ class TestSceneAggregation(unittest.TestCase):
             y_size,
             area_extent,
         )
-        scene1["1"] = DataArray(np.ones((y_size, x_size)), attrs={'_satpy_id_keys': default_id_keys_config})
-        scene1["2"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'_satpy_id_keys': default_id_keys_config})
-        scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
-        scene1["4"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def, 'standard_name': 'backscatter',
-                                       '_satpy_id_keys': default_id_keys_config})
+        scene1["1"] = xr.DataArray(np.ones((y_size, x_size)),
+                                   attrs={'_satpy_id_keys': default_id_keys_config})
+        scene1["2"] = xr.DataArray(np.ones((y_size, x_size)),
+                                   dims=('y', 'x'),
+                                   attrs={'_satpy_id_keys': default_id_keys_config})
+        scene1["3"] = xr.DataArray(np.ones((y_size, x_size)),
+                                   dims=('y', 'x'),
+                                   attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
+        scene1["4"] = xr.DataArray(np.ones((y_size, x_size)),
+                                   dims=('y', 'x'),
+                                   attrs={'area': area_def, 'standard_name': 'backscatter',
+                                          '_satpy_id_keys': default_id_keys_config})
         return scene1
 
     def _check_aggregation_results(self, expected_aggregated_shape, scene1, scene2, x_size, y_size):
