@@ -22,7 +22,7 @@
     // Customizable commands for building, installing, and
     // uninstalling the project. See asv.conf.json documentation.
     //
-    "install_command": ["in-dir={env_dir} python -mpip install {wheel_file} pyspectral pyorbital s3fs rasterio h5py netCDF4 pyhdf gcsfs"],
+    "install_command": ["in-dir={env_dir} python -mpip install {wheel_file} pyspectral pyorbital s3fs rasterio h5py netCDF4 pyhdf gcsfs shapely"],
     // "install_command": ["in-dir={env_dir} conda install {wheel_file} s3fs rasterio"],
     // "uninstall_command": ["return-code=any python -mpip uninstall -y {project}"],
     // "build_command": [

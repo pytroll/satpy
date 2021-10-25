@@ -30,29 +30,43 @@ def get_filenames(subdir):
 class GeoBenchmarks:
     """Class for geo benchmarks."""
 
-    def load_no_padding(self, composite):
-        """Load one composite."""
+    def create_scene(self, filenames=None):
+        """Create a scene."""
         from satpy import Scene
-        scn = Scene(filenames=self.data_files, reader=self.reader)
+        scn = Scene(filenames=filenames or self.data_files, reader=self.reader)
+        return scn
+
+    def load_no_padding(self, composite, filenames=None):
+        """Load one composite or channel."""
+        scn = self.create_scene(filenames=filenames)
         scn.load([composite], pad_data=False)
         return scn
 
     def load_and_native_resample(self, composite):
-        """Load and native resample a composite."""
-        scn = self.load_no_padding(composite)
-        return scn.resample(resampler='native')
+        """Load and native resample a composite or channel."""
+        return self.load_and_resample(composite, "native")
 
-    def compute_composite(self, composite):
+    def load_and_resample(self, composite, resampler, area=None, filenames=None):
+        """Load and resample a composite or channel with resampler and area."""
+        scn = self.load_no_padding(composite, filenames=filenames)
+        ls = scn.resample(area, resampler=resampler)
+        ls._readers = scn._readers  # workaround for GH#1861
+        return ls
+
+    def compute_composite(self, composite, resampler="native",
+                          area=None, filenames=None):
         """Compute a true color image."""
-        lscn = self.load_and_native_resample(composite)
+        lscn = self.load_and_resample(
+                composite, resampler, area, filenames)
         lscn[composite].compute()
 
-    def save_composite_as_geotiff(self, composite):
-        """Save a true_color_nocorr to disk as geotiff."""
-        lscn = self.load_and_native_resample(composite)
+    def save_composite_as_geotiff(self, composite, resampler="native",
+                                  area=None, filenames=None):
+        """Save a composite to disk as geotiff."""
+        lscn = self.load_and_resample(composite, resampler, area, filenames)
         lscn.save_dataset(composite, filename='test.tif', tiled=True)
 
-    def compute_channel(self, channel):
+    def compute_channel(self, channel, filenames=None):
         """Load and compute one channel."""
-        scn = self.load_no_padding(channel)
+        scn = self.load_no_padding(channel, filenames=filenames)
         scn[channel].compute()
