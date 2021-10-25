@@ -212,18 +212,16 @@ def test_fci_download(tmp_path, monkeypatch):
     from satpy.demo import download_fci_test_data
     monkeypatch.chdir(tmp_path)
 
-    def fake_urlretrieve(url):
+    def fake_download_url(url, nm):
         """Create a dummy tarfile.
 
-        Create a dummy tarfile.  Returns a fake urlretrieve result pointing there.
+        Create a dummy tarfile.
 
-        Intended as a drop-in replacement for urlretrieve.
+        Intended as a drop-in replacement for demo.utils.download_url.
         """
-        fn = tmp_path / "tofu.tar.gz"
-        _create_and_populate_dummy_tarfile(fn)
-        return (os.fspath(fn), None)
+        _create_and_populate_dummy_tarfile(nm)
 
-    with mock.patch("urllib.request.urlretrieve", new=fake_urlretrieve):
+    with mock.patch("satpy.demo.fci.utils.download_url", new=fake_download_url):
         files = download_fci_test_data(tmp_path)
     assert len(files) == 3
     assert files == ["fci-rc0", "fci-rc1", "fci-rc2"]

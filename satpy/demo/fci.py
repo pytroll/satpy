@@ -17,9 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Demo FCI data download."""
 
-import urllib
 import tarfile
 import pathlib
+import tempfile
+from . import utils
 from satpy import config
 
 _fci_uncompressed_nominal = (
@@ -33,12 +34,14 @@ def download_fci_test_data(base_dir=None):
 
     Download the nominal FCI test data from July 2020.
     """
-    subdir = _get_fci_test_data_dir(base_dir=base_dir)
-    (local_filename, headers) = urllib.request.urlretrieve(_fci_uncompressed_nominal)
-    return _unpack_tarfile_to(local_filename, subdir)
+    subdir = get_fci_test_data_dir(base_dir=base_dir)
+    with tempfile.TemporaryDirectory() as td:
+        nm = pathlib.Path(td) / "fci-test-data.tar.gz"
+        utils.download_url(_fci_uncompressed_nominal, nm)
+        return _unpack_tarfile_to(nm, subdir)
 
 
-def _get_fci_test_data_dir(base_dir=None):
+def get_fci_test_data_dir(base_dir=None):
     """Get directory for FCI test data."""
     base_dir = base_dir or config.get("demo_data_dir", ".")
     return pathlib.Path(base_dir) / "fci" / "test_data"
