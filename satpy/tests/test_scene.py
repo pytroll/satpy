@@ -882,7 +882,7 @@ class TestSceneLoading:
         """Test loading a dataset has multiple resolutions available with different resolutions."""
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
         comp25 = make_cid(name='comp25', resolution=1000)
-        scene[comp25] = 'bla'
+        scene[comp25] = xr.DataArray([], attrs={'name': 'comp25', 'resolution': 1000})
         scene.load(['comp25'], resolution=500)
 
         loaded_ids = list(scene._datasets.keys())
