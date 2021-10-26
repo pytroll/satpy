@@ -44,15 +44,14 @@ OLD_READER_NAMES = {}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
-                group_keys=None, reader_kwargs=None):
+                group_keys=None, reader_kwargs=None,
+                missing="pass"):
     """Group series of files by file pattern information.
 
     By default this will group files by their filename ``start_time``
     assuming it exists in the pattern. By passing the individual
     dictionaries returned by this function to the Scene classes'
     ``filenames``, a series `Scene` objects can be easily created.
-
-    .. versionadded:: 0.12
 
     Args:
         files_to_sort (iterable): File paths to sort in to group
@@ -76,6 +75,16 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             behaviour without doing so is undefined.
         reader_kwargs (dict): Additional keyword arguments to pass to reader
             creation.
+        missing (str): Parameter to control the behavior in the scenario where
+            multiple readers were passed, but at least one group does not have
+            files associated with every reader.  Valid values are ``"pass"``
+            (the default), ``"skip"``, and ``"raise"``.  If set to ``"pass"``,
+            groups are passed as-is.  Some groups may have zero files for some
+            readers.  If set to ``"skip"``, groups for which one or more
+            readers have zero files are skipped (meaning that some files may
+            not be associated to any group).  If set to ``"raise"``, raise a
+            `FileNotFoundError` in case there are any groups for which one or
+            more readers have no files associated.
 
     Returns:
         List of dictionaries mapping 'reader' to a list of filenames.
@@ -99,7 +108,9 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     file_groups = _get_sorted_file_groups(file_keys, time_threshold)
 
-    return [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
+    groups = [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
+
+    return list(_filter_groups(groups, missing=missing))
 
 
 def _assign_files_to_readers(files_to_sort, reader_names,
@@ -229,6 +240,62 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):
             else:
                 file_groups[prev_key][rn].append(f)
     return file_groups
+
+
+def _filter_groups(groups, missing="pass"):
+    """Filter multi-reader group-files behavior.
+
+    Helper for `group_files`.  When `group_files` is called with multiple
+    readers, make sure that the desired behaviour for missing files is
+    enforced: if missing is ``"raise"``, raise an exception if at least one
+    group has at least one reader without files; if it is ``"skip"``, remove
+    those.  If it is ``"pass"``, do nothing.  Yields groups to be kept.
+
+    Args:
+        groups (List[Mapping[str, List[str]]]):
+            groups as found by `group_files`.
+        missing (str):
+            String controlling behaviour, see documentation above.
+
+    Yields:
+        ``Mapping[str:, List[str]]``: groups to be retained
+    """
+    if missing == "pass":
+        yield from groups
+        return
+    if missing not in ("raise", "skip"):
+        raise ValueError("Invalid value for ``missing`` argument.  Expected "
+                         f"'raise', 'skip', or 'pass', got '{missing!s}'")
+    for (i, grp) in enumerate(groups):
+        readers_without_files = _get_keys_with_empty_values(grp)
+        if readers_without_files:
+            if missing == "raise":
+                raise FileNotFoundError(
+                        f"when grouping files, group at index {i:d} "
+                        "had no files for readers: " +
+                        ", ".join(readers_without_files))
+        else:
+            yield grp
+
+
+def _get_keys_with_empty_values(grp):
+    """Find mapping keys where values have length zero.
+
+    Helper for `_filter_groups`, which is in turn a helper for `group_files`.
+    Given a mapping key -> Collection[Any], return the keys where the length of the
+    collection is zero.
+
+    Args:
+        grp (Mapping[Any, Collection[Any]]): dictionary to check
+
+    Returns:
+        set of keys
+    """
+    empty = set()
+    for (k, v) in grp.items():
+        if len(v) == 0:  # explicit check to ensure failure if not a collection
+            empty.add(k)
+    return empty
 
 
 def read_reader_config(config_files, loader=UnsafeLoader):
@@ -401,25 +468,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     reader_kwargs['filter_parameters'] = filter_parameters
 
     for reader_configs in configs_for_reader(reader):
-        try:
-            reader_instance = load_reader(reader_configs, **reader_kwargs)
-        except (KeyError, IOError, yaml.YAMLError) as err:
-            LOG.info('Cannot use %s', str(reader_configs))
-            LOG.debug(str(err))
-            if reader and (isinstance(reader, str) or len(reader) == 1):
-                # if it is a single reader then give a more usable error
-                raise
-            continue
-
-        if not reader_instance.supports_sensor(sensor):
-            continue
-        elif sensor is not None:
-            # sensor was specified and a reader supports it
-            sensor_supported = True
-        loadables = reader_instance.select_files_from_directory(base_dir, fs)
-        if loadables:
-            loadables = list(
-                reader_instance.filter_selected_filenames(loadables))
+        (reader_instance, loadables, this_sensor_supported) = _get_loadables_for_reader_config(
+                base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
+        sensor_supported = sensor_supported or this_sensor_supported
         if loadables:
             reader_files[reader_instance.name] = list(loadables)
 
@@ -429,6 +480,44 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     if not (reader_files or missing_ok):
         raise ValueError("No supported files found")
     return reader_files
+
+
+def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
+                                     reader_kwargs, fs):
+    """Get loadables for reader configs.
+
+    Helper for find_files_and_readers.
+
+    Args:
+        base_dir: as for `find_files_and_readers`
+        reader: as for `find_files_and_readers`
+        sensor: as for `find_files_and_readers`
+        reader_configs: reader metadata such as returned by
+            `configs_for_reader`.
+        reader_kwargs: Keyword arguments to be passed to reader.
+        fs (FileSystem): as for `find_files_and_readers`
+    """
+    sensor_supported = False
+    try:
+        reader_instance = load_reader(reader_configs, **reader_kwargs)
+    except (KeyError, IOError, yaml.YAMLError) as err:
+        LOG.info('Cannot use %s', str(reader_configs))
+        LOG.debug(str(err))
+        if reader and (isinstance(reader, str) or len(reader) == 1):
+            # if it is a single reader then give a more usable error
+            raise
+        return (None, [], False)
+
+    if not reader_instance.supports_sensor(sensor):
+        return (reader_instance, [], False)
+    if sensor is not None:
+        # sensor was specified and a reader supports it
+        sensor_supported = True
+    loadables = reader_instance.select_files_from_directory(base_dir, fs)
+    if loadables:
+        loadables = list(
+            reader_instance.filter_selected_filenames(loadables))
+    return (reader_instance, loadables, sensor_supported)
 
 
 def load_readers(filenames=None, reader=None, reader_kwargs=None):
@@ -452,13 +541,13 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
     if not filenames and not reader:
         # used for an empty Scene
         return {}
-    elif reader and filenames is not None and not filenames:
+    if reader and filenames is not None and not filenames:
         # user made a mistake in their glob pattern
         raise ValueError("'filenames' was provided but is empty.")
-    elif not filenames:
+    if not filenames:
         LOG.warning("'filenames' required to create readers and load data")
         return {}
-    elif reader is None and isinstance(filenames, dict):
+    if reader is None and isinstance(filenames, dict):
         # filenames is a dictionary of reader_name -> filenames
         reader = list(filenames.keys())
         remaining_filenames = set(f for fl in filenames.values() for f in fl)
@@ -504,7 +593,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
         LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
     if not reader_instances:
         raise ValueError("No supported files found")
-    elif not any(list(r.available_dataset_ids) for r in reader_instances.values()):
+    if not any(list(r.available_dataset_ids) for r in reader_instances.values()):
         raise ValueError("No dataset could be loaded. Either missing "
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")

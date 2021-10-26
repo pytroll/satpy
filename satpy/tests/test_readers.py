@@ -28,6 +28,7 @@ from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
+os.environ.pop("SATPY_CONFIG_PATH", None)
 
 local_id_keys_config = {'name': {
     'required': True,
@@ -845,6 +846,86 @@ class TestGroupFiles(unittest.TestCase):
                     reader=("abi_l1b", "viirs_sdr"),
                     group_keys=("start_time"),
                     time_threshold=10**9)
+
+    _filenames_abi_glm = [
+        "OR_ABI-L1b-RadF-M6C14_G16_s19000010000000_e19000010005000_c20403662359590.nc",
+        "OR_ABI-L1b-RadF-M6C14_G16_s19000010010000_e19000010015000_c20403662359590.nc",
+        "OR_ABI-L1b-RadF-M6C14_G16_s19000010020000_e19000010025000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010000000_e19000010001000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010001000_e19000010002000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010002000_e19000010003000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010003000_e19000010004000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010004000_e19000010005000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010005000_e19000010006000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010006000_e19000010007000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010007000_e19000010008000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010008000_e19000010009000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010009000_e19000010010000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010010000_e19000010011000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010011000_e19000010012000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010012000_e19000010013000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010013000_e19000010014000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010014000_e19000010015000_c20403662359590.nc",
+        "OR_GLM-L2-GLMF-M3_G16_s19000010015000_e19000010016000_c20403662359590.nc"]
+
+    def test_multi_readers_empty_groups_raises_filenotfounderror(self):
+        """Test behaviour on empty groups passing multiple readers.
+
+        Make sure it raises an exception, for there will be groups
+        containing GLM but not ABI.
+        """
+        from satpy.readers import group_files
+        with pytest.raises(
+                FileNotFoundError, match="when grouping files, group at index 1 "
+                "had no files for readers: abi_l1b"):
+            group_files(
+                self._filenames_abi_glm,
+                reader=["abi_l1b", "glm_l2"],
+                group_keys=("start_time",),
+                time_threshold=35,
+                missing="raise")
+
+    def test_multi_readers_empty_groups_missing_skip(self):
+        """Verify empty groups are skipped.
+
+        Verify that all groups lacking ABI are skipped, resulting in only
+        three groups that are all non-empty for both instruments.
+        """
+        from satpy.readers import group_files
+        groups = group_files(
+            self._filenames_abi_glm,
+            reader=["abi_l1b", "glm_l2"],
+            group_keys=("start_time",),
+            time_threshold=35,
+            missing="skip")
+        assert len(groups) == 2
+        for g in groups:
+            assert g["abi_l1b"]
+            assert g["glm_l2"]
+
+    def test_multi_readers_empty_groups_passed(self):
+        """Verify that all groups are there, resulting in some that are empty."""
+        from satpy.readers import group_files
+        groups = group_files(
+            self._filenames_abi_glm,
+            reader=["abi_l1b", "glm_l2"],
+            group_keys=("start_time",),
+            time_threshold=35,
+            missing="pass")
+        assert len(groups) == 17
+        assert not groups[1]["abi_l1b"]  # should be empty
+        assert groups[1]["glm_l2"]  # should not be empty
+
+    def test_multi_readers_invalid_parameter(self):
+        """Verify that invalid missing parameter raises ValueError."""
+        from satpy.readers import group_files
+        with pytest.raises(ValueError):
+            group_files(
+                self._filenames_abi_glm,
+                reader=["abi_l1b", "glm_l2"],
+                group_keys=("start_time",),
+                time_threshold=35,
+                missing="hopkin green frog")
 
 
 def _generate_random_string():

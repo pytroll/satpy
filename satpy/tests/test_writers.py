@@ -24,6 +24,7 @@ import warnings
 import pytest
 import numpy as np
 import xarray as xr
+import dask.array as da
 from trollimage.colormap import greys
 from unittest import mock
 
@@ -157,7 +158,6 @@ class TestComplexSensorEnhancerConfigs(_BaseCustomEnhancementConfigTests):
 
     TEST_CONFIGS = {
         ENH_FN: """
-sensor_name: visir/test_sensor1
 enhancements:
   test1_sensor1_specific:
     name: test1
@@ -169,7 +169,6 @@ enhancements:
 
         """,
         ENH_FN2: """
-sensor_name: visir/test_sensor2
 enhancements:
   default:
     operations:
@@ -249,7 +248,6 @@ class TestEnhancerUserConfigs(_BaseCustomEnhancementConfigTests):
 
     TEST_CONFIGS = {
         ENH_FN: """
-sensor_name: visir/test_sensor
 enhancements:
   test1_default:
     name: test1
@@ -260,7 +258,6 @@ enhancements:
 
         """,
         ENH_ENH_FN: """
-sensor_name: visir/test_sensor
 enhancements:
   test1_kelvin:
     name: test1
@@ -272,12 +269,10 @@ enhancements:
 
         """,
         ENH_FN2: """
-sensor_name: visir/test_sensor2
 
 
         """,
         ENH_ENH_FN2: """
-sensor_name: visir/test_sensor2
 
         """,
         ENH_FN3: """""",
@@ -348,7 +343,6 @@ sensor_name: visir/test_sensor2
         """Test enhancing an image with a configuration section."""
         from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
-        import dask.array as da
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
@@ -387,6 +381,100 @@ sensor_name: visir/test_sensor2
                 {os.path.abspath(self.ENH_FN),
                  os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
+
+
+class TestReaderEnhancerConfigs(_BaseCustomEnhancementConfigTests):
+    """Test enhancement configs that use reader name."""
+
+    ENH_FN = 'test_sensor1.yaml'
+
+    # NOTE: The sections are ordered in a special way so that if 'reader' key
+    #   isn't provided that we'll get the section we didn't want and all tests
+    #   will fail. Otherwise the correct sections get chosen just by the order
+    #   of how they are added to the decision tree.
+    TEST_CONFIGS = {
+        ENH_FN: """
+enhancements:
+  default_reader2:
+    reader: reader2
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 75}
+  default:
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
+  test1_reader2_specific:
+    name: test1
+    reader: reader2
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 50}
+  test1_reader1_specific:
+    name: test1
+    reader: reader1
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 200}
+            """,
+    }
+
+    def _get_test_data_array(self):
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs={
+                           'name': 'test1',
+                           'sensor': 'test_sensor1',
+                           'mode': 'L',
+                       },
+                       dims=['y', 'x'])
+        return ds
+
+    def _get_enhanced_image(self, data_arr):
+        from satpy.writers import Enhancer, get_enhanced_image
+        e = Enhancer()
+        assert e.enhancement_tree is not None
+        img = get_enhanced_image(data_arr, enhance=e)
+        # make sure that both configs were loaded
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN)})
+        return img
+
+    def test_no_reader(self):
+        """Test that a DataArray with no 'reader' metadata works."""
+        data_arr = self._get_test_data_array()
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 100.0)
+
+    def test_no_matching_reader(self):
+        """Test that a DataArray with no matching 'reader' works."""
+        data_arr = self._get_test_data_array()
+        data_arr.attrs["reader"] = "reader3"
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 100.0)
+
+    def test_only_reader_matches(self):
+        """Test that a DataArray with only a matching 'reader' works."""
+        data_arr = self._get_test_data_array()
+        data_arr.attrs["reader"] = "reader2"
+        data_arr.attrs["name"] = "not_configured"
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 75.0)
+
+    def test_reader_and_name_match(self):
+        """Test that a DataArray with a matching 'reader' and 'name' works."""
+        data_arr = self._get_test_data_array()
+        data_arr.attrs["reader"] = "reader2"
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 50.0)
 
 
 class TestYAMLFiles(unittest.TestCase):
@@ -437,7 +525,6 @@ class TestComputeWriterResults(unittest.TestCase):
         from datetime import datetime
 
         from satpy.scene import Scene
-        import dask.array as da
 
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -560,7 +647,6 @@ class TestBaseWriter:
         from datetime import datetime
 
         from satpy.scene import Scene
-        import dask.array as da
 
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -631,8 +717,6 @@ class TestOverlays(unittest.TestCase):
         """Create test data and mock pycoast/pydecorate."""
         from trollimage.xrimage import XRImage
         from pyresample.geometry import AreaDefinition
-        import xarray as xr
-        import dask.array as da
 
         proj_dict = {'proj': 'lcc', 'datum': 'WGS84', 'ellps': 'WGS84',
                      'lon_0': -95., 'lat_0': 25, 'lat_1': 25,

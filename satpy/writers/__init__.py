@@ -156,15 +156,14 @@ def _determine_mode(dataset):
 
     if dataset.ndim == 2:
         return "L"
-    elif dataset.shape[0] == 2:
+    if dataset.shape[0] == 2:
         return "LA"
-    elif dataset.shape[0] == 3:
+    if dataset.shape[0] == 3:
         return "RGB"
-    elif dataset.shape[0] == 4:
+    if dataset.shape[0] == 4:
         return "RGBA"
-    else:
-        raise RuntimeError("Can't determine 'mode' of dataset: %s" %
-                           str(dataset))
+    raise RuntimeError("Can't determine 'mode' of dataset: %s" %
+                       str(dataset))
 
 
 def _burn_overlay(img, image_metadata, area, cw_, overlays):
@@ -480,8 +479,7 @@ def to_image(dataset):
     dataset = dataset.squeeze()
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
-    else:
-        return XRImage(dataset)
+    return XRImage(dataset)
 
 
 def split_results(results):
@@ -1033,10 +1031,12 @@ class EnhancementDecisionTree(DecisionTree):
         """Init the decision tree."""
         match_keys = kwargs.pop("match_keys",
                                 ("name",
+                                 "reader",
                                  "platform_name",
                                  "sensor",
                                  "standard_name",
-                                 "units",))
+                                 "units",
+                                 ))
         self.prefix = kwargs.pop("config_section", "enhancements")
         multival_keys = kwargs.pop("multival_keys", ["sensor"])
         super(EnhancementDecisionTree, self).__init__(
