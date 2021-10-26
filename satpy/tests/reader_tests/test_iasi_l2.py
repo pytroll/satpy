@@ -165,10 +165,10 @@ class TestIasiL2(unittest.TestCase):
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
         scn = Scene(reader='iasi_l2', filenames=[fname])
-        self.assertTrue('start_time' in scn.attrs)
-        self.assertTrue('end_time' in scn.attrs)
-        self.assertTrue('sensor' in scn.attrs)
-        self.assertTrue('iasi' in scn.attrs['sensor'])
+        assert scn.start_time is not None
+        assert scn.end_time is not None
+        assert scn.sensor_names
+        assert 'iasi' in scn.sensor_names
 
     def test_scene_load_available_datasets(self):
         """Test that all datasets are available."""

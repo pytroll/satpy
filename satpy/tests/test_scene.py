@@ -106,15 +106,13 @@ class TestScene:
         """Test creating a reader providing filenames."""
         filenames = ["bla", "foo", "bar"]
         reader_name = None
-        with mock.patch('satpy.scene.Scene._compute_metadata_from_readers') as md:
-            md.return_value = {'sensor': {'sensor'}}
-            with mock.patch('satpy.scene.load_readers') as findermock:
-                Scene(filenames=filenames)
-                findermock.assert_called_once_with(
-                    filenames=filenames,
-                    reader=reader_name,
-                    reader_kwargs=None,
-                )
+        with mock.patch('satpy.scene.load_readers') as findermock:
+            Scene(filenames=filenames)
+            findermock.assert_called_once_with(
+                filenames=filenames,
+                reader=reader_name,
+                reader_kwargs=None,
+            )
 
     def test_init_with_empty_filenames(self):
         """Test initialization with empty filename list."""
