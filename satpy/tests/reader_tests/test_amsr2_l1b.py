@@ -161,6 +161,8 @@ class TestAMSR2L1BReader(unittest.TestCase):
                                   (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
             self.assertTupleEqual(d.attrs['area'].lats.shape,
                                   (DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1] // 2))
+            assert d.attrs['sensor'] == 'amsr2'
+            assert d.attrs['platform_name'] == 'GCOM-W1'
 
     def test_load_89ghz(self):
         """Test loading of 89GHz channels."""
