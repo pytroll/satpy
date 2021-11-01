@@ -282,15 +282,13 @@ class MiRSL2ncHandler(BaseFileHandler):
         """Force datetime.date for combine."""
         if isinstance(self.filename_info[key], datetime.datetime):
             return self.filename_info[key].date()
-        else:
-            return self.filename_info[key]
+        return self.filename_info[key]
 
     def force_time(self, key):
         """Force datetime.time for combine."""
         if isinstance(self.filename_info.get(key), datetime.datetime):
             return self.filename_info.get(key).time()
-        else:
-            return self.filename_info.get(key)
+        return self.filename_info.get(key)
 
     @property
     def _get_coeff_filenames(self):
@@ -323,9 +321,9 @@ class MiRSL2ncHandler(BaseFileHandler):
         # if we don't have to
         if data_arr_dtype.type == np.float32:
             return np.float32(np.nan)
-        elif np.issubdtype(data_arr_dtype, np.timedelta64):
+        if np.issubdtype(data_arr_dtype, np.timedelta64):
             return np.timedelta64('NaT')
-        elif np.issubdtype(data_arr_dtype, np.datetime64):
+        if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64('NaT')
         return np.nan
 
