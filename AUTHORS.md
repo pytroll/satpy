@@ -50,6 +50,7 @@ The following people have made contributions to this project:
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
+- [Chandra Pasillas (c-pasillas)](https://github.com/c-pasillas)
 - [Tom Parker (tparker-usgs)](https://github.com/tparker-usgs)
 - [Christian Peters (peters77)](https://github.com/peters77)
 - [Ghislain Picard (ghislainp)](https://github.com/ghislainp)
