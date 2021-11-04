@@ -18,12 +18,26 @@
 """Utilties for getting various angles for a dataset.."""
 from __future__ import annotations
 
+from functools import update_wrapper
+from typing import Callable, Any
+
 import dask.array as da
 import numpy as np
 import xarray as xr
 from satpy.utils import get_satpos
 from pyorbital.orbital import get_observer_look
 from pyorbital.astronomy import get_alt_az, sun_zenith_angle
+
+
+def zarr_cache(num_results: int = 1) -> Callable:
+    """Decorate a function and cache the results as a zarr array on disk."""
+    def _decorator(func: Callable) -> Callable:
+        def _wrapper(data_arr: xr.DataArray, *args) -> Any:
+            res = func(data_arr, *args)
+            return res
+        wrapper = update_wrapper(_wrapper, func)
+        return wrapper
+    return _decorator
 
 
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
@@ -56,6 +70,7 @@ def _get_sun_angles(data_arr: xr.DataArray, lons: da.Array, lats: da.Array) -> t
     return suna, sunz
 
 
+@zarr_cache(num_results=2)
 def _get_sensor_angles(data_arr: xr.DataArray, lons: da.Array, lats: da.Array) -> tuple[xr.DataArray, xr.DataArray]:
     sat_lon, sat_lat, sat_alt = get_satpos(data_arr)
     sata, satel = get_observer_look(
