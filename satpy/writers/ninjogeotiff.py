@@ -48,7 +48,7 @@ such as summarised in this table:
    * - ``chan_id``
      - ``ChannelID``
      - mandatory
-   * - ``data_type``
+   * - ``data_cat``
      - ``DataType``
      - mandatory
    * - ``physic_unit``
