@@ -136,8 +136,12 @@ class Scene:
     def sensor_names(self):
         """Return sensor names for the data currently contained in this Scene.
 
-        If no data is currently loaded or no sensor information is found in
-        the data metadata, loaded readers will be consulted.
+        Sensor information is collected from data contained in the Scene
+        whether loaded from a reader or generated as a composite with
+        :meth:`load` or added manually using ``scn["name"] = data_arr``).
+        If no data is currently contained in the Scene or no sensor
+        information is found in the data metadata, loaded readers will be
+        consulted for sensor information.
 
         """
         sensor_names = self._contained_sensor_names()
@@ -158,7 +162,8 @@ class Scene:
     def start_time(self):
         """Return the start time of the contained data.
 
-        If no data is currently loaded then loaded readers will be consulted.
+        If no data is currently contained in the Scene then loaded readers
+        will be consulted.
 
         """
         start_times = [data_arr.attrs['start_time'] for data_arr in self.values()
@@ -173,8 +178,9 @@ class Scene:
     def end_time(self):
         """Return the end time of the file.
 
-        If no data is currently loaded then loaded readers will be consulted.
-        if no readers are loaded then the :attr:`Scene.start_time` is returned.
+        If no data is currently contained in the Scene then loaded readers
+        will be consulted. If no readers are loaded then the
+        :attr:`Scene.start_time` is returned.
 
         """
         end_times = [data_arr.attrs['end_time'] for data_arr in self.values()
