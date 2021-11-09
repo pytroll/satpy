@@ -155,7 +155,7 @@ class DependencyTree(Tree):
 
     """
 
-    def __init__(self, readers, compositors, modifiers, available_only=False):
+    def __init__(self, readers, compositors=None, modifiers=None, available_only=False):
         """Collect Dataset generating information.
 
         Collect the objects that generate and have information about Datasets
@@ -168,8 +168,10 @@ class DependencyTree(Tree):
 
         Args:
             readers (dict): Reader name -> Reader Object
-            compositors (dict): Sensor name -> Composite ID -> Composite Object
-            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
+            compositors (dict): Sensor name -> Composite ID -> Composite Object.
+                Empty dictionary by default.
+            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options).
+                Empty dictionary by default.
             available_only (bool): Whether only reader's available/loadable
                 datasets should be used when searching for dependencies (True)
                 or use all known/configured datasets regardless of whether the
@@ -181,9 +183,22 @@ class DependencyTree(Tree):
         """
         super().__init__()
         self.readers = readers
-        self.compositors = compositors
-        self.modifiers = modifiers
+        self.compositors = compositors or {}
+        self.modifiers = modifiers or {}
         self._available_only = available_only
+
+    def update_compositors_and_modifiers(self, compositors: dict, modifiers: dict) -> None:
+        """Add additional compositors and modifiers to the tree.
+
+        Args:
+            compositors (dict):
+                Sensor name -> composite ID -> Composite Object
+            modifiers (dict):
+                Sensor name -> Modifier name -> (Modifier Class, modifier options)
+
+        """
+        self.compositors.update(compositors)
+        self.modifiers.update(modifiers)
 
     def copy(self):
         """Copy this node tree.

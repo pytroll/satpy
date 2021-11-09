@@ -1065,7 +1065,7 @@ class TestSceneLoading:
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene._dependency_tree.populate_with_keys({'comp19'})
+        scene._update_dependency_tree({'comp19'}, None)
 
         this_node = scene._dependency_tree['comp19']
         shared_dep_id = make_dataid(name='ds5', modifiers=('res_change',))
@@ -1266,7 +1266,7 @@ class TestSceneLoading:
         ds3_mod_id = make_dsq(name='ds3', modifiers=('mod_wl',))
 
         scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
-        scene._dependency_tree.populate_with_keys({ds1_mod_id, ds3_mod_id})
+        scene._update_dependency_tree({ds1_mod_id, ds3_mod_id}, None)
 
         ds1_mod_node = scene._dependency_tree[ds1_mod_id]
         ds3_mod_node = scene._dependency_tree[ds3_mod_id]

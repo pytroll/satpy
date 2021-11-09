@@ -109,10 +109,8 @@ class Scene:
                                                       reader=reader,
                                                       reader_kwargs=reader_kwargs)
         self._datasets = DatasetDict()
-        self._composite_loader = CompositorLoader()
-        comps, mods = self._composite_loader.load_compositors(self.sensor_names)
         self._wishlist = set()
-        self._dependency_tree = DependencyTree(self._readers, comps, mods)
+        self._dependency_tree = DependencyTree(self._readers)
         self._resamplers = {}
 
     @property
@@ -421,7 +419,8 @@ class Scene:
         """Create new dependency tree and check what composites we know about."""
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
-        sensor_comps, mods = self._composite_loader.load_compositors(self.sensor_names)
+        composite_loader = CompositorLoader()
+        sensor_comps, mods = composite_loader.load_compositors(self.sensor_names)
         # recreate the dependency tree so it doesn't interfere with the user's
         # wishlist from self._dependency_tree
         dep_tree = DependencyTree(self._readers, sensor_comps, mods, available_only=True)
@@ -1241,9 +1240,9 @@ class Scene:
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
-            comps, mods = self._composite_loader.load_compositors(self.sensor_names)
-            self._dependency_tree.compositors.update(comps)
-            self._dependency_tree.modifiers.update(mods)
+            composite_loader = CompositorLoader()
+            comps, mods = composite_loader.load_compositors(self.sensor_names)
+            self._dependency_tree.update_compositors_and_modifiers(comps, mods)
             self._dependency_tree.populate_with_keys(needed_datasets, query)
         except MissingDependencies as err:
             raise KeyError(str(err))
