@@ -207,24 +207,6 @@ class CompositorLoader:
             return
         self._load_config(composite_configs)
 
-    def get_compositor(self, key, sensor_names):
-        """Get the compositor for *sensor_names*."""
-        for sensor_name in sensor_names:
-            try:
-                return self.compositors[sensor_name][key]
-            except KeyError:
-                continue
-        raise KeyError("Could not find compositor '{}'".format(key))
-
-    def get_modifier(self, key, sensor_names):
-        """Get the modifier for *sensor_names*."""
-        for sensor_name in sensor_names:
-            try:
-                return self.modifiers[sensor_name][key]
-            except KeyError:
-                continue
-        raise KeyError("Could not find modifier '{}'".format(key))
-
     def load_compositors(self, sensor_names):
         """Load all compositor configs for the provided sensors.
 

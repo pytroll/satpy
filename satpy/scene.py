@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Scene object to hold satellite data."""
+from __future__ import annotations
 
 import logging
 import os
@@ -131,7 +132,7 @@ class Scene:
                             reader_kwargs=reader_kwargs)
 
     @property
-    def sensor_names(self):
+    def sensor_names(self) -> set[str, ...]:
         """Return sensor names for the data currently contained in this Scene.
 
         Sensor information is collected from data contained in the Scene
@@ -148,7 +149,7 @@ class Scene:
                                 for sensor in reader_instance.sensor_names])
         return sensor_names
 
-    def _contained_sensor_names(self):
+    def _contained_sensor_names(self) -> set[str, ...]:
         sensor_names = set()
         for data_arr in self.values():
             if "sensor" not in data_arr.attrs:
