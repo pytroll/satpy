@@ -18,8 +18,10 @@
 """Utilties for getting various angles for a dataset.."""
 from __future__ import annotations
 
+import os
+import hashlib
 from functools import update_wrapper
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 import dask.array as da
 import numpy as np
@@ -28,20 +30,76 @@ from satpy.utils import get_satpos
 from pyorbital.orbital import get_observer_look
 from pyorbital.astronomy import get_alt_az, sun_zenith_angle
 
+import satpy
 
-def zarr_cache(num_results: int = 1) -> Callable:
-    """Decorate a function and cache the results as a zarr array on disk."""
+
+def cache_to_zarr(num_results: int = 1) -> Callable:
+    """Decorate a function and cache the results as a zarr array on disk.
+
+    Note: Only the dask array is cached. Currently the metadata and coordinate
+    information is not stored.
+
+    """
+    # TODO: Remove num_results, just determine it when it is returned
+    # TODO: Use satpy.config to get the default behavior
+    # TODO: Use dask to_zarr with return_stored=True
     def _decorator(func: Callable) -> Callable:
-        def _wrapper(data_arr: xr.DataArray, *args) -> Any:
-            res = func(data_arr, *args)
+        def _wrapper(data_arr: xr.DataArray, *args, cache_dir: Optional[str] = None) -> Any:
+            arg_hash = _hash_args(*args)
+            should_cache = satpy.config.get("cache_angles", False)
+            if cache_dir is None:
+                cache_dir = satpy.config.get("cache_dir")
+            if cache_dir is None:
+                should_cache = False
+            zarr_fn = f"{func.__name__}_{arg_hash}" + "{}.zarr"
+            # XXX: Can we use zarr groups to save us from having multiple zarr arrays
+            zarr_paths = [os.path.join(cache_dir, zarr_fn).format(result_idx) for result_idx in range(num_results)]
+            if not should_cache or not os.path.exists(zarr_paths[0]):
+                res = func(data_arr, *args)
+            elif should_cache and os.path.exists(zarr_paths[0]):
+                res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
+            if should_cache and not os.path.exists(zarr_paths[0]):
+                os.makedirs(cache_dir, exist_ok=True)
+                new_res = []
+                for sub_res, zarr_path in zip(res, zarr_paths):
+                    new_sub_res = sub_res.to_zarr(zarr_path,
+                                                  return_stored=True,
+                                                  compute=False)
+                    new_res.append(new_sub_res)
+                # actually compute the storage to zarr
+                # this returns the numpy arrays
+                # FIXME: Find a way to compute all the zarrs at the same time, but still work from that zarr array
+                da.compute(new_res)
+                res = tuple(new_res)
             return res
         wrapper = update_wrapper(_wrapper, func)
         return wrapper
     return _decorator
 
 
+def _hash_args(*args):
+    import json
+    hashable_args = []
+    for arg in args:
+        if not isinstance(arg, (xr.DataArray, da.Array)):
+            hashable_args.append(arg)
+            continue
+        # TODO: Be smarter
+        hashables = [arg.shape]
+        if isinstance(arg, xr.DataArray):
+            hashables.append(arg.attrs.get("start_time"))
+            hashables.append(arg.dims)
+
+        hashable_args.append(tuple(hashables))
+    hash = hashlib.sha1()
+    hash.update(json.dumps(tuple(hashable_args)).encode('utf8'))
+    return hash.hexdigest()
+
+
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
     """Get sun and satellite angles to use in crefl calculations."""
+    # TODO: Restructure so lonlats are loaded in each function
+    # and that only start_time or area are passed between instead of the whole DataArray
     lons, lats = _get_valid_lonlats(data_arr)
     sun_angles = _get_sun_angles(data_arr, lons, lats)
     sat_angles = _get_sensor_angles(data_arr, lons, lats)
@@ -70,7 +128,7 @@ def _get_sun_angles(data_arr: xr.DataArray, lons: da.Array, lats: da.Array) -> t
     return suna, sunz
 
 
-@zarr_cache(num_results=2)
+@cache_to_zarr(num_results=2)
 def _get_sensor_angles(data_arr: xr.DataArray, lons: da.Array, lats: da.Array) -> tuple[xr.DataArray, xr.DataArray]:
     sat_lon, sat_lat, sat_alt = get_satpos(data_arr)
     sata, satel = get_observer_look(
