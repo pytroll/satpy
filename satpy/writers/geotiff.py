@@ -76,7 +76,27 @@ class GeoTIFFWriter(ImageWriter):
                     "profile",
                     "bigtiff",
                     "pixeltype",
-                    "copy_src_overviews",)
+                    "copy_src_overviews",
+                    # Not a GDAL option, but allows driver='COG'
+                    "driver",
+                    # COG driver options (different from GTiff above)
+                    "blocksize",
+                    "resampling",
+                    "quality",
+                    "level",
+                    "overview_resampling",
+                    "warp_resampling",
+                    "overview_compress",
+                    "overview_quality",
+                    "overview_predictor",
+                    "tiling_scheme",
+                    "zoom_level_strategy",
+                    "target_srs",
+                    "res",
+                    "extent",
+                    "aligned_levels",
+                    "add_alpha",
+                    )
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         """Init the writer."""
