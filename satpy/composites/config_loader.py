@@ -21,7 +21,11 @@ import logging
 import warnings
 
 import yaml
-from yaml import UnsafeLoader
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy import DatasetDict, DataQuery, DataID
 from satpy._config import (get_entry_points_config_dirs, config_search_paths,

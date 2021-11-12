@@ -35,7 +35,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
             'pooch']
 
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
                  'rioxarray', 'pytest', 'pytest-lazy-fixture']
 
@@ -67,7 +67,7 @@ extras_require = {
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
-    'mitiff': ['libtiff'],
+    'mitiff': ['pylibtiff'],
     'ninjo': ['pyninjotiff', 'pint'],
     # Composites/Modifiers:
     'rayleigh': ['pyspectral >= 0.10.1'],
@@ -79,6 +79,7 @@ extras_require = {
     # Other
     'geoviews': ['geoviews'],
     'overlays': ['pycoast', 'pydecorate'],
+    'tests': test_requires,
 }
 all_extras = []
 for extra_deps in extras_require.values():
@@ -151,10 +152,7 @@ setup(name=NAME,
                               'tests/etc/writers/*.yaml',
                               ]},
       zip_safe=False,
-      use_scm_version={'write_to': 'satpy/version.py'},
-      setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
       install_requires=requires,
-      tests_require=test_requires,
       python_requires='>=3.7',
       extras_require=extras_require,
       entry_points=entry_points,

@@ -13,7 +13,6 @@
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 """Tests for the CREFL ReflectanceCorrector modifier."""
-import unittest
 from unittest import mock
 from contextlib import contextmanager
 from datetime import datetime
@@ -67,58 +66,6 @@ def _create_fake_dem_file(dem_fn, var_name, fill_value):
     if fill_value is not None:
         dem_var.setfillvalue(fill_value)
     h.end()
-
-
-class TestViirsReflectanceCorrectorAnglesTest(unittest.TestCase):
-    """Tests for the VIIRS/MODIS Corrected Reflectance modifier handling angles."""
-
-    def setUp(self):
-        """Patch in-class imports."""
-        self.astronomy = mock.MagicMock()
-        self.orbital = mock.MagicMock()
-        modules = {
-            'pyorbital.astronomy': self.astronomy,
-            'pyorbital.orbital': self.orbital,
-        }
-        self.module_patcher = mock.patch.dict('sys.modules', modules)
-        self.module_patcher.start()
-
-    def tearDown(self):
-        """Unpatch in-class imports."""
-        self.module_patcher.stop()
-
-    @mock.patch('satpy.modifiers._crefl.get_satpos')
-    def test_get_angles(self, get_satpos):
-        """Test sun and satellite angle calculation."""
-        from satpy.modifiers._crefl import ReflectanceCorrector
-
-        # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        self.orbital.get_observer_look.return_value = 0, 0
-        self.astronomy.get_alt_az.return_value = 0, 0
-        area = mock.MagicMock()
-        lons = np.zeros((5, 5))
-        lons[1, 1] = np.inf
-        lons = da.from_array(lons, chunks=5)
-        lats = np.zeros((5, 5))
-        lats[1, 1] = np.inf
-        lats = da.from_array(lats, chunks=5)
-        area.get_lonlats.return_value = (lons, lats)
-        vis = mock.MagicMock(attrs={'area': area,
-                                    'start_time': 'start_time'})
-
-        # Compute angles
-        psp = ReflectanceCorrector(name='dummy')
-        psp.get_angles(vis)
-
-        # Check arguments of get_orbserver_look() call, especially the altitude
-        # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_once()
-        args = self.orbital.get_observer_look.call_args[0]
-        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, 'start_time'))
-        self.assertIsInstance(args[4], da.Array)
-        self.assertIsInstance(args[5], da.Array)
-        self.assertEqual(args[6], 0)
 
 
 def _make_viirs_xarray(data, area, name, standard_name, wavelength=None, units='degrees', calibration=None):

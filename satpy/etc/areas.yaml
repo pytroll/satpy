@@ -285,27 +285,13 @@ sve:
   description:
     Sweden and baltic sea
   projection:
-    init: epsg:3006
+    EPSG: 3006
   shape:
     height: 2000
     width: 2000
   area_extent:
     lower_left_xy: [-342379.698, 6032580.06]
     upper_right_xy: [1423701.52, 8029648.75]
-iber:
-  description:
-    North half of the Iberian Peninsula and the Gulf of Biscay
-    image 0 degrees
-  projection:
-    proj: utm
-  shape:
-    height: 1000
-    width: 2000
-  area_extent:
-    lower_left_xy: [-342379.698, 4432580.06]
-    upper_right_xy: [723701.52, 5029648.75]
-    units: m
-
 brazil2:
   description: brazil, platecarree
   projection:

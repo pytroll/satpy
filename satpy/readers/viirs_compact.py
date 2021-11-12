@@ -25,7 +25,7 @@ dask operations, so it should be relatively performant.
 For more information on this format, the reader can refer to the
 `Compact VIIRS SDR Product Format User Guide` that can be found on this EARS_ page.
 
-.. _EARS: https://www.eumetsat.int/website/home/Data/RegionalDataServiceEARS/EARSVIIRS/index.html
+.. _EARS: https://www.eumetsat.int/media/45988
 
 """
 

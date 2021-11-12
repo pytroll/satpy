@@ -93,7 +93,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
             dtype=np.uint16)
 
-        convert_file_content_to_data_array(file_content)
+        convert_file_content_to_data_array(file_content, dims=("time", "nj", "ni"))
         return file_content
 
 
@@ -148,3 +148,4 @@ class TestACSPOReader:
         assert len(datasets) == 4
         for d in datasets.values():
             assert d.shape == DEFAULT_FILE_SHAPE
+            assert d.dims == ("y", "x")

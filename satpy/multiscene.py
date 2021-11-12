@@ -19,6 +19,7 @@
 
 import copy
 import logging
+import warnings
 from queue import Queue
 from threading import Thread
 
@@ -196,6 +197,10 @@ class MultiScene(object):
             scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
         if ensure_all_readers:
+            warnings.warn(
+                "Argument ensure_all_readers is deprecated.  Use "
+                "missing='skip' instead.",
+                DeprecationWarning)
             file_groups = [fg for fg in file_groups if all(fg.values())]
         scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)

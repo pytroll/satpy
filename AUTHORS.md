@@ -70,6 +70,7 @@ The following people have made contributions to this project:
 - [Johan Strandgren (strandgren)](https://github.com/strandgren)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
 - [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
+- [Christian Versloot (christianversloot)](https://github.com/christianversloot)
 - [Helga Weber (helgaweb)](https://github.com/helgaweb)
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
 - [oananicola (oananicola)](https://github.com/oananicola)

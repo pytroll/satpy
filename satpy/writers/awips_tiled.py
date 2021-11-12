@@ -760,7 +760,7 @@ class NetCDFTemplate:
                 metadata of non-string types to be requested.
             raw_value (Any): Static hardcoded value to set this attribute
                 to. Overrides all other options.
-            prefix (bool): Prefix to use when `value` and `raw_key` are
+            prefix (str): Prefix to use when `value` and `raw_key` are
                 both ``None``. Default is ``"_"``. This will be used to find
                 custom attribute handlers in subclasses. For example, if
                 `value` and `raw_key` are both ``None`` and `attr_name`
@@ -921,7 +921,8 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
 
     def _global_physical_element(self, input_metadata):
         var_config = self._var_tree.find_match(**input_metadata)
-        result = self._render_attrs(var_config["attributes"], input_metadata)
+        attr_config = {"physical_element": var_config["attributes"]["physical_element"]}
+        result = self._render_attrs(attr_config, input_metadata, prefix="_data_")
         return result["physical_element"]
 
     def _global_production_location(self, input_metadata):
@@ -1009,7 +1010,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
                 y_attrs['standard_name'] = 'latitude'
         else:
             if y_attrs.get('units') is None:
-                y_attrs['units'] = 'meters'
+                y_attrs['units'] = 'meter'
             if y_attrs.get('standard_name') is None:
                 y_attrs['standard_name'] = 'projection_y_coordinate'
             y_attrs['axis'] = 'Y'
@@ -1022,7 +1023,7 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
                 x_attrs['standard_name'] = 'longitude'
         else:
             if x_attrs.get('units') is None:
-                x_attrs['units'] = 'meters'
+                x_attrs['units'] = 'meter'
             if x_attrs.get('standard_name') is None:
                 x_attrs['standard_name'] = 'projection_x_coordinate'
             x_attrs['axis'] = 'X'
@@ -1396,7 +1397,7 @@ class AWIPSTiledWriter(Writer):
         new_y = xr.DataArray(tile_info.y, dims=('y',))
         if 'y' in data_arrays[0].coords:
             old_y = data_arrays[0].coords['y']
-            new_x.attrs.update(old_y.attrs)
+            new_y.attrs.update(old_y.attrs)
             new_y.encoding = old_y.encoding
 
         for data_arr in data_arrays:

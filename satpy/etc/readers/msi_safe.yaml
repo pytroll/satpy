@@ -6,13 +6,17 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    safe_granule:
+  safe_granule:
         file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIL1C
         file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/IMG_DATA/T{tile_number:5s}_{file_discriminator:%Y%m%dT%H%M%S}_{band_name:3s}.jp2']
-        requires: [safe_g_metadata]
-    safe_g_metadata:
-        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
+        requires: [safe_metadata, safe_tile_metadata]
+  safe_tile_metadata:
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSITileMDXML
         file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/GRANULE/L1C_T{gtile_number:5s}_A{absolute_orbit_number:6d}_{gfile_discriminator:%Y%m%dT%H%M%S}/MTD_TL.xml']
+  safe_metadata:
+        file_reader: !!python/name:satpy.readers.msi_safe.SAFEMSIMDXML
+        file_patterns: ['{fmission_id:3s}_MSIL1C_{observation_time:%Y%m%dT%H%M%S}_N{fprocessing_baseline_number:4d}_R{relative_orbit_number:3d}_T{dtile_number:5s}_{dproduct_discriminator:%Y%m%dT%H%M%S}.SAFE/MTD_MSIL1C.xml']
+
 
 datasets:
 
@@ -21,6 +25,13 @@ datasets:
     sensor: MSI
     wavelength: [0.415, 0.443, 0.470]
     resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B02:
@@ -28,6 +39,13 @@ datasets:
     sensor: MSI
     wavelength: [0.440, 0.490, 0.540]
     resolution: 10
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B03:
@@ -35,6 +53,13 @@ datasets:
     sensor: MSI
     wavelength: [0.540, 0.560, 0.580]
     resolution: 10
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B04:
@@ -42,6 +67,13 @@ datasets:
     sensor: MSI
     wavelength: [0.645, 0.665, 0.685]
     resolution: 10
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B05:
@@ -49,6 +81,13 @@ datasets:
     sensor: MSI
     wavelength: [0.695, 0.705, 0.715]
     resolution: 20
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B06:
@@ -56,6 +95,13 @@ datasets:
     sensor: MSI
     wavelength: [0.731, 0.740, 0.749]
     resolution: 20
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B07:
@@ -63,6 +109,13 @@ datasets:
     sensor: MSI
     wavelength: [0.764, 0.783, 0.802]
     resolution: 20
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B08:
@@ -70,6 +123,13 @@ datasets:
     sensor: MSI
     wavelength: [0.780, 0.842, 0.905]
     resolution: 10
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B8A:
@@ -77,6 +137,13 @@ datasets:
     sensor: MSI
     wavelength: [0.855, 0.865, 0.875]
     resolution: 20
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B09:
@@ -84,6 +151,13 @@ datasets:
     sensor: MSI
     wavelength: [0.935, 0.945, 0.955]
     resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B10:
@@ -91,6 +165,13 @@ datasets:
     sensor: MSI
     wavelength: [1.365, 1.375, 1.385]
     resolution: 60
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B11:
@@ -98,6 +179,13 @@ datasets:
     sensor: MSI
     wavelength: [1.565, 1.610, 1.655]
     resolution: 20
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
   B12:
@@ -105,31 +193,38 @@ datasets:
     sensor: MSI
     wavelength: [2.100, 2.190, 2.280]
     resolution: 20
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
     file_type: safe_granule
 
 
   solar_zenith_angle:
     name: solar_zenith_angle
     resolution: [10, 20, 60]
-    file_type: safe_g_metadata
+    file_type: safe_tile_metadata
     xml_tag: Sun_Angles_Grid/Zenith
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     resolution: [10, 20, 60]
-    file_type: safe_g_metadata
+    file_type: safe_tile_metadata
     xml_tag: Sun_Angles_Grid/Azimuth
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     resolution: [10, 20, 60]
-    file_type: safe_g_metadata
+    file_type: safe_tile_metadata
     xml_tag: Viewing_Incidence_Angles_Grids
     xml_item: Azimuth
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     resolution: [10, 20, 60]
-    file_type: safe_g_metadata
+    file_type: safe_tile_metadata
     xml_tag: Viewing_Incidence_Angles_Grids
     xml_item: Zenith
