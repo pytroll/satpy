@@ -77,8 +77,6 @@ class GeoTIFFWriter(ImageWriter):
                     "bigtiff",
                     "pixeltype",
                     "copy_src_overviews",
-                    # Not a GDAL option, but allows driver='COG'
-                    "driver",
                     # COG driver options (different from GTiff above)
                     "blocksize",
                     "resampling",
@@ -131,7 +129,7 @@ class GeoTIFFWriter(ImageWriter):
                    compute=True, keep_palette=False, cmap=None, tags=None,
                    overviews=None, overviews_minsize=256,
                    overviews_resampling=None, include_scale_offset=False,
-                   scale_offset_tags=None, **kwargs):
+                   scale_offset_tags=None, driver=None, **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -245,7 +243,8 @@ class GeoTIFFWriter(ImageWriter):
             tags = {}
         tags.update(self.tags)
 
-        return img.save(filename, fformat='tif', fill_value=fill_value,
+        return img.save(filename, fformat='tif', driver=driver,
+                        fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
                         tags=tags, include_scale_offset_tags=include_scale_offset,
