@@ -28,6 +28,8 @@ import pytest
 import xarray as xr
 import satpy
 
+from pyresample.geometry import AreaDefinition
+
 
 class TestSunZenithCorrector(unittest.TestCase):
     """Test case for the zenith corrector."""
@@ -377,83 +379,69 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         res.compute()
 
 
+def _get_angle_test_data():
+    orb_params = {
+        "satellite_nominal_altitude": 12345678,
+        "satellite_nominal_longitude": 10.0,
+        "satellite_nominal_latitude": 0.0,
+    }
+    area = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 5,
+        (-2500, -2500, 2500, 2500),
+    )
+    stime = datetime(2020, 1, 1, 12, 0, 0)
+    data = da.zeros((5, 5), chunks=2)
+    vis = xr.DataArray(data,
+                       attrs={
+                           'area': area,
+                           'start_time': stime,
+                           'orbital_parameters': orb_params,
+                       })
+    return vis
+
+
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
-    @mock.patch('satpy.modifiers._angles.get_satpos')
-    @mock.patch('satpy.modifiers._angles.get_observer_look')
-    @mock.patch('satpy.modifiers._angles.get_alt_az')
-    def test_get_angles(self, get_alt_az, get_observer_look, get_satpos):
+    def test_get_angles(self):
         """Test sun and satellite angle calculation."""
         from satpy.modifiers._angles import get_angles
+        data = _get_angle_test_data()
 
-        # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        get_observer_look.return_value = 0, 0
-        get_alt_az.return_value = 0, 0
-        area = mock.MagicMock()
-        lons = np.zeros((5, 5))
-        lons[1, 1] = np.inf
-        lons = da.from_array(lons, chunks=5)
-        lats = np.zeros((5, 5))
-        lats[1, 1] = np.inf
-        lats = da.from_array(lats, chunks=5)
-        area.get_lonlats.return_value = (lons, lats)
-        stime = datetime(2020, 1, 1, 12, 0, 0)
-        vis = mock.MagicMock(attrs={'area': area, 'start_time': stime})
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers._angles.get_observer_look", wraps=get_observer_look) as gol:
+            angles = get_angles(data)
+            da.compute(angles)
 
-        # Compute angles
-        get_angles(vis)
-
+        # get_observer_look should have been called once per array chunk
+        assert gol.call_count == data.data.blocks.size
         # Check arguments of get_orbserver_look() call, especially the altitude
         # unit conversion from meters to kilometers
-        get_observer_look.assert_called_once()
-        args = get_observer_look.call_args[0]
-        assert args[:4] == ('sat_lon', 'sat_lat', 12345.678, stime)
-        assert isinstance(args[4], da.Array)
-        assert isinstance(args[5], da.Array)
-        assert args[6] == 0
+        args = gol.call_args[0]
+        assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
 
-    @mock.patch('satpy.modifiers._angles.get_satpos')
-    @mock.patch('satpy.modifiers._angles.get_observer_look')
-    @mock.patch('satpy.modifiers._angles.get_alt_az')
-    def test_cache_get_angles(self, get_alt_az, get_observer_look, get_satpos, tmpdir):
+    def test_cache_get_angles(self, tmpdir):
         """Test get_angles when caching is enabled."""
-        from satpy.modifiers._angles import get_angles
+        from satpy.modifiers._angles import get_angles, STATIC_EARTH_INERTIAL_DATETIME
 
         # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        sata = da.zeros((5, 5))
-        satel = da.zeros((5, 5))
-        get_observer_look.return_value = sata, satel
-        get_alt_az.return_value = 0, 0
-        area = mock.MagicMock()
-        lons = np.zeros((5, 5))
-        lons[1, 1] = np.inf
-        lons = da.from_array(lons, chunks=5)
-        lats = np.zeros((5, 5))
-        lats[1, 1] = np.inf
-        lats = da.from_array(lats, chunks=5)
-        area.get_lonlats.return_value = (lons, lats)
-        stime = datetime(2020, 1, 1, 12, 0, 0)
-        vis = mock.MagicMock(attrs={'area': area, 'start_time': stime})
+        data = _get_angle_test_data()
 
         # Compute angles
-        with satpy.config.set(cache_angles=True, cache_dir=str(tmpdir)):
-            res = get_angles(vis)
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers._angles.get_observer_look", wraps=get_observer_look) as gol, \
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
+            res = get_angles(data)
             # call again, should be cached
-            res2 = get_angles(vis)
+            res2 = get_angles(data)
+            res, res2 = da.compute(res, res2)
             for r1, r2 in zip(res, res2):
                 np.testing.assert_allclose(r1, r2)
-            # TODO: Do some comparisons between the results
         zarr_dirs = glob(str(tmpdir / "*.zarr"))
-        assert len(zarr_dirs) == 2  # one for sata, one for satz
+        assert len(zarr_dirs) == 4  # two for lon/lat, one for sata, one for satz
 
-        # Check arguments of get_orbserver_look() call, especially the altitude
-        # unit conversion from meters to kilometers
-        get_observer_look.assert_called_once()
-        args = get_observer_look.call_args[0]
-        assert args[:4] == ('sat_lon', 'sat_lat', 12345.678, stime)
-        assert isinstance(args[4], da.Array)
-        assert isinstance(args[5], da.Array)
-        assert args[6] == 0
+        assert gol.call_count == data.data.blocks.size
+        args = gol.call_args[0]
+        assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
