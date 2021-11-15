@@ -22,6 +22,7 @@ import os
 import hashlib
 from datetime import datetime
 from functools import update_wrapper
+from glob import glob
 from typing import Callable, Any, Optional, Union
 
 import dask
@@ -42,6 +43,8 @@ PRGeometry = Union[SwathDefinition, AreaDefinition]
 # The difference is on the order of 1e-10 at most as time changes so we force
 # it to a single time for easier caching. It is *only* used if caching.
 STATIC_EARTH_INERTIAL_DATETIME = datetime(2020, 1, 1, 0, 0, 0)
+# simple integer for future proofing function changes that would invalidate
+# existing files in a user's cache
 _CACHE_VERSION = 1
 
 
@@ -51,56 +54,68 @@ class ZarrCacheHelper:
     def __init__(self,
                  func: Callable,
                  cache_config_key: str,
-                 num_results: int = 1,
                  uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
                  sanitize_args_func: Callable = None,
                  ):
         """Hold on to provided arguments for future use."""
         self._func = func
         self._cache_config_key = cache_config_key
-        self._num_results = num_results
         self._uncacheable_arg_types = uncacheable_arg_types
         self._sanitize_args_func = sanitize_args_func
+
+    def _zarr_pattern(self, arg_hash):
+        return f"{self._func.__name__}_v{_CACHE_VERSION}" + "_{}_" + f"{arg_hash}.zarr"
 
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
         """Call the decorated function."""
         new_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
         arg_hash = _hash_args(*new_args)
+        should_cache, cache_dir = self._get_should_cache_and_cache_dir(new_args, cache_dir)
+        zarr_fn = self._zarr_pattern(arg_hash)
+        zarr_format = os.path.join(cache_dir, zarr_fn)
+        zarr_paths = glob(zarr_format.format("*"))
+        if not should_cache or not zarr_paths:
+            # use sanitized arguments if we are caching, otherwise use original arguments
+            args = new_args if should_cache else args
+            res = self._func(*args)
+            if should_cache and not zarr_paths:
+                self._cache_results(res, zarr_format)
+        # if we did any caching, let's load from the zarr files
+        if should_cache:
+            # re-calculate the cached paths
+            zarr_paths = glob(zarr_format.format("*"))
+            if not zarr_paths:
+                raise RuntimeError("Data was cached to disk but no files were found")
+            res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
+        return res
+
+    def _get_should_cache_and_cache_dir(self, args, cache_dir):
         should_cache = satpy.config.get(self._cache_config_key, False)
-        can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in new_args)
+        can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in args)
         should_cache = should_cache and can_cache
         if cache_dir is None:
             cache_dir = satpy.config.get("cache_dir")
         if cache_dir is None:
             should_cache = False
-        zarr_fn = f"{self._func.__name__}_v{_CACHE_VERSION}" + "_{}_" + f"{arg_hash}.zarr"
-        # XXX: Can we use zarr groups to save us from having multiple zarr arrays
-        zarr_paths = [os.path.join(cache_dir, zarr_fn).format(result_idx) for result_idx in range(self._num_results)]
-        if not should_cache or not os.path.exists(zarr_paths[0]):
-            # use sanitized arguments if we are caching, otherwise use original arguments
-            args = new_args if should_cache else args
-            res = self._func(*args)
-            if should_cache and not os.path.exists(zarr_paths[0]):
-                os.makedirs(cache_dir, exist_ok=True)
-                new_res = []
-                for sub_res, zarr_path in zip(res, zarr_paths):
-                    # See https://github.com/dask/dask/issues/8380
-                    with dask.config.set({"optimization.fuse.active": False}):
-                        new_sub_res = sub_res.to_zarr(zarr_path,
-                                                      return_stored=True,
-                                                      compute=False)
-                    new_res.append(new_sub_res)
-                # actually compute the storage to zarr
-                da.compute(new_res)
-        # if we did any caching, let's load from the zarr files
-        if should_cache and os.path.exists(zarr_paths[0]):
-            res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
-        return res
+        return should_cache, cache_dir
+
+    def _cache_results(self, res, zarr_format):
+        os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
+        new_res = []
+        for idx, sub_res in enumerate(res):
+            zarr_path = zarr_format.format(idx)
+            # See https://github.com/dask/dask/issues/8380
+            with dask.config.set({"optimization.fuse.active": False}):
+                new_sub_res = sub_res.to_zarr(zarr_path,
+                                              return_stored=True,
+                                              compute=False)
+            new_res.append(new_sub_res)
+        # actually compute the storage to zarr
+        da.compute(new_res)
 
 
 def cache_to_zarr(
         cache_config_key: str,
-        num_results: int = 1,
         uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
         sanitize_args_func: Callable = None,
 ) -> Callable:
@@ -114,7 +129,6 @@ def cache_to_zarr(
     def _decorator(func: Callable) -> Callable:
         zarr_cacher = ZarrCacheHelper(func,
                                       cache_config_key,
-                                      num_results,
                                       uncacheable_arg_types,
                                       sanitize_args_func)
         wrapper = update_wrapper(zarr_cacher, func)
@@ -166,7 +180,7 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
     return satz
 
 
-@cache_to_zarr("cache_lonlats", num_results=2)
+@cache_to_zarr("cache_lonlats")
 def _get_valid_lonlats(area: PRGeometry, chunks: int = "auto") -> tuple[da.Array, da.Array]:
     lons, lats = area.get_lonlats(chunks=chunks)
     lons = da.where(lons >= 1e30, np.nan, lons)
@@ -190,7 +204,7 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
                                            area_def, data_arr.data.chunks)
 
 
-@cache_to_zarr("cache_sensor_angles", num_results=2, sanitize_args_func=_sanitize_observer_look_args)
+@cache_to_zarr("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)
 def _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt, start_time, area_def, chunks):
     lons, lats = _get_valid_lonlats(area_def, chunks)
     res = da.map_blocks(_get_sensor_angles_wrapper, lons, lats, start_time, sat_lon, sat_lat, sat_alt,
