@@ -424,7 +424,8 @@ class TestAngleGeneration:
 
     def test_cache_get_angles(self, tmpdir):
         """Test get_angles when caching is enabled."""
-        from satpy.modifiers._angles import get_angles, STATIC_EARTH_INERTIAL_DATETIME
+        from satpy.modifiers._angles import (get_angles, STATIC_EARTH_INERTIAL_DATETIME,
+                                             _get_sensor_angles_from_sat_pos, _get_valid_lonlats)
 
         # Patch methods
         data = _get_angle_test_data()
@@ -439,8 +440,14 @@ class TestAngleGeneration:
             res, res2 = da.compute(res, res2)
             for r1, r2 in zip(res, res2):
                 np.testing.assert_allclose(r1, r2)
-        zarr_dirs = glob(str(tmpdir / "*.zarr"))
-        assert len(zarr_dirs) == 4  # two for lon/lat, one for sata, one for satz
+
+            zarr_dirs = glob(str(tmpdir / "*.zarr"))
+            assert len(zarr_dirs) == 4  # two for lon/lat, one for sata, one for satz
+
+            _get_sensor_angles_from_sat_pos.cache_clear()
+            _get_valid_lonlats.cache_clear()
+            zarr_dirs = glob(str(tmpdir / "*.zarr"))
+            assert len(zarr_dirs) == 0
 
         assert gol.call_count == data.data.blocks.size
         args = gol.call_args[0]

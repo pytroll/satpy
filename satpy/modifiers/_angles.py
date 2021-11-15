@@ -24,6 +24,7 @@ from datetime import datetime
 from functools import update_wrapper
 from glob import glob
 from typing import Callable, Any, Optional, Union
+import shutil
 
 import dask
 import dask.array as da
@@ -63,8 +64,24 @@ class ZarrCacheHelper:
         self._uncacheable_arg_types = uncacheable_arg_types
         self._sanitize_args_func = sanitize_args_func
 
-    def _zarr_pattern(self, arg_hash):
-        return f"{self._func.__name__}_v{_CACHE_VERSION}" + "_{}_" + f"{arg_hash}.zarr"
+    def cache_clear(self, cache_dir: Optional[str] = None):
+        """Remove all on-disk files associated with this function.
+
+        Intended to mimic the :func:`functools.cache` behavior.
+        """
+        if cache_dir is None:
+            cache_dir = satpy.config.get("cache_dir")
+        if cache_dir is None:
+            raise RuntimeError("No 'cache_dir' configured.")
+        zarr_pattern = self._zarr_pattern("*", cache_version="*").format("*")
+        for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
+            try:
+                shutil.rmtree(zarr_dir)
+            except OSError:
+                continue
+
+    def _zarr_pattern(self, arg_hash, cache_version=_CACHE_VERSION):
+        return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
 
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
         """Call the decorated function."""
