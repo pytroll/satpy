@@ -483,8 +483,8 @@ class TestAngleGeneration:
             assert len(zarr_dirs) == 0
 
         assert gol.call_count == data.data.blocks.size * (int(additional_cache) + 1)
-        args = gol.call_args_list[0].args
+        args = gol.call_args_list[0][0]
         assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
         exp_sat_lon = 10.1 if additional_cache else 10.0
-        args = gol.call_args_list[-1].args
+        args = gol.call_args_list[-1][0]
         assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
