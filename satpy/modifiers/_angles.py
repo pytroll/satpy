@@ -30,7 +30,7 @@ import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
-from satpy.utils import get_satpos
+from satpy.utils import get_satpos, ignore_invalid_float_warnings
 from pyorbital.orbital import get_observer_look
 from pyorbital.astronomy import get_alt_az, sun_zenith_angle
 from pyresample.geometry import SwathDefinition, AreaDefinition
@@ -199,17 +199,19 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
 
 @cache_to_zarr("cache_lonlats")
 def _get_valid_lonlats(area: PRGeometry, chunks: int = "auto") -> tuple[da.Array, da.Array]:
-    lons, lats = area.get_lonlats(chunks=chunks)
-    lons = da.where(lons >= 1e30, np.nan, lons)
-    lats = da.where(lats >= 1e30, np.nan, lats)
+    with ignore_invalid_float_warnings():
+        lons, lats = area.get_lonlats(chunks=chunks)
+        lons = da.where(lons >= 1e30, np.nan, lons)
+        lats = da.where(lats >= 1e30, np.nan, lats)
     return lons, lats
 
 
 def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.data.chunks)
-    suna = get_alt_az(data_arr.attrs['start_time'], lons, lats)[1]
-    suna = np.rad2deg(suna)
-    sunz = sun_zenith_angle(data_arr.attrs['start_time'], lons, lats)
+    with ignore_invalid_float_warnings():
+        suna = get_alt_az(data_arr.attrs['start_time'], lons, lats)[1]
+        suna = np.rad2deg(suna)
+        sunz = sun_zenith_angle(data_arr.attrs['start_time'], lons, lats)
     return suna, sunz
 
 
@@ -231,11 +233,12 @@ def _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt, start_time, area_
 
 
 def _get_sensor_angles_wrapper(lons, lats, start_time, sat_lon, sat_lat, sat_alt):
-    sata, satel = get_observer_look(
-        sat_lon,
-        sat_lat,
-        sat_alt / 1000.0,  # km
-        start_time,
-        lons, lats, 0)
-    satz = 90 - satel
-    return np.stack([sata, satz])
+    with ignore_invalid_float_warnings():
+        sata, satel = get_observer_look(
+            sat_lon,
+            sat_lat,
+            sat_alt / 1000.0,  # km
+            start_time,
+            lons, lats, 0)
+        satz = 90 - satel
+        return np.stack([sata, satz])
