@@ -26,7 +26,7 @@ To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>`
 method. Printing the Scene object will list each of the
 :class:`xarray.DataArray` objects currently loaded:
 
-    >>> global_scene.load([0.6, 0.8, 10.8])
+    >>> global_scene.load(['VIS006', 'VIS008', 'IR_108'])
     >>> print(global_scene)
     <xarray.DataArray 'reshape-d66223a8e05819b890c4535bc7e74356' (y: 3712, x: 3712)>
     dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
