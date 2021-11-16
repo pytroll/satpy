@@ -93,6 +93,51 @@ defaults to a different path depending on your operating system following
 the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
 "user cache dir".
 
+Cache Lon/Lats
+^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_CACHE_LONLATS``
+* **YAML/Config Key**: ``cache_lonlats``
+* **Default**: ``False``
+
+Whether or not generating longitude and latitude coordinates should be cached
+to on-disk zarr arrays. Currently this only works in very specific cases.
+Mainly the lon/lats that are generated when computing sensor and solar zenith
+and azimuth angles used in various modifiers and compositors. This caching is
+only done for ``AreaDefinition``-based geolocation, not ``SwathDefinition``s.
+Arrays are stored in ``cache_dir`` (see above).
+
+When setting this as an environment variable, this should be set with the
+string equivalent of the Python boolean values ``="True"`` or ``="False"``.
+
+See also ``cache_sensor_angles`` below.
+
+Cache Sensor Angles
+^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_CACHE_SENSOR_ANGLES``
+* **YAML/Config Key**: ``cache_sensor_angles``
+* **Default**: ``False``
+
+Whether or not generating sensor azimuth and sensor zenith angles should be
+cached to on-disk zarr arrays. These angles are primarily used in certain
+modifiers and compositors. This caching is only done for
+``AreaDefinition``-based geolocation, not ``SwathDefinition``s.
+Arrays are stored in ``cache_dir`` (see above).
+
+This caching requires producing an estimate of the angles to avoid needing to
+generate new angles for every new data case. This happens because the angle
+generation depends on the observation time of the data and the position of the
+satellite (longitude, latitude, altitude). The angles are estimating by using
+a constant observation time for all cases (maximum ~1e-10 error) and by rounding
+satellite position coordinates to the nearest tenth degree for longitude and
+latitude and nearest tenth meter.
+
+When setting this as an environment variable, this should be set with the
+string equivalent of the Python boolean values ``="True"`` or ``="False"``.
+
+See also ``cache_lonlats`` above.
+
 .. _config_path_setting:
 
 Component Configuration Path
