@@ -80,7 +80,7 @@ class ZarrCacheHelper:
             except OSError:
                 continue
 
-    def _zarr_pattern(self, arg_hash, cache_version=_CACHE_VERSION):
+    def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = _CACHE_VERSION) -> str:
         return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
 
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
