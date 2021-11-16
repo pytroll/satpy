@@ -402,6 +402,19 @@ def _get_angle_test_data():
     return vis
 
 
+def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
+    # change data slightly
+    new_data = orig_data.copy()
+    old_lon = new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"]
+    new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"] = old_lon + lon_offset
+    new_data.attrs["start_time"] = new_data.attrs["start_time"] + timedelta(hours=36)
+    return new_data
+
+
+def _diff_sat_pos_datetime(orig_data):
+    return _similar_sat_pos_datetime(orig_data, lon_offset=0.05)
+
+
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
@@ -422,49 +435,22 @@ class TestAngleGeneration:
         args = gol.call_args[0]
         assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
 
-    def test_cache_get_angles(self, tmpdir):
+    @pytest.mark.parametrize(
+        ("input2_func", "exp_equal_sun", "exp_num_zarr"),
+        [
+            (lambda x: x, True, 4),
+            (_similar_sat_pos_datetime, False, 4),
+            (_diff_sat_pos_datetime, False, 6),
+        ]
+    )
+    def test_cache_get_angles(self, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
         """Test get_angles when caching is enabled."""
         from satpy.modifiers._angles import (get_angles, STATIC_EARTH_INERTIAL_DATETIME,
                                              _get_sensor_angles_from_sat_pos, _get_valid_lonlats)
 
         # Patch methods
         data = _get_angle_test_data()
-
-        # Compute angles
-        from pyorbital.orbital import get_observer_look
-        with mock.patch("satpy.modifiers._angles.get_observer_look", wraps=get_observer_look) as gol, \
-                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
-            res = get_angles(data)
-            # call again, should be cached
-            res2 = get_angles(data)
-            res, res2 = da.compute(res, res2)
-            for r1, r2 in zip(res, res2):
-                np.testing.assert_allclose(r1, r2)
-
-            zarr_dirs = glob(str(tmpdir / "*.zarr"))
-            assert len(zarr_dirs) == 4  # two for lon/lat, one for sata, one for satz
-
-            _get_sensor_angles_from_sat_pos.cache_clear()
-            _get_valid_lonlats.cache_clear()
-            zarr_dirs = glob(str(tmpdir / "*.zarr"))
-            assert len(zarr_dirs) == 0
-
-        assert gol.call_count == data.data.blocks.size
-        args = gol.call_args[0]
-        assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
-
-    def test_cache_get_angles_similar(self, tmpdir):
-        """Test get_angles when caching is enabled and parameters have changed.
-
-        Specifically, the satellite position has changed slightly and the
-        observation time has changed.
-
-        """
-        from satpy.modifiers._angles import (get_angles, STATIC_EARTH_INERTIAL_DATETIME,
-                                             _get_sensor_angles_from_sat_pos, _get_valid_lonlats)
-
-        # Patch methods
-        data = _get_angle_test_data()
+        additional_cache = exp_num_zarr > 4
 
         # Compute angles
         from pyorbital.orbital import get_observer_look
@@ -472,29 +458,33 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
             res = get_angles(data)
 
-            # change data slightly
-            old_lon = data.attrs["orbital_parameters"]["satellite_nominal_longitude"]
-            data.attrs["orbital_parameters"]["satellite_nominal_longitude"] = old_lon + 0.04
-            data.attrs["start_time"] = data.attrs["start_time"] + timedelta(hours=36)
-
             # call again, should be cached
-            res2 = get_angles(data)
+            new_data = input2_func(data)
+            res2 = get_angles(new_data)
             res, res2 = da.compute(res, res2)
-            # sensor angles should
             for r1, r2 in zip(res[:2], res2[:2]):
-                np.testing.assert_allclose(r1, r2)
-            # sun angles should not match
+                if additional_cache:
+                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
+                else:
+                    np.testing.assert_allclose(r1, r2)
+
             for r1, r2 in zip(res[2:], res2[2:]):
-                pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
+                if exp_equal_sun:
+                    np.testing.assert_allclose(r1, r2)
+                else:
+                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
 
             zarr_dirs = glob(str(tmpdir / "*.zarr"))
-            assert len(zarr_dirs) == 4  # two for lon/lat, one for sata, one for satz
+            assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
 
             _get_sensor_angles_from_sat_pos.cache_clear()
             _get_valid_lonlats.cache_clear()
             zarr_dirs = glob(str(tmpdir / "*.zarr"))
             assert len(zarr_dirs) == 0
 
-        assert gol.call_count == data.data.blocks.size
-        args = gol.call_args[0]
+        assert gol.call_count == data.data.blocks.size * (int(additional_cache) + 1)
+        args = gol.call_args_list[0].args
         assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
+        exp_sat_lon = 10.1 if additional_cache else 10.0
+        args = gol.call_args_list[-1].args
+        assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
