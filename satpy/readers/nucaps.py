@@ -207,7 +207,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             if 'Number_of_CrIS_FORs' in sp.dims:
                 sp = sp.rename({'Number_of_CrIS_FORs': 'y'})
             if 'surface_pressure' in ds_info:
-                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp))
+                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp), dim='y')
             else:
                 ds_info['surface_pressure'] = sp
             # include all the pressure levels

@@ -252,6 +252,20 @@ class TestNUCAPSReader(unittest.TestCase):
             if np.issubdtype(v.dtype, np.floating):
                 assert '_FillValue' not in v.attrs
 
+    def test_load_multiple_files_pressure(self):
+        """Test loading Temperature from multiple input files."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc',
+            'NUCAPS-EDR_v1r0_npp_s201603011159009_e201603011159307_c201603011222270.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(r.pressure_dataset_names['Temperature'], pressure_levels=True)
+        self.assertEqual(len(datasets), 100)
+        for v in datasets.values():
+            self.assertEqual(v.ndim, 1)
+
     def test_load_individual_pressure_levels_true(self):
         """Test loading Temperature with individual pressure datasets."""
         from satpy.readers import load_reader
