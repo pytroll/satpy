@@ -131,7 +131,8 @@ generation depends on the observation time of the data and the position of the
 satellite (longitude, latitude, altitude). The angles are estimating by using
 a constant observation time for all cases (maximum ~1e-10 error) and by rounding
 satellite position coordinates to the nearest tenth degree for longitude and
-latitude and nearest tenth meter.
+latitude and nearest tenth meter. Note these estimations are only done if
+caching is enabled (this parameter is True).
 
 When setting this as an environment variable, this should be set with the
 string equivalent of the Python boolean values ``="True"`` or ``="False"``.
