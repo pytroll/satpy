@@ -420,7 +420,7 @@ class TestAngleGeneration:
 
     def test_get_angles(self):
         """Test sun and satellite angle calculation."""
-        from satpy.modifiers._angles import get_angles
+        from satpy.modifiers.angles import get_angles
         data = _get_angle_test_data()
 
         from pyorbital.orbital import get_observer_look
@@ -446,8 +446,8 @@ class TestAngleGeneration:
     )
     def test_cache_get_angles(self, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
         """Test get_angles when caching is enabled."""
-        from satpy.modifiers._angles import (get_angles, STATIC_EARTH_INERTIAL_DATETIME,
-                                             _get_sensor_angles_from_sat_pos, _get_valid_lonlats)
+        from satpy.modifiers.angles import (get_angles, STATIC_EARTH_INERTIAL_DATETIME,
+                                            _get_sensor_angles_from_sat_pos, _get_valid_lonlats)
 
         # Patch methods
         data = _get_angle_test_data()

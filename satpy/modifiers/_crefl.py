@@ -23,7 +23,7 @@ import warnings
 import numpy as np
 from satpy.aux_download import DataDownloadMixin, retrieve
 from satpy.modifiers import ModifierBase
-from satpy.modifiers._angles import get_angles
+from satpy.modifiers.angles import get_angles
 
 LOG = logging.getLogger(__name__)
 
