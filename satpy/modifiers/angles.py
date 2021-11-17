@@ -190,8 +190,8 @@ def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.D
     """Get sun and satellite angles to use in crefl calculations.
 
     Note that this function can benefit from the ``satpy.config`` parameters
-    `cache_lonlats <config_cache_lonlats_setting>` and
-    `cache_sensor_angles <config_cache_sensor_angles_setting>`
+    :ref:`cache_lonlats <config_cache_lonlats_setting>` and
+    :ref:`cache_sensor_angles <config_cache_sensor_angles_setting>`
     being set to ``True``.
 
     """
@@ -205,8 +205,8 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
     """Generate satellite zenith angle for the provided data.
 
     Note that this function can benefit from the ``satpy.config`` parameters
-    `cache_lonlats <config_cache_lonlats_setting>` and
-    `cache_sensor_angles <config_cache_sensor_angles_setting>`
+    :ref:`cache_lonlats <config_cache_lonlats_setting>` and
+    :ref:`cache_sensor_angles <config_cache_sensor_angles_setting>`
     being set to ``True``.
 
     """
