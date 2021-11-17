@@ -23,7 +23,11 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from satpy.dataset.dataid import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
+from satpy.dataset.dataid import (
+    DataQuery, DataID, WavelengthRange, ModifierTuple, ValueList,
+    minimal_default_keys_config as mdkc,
+    default_id_keys_config as dikc
+)
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -32,11 +36,6 @@ class TestDataID(unittest.TestCase):
 
     def test_basic_init(self):
         """Test basic ways of creating a DataID."""
-        from satpy.dataset.dataid import (
-            DataID,
-            default_id_keys_config as dikc,
-            minimal_default_keys_config as mdkc)
-
         did = DataID(dikc, name="a")
         assert did['name'] == 'a'
         assert did['modifiers'] == tuple()
@@ -54,12 +53,10 @@ class TestDataID(unittest.TestCase):
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         self.assertRaises(TypeError, DataID, dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DataID(dikc, name="a", wavelength=None)
 
@@ -69,13 +66,11 @@ class TestDataID(unittest.TestCase):
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         with pytest.raises(ValueError):
             DataID(dikc, name='C05', calibration='_bad_')
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -84,7 +79,6 @@ class TestDataID(unittest.TestCase):
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -371,8 +365,6 @@ def test_combine_dicts_different(test_mda):
 
 def test_dataid():
     """Test the DataID object."""
-    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple, ValueList
-
     # Check that enum is translated to type.
     did = make_dataid()
     assert issubclass(did._id_keys['calibration']['type'], ValueList)
@@ -433,7 +425,6 @@ def test_dataid():
 
 def test_dataid_equal_if_enums_different():
     """Check that dataids with different enums but same items are equal."""
-    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple
     id_keys_config1 = {'name': None,
                        'wavelength': {
                            'type': WavelengthRange,
@@ -476,7 +467,6 @@ def test_dataid_equal_if_enums_different():
 
 def test_dataid_copy():
     """Test copying a DataID."""
-    from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
     from copy import deepcopy
 
     did = DataID(dikc, name="a", resolution=1000)
@@ -487,7 +477,6 @@ def test_dataid_copy():
 
 def test_dataid_pickle():
     """Test dataid pickling roundtrip."""
-    from satpy.tests.utils import make_dataid
     import pickle
     did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
     assert did == pickle.loads(pickle.dumps(did))
@@ -498,8 +487,6 @@ class TestDataQuery:
 
     def test_dataquery(self):
         """Test DataQuery objects."""
-        from satpy.dataset import DataQuery
-
         DataQuery(name='cheese_shops')
 
         # Check repr
@@ -511,7 +498,6 @@ class TestDataQuery:
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset import DataQuery
         d1 = DataQuery(name="a", wavelength=0.2, modifiers=('hej',))
         d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
 
@@ -520,7 +506,6 @@ class TestDataQuery:
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset import DataQuery
         d1 = DataQuery(name="a", wavelength=0.2, modifiers=('hej',))
         d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
 
@@ -577,7 +562,7 @@ class TestIDQueryInteractions(unittest.TestCase):
                                    modifiers=tuple())]
         dq = DataQuery(wavelength=0.22, modifiers=tuple())
         assert len(dq.filter_dataids(dataid_container)) == 0
-        dataid_container = [DataID(minimal_default_keys_config,
+        dataid_container = [DataID(mdkc,
                                    name='natural_color')]
         dq = DataQuery(name='natural_color', resolution=250)
         assert len(dq.filter_dataids(dataid_container)) == 1
@@ -585,6 +570,19 @@ class TestIDQueryInteractions(unittest.TestCase):
         dq = make_dsq(wavelength=0.22, modifiers=('mod1',))
         did = make_cid(name='static_image')
         assert len(dq.filter_dataids([did])) == 0
+
+    def test_id_filtering_no_id_wavelength(self):
+        """Test that a DataID with no wavelength doesn't match a query for a wavelength."""
+        did_keys = {
+            "name": {"required": True},
+            "level": {},
+            "modifiers": {"default": [], "type": ModifierTuple}
+        }
+        did1 = DataID(did_keys, name="test1")
+        did2 = DataID(did_keys, name="test2")
+        dq = DataQuery(wavelength=1.8, modifiers=())
+        matched_ids = dq.filter_dataids([did1, did2])
+        assert len(matched_ids) == 0
 
     def test_inequality(self):
         """Check (in)equality."""
@@ -664,8 +662,6 @@ class TestIDQueryInteractions(unittest.TestCase):
 
 def test_wavelength_range():
     """Test the wavelength range object."""
-    from satpy.dataset.dataid import WavelengthRange
-
     wr = WavelengthRange(1, 2, 3)
     assert 1.2 == wr
     assert .9 != wr
@@ -694,9 +690,6 @@ def test_wavelength_range():
 
 def test_wavelength_range_cf_roundtrip():
     """Test the wavelength range object roundtrip to cf."""
-    from satpy.dataset.dataid import WavelengthRange
-
     wr = WavelengthRange(1, 2, 3)
-
     assert WavelengthRange.from_cf(wr.to_cf()) == wr
     assert WavelengthRange.from_cf([str(item) for item in wr]) == wr

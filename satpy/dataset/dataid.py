@@ -99,9 +99,9 @@ class WavelengthRange(wlklass):
         """
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             return other in self
-        elif isinstance(other, (tuple, list)) and len(other) == 3:
+        if isinstance(other, (tuple, list)) and len(other) == 3:
             return self[:3] == other
         return super().__eq__(other)
 
@@ -133,7 +133,7 @@ class WavelengthRange(wlklass):
         """Check if this range contains *other*."""
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             return self.min <= other <= self.max
         with suppress(AttributeError):
             if self.unit != other.unit:
@@ -200,7 +200,7 @@ class ModifierTuple(tuple):
         """Convert `modifiers` to this type if possible."""
         if modifiers is None:
             return None
-        elif not isinstance(modifiers, (cls, tuple, list)):
+        if not isinstance(modifiers, (cls, tuple, list)):
             raise TypeError("'DataID' modifiers must be a tuple or None, "
                             "not {}".format(type(modifiers)))
         return cls(modifiers)
@@ -587,7 +587,7 @@ class DataQuery:
         if self._shares_required_keys(dataid):
             keys_to_check = set(dataid.keys()) & set(self._fields)
         else:
-            keys_to_check = set(dataid._id_keys.keys()) & set(self._fields)
+            keys_to_check = set(self._fields)
         if not keys_to_check:
             return False
         return all(self._match_query_value(key, dataid.get(key)) for key in keys_to_check)
