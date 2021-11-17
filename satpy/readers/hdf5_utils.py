@@ -23,6 +23,7 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
+from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
 from satpy import CHUNK_SIZE
@@ -41,7 +42,7 @@ class HDF5FileHandler(BaseFileHandler):
         self._attrs_cache = {}
 
         try:
-            file_handle = h5py.File(self.filename, 'r')
+            file_handle = h5py.File(open_file_or_filename(self.filename), 'r')
         except IOError:
             LOG.exception(
                 'Failed reading file %s. Possibly corrupted file', self.filename)
@@ -71,7 +72,7 @@ class HDF5FileHandler(BaseFileHandler):
 
     def get_reference(self, name, key):
         """Get reference."""
-        with h5py.File(self.filename, 'r') as hf:
+        with h5py.File(open_file_or_filename(self.filename), 'r') as hf:
             return self._get_reference(hf, hf[name].attrs[key])
 
     def _get_reference(self, hf, ref):
@@ -95,7 +96,7 @@ class HDF5FileHandler(BaseFileHandler):
         val = self.file_content[key]
         if isinstance(val, h5py.Dataset):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
-            dset = h5py.File(self.filename, 'r')[key]
+            dset = h5py.File(open_file_or_filename(self.filename), 'r')[key]
             dset_data = da.from_array(dset, chunks=CHUNK_SIZE)
             attrs = self._attrs_cache.get(key, dset.attrs)
             if dset.ndim == 2:
