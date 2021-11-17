@@ -536,6 +536,8 @@ class KDTreeResampler(BaseResampler):
     def _check_numpy_cache(self, cache_dir, mask=None,
                            **kwargs):
         """Check if there's Numpy cache file and convert it to zarr."""
+        if cache_dir is None:
+            return
         fname_np = self._create_cache_filename(cache_dir,
                                                prefix='resample_lut-',
                                                mask=mask, fmt='.npz',
@@ -564,14 +566,15 @@ class KDTreeResampler(BaseResampler):
         cached = {}
         self._check_numpy_cache(cache_dir, mask=mask_name, **kwargs)
 
-        filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
-                                               mask=mask_name, **kwargs)
         for idx_name in NN_COORDINATES:
             if mask_name in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
                 try:
+                    filename = self._create_cache_filename(
+                        cache_dir, prefix='nn_lut-',
+                        mask=mask_name, **kwargs)
                     fid = zarr.open(filename, 'r')
                     cache = np.array(fid[idx_name])
                     if idx_name == 'valid_input_index':
