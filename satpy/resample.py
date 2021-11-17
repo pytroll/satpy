@@ -995,7 +995,7 @@ class NativeResampler(BaseResampler):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
         if all(x == 1 for x in repeats.values()):
             return d_arr
-        elif all(x >= 1 for x in repeats.values()):
+        if all(x >= 1 for x in repeats.values()):
             # rechunk so new chunks are the same size as old chunks
             c_size = max(x[0] for x in d_arr.chunks)
 
