@@ -440,12 +440,10 @@ class BaseResampler(object):
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
-    def _create_cache_filename(self, cache_dir=None, prefix='',
+    def _create_cache_filename(self, cache_dir, prefix='',
                                fmt='.zarr', **kwargs):
         """Create filename for the cached resampling parameters."""
-        cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
-
         return os.path.join(cache_dir, prefix + hash_str + fmt)
 
 
