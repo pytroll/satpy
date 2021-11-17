@@ -1014,7 +1014,7 @@ class NativeResampler(BaseResampler):
                     raise ValueError("Expand factor must be a whole number")
                 d_arr = da.repeat(d_arr, int(factor), axis=axis)
             return d_arr
-        elif all(x <= 1 for x in repeats.values()):
+        if all(x <= 1 for x in repeats.values()):
             # reduce
             y_size = 1. / repeats[0]
             x_size = 1. / repeats[1]
