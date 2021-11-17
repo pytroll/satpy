@@ -93,6 +93,8 @@ defaults to a different path depending on your operating system following
 the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
 "user cache dir".
 
+.. _config_cache_lonlats_setting:
+
 Cache Lon/Lats
 ^^^^^^^^^^^^^^
 
@@ -111,6 +113,8 @@ When setting this as an environment variable, this should be set with the
 string equivalent of the Python boolean values ``="True"`` or ``="False"``.
 
 See also ``cache_sensor_angles`` below.
+
+.. _config_cache_sensor_angles_setting:
 
 Cache Sensor Angles
 ^^^^^^^^^^^^^^^^^^^

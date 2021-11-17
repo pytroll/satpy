@@ -187,7 +187,14 @@ def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
 
 
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
-    """Get sun and satellite angles to use in crefl calculations."""
+    """Get sun and satellite angles to use in crefl calculations.
+
+    Note that this function can benefit from the ``satpy.config`` parameters
+    `cache_lonlats <config_cache_lonlats_setting>` and
+    `cache_sensor_angles <config_cache_sensor_angles_setting>`
+    being set to ``True``.
+
+    """
     sun_angles = _get_sun_angles(data_arr)
     sat_angles = _get_sensor_angles(data_arr)
     # sata, satz, suna, sunz
@@ -195,7 +202,14 @@ def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.D
 
 
 def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
-    """Generate satellite zenith angle for the provided data."""
+    """Generate satellite zenith angle for the provided data.
+
+    Note that this function can benefit from the ``satpy.config`` parameters
+    `cache_lonlats <config_cache_lonlats_setting>` and
+    `cache_sensor_angles <config_cache_sensor_angles_setting>`
+    being set to ``True``.
+
+    """
     satz = _get_sensor_angles(data_arr)[1]
     return satz
 
