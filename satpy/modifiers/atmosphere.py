@@ -50,11 +50,12 @@ class PSPRayleighReflectance(ModifierBase):
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(
                 projectables + optional_datasets)
             sata, satz, suna, sunz = optional_datasets
-            # get the dask array underneath
-            sata = sata.data
-            satz = satz.data
-            suna = suna.data
-            sunz = sunz.data
+
+        # get the dask array underneath
+        sata = sata.data
+        satz = satz.data
+        suna = suna.data
+        sunz = sunz.data
 
         # First make sure the two azimuth angles are in the range 0-360:
         sata = sata % 360.
@@ -118,6 +119,7 @@ class PSPAtmosphericalCorrection(ModifierBase):
             satz = optional_datasets[0]
         else:
             satz = get_satellite_zenith_angle(band)
+        satz = satz.data  # get dask array underneath
 
         logger.info('Correction for limb cooling')
         corrector = AtmosphericalCorrection(band.attrs['platform_name'],

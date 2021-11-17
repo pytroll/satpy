@@ -182,12 +182,15 @@ def _sanitize_observer_look_args(*args):
     return new_args
 
 
+def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
+    return xr.DataArray(arr, dims=('y', 'x'))
+
+
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
     """Get sun and satellite angles to use in crefl calculations."""
     sun_angles = _get_sun_angles(data_arr)
     sat_angles = _get_sensor_angles(data_arr)
     # sata, satz, suna, sunz
-    # FIXME: These are actually dask arrays so...?
     return sat_angles + sun_angles
 
 
@@ -212,15 +215,20 @@ def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]
         suna = get_alt_az(data_arr.attrs['start_time'], lons, lats)[1]
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(data_arr.attrs['start_time'], lons, lats)
+    suna = _geo_dask_to_data_array(suna)
+    sunz = _geo_dask_to_data_array(sunz)
     return suna, sunz
 
 
 def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
     sat_lon, sat_lat, sat_alt = get_satpos(data_arr)
     area_def = data_arr.attrs["area"]
-    return _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
-                                           data_arr.attrs["start_time"],
-                                           area_def, data_arr.data.chunks)
+    sata, satz = _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
+                                                 data_arr.attrs["start_time"],
+                                                 area_def, data_arr.data.chunks)
+    sata = _geo_dask_to_data_array(sata)
+    satz = _geo_dask_to_data_array(satz)
+    return sata, satz
 
 
 @cache_to_zarr("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)

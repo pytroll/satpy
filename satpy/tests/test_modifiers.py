@@ -426,6 +426,7 @@ class TestAngleGeneration:
         from pyorbital.orbital import get_observer_look
         with mock.patch("satpy.modifiers._angles.get_observer_look", wraps=get_observer_look) as gol:
             angles = get_angles(data)
+            assert all(isinstance(x, xr.DataArray) for x in angles)
             da.compute(angles)
 
         # get_observer_look should have been called once per array chunk
@@ -457,10 +458,12 @@ class TestAngleGeneration:
         with mock.patch("satpy.modifiers._angles.get_observer_look", wraps=get_observer_look) as gol, \
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
             res = get_angles(data)
+            assert all(isinstance(x, xr.DataArray) for x in res)
 
             # call again, should be cached
             new_data = input2_func(data)
             res2 = get_angles(new_data)
+            assert all(isinstance(x, xr.DataArray) for x in res2)
             res, res2 = da.compute(res, res2)
             for r1, r2 in zip(res[:2], res2[:2]):
                 if additional_cache:

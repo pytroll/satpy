@@ -21,7 +21,6 @@ import logging
 import warnings
 
 import numpy as np
-import xarray as xr
 from satpy.aux_download import DataDownloadMixin, retrieve
 from satpy.modifiers import ModifierBase
 from satpy.modifiers._angles import get_angles
@@ -73,7 +72,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     def __call__(self, datasets, optional_datasets, **info):
         """Create modified DataArray object by applying the crefl algorithm."""
         from satpy.modifiers._crefl_utils import get_coefficients
-        refl_data, *angles = self._get_data_and_angles(datasets, optional_datasets)
+        refl_data, angles = self._extract_angle_data_arrays(datasets, optional_datasets)
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
                                         refl_data.attrs["resolution"])
@@ -147,11 +146,6 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         except HDF4Error:
             return np.iinfo(dtype).min
 
-    def _get_data_and_angles(self, datasets, optional_datasets):
-        vis, angles = self._extract_angle_data_arrays(datasets, optional_datasets)
-        angles = [xr.DataArray(dask_arr, dims=('y', 'x')) for dask_arr in angles]
-        return [vis] + angles
-
     def _extract_angle_data_arrays(self, datasets, optional_datasets):
         all_datasets = datasets + optional_datasets
         if len(all_datasets) == 1:
@@ -160,8 +154,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         if len(all_datasets) == 5:
             vis, *angles = self.match_data_arrays(
                 datasets + optional_datasets)
-            # get the dask array underneath
-            return vis, [data_arr.data for data_arr in angles]
+            return vis, angles
         raise ValueError("Not sure how to handle provided dependencies. "
                          "Either all 4 angles must be provided or none of "
                          "of them.")
