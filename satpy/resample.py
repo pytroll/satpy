@@ -242,14 +242,12 @@ def add_xy_coords(data_arr, area, crs=None):
     if 'x' in data_arr.coords and 'y' in data_arr.coords:
         # x/y coords already provided
         return data_arr
-    elif 'x' not in data_arr.dims or 'y' not in data_arr.dims:
+    if 'x' not in data_arr.dims or 'y' not in data_arr.dims:
         # no defined x and y dimensions
         return data_arr
-
-    if hasattr(area, 'get_proj_vectors'):
-        x, y = area.get_proj_vectors()
-    else:
+    if not hasattr(area, 'get_proj_vectors'):
         return data_arr
+    x, y = area.get_proj_vectors()
 
     # convert to DataArrays
     y_attrs = {}
@@ -1021,9 +1019,8 @@ class NativeResampler(BaseResampler):
             y_size = 1. / repeats[0]
             x_size = 1. / repeats[1]
             return cls.aggregate(d_arr, y_size, x_size)
-        else:
-            raise ValueError("Must either expand or reduce in both "
-                             "directions")
+        raise ValueError("Must either expand or reduce in both "
+                         "directions")
 
     def compute(self, data, expand=True, **kwargs):
         """Resample data with NativeResampler."""
@@ -1316,7 +1313,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     if isinstance(resampler, (BaseResampler, PRBaseResampler)):
         raise ValueError("Trying to create a resampler when one already "
                          "exists.")
-    elif isinstance(resampler, str):
+    if isinstance(resampler, str):
         resampler_class = RESAMPLERS.get(resampler, None)
         if resampler_class is None:
             if resampler == "gradient_search":
