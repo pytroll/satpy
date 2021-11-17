@@ -424,7 +424,7 @@ class TestAngleGeneration:
         data = _get_angle_test_data()
 
         from pyorbital.orbital import get_observer_look
-        with mock.patch("satpy.modifiers._angles.get_observer_look", wraps=get_observer_look) as gol:
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
             angles = get_angles(data)
             assert all(isinstance(x, xr.DataArray) for x in angles)
             da.compute(angles)
@@ -455,7 +455,7 @@ class TestAngleGeneration:
 
         # Compute angles
         from pyorbital.orbital import get_observer_look
-        with mock.patch("satpy.modifiers._angles.get_observer_look", wraps=get_observer_look) as gol, \
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
             res = get_angles(data)
             assert all(isinstance(x, xr.DataArray) for x in res)
