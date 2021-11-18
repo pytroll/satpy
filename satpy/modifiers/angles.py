@@ -49,7 +49,7 @@ STATIC_EARTH_INERTIAL_DATETIME = datetime(2000, 1, 1, 12, 0, 0)
 class ZarrCacheHelper:
     """Helper for caching function results to on-disk zarr arrays.
 
-    It is recommended to use this class through the :func:`cache_to_zarr`
+    It is recommended to use this class through the :func:`cache_to_zarr_if`
     decorator rather than using it directly.
 
     Currently the cache does not perform any limiting or removal of cache
@@ -82,9 +82,9 @@ class ZarrCacheHelper:
           override the use of the ``satpy.config`` ``cache_dir`` parameter.
 
     Examples:
-        To use through the :func:`cache_to_zarr` decorator::
+        To use through the :func:`cache_to_zarr_if` decorator::
 
-            @cache_to_zarr("cache_my_stuff")
+            @cache_to_zarr_if("cache_my_stuff")
             def generate_my_stuff(area_def: AreaDefinition, some_factor: int) -> da.Array:
                 # Generate
                 return my_dask_arr
@@ -182,14 +182,16 @@ class ZarrCacheHelper:
         da.compute(new_res)
 
 
-def cache_to_zarr(
+def cache_to_zarr_if(
         cache_config_key: str,
         uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
         sanitize_args_func: Callable = None,
 ) -> Callable:
     """Decorate a function and cache the results as a zarr array on disk.
 
-    See :class:`ZarrCacheHelper` for more information. Most importantly, this
+    This only happens if the ``satpy.config`` boolean value for the provided
+    key is ``True`` as well as some other conditions. See
+    :class:`ZarrCacheHelper` for more information. Most importantly, this
     decorator does not limit how many items can be cached and does not clear
     out old entries. It is up to the user to manage the size of the cache.
 
@@ -274,7 +276,7 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
     return satz
 
 
-@cache_to_zarr("cache_lonlats")
+@cache_to_zarr_if("cache_lonlats")
 def _get_valid_lonlats(area: PRGeometry, chunks: int = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         lons, lats = area.get_lonlats(chunks=chunks)
@@ -306,7 +308,7 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
     return sata, satz
 
 
-@cache_to_zarr("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)
+@cache_to_zarr_if("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)
 def _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt, start_time, area_def, chunks):
     lons, lats = _get_valid_lonlats(area_def, chunks)
     res = da.map_blocks(_get_sensor_angles_wrapper, lons, lats, start_time, sat_lon, sat_lat, sat_alt,
