@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Scene object to hold satellite data."""
+from __future__ import annotations
 
 import logging
 import os
@@ -108,12 +109,9 @@ class Scene:
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
                                                       reader_kwargs=reader_kwargs)
-        self.attrs.update(self._compute_metadata_from_readers())
         self._datasets = DatasetDict()
-        self._composite_loader = CompositorLoader()
-        comps, mods = self._composite_loader.load_compositors(self.attrs['sensor'])
         self._wishlist = set()
-        self._dependency_tree = DependencyTree(self._readers, comps, mods)
+        self._dependency_tree = DependencyTree(self._readers)
         self._resamplers = {}
 
     @property
@@ -123,31 +121,6 @@ class Scene:
 
     def _ipython_key_completions_(self):
         return [x['name'] for x in self._datasets.keys()]
-
-    def _compute_metadata_from_readers(self):
-        """Determine pieces of metadata from the readers loaded."""
-        mda = {'sensor': self._get_sensor_names()}
-
-        # overwrite the request start/end times with actual loaded data limits
-        if self._readers:
-            mda['start_time'] = min(x.start_time
-                                    for x in self._readers.values())
-            mda['end_time'] = max(x.end_time
-                                  for x in self._readers.values())
-        return mda
-
-    def _get_sensor_names(self):
-        """Join the sensors from all loaded readers."""
-        # if the user didn't tell us what sensors to work with, let's figure it
-        # out
-        if not self.attrs.get('sensor'):
-            # reader finder could return multiple readers
-            return set([sensor for reader_instance in self._readers.values()
-                        for sensor in reader_instance.sensor_names])
-        elif not isinstance(self.attrs['sensor'], (set, tuple, list)):
-            return set([self.attrs['sensor']])
-        else:
-            return set(self.attrs['sensor'])
 
     def _create_reader_instances(self,
                                  filenames=None,
@@ -159,14 +132,66 @@ class Scene:
                             reader_kwargs=reader_kwargs)
 
     @property
+    def sensor_names(self) -> set[str, ...]:
+        """Return sensor names for the data currently contained in this Scene.
+
+        Sensor information is collected from data contained in the Scene
+        whether loaded from a reader or generated as a composite with
+        :meth:`load` or added manually using ``scn["name"] = data_arr``).
+        If no data is currently contained in the Scene or no sensor
+        information is found in the data metadata, loaded readers will be
+        consulted for sensor information.
+
+        """
+        sensor_names = self._contained_sensor_names()
+        if not sensor_names:
+            sensor_names = set([sensor for reader_instance in self._readers.values()
+                                for sensor in reader_instance.sensor_names])
+        return sensor_names
+
+    def _contained_sensor_names(self) -> set[str, ...]:
+        sensor_names = set()
+        for data_arr in self.values():
+            if "sensor" not in data_arr.attrs:
+                continue
+            sensor_names.update(data_arr.attrs["sensor"])
+        return sensor_names
+
+    @property
     def start_time(self):
-        """Return the start time of the file."""
-        return self.attrs['start_time']
+        """Return the start time of the contained data.
+
+        If no data is currently contained in the Scene then loaded readers
+        will be consulted.
+
+        """
+        start_times = [data_arr.attrs['start_time'] for data_arr in self.values()
+                       if 'start_time' in data_arr.attrs]
+        if not start_times:
+            start_times = self._reader_times('start_time')
+        if not start_times:
+            return None
+        return min(start_times)
 
     @property
     def end_time(self):
-        """Return the end time of the file."""
-        return self.attrs['end_time']
+        """Return the end time of the file.
+
+        If no data is currently contained in the Scene then loaded readers
+        will be consulted. If no readers are loaded then the
+        :attr:`Scene.start_time` is returned.
+
+        """
+        end_times = [data_arr.attrs['end_time'] for data_arr in self.values()
+                     if 'end_time' in data_arr.attrs]
+        if not end_times:
+            end_times = self._reader_times('end_time')
+        if not end_times:
+            return self.start_time
+        return max(end_times)
+
+    def _reader_times(self, time_prop_name):
+        return [getattr(reader, time_prop_name) for reader in self._readers.values()]
 
     @property
     def missing_datasets(self):
@@ -395,7 +420,8 @@ class Scene:
         """Create new dependency tree and check what composites we know about."""
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
-        sensor_comps, mods = self._composite_loader.load_compositors(self.attrs['sensor'])
+        composite_loader = CompositorLoader()
+        sensor_comps, mods = composite_loader.load_compositors(self.sensor_names)
         # recreate the dependency tree so it doesn't interfere with the user's
         # wishlist from self._dependency_tree
         dep_tree = DependencyTree(self._readers, sensor_comps, mods, available_only=True)
@@ -1215,6 +1241,9 @@ class Scene:
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
+            composite_loader = CompositorLoader()
+            comps, mods = composite_loader.load_compositors(self.sensor_names)
+            self._dependency_tree.update_compositors_and_modifiers(comps, mods)
             self._dependency_tree.populate_with_keys(needed_datasets, query)
         except MissingDependencies as err:
             raise KeyError(str(err))
