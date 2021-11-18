@@ -43,26 +43,72 @@ PRGeometry = Union[SwathDefinition, AreaDefinition]
 # pyorbital's get_observer_look function.
 # The difference is on the order of 1e-10 at most as time changes so we force
 # it to a single time for easier caching. It is *only* used if caching.
-STATIC_EARTH_INERTIAL_DATETIME = datetime(2020, 1, 1, 0, 0, 0)
-# simple integer for future proofing function changes that would invalidate
-# existing files in a user's cache
-_CACHE_VERSION = 1
+STATIC_EARTH_INERTIAL_DATETIME = datetime(2000, 1, 1, 12, 0, 0)
 
 
 class ZarrCacheHelper:
-    """Helper for caching function results to on-disk zarr arrays."""
+    """Helper for caching function results to on-disk zarr arrays.
+
+    It is recommended to use this class through the :func:`cache_to_zarr`
+    decorator rather than using it directly.
+
+    Currently the cache does not perform any limiting or removal of cache
+    content. That is left up to the user to manage. Caching is based on
+    arguments passed to the decorated function but will only be performed
+    if the arguments are of a certain type (see ``uncacheable_arg_types``).
+    The cache value to use is purely based on the hash value of all of the
+    provided arguments along with the "cache version" (see below).
+
+    Args:
+        func: Function that will be called to generate the value to cache.
+        cache_config_key: Name of the boolean ``satpy.config`` parameter to
+            use to determine if caching should be done.
+        uncacheable_arg_types: Types that if present in the passed arguments
+            should trigger caching to *not* happen. By default this includes
+            ``SwathDefinition``, ``xr.DataArray``, and ``da.Array`` objects.
+        sanitize_args_func: Optional function to call to sanitize provided
+            arguments before they are considered for caching. This can be used
+            to make arguments more "cacheable" by replacing them with similar
+            values that will result in more cache hits. Note that the sanitized
+            arguments are only passed to the underlying function if caching
+            will be performed, otherwise the original arguments are passed.
+        cache_version: Version number used to distinguish one version of a
+            decorated function from future versions.
+
+    Notes:
+        * Caching only supports dask array values.
+
+        * This helper allows for an additional ``cache_dir`` parameter to
+          override the use of the ``satpy.config`` ``cache_dir`` parameter.
+
+    Examples:
+        To use through the :func:`cache_to_zarr` decorator::
+
+            @cache_to_zarr("cache_my_stuff")
+            def generate_my_stuff(area_def: AreaDefinition, some_factor: int) -> da.Array:
+                # Generate
+                return my_dask_arr
+
+        To use the decorated function::
+
+            with satpy.config.set(cache_my_stuff=True):
+                my_stuff = generate_my_stuff(area_def, 5)
+
+    """
 
     def __init__(self,
                  func: Callable,
                  cache_config_key: str,
                  uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
                  sanitize_args_func: Callable = None,
+                 cache_version: int = 1,
                  ):
         """Hold on to provided arguments for future use."""
         self._func = func
         self._cache_config_key = cache_config_key
         self._uncacheable_arg_types = uncacheable_arg_types
         self._sanitize_args_func = sanitize_args_func
+        self._cache_version = cache_version
 
     def cache_clear(self, cache_dir: Optional[str] = None):
         """Remove all on-disk files associated with this function.
@@ -80,7 +126,9 @@ class ZarrCacheHelper:
             except OSError:
                 continue
 
-    def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = _CACHE_VERSION) -> str:
+    def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = None) -> str:
+        if cache_version is None:
+            cache_version = self._cache_version
         return f"{self._func.__name__}_v{cache_version}" + "_{}_" + f"{arg_hash}.zarr"
 
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
@@ -120,6 +168,9 @@ class ZarrCacheHelper:
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
         new_res = []
         for idx, sub_res in enumerate(res):
+            if not isinstance(sub_res, da.Array):
+                raise ValueError("Zarr caching currently only supports dask "
+                                 f"arrays. Got {type(sub_res)}")
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
@@ -138,11 +189,11 @@ def cache_to_zarr(
 ) -> Callable:
     """Decorate a function and cache the results as a zarr array on disk.
 
-    Note: Only the dask array is cached. Currently the metadata and coordinate
-    information is not stored.
+    See :class:`ZarrCacheHelper` for more information. Most importantly, this
+    decorator does not limit how many items can be cached and does not clear
+    out old entries. It is up to the user to manage the size of the cache.
 
     """
-    # TODO: Consider cache management (LRU)
     def _decorator(func: Callable) -> Callable:
         zarr_cacher = ZarrCacheHelper(func,
                                       cache_config_key,
@@ -187,18 +238,27 @@ def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
 
 
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
-    """Get sun and satellite angles to use in crefl calculations.
+    """Get sun and satellite azimuth and zenith angles.
 
     Note that this function can benefit from the ``satpy.config`` parameters
     :ref:`cache_lonlats <config_cache_lonlats_setting>` and
     :ref:`cache_sensor_angles <config_cache_sensor_angles_setting>`
     being set to ``True``.
 
+    Args:
+        data_arr: DataArray to get angles for. Information extracted from this
+            object are ``.attrs["area"]`` and ``.attrs["start_time"]``.
+            Additionally, the dask array chunk size is used when generating
+            new arrays. The actual data of the object is not used.
+
+    Returns:
+        Four DataArrays representing sensor azimuth angle, sensor zenith angle,
+        solar azimuth angle, and solar zenith angle.
+
     """
-    sun_angles = _get_sun_angles(data_arr)
-    sat_angles = _get_sensor_angles(data_arr)
-    # sata, satz, suna, sunz
-    return sat_angles + sun_angles
+    sata, satz = _get_sensor_angles(data_arr)
+    suna, sunz = _get_sun_angles(data_arr)
+    return sata, satz, suna, sunz
 
 
 def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
@@ -224,6 +284,7 @@ def _get_valid_lonlats(area: PRGeometry, chunks: int = "auto") -> tuple[da.Array
 
 
 def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
+    # TODO: Wrap in map_blocks
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.data.chunks)
     with ignore_invalid_float_warnings():
         suna = get_alt_az(data_arr.attrs['start_time'], lons, lats)[1]

@@ -95,14 +95,14 @@ the `appdirs <https://github.com/ActiveState/appdirs#some-example-output>`_
 
 .. _config_cache_lonlats_setting:
 
-Cache Lon/Lats
-^^^^^^^^^^^^^^
+Cache Longitudes and Latitudes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * **Environment variable**: ``SATPY_CACHE_LONLATS``
 * **YAML/Config Key**: ``cache_lonlats``
 * **Default**: ``False``
 
-Whether or not generating longitude and latitude coordinates should be cached
+Whether or not generated longitude and latitude coordinates should be cached
 to on-disk zarr arrays. Currently this only works in very specific cases.
 Mainly the lon/lats that are generated when computing sensor and solar zenith
 and azimuth angles used in various modifiers and compositors. This caching is
@@ -123,7 +123,7 @@ Cache Sensor Angles
 * **YAML/Config Key**: ``cache_sensor_angles``
 * **Default**: ``False``
 
-Whether or not generating sensor azimuth and sensor zenith angles should be
+Whether or not generated sensor azimuth and sensor zenith angles should be
 cached to on-disk zarr arrays. These angles are primarily used in certain
 modifiers and compositors. This caching is only done for
 ``AreaDefinition``-based geolocation, not ``SwathDefinition``s.
@@ -132,11 +132,11 @@ Arrays are stored in ``cache_dir`` (see above).
 This caching requires producing an estimate of the angles to avoid needing to
 generate new angles for every new data case. This happens because the angle
 generation depends on the observation time of the data and the position of the
-satellite (longitude, latitude, altitude). The angles are estimating by using
+satellite (longitude, latitude, altitude). The angles are estimated by using
 a constant observation time for all cases (maximum ~1e-10 error) and by rounding
-satellite position coordinates to the nearest tenth degree for longitude and
-latitude and nearest tenth meter. Note these estimations are only done if
-caching is enabled (this parameter is True).
+satellite position coordinates to the nearest tenth of a degree for longitude
+and latitude and nearest tenth meter (maximum ~0.058 error). Note these
+estimations are only done if caching is enabled (this parameter is True).
 
 When setting this as an environment variable, this should be set with the
 string equivalent of the Python boolean values ``="True"`` or ``="False"``.
