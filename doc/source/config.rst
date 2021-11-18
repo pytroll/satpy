@@ -114,6 +114,12 @@ string equivalent of the Python boolean values ``="True"`` or ``="False"``.
 
 See also ``cache_sensor_angles`` below.
 
+.. warning::
+
+    This caching does not limit the number of entries nor does it expire old
+    entries. It is up to the user to manage the contents of the cache
+    directory.
+
 .. _config_cache_sensor_angles_setting:
 
 Cache Sensor Angles
@@ -142,6 +148,12 @@ When setting this as an environment variable, this should be set with the
 string equivalent of the Python boolean values ``="True"`` or ``="False"``.
 
 See also ``cache_lonlats`` above.
+
+.. warning::
+
+    This caching does not limit the number of entries nor does it expire old
+    entries. It is up to the user to manage the contents of the cache
+    directory.
 
 .. _config_path_setting:
 
