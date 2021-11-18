@@ -286,15 +286,22 @@ def _get_valid_lonlats(area: PRGeometry, chunks: int = "auto") -> tuple[da.Array
 
 
 def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
-    # TODO: Wrap in map_blocks
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.data.chunks)
-    with ignore_invalid_float_warnings():
-        suna = get_alt_az(data_arr.attrs['start_time'], lons, lats)[1]
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(data_arr.attrs['start_time'], lons, lats)
-    suna = _geo_dask_to_data_array(suna)
-    sunz = _geo_dask_to_data_array(sunz)
+    res = da.map_blocks(_get_sun_angles_wrapper, lons, lats,
+                        data_arr.attrs["start_time"],
+                        dtype=lons.dtype, meta=np.array((), dtype=lons.dtype),
+                        new_axis=[0], chunks=(2,) + lons.chunks)
+    suna = _geo_dask_to_data_array(res[0])
+    sunz = _geo_dask_to_data_array(res[1])
     return suna, sunz
+
+
+def _get_sun_angles_wrapper(lons: da.Array, lats: da.Array, start_time: datetime) -> tuple[da.Array, da.Array]:
+    with ignore_invalid_float_warnings():
+        suna = get_alt_az(start_time, lons, lats)[1]
+        suna = np.rad2deg(suna)
+        sunz = sun_zenith_angle(start_time, lons, lats)
+        return np.stack([suna, sunz])
 
 
 def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
