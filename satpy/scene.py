@@ -424,7 +424,7 @@ class Scene:
         sensor_comps, mods = composite_loader.load_compositors(self.sensor_names)
         # recreate the dependency tree so it doesn't interfere with the user's
         # wishlist from self._dependency_tree
-        dep_tree = DependencyTree(self._readers, sensor_comps, mods, available_only=True)
+        dep_tree = DependencyTree(self._readers, sensor_comps, mods, available_only=available_only)
         # ignore inline compositor dependencies starting with '_'
         comps = (comp for comp_dict in sensor_comps.values()
                  for comp in comp_dict.keys() if not comp['name'].startswith('_'))
