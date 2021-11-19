@@ -478,8 +478,7 @@ class TestInlineComposites(unittest.TestCase):
         """Test that inline composites are working."""
         from satpy.composites.config_loader import CompositorLoader
         cl_ = CompositorLoader()
-        cl_.load_sensor_composites('visir')
-        comps = cl_.compositors
+        comps = cl_.load_compositors(['visir'])[0]
         # Check that "fog" product has all its prerequisites defined
         keys = comps['visir'].keys()
         fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid['name']][0]
@@ -499,8 +498,7 @@ class TestInlineComposites(unittest.TestCase):
         # Check the same for SEVIRI and verify channel names are used
         # in the sub-composite dependencies instead of wavelengths
         cl_ = CompositorLoader()
-        cl_.load_sensor_composites('seviri')
-        comps = cl_.compositors
+        comps = cl_.load_compositors(['seviri'])[0]
         keys = comps['seviri'].keys()
         fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid['name']]
         self.assertEqual(comps['seviri'][fog_dep_ids[0]].attrs['prerequisites'],

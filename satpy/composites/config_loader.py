@@ -193,7 +193,7 @@ class CompositorLoader:
         sensor_names = [x for x in yaml_names if x not in non_sensor_yamls]
         return sensor_names
 
-    def load_sensor_composites(self, sensor_name):
+    def _load_sensor_composites(self, sensor_name):
         """Load all compositor configs for the provided sensor."""
         config_filename = sensor_name + ".yaml"
         logger.debug("Looking for composites config file %s", config_filename)
@@ -232,7 +232,7 @@ class CompositorLoader:
         mods = {}
         for sensor_name in sensor_names:
             if sensor_name not in self.compositors:
-                self.load_sensor_composites(sensor_name)
+                self._load_sensor_composites(sensor_name)
             if sensor_name in self.compositors:
                 comps[sensor_name] = DatasetDict(
                     self.compositors[sensor_name])
@@ -273,7 +273,7 @@ class CompositorLoader:
 
         for sensor_dep in reversed(sensor_deps):
             if sensor_dep not in self.compositors or sensor_dep not in self.modifiers:
-                self.load_sensor_composites(sensor_dep)
+                self._load_sensor_composites(sensor_dep)
 
         if sensor_deps:
             compositors.update(self.compositors[sensor_deps[-1]])

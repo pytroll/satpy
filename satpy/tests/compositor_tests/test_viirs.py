@@ -27,7 +27,7 @@ class TestVIIRSComposites(unittest.TestCase):
         """Test loading the yaml for this sensor."""
         from satpy.composites.config_loader import CompositorLoader
         cl = CompositorLoader()
-        cl.load_sensor_composites('viirs')
+        cl.load_compositors(['viirs'])
 
     def test_histogram_dnb(self):
         """Test the 'histogram_dnb' compositor."""

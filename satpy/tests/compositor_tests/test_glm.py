@@ -25,7 +25,7 @@ class TestGLMComposites:
         """Test loading the yaml for this sensor."""
         from satpy.composites.config_loader import CompositorLoader
         cl = CompositorLoader()
-        cl.load_sensor_composites('glm')
+        cl.load_compositors(['glm'])
 
     def test_highlight_compositor(self):
         """Test creating a highlight composite."""
