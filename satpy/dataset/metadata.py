@@ -32,10 +32,12 @@ def combine_metadata(*metadata_objects, average_times=True):
     If the values corresponding to any keys are not equal or do not
     exist in all provided dictionaries then they are not included in
     the returned dictionary.  By default any keys with the word 'time'
-    in them and consisting of datetime objects will be averaged. This
-    is to handle cases where data were observed at almost the same time
-    but not exactly.  In the interest of time, lazy arrays are compared by
-    object identity rather than by their contents.
+    in them and consisting of datetime objects will be averaged.
+    But, 'start_time' and 'end_time' will be kept as the minimum datetime
+    and maximum datetime, respectively. This is to handle cases where
+    data were observed at almost the same time but not exactly.
+    In the interest of time, lazy arrays are compared by object identity
+    rather than by their contents.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
@@ -78,8 +80,13 @@ def _combine_shared_info(shared_keys, info_dicts, average_times):
     shared_info = {}
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
-        if 'time' in key and isinstance(values[0], datetime) and average_times:
+        if 'time' in key and key not in ['start_time', 'end_time'] \
+           and isinstance(values[0], datetime) and average_times:
             shared_info[key] = average_datetimes(values)
+        elif key == 'start_time' and isinstance(values[0], datetime):
+            shared_info[key] = min(values)
+        elif key == 'end_time' and isinstance(values[0], datetime):
+            shared_info[key] = max(values)
         elif _are_values_combinable(values):
             shared_info[key] = values[0]
     return shared_info

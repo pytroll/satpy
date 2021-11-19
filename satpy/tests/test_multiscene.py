@@ -558,17 +558,26 @@ class TestBlendFuncs(unittest.TestCase):
         area = AreaDefinition('test', 'test', 'test',
                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
                               2, 2, [-200, -200, 200, 200])
+
         ds1 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
-                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0),
+                                  'end_time': datetime(2018, 1, 1, 0, 10, 0),
+                                  'area': area})
         self.ds1 = ds1
         ds2 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
-                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0),
+                                  'end_time': datetime(2018, 1, 1, 1, 10, 0),
+                                  'area': area})
         self.ds2 = ds2
         ds3 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'time'),
-                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0),
+                                  'end_time': datetime(2018, 1, 1, 0, 10, 0),
+                                  'area': area})
         self.ds3 = ds3
         ds4 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'time'),
-                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0),
+                                  'end_time': datetime(2018, 1, 1, 1, 10, 0),
+                                  'area': area})
         self.ds4 = ds4
 
     def test_stack(self):
@@ -577,16 +586,34 @@ class TestBlendFuncs(unittest.TestCase):
         res = stack([self.ds1, self.ds2])
         self.assertTupleEqual(self.ds1.shape, res.shape)
 
-    def test_timeseries(self):
+    def test_timeseries_time_notdim(self):
+        """Test the 'timeseries' function."""
+        from satpy.multiscene import timeseries
+        import numpy as np
+        import xarray as xr
+        res = timeseries([self.ds1, self.ds2])
+        self.assertIsInstance(res, xr.DataArray)
+        self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
+        self.assertEqual(res.coords['start_time'].data[0], np.datetime64(self.ds1.attrs['start_time']))
+        self.assertEqual(res.coords['start_time'].data[1], np.datetime64(self.ds2.attrs['start_time']))
+        self.assertEqual(res.attrs['start_time'], self.ds1.attrs['start_time'])
+        self.assertEqual(res.attrs['end_time'], self.ds2.attrs['end_time'])
+        self.assertEqual(res.coords['start_time'].data[0], np.datetime64(self.ds1.attrs['start_time']))
+        self.assertEqual(res.coords['start_time'].data[1], np.datetime64(self.ds2.attrs['start_time']))
+        self.assertEqual(res.attrs['start_time'], self.ds1.attrs['start_time'])
+        self.assertEqual(res.attrs['end_time'], self.ds2.attrs['end_time'])
+
+    def test_timeseries_time_dim(self):
         """Test the 'timeseries' function."""
         from satpy.multiscene import timeseries
         import xarray as xr
-        res = timeseries([self.ds1, self.ds2])
-        res2 = timeseries([self.ds3, self.ds4])
+        res = timeseries([self.ds3, self.ds4])
         self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res2, xr.DataArray)
-        self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
-        self.assertTupleEqual((self.ds3.shape[0], self.ds3.shape[1]+self.ds4.shape[1]), res2.shape)
+        self.assertTupleEqual((self.ds3.shape[0], self.ds3.shape[1]+self.ds4.shape[1]), res.shape)
+        self.assertEqual(res.attrs['start_time'], self.ds3.attrs['start_time'])
+        self.assertEqual(res.attrs['end_time'], self.ds4.attrs['end_time'])
+        self.assertEqual(res.attrs['start_time'], self.ds3.attrs['start_time'])
+        self.assertEqual(res.attrs['end_time'], self.ds4.attrs['end_time'])
 
 
 @mock.patch('satpy.multiscene.get_enhanced_image')

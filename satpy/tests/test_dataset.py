@@ -97,12 +97,20 @@ class TestCombineMetadata(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        self.datetime_dts = (
+        self.start_time_dts = (
             {'start_time': datetime(2018, 2, 1, 11, 58, 0)},
             {'start_time': datetime(2018, 2, 1, 11, 59, 0)},
             {'start_time': datetime(2018, 2, 1, 12, 0, 0)},
             {'start_time': datetime(2018, 2, 1, 12, 1, 0)},
             {'start_time': datetime(2018, 2, 1, 12, 2, 0)},
+        )
+
+        self.end_time_dts = (
+            {'end_time': datetime(2018, 2, 1, 11, 58, 59)},
+            {'end_time': datetime(2018, 2, 1, 11, 59, 59)},
+            {'end_time': datetime(2018, 2, 1, 12, 0, 59)},
+            {'end_time': datetime(2018, 2, 1, 12, 1, 59)},
+            {'end_time': datetime(2018, 2, 1, 12, 2, 59)},
         )
 
     def test_average_datetimes(self):
@@ -121,15 +129,20 @@ class TestCombineMetadata(unittest.TestCase):
     def test_combine_times_with_averaging(self):
         """Test the combine_metadata with times with averaging."""
         from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.datetime_dts)
-        self.assertEqual(self.datetime_dts[2]['start_time'], ret['start_time'])
+        ret_start_time = combine_metadata(*self.start_time_dts)
+        ret_end_time = combine_metadata(*self.end_time_dts)
+        # start_time should be the min time
+        self.assertEqual(self.start_time_dts[0]['start_time'], ret_start_time['start_time'])
+        self.assertEqual(self.end_time_dts[-1]['end_time'], ret_end_time['end_time'])
 
     def test_combine_times_without_averaging(self):
         """Test the combine_metadata with times without averaging."""
         from satpy.dataset.metadata import combine_metadata
-        ret = combine_metadata(*self.datetime_dts, average_times=False)
-        # times are not equal so don't include it in the final result
-        self.assertNotIn('start_time', ret)
+        ret_start_time = combine_metadata(*self.start_time_dts, average_times=False)
+        ret_end_time = combine_metadata(*self.end_time_dts, average_times=False)
+        # start_time should be the min time
+        self.assertEqual(self.start_time_dts[0]['start_time'], ret_start_time['start_time'])
+        self.assertEqual(self.end_time_dts[-1]['end_time'], ret_end_time['end_time'])
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
