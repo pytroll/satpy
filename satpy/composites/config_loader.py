@@ -235,8 +235,8 @@ class CompositorLoader:
                 self.load_sensor_composites(sensor_name)
             if sensor_name in self.compositors:
                 comps[sensor_name] = DatasetDict(
-                    self.compositors[sensor_name].copy())
-                mods[sensor_name] = self.modifiers[sensor_name].copy()
+                    self.compositors[sensor_name])
+                mods[sensor_name] = self.modifiers[sensor_name]
         return comps, mods
 
     def _get_sensor_id_keys(self, conf, sensor_id, sensor_deps):

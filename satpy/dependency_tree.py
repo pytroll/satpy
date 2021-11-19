@@ -183,9 +183,10 @@ class DependencyTree(Tree):
         """
         super().__init__()
         self.readers = readers
-        self.compositors = compositors or {}
-        self.modifiers = modifiers or {}
+        self.compositors = {}
+        self.modifiers = {}
         self._available_only = available_only
+        self.update_compositors_and_modifiers(compositors or {}, modifiers or {})
 
     def update_compositors_and_modifiers(self, compositors: dict, modifiers: dict) -> None:
         """Add additional compositors and modifiers to the tree.
