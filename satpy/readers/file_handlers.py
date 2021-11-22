@@ -155,11 +155,9 @@ class BaseFileHandler(metaclass=ABCMeta):
             dataset's file type(s), ``False`` otherwise.
 
         """
-        if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
-            return True
-        if isinstance(ds_ftype, (list, tuple)) and self.filetype_info['file_type'] in ds_ftype:
-            return True
-        return None
+        if not isinstance(ds_ftype, (list, tuple)):
+            ds_ftype = [ds_ftype]
+        return self.filetype_info['file_type'] in ds_ftype
 
     def available_datasets(self, configured_datasets=None):
         """Get information of available datasets in this file.
