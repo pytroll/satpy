@@ -278,6 +278,9 @@ the base Satpy installation.
     * - MIMIC Total Precipitable Water Product Reader in NetCDF format
       - mimicTPW2_comp
       - Beta
+    * - SEADAS L2 Chlorphyll A product in HDF4 format
+      - seadas_l2
+      - Beta
 
 Indices and tables
 ==================
