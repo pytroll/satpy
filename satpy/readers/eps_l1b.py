@@ -27,6 +27,7 @@ from dask.delayed import delayed
 from pyresample.geometry import SwathDefinition
 
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
 from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
@@ -38,12 +39,12 @@ C2 = 1.4387863  # K/cm-1
 
 
 def radiance_to_bt(arr, wc_, a__, b__):
-    """Convert to BT."""
+    """Convert to BT in K."""
     return a__ + b__ * (C2 * wc_ / (da.log(1 + (C1 * (wc_ ** 3) / arr))))
 
 
 def radiance_to_refl(arr, solar_flux):
-    """Convert to reflectances."""
+    """Convert to reflectances in %."""
     return arr * np.pi * 100.0 / solar_flux
 
 
@@ -295,95 +296,74 @@ class EPSAVHRRFile(BaseFileHandler):
 
         elif key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle',
                              'satellite_zenith_angle', 'satellite_azimuth_angle']:
-            sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
-            if key['name'] == 'solar_zenith_angle':
-                dataset = create_xarray(sun_zen)
-            elif key['name'] == 'solar_azimuth_angle':
-                dataset = create_xarray(sun_azi)
-            if key['name'] == 'satellite_zenith_angle':
-                dataset = create_xarray(sat_zen)
-            elif key['name'] == 'satellite_azimuth_angle':
-                dataset = create_xarray(sat_azi)
+            dataset = self._get_angle_dataarray(key)
+        elif key['name'] in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
+            dataset = self._get_calibrated_dataarray(key)
         else:
-            mask = None
-            if key['calibration'] == 'counts':
-                raise ValueError('calibration=counts is not supported! ' +
-                                 'This reader cannot return counts')
-            if key['calibration'] not in ['reflectance', 'brightness_temperature', 'radiance']:
-                raise ValueError('calibration type ' + str(key['calibration']) +
-                                 ' is not supported!')
-
-            if key['name'] in ['3A', '3a'] and self.three_a_mask is None:
-                self.three_a_mask = ((self["FRAME_INDICATOR"] & 2 ** 16) != 2 ** 16)
-
-            if key['name'] in ['3B', '3b'] and self.three_b_mask is None:
-                self.three_b_mask = ((self["FRAME_INDICATOR"] & 2 ** 16) != 0)
-
-            if key['name'] not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
-                logger.info("Can't load channel in eps_l1b: " + str(key['name']))
-                return
-
-            if key['name'] == "1":
-                if key['calibration'] == 'reflectance':
-                    array = radiance_to_refl(self["SCENE_RADIANCES"][:, 0, :],
-                                             self["CH1_SOLAR_FILTERED_IRRADIANCE"])
-                else:
-                    array = self["SCENE_RADIANCES"][:, 0, :]
-
-            if key['name'] == "2":
-                if key['calibration'] == 'reflectance':
-                    array = radiance_to_refl(self["SCENE_RADIANCES"][:, 1, :],
-                                             self["CH2_SOLAR_FILTERED_IRRADIANCE"])
-                else:
-                    array = self["SCENE_RADIANCES"][:, 1, :]
-
-            if key['name'].lower() == "3a":
-                if key['calibration'] == 'reflectance':
-                    array = radiance_to_refl(self["SCENE_RADIANCES"][:, 2, :],
-                                             self["CH3A_SOLAR_FILTERED_IRRADIANCE"])
-                else:
-                    array = self["SCENE_RADIANCES"][:, 2, :]
-
-                mask = np.empty(array.shape, dtype=bool)
-                mask[:, :] = self.three_a_mask[:, np.newaxis]
-
-            if key['name'].lower() == "3b":
-                if key['calibration'] == 'brightness_temperature':
-                    array = radiance_to_bt(self["SCENE_RADIANCES"][:, 2, :],
-                                           self["CH3B_CENTRAL_WAVENUMBER"],
-                                           self["CH3B_CONSTANT1"],
-                                           self["CH3B_CONSTANT2_SLOPE"])
-                else:
-                    array = self["SCENE_RADIANCES"][:, 2, :]
-                mask = np.empty(array.shape, dtype=bool)
-                mask[:, :] = self.three_b_mask[:, np.newaxis]
-
-            if key['name'] == "4":
-                if key['calibration'] == 'brightness_temperature':
-                    array = radiance_to_bt(self["SCENE_RADIANCES"][:, 3, :],
-                                           self["CH4_CENTRAL_WAVENUMBER"],
-                                           self["CH4_CONSTANT1"],
-                                           self["CH4_CONSTANT2_SLOPE"])
-                else:
-                    array = self["SCENE_RADIANCES"][:, 3, :]
-
-            if key['name'] == "5":
-                if key['calibration'] == 'brightness_temperature':
-                    array = radiance_to_bt(self["SCENE_RADIANCES"][:, 4, :],
-                                           self["CH5_CENTRAL_WAVENUMBER"],
-                                           self["CH5_CONSTANT1"],
-                                           self["CH5_CONSTANT2_SLOPE"])
-                else:
-                    array = self["SCENE_RADIANCES"][:, 4, :]
-
-            dataset = create_xarray(array)
-            if mask is not None:
-                dataset = dataset.where(~mask)
+            logger.info("Can't load channel in eps_l1b: " + str(key['name']))
+            return
 
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor_name
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
+        return dataset
+
+    def _get_angle_dataarray(self, key):
+        """Get an angle dataarray."""
+        sun_azi, sun_zen, sat_azi, sat_zen = self.get_full_angles()
+        if key['name'] == 'solar_zenith_angle':
+            dataset = create_xarray(sun_zen)
+        elif key['name'] == 'solar_azimuth_angle':
+            dataset = create_xarray(sun_azi)
+        if key['name'] == 'satellite_zenith_angle':
+            dataset = create_xarray(sat_zen)
+        elif key['name'] == 'satellite_azimuth_angle':
+            dataset = create_xarray(sat_azi)
+        return dataset
+
+    @cached_property
+    def three_a_mask(self):
+        """Mask for 3A."""
+        return (self["FRAME_INDICATOR"] & 2 ** 16) != 2 ** 16
+
+    @cached_property
+    def three_b_mask(self):
+        """Mask for 3B."""
+        return (self["FRAME_INDICATOR"] & 2 ** 16) != 0
+
+    def _get_calibrated_dataarray(self, key):
+        """Get a calibrated dataarray."""
+        if key['calibration'] not in ['reflectance', 'brightness_temperature', 'radiance']:
+            raise ValueError('calibration type ' + str(key['calibration']) +
+                             ' is not supported!')
+
+        mask = None
+
+        channel_name = key['name'].upper()
+
+        radiance_indices = {"1": 0, "2": 1, "3A": 2, "3B": 2, "4": 3, "5": 4}
+        array = self["SCENE_RADIANCES"][:, radiance_indices[channel_name], :]
+
+        if channel_name in ["1", "2", "3A"]:
+            if key['calibration'] == 'reflectance':
+                array = radiance_to_refl(array,
+                                         self[f"CH{channel_name}_SOLAR_FILTERED_IRRADIANCE"])
+            if channel_name == "3A":
+                mask = self.three_a_mask[:, np.newaxis]
+
+        if channel_name in ["3B", "4", "5"]:
+            if key['calibration'] == 'brightness_temperature':
+                array = radiance_to_bt(array,
+                                       self[f"CH{channel_name}_CENTRAL_WAVENUMBER"],
+                                       self[f"CH{channel_name}_CONSTANT1"],
+                                       self[f"CH{channel_name}_CONSTANT2_SLOPE"])
+            if channel_name == "3B":
+                mask = self.three_b_mask[:, np.newaxis]
+
+        dataset = create_xarray(array)
+        if mask is not None:
+            dataset = dataset.where(~mask)
         return dataset
 
     def get_lonlats(self):
