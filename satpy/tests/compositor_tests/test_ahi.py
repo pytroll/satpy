@@ -25,9 +25,8 @@ class TestAHIComposites(unittest.TestCase):
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
-        from satpy.composites.config_loader import CompositorLoader
-        cl = CompositorLoader()
-        cl.load_compositors(['ahi'])
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        load_compositor_configs_for_sensors(['ahi'])
 
     def test_corrected_green(self):
         """Test adjusting the 'green' band."""

@@ -16,9 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Classes for loading compositor and modifier configuration files."""
+from __future__ import annotations
+
 import os
 import logging
 import warnings
+from typing import Callable, Iterable
+from functools import update_wrapper, lru_cache
 
 import yaml
 
@@ -27,6 +31,7 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
+import satpy
 from satpy import DatasetDict, DataQuery, DataID
 from satpy._config import (get_entry_points_config_dirs, config_search_paths,
                            glob_config)
@@ -170,7 +175,7 @@ class _ModifierConfigHelper:
                                "'{}'".format(composite_configs))
 
 
-class CompositorLoader:
+class _CompositorLoader:
     """Read compositors and modifiers using the configuration files on disk."""
 
     def __init__(self):
@@ -179,19 +184,6 @@ class CompositorLoader:
         self.compositors = {}
         # sensor -> { dict of DataID key information }
         self._sensor_dataid_keys = {}
-
-    @classmethod
-    def all_composite_sensors(cls):
-        """Get all sensor names from available composite configs."""
-        paths = get_entry_points_config_dirs('satpy.composites')
-        composite_configs = glob_config(
-            os.path.join("composites", "*.yaml"),
-            search_dirs=paths)
-        yaml_names = set([os.path.splitext(os.path.basename(fn))[0]
-                          for fn in composite_configs])
-        non_sensor_yamls = ('visir',)
-        sensor_names = [x for x in yaml_names if x not in non_sensor_yamls]
-        return sensor_names
 
     def _load_sensor_composites(self, sensor_name):
         """Load all compositor configs for the provided sensor."""
@@ -287,3 +279,45 @@ class CompositorLoader:
         comp_config_helper = _CompositeConfigHelper(compositors, id_keys)
         configured_composites = conf.get('composites', {})
         comp_config_helper.parse_config(configured_composites, composite_configs)
+
+
+def _lru_cache_with_config_path(func: Callable):
+    """Use lru_cache but include satpy's current config_path."""
+    @lru_cache()
+    def _call_without_config_path_wrapper(sensor_names, _):
+        return func(sensor_names)
+
+    def _add_config_path_wrapper(sensor_names: Iterable):
+        config_path = satpy.config.get("config_path")
+        # make sure sensor_names hashable
+        sensor_names = tuple(sorted(sensor_names))
+        # make sure config_path is hashable, but keep original order since it matters
+        config_path = tuple(config_path)
+        return _call_without_config_path_wrapper(sensor_names, config_path)
+
+    # return update_wrapper(_add_config_path_wrapper, func)
+    wrapper = update_wrapper(_add_config_path_wrapper, func)
+    wrapper.cache_clear = _call_without_config_path_wrapper.cache_clear
+    wrapper.cache_parameters = _call_without_config_path_wrapper.cache_parameters
+    wrapper.cache_info = _call_without_config_path_wrapper.cache_info
+    return wrapper
+
+
+@_lru_cache_with_config_path
+def load_compositor_configs_for_sensors(sensor_names: Iterable[str]) -> tuple[dict[str, DatasetDict], dict[str, dict]]:
+    """Load compositor and modifier configuration files for the specified sensors."""
+    cl = _CompositorLoader()
+    return cl.load_compositors(sensor_names)
+
+
+def all_composite_sensors():
+    """Get all sensor names from available composite configs."""
+    paths = get_entry_points_config_dirs('satpy.composites')
+    composite_configs = glob_config(
+        os.path.join("composites", "*.yaml"),
+        search_dirs=paths)
+    yaml_names = set([os.path.splitext(os.path.basename(fn))[0]
+                      for fn in composite_configs])
+    non_sensor_yamls = ('visir',)
+    sensor_names = [x for x in yaml_names if x not in non_sensor_yamls]
+    return sensor_names

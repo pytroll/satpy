@@ -23,7 +23,7 @@ import os
 import warnings
 
 from satpy.composites import IncompatibleAreas
-from satpy.composites.config_loader import CompositorLoader
+from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
 from satpy.node import MissingDependencies, ReaderNode, CompositorNode, Node
@@ -420,8 +420,7 @@ class Scene:
         """Create new dependency tree and check what composites we know about."""
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
-        composite_loader = CompositorLoader()
-        sensor_comps, mods = composite_loader.load_compositors(self.sensor_names)
+        sensor_comps, mods = load_compositor_configs_for_sensors(self.sensor_names)
         # recreate the dependency tree so it doesn't interfere with the user's
         # wishlist from self._dependency_tree
         dep_tree = DependencyTree(self._readers, sensor_comps, mods, available_only=available_only)
@@ -1241,8 +1240,7 @@ class Scene:
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
-            composite_loader = CompositorLoader()
-            comps, mods = composite_loader.load_compositors(self.sensor_names)
+            comps, mods = load_compositor_configs_for_sensors(self.sensor_names)
             self._dependency_tree.update_compositors_and_modifiers(comps, mods)
             self._dependency_tree.populate_with_keys(needed_datasets, query)
         except MissingDependencies as err:

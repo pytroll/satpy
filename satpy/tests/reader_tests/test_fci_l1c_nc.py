@@ -463,9 +463,8 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
         # this method should probably move to a dedicated class and module
         # in the tests.compositor_tests package
 
-        from satpy.composites.config_loader import CompositorLoader
-        cl = CompositorLoader()
-        (comps, mods) = cl.load_compositors(["fci"])
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        comps, mods = load_compositor_configs_for_sensors(['fci'])
         assert len(comps["fci"]) > 0
         assert len(mods["fci"]) > 0
 
