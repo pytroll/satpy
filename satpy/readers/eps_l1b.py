@@ -19,6 +19,7 @@
 """Reader for eps level 1b data. Uses xml files as a format description."""
 
 import logging
+from functools import lru_cache
 
 import dask.array as da
 import numpy as np
@@ -145,10 +146,7 @@ class EPSAVHRRFile(BaseFileHandler):
         super(EPSAVHRRFile, self).__init__(
             filename, filename_info, filetype_info)
 
-        self.lons, self.lats = None, None
-        self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen = None, None, None, None
         self.area = None
-        self.three_a_mask, self.three_b_mask = None, None
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
         self.form = None
@@ -188,11 +186,9 @@ class EPSAVHRRFile(BaseFileHandler):
             keys += val.dtype.fields.keys()
         return keys
 
+    @lru_cache(maxsize=1)
     def get_full_lonlats(self):
         """Get the interpolated longitudes and latitudes."""
-        if self.lons is not None and self.lats is not None:
-            return self.lons, self.lats
-
         raw_lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                               self["EARTH_LOCATIONS"][:, :, 0],
                               self["EARTH_LOCATION_LAST"][:, [0]]))
@@ -200,8 +196,7 @@ class EPSAVHRRFile(BaseFileHandler):
         raw_lons = np.hstack((self["EARTH_LOCATION_FIRST"][:, [1]],
                               self["EARTH_LOCATIONS"][:, :, 1],
                               self["EARTH_LOCATION_LAST"][:, [1]]))
-        self.lons, self.lats = self._interpolate(raw_lons, raw_lats)
-        return self.lons, self.lats
+        return self._interpolate(raw_lons, raw_lats)
 
     def _interpolate(self, lons_like, lats_like):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
@@ -241,12 +236,9 @@ class EPSAVHRRFile(BaseFileHandler):
                                       " and earth views = " +
                                       str(self.pixels))
 
+    @lru_cache(maxsize=1)
     def get_full_angles(self):
         """Get the interpolated angles."""
-        if (self.sun_azi is not None and self.sun_zen is not None and
-                self.sat_azi is not None and self.sat_zen is not None):
-            return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
-
         solar_zenith = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [0]],
                                   self["ANGULAR_RELATIONS"][:, :, 0],
                                   self["ANGULAR_RELATIONS_LAST"][:, [0]]))
@@ -262,11 +254,10 @@ class EPSAVHRRFile(BaseFileHandler):
                                  self["ANGULAR_RELATIONS"][:, :, 3],
                                  self["ANGULAR_RELATIONS_LAST"][:, [3]]))
 
-        self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen = self._get_full_angles(solar_zenith,
-                                                                                       sat_zenith,
-                                                                                       solar_azimuth,
-                                                                                       sat_azimuth)
-        return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
+        return self._get_full_angles(solar_zenith,
+                                     sat_zenith,
+                                     solar_azimuth,
+                                     sat_azimuth)
 
     def get_bounding_box(self):
         """Get bounding box."""
@@ -369,9 +360,8 @@ class EPSAVHRRFile(BaseFileHandler):
     def get_lonlats(self):
         """Get lonlats."""
         if self.area is None:
-            if self.lons is None or self.lats is None:
-                self.lons, self.lats = self.get_full_lonlats()
-            self.area = SwathDefinition(self.lons, self.lats)
+            lons, lats = self.get_full_lonlats()
+            self.area = SwathDefinition(lons, lats)
             self.area.name = '_'.join([self.platform_name, str(self.start_time),
                                        str(self.end_time)])
         return self.area
