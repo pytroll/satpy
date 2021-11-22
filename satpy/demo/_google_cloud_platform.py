@@ -24,7 +24,7 @@ try:
     from urllib.request import urlopen
 except ImportError:
     # python 2
-    from urllib2 import URLError, urlopen
+    from urllib2 import URLError, urlopen  # type: ignore
 
 try:
     import gcsfs
@@ -83,20 +83,25 @@ def get_bucket_files(glob_pattern, base_dir, force=False, pattern_slice=None):
         else:
             # flat list of results
             glob_results = [fn for pat in gp for fn in fs.glob(pat)]
-
-        for fn in glob_results[pattern_slice]:
-            ondisk_fn = os.path.basename(fn)
-            ondisk_pathname = os.path.join(base_dir, ondisk_fn)
-            filenames.append(ondisk_pathname)
-
-            if force and os.path.isfile(ondisk_pathname):
-                os.remove(ondisk_pathname)
-            elif os.path.isfile(ondisk_pathname):
-                LOG.info("Found existing: {}".format(ondisk_pathname))
-                continue
-            LOG.info("Downloading: {}".format(ondisk_pathname))
-            fs.get('gs://' + fn, ondisk_pathname)
+        filenames.extend(_download_gcs_files(glob_results[pattern_slice], fs, base_dir, force))
 
     if not filenames:
         raise OSError("No files could be found or downloaded.")
+    return filenames
+
+
+def _download_gcs_files(globbed_files, fs, base_dir, force):
+    filenames = []
+    for fn in globbed_files:
+        ondisk_fn = os.path.basename(fn)
+        ondisk_pathname = os.path.join(base_dir, ondisk_fn)
+        filenames.append(ondisk_pathname)
+
+        if force and os.path.isfile(ondisk_pathname):
+            os.remove(ondisk_pathname)
+        elif os.path.isfile(ondisk_pathname):
+            LOG.info("Found existing: {}".format(ondisk_pathname))
+            continue
+        LOG.info("Downloading: {}".format(ondisk_pathname))
+        fs.get('gs://' + fn, ondisk_pathname)
     return filenames

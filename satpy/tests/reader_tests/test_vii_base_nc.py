@@ -22,17 +22,13 @@ import datetime
 import os
 import unittest
 import uuid
+from unittest import mock
 
 import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
 
 from satpy.readers.vii_base_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, ViiNCBaseFileHandler
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 TEST_FILE = 'test_file_vii_base_nc.nc'
 

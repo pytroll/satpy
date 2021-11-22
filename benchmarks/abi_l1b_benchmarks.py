@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark ABI L1B operations."""
+from __future__ import annotations
 
 import os
 
@@ -29,7 +30,7 @@ class ABIL1B(GeoBenchmarks):
     """Benchmark ABI L1B reading."""
 
     timeout = 600
-    data_files = []
+    data_files: list = []
     subdir = os.path.join("abi_l1b", "20190314_us_midlatitude_cyclone")
     reader = "abi_l1b"
 
@@ -39,7 +40,8 @@ class ABIL1B(GeoBenchmarks):
             from satpy.demo import get_us_midlatitude_cyclone_abi
             get_us_midlatitude_cyclone_abi()
         except ImportError:
-            assert len(get_filenames(self.subdir)) == 16
+            if len(get_filenames(self.subdir)) != 16:
+                raise RuntimeError("Existing data files do not match the expected number of files.")
         download_rsr()
         download_luts(aerosol_type='rayleigh_only')
 

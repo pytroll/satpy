@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared objects of the various reader classes."""
+from __future__ import annotations
 
 import logging
 import os
@@ -29,7 +30,7 @@ import yaml
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 from satpy._config import config_search_paths, glob_config
 
@@ -41,7 +42,7 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 PENDING_OLD_READER_NAMES = {'fci_l1c_fdhsi': 'fci_l1c_nc'}
-OLD_READER_NAMES = {}
+OLD_READER_NAMES: dict[str, str] = {}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
