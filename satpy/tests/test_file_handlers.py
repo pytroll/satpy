@@ -160,20 +160,17 @@ class TestBaseFileHandler(unittest.TestCase):
 
 
 @pytest.mark.parametrize(
-    ("file_type", "ds_file_type", "exp_match"),
+    ("file_type", "ds_file_type", "exp_result"),
     [
         ("fake1", "fake1", True),
         ("fake1", ["fake1"], True),
         ("fake1", ["fake1", "fake2"], True),
-        ("fake1", ["fake2"], False),
-        ("fake1", "fake2", False),
-        ("fake1", "fake1_with_suffix", False),
+        ("fake1", ["fake2"], None),
+        ("fake1", "fake2", None),
+        ("fake1", "fake1_with_suffix", None),
     ]
 )
-def test_file_type_match(file_type, ds_file_type, exp_match):
+def test_file_type_match(file_type, ds_file_type, exp_result):
     """Test that file type matching uses exactly equality."""
     fh = FakeFileHandler("some_file.txt", {}, {"file_type": file_type})
-    if exp_match:
-        assert fh.file_type_matches(ds_file_type)
-    else:
-        assert not fh.file_type_matches(ds_file_type)
+    assert fh.file_type_matches(ds_file_type) is exp_result
