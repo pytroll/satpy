@@ -34,11 +34,18 @@ class SEADASL2HDFFileHandler(HDF4FileHandler):
     def _add_satpy_metadata(self, data):
         data.attrs["sensor"] = self.sensor_names
         data.attrs["platform_name"] = self._platform_name()
+        data.attrs["rows_per_scan"] = self._rows_per_scan()
         return data
+
+    def _rows_per_scan(self):
+        if "modis" in self.sensor_names:
+            return 10
+        return 16
 
     def _platform_name(self):
         platform = self["/attr/Mission"]
-        platform_dict = {'JPSS-1': 'NOAA-20',
+        platform_dict = {'NPP': 'Suomi-NPP',
+                         'JPSS-1': 'NOAA-20',
                          'JPSS-2': 'NOAA-21'}
         return platform_dict.get(platform, platform)
 
@@ -60,8 +67,8 @@ class SEADASL2HDFFileHandler(HDF4FileHandler):
         # Example: MODISA or VIIRSN or VIIRSJ1
         sensor_name = self["/attr/Sensor Name"].lower()
         if sensor_name.startswith("modis"):
-            return "modis"
-        return "viirs"
+            return {"modis"}
+        return {"viirs"}
 
     def get_dataset(self, data_id, dataset_info):
         """Get DataArray for the specified DataID."""
@@ -70,5 +77,9 @@ class SEADASL2HDFFileHandler(HDF4FileHandler):
         valid_range = data.attrs["valid_range"]
         data = data.where(valid_range[0] <= data)
         data = data.where(data <= valid_range[1])
+        for attr_name in ("standard_name", "long_name", "units"):
+            val = data.attrs[attr_name]
+            if val[-1] == "\x00":
+                data.attrs[attr_name] = data.attrs[attr_name][:-1]
         data = self._add_satpy_metadata(data)
         return data

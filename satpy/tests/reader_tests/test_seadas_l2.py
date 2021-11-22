@@ -20,6 +20,7 @@
 import numpy as np
 import pytest
 from pyhdf.SD import SD, SDC
+from pyresample.geometry import SwathDefinition
 from pytest_lazyfixture import lazy_fixture
 
 from satpy import Scene, available_readers
@@ -61,8 +62,9 @@ def _create_seadas_chlor_a_file(full_path, mission, sensor):
         "data": np.zeros((5, 5), dtype=np.float32),
         "dim_labels": ["Number of Scan Lines", "Number of Pixel Control Points"],
         "attrs": {
-            "long_name": "Longitude",
-            "standard_name": "longitude",
+            "long_name": "Longitude\x00",
+            "standard_name": "longitude\x00",
+            "units": "degrees_east\x00",
             "valid_range": (-180.0, 180.0),
         }
     }
@@ -71,8 +73,9 @@ def _create_seadas_chlor_a_file(full_path, mission, sensor):
         "data": np.zeros((5, 5), np.float32),
         "dim_labels": ["Number of Scan Lines", "Number of Pixel Control Points"],
         "attrs": {
-            "long_name": "Latitude",
-            "standard_name": "latitude",
+            "long_name": "Latitude\x00",
+            "standard_name": "latitude\x00",
+            "units": "degrees_north\x00",
             "valid_range": (-90.0, 90.0),
         }
     }
@@ -84,9 +87,9 @@ def _create_seadas_chlor_a_file(full_path, mission, sensor):
         "data": np.zeros((5, 5), np.float32),
         "dim_labels": ["Number of Scan Lines", "Number of Pixel Control Points"],
         "attrs": {
-            "long_name": "Chlorophyll Concentration, OCI Algorithm",
-            "units": "mg m^-3",
-            "standard_name": "mass_concentration_of_chlorophyll_in_sea_water",
+            "long_name": "Chlorophyll Concentration, OCI Algorithm\x00",
+            "units": "mg m^-3\x00",
+            "standard_name": "mass_concentration_of_chlorophyll_in_sea_water\x00",
             "valid_range": (0.001, 100.0),
         }
     }
@@ -127,17 +130,20 @@ class TestSEADAS:
         assert 'chlor_a' in available_datasets
 
     @pytest.mark.parametrize(
-        ("input_files", "exp_plat", "exp_sensor"),
+        ("input_files", "exp_plat", "exp_sensor", "exp_rps"),
         [
-            (lazy_fixture("seadas_l2_modis_chlor_a"), "Aqua", "modis"),
-            (lazy_fixture("seadas_l2_viirs_npp_chlor_a"), "Suomi-NPP", "viirs"),
-            (lazy_fixture("seadas_l2_viirs_j01_chlor_a"), "NOAA-20", "viirs"),
+            (lazy_fixture("seadas_l2_modis_chlor_a"), "Aqua", {"modis"}, 10),
+            (lazy_fixture("seadas_l2_viirs_npp_chlor_a"), "Suomi-NPP", {"viirs"}, 16),
+            (lazy_fixture("seadas_l2_viirs_j01_chlor_a"), "NOAA-20", {"viirs"}, 16),
         ])
-    def test_load_chlor_a(self, input_files, exp_plat, exp_sensor):
+    def test_load_chlor_a(self, input_files, exp_plat, exp_sensor, exp_rps):
         """Test that we can load 'chlor_a'."""
         scene = Scene(reader='seadas_l2', filenames=input_files)
         scene.load(['chlor_a'])
         data_arr = scene['chlor_a']
         assert data_arr.attrs['platform_name'] == exp_plat
         assert data_arr.attrs['sensor'] == exp_sensor
+        assert data_arr.attrs['units'] == 'mg m^-3'
         assert data_arr.dtype.type == np.float32
+        assert isinstance(data_arr.attrs["area"], SwathDefinition)
+        assert data_arr.attrs["rows_per_scan"] == exp_rps

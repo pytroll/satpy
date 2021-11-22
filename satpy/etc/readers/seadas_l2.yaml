@@ -28,8 +28,6 @@ datasets:
         file_type: chlora_seadas
       750:
         file_type: chlora_seadas_viirs
-    standard_name: longitude
-    units: degree
 
   latitude:
     name: latitude
@@ -40,8 +38,6 @@ datasets:
         file_type: chlora_seadas
       750:
         file_type: chlora_seadas_viirs
-    standard_name: latitude
-    units: degree
 
   chlor_a:
     name: chlor_a
