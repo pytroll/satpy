@@ -221,7 +221,7 @@ class DatasetDict(dict):
                 raise ValueError("One of 'name' or 'wavelength' attrs "
                                  "values should be set.")
             id_keys = self._create_id_keys_from_dict(value_info)
-            value_info.setdefault('name', new_name)
+            value_info['name'] = new_name
             key = DataID(id_keys, **value_info)
         return key
 
