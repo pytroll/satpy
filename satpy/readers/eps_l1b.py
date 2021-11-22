@@ -309,7 +309,7 @@ class EPSAVHRRFile(BaseFileHandler):
             if key['calibration'] == 'counts':
                 raise ValueError('calibration=counts is not supported! ' +
                                  'This reader cannot return counts')
-            elif key['calibration'] not in ['reflectance', 'brightness_temperature', 'radiance']:
+            if key['calibration'] not in ['reflectance', 'brightness_temperature', 'radiance']:
                 raise ValueError('calibration type ' + str(key['calibration']) +
                                  ' is not supported!')
 

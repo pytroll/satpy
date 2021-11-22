@@ -102,9 +102,9 @@ class GRIBFileHandler(BaseFileHandler):
             self._msg_datasets[msg_id] = ds_info
 
     @staticmethod
-    def _convert_datetime(msg, date_key, time_key, format="%Y%m%d%H%M"):
+    def _convert_datetime(msg, date_key, time_key, date_format="%Y%m%d%H%M"):
         date_str = "{:d}{:04d}".format(msg[date_key], msg[time_key])
-        return datetime.strptime(date_str, format)
+        return datetime.strptime(date_str, date_format)
 
     @property
     def start_time(self):

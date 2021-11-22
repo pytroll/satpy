@@ -89,23 +89,23 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         data.data = xr.concat(data_arrs, dim='bands').data
         data.attrs = attrs
         return data
-    else:
-        band_data = data.sel(bands=[b for b in bands
-                                    if b not in exclude])
-        if pass_dask:
-            dims = band_data.dims
-            coords = band_data.coords
-            d_arr = func(band_data.data)
-            band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-        else:
-            band_data = func(band_data)
 
-        attrs.update(band_data.attrs)
-        # combine the new data with the excluded data
-        new_data = xr.concat([band_data, data.sel(bands=exclude)],
-                             dim='bands')
-        data.data = new_data.sel(bands=bands).data
-        data.attrs = attrs
+    band_data = data.sel(bands=[b for b in bands
+                                if b not in exclude])
+    if pass_dask:
+        dims = band_data.dims
+        coords = band_data.coords
+        d_arr = func(band_data.data)
+        band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
+    else:
+        band_data = func(band_data)
+
+    attrs.update(band_data.attrs)
+    # combine the new data with the excluded data
+    new_data = xr.concat([band_data, data.sel(bands=exclude)],
+                         dim='bands')
+    data.data = new_data.sel(bands=bands).data
+    data.attrs = attrs
 
     return data
 

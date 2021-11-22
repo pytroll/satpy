@@ -82,7 +82,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         for k, v in self.sensors.items():
             if k == sensor:
                 return v
-            elif k in sensor:
+            if k in sensor:
                 last_resort = v
         if last_resort:
             return last_resort

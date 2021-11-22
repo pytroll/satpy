@@ -638,10 +638,9 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         """Determine whether the given channel is a visible channel."""
         if isinstance(channel, str):
             return channel == '00_7'
-        elif isinstance(channel, int):
+        if isinstance(channel, int):
             return channel == 1
-        else:
-            raise ValueError('Invalid channel')
+        raise ValueError('Invalid channel')
 
     @staticmethod
     def _get_earth_mask(lat):
@@ -1297,7 +1296,7 @@ class GOESCoefficientReader(object):
         if not headings:
             raise ValueError('Cannot find a coefficient table matching text '
                              '"{}"'.format(heading))
-        elif len(headings) > 1:
+        if len(headings) > 1:
             raise ValueError('Found multiple headings matching text "{}"'
                              .format(heading))
         table = headings[0].next_sibling.next_sibling

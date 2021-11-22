@@ -161,7 +161,6 @@ class HRITGOMSPrologueFileHandler(HRITFileHandler):
 
     def process_prologue(self):
         """Reprocess prologue to correct types."""
-        pass
 
 
 radiometric_processing = np.dtype([("TagType", "<u4"),

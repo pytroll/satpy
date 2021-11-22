@@ -216,7 +216,6 @@ class TestEnhancementStretch(unittest.TestCase):
 
     def tearDown(self):
         """Clean up."""
-        pass
 
 
 class TestColormapLoading(unittest.TestCase):
