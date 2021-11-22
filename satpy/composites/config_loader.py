@@ -297,9 +297,14 @@ def _lru_cache_with_config_path(func: Callable):
 
     # return update_wrapper(_add_config_path_wrapper, func)
     wrapper = update_wrapper(_add_config_path_wrapper, func)
-    wrapper.cache_clear = _call_without_config_path_wrapper.cache_clear
-    wrapper.cache_parameters = _call_without_config_path_wrapper.cache_parameters
-    wrapper.cache_info = _call_without_config_path_wrapper.cache_info
+    wrapper = _update_cached_wrapper(wrapper, _call_without_config_path_wrapper)
+    return wrapper
+
+
+def _update_cached_wrapper(wrapper, cached_func):
+    for meth_name in ("cache_clear", "cache_parameters", "cache_info"):
+        if hasattr(cached_func, meth_name):
+            setattr(wrapper, meth_name, getattr(cached_func, meth_name))
     return wrapper
 
 
