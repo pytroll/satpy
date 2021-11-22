@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -32,7 +32,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 import satpy
-from satpy import DatasetDict, DataQuery, DataID
+from satpy import DataQuery, DataID
 from satpy._config import (get_entry_points_config_dirs, config_search_paths,
                            glob_config)
 from satpy.utils import recursive_dict_update
@@ -175,127 +175,67 @@ class _ModifierConfigHelper:
                                "'{}'".format(composite_configs))
 
 
-class _CompositorLoader:
-    """Read compositors and modifiers using the configuration files on disk."""
+def _load_config(composite_configs):
+    if not isinstance(composite_configs, (list, tuple)):
+        composite_configs = [composite_configs]
 
-    def __init__(self):
-        """Initialize the compositor loader."""
-        self.modifiers = {}
-        self.compositors = {}
-        # sensor -> { dict of DataID key information }
-        self._sensor_dataid_keys = {}
+    conf = {}
+    for composite_config in composite_configs:
+        with open(composite_config, 'r', encoding='utf-8') as conf_file:
+            conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
+    try:
+        sensor_name = conf['sensor_name']
+    except KeyError:
+        logger.debug('No "sensor_name" tag found in %s, skipping.',
+                     composite_configs)
+        return
 
-    def _load_sensor_composites(self, sensor_name):
-        """Load all compositor configs for the provided sensor."""
-        config_filename = sensor_name + ".yaml"
-        logger.debug("Looking for composites config file %s", config_filename)
-        paths = get_entry_points_config_dirs('satpy.composites')
-        composite_configs = config_search_paths(
-            os.path.join("composites", config_filename),
-            search_dirs=paths, check_exists=True)
-        if not composite_configs:
-            logger.debug("No composite config found called %s",
-                         config_filename)
-            return
-        self._load_config(composite_configs)
+    sensor_compositors = {}  # DatasetDict()
+    sensor_modifiers = {}
 
-    def load_compositors(self, sensor_names):
-        """Load all compositor configs for the provided sensors.
+    dep_id_keys = None
+    sensor_deps = sensor_name.split('/')[:-1]
+    if sensor_deps:
+        # get dependent
+        for sensor_dep in sensor_deps:
+            dep_comps, dep_mods, dep_id_keys = load_compositor_configs_for_sensor(sensor_dep)
+        # the last parent should include all of its parents so only add the last one
+        sensor_compositors.update(dep_comps)
+        sensor_modifiers.update(dep_mods)
 
-        Args:
-            sensor_names (list of strings): Sensor names that have matching
-                                            ``sensor_name.yaml`` config files.
+    id_keys = _get_sensor_id_keys(conf, dep_id_keys)
+    mod_config_helper = _ModifierConfigHelper(sensor_modifiers, id_keys)
+    configured_modifiers = conf.get('modifiers', {})
+    mod_config_helper.parse_config(configured_modifiers, composite_configs)
 
-        Returns:
-            (comps, mods): Where `comps` is a dictionary:
+    comp_config_helper = _CompositeConfigHelper(sensor_compositors, id_keys)
+    configured_composites = conf.get('composites', {})
+    comp_config_helper.parse_config(configured_composites, composite_configs)
+    return sensor_compositors, sensor_modifiers, id_keys
 
-                    sensor_name -> composite ID -> compositor object
 
-                And `mods` is a dictionary:
-
-                    sensor_name -> modifier name -> (modifier class,
-                    modifiers options)
-
-                Note that these dictionaries are copies of those cached in
-                this object.
-
-        """
-        comps = {}
-        mods = {}
-        for sensor_name in sensor_names:
-            if sensor_name not in self.compositors:
-                self._load_sensor_composites(sensor_name)
-            if sensor_name in self.compositors:
-                comps[sensor_name] = DatasetDict(
-                    self.compositors[sensor_name])
-                mods[sensor_name] = self.modifiers[sensor_name]
-        return comps, mods
-
-    def _get_sensor_id_keys(self, conf, sensor_id, sensor_deps):
-        try:
-            id_keys = conf['composite_identification_keys']
-        except KeyError:
-            try:
-                id_keys = self._sensor_dataid_keys[sensor_deps[-1]]
-            except IndexError:
-                id_keys = minimal_default_keys_config
-        self._sensor_dataid_keys[sensor_id] = id_keys
-        return id_keys
-
-    def _load_config(self, composite_configs):
-        if not isinstance(composite_configs, (list, tuple)):
-            composite_configs = [composite_configs]
-
-        conf = {}
-        for composite_config in composite_configs:
-            with open(composite_config, 'r', encoding='utf-8') as conf_file:
-                conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
-        try:
-            sensor_name = conf['sensor_name']
-        except KeyError:
-            logger.debug('No "sensor_name" tag found in %s, skipping.',
-                         composite_configs)
-            return
-
-        sensor_id = sensor_name.split('/')[-1]
-        sensor_deps = sensor_name.split('/')[:-1]
-
-        compositors = self.compositors.setdefault(sensor_id, DatasetDict())
-        modifiers = self.modifiers.setdefault(sensor_id, {})
-
-        for sensor_dep in reversed(sensor_deps):
-            if sensor_dep not in self.compositors or sensor_dep not in self.modifiers:
-                self._load_sensor_composites(sensor_dep)
-
-        if sensor_deps:
-            compositors.update(self.compositors[sensor_deps[-1]])
-            modifiers.update(self.modifiers[sensor_deps[-1]])
-
-        id_keys = self._get_sensor_id_keys(conf, sensor_id, sensor_deps)
-        mod_config_helper = _ModifierConfigHelper(modifiers, id_keys)
-        configured_modifiers = conf.get('modifiers', {})
-        mod_config_helper.parse_config(configured_modifiers, composite_configs)
-
-        comp_config_helper = _CompositeConfigHelper(compositors, id_keys)
-        configured_composites = conf.get('composites', {})
-        comp_config_helper.parse_config(configured_composites, composite_configs)
+def _get_sensor_id_keys(conf, parent_id_keys):
+    try:
+        id_keys = conf['composite_identification_keys']
+    except KeyError:
+        id_keys = parent_id_keys
+        if not id_keys:
+            id_keys = minimal_default_keys_config
+    return id_keys
 
 
 def _lru_cache_with_config_path(func: Callable):
     """Use lru_cache but include satpy's current config_path."""
     @lru_cache()
-    def _call_without_config_path_wrapper(sensor_names, _):
-        return func(sensor_names)
+    def _call_without_config_path_wrapper(sensor_name, _):
+        return func(sensor_name)
 
-    def _add_config_path_wrapper(sensor_names: Iterable):
+    def _add_config_path_wrapper(sensor_name: str):
         config_path = satpy.config.get("config_path")
-        # make sure sensor_names hashable
-        sensor_names = tuple(sorted(sensor_names))
         # make sure config_path is hashable, but keep original order since it matters
         config_path = tuple(config_path)
-        return _call_without_config_path_wrapper(sensor_names, config_path)
+        return _call_without_config_path_wrapper(sensor_name, config_path)
 
-    # return update_wrapper(_add_config_path_wrapper, func)
     wrapper = update_wrapper(_add_config_path_wrapper, func)
     wrapper = _update_cached_wrapper(wrapper, _call_without_config_path_wrapper)
     return wrapper
@@ -309,10 +249,65 @@ def _update_cached_wrapper(wrapper, cached_func):
 
 
 @_lru_cache_with_config_path
-def load_compositor_configs_for_sensors(sensor_names: Iterable[str]) -> tuple[dict[str, DatasetDict], dict[str, dict]]:
-    """Load compositor and modifier configuration files for the specified sensors."""
-    cl = _CompositorLoader()
-    return cl.load_compositors(sensor_names)
+def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict], dict[str, dict], dict]:
+    """Load compositor, modifier, and DataID key information from configuration files for the specified sensor.
+
+    Args:
+        sensor_name: Sensor name that has matching ``sensor_name.yaml``
+            config files.
+
+    Returns:
+        (comps, mods, data_id_keys): Where `comps` is a dictionary:
+
+                composite ID -> compositor object
+
+            And `mods` is a dictionary:
+
+                modifier name -> (modifier class, modifiers options)
+
+            Add `data_id_keys` is a dictionary:
+
+                DataID key -> key properties
+
+    """
+    config_filename = sensor_name + ".yaml"
+    logger.debug("Looking for composites config file %s", config_filename)
+    paths = get_entry_points_config_dirs('satpy.composites')
+    composite_configs = config_search_paths(
+        os.path.join("composites", config_filename),
+        search_dirs=paths, check_exists=True)
+    if not composite_configs:
+        logger.debug("No composite config found called %s",
+                     config_filename)
+        return {}, {}, minimal_default_keys_config
+    return _load_config(composite_configs)
+
+
+def load_compositor_configs_for_sensors(sensor_names: Iterable[str]) -> tuple[dict[str, dict], dict[str, dict]]:
+    """Load compositor and modifier configuration files for the specified sensors.
+
+    Args:
+        sensor_names (list of strings): Sensor names that have matching
+            ``sensor_name.yaml`` config files.
+
+    Returns:
+        (comps, mods): Where `comps` is a dictionary:
+
+                sensor_name -> composite ID -> compositor object
+
+            And `mods` is a dictionary:
+
+                sensor_name -> modifier name -> (modifier class,
+                modifiers options)
+
+    """
+    comps = {}
+    mods = {}
+    for sensor_name in sensor_names:
+        sensor_comps, sensor_mods = load_compositor_configs_for_sensor(sensor_name)[:2]
+        comps[sensor_name] = sensor_comps
+        mods[sensor_name] = sensor_mods
+    return comps, mods
 
 
 def all_composite_sensors():
