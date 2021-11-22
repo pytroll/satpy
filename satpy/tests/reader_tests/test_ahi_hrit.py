@@ -137,8 +137,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.hrit_jma.HRITJMAFileHandler.__init__')
     def test_get_platform(self, mocked_init):
         """Test platform identification."""
-        from satpy.readers.hrit_jma import (PLATFORMS, UNKNOWN_PLATFORM,
-                                            HRITJMAFileHandler)
+        from satpy.readers.hrit_jma import PLATFORMS, UNKNOWN_PLATFORM, HRITJMAFileHandler
 
         mocked_init.return_value = None
         reader = HRITJMAFileHandler()
@@ -154,8 +153,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting an AreaDefinition."""
-        from satpy.readers.hrit_jma import (AREA_NAMES, FULL_DISK, NORTH_HEMIS,
-                                            SOUTH_HEMIS)
+        from satpy.readers.hrit_jma import AREA_NAMES, FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS
 
         cases = [
             # Non-segmented, full disk

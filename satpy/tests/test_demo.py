@@ -127,8 +127,7 @@ class TestGCPUtils(unittest.TestCase):
     @mock.patch('satpy.demo._google_cloud_platform.urlopen')
     def test_is_gcp_instance(self, uo):
         """Test is_google_cloud_instance."""
-        from satpy.demo._google_cloud_platform import (
-            URLError, is_google_cloud_instance)
+        from satpy.demo._google_cloud_platform import URLError, is_google_cloud_instance
         uo.side_effect = URLError("Test Environment")
         self.assertFalse(is_google_cloud_instance())
 

@@ -28,8 +28,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy import DataID, DataQuery, DatasetDict
-from satpy._config import (config_search_paths, get_entry_points_config_dirs,
-                           glob_config)
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy.utils import recursive_dict_update
 

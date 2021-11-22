@@ -37,15 +37,13 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from pyresample.boundary import AreaDefBoundary, Boundary
-from pyresample.geometry import (AreaDefinition, StackedAreaDefinition,
-                                 SwathDefinition)
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
 
 from satpy import DatasetDict
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, DataQuery, get_key
-from satpy.dataset.dataid import (default_co_keys_config,
-                                  default_id_keys_config, get_keys_from_config)
+from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
 from satpy.resample import add_crs_xy_coords, get_area_def
 from satpy.utils import recursive_dict_update
 

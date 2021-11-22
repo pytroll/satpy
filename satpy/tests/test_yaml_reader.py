@@ -981,8 +981,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
     def test_get_empty_segment_with_height(self):
         """Test _get_empty_segment_with_height()."""
-        from satpy.readers.yaml_reader import \
-            _get_empty_segment_with_height as geswh
+        from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
 
         dim = 'y'
 
@@ -1085,8 +1084,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
-        from satpy.readers.yaml_reader import \
-            _pad_earlier_segments_area as pesa
+        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
         seg2_area.crs = 'some_crs'
@@ -1113,8 +1111,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area_for_FCI_padding(self, AreaDefinition):
         """Test _pad_earlier_segments_area() for the FCI case."""
-        from satpy.readers.yaml_reader import \
-            _pad_earlier_segments_area as pesa
+        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
         seg2_area.crs = 'some_crs'

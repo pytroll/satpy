@@ -39,7 +39,7 @@ datasets:
     name: ds5
     resolution:
       250:
-        file_type: fake_file_highres
+        file_type: fake_file1_highres
       500:
         file_type: fake_file1
       1000:
@@ -111,7 +111,7 @@ file_types:
     file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
     file_patterns: ['fake1_{file_idx:d}.txt']
     sensor: fake_sensor
-  fake_file_highres:
+  fake_file1_highres:
     file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
     file_patterns: ['fake1_highres_{file_idx:d}.txt']
     sensor: fake_sensor

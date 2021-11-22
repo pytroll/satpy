@@ -31,9 +31,14 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function, time_cds_short)
+from satpy.readers.hrit_base import (
+    HRITFileHandler,
+    ancillary_text,
+    annotation_header,
+    base_hdr_map,
+    image_data_function,
+    time_cds_short,
+)
 
 logger = logging.getLogger('hrit_electrol')
 

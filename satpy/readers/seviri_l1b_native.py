@@ -36,22 +36,32 @@ from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
-from satpy.readers.eum_base import (get_service_mode, recarray2dict,
-                                    time_cds_short)
+from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import (CHANNEL_NAMES, HRV_NUM_COLUMNS,
-                                       HRV_NUM_LINES, SATNUM,
-                                       VISIR_NUM_COLUMNS, VISIR_NUM_LINES,
-                                       NoValidOrbitParams,
-                                       OrbitPolynomialFinder,
-                                       SEVIRICalibrationHandler,
-                                       add_scanline_acq_time, create_coef_dict,
-                                       dec10216, get_cds_time, get_satpos,
-                                       pad_data_horizontally,
-                                       pad_data_vertically)
+from satpy.readers.seviri_base import (
+    CHANNEL_NAMES,
+    HRV_NUM_COLUMNS,
+    HRV_NUM_LINES,
+    SATNUM,
+    VISIR_NUM_COLUMNS,
+    VISIR_NUM_LINES,
+    NoValidOrbitParams,
+    OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
+    add_scanline_acq_time,
+    create_coef_dict,
+    dec10216,
+    get_cds_time,
+    get_satpos,
+    pad_data_horizontally,
+    pad_data_vertically,
+)
 from satpy.readers.seviri_l1b_native_hdr import (
-    DEFAULT_15_SECONDARY_PRODUCT_HEADER, GSDTRecords, get_native_header,
-    native_trailer)
+    DEFAULT_15_SECONDARY_PRODUCT_HEADER,
+    GSDTRecords,
+    get_native_header,
+    native_trailer,
+)
 from satpy.readers.utils import reduce_mda
 
 logger = logging.getLogger('native_msg')

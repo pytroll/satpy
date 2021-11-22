@@ -130,8 +130,7 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         """Create temporary file to perform tests with."""
         import tempfile
 
-        from satpy.readers.ascat_l2_soilmoisture_bufr import \
-            AscatSoilMoistureBufr
+        from satpy.readers.ascat_l2_soilmoisture_bufr import AscatSoilMoistureBufr
         self.base_dir = tempfile.mkdtemp()
         self.fname = save_test_data(self.base_dir)
         self.fname_info = FILENAME_INFO

@@ -23,8 +23,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from satpy.dataset.dataid import (DataID, DataQuery, ModifierTuple,
-                                  WavelengthRange, minimal_default_keys_config)
+from satpy.dataset.dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, minimal_default_keys_config
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -378,8 +377,7 @@ def test_combine_dicts_different(test_mda):
 
 def test_dataid():
     """Test the DataID object."""
-    from satpy.dataset.dataid import (DataID, ModifierTuple, ValueList,
-                                      WavelengthRange)
+    from satpy.dataset.dataid import DataID, ModifierTuple, ValueList, WavelengthRange
 
     # Check that enum is translated to type.
     did = make_dataid()

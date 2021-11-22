@@ -45,10 +45,14 @@ from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import (apply_rad_correction, get_earth_radius,
-                                 get_geostationary_mask,
-                                 get_user_calibration_factors, np2str,
-                                 unzip_file)
+from satpy.readers.utils import (
+    apply_rad_correction,
+    get_earth_radius,
+    get_geostationary_mask,
+    get_user_calibration_factors,
+    np2str,
+    unzip_file,
+)
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",

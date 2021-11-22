@@ -25,9 +25,7 @@ from unittest import mock
 
 import numpy as np
 
-from satpy.readers.hrit_base import (HRITFileHandler, decompress,
-                                     get_xritdecompress_cmd,
-                                     get_xritdecompress_outfile)
+from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
 
 
 class TestHRITDecompress(unittest.TestCase):

@@ -26,8 +26,7 @@ import numpy as np
 from satpy import DataID
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.node import (EMPTY_LEAF_NAME, LOG, CompositorNode,
-                        MissingDependencies, Node, ReaderNode)
+from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
 
 
 class Tree:

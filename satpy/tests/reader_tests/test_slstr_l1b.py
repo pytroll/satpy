@@ -25,8 +25,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
-from satpy.readers.slstr_l1b import (NCSLSTR1B, NCSLSTRAngles, NCSLSTRFlag,
-                                     NCSLSTRGeo)
+from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRAngles, NCSLSTRFlag, NCSLSTRGeo
 
 local_id_keys_config = {'name': {
     'required': True,

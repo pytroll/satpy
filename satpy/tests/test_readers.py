@@ -225,8 +225,7 @@ class TestReaderLoader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
-        from satpy.tests.reader_tests.test_viirs_sdr import \
-            FakeHDF5FileHandler2
+        from satpy.tests.reader_tests.test_viirs_sdr import FakeHDF5FileHandler2
 
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeHDF5FileHandler2,))
@@ -412,8 +411,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
-        from satpy.tests.reader_tests.test_viirs_sdr import \
-            FakeHDF5FileHandler2
+        from satpy.tests.reader_tests.test_viirs_sdr import FakeHDF5FileHandler2
 
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(VIIRSSDRFileHandler, '__bases__', (FakeHDF5FileHandler2,))
@@ -604,8 +602,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
 
     def test_pending_old_reader_name_mapping(self):
         """Test that requesting pending old reader names raises a warning."""
-        from satpy.readers import (PENDING_OLD_READER_NAMES,
-                                   get_valid_reader_names)
+        from satpy.readers import PENDING_OLD_READER_NAMES, get_valid_reader_names
         if not PENDING_OLD_READER_NAMES:
             return unittest.skip("Skipping pending deprecated reader tests because "
                                  "no pending deprecated readers.")

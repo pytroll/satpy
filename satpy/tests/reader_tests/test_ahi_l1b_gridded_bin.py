@@ -27,8 +27,7 @@ import dask.array as da
 import numpy as np
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.ahi_l1b_gridded_bin import (AHI_LUT_NAMES,
-                                               AHIGriddedFileHandler)
+from satpy.readers.ahi_l1b_gridded_bin import AHI_LUT_NAMES, AHIGriddedFileHandler
 
 
 class TestAHIGriddedArea(unittest.TestCase):

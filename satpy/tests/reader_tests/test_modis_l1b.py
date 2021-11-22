@@ -27,10 +27,12 @@ from pytest_lazyfixture import lazy_fixture
 from satpy import Scene, available_readers
 
 from ..utils import CustomScheduler, make_dataid
-from ._modis_fixtures import (AVAILABLE_1KM_PRODUCT_NAMES,
-                              AVAILABLE_HKM_PRODUCT_NAMES,
-                              AVAILABLE_QKM_PRODUCT_NAMES,
-                              _shape_for_resolution)
+from ._modis_fixtures import (
+    AVAILABLE_1KM_PRODUCT_NAMES,
+    AVAILABLE_HKM_PRODUCT_NAMES,
+    AVAILABLE_QKM_PRODUCT_NAMES,
+    _shape_for_resolution,
+)
 
 
 def _check_shared_metadata(data_arr):

@@ -31,9 +31,15 @@ import xarray as xr
 
 import satpy
 from satpy import Scene
-from satpy.tests.utils import (FAKE_FILEHANDLER_END, FAKE_FILEHANDLER_START,
-                               default_id_keys_config, make_cid, make_dataid,
-                               make_dsq, spy_decorator)
+from satpy.tests.utils import (
+    FAKE_FILEHANDLER_END,
+    FAKE_FILEHANDLER_START,
+    default_id_keys_config,
+    make_cid,
+    make_dataid,
+    make_dsq,
+    spy_decorator,
+)
 
 TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
 

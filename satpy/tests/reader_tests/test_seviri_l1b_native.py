@@ -28,13 +28,9 @@ import pytest
 import xarray as xr
 
 from satpy.readers.eum_base import time_cds_short
-from satpy.readers.seviri_l1b_native import (ImageBoundaries,
-                                             NativeMSGFileHandler, Padder,
-                                             get_available_channels)
-from satpy.tests.reader_tests.test_seviri_base import (
-    ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID)
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import \
-    TestFileHandlerCalibrationBase
+from satpy.readers.seviri_l1b_native import ImageBoundaries, NativeMSGFileHandler, Padder, get_available_channels
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',

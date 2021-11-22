@@ -20,6 +20,7 @@
 import logging
 
 import numpy as np
+
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa

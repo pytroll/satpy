@@ -26,8 +26,7 @@ import xarray as xr
 
 from satpy.readers.seviri_l1b_nc import NCSEVIRIFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import \
-    TestFileHandlerCalibrationBase
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 

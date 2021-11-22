@@ -28,9 +28,7 @@ from unittest import mock
 import numpy as np
 from netCDF4 import Dataset
 
-from satpy.readers.fci_l2_nc import (PRODUCT_DATA_DURATION_MINUTES,
-                                     FciL2NCFileHandler,
-                                     FciL2NCSegmentFileHandler)
+from satpy.readers.fci_l2_nc import PRODUCT_DATA_DURATION_MINUTES, FciL2NCFileHandler, FciL2NCSegmentFileHandler
 
 
 class TestFciL2NCFileHandler(unittest.TestCase):

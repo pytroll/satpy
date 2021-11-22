@@ -851,8 +851,7 @@ class BilinearResampler(BaseResampler):
         try:
             from pyresample.bilinear import XArrayBilinearResampler
         except ImportError:
-            from pyresample.bilinear import \
-                XArrayResamplerBilinear as XArrayBilinearResampler
+            from pyresample.bilinear import XArrayResamplerBilinear as XArrayBilinearResampler
 
         del kwargs
         del mask

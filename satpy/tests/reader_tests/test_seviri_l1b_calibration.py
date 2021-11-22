@@ -24,8 +24,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.seviri_base import (SEVIRICalibrationAlgorithm,
-                                       SEVIRICalibrationHandler)
+from satpy.readers.seviri_base import SEVIRICalibrationAlgorithm, SEVIRICalibrationHandler
 
 COUNTS_INPUT = xr.DataArray(
     np.array([[377.,  377.,  377.,  376.,  375.],

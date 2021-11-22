@@ -197,8 +197,7 @@ import xarray as xr
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.goes_imager_hrit import (ALTITUDE, EQUATOR_RADIUS,
-                                            POLE_RADIUS, SPACECRAFTS)
+from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
 from satpy.readers.utils import bbox, get_geostationary_angle_extent
 
 logger = logging.getLogger(__name__)

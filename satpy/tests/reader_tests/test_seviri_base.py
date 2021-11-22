@@ -26,12 +26,18 @@ import pytest
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers.seviri_base import (NoValidOrbitParams, OrbitPolynomial,
-                                       OrbitPolynomialFinder, chebyshev,
-                                       dec10216, get_cds_time,
-                                       get_padding_area, get_satpos,
-                                       pad_data_horizontally,
-                                       pad_data_vertically)
+from satpy.readers.seviri_base import (
+    NoValidOrbitParams,
+    OrbitPolynomial,
+    OrbitPolynomialFinder,
+    chebyshev,
+    dec10216,
+    get_cds_time,
+    get_padding_area,
+    get_satpos,
+    pad_data_horizontally,
+    pad_data_vertically,
+)
 
 
 def chebyshev4(c, x, domain):

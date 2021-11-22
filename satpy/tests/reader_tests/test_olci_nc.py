@@ -28,9 +28,7 @@ class TestOLCIReader(unittest.TestCase):
         """Test initialization of file handlers."""
         import xarray as xr
 
-        from satpy.readers.olci_nc import (NCOLCI1B, NCOLCI2, NCOLCIBase,
-                                           NCOLCICal, NCOLCIChannelBase,
-                                           NCOLCIGeo)
+        from satpy.readers.olci_nc import NCOLCI1B, NCOLCI2, NCOLCIBase, NCOLCICal, NCOLCIChannelBase, NCOLCIGeo
         from satpy.tests.utils import make_dataid
 
         cal_data = xr.Dataset(

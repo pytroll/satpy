@@ -29,8 +29,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.utils import (angle2xyz, get_satpos, lonlat2xyz,
-                         proj_units_to_meters, xyz2angle, xyz2lonlat)
+from satpy.utils import angle2xyz, get_satpos, lonlat2xyz, proj_units_to_meters, xyz2angle, xyz2lonlat
 
 
 class TestUtils(unittest.TestCase):

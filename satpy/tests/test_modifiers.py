@@ -447,9 +447,12 @@ class TestAngleGeneration:
     )
     def test_cache_get_angles(self, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
         """Test get_angles when caching is enabled."""
-        from satpy.modifiers.angles import (STATIC_EARTH_INERTIAL_DATETIME,
-                                            _get_sensor_angles_from_sat_pos,
-                                            _get_valid_lonlats, get_angles)
+        from satpy.modifiers.angles import (
+            STATIC_EARTH_INERTIAL_DATETIME,
+            _get_sensor_angles_from_sat_pos,
+            _get_valid_lonlats,
+            get_angles,
+        )
 
         # Patch methods
         data = _get_angle_test_data()

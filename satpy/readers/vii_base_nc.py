@@ -21,8 +21,7 @@
 import logging
 from datetime import datetime
 
-from geotiepoints.viiinterpolator import (tie_points_geo_interpolation,
-                                          tie_points_interpolation)
+from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 from satpy.readers.vii_utils import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR

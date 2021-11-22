@@ -119,22 +119,29 @@ from pyresample import geometry
 import satpy.readers.utils as utils
 from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
-from satpy.readers._geos_area import (get_area_definition, get_area_extent,
-                                      get_geos_area_naming)
-from satpy.readers.eum_base import (get_service_mode, recarray2dict,
-                                    time_cds_short)
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function)
-from satpy.readers.seviri_base import (CHANNEL_NAMES, HRV_NUM_COLUMNS, SATNUM,
-                                       NoValidOrbitParams,
-                                       OrbitPolynomialFinder,
-                                       SEVIRICalibrationHandler,
-                                       add_scanline_acq_time, create_coef_dict,
-                                       get_cds_time, get_satpos,
-                                       pad_data_horizontally)
-from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
-                                                 impf_configuration)
+from satpy.readers._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
+from satpy.readers.hrit_base import (
+    HRITFileHandler,
+    ancillary_text,
+    annotation_header,
+    base_hdr_map,
+    image_data_function,
+)
+from satpy.readers.seviri_base import (
+    CHANNEL_NAMES,
+    HRV_NUM_COLUMNS,
+    SATNUM,
+    NoValidOrbitParams,
+    OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
+    add_scanline_acq_time,
+    create_coef_dict,
+    get_cds_time,
+    get_satpos,
+    pad_data_horizontally,
+)
+from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
 
 logger = logging.getLogger('hrit_msg')
 

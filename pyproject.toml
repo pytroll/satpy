@@ -9,6 +9,6 @@ write_to = "satpy/version.py"
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 profile = "black"
 skip_gitignore = true
-force_to_top = true
 default_section = "THIRDPARTY"
 known_first_party = "satpy"
+line_length = 120

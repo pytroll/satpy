@@ -33,9 +33,13 @@ import xarray as xr
 from pyresample import geometry
 
 from satpy.readers.eum_base import recarray2dict, time_cds_short
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function)
+from satpy.readers.hrit_base import (
+    HRITFileHandler,
+    ancillary_text,
+    annotation_header,
+    base_hdr_map,
+    image_data_function,
+)
 
 
 class CalibrationError(Exception):
