@@ -151,13 +151,16 @@ class BaseFileHandler(metaclass=ABCMeta):
             ds_ftype (str or list): File type or list of file types that a
                 dataset is configured to be loaded from.
 
-        Returns: ``True`` if this file handler object's type matches the
-            dataset's file type(s), ``False`` otherwise.
+        Returns:
+            ``True`` if this file handler object's type matches the
+            dataset's file type(s), ``None`` otherwise. ``None`` is returned
+            instead of ``False`` to follow the convention of the
+            :meth:`available_datasets` method.
 
         """
-        if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
-            return True
-        elif self.filetype_info['file_type'] in ds_ftype:
+        if not isinstance(ds_ftype, (list, tuple)):
+            ds_ftype = [ds_ftype]
+        if self.filetype_info['file_type'] in ds_ftype:
             return True
         return None
 
@@ -197,7 +200,8 @@ class BaseFileHandler(metaclass=ABCMeta):
                 available datasets. This argument could be the result of a
                 previous file handler's implementation of this method.
 
-        Returns: Iterator of (bool or None, dict) pairs where dict is the
+        Returns:
+            Iterator of (bool or None, dict) pairs where dict is the
             dataset's metadata. If the dataset is available in the current
             file type then the boolean value should be ``True``, ``False``
             if we **know** about the dataset but it is unavailable, or

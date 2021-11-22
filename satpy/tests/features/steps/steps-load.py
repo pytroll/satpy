@@ -58,12 +58,8 @@ def step_impl_user_loads_no_config(context):
 @then(u'the data is available in a scene object')
 def step_impl_data_available_in_scene(context):
     """Check that the data is available in the scene."""
-    assert (context.scene["M02"] is not None)
-    try:
-        context.scene["M01"] is None
-        raise AssertionError()
-    except KeyError:
-        pass
+    assert context.scene["M02"] is not None
+    assert context.scene.get("M01") is None
 
 
 @when(u'some items are not available')

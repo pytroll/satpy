@@ -15,21 +15,23 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Behave steps related to saving or showing datasets."""
+
 from behave import given, when, then, use_step_matcher
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
+from unittest.mock import patch
 
 
 use_step_matcher("re")
 
 
-@given("a dataset is available")  # noqa: F811
+@given("a dataset is available")
 def step_impl(context):
-    """
-    :type context: behave.runner.Context
+    """Create a Scene with a fake dataset for testing.
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
     from satpy import Scene
     from xarray import DataArray
@@ -38,47 +40,61 @@ def step_impl(context):
     context.scene = scn
 
 
-@when("the show command is called")  # noqa: F811
+@when("the show command is called")
 def step_impl(context):
-    """
-    :type context: behave.runner.Context
+    """Call the Scene.show method.
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
     with patch('trollimage.xrimage.XRImage.show') as mock_show:
         context.scene.show("MyDataset")
         mock_show.assert_called_once_with()
 
 
-@then("an image should pop up")  # noqa: F811
+@then("an image should pop up")
 def step_impl(context):
+    """Check that a image window pops up (no-op currently).
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
-    :type context: behave.runner.Context
-    """
-    pass
 
 
-@when("the save_dataset command is called")  # noqa: F811
+@when("the save_dataset command is called")
 def step_impl(context):
-    """
-    :type context: behave.runner.Context
+    """Run Scene.save_dataset to create a PNG image.
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
     context.filename = "/tmp/test_dataset.png"
     context.scene.save_dataset("MyDataset", context.filename)
 
 
-@then("a file should be saved on disk")  # noqa: F811
+@then("a file should be saved on disk")
 def step_impl(context):
-    """
-    :type context: behave.runner.Context
+    """Check that a file exists on disk and then remove it.
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
     import os
     assert(os.path.exists(context.filename))
     os.remove(context.filename)
 
 
-@given("a bunch of datasets are available")  # noqa: F811
+@given("a bunch of datasets are available")
 def step_impl(context):
-    """
-    :type context: behave.runner.Context
+    """Create a Scene with two fake datasets for testing.
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
     from satpy import Scene
     from xarray import DataArray
@@ -88,18 +104,24 @@ def step_impl(context):
     context.scene = scn
 
 
-@when("the save_datasets command is called")  # noqa: F811
+@when("the save_datasets command is called")
 def step_impl(context):
-    """
-    :type context: behave.runner.Context
+    """Run Scene.save_datsets to create PNG images.
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
     context.scene.save_datasets(writer="simple_image", filename="{name}.png")
 
 
-@then("a bunch of files should be saved on disk")  # noqa: F811
+@then("a bunch of files should be saved on disk")
 def step_impl(context):
-    """
-    :type context: behave.runner.Context
+    """Check that two PNGs exist.
+
+    Args:
+        context (behave.runner.Context): Test context
+
     """
     import os
     for filename in ["MyDataset.png", "MyDataset2.png"]:
