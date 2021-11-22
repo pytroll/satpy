@@ -301,7 +301,8 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         """Determine if this dataset should be loaded as a Geo dataset."""
         return dataset_name in HDFEOSGeoReader.DATASET_NAMES
 
-    def read_geo_resolution(self, metadata):
+    @staticmethod
+    def read_geo_resolution(metadata):
         """Parse metadata to find the geolocation resolution."""
         # level 1 files
         try:
