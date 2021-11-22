@@ -18,7 +18,6 @@
 
 import logging
 import os
-
 from urllib.error import URLError
 from urllib.request import urlopen
 
