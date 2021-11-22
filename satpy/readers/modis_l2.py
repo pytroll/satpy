@@ -94,8 +94,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         except KeyError:
             return self.start_time
 
-    @staticmethod
-    def read_geo_resolution(metadata):
+    def read_geo_resolution(self, metadata):
         """Parse metadata to find the geolocation resolution.
 
         It is implemented as a staticmethod to match read_mda pattern.
@@ -105,7 +104,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
             return HDFEOSGeoReader.read_geo_resolution(metadata)
         except RuntimeError:
             # most L2 products are 5000m
-            return 5000
+            return self.filetype_info.get("geo_resolution", 5000)
 
     def _select_hdf_dataset(self, hdf_dataset_name, byte_dimension):
         """Load a dataset from HDF-EOS level 2 file."""
