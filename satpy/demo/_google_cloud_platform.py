@@ -19,12 +19,8 @@
 import logging
 import os
 
-try:
-    from urllib.error import URLError
-    from urllib.request import urlopen
-except ImportError:
-    # python 2
-    from urllib2 import URLError, urlopen  # type: ignore
+from urllib.error import URLError
+from urllib.request import urlopen
 
 try:
     import gcsfs
