@@ -20,8 +20,8 @@
 import logging
 import os.path
 import re
-
 from datetime import datetime
+
 from pyhdf.SD import SD, SDC
 
 from satpy.dataset import Dataset

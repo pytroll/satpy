@@ -19,10 +19,10 @@
 
 import logging
 import os
+import pickle
 import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
-import pickle
 
 import yaml
 
@@ -32,8 +32,9 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy._config import config_search_paths, glob_config
-from .yaml_reader import (AbstractYAMLReader,
-                          load_yaml_configs as load_yaml_reader_configs)
+
+from .yaml_reader import AbstractYAMLReader
+from .yaml_reader import load_yaml_configs as load_yaml_reader_configs
 
 LOG = logging.getLogger(__name__)
 

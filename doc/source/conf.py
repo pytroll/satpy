@@ -15,6 +15,7 @@
 import os
 import sys
 from datetime import datetime
+
 from pkg_resources import get_distribution
 
 # If extensions (or modules to document with autodoc) are in another directory,

@@ -19,9 +19,11 @@
 
 import os
 import unittest
-from unittest import mock
 from datetime import datetime, timedelta
+from unittest import mock
+
 import numpy as np
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 

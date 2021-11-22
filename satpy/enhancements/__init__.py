@@ -16,15 +16,17 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Enhancements."""
 
-import numpy as np
-import xarray as xr
-import dask
-import dask.array as da
-from trollimage.xrimage import XRImage
-from numbers import Number
 import logging
 import warnings
 from functools import partial
+from numbers import Number
+
+import dask
+import dask.array as da
+import numpy as np
+import xarray as xr
+from trollimage.xrimage import XRImage
+
 from satpy._compat import ArrayLike
 
 LOG = logging.getLogger(__name__)
@@ -455,8 +457,9 @@ def create_colormap(palette):
             cmap.append((value, tuple(color)))
         cmap = Colormap(*cmap)
     elif isinstance(colors, str):
-        from trollimage import colormap
         import copy
+
+        from trollimage import colormap
         cmap = copy.copy(getattr(colormap, colors))
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))

@@ -28,14 +28,15 @@ areas configuration file (located in $PPP_CONFIG_DIR).
 
 """
 
+import argparse
 import os
 
-from satpy.utils import debug_on
+import yaml
+from mpop.projector import get_area_def
 
 from satpy import Scene
-from mpop.projector import get_area_def
-import argparse
-import yaml
+from satpy.utils import debug_on
+
 try:
     from yaml import UnsafeLoader
 except ImportError:

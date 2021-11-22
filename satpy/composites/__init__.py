@@ -27,12 +27,11 @@ import numpy as np
 import xarray as xr
 
 import satpy
+from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
-from satpy.aux_download import DataDownloadMixin
-from satpy.writers import get_enhanced_image
 from satpy.utils import unify_chunks
-
+from satpy.writers import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 

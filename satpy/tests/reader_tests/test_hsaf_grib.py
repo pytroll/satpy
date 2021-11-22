@@ -156,6 +156,7 @@ class TestHSAFFileHandler(unittest.TestCase):
         """Test reading the actual datasets from a grib file."""
         pg.open.return_value = FakeGRIB()
         from satpy.readers.hsaf_grib import HSAFFileHandler
+
         # Instantaneous precipitation
         fh = HSAFFileHandler('filename', mock.MagicMock(), mock.MagicMock())
         fh.filename = "H03B"

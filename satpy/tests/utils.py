@@ -16,21 +16,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests."""
 
-from unittest import mock
 from datetime import datetime
+from unittest import mock
 
-from satpy import Scene
-from satpy.dataset import DataID, DataQuery
-from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.composites import GenericCompositor, IncompatibleAreas
-from satpy.modifiers import ModifierBase
-
-from pyresample.geometry import SwathDefinition, BaseDefinition
-from pyresample import create_area_def
-from xarray import DataArray
 import dask.array as da
 import numpy as np
+from pyresample import create_area_def
+from pyresample.geometry import BaseDefinition, SwathDefinition
+from xarray import DataArray
+
+from satpy import Scene
+from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.dataset import DataID, DataQuery
+from satpy.dataset.dataid import (default_id_keys_config,
+                                  minimal_default_keys_config)
+from satpy.modifiers import ModifierBase
+from satpy.readers.file_handlers import BaseFileHandler
 
 FAKE_FILEHANDLER_START = datetime(2020, 1, 1, 0, 0, 0)
 FAKE_FILEHANDLER_END = datetime(2020, 1, 1, 1, 0, 0)

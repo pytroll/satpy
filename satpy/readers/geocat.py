@@ -30,6 +30,7 @@ and projection information to calculate the area extents.
 
 """
 import logging
+
 import numpy as np
 from pyproj import Proj
 from pyresample import geometry

@@ -20,6 +20,7 @@
 
 import logging
 from datetime import datetime
+
 import numpy as np
 
 from satpy.dataset import Dataset

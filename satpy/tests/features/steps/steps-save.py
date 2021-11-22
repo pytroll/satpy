@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-from behave import given, when, then, use_step_matcher
+from behave import given, then, use_step_matcher, when
 
 try:
     from unittest.mock import patch
@@ -31,8 +31,9 @@ def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    from satpy import Scene
     from xarray import DataArray
+
+    from satpy import Scene
     scn = Scene()
     scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
     context.scene = scn
@@ -80,8 +81,9 @@ def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    from satpy import Scene
     from xarray import DataArray
+
+    from satpy import Scene
     scn = Scene()
     scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
     scn["MyDataset2"] = DataArray([[5, 6], [7, 8]], dims=['y', 'x'])

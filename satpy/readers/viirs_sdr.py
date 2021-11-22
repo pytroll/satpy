@@ -29,12 +29,12 @@ Format documentation:
 
 """
 import logging
+import os.path
 from datetime import datetime, timedelta
 from glob import glob
-import os.path
 
-import numpy as np
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler

@@ -127,7 +127,8 @@ class TestGCPUtils(unittest.TestCase):
     @mock.patch('satpy.demo._google_cloud_platform.urlopen')
     def test_is_gcp_instance(self, uo):
         """Test is_google_cloud_instance."""
-        from satpy.demo._google_cloud_platform import is_google_cloud_instance, URLError
+        from satpy.demo._google_cloud_platform import (
+            URLError, is_google_cloud_instance)
         uo.side_effect = URLError("Test Environment")
         self.assertFalse(is_google_cloud_instance())
 
@@ -183,16 +184,18 @@ class TestAHIDemoDownload:
     @mock.patch.dict(sys.modules, {'s3fs': mock.MagicMock()})
     def test_ahi_full_download(self):
         """Test that the himawari download works as expected."""
-        from satpy.demo import download_typhoon_surigae_ahi
         from tempfile import gettempdir
+
+        from satpy.demo import download_typhoon_surigae_ahi
         files = download_typhoon_surigae_ahi(base_dir=gettempdir())
         assert len(files) == 160
 
     @mock.patch.dict(sys.modules, {'s3fs': mock.MagicMock()})
     def test_ahi_partial_download(self):
         """Test that the himawari download works as expected."""
-        from satpy.demo import download_typhoon_surigae_ahi
         from tempfile import gettempdir
+
+        from satpy.demo import download_typhoon_surigae_ahi
         files = download_typhoon_surigae_ahi(base_dir=gettempdir(), segments=[4, 9], channels=[1, 2, 3])
         assert len(files) == 6
 
@@ -461,8 +464,9 @@ class TestSEVIRIHRITDemoDownload(unittest.TestCase):
 
     def test_download_to_output_directory(self):
         """Test downloading to an output directory."""
-        from satpy.demo import download_seviri_hrit_20180228_1500
         from tempfile import gettempdir
+
+        from satpy.demo import download_seviri_hrit_20180228_1500
         with mock_filesystem():
             base_dir = gettempdir()
             files = download_seviri_hrit_20180228_1500(base_dir=base_dir)

@@ -25,10 +25,12 @@ platforms as well assuming no file format changes.
 
 """
 from datetime import datetime
-from satpy.readers.hdf5_utils import HDF5FileHandler
-from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
-import numpy as np
+
 import dask.array as da
+import numpy as np
+from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
+
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
 class MERSI2L1B(HDF5FileHandler):

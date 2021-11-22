@@ -24,12 +24,13 @@ import unittest
 import warnings
 from unittest import mock
 
-import pytest
-import numpy as np
-import xarray as xr
 import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
 
-from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters, get_satpos
+from satpy.utils import (angle2xyz, get_satpos, lonlat2xyz,
+                         proj_units_to_meters, xyz2angle, xyz2lonlat)
 
 
 class TestUtils(unittest.TestCase):
@@ -317,7 +318,7 @@ class TestCheckSatpy(unittest.TestCase):
 
 def test_debug_on(caplog):
     """Test that debug_on is working as expected."""
-    from satpy.utils import debug_on, debug_off, debug
+    from satpy.utils import debug, debug_off, debug_on
 
     def depwarn():
         logger = logging.getLogger("satpy.silly")
@@ -346,7 +347,7 @@ def test_debug_on(caplog):
 
 def test_logging_on_and_off(caplog):
     """Test that switching logging on and off works."""
-    from satpy.utils import logging_on, logging_off
+    from satpy.utils import logging_off, logging_on
     logger = logging.getLogger("satpy.silly")
     logging_on()
     with caplog.at_level(logging.WARNING):

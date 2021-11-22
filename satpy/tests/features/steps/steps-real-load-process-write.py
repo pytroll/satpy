@@ -18,14 +18,12 @@
 """Step for the real load-process-write tests.
 """
 
-import os
 import fnmatch
-
-from behave import given, when, then
-
+import os
 from tempfile import NamedTemporaryFile
 
 import numpy as np
+from behave import given, then, when
 from PIL import Image
 
 

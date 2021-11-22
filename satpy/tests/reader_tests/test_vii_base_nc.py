@@ -18,17 +18,17 @@
 
 """The vii_base_nc reader tests package."""
 
-import os
-import numpy as np
-import xarray as xr
 import datetime
-from netCDF4 import Dataset
+import os
+import unittest
 import uuid
 
-from satpy.readers.vii_base_nc import ViiNCBaseFileHandler, SCAN_ALT_TIE_POINTS, \
-    TIE_POINTS_FACTOR
+import numpy as np
+import xarray as xr
+from netCDF4 import Dataset
 
-import unittest
+from satpy.readers.vii_base_nc import (SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR,
+                                       ViiNCBaseFileHandler)
 
 try:
     from unittest import mock

@@ -29,12 +29,14 @@ http://www.tropomi.eu/data-products/level-2-products
 
 """
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
+
 from satpy import CHUNK_SIZE
+from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 logger = logging.getLogger(__name__)
 

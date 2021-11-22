@@ -23,7 +23,7 @@ from typing import Optional
 
 import numpy as np
 import pytest
-from pyhdf.SD import SDC, SD
+from pyhdf.SD import SD, SDC
 
 # Level 1 Fixtures
 

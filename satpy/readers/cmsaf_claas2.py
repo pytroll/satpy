@@ -1,7 +1,9 @@
 """Module containing CMSAF CLAAS v2 FileHandler."""
 
 import datetime
+
 import pyresample.geometry
+
 from .netcdf_utils import NetCDF4FileHandler
 
 

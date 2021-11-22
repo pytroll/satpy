@@ -19,10 +19,12 @@
 
 import unittest
 from datetime import datetime
+
 import numpy as np
-from satpy.readers.eum_base import (timecds2datetime, time_cds_short,
-                                    time_cds, time_cds_expanded,
-                                    recarray2dict, get_service_mode)
+
+from satpy.readers.eum_base import (get_service_mode, recarray2dict, time_cds,
+                                    time_cds_expanded, time_cds_short,
+                                    timecds2datetime)
 
 
 class TestMakeTimeCdsDictionary(unittest.TestCase):

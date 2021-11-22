@@ -18,12 +18,13 @@
 """Tests for the 'mersi2_l1b' reader."""
 import os
 import unittest
-import pytest
 from unittest import mock
 
-import numpy as np
 import dask.array as da
+import numpy as np
+import pytest
 import xarray as xr
+
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 
@@ -251,8 +252,8 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.mersi2_l1b import MERSI2L1B
         from satpy._config import config_search_paths
+        from satpy.readers.mersi2_l1b import MERSI2L1B
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(MERSI2L1B, '__bases__', (FakeHDF5FileHandler2,))
@@ -265,9 +266,9 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_all_resolutions(self):
         """Test loading data when all resolutions are available."""
-        from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
         from satpy.dataset.data_dict import get_key
+        from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
@@ -329,8 +330,8 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_counts_calib(self):
         """Test loading data at counts calibration."""
-        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
@@ -385,8 +386,8 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_rad_calib(self):
         """Test loading data at radiance calibration."""
-        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
@@ -423,9 +424,9 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
-        from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
         from satpy.dataset.data_dict import get_key
+        from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF',
@@ -485,9 +486,9 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_250_resolutions(self):
         """Test loading data when only 250m resolutions are available."""
-        from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader
         from satpy.dataset.data_dict import get_key
+        from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF',

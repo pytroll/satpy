@@ -27,17 +27,17 @@ References:
 
 """
 import logging
+from datetime import timedelta
+
 import dask.array as da
 import numpy as np
 import xarray as xr
-from datetime import timedelta
 
 from satpy import CHUNK_SIZE
 from satpy.readers._geos_area import get_area_definition
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import (calculate_area_extent,
-                                       PLATFORM_DICT,
-                                       REPEAT_CYCLE_DURATION)
+from satpy.readers.seviri_base import (PLATFORM_DICT, REPEAT_CYCLE_DURATION,
+                                       calculate_area_extent)
 
 try:
     import eccodes as ec

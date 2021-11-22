@@ -25,12 +25,13 @@ import tempfile
 import warnings
 from contextlib import closing
 from io import BytesIO
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
 import numpy as np
 import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
+
 from satpy import CHUNK_SIZE
 
 try:

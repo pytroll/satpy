@@ -18,11 +18,13 @@
 """GeoTIFF writer objects for creating GeoTIFF files from `DataArray` objects."""
 
 import logging
+
 import numpy as np
-from satpy.writers import ImageWriter
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa
+
+from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
 

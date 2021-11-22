@@ -19,7 +19,10 @@
 
 # file deepcode ignore W0611: Ignore unused imports in init module
 
+from .atmosphere import CO2Corrector  # noqa: F401
+from .atmosphere import PSPAtmosphericalCorrection, PSPRayleighReflectance
 from .base import ModifierBase  # noqa: F401
-from .spectral import NIREmissivePartFromReflectance, NIRReflectance  # noqa: F401
-from .geometry import SunZenithCorrector, EffectiveSolarPathLengthCorrector  # noqa: F401
-from .atmosphere import PSPRayleighReflectance, PSPAtmosphericalCorrection, CO2Corrector  # noqa: F401
+from .geometry import EffectiveSolarPathLengthCorrector  # noqa: F401
+from .geometry import SunZenithCorrector
+from .spectral import NIREmissivePartFromReflectance  # noqa: F401
+from .spectral import NIRReflectance

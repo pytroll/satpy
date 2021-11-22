@@ -34,16 +34,15 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from satpy._config import config_search_paths, glob_config
-from satpy.utils import recursive_dict_update
-from satpy import CHUNK_SIZE
-from satpy.plugin_base import Plugin
-from satpy.resample import get_area_def
-from satpy.aux_download import DataDownloadMixin
-
+from trollimage.xrimage import XRImage
 from trollsift import parser
 
-from trollimage.xrimage import XRImage
+from satpy import CHUNK_SIZE
+from satpy._config import config_search_paths, glob_config
+from satpy.aux_download import DataDownloadMixin
+from satpy.plugin_base import Plugin
+from satpy.resample import get_area_def
+from satpy.utils import recursive_dict_update
 
 LOG = logging.getLogger(__name__)
 

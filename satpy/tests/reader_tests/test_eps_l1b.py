@@ -20,15 +20,15 @@
 import os
 from contextlib import suppress
 from tempfile import mkstemp
-from unittest import TestCase
-from unittest import mock
+from unittest import TestCase, mock
 
 import numpy as np
 import pytest
-import satpy
 import xarray as xr
-from satpy.readers import eps_l1b as eps
+
+import satpy
 from satpy._config import get_config_path
+from satpy.readers import eps_l1b as eps
 from satpy.tests.utils import make_dataid
 
 grh_dtype = np.dtype([("record_class", "|i1"),

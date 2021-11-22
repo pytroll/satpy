@@ -19,9 +19,9 @@
 
 import logging
 
-import numpy as np
 import dask
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy.composites import CompositeBase, GenericCompositor

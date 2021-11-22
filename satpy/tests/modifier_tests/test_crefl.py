@@ -13,14 +13,14 @@
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 """Tests for the CREFL ReflectanceCorrector modifier."""
-from unittest import mock
 from contextlib import contextmanager
 from datetime import datetime
+from unittest import mock
 
 import numpy as np
 import pytest
-from dask import array as da
 import xarray as xr
+from dask import array as da
 from pyresample.geometry import AreaDefinition
 
 

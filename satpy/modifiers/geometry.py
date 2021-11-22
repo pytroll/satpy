@@ -25,7 +25,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
+from satpy.utils import atmospheric_path_length_correction, sunzen_corr_cos
 
 logger = logging.getLogger(__name__)
 

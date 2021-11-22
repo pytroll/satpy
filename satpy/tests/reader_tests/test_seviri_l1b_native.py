@@ -17,9 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
-from datetime import datetime
 import os
 import unittest
+from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -28,17 +28,14 @@ import pytest
 import xarray as xr
 
 from satpy.readers.eum_base import time_cds_short
-from satpy.readers.seviri_l1b_native import (
-    NativeMSGFileHandler, ImageBoundaries, Padder,
-    get_available_channels,
-)
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
-    TestFileHandlerCalibrationBase
-)
+from satpy.readers.seviri_l1b_native import (ImageBoundaries,
+                                             NativeMSGFileHandler, Padder,
+                                             get_available_channels)
 from satpy.tests.reader_tests.test_seviri_base import (
-    ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
-)
-from satpy.tests.utils import make_dataid, assert_attrs_equal
+    ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID)
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import \
+    TestFileHandlerCalibrationBase
+from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',

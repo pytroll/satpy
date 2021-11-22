@@ -28,9 +28,8 @@ from pyresample.geometry import AreaDefinition
 from pyresample.utils import proj4_radius_parameters
 
 from satpy.readers.mviri_l1b_fiduceo_nc import (
-    ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, FiduceoMviriEasyFcdrFileHandler,
-    FiduceoMviriFullFcdrFileHandler, DatasetWrapper
-)
+    ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, DatasetWrapper,
+    FiduceoMviriEasyFcdrFileHandler, FiduceoMviriFullFcdrFileHandler)
 from satpy.tests.utils import make_dataid
 
 attrs_exp = {

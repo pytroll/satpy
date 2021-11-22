@@ -22,8 +22,8 @@ import sys
 from unittest import mock
 
 import numpy as np
-import xarray as xr
 import pytest
+import xarray as xr
 
 from satpy.dataset import DataQuery
 

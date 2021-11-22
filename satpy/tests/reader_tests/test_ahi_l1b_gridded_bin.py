@@ -17,15 +17,18 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ahi_l1b_gridded_bin reader tests package."""
 
-import unittest
-from unittest import mock
-import numpy as np
-import dask.array as da
-from pyresample.geometry import AreaDefinition
-from satpy.readers.ahi_l1b_gridded_bin import AHIGriddedFileHandler, AHI_LUT_NAMES
 import os
 import shutil
 import tempfile
+import unittest
+from unittest import mock
+
+import dask.array as da
+import numpy as np
+from pyresample.geometry import AreaDefinition
+
+from satpy.readers.ahi_l1b_gridded_bin import (AHI_LUT_NAMES,
+                                               AHIGriddedFileHandler)
 
 
 class TestAHIGriddedArea(unittest.TestCase):
@@ -215,9 +218,9 @@ class TestAHIGriddedLUTs(unittest.TestCase):
 
     def mocked_ftp_dl(fname):
         """Fake download of LUT tar file by creating a local tar."""
-        import tempfile
-        import tarfile
         import os
+        import tarfile
+        import tempfile
 
         with tarfile.open(fname, "w:gz") as tar_handle:
             for namer in AHI_LUT_NAMES:

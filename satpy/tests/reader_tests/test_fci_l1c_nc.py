@@ -17,14 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'fci_l1c_nc' reader."""
 
+import logging
 import os
-import numpy as np
-import xarray as xr
+from unittest import mock
+
 import dask.array as da
+import numpy as np
 import numpy.testing
 import pytest
-import logging
-from unittest import mock
+import xarray as xr
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 
@@ -32,10 +34,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
     def _get_test_calib_for_channel_ir(self, chroot, meas):
-        from pyspectral.blackbody import (
-            H_PLANCK as h,
-            K_BOLTZMANN as k,
-            C_SPEED as c)
+        from pyspectral.blackbody import C_SPEED as c
+        from pyspectral.blackbody import H_PLANCK as h
+        from pyspectral.blackbody import K_BOLTZMANN as k
         xrda = xr.DataArray
         data = {}
         data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xrda(955)

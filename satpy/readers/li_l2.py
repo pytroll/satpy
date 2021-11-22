@@ -22,15 +22,17 @@ The data description is described in the
 "LI L2 Product User Guide [LIL2PUG] Draft version" documentation.
 
 """
-import h5netcdf
 import logging
-import numpy as np
 from datetime import datetime
+
+import h5netcdf
+import numpy as np
 from pyresample import geometry
-from satpy.readers.file_handlers import BaseFileHandler
+
 # FIXME: This is not xarray/dask compatible
 # TODO: Once migrated to xarray/dask, remove ignored path in setup.cfg
 from satpy.dataset import Dataset
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

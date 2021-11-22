@@ -20,10 +20,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import warnings
-import contextlib
 from typing import Mapping
 
 import numpy as np

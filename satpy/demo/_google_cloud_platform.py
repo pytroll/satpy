@@ -16,15 +16,15 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import logging
+import os
 
 try:
-    from urllib.request import urlopen
     from urllib.error import URLError
+    from urllib.request import urlopen
 except ImportError:
     # python 2
-    from urllib2 import urlopen, URLError
+    from urllib2 import URLError, urlopen
 
 try:
     import gcsfs

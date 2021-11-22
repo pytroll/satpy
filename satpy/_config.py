@@ -17,16 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Configuration directory and file handling."""
 
+import ast
 import glob
 import logging
 import os
 import sys
 from collections import OrderedDict
 
+import appdirs
 import pkg_resources
 from donfig import Config
-import appdirs
-import ast
 
 LOG = logging.getLogger(__name__)
 

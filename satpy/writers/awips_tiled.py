@@ -213,24 +213,24 @@ geolocation by up to 0.5 pixels in each dimension instead of shifting the
 lettered tile locations.
 
 """
-import os
 import logging
+import os
 import string
-import warnings
 import sys
-from datetime import datetime, timedelta
+import warnings
 from collections import namedtuple
+from datetime import datetime, timedelta
 
-from satpy.writers import Writer, DecisionTree, Enhancer, get_enhanced_image
-from satpy import __version__
-from pyresample.geometry import AreaDefinition
-from trollsift.parser import StringFormatter, Parser
-
-import numpy as np
-from pyproj import Proj, CRS, Transformer
 import dask
 import dask.array as da
+import numpy as np
 import xarray as xr
+from pyproj import CRS, Proj, Transformer
+from pyresample.geometry import AreaDefinition
+from trollsift.parser import Parser, StringFormatter
+
+from satpy import __version__
+from satpy.writers import DecisionTree, Enhancer, Writer, get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 DEFAULT_OUTPUT_PATTERN = '{source_name}_AII_{platform_name}_{sensor}_' \

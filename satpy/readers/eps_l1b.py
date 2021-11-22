@@ -20,16 +20,16 @@
 
 import logging
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-
-import dask.array as da
 from dask.delayed import delayed
 from pyresample.geometry import SwathDefinition
+
+from satpy import CHUNK_SIZE
 from satpy._config import get_config_path
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
-from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 

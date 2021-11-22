@@ -27,11 +27,11 @@ See more at ESA webpage https://sentinel.esa.int/web/sentinel/ocean-wind-field-c
 
 import logging
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-
 import numpy as np
 import xarray as xr
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

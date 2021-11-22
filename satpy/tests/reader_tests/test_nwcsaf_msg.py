@@ -16,12 +16,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittests for NWC SAF MSG (2013) reader."""
 
-import unittest
-import numpy as np
-import tempfile
 import os
-import h5py
+import tempfile
+import unittest
 from collections import OrderedDict
+
+import h5py
+import numpy as np
 
 CTYPE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
 CTYPE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 20).astype(np.uint8)

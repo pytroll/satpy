@@ -24,12 +24,13 @@ from datetime import datetime
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, patch
 
-import satpy.readers.yaml_reader as yr
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.dataset import DataQuery
-from satpy.tests.utils import make_dataid
-import xarray as xr
 import numpy as np
+import xarray as xr
+
+import satpy.readers.yaml_reader as yr
+from satpy.dataset import DataQuery
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.utils import make_dataid
 
 
 class FakeFH(BaseFileHandler):
@@ -660,6 +661,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     def test_load_dataset_with_area_for_single_areas(self, ldwa):
         """Test _load_dataset_with_area() for single area definitions."""
         from pyresample.geometry import AreaDefinition
+
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
@@ -766,6 +768,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     def test_load_dataset_with_area_for_stacked_areas(self, ldwa):
         """Test _load_dataset_with_area() for stacked area definitions."""
         from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
@@ -978,7 +981,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
     def test_get_empty_segment_with_height(self):
         """Test _get_empty_segment_with_height()."""
-        from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
+        from satpy.readers.yaml_reader import \
+            _get_empty_segment_with_height as geswh
 
         dim = 'y'
 
@@ -1081,7 +1085,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
-        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
+        from satpy.readers.yaml_reader import \
+            _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
         seg2_area.crs = 'some_crs'
@@ -1108,7 +1113,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area_for_FCI_padding(self, AreaDefinition):
         """Test _pad_earlier_segments_area() for the FCI case."""
-        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
+        from satpy.readers.yaml_reader import \
+            _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
         seg2_area.crs = 'some_crs'
@@ -1140,6 +1146,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     def test_find_missing_segments(self):
         """Test _find_missing_segments()."""
         from satpy.readers.yaml_reader import _find_missing_segments as fms
+
         # Dataset with only one segment
         filename_info = {'segment': 1}
         fh_seg1 = MagicMock(filename_info=filename_info)

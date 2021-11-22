@@ -25,8 +25,8 @@ import numpy as np
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
+from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
 
 logger = logging.getLogger(__name__)
 

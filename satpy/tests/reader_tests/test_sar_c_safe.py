@@ -27,7 +27,8 @@ import numpy as np
 import xarray as xr
 
 from satpy.dataset import DataQuery
-from satpy.readers.sar_c_safe import SAFEXMLAnnotation, SAFEXMLCalibration, SAFEXMLNoise
+from satpy.readers.sar_c_safe import (SAFEXMLAnnotation, SAFEXMLCalibration,
+                                      SAFEXMLNoise)
 
 
 class TestSAFEGRD(unittest.TestCase):

@@ -23,7 +23,7 @@ import warnings
 from collections import namedtuple
 from contextlib import suppress
 from copy import copy, deepcopy
-from enum import IntEnum, Enum
+from enum import Enum, IntEnum
 
 import numpy as np
 

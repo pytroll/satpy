@@ -22,22 +22,20 @@ import logging
 import os
 import warnings
 
+import numpy as np
+import xarray as xr
+from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
+from xarray import DataArray
+
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import CompositorLoader
-from satpy.dataset import (DataQuery, DataID, dataset_walker,
-                           replace_anc, combine_metadata)
-from satpy.node import MissingDependencies, ReaderNode, CompositorNode, Node
+from satpy.dataset import (DataID, DataQuery, DatasetDict, combine_metadata,
+                           dataset_walker, replace_anc)
 from satpy.dependency_tree import DependencyTree
+from satpy.node import CompositorNode, MissingDependencies, Node, ReaderNode
 from satpy.readers import load_readers
-from satpy.dataset import DatasetDict
-from satpy.resample import (resample_dataset,
-                            prepare_resampler, get_area_def)
+from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.writers import load_writer
-from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
-
-import xarray as xr
-from xarray import DataArray
-import numpy as np
 
 LOG = logging.getLogger(__name__)
 
@@ -913,8 +911,8 @@ class Scene:
         .. _pycoast: https://pycoast.readthedocs.io/
 
         """
-        from satpy.writers import get_enhanced_image
         from satpy.utils import in_ipynb
+        from satpy.writers import get_enhanced_image
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         if not in_ipynb():
             img.show()

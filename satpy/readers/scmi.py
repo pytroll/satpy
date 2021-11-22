@@ -41,15 +41,15 @@ There are two forms of these files that this reader supports:
 """
 
 import logging
+import os
 from datetime import datetime
 
-import os
 import numpy as np
 import xarray as xr
-
 from pyresample import geometry
-from satpy.readers.file_handlers import BaseFileHandler
+
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 # NetCDF doesn't support multi-threaded reading, trick it by opening
 # as one whole chunk then split it up before we do any calculations

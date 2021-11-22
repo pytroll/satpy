@@ -33,14 +33,15 @@ onboard Joint Polar Satellite System spacecraft.
 
 """
 
-import xarray as xr
-import pandas as pd
-import numpy as np
 import logging
 from collections import defaultdict
 
-from satpy.readers.yaml_reader import FileYAMLReader
+import numpy as np
+import pandas as pd
+import xarray as xr
+
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
+from satpy.readers.yaml_reader import FileYAMLReader
 
 LOG = logging.getLogger(__name__)
 

@@ -22,7 +22,7 @@ import os
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
 
-from benchmarks.utils import get_filenames, GeoBenchmarks
+from benchmarks.utils import GeoBenchmarks, get_filenames
 
 
 class ABIL1B(GeoBenchmarks):

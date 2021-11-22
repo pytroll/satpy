@@ -141,19 +141,20 @@ defined.
 import hashlib
 import json
 import os
+import warnings
 from logging import getLogger
 from weakref import WeakValueDictionary
-import warnings
-import numpy as np
-import xarray as xr
+
 import dask
 import dask.array as da
-import zarr
+import numpy as np
 import pyresample
+import xarray as xr
+import zarr
 from packaging import version
-
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
+
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
 except ImportError:
@@ -169,7 +170,6 @@ except ImportError:
 
 from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_config_path
-
 
 LOG = getLogger(__name__)
 
@@ -851,7 +851,8 @@ class BilinearResampler(BaseResampler):
         try:
             from pyresample.bilinear import XArrayBilinearResampler
         except ImportError:
-            from pyresample.bilinear import XArrayResamplerBilinear as XArrayBilinearResampler
+            from pyresample.bilinear import \
+                XArrayResamplerBilinear as XArrayBilinearResampler
 
         del kwargs
         del mask

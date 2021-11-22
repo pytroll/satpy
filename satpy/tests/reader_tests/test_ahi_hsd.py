@@ -18,11 +18,13 @@
 """The ahi_hsd reader tests package."""
 
 import unittest
-from unittest import mock
 import warnings
-import numpy as np
-import dask.array as da
 from datetime import datetime
+from unittest import mock
+
+import dask.array as da
+import numpy as np
+
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
 

@@ -185,20 +185,20 @@ The main differences are:
 
 """
 
+import logging
+import re
 from abc import abstractmethod
 from collections import namedtuple
 from datetime import datetime, timedelta
-import logging
-import re
 
 import numpy as np
+import pyresample.geometry
 import xarray as xr
 
-import pyresample.geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.goes_imager_hrit import (SPACECRAFTS, EQUATOR_RADIUS, POLE_RADIUS,
-                                            ALTITUDE)
+from satpy.readers.goes_imager_hrit import (ALTITUDE, EQUATOR_RADIUS,
+                                            POLE_RADIUS, SPACECRAFTS)
 from satpy.readers.utils import bbox, get_geostationary_angle_extent
 
 logger = logging.getLogger(__name__)

@@ -44,9 +44,9 @@ import xarray as xr
 from pyproj import CRS
 from pyresample.geometry import AreaDefinition
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy._compat import cached_property
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

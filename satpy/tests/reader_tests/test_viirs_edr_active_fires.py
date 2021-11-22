@@ -22,17 +22,18 @@ readers.
 
 """
 
+import io
 import os
 import unittest
 from unittest import mock
-import numpy as np
-import io
-import dask.dataframe as dd
-import pandas as pd
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
 
+import dask.dataframe as dd
+import numpy as np
+import pandas as pd
+
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 DEFAULT_FILE_SHAPE = (1, 100)
 
@@ -161,7 +162,8 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
+        from satpy.readers.viirs_edr_active_fires import \
+            VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeModFiresNetCDF4FileHandler,))
         self.fake_handler = self.p.start()
@@ -218,7 +220,8 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
+        from satpy.readers.viirs_edr_active_fires import \
+            VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeImgFiresNetCDF4FileHandler,))
         self.fake_handler = self.p.start()
@@ -276,7 +279,8 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
     def setUp(self):
         """Wrap file handler with own fake file handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
+        from satpy.readers.viirs_edr_active_fires import \
+            VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeModFiresTextFileHandler,))
         self.fake_handler = self.p.start()
@@ -332,7 +336,8 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
     def setUp(self):
         """Wrap file handler with own fake file handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
+        from satpy.readers.viirs_edr_active_fires import \
+            VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeImgFiresTextFileHandler,))
         self.fake_handler = self.p.start()

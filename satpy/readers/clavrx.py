@@ -17,18 +17,19 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to CLAVR-X HDF4 products."""
 
-import os
 import logging
-
-import numpy as np
-import netCDF4
-import xarray as xr
+import os
 from glob import glob
-from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-from pyresample import geometry
 from pathlib import Path
+
+import netCDF4
+import numpy as np
+import xarray as xr
+from pyresample import geometry
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.hdf4_utils import SDS, HDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 

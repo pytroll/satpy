@@ -23,30 +23,31 @@ import logging
 import os
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import deque, OrderedDict
+from collections import OrderedDict, deque
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
+import numpy as np
 import xarray as xr
 import yaml
-import numpy as np
 
 try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
 
-from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
-from satpy.resample import get_area_def
-from satpy.utils import recursive_dict_update
-from satpy.dataset import DataQuery, DataID, get_key
-from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
-from satpy.aux_download import DataDownloadMixin
-from satpy import DatasetDict
-from satpy.resample import add_crs_xy_coords
+from pyresample.geometry import (AreaDefinition, StackedAreaDefinition,
+                                 SwathDefinition)
 from trollsift.parser import globify, parse
-from pyresample.geometry import AreaDefinition
+
+from satpy import DatasetDict
+from satpy.aux_download import DataDownloadMixin
+from satpy.dataset import DataID, DataQuery, get_key
+from satpy.dataset.dataid import (default_co_keys_config,
+                                  default_id_keys_config, get_keys_from_config)
+from satpy.resample import add_crs_xy_coords, get_area_def
+from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)
 

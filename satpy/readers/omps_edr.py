@@ -16,9 +16,10 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to OMPS EDR format."""
-from datetime import datetime, timedelta
-import numpy as np
 import logging
+from datetime import datetime, timedelta
+
+import numpy as np
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 

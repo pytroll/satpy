@@ -19,6 +19,7 @@
 
 import os
 import unittest
+
 import numpy as np
 
 try:
@@ -116,8 +117,9 @@ class TestHDF5FileHandler(unittest.TestCase):
 
     def test_all_basic(self):
         """Test everything about the HDF5 class."""
-        from satpy.readers.hdf5_utils import HDF5FileHandler
         import xarray as xr
+
+        from satpy.readers.hdf5_utils import HDF5FileHandler
         file_handler = HDF5FileHandler('test.h5', {}, {})
 
         for ds_name in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):

@@ -25,6 +25,7 @@ in the `EPS-SG VII Level 1B Product Format Specification`_.
 """
 
 import logging
+
 import numpy as np
 
 from satpy.readers.vii_base_nc import ViiNCBaseFileHandler

@@ -18,6 +18,7 @@
 """Classes and functions related to a dictionary with DataID keys."""
 
 import numpy as np
+
 from .dataid import DataID, create_filtered_query, minimal_default_keys_config
 
 

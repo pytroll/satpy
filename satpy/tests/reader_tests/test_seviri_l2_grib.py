@@ -18,12 +18,12 @@
 
 """SEVIRI L2 GRIB-reader test package."""
 
-import sys
-import numpy as np
 import datetime
-
+import sys
 import unittest
 from unittest import mock
+
+import numpy as np
 
 # Dictionary to be used as fake GRIB message
 FAKE_MESSAGE = {
@@ -62,8 +62,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
     def test_data_reading(self, da_, xr_):
         """Test the reading of data from the product."""
         from satpy import CHUNK_SIZE
-        from satpy.readers.seviri_l2_grib import (SeviriL2GribFileHandler,
-                                                  REPEAT_CYCLE_DURATION)
+        from satpy.readers.seviri_l2_grib import (REPEAT_CYCLE_DURATION,
+                                                  SeviriL2GribFileHandler)
         with mock.patch("builtins.open", mock.mock_open()) as mock_file:
             with mock.patch('satpy.readers.seviri_l2_grib.ec', self.ec_):
                 self.reader = SeviriL2GribFileHandler(

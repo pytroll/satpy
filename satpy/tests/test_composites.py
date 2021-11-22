@@ -74,8 +74,9 @@ class TestMatchDataArrays(unittest.TestCase):
 
     def test_mult_ds_diff_area(self):
         """Test that datasets with different areas fail."""
-        from satpy.composites import CompositeBase, IncompatibleAreas
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites import CompositeBase, IncompatibleAreas
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
         ds2.attrs['area'] = AreaDefinition(
@@ -90,6 +91,7 @@ class TestMatchDataArrays(unittest.TestCase):
     def test_mult_ds_diff_dims(self):
         """Test that datasets with different dimensions still pass."""
         from satpy.composites import CompositeBase
+
         # x is still 50, y is still 100, even though they are in
         # different order
         ds1 = self._get_test_ds(shape=(50, 100), dims=('y', 'x'))
@@ -102,6 +104,7 @@ class TestMatchDataArrays(unittest.TestCase):
     def test_mult_ds_diff_size(self):
         """Test that datasets with different sizes fail."""
         from satpy.composites import CompositeBase, IncompatibleAreas
+
         # x is 50 in this one, 100 in ds2
         # y is 100 in this one, 50 in ds2
         ds1 = self._get_test_ds(shape=(50, 100), dims=('x', 'y'))
@@ -173,7 +176,7 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
 
     def test_match_data_arrays(self):
         """Test that all of the areas have to be the same resolution."""
-        from satpy.composites import RatioSharpenedRGB, IncompatibleAreas
+        from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color')
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
 

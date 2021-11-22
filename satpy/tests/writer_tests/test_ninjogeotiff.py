@@ -25,11 +25,10 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-
 from pyresample import create_area_def
-from satpy.writers import get_enhanced_image
-from satpy import Scene
 
+from satpy import Scene
+from satpy.writers import get_enhanced_image
 
 try:
     from math import prod
@@ -431,6 +430,7 @@ def patch_datetime_now(monkeypatch):
 def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
     """Test that it writes a GeoTIFF with the appropriate NinJo-tags."""
     import rasterio
+
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
@@ -461,6 +461,7 @@ def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
 def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
     """Test writing and reading RGB."""
     import rasterio
+
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
@@ -486,6 +487,7 @@ def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
 def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     """Test writing and reading LA image."""
     import rasterio
+
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
@@ -512,8 +514,9 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
 def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     """Test writing and reading P image."""
     import rasterio
-    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     from trollimage.colormap import Colormap
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
     ngtw.save_image(

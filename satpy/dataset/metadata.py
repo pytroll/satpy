@@ -19,8 +19,9 @@
 
 from collections.abc import Collection
 from datetime import datetime
-from functools import reduce, partial
-from operator import is_, eq
+from functools import partial, reduce
+from operator import eq, is_
+
 import numpy as np
 
 from satpy.writers.utils import flatten_dict

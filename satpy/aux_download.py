@@ -17,11 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Functions and utilities for downloading ancillary data."""
 
-import os
 import logging
-import satpy
+import os
 
 import pooch
+
+import satpy
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +215,7 @@ def _register_modifier_files(composite_loader):
 def _find_registerable_files_readers(readers=None):
     """Load all readers so that files are registered."""
     import yaml
+
     from satpy.readers import configs_for_reader, load_reader
     for reader_configs in configs_for_reader(reader=readers):
         try:

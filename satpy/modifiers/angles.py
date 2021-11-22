@@ -18,24 +18,24 @@
 """Utilties for getting various angles for a dataset.."""
 from __future__ import annotations
 
-import os
 import hashlib
+import os
+import shutil
 from datetime import datetime
 from functools import update_wrapper
 from glob import glob
-from typing import Callable, Any, Optional, Union
-import shutil
+from typing import Any, Callable, Optional, Union
 
 import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
-from satpy.utils import get_satpos, ignore_invalid_float_warnings
-from pyorbital.orbital import get_observer_look
 from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-from pyresample.geometry import SwathDefinition, AreaDefinition
+from pyorbital.orbital import get_observer_look
+from pyresample.geometry import AreaDefinition, SwathDefinition
 
 import satpy
+from satpy.utils import get_satpos, ignore_invalid_float_warnings
 
 PRGeometry = Union[SwathDefinition, AreaDefinition]
 

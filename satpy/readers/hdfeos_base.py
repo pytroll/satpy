@@ -19,13 +19,12 @@
 
 from __future__ import annotations
 
-import re
 import logging
-
+import re
 from datetime import datetime
-import xarray as xr
-import numpy as np
 
+import numpy as np
+import xarray as xr
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
@@ -43,7 +42,10 @@ def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
 
 
 def _interpolate_with_angles(clons, clats, csatz, src_resolution, dst_resolution):
-    from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
+    from geotiepoints.modisinterpolator import (modis_1km_to_250m,
+                                                modis_1km_to_500m,
+                                                modis_5km_to_1km)
+
     # (src_res, dst_res, is satz not None) -> interp function
     interpolation_functions = {
         (5000, 1000): modis_5km_to_1km,
@@ -58,9 +60,10 @@ def _interpolate_no_angles(clons, clats, src_resolution, dst_resolution):
     interpolation_functions = {}
 
     try:
-        from geotiepoints.simple_modis_interpolator import (
-            modis_1km_to_250m as simple_1km_to_250m,
-            modis_1km_to_500m as simple_1km_to_500m)
+        from geotiepoints.simple_modis_interpolator import \
+            modis_1km_to_250m as simple_1km_to_250m
+        from geotiepoints.simple_modis_interpolator import \
+            modis_1km_to_500m as simple_1km_to_500m
     except ImportError:
         raise NotImplementedError(
             f"Interpolation from {src_resolution}m to {dst_resolution}m "

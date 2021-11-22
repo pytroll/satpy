@@ -267,8 +267,8 @@ class TestGACLACFile(GACLACFilePatcher):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
     def test_get_dataset_angles(self, get_angle, *mocks):
         """Test getting the angles."""
-        from satpy.tests.utils import make_dataid
         from satpy.readers.avhrr_l1b_gaclac import ANGLES
+        from satpy.tests.utils import make_dataid
 
         ones = np.ones((3, 3))
         get_angle.return_value = ones

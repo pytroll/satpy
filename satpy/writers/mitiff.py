@@ -18,14 +18,12 @@
 """MITIFF writer objects for creating MITIFF files from `Dataset` objects."""
 
 import logging
-import numpy as np
-
-from satpy.writers import ImageWriter
-
-from satpy.writers import get_enhanced_image
-from satpy.dataset import DataQuery, DataID
 
 import dask
+import numpy as np
+
+from satpy.dataset import DataID, DataQuery
+from satpy.writers import ImageWriter, get_enhanced_image
 
 IMAGEDESCRIPTION = 270
 

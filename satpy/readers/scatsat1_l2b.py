@@ -18,6 +18,7 @@
 """
 
 from datetime import datetime
+
 import h5py
 
 from satpy.dataset import Dataset

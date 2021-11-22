@@ -29,9 +29,9 @@ from datetime import datetime
 import dask.array as da
 import numpy as np
 import xarray as xr
-
-from pyresample.geometry import AreaDefinition
 from pyproj import CRS
+from pyresample.geometry import AreaDefinition
+
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
@@ -231,6 +231,7 @@ class NcNWCSAF(BaseFileHandler):
     def upsample_geolocation(self, dsid, info):
         """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
+
         # Read the fields needed:
         col_indices = self.nc['nx_reduced'].values
         row_indices = self.nc['ny_reduced'].values
