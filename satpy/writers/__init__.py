@@ -238,34 +238,39 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
                            "overlays/decorations to non-RGB data.")
 
     if overlays is None:
-        overlays = dict()
-        # fill with sensible defaults
-        general_params = {'outline': color or (0, 0, 0),
-                          'width': width or 0.5}
-        for key, val in general_params.items():
-            if val is not None:
-                overlays.setdefault('coasts', {}).setdefault(key, val)
-                overlays.setdefault('borders', {}).setdefault(key, val)
-        if level_coast is None:
-            level_coast = 1
-        overlays.setdefault('coasts', {}).setdefault('level', level_coast)
-        if level_borders is None:
-            level_borders = 1
-        overlays.setdefault('borders', {}).setdefault('level', level_borders)
-
-        if grid is not None:
-            if 'major_lonlat' in grid and grid['major_lonlat']:
-                major_lonlat = grid.pop('major_lonlat')
-                minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
-                grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
-            for key, val in grid.items():
-                overlays.setdefault('grid', {}).setdefault(key, val)
+        overlays = _create_overlays_dict(color, width, grid, level_coast, level_borders)
 
     cw_ = ContourWriterAGG(coast_dir)
     new_image = orig_img.apply_pil(_burn_overlay, res_mode,
                                    None, {'fill_value': fill_value},
                                    (area, cw_, overlays), None)
     return new_image
+
+
+def _create_overlays_dict(color, width, grid, level_coast, level_borders):
+    """Fill in the overlays dict."""
+    overlays = dict()
+    # fill with sensible defaults
+    general_params = {'outline': color or (0, 0, 0),
+                      'width': width or 0.5}
+    for key, val in general_params.items():
+        if val is not None:
+            overlays.setdefault('coasts', {}).setdefault(key, val)
+            overlays.setdefault('borders', {}).setdefault(key, val)
+    if level_coast is None:
+        level_coast = 1
+    overlays.setdefault('coasts', {}).setdefault('level', level_coast)
+    if level_borders is None:
+        level_borders = 1
+    overlays.setdefault('borders', {}).setdefault('level', level_borders)
+    if grid is not None:
+        if 'major_lonlat' in grid and grid['major_lonlat']:
+            major_lonlat = grid.pop('major_lonlat')
+            minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
+            grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
+        for key, val in grid.items():
+            overlays.setdefault('grid', {}).setdefault(key, val)
+    return overlays
 
 
 def add_text(orig, dc, img, text):
