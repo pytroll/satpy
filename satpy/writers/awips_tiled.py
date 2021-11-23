@@ -1004,29 +1004,25 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
     def _set_xy_coords_attrs(self, new_ds, crs):
         y_attrs = new_ds.coords['y'].attrs
         if crs.is_geographic:
-            if y_attrs.get('units') is None:
-                y_attrs['units'] = 'degrees_north'
-            if y_attrs.get('standard_name') is None:
-                y_attrs['standard_name'] = 'latitude'
+            self._fill_units_and_standard_name(y_attrs, 'degrees_north', 'latitude')
         else:
-            if y_attrs.get('units') is None:
-                y_attrs['units'] = 'meter'
-            if y_attrs.get('standard_name') is None:
-                y_attrs['standard_name'] = 'projection_y_coordinate'
+            self._fill_units_and_standard_name(y_attrs, 'meter', 'projection_y_coordinate')
             y_attrs['axis'] = 'Y'
 
         x_attrs = new_ds.coords['x'].attrs
         if crs.is_geographic:
-            if x_attrs.get('units') is None:
-                x_attrs['units'] = 'degrees_east'
-            if x_attrs.get('standard_name') is None:
-                x_attrs['standard_name'] = 'longitude'
+            self._fill_units_and_standard_name(x_attrs, 'degrees_east', 'longitude')
         else:
-            if x_attrs.get('units') is None:
-                x_attrs['units'] = 'meter'
-            if x_attrs.get('standard_name') is None:
-                x_attrs['standard_name'] = 'projection_x_coordinate'
+            self._fill_units_and_standard_name(x_attrs, 'meter', 'projection_x_coordinate')
             x_attrs['axis'] = 'X'
+
+    @staticmethod
+    def _fill_units_and_standard_name(attrs, units, standard_name):
+        """Fill in units and standard_name if not set in `attrs`."""
+        if attrs.get('units') is None:
+            attrs['units'] = units
+        if attrs.get('standard_name') is None:
+            attrs['standard_name'] = standard_name
 
     def apply_area_def(self, new_ds, area_def):
         """Apply information we can gather from the AreaDefinition."""
