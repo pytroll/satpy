@@ -334,32 +334,9 @@ def get_satpos(dataset):
     try:
         orb_params = dataset.attrs['orbital_parameters']
 
-        # Altitude
-        try:
-            alt = orb_params['satellite_actual_altitude']
-        except KeyError:
-            try:
-                alt = orb_params['satellite_nominal_altitude']
-            except KeyError:
-                alt = orb_params['projection_altitude']
-                warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+        alt = _get_sat_altitude(orb_params)
 
-        # Longitude & Latitude
-        try:
-            lon = orb_params['nadir_longitude']
-            lat = orb_params['nadir_latitude']
-        except KeyError:
-            try:
-                lon = orb_params['satellite_actual_longitude']
-                lat = orb_params['satellite_actual_latitude']
-            except KeyError:
-                try:
-                    lon = orb_params['satellite_nominal_longitude']
-                    lat = orb_params['satellite_nominal_latitude']
-                except KeyError:
-                    lon = orb_params['projection_longitude']
-                    lat = orb_params['projection_latitude']
-                    warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+        lon, lat = _get_sat_lonlat(orb_params)
     except KeyError:
         # Legacy
         lon = dataset.attrs['satellite_longitude']
@@ -367,6 +344,39 @@ def get_satpos(dataset):
         alt = dataset.attrs['satellite_altitude']
 
     return lon, lat, alt
+
+
+def _get_sat_altitude(orb_params):
+    # Altitude
+    try:
+        alt = orb_params['satellite_actual_altitude']
+    except KeyError:
+        try:
+            alt = orb_params['satellite_nominal_altitude']
+        except KeyError:
+            alt = orb_params['projection_altitude']
+            warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+    return alt
+
+
+def _get_sat_lonlat(orb_params):
+    # Longitude & Latitude
+    try:
+        lon = orb_params['nadir_longitude']
+        lat = orb_params['nadir_latitude']
+    except KeyError:
+        try:
+            lon = orb_params['satellite_actual_longitude']
+            lat = orb_params['satellite_actual_latitude']
+        except KeyError:
+            try:
+                lon = orb_params['satellite_nominal_longitude']
+                lat = orb_params['satellite_nominal_latitude']
+            except KeyError:
+                lon = orb_params['projection_longitude']
+                lat = orb_params['projection_latitude']
+                warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+    return lon, lat
 
 
 def recursive_dict_update(d, u):
