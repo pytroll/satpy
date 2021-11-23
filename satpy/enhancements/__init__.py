@@ -413,49 +413,14 @@ def create_colormap(palette):
     information.
 
     """
-    from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
-        data = np.load(fname)
-        cols = data.shape[1]
-        default_modes = {
-            3: 'RGB',
-            4: 'VRGB',
-            5: 'VRGBA'
-        }
-        default_mode = default_modes.get(cols)
-        mode = palette.setdefault('colormap_mode', default_mode)
-        if mode is None or len(mode) != cols:
-            raise ValueError(
-                "Unexpected colormap shape for mode '{}'".format(mode))
-
-        rows = data.shape[0]
-        if mode[0] == 'V':
-            colors = data[:, 1:]
-            if color_scale != 1:
-                colors = data[:, 1:] / float(color_scale)
-            values = data[:, 0]
-        else:
-            colors = data
-            if color_scale != 1:
-                colors = colors / float(color_scale)
-            values = np.arange(rows) / float(rows - 1)
-        cmap = Colormap(*zip(values, colors))
+        cmap = _create_colormap_from_file(fname, palette, color_scale)
     elif isinstance(colors, (tuple, list)):
-        cmap = []
-        values = palette.get('values', None)
-        for idx, color in enumerate(colors):
-            if values is not None:
-                value = values[idx]
-            else:
-                value = idx / float(len(colors) - 1)
-            if color_scale != 1:
-                color = tuple(elem / float(color_scale) for elem in color)
-            cmap.append((value, tuple(color)))
-        cmap = Colormap(*cmap)
+        cmap = _create_colormap_from_sequence(colors, palette, color_scale)
     elif isinstance(colors, str):
         import copy
 
@@ -472,6 +437,49 @@ def create_colormap(palette):
         raise ValueError("Both 'min_value' and 'max_value' must be specified")
 
     return cmap
+
+
+def _create_colormap_from_sequence(colors, palette, color_scale):
+    from trollimage.colormap import Colormap
+    cmap = []
+    values = palette.get('values', None)
+    for idx, color in enumerate(colors):
+        if values is not None:
+            value = values[idx]
+        else:
+            value = idx / float(len(colors) - 1)
+        if color_scale != 1:
+            color = tuple(elem / float(color_scale) for elem in color)
+        cmap.append((value, tuple(color)))
+    return Colormap(*cmap)
+
+
+def _create_colormap_from_file(filename, palette, color_scale):
+    from trollimage.colormap import Colormap
+    data = np.load(filename)
+    cols = data.shape[1]
+    default_modes = {
+        3: 'RGB',
+        4: 'VRGB',
+        5: 'VRGBA'
+    }
+    default_mode = default_modes.get(cols)
+    mode = palette.setdefault('colormap_mode', default_mode)
+    if mode is None or len(mode) != cols:
+        raise ValueError(
+            "Unexpected colormap shape for mode '{}'".format(mode))
+    rows = data.shape[0]
+    if mode[0] == 'V':
+        colors = data[:, 1:]
+        if color_scale != 1:
+            colors = data[:, 1:] / float(color_scale)
+        values = data[:, 0]
+    else:
+        colors = data
+        if color_scale != 1:
+            colors = colors / float(color_scale)
+        values = np.arange(rows) / float(rows - 1)
+    return Colormap(*zip(values, colors))
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):
