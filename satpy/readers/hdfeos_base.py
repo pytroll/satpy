@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import logging
 import re
+from ast import literal_eval
+from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
@@ -112,49 +114,46 @@ class HDFEOSBaseFileReader(BaseFileHandler):
                 metadata.update(self.read_mda(str_val))
         return metadata
 
-    @staticmethod
-    def read_mda(attribute):
+    @classmethod
+    def read_mda(cls, attribute):
         """Read the EOS metadata."""
-        lines = attribute.split('\n')
-        mda = {}
-        current_dict = mda
-        path = []
-        prev_line = None
+        line_iterator = iter(attribute.split('\n'))
+        return cls._read_mda(line_iterator)
+
+    @classmethod
+    def _read_mda(cls, lines, element=None):
+        current_dict = {}
+
         for line in lines:
             if not line:
                 continue
             if line == 'END':
-                break
-            if prev_line:
-                line = prev_line + line
-            key, val = line.split('=')
-            key = key.strip()
-            val = val.strip()
-            try:
-                val = eval(val)
-            except NameError:
-                pass
-            except SyntaxError:
-                prev_line = line
-                continue
-            prev_line = None
+                return current_dict
+
+            key, val = cls._split_line(line, lines)
+
             if key in ['GROUP', 'OBJECT']:
-                new_dict = {}
-                path.append(val)
-                current_dict[val] = new_dict
-                current_dict = new_dict
+                current_dict[val] = cls._read_mda(lines, val)
             elif key in ['END_GROUP', 'END_OBJECT']:
-                if val != path[-1]:
-                    raise SyntaxError
-                path = path[:-1]
-                current_dict = mda
-                for item in path:
-                    current_dict = current_dict[item]
+                if val != element:
+                    raise SyntaxError("Non-matching end-tag")
+                return current_dict
             elif key in ['CLASS', 'NUM_VAL']:
                 pass
             else:
                 current_dict[key] = val
-        return mda
+
+    @classmethod
+    def _split_line(cls, line, lines):
+        key, val = line.split('=')
+        key = key.strip()
+        val = val.strip()
+        try:
+            with suppress(ValueError):
+                val = literal_eval(val)
+        except SyntaxError:
+            key, val = cls._split_line(line + next(lines), lines)
+        return key, val
 
     @property
     def metadata_platform_name(self):
