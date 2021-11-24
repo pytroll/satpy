@@ -142,6 +142,8 @@ class HDFEOSBaseFileReader(BaseFileHandler):
                 pass
             else:
                 current_dict[key] = val
+        logger.warning("Malformed EOS metadata, missing an END.")
+        return current_dict
 
     @classmethod
     def _split_line(cls, line, lines):
