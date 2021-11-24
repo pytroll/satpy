@@ -311,23 +311,17 @@ class DataID(dict):
         if not keyvals:
             return curated
         for key, val in self._id_keys.items():
-            if val is not None:
-                if key in keyvals or val.get('default') is not None or val.get('required'):
-                    curated_val = keyvals.get(key, val.get('default'))
-                    if 'required' in val and curated_val is None:
-                        raise ValueError('Required field {} missing.'.format(key))
-                    if 'type' in val:
-                        curated[key] = val['type'].convert(curated_val)
-                    elif curated_val is not None:
-                        curated[key] = curated_val
-            else:
-                try:
-                    curated_val = keyvals[key]
-                except KeyError:
-                    pass
-                else:
-                    if curated_val is not None:
-                        curated[key] = curated_val
+            if val is None:
+                val = {}
+            if key in keyvals or val.get('default') is not None or val.get('required'):
+                curated_val = keyvals.get(key, val.get('default'))
+                if 'required' in val and curated_val is None:
+                    raise ValueError('Required field {} missing.'.format(key))
+                if 'type' in val:
+                    curated[key] = val['type'].convert(curated_val)
+                elif curated_val is not None:
+                    curated[key] = curated_val
+
         return curated
 
     @classmethod
