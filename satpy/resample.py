@@ -491,18 +491,7 @@ class KDTreeResampler(BaseResampler):
             cache_dir = None
 
         if radius_of_influence is None and not hasattr(self.source_geo_def, 'geocentric_resolution'):
-            warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
-            try:
-                radius_of_influence = self.source_geo_def.lons.resolution * 3
-            except AttributeError:
-                try:
-                    radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
-                                              abs(self.source_geo_def.pixel_size_y)) * 3
-                except AttributeError:
-                    radius_of_influence = 1000
-
-            except TypeError:
-                radius_of_influence = 10000
+            radius_of_influence = self._adjust_radius_of_influence(radius_of_influence)
 
         kwargs = dict(source_geo_def=self.source_geo_def,
                       target_geo_def=self.target_geo_def,
@@ -521,6 +510,22 @@ class KDTreeResampler(BaseResampler):
             LOG.debug("Computing kd-tree parameters")
             self.resampler.get_neighbour_info(mask=mask)
             self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
+
+    def _adjust_radius_of_influence(self, radius_of_influence):
+        """Adjust radius of influence."""
+        warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
+        try:
+            radius_of_influence = self.source_geo_def.lons.resolution * 3
+        except AttributeError:
+            try:
+                radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
+                                          abs(self.source_geo_def.pixel_size_y)) * 3
+            except AttributeError:
+                radius_of_influence = 1000
+
+        except TypeError:
+            radius_of_influence = 10000
+        return radius_of_influence
 
     def _apply_cached_index(self, val, idx_name, persist=False):
         """Reassign resampler index attributes."""
