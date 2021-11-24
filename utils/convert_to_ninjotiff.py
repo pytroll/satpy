@@ -15,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-First version of a simple command line too that converts an
-image into a NinJo Tiff file.
+"""Simple command line too that converts an image into a NinJo Tiff file.
 
 NinJo Tiff metadata can be passed as command line input or
 through a config file (an example is given in the ninjo-cmd.yaml

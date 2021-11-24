@@ -492,3 +492,22 @@ def _all_dims_same_size(data_arrays: list[xr.DataArray]) -> bool:
                 # xarray.unify_chunks will error out if we tried to use it
                 return False
     return True
+
+
+@contextlib.contextmanager
+def ignore_invalid_float_warnings():
+    """Ignore warnings generated for working with NaN/inf values.
+
+    Numpy and dask sometimes don't like NaN or inf values in normal function
+    calls. This context manager hides/ignores them inside its context.
+
+    Examples:
+        Use around numpy operations that you expect to produce warnings::
+
+            with ignore_invalid_float_warnings():
+                np.nanmean(np.nan)
+
+    """
+    with np.errstate(invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        yield
