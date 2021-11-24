@@ -663,40 +663,51 @@ class DataQuery:
             sorted_dataids.append(dataid)
             distance = 0
             for key in keys:
+                if distance == np.inf:
+                    break
                 val = self._dict.get(key, '*')
                 if val == '*':
-                    try:
-                        # for enums
-                        distance += dataid.get(key).value
-                    except AttributeError:
-                        if isinstance(dataid.get(key), numbers.Number):
-                            distance += dataid.get(key)
-                        elif isinstance(dataid.get(key), tuple):
-                            distance += len(dataid.get(key))
+                    distance = self._add_absolute_distance(dataid, key, distance)
                 else:
                     try:
                         dataid_val = dataid[key]
                     except KeyError:
                         distance += big_distance
                         continue
-                    try:
-                        distance += dataid_val.distance(val)
-                    except AttributeError:
-                        if not isinstance(val, list):
-                            val = [val]
-                        if dataid_val not in val:
-                            distance = np.inf
-                            break
-                        elif isinstance(dataid_val, numbers.Number):
-                            # so as to get the highest resolution first
-                            # FIXME: this ought to be clarified, not sure that
-                            # higher resolution is preferable is all cases.
-                            # Moreover this might break with other numerical
-                            # values.
-                            distance += dataid_val
+                    distance = self._add_distance_from_query(dataid_val, val, distance)
             distances.append(distance)
         distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
         return dataids, distances
+
+    @staticmethod
+    def _add_absolute_distance(dataid, key, distance):
+        try:
+            # for enums
+            distance += dataid.get(key).value
+        except AttributeError:
+            if isinstance(dataid.get(key), numbers.Number):
+                distance += dataid.get(key)
+            elif isinstance(dataid.get(key), tuple):
+                distance += len(dataid.get(key))
+        return distance
+
+    @staticmethod
+    def _add_distance_from_query(dataid_val, requested_val, distance):
+        try:
+            distance += dataid_val.distance(requested_val)
+        except AttributeError:
+            if not isinstance(requested_val, list):
+                requested_val = [requested_val]
+            if dataid_val not in requested_val:
+                distance = np.inf
+            elif isinstance(dataid_val, numbers.Number):
+                # so as to get the highest resolution first
+                # FIXME: this ought to be clarified, not sure that
+                # higher resolution is preferable is all cases.
+                # Moreover this might break with other numerical
+                # values.
+                distance += dataid_val
+        return distance
 
     def create_less_modified_query(self):
         """Create a query with one less modifier."""
