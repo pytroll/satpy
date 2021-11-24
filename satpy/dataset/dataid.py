@@ -71,11 +71,7 @@ class ValueList(IntEnum):
         return '<' + str(self) + '>'
 
 
-try:
-    wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
-except TypeError:  # python 3.6
-    wlklass = namedtuple("WavelengthRange", "min central max unit")
-    wlklass.__new__.__defaults__ = ('µm',)
+wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))  # type: ignore
 
 
 class WavelengthRange(wlklass):
