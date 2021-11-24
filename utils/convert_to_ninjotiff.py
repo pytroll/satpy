@@ -30,7 +30,7 @@ import argparse
 import os
 
 import yaml
-from mpop.projector import get_area_def
+from satpy.pyresample import get_area_def
 
 from satpy import Scene
 from satpy.utils import debug_on
