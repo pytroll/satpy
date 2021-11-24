@@ -438,11 +438,11 @@ class DataID(dict):
             elif key in self:
                 val = self[key]
                 list_self.append(val)
-                list_other = _generalize_value_for_comparison(val)
+                list_other.append(_generalize_value_for_comparison(val))
             elif key in other:
                 val = other[key]
                 list_other.append(val)
-                list_self = _generalize_value_for_comparison(val)
+                list_self.append(_generalize_value_for_comparison(val))
         return tuple(list_self) < tuple(list_other)
 
     __setitem__ = _immutable
@@ -476,16 +476,14 @@ class DataID(dict):
 
 def _generalize_value_for_comparison(val):
     """Get a generalize value for comparisons."""
-    result_list = []
     if isinstance(val, numbers.Number):
-        result_list.append(0)
+        return 0
     elif isinstance(val, str):
-        result_list.append('')
+        return ""
     elif isinstance(val, tuple):
-        result_list.append(tuple())
+        return tuple()
     else:
         raise NotImplementedError("Don't know how to generalize " + str(type(val)))
-    return result_list
 
 
 class DataQuery:
