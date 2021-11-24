@@ -192,11 +192,7 @@ class GeoTIFFWriter(ImageWriter):
         """
         filename = filename or self.get_filename(**img.data.attrs)
 
-        # Update global GDAL options with these specific ones
-        gdal_options = self.gdal_options.copy()
-        for k in kwargs:
-            if k in self.GDAL_OPTIONS:
-                gdal_options[k] = kwargs[k]
+        gdal_options = self._get_gdal_options(kwargs)
         if fill_value is None:
             # fall back to fill_value from configuration file
             fill_value = self.info.get('fill_value')
@@ -237,3 +233,11 @@ class GeoTIFFWriter(ImageWriter):
                         overviews_resampling=overviews_resampling,
                         overviews_minsize=overviews_minsize,
                         **gdal_options)
+
+    def _get_gdal_options(self, kwargs):
+        # Update global GDAL options with these specific ones
+        gdal_options = self.gdal_options.copy()
+        for k in kwargs:
+            if k in self.GDAL_OPTIONS:
+                gdal_options[k] = kwargs[k]
+        return gdal_options
