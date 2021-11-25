@@ -604,28 +604,6 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         from functools import partial
         orig_ids = self.reader.all_ids
 
-        def available_datasets(self, configured_datasets=None):
-            res = self.resolution
-            # update previously configured datasets
-            for is_avail, ds_info in (configured_datasets or []):
-                if is_avail is not None:
-                    yield is_avail, ds_info
-
-                matches = self.file_type_matches(ds_info['file_type'])
-                if matches and ds_info.get('resolution') != res:
-                    new_info = ds_info.copy()
-                    new_info['resolution'] = res
-                    yield True, new_info
-                elif is_avail is None:
-                    yield is_avail, ds_info
-
-        def file_type_matches(self, ds_ftype):
-            if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
-                return True
-            if self.filetype_info['file_type'] in ds_ftype:
-                return True
-            return None
-
         for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
             # need to copy this because the dataset infos will be modified
             _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
@@ -651,6 +629,34 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                         file_types = [file_types]
                     if ftype in file_types:
                         self.assertEqual(resol, ds_id['resolution'])
+
+# Test methods
+
+
+def available_datasets(self, configured_datasets=None):
+    """Fake available_datasets for testing multiple file types."""
+    res = self.resolution
+    # update previously configured datasets
+    for is_avail, ds_info in (configured_datasets or []):
+        if is_avail is not None:
+            yield is_avail, ds_info
+
+        matches = self.file_type_matches(ds_info['file_type'])
+        if matches and ds_info.get('resolution') != res:
+            new_info = ds_info.copy()
+            new_info['resolution'] = res
+            yield True, new_info
+        elif is_avail is None:
+            yield is_avail, ds_info
+
+
+def file_type_matches(self, ds_ftype):
+    """Fake file_type_matches for testing multiple file types."""
+    if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
+        return True
+    if self.filetype_info['file_type'] in ds_ftype:
+        return True
+    return None
 
 
 class TestGEOFlippableFileYAMLReader(unittest.TestCase):
