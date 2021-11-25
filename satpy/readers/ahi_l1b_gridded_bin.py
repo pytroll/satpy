@@ -145,7 +145,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         import urllib
         import shutil
         # Set up an connection and download
-        with urllib.request.urlopen(AHI_REMOTE_LUTS) as response:
+        with urllib.request.urlopen(AHI_REMOTE_LUTS) as response:  # nosec
             with open(file_name, 'wb') as out_file:
                 shutil.copyfileobj(response, out_file)
 
