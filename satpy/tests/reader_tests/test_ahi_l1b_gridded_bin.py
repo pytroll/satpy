@@ -271,12 +271,12 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         for lut_name in AHI_LUT_NAMES:
             self.assertTrue(os.path.isfile(os.path.join(self.fh.lut_dir, lut_name)))
 
-    @mock.patch('requests.get')
+    @mock.patch('urllib.request.urlopen')
     @mock.patch('shutil.copyfileobj')
-    def test_download_luts(self, mock_requests, mock_shutil):
+    def test_download_luts(self, mock_dl, mock_shutil):
         """Test that the FTP library is called for downloading LUTS."""
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
             self.fh._download_luts('/test_file')
-            mock_requests.assert_called()
+            mock_dl.assert_called()
             mock_shutil.assert_called()
