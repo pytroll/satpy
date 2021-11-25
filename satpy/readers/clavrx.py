@@ -21,6 +21,7 @@ import logging
 import os
 from glob import glob
 from pathlib import Path
+from typing import Optional
 
 import netCDF4
 import numpy as np
@@ -83,7 +84,7 @@ def _get_platform(platform: str) -> str:
     return platform
 
 
-def _get_rows_per_scan(sensor: str) -> str:
+def _get_rows_per_scan(sensor: str) -> Optional[int]:
     """Get number of rows per scan."""
     for k, v in ROWS_PER_SCAN.items():
         if sensor.startswith(k):
@@ -91,17 +92,18 @@ def _get_rows_per_scan(sensor: str) -> str:
     return None
 
 
+def _remove_attributes(attrs: dict) -> dict:
+    """Remove attributes that described data before scaling."""
+    old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
+                 'SCALED_MISSING']
+
+    for attr_key in old_attrs:
+        attrs.pop(attr_key, None)
+    return attrs
+
+
 class _CLAVRxHelper:
     """A base class for the CLAVRx File Handlers."""
-
-    def _remove_attributes(attrs: dict) -> dict:
-        """Remove attributes that described data before scaling."""
-        old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
-                     'SCALED_MISSING']
-
-        for attr_key in old_attrs:
-            attrs.pop(attr_key, None)
-        return attrs
 
     @staticmethod
     def _scale_data(data_arr: xr.DataArray, scale_factor: float, add_offset: float) -> xr.DataArray:
@@ -142,7 +144,7 @@ class _CLAVRxHelper:
                 data = data.where((data >= valid_min) & (data <= valid_max))
             attrs['valid_range'] = [valid_min, valid_max]
 
-        data.attrs = _CLAVRxHelper._remove_attributes(attrs)
+        data.attrs = _remove_attributes(attrs)
 
         return data
 
@@ -180,11 +182,11 @@ class _CLAVRxHelper:
 
     @staticmethod
     def _find_input_nc(filename: str, l1b_base: str) -> str:
-        filename = Path(filename)
-        dirname = filename.parent
-        l1b_filenames = dirname.joinpath(l1b_base + '.nc')
-        if l1b_filenames.exists():
-            return l1b_filenames
+        file_path = Path(filename)
+        dirname = file_path.parent
+        l1b_filename = dirname.joinpath(l1b_base + '.nc')
+        if l1b_filename.exists():
+            return str(l1b_filename)
 
         glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
         LOG.debug("searching for {0}".format(glob_pat))

@@ -36,7 +36,7 @@ except ImportError:  # Remove when dropping Python < 3.8
     from functools import reduce
     from operator import mul
 
-    def prod(iterable):
+    def prod(iterable):  # type: ignore
         """Drop-in replacement for math.prod."""
         return reduce(mul, iterable, 1)
 

@@ -38,7 +38,7 @@ from satpy.utils import debug_on
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 
 debug_on()
@@ -68,7 +68,7 @@ if (args.cfg is not None):
         cfg = yaml.load(ymlfile, Loader=UnsafeLoader)
 
 narea = get_area_def(args.areadef)
-global_data = Scene(sensor="images", reader="generic_image", area=narea)
+global_data = Scene(reader="generic_image")
 global_data.load(['image'])
 
 global_data['image'].info['area'] = narea

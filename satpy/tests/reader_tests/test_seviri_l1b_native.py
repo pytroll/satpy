@@ -45,10 +45,10 @@ for item in CHANNEL_INDEX_LIST:
 SEC15HDR = '15_SECONDARY_PRODUCT_HEADER'
 IDS = 'SelectedBandIDs'
 
-TEST1_HEADER_CHNLIST: dict[str, dict[str, dict]]  = {SEC15HDR: {IDS: {}}}
+TEST1_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST1_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX--XX--XX--'
 
-TEST2_HEADER_CHNLIST: dict[str, dict[str, dict]]  = {SEC15HDR: {IDS: {}}}
+TEST2_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST2_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX-XXXX----X'
 
 TEST3_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}

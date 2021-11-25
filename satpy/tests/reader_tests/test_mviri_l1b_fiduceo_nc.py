@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for the FIDUCEO MVIRI FCDR Reader."""
 
+from __future__ import annotations
+
 import os
 from unittest import mock
 
@@ -37,7 +39,7 @@ from satpy.readers.mviri_l1b_fiduceo_nc import (
 )
 from satpy.tests.utils import make_dataid
 
-attrs_exp = {
+attrs_exp: dict = {
     'platform': 'MET7',
     'raw_metadata': {'foo': 'bar'},
     'sensor': 'MVIRI',

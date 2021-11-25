@@ -19,6 +19,8 @@
 
 import logging
 import time
+from datetime import datetime
+from typing import Optional
 from weakref import WeakValueDictionary
 
 import numpy as np
@@ -33,7 +35,7 @@ logger = logging.getLogger(__name__)
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
 
-    coszen = WeakValueDictionary()
+    coszen_cache: WeakValueDictionary[tuple[datetime, str], Optional[xr.DataArray]] = WeakValueDictionary()
 
     def __init__(self, max_sza=95.0, **kwargs):
         """Collect custom configuration values.
@@ -59,7 +61,7 @@ class SunZenithCorrectorBase(ModifierBase):
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         logger.debug("Applying sun zen correction")
-        coszen = self.coszen.get(key)
+        coszen = self.coszen_cache.get(key)
         if coszen is None and not info.get('optional_datasets'):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
@@ -74,11 +76,11 @@ class SunZenithCorrectorBase(ModifierBase):
                                   dims=['y', 'x'], coords=coords)
             if self.max_sza is not None:
                 coszen = coszen.where(coszen >= self.max_sza_cos)
-            self.coszen[key] = coszen
+            self.coszen_cache[key] = coszen
         elif coszen is None:
             # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
-            self.coszen[key] = coszen
+            self.coszen_cache[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()

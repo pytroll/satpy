@@ -27,7 +27,7 @@ try:
     from satpy.readers.hdf4_utils import HDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    HDF4FileHandler = object
+    HDF4FileHandler = object  # type: ignore
 
 
 class FakeHDF4FileHandler(HDF4FileHandler):

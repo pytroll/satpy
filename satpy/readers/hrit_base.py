@@ -75,8 +75,6 @@ ancillary_text = np.dtype([('ancillary', '|S1')])
 
 key_header = np.dtype([('key', '|S1')])
 
-base_variable_length_headers = {}
-
 base_text_headers = {image_data_function: 'image_data_function',
                      annotation_header: 'annotation_header',
                      ancillary_text: 'ancillary_text',

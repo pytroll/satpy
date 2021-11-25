@@ -54,10 +54,10 @@ logger = logging.getLogger(__name__)
 class GAASPFileHandler(BaseFileHandler):
     """Generic file handler for GAASP output files."""
 
-    y_dims = (
+    y_dims: tuple[str, ...] = (
         'Number_of_Scans',
     )
-    x_dims = (
+    x_dims: tuple[str, ...] = (
         'Number_of_hi_rez_FOVs',
         'Number_of_low_rez_FOVs',
     )

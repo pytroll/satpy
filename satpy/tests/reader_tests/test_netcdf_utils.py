@@ -26,7 +26,7 @@ try:
     from satpy.readers.netcdf_utils import NetCDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    NetCDF4FileHandler = object
+    NetCDF4FileHandler = object  # type: ignore
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):

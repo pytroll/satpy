@@ -29,6 +29,8 @@ takes a single lon/lat point as reference and uses hardcoded resolution
 and projection information to calculate the area extents.
 
 """
+from __future__ import annotations
+
 import logging
 
 import numpy as np
@@ -62,7 +64,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         'goes16': 'abi',  # untested
         'goesr': 'abi',  # untested
     }
-    platforms = {
+    platforms: dict[str, str] = {
     }
     resolutions = {
         'abi': {
