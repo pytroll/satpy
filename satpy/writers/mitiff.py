@@ -32,6 +32,22 @@ LOG = logging.getLogger(__name__)
 KELVIN_TO_CELSIUS = -273.15
 
 
+def _adjust_kwargs(dataset, kwargs):
+    if 'platform_name' not in kwargs:
+        kwargs['platform_name'] = dataset.attrs['platform_name']
+    if 'name' not in kwargs:
+        kwargs['name'] = dataset.attrs['name']
+    if 'start_time' not in kwargs:
+        kwargs['start_time'] = dataset.attrs['start_time']
+    if 'sensor' not in kwargs:
+        kwargs['sensor'] = dataset.attrs['sensor']
+    # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
+    # Assume the first value of set as the sensor.
+    if isinstance(kwargs['sensor'], set):
+        LOG.warning('Sensor is set, will use the first value: %s', kwargs['sensor'])
+        kwargs['sensor'] = (list(kwargs['sensor']))[0]
+
+
 class MITIFFWriter(ImageWriter):
     """Writer to produce MITIFF image files."""
 
@@ -64,20 +80,7 @@ class MITIFFWriter(ImageWriter):
             try:
                 if 'palette' in kwargs:
                     self.palette = kwargs['palette']
-                if 'platform_name' not in kwargs:
-                    kwargs['platform_name'] = dataset.attrs['platform_name']
-                if 'name' not in kwargs:
-                    kwargs['name'] = dataset.attrs['name']
-                if 'start_time' not in kwargs:
-                    kwargs['start_time'] = dataset.attrs['start_time']
-                if 'sensor' not in kwargs:
-                    kwargs['sensor'] = dataset.attrs['sensor']
-
-                # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
-                # Assume the first value of set as the sensor.
-                if isinstance(kwargs['sensor'], set):
-                    LOG.warning('Sensor is set, will use the first value: %s', kwargs['sensor'])
-                    kwargs['sensor'] = (list(kwargs['sensor']))[0]
+                _adjust_kwargs(dataset, kwargs)
 
                 try:
                     self.mitiff_config[kwargs['sensor']] = dataset.attrs['metadata_requirements']['config']
@@ -119,20 +122,7 @@ class MITIFFWriter(ImageWriter):
             dataset = datasets[0]
 
             try:
-                if 'platform_name' not in kwargs:
-                    kwargs['platform_name'] = dataset.attrs['platform_name']
-                if 'name' not in kwargs:
-                    kwargs['name'] = dataset.attrs['name']
-                if 'start_time' not in kwargs:
-                    kwargs['start_time'] = dataset.attrs['start_time']
-                if 'sensor' not in kwargs:
-                    kwargs['sensor'] = dataset.attrs['sensor']
-
-                # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
-                # Assume the first value of set as the sensor.
-                if isinstance(kwargs['sensor'], set):
-                    LOG.warning('Sensor is set, will use the first value: %s', kwargs['sensor'])
-                    kwargs['sensor'] = (list(kwargs['sensor']))[0]
+                _adjust_kwargs(dataset, kwargs)
 
                 try:
                     self.mitiff_config[kwargs['sensor']] = dataset.attrs['metadata_requirements']['config']
