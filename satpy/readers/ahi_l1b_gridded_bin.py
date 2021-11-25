@@ -142,8 +142,9 @@ class AHIGriddedFileHandler(BaseFileHandler):
     @staticmethod
     def _download_luts(file_name):
         """Download LUTs from remote server."""
-        import urllib
         import shutil
+        import urllib
+
         # Set up an connection and download
         with urllib.request.urlopen(AHI_REMOTE_LUTS) as response:  # nosec
             with open(file_name, 'wb') as out_file:
