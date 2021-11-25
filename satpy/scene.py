@@ -212,24 +212,9 @@ class Scene:
         if datasets is None:
             datasets = list(self.values())
 
-        areas = []
-        for ds in datasets:
-            if isinstance(ds, BaseDefinition):
-                areas.append(ds)
-                continue
-            elif not isinstance(ds, DataArray):
-                ds = self[ds]
-            area = ds.attrs.get('area')
-            areas.append(area)
+        areas = self._gather_all_areas(datasets)
 
-        areas = [x for x in areas if x is not None]
-        if not areas:
-            raise ValueError("No dataset areas available")
-
-        if not all(isinstance(x, type(areas[0]))
-                   for x in areas[1:]):
-            raise ValueError("Can't compare areas of different types")
-        elif isinstance(areas[0], AreaDefinition):
+        if isinstance(areas[0], AreaDefinition):
             first_crs = areas[0].crs
             if not all(ad.crs == first_crs for ad in areas[1:]):
                 raise ValueError("Can't compare areas with different "
@@ -243,6 +228,29 @@ class Scene:
 
         # find the highest/lowest area among the provided
         return compare_func(areas, key=key_func)
+
+    def _gather_all_areas(self, datasets):
+        """Gather all areas from datasets.
+
+        They have to be of the same type, and at least one dataset should have
+        an area.
+        """
+        areas = []
+        for ds in datasets:
+            if isinstance(ds, BaseDefinition):
+                areas.append(ds)
+                continue
+            elif not isinstance(ds, DataArray):
+                ds = self[ds]
+            area = ds.attrs.get('area')
+            areas.append(area)
+        areas = [x for x in areas if x is not None]
+        if not areas:
+            raise ValueError("No dataset areas available")
+        if not all(isinstance(x, type(areas[0]))
+                   for x in areas[1:]):
+            raise ValueError("Can't compare areas of different types")
+        return areas
 
     def finest_area(self, datasets=None):
         """Get highest resolution area for the provided datasets.
