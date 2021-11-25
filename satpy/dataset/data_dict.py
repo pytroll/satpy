@@ -25,8 +25,6 @@ from .dataid import DataID, create_filtered_query, minimal_default_keys_config
 class TooManyResults(KeyError):
     """Special exception when one key maps to multiple items in the container."""
 
-    pass
-
 
 def get_best_dataset_key(key, choices):
     """Choose the "best" `DataID` from `choices` based on `key`.
@@ -113,14 +111,14 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
 
     if num_results == 1 and not res:
         raise KeyError("No dataset matching '{}' found".format(str(key)))
-    elif num_results == 1 and len(res) != 1:
+    if num_results == 1 and len(res) != 1:
         raise TooManyResults("No unique dataset matching {}".format(str(key)))
-    elif num_results == 1:
+    if num_results == 1:
         return res[0]
-    elif num_results == 0:
+    if num_results == 0:
         return res
-    else:
-        return res[:num_results]
+
+    return res[:num_results]
 
 
 class DatasetDict(dict):

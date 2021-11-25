@@ -45,8 +45,6 @@ from satpy.readers.hrit_base import (
 class CalibrationError(Exception):
     """Dummy error-class."""
 
-    pass
-
 
 logger = logging.getLogger('hrit_goes')
 

@@ -135,9 +135,9 @@ class GAASPFileHandler(BaseFileHandler):
         # if we don't have to
         if data_arr_dtype.type == np.float32:
             return np.float32(np.nan)
-        elif np.issubdtype(data_arr_dtype, np.timedelta64):
+        if np.issubdtype(data_arr_dtype, np.timedelta64):
             return np.timedelta64('NaT')
-        elif np.issubdtype(data_arr_dtype, np.datetime64):
+        if np.issubdtype(data_arr_dtype, np.datetime64):
             return np.datetime64('NaT')
         return np.nan
 

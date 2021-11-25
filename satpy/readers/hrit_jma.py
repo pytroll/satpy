@@ -415,14 +415,14 @@ class HRITJMAFileHandler(HRITFileHandler):
 
         if calibration == 'counts':
             return data
-        elif calibration == 'radiance':
+        if calibration == 'radiance':
             raise NotImplementedError("Can't calibrate to radiance.")
-        else:
-            cal = self.calibration_table
-            res = data.data.map_blocks(self._interp, cal, dtype=cal[:, 0].dtype)
-            res = xr.DataArray(res,
-                               dims=data.dims, attrs=data.attrs,
-                               coords=data.coords)
+
+        cal = self.calibration_table
+        res = data.data.map_blocks(self._interp, cal, dtype=cal[:, 0].dtype)
+        res = xr.DataArray(res,
+                           dims=data.dims, attrs=data.attrs,
+                           coords=data.coords)
         res = res.where(data < 65535)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res

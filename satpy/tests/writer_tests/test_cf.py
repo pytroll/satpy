@@ -1104,7 +1104,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time,
                                                     prerequisites=[make_dsq(name='hej')]))
         header_attrs = {}
-        header_attrs['history'] = 'TEST add history',
+        header_attrs['history'] = ('TEST add history',)
         header_attrs['Conventions'] = 'CF-1.7, ACDD-1.3'
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', header_attrs=header_attrs)

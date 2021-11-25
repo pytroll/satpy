@@ -207,11 +207,11 @@ class EPSAVHRRFile(BaseFileHandler):
             lats_like_1km = da.from_delayed(lats_like_1km, dtype=lats_like.dtype,
                                             shape=(self.scanlines, self.pixels))
             return lons_like_1km, lats_like_1km
-        else:
-            raise NotImplementedError("Lon/lat and angle expansion not implemented for " +
-                                      "sample rate = " + str(nav_sample_rate) +
-                                      " and earth views = " +
-                                      str(self.pixels))
+
+        raise NotImplementedError("Lon/lat and angle expansion not implemented for " +
+                                  "sample rate = " + str(nav_sample_rate) +
+                                  " and earth views = " +
+                                  str(self.pixels))
 
     @delayed(nout=2, pure=True)
     def _interpolate_20km_to_1km(self, lons, lats):

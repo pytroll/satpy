@@ -69,8 +69,8 @@ class CLAAS2(NetCDF4FileHandler):
         ds = self[dataset_id['name']]
         if "time" in ds.dims:
             return ds.squeeze(["time"])
-        else:
-            return ds
+
+        return ds
 
     def get_area_def(self, dataset_id):
         """Get the area definition."""

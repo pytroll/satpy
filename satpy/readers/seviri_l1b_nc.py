@@ -361,5 +361,3 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
 class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     """HRV filehandler."""
-
-    pass

@@ -250,7 +250,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Calibrate the data."""
         if calib == 'counts':
             return data
-        elif calib == 'reflectance' or calib == 'brightness_temperature':
+        if calib == 'reflectance' or calib == 'brightness_temperature':
             data = self._calibrate(data)
         else:
             raise NotImplementedError("ERROR: Unsupported calibration.",

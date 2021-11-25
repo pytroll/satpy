@@ -120,8 +120,8 @@ def _get_aux_data_name_from_dsname(dsname):
     aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
     if len(aux_data_name) > 0:
         return aux_data_name[0]
-    else:
-        return None
+
+    return None
 
 
 def _get_channel_name_from_dsname(dsname):

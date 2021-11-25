@@ -109,7 +109,6 @@ class FakeGRIB(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the context."""
-        pass
 
 
 class TestHSAFFileHandler(unittest.TestCase):

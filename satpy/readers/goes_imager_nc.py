@@ -726,8 +726,8 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                 area_extent)
 
             return area_def
-        else:
-            return None
+
+        return None
 
     @property
     def start_time(self):
@@ -1038,8 +1038,8 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         coefs = CALIB_COEFS[self.platform_name][channel]
         if calibration == 'counts':
             return counts
-        elif calibration in ['radiance', 'reflectance',
-                             'brightness_temperature']:
+        if calibration in ['radiance', 'reflectance',
+                           'brightness_temperature']:
             radiance = self._counts2radiance(counts=counts, coefs=coefs,
                                              channel=channel)
             if calibration == 'radiance':
@@ -1047,9 +1047,8 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
 
             return self._calibrate(radiance=radiance, coefs=coefs,
                                    channel=channel, calibration=calibration)
-        else:
-            raise ValueError('Unsupported calibration for channel {}: {}'
-                             .format(channel, calibration))
+
+        raise ValueError('Unsupported calibration for channel {}: {}'.format(channel, calibration))
 
 
 class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
@@ -1097,14 +1096,14 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         # IR files provide radiances, VIS file provides reflectances
         if is_vis and calibration == 'reflectance':
             return data
-        elif not is_vis and calibration == 'radiance':
+        if not is_vis and calibration == 'radiance':
             return data
-        elif not is_vis and calibration == 'brightness_temperature':
+        if not is_vis and calibration == 'brightness_temperature':
             return self._calibrate(radiance=data, calibration=calibration,
                                    coefs=coefs, channel=channel)
-        else:
-            raise ValueError('Unsupported calibration for channel {}: {}'
-                             .format(channel, calibration))
+
+        raise ValueError('Unsupported calibration for channel {}: {}'
+                         .format(channel, calibration))
 
 
 class GOESEUMGEONCFileHandler(BaseFileHandler):
@@ -1210,8 +1209,7 @@ class GOESCoefficientReader(object):
             response = requests.get(url)
             if response.ok:
                 return response.text
-            else:
-                raise requests.HTTPError
+            raise requests.HTTPError
         except (MissingSchema, requests.HTTPError):
             # Not a valid URL, is it a file?
             try:
