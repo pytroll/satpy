@@ -45,9 +45,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
 
 # Hardcoded address of the reflectance and BT look-up tables
-AHI_REMOTE_LUTS = ['hmwr829gr.cr.chiba-u.ac.jp',
-                   '/gridded/FD/support/',
-                   'count2tbb_v101.tgz']
+AHI_REMOTE_LUTS = 'http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/count2tbb_v102.tgz'
 
 # Full disk image sizes for each spatial resolution
 AHI_FULLDISK_SIZES = {0.005: {'x_size': 24000,
@@ -110,7 +108,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
             raise NotImplementedError("Only full disk data is supported.")
 
         # Set up directory path for the LUTs
-        app_dirs = AppDirs('ahi_gridded_luts', 'satpy', '1.0.1')
+        app_dirs = AppDirs('ahi_gridded_luts', 'satpy', '1.0.2')
         self.lut_dir = os.path.expanduser(app_dirs.user_data_dir) + '/'
         self.area = None
 
@@ -143,15 +141,13 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     @staticmethod
     def _download_luts(file_name):
-        """Download LUTs from remote FTP server."""
-        from ftplib import FTP
-
-        # Set up an FTP connection (anonymous) and download
-        ftp = FTP(AHI_REMOTE_LUTS[0])
-        ftp.login('anonymous', 'anonymous')
-        ftp.cwd(AHI_REMOTE_LUTS[1])
-        with open(file_name, 'wb') as _fp:
-            ftp.retrbinary("RETR " + AHI_REMOTE_LUTS[2], _fp.write)
+        """Download LUTs from remote server."""
+        import urllib
+        import shutil
+        # Set up an connection and download
+        with urllib.request.urlopen(AHI_REMOTE_LUTS) as response:  # nosec
+            with open(file_name, 'wb') as out_file:
+                shutil.copyfileobj(response, out_file)
 
     @staticmethod
     def _untar_luts(tarred_file, outdir):
@@ -181,7 +177,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         # The file is tarred, untar and remove the downloaded file
         self._untar_luts(fname, tempdir)
 
-        lut_dl_dir = os.path.join(tempdir, 'count2tbb/')
+        lut_dl_dir = os.path.join(tempdir, 'count2tbb_v102/')
 
         # Loop over the LUTs and copy to the correct location
         for lutfile in AHI_LUT_NAMES:
@@ -251,11 +247,8 @@ class AHIGriddedFileHandler(BaseFileHandler):
         if calib == 'counts':
             return data
         if calib == 'reflectance' or calib == 'brightness_temperature':
-            data = self._calibrate(data)
-        else:
-            raise NotImplementedError("ERROR: Unsupported calibration.",
-                                      "Only counts, reflectance and ",
-                                      "brightness_temperature calibration",
-                                      "are supported.")
-
-        return data
+            return self._calibrate(data)
+        raise NotImplementedError("ERROR: Unsupported calibration.",
+                                  "Only counts, reflectance and ",
+                                  "brightness_temperature calibration",
+                                  "are supported.")
