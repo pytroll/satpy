@@ -129,7 +129,7 @@ class Scene:
                             reader_kwargs=reader_kwargs)
 
     @property
-    def sensor_names(self) -> set[str, ...]:
+    def sensor_names(self) -> set[str]:
         """Return sensor names for the data currently contained in this Scene.
 
         Sensor information is collected from data contained in the Scene
@@ -146,7 +146,7 @@ class Scene:
                                 for sensor in reader_instance.sensor_names])
         return sensor_names
 
-    def _contained_sensor_names(self) -> set[str, ...]:
+    def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()
         for data_arr in self.values():
             if "sensor" not in data_arr.attrs:
@@ -1324,7 +1324,7 @@ class Scene:
             self._generate_composite(node, keepables)
         return keepables
 
-    def _generate_composite(self, comp_node: Node, keepables: set):
+    def _generate_composite(self, comp_node: CompositorNode, keepables: set):
         """Collect all composite prereqs and create the specified composite.
 
         Args:

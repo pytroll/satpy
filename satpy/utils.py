@@ -34,7 +34,7 @@ from yaml import BaseLoader
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -472,7 +472,7 @@ def check_satpy(readers=None, writers=None, extras=None):
     print()
 
 
-def unify_chunks(*data_arrays: xr.DataArray) -> list[xr.DataArray]:
+def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
     """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
 
     This is mostly used in :class:`satpy.composites.CompositeBase` to safe
@@ -489,11 +489,11 @@ def unify_chunks(*data_arrays: xr.DataArray) -> list[xr.DataArray]:
         return data_arrays
     if not _all_dims_same_size(data_arrays):
         return data_arrays
-    return list(xr.unify_chunks(*data_arrays))
+    return tuple(xr.unify_chunks(*data_arrays))
 
 
-def _all_dims_same_size(data_arrays: list[xr.DataArray]) -> bool:
-    known_sizes = {}
+def _all_dims_same_size(data_arrays: tuple[xr.DataArray, ...]) -> bool:
+    known_sizes: dict[str, int] = {}
     for data_arr in data_arrays:
         for dim, dim_size in data_arr.sizes.items():
             known_size = known_sizes.setdefault(dim, dim_size)
