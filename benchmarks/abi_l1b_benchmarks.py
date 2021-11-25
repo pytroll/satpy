@@ -30,7 +30,7 @@ class ABIL1B(GeoBenchmarks):
     """Benchmark ABI L1B reading."""
 
     timeout = 600
-    data_files: list = []
+    data_files: list[str] = []
     subdir = os.path.join("abi_l1b", "20190314_us_midlatitude_cyclone")
     reader = "abi_l1b"
 

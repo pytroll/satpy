@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark VIIRS SDR operations.."""
 
+from __future__ import annotations
+
 import glob
 import os
 
@@ -28,7 +30,7 @@ class VIIRSSDRBenchmarkBase:
     """Shared methods for working with VIIRS SDR data."""
 
     timeout = 600
-    data_files = []
+    data_files: list[str] = []
 
     def setup_cache(self):
         """Fetch the data files."""

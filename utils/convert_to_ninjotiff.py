@@ -30,9 +30,9 @@ import argparse
 import os
 
 import yaml
-from satpy.pyresample import get_area_def
 
 from satpy import Scene
+from satpy.pyresample import get_area_def
 from satpy.utils import debug_on
 
 try:

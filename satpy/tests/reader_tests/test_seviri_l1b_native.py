@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
+from __future__ import annotations
+
 import os
 import unittest
 from datetime import datetime
@@ -43,13 +45,13 @@ for item in CHANNEL_INDEX_LIST:
 SEC15HDR = '15_SECONDARY_PRODUCT_HEADER'
 IDS = 'SelectedBandIDs'
 
-TEST1_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST1_HEADER_CHNLIST: dict[str, dict[str, dict]]  = {SEC15HDR: {IDS: {}}}
 TEST1_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX--XX--XX--'
 
-TEST2_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST2_HEADER_CHNLIST: dict[str, dict[str, dict]]  = {SEC15HDR: {IDS: {}}}
 TEST2_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX-XXXX----X'
 
-TEST3_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST3_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {

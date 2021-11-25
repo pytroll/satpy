@@ -16,6 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the satpy.demo module."""
+from __future__ import annotations
+
 import contextlib
 import io
 import os
@@ -234,7 +236,7 @@ def test_fci_download(tmp_path, monkeypatch):
 class _FakeRequest:
     """Fake object to act like a requests return value when downloading a file."""
 
-    requests_log = []
+    requests_log: list[str] = []
 
     def __init__(self, url, stream=None):
         self._filename = os.path.basename(url)

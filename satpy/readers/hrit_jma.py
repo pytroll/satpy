@@ -126,7 +126,7 @@ image_observation_time = np.dtype([('times', '|S1')])
 image_quality_information = np.dtype([('quality', '|S1')])
 
 
-jma_variable_length_headers = {}
+jma_variable_length_headers: dict = {}
 
 jma_text_headers = {image_data_function: 'image_data_function',
                     annotation_header: 'annotation_header',
