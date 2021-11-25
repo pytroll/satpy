@@ -11,7 +11,7 @@ repos:
     rev: '1.7.0' # Update me!
     hooks:
       - id: bandit
-        args: [-x, satpy/tests, -c, .bandit]
+        args: [-c, .bandit]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v0.910-1'  # Use the sha / tag you want to point at
     hooks:
