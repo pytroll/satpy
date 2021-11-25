@@ -21,8 +21,9 @@ This module is executed automatically by pytest.
 
 """
 
-import satpy
 import pytest
+
+import satpy
 
 
 @pytest.fixture(autouse=True)

@@ -17,14 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Step for the real load-process-write tests."""
 
-import os
 import fnmatch
-
-from behave import given, when, then
-
+import os
 from tempfile import NamedTemporaryFile
 
 import numpy as np
+from behave import given, then, when
 from PIL import Image
 
 
@@ -82,8 +80,8 @@ def before_all(context):
         debug_on()
 
 
-@given(u'{dformat} data is available')  # noqa
-def step_impl(context, dformat):
+@given(u'{dformat} data is available')
+def step_impl_input_files_exists(context, dformat):
     """Check that input data exists on disk."""
     data_path = os.path.join('test_data', dformat)
     data_available = os.path.exists(data_path)
@@ -94,8 +92,8 @@ def step_impl(context, dformat):
         context.data_path = data_path
 
 
-@when(u'the user loads the {composite} composite')  # noqa
-def step_impl(context, composite):
+@when(u'the user loads the {composite} composite')
+def step_impl_create_scene_and_load_single(context, composite):
     """Create a Scene and load a single composite."""
     from satpy import Scene
     scn = Scene(reader=context.dformat,
@@ -106,8 +104,8 @@ def step_impl(context, composite):
     context.composite = composite
 
 
-@when(u'the user resamples the data to {area}')  # noqa
-def step_impl(context, area):
+@when(u'the user resamples the data to {area}')
+def step_impl_resample_scene(context, area):
     """Resample the scene to an area or use the native resampler."""
     if area != '-':
         context.lscn = context.scn.resample(area)
@@ -116,16 +114,16 @@ def step_impl(context, area):
     context.area = area
 
 
-@when(u'the user saves the composite to disk')  # noqa
-def step_impl(context):
+@when(u'the user saves the composite to disk')
+def step_impl_save_to_png(context):
     """Call Scene.save_dataset to write a PNG image."""
     with NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         context.lscn.save_dataset(context.composite, filename=tmp_file.name)
         context.new_filename = tmp_file.name
 
 
-@then(u'the resulting image should match the reference image')  # noqa
-def step_impl(context):
+@then(u'the resulting image should match the reference image')
+def step_impl_compare_two_png_images(context):
     """Compare two PNG image files."""
     if context.area == '-':
         ref_filename = context.composite + ".png"

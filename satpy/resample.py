@@ -141,19 +141,20 @@ defined.
 import hashlib
 import json
 import os
+import warnings
 from logging import getLogger
 from weakref import WeakValueDictionary
-import warnings
-import numpy as np
-import xarray as xr
+
 import dask
 import dask.array as da
-import zarr
+import numpy as np
 import pyresample
+import xarray as xr
+import zarr
 from packaging import version
-
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
+
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
 except ImportError:
@@ -170,7 +171,6 @@ except ImportError:
 from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_config_path
 
-
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
@@ -185,7 +185,7 @@ BIL_COORDINATES = {'bilinear_s': ('x1', ),
                    'out_coords_x': ('x2', ),
                    'out_coords_y': ('y2', )}
 
-resamplers_cache = WeakValueDictionary()
+resamplers_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
 
 PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 
@@ -491,18 +491,7 @@ class KDTreeResampler(BaseResampler):
             cache_dir = None
 
         if radius_of_influence is None and not hasattr(self.source_geo_def, 'geocentric_resolution'):
-            warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
-            try:
-                radius_of_influence = self.source_geo_def.lons.resolution * 3
-            except AttributeError:
-                try:
-                    radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
-                                              abs(self.source_geo_def.pixel_size_y)) * 3
-                except AttributeError:
-                    radius_of_influence = 1000
-
-            except TypeError:
-                radius_of_influence = 10000
+            radius_of_influence = self._adjust_radius_of_influence(radius_of_influence)
 
         kwargs = dict(source_geo_def=self.source_geo_def,
                       target_geo_def=self.target_geo_def,
@@ -521,6 +510,22 @@ class KDTreeResampler(BaseResampler):
             LOG.debug("Computing kd-tree parameters")
             self.resampler.get_neighbour_info(mask=mask)
             self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
+
+    def _adjust_radius_of_influence(self, radius_of_influence):
+        """Adjust radius of influence."""
+        warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
+        try:
+            radius_of_influence = self.source_geo_def.lons.resolution * 3
+        except AttributeError:
+            try:
+                radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
+                                          abs(self.source_geo_def.pixel_size_y)) * 3
+            except AttributeError:
+                radius_of_influence = 1000
+
+        except TypeError:
+            radius_of_influence = 10000
+        return radius_of_influence
 
     def _apply_cached_index(self, val, idx_name, persist=False):
         """Reassign resampler index attributes."""

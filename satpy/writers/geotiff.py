@@ -18,11 +18,14 @@
 """GeoTIFF writer objects for creating GeoTIFF files from `DataArray` objects."""
 
 import logging
+
 import numpy as np
-from satpy.writers import ImageWriter
+
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa
+
+from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
 
@@ -189,11 +192,7 @@ class GeoTIFFWriter(ImageWriter):
         """
         filename = filename or self.get_filename(**img.data.attrs)
 
-        # Update global GDAL options with these specific ones
-        gdal_options = self.gdal_options.copy()
-        for k in kwargs:
-            if k in self.GDAL_OPTIONS:
-                gdal_options[k] = kwargs[k]
+        gdal_options = self._get_gdal_options(kwargs)
         if fill_value is None:
             # fall back to fill_value from configuration file
             fill_value = self.info.get('fill_value')
@@ -234,3 +233,11 @@ class GeoTIFFWriter(ImageWriter):
                         overviews_resampling=overviews_resampling,
                         overviews_minsize=overviews_minsize,
                         **gdal_options)
+
+    def _get_gdal_options(self, kwargs):
+        # Update global GDAL options with these specific ones
+        gdal_options = self.gdal_options.copy()
+        for k in kwargs:
+            if k in self.GDAL_OPTIONS:
+                gdal_options[k] = kwargs[k]
+        return gdal_options

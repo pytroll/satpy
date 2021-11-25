@@ -133,8 +133,9 @@ class TestIasiL2(unittest.TestCase):
 
     def setUp(self):
         """Create temporary data to test on."""
-        import tempfile
         import datetime as dt
+        import tempfile
+
         from satpy.readers.iasi_l2 import IASIL2HDF5
 
         self.base_dir = tempfile.mkdtemp()
@@ -274,6 +275,7 @@ class TestIasiL2(unittest.TestCase):
     def test_read_dataset(self):
         """Test read_dataset() function."""
         import h5py
+
         from satpy.readers.iasi_l2 import read_dataset
         from satpy.tests.utils import make_dataid
         with h5py.File(self.fname, 'r') as fid:
@@ -291,6 +293,7 @@ class TestIasiL2(unittest.TestCase):
     def test_read_geo(self):
         """Test read_geo() function."""
         import h5py
+
         from satpy.readers.iasi_l2 import read_geo
         from satpy.tests.utils import make_dataid
         with h5py.File(self.fname, 'r') as fid:

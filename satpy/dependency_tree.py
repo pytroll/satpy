@@ -19,14 +19,14 @@
 
 from __future__ import annotations
 
-from typing import Optional, Iterable, Container
-
-from satpy import DataID
-from satpy.dataset import create_filtered_query, ModifierTuple
-from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG, ReaderNode
+from typing import Container, Iterable, Optional
 
 import numpy as np
+
+from satpy import DataID
+from satpy.dataset import ModifierTuple, create_filtered_query
+from satpy.dataset.data_dict import TooManyResults, get_key
+from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
 
 
 class Tree:

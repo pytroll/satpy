@@ -18,9 +18,10 @@
 """Unit testing for the ABI enhancement functions."""
 
 import unittest
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 
 class TestABIEnhancement(unittest.TestCase):
@@ -33,8 +34,9 @@ class TestABIEnhancement(unittest.TestCase):
 
     def test_cimss_true_color_contrast(self):
         """Test the cimss_true_color_contrast enhancement."""
-        from satpy.enhancements.abi import cimss_true_color_contrast
         from trollimage.xrimage import XRImage
+
+        from satpy.enhancements.abi import cimss_true_color_contrast
 
         expected = np.array([[
             [0., 0., 0.05261956, 0.13396146],

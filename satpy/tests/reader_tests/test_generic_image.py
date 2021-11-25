@@ -19,9 +19,10 @@
 import os
 import unittest
 
-import xarray as xr
 import dask.array as da
 import numpy as np
+import xarray as xr
+
 from satpy.tests.utils import make_dataid
 
 
@@ -34,6 +35,7 @@ class TestGenericImage(unittest.TestCase):
         from datetime import datetime
 
         from pyresample.geometry import AreaDefinition
+
         from satpy.scene import Scene
 
         self.date = datetime(2018, 1, 1)

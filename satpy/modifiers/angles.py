@@ -18,24 +18,24 @@
 """Utilties for getting various angles for a dataset.."""
 from __future__ import annotations
 
-import os
 import hashlib
+import os
+import shutil
 from datetime import datetime
 from functools import update_wrapper
 from glob import glob
-from typing import Callable, Any, Optional, Union
-import shutil
+from typing import Any, Callable, Optional, Union, cast
 
 import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
-from satpy.utils import get_satpos, ignore_invalid_float_warnings
-from pyorbital.orbital import get_observer_look
 from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-from pyresample.geometry import SwathDefinition, AreaDefinition
+from pyorbital.orbital import get_observer_look
+from pyresample.geometry import AreaDefinition, SwathDefinition
 
 import satpy
+from satpy.utils import get_satpos, ignore_invalid_float_warnings
 
 PRGeometry = Union[SwathDefinition, AreaDefinition]
 
@@ -154,14 +154,15 @@ class ZarrCacheHelper:
             res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
         return res
 
-    def _get_should_cache_and_cache_dir(self, args, cache_dir):
-        should_cache = satpy.config.get(self._cache_config_key, False)
+    def _get_should_cache_and_cache_dir(self, args, cache_dir: Optional[str]) -> tuple[bool, str]:
+        should_cache: bool = satpy.config.get(self._cache_config_key, False)
         can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in args)
         should_cache = should_cache and can_cache
         if cache_dir is None:
             cache_dir = satpy.config.get("cache_dir")
         if cache_dir is None:
             should_cache = False
+        cache_dir = cast(str, cache_dir)
         return should_cache, cache_dir
 
     def _cache_results(self, res, zarr_format):
@@ -277,7 +278,7 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
 
 
 @cache_to_zarr_if("cache_lonlats")
-def _get_valid_lonlats(area: PRGeometry, chunks: int = "auto") -> tuple[da.Array, da.Array]:
+def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         lons, lats = area.get_lonlats(chunks=chunks)
         lons = da.where(lons >= 1e30, np.nan, lons)

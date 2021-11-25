@@ -18,23 +18,28 @@
 """Unit tests for scene.py."""
 
 import os
-from datetime import datetime
-import unittest
-from unittest import mock
-import string
 import random
+import string
+import unittest
+from datetime import datetime
+from unittest import mock
+
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
 
 import satpy
 from satpy import Scene
-from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
-                               make_dsq, spy_decorator,
-                               FAKE_FILEHANDLER_START, FAKE_FILEHANDLER_END)
-
-import numpy as np
-import xarray as xr
-import dask.array as da
-import pytest
-
+from satpy.tests.utils import (
+    FAKE_FILEHANDLER_END,
+    FAKE_FILEHANDLER_START,
+    default_id_keys_config,
+    make_cid,
+    make_dataid,
+    make_dsq,
+    spy_decorator,
+)
 
 TEST_ETC_DIR = os.path.join(os.path.dirname(__file__), 'etc')
 
@@ -128,7 +133,6 @@ class TestScene:
         # TypeError within that method if passed an FSFile instance.
         # Instead rely on the ValueError that satpy raises if no readers
         # are found.
-
         # Choose random filename that doesn't exist.  Not using tempfile here,
         # because tempfile creates files and we don't want that here.
         fsf = FSFile("".join(random.choices(string.printable, k=50)))

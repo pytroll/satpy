@@ -84,15 +84,15 @@ All auxiliary data can be obtained by prepending the channel name such as
 .. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
 """
 
-from __future__ import (division, absolute_import, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+
 import numpy as np
 import xarray as xr
-
-from pyresample import geometry
 from netCDF4 import default_fillvals
+from pyresample import geometry
+
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
@@ -120,8 +120,8 @@ def _get_aux_data_name_from_dsname(dsname):
     aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
     if len(aux_data_name) > 0:
         return aux_data_name[0]
-    else:
-        return None
+
+    return None
 
 
 def _get_channel_name_from_dsname(dsname):

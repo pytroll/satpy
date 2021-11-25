@@ -19,10 +19,11 @@
 """Module for testing the satpy.readers.tropomi_l2 module."""
 
 import os
-from unittest import mock
-import pytest
 from datetime import datetime
+from unittest import mock
+
 import numpy as np
+import pytest
 import xarray as xr
 
 METOP_FILE = "IMG_SX.M2.D17037.S1601.E1607.B0000001.WE.HR.ORB.nc"

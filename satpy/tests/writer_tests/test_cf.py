@@ -17,15 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer."""
 
-from collections import OrderedDict
 import os
-import unittest
-from unittest import mock
-from datetime import datetime
 import tempfile
-from satpy.tests.utils import make_dsq
+import unittest
+from collections import OrderedDict
+from datetime import datetime
+from unittest import mock
 
 import numpy as np
+
+from satpy.tests.utils import make_dsq
 
 try:
     from pyproj import CRS
@@ -57,14 +58,15 @@ class TestCFWriter(unittest.TestCase):
 
     def test_init(self):
         """Test initializing the CFWriter class."""
-        from satpy.writers.cf_writer import CFWriter
         from satpy.writers import configs_for_writer
+        from satpy.writers.cf_writer import CFWriter
         CFWriter(config_files=list(configs_for_writer('cf'))[0])
 
     def test_save_array(self):
         """Test saving an array to netcdf/cf."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -82,8 +84,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_with_compression(self):
         """Test saving an array with compression."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -101,9 +104,10 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_array_coords(self):
         """Test saving array with coordinates."""
-        from satpy import Scene
-        import xarray as xr
         import numpy as np
+        import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -137,8 +141,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -148,8 +153,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit_prefix(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -159,8 +165,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit_prefix_include_attr(self):
         """Test saving an array to netcdf/cf where dataset name starting with a digit with prefix include orig name."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -171,8 +178,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_save_dataset_a_digit_no_prefix_include_attr(self):
         """Test saving an array to netcdf/cf dataset name starting with a digit with no prefix include orig name."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         scn['1'] = xr.DataArray([1, 2, 3])
         with TempFile() as filename:
@@ -184,6 +192,7 @@ class TestCFWriter(unittest.TestCase):
     def test_ancillary_variables(self):
         """Test ancillary_variables cited each other."""
         import xarray as xr
+
         from satpy import Scene
         from satpy.tests.utils import make_dataid
         scn = Scene()
@@ -208,6 +217,7 @@ class TestCFWriter(unittest.TestCase):
     def test_groups(self):
         """Test creating a file with groups."""
         import xarray as xr
+
         from satpy import Scene
 
         tstart = datetime(2019, 4, 1, 12, 0)
@@ -264,8 +274,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_single_time_value(self):
         """Test setting a single time value."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -284,8 +295,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_bounds(self):
         """Test setting time bounds."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -317,8 +329,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_bounds_minimum(self):
         """Test minimum bounds."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
         end_timeA = datetime(2018, 5, 30, 10, 20)
@@ -344,8 +357,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_bounds_missing_time_info(self):
         """Test time bounds generation in case of missing time."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)
         end_timeA = datetime(2018, 5, 30, 10, 15)
@@ -367,8 +381,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_encoding_kwarg(self):
         """Test 'encoding' keyword argument."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -390,8 +405,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_unlimited_dims_kwarg(self):
         """Test specification of unlimited dimensions."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -408,8 +424,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_header_attrs(self):
         """Check global attributes are set."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -542,8 +559,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_encode_attrs_nc(self):
         """Test attributes encoding."""
-        from satpy.writers.cf_writer import encode_attrs_nc
         import json
+
+        from satpy.writers.cf_writer import encode_attrs_nc
 
         attrs, expected, _ = self.get_test_attrs()
 
@@ -562,8 +580,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_da2cf(self):
         """Test the conversion of a DataArray to a CF-compatible DataArray."""
-        from satpy.writers.cf_writer import CFWriter
         import xarray as xr
+
+        from satpy.writers.cf_writer import CFWriter
 
         # Create set of test attributes
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
@@ -602,9 +621,10 @@ class TestCFWriter(unittest.TestCase):
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
     def test_collect_datasets(self, *mocks):
         """Test collecting CF datasets from a DataArray objects."""
-        from satpy.writers.cf_writer import CFWriter
-        import xarray as xr
         import pyresample.geometry
+        import xarray as xr
+
+        from satpy.writers.cf_writer import CFWriter
         geos = pyresample.geometry.AreaDefinition(
             area_id='geos',
             description='geos',
@@ -648,6 +668,7 @@ class TestCFWriter(unittest.TestCase):
     def test_assert_xy_unique(self):
         """Test that the x and y coordinates are unique."""
         import xarray as xr
+
         from satpy.writers.cf_writer import assert_xy_unique
 
         dummy = [[1, 2], [3, 4]]
@@ -661,9 +682,10 @@ class TestCFWriter(unittest.TestCase):
 
     def test_link_coords(self):
         """Check that coordinates link has been established correctly."""
-        import xarray as xr
-        from satpy.writers.cf_writer import link_coords
         import numpy as np
+        import xarray as xr
+
+        from satpy.writers.cf_writer import link_coords
 
         data = [[1, 2], [3, 4]]
         lon = np.zeros((2, 2))
@@ -699,6 +721,7 @@ class TestCFWriter(unittest.TestCase):
     def test_make_alt_coords_unique(self):
         """Test that created coordinate variables are unique."""
         import xarray as xr
+
         from satpy.writers.cf_writer import make_alt_coords_unique
 
         data = [[1, 2], [3, 4]]
@@ -745,8 +768,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
-        import xarray as xr
         import pyresample.geometry
+        import xarray as xr
+
         from satpy.writers.cf_writer import area2cf
 
         ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
@@ -793,8 +817,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_area2gridmapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
-        import xarray as xr
         import pyresample.geometry
+        import xarray as xr
+
         from satpy.writers.cf_writer import area2gridmapping
 
         def _gm_matches(gmapping, expected):
@@ -979,9 +1004,10 @@ class TestCFWriter(unittest.TestCase):
 
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""
+        import dask.array as da
         import pyresample.geometry
         import xarray as xr
-        import dask.array as da
+
         from satpy.writers.cf_writer import area2lonlat
 
         area = pyresample.geometry.AreaDefinition(
@@ -1032,9 +1058,10 @@ class TestCFWriter(unittest.TestCase):
 
     def test_load_module_with_old_pyproj(self):
         """Test that cf_writer can still be loaded with pyproj 1.9.6."""
-        import pyproj # noqa 401
-        import sys
         import importlib
+        import sys
+
+        import pyproj  # noqa 401
         old_version = sys.modules['pyproj'].__version__
         sys.modules['pyproj'].__version__ = "1.9.6"
         try:
@@ -1046,8 +1073,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_global_attr_default_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -1064,8 +1092,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_global_attr_history_and_Conventions(self):
         """Test saving global attributes history and Conventions."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -1075,7 +1104,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time,
                                                     prerequisites=[make_dsq(name='hej')]))
         header_attrs = {}
-        header_attrs['history'] = 'TEST add history',
+        header_attrs['history'] = ('TEST add history',)
         header_attrs['Conventions'] = 'CF-1.7, ACDD-1.3'
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', header_attrs=header_attrs)
@@ -1090,8 +1119,8 @@ class TestCFWriterData(unittest.TestCase):
 
     def setUp(self):
         """Create some test data."""
-        import xarray as xr
         import pyresample.geometry
+        import xarray as xr
         data = [[75, 2], [3, 4]]
         y = [1, 2]
         x = [1, 2]
@@ -1140,8 +1169,9 @@ class TestCFWriterData(unittest.TestCase):
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
     def test_collect_datasets_with_latitude_named_lat(self, *mocks):
         """Test collecting CF datasets with latitude named lat."""
-        from satpy.writers.cf_writer import CFWriter
         from operator import getitem
+
+        from satpy.writers.cf_writer import CFWriter
         self.datasets_list = [self.datasets[key] for key in self.datasets]
         self.datasets_list_no_latlon = [self.datasets[key] for key in ['var1', 'var2']]
 

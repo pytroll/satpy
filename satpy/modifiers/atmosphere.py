@@ -25,8 +25,8 @@ import numpy as np
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
+from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 class PSPRayleighReflectance(ModifierBase):
     """Pyspectral-based rayleigh corrector for visible channels."""
 
-    _rayleigh_cache = WeakValueDictionary()
+    _rayleigh_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.

@@ -12,9 +12,12 @@
 # serve to show the default.
 """Sphinx documentation configuration and setup."""
 
+from __future__ import annotations
+
 import os
 import sys
 from datetime import datetime
+
 from pkg_resources import get_distribution
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -64,7 +67,7 @@ class Mock(object):  # noqa
 # https://github.com/sphinx-doc/sphinx/issues/3920
 MOCK_MODULES = ['h5py']
 for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = Mock()
+    sys.modules[mod_name] = Mock()  # type: ignore
 
 autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4',
                         'pygac', 'pygrib', 'pyhdf', 'pyninjotiff',
@@ -122,7 +125,7 @@ copyright = u'2009-{}, The PyTroll Team'.format(datetime.utcnow().strftime("%Y")
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_trees = []
+exclude_trees: list[str] = []
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 # default_role = None

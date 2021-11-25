@@ -19,8 +19,9 @@
 
 import os
 import sys
-import numpy as np
 import unittest
+
+import numpy as np
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
 
@@ -335,6 +336,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
     def setUp(self):
         """Create temporary file to perform tests with."""
         import tempfile
+
         from satpy.readers.iasi_l2_so2_bufr import IASIL2SO2BUFR
 
         self.base_dir = tempfile.mkdtemp()

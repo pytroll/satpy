@@ -32,15 +32,15 @@ References:
 """
 
 import logging
-
-import numpy as np
-import dask.array as da
-import xarray as xr
 import os
 
+import dask.array as da
+import numpy as np
+import xarray as xr
 from appdirs import AppDirs
-from satpy import CHUNK_SIZE
 from pyresample import geometry
+
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
 
@@ -142,8 +142,9 @@ class AHIGriddedFileHandler(BaseFileHandler):
     @staticmethod
     def _download_luts(file_name):
         """Download LUTs from remote server."""
-        import urllib
         import shutil
+        import urllib
+
         # Set up an connection and download
         with urllib.request.urlopen(AHI_REMOTE_LUTS) as response:  # nosec
             with open(file_name, 'wb') as out_file:
@@ -160,9 +161,9 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     def _get_luts(self):
         """Download the LUTs needed for count->Refl/BT conversion."""
-        import tempfile
-        import shutil
         import pathlib
+        import shutil
+        import tempfile
 
         # Check that the LUT directory exists
         pathlib.Path(self.lut_dir).mkdir(parents=True, exist_ok=True)

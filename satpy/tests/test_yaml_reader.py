@@ -24,12 +24,13 @@ from datetime import datetime
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, patch
 
-import satpy.readers.yaml_reader as yr
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.dataset import DataQuery
-from satpy.tests.utils import make_dataid
-import xarray as xr
 import numpy as np
+import xarray as xr
+
+import satpy.readers.yaml_reader as yr
+from satpy.dataset import DataQuery
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.utils import make_dataid
 
 
 class FakeFH(BaseFileHandler):
@@ -603,28 +604,6 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         from functools import partial
         orig_ids = self.reader.all_ids
 
-        def available_datasets(self, configured_datasets=None):
-            res = self.resolution
-            # update previously configured datasets
-            for is_avail, ds_info in (configured_datasets or []):
-                if is_avail is not None:
-                    yield is_avail, ds_info
-
-                matches = self.file_type_matches(ds_info['file_type'])
-                if matches and ds_info.get('resolution') != res:
-                    new_info = ds_info.copy()
-                    new_info['resolution'] = res
-                    yield True, new_info
-                elif is_avail is None:
-                    yield is_avail, ds_info
-
-        def file_type_matches(self, ds_ftype):
-            if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
-                return True
-            if self.filetype_info['file_type'] in ds_ftype:
-                return True
-            return None
-
         for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
             # need to copy this because the dataset infos will be modified
             _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
@@ -651,6 +630,34 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     if ftype in file_types:
                         self.assertEqual(resol, ds_id['resolution'])
 
+# Test methods
+
+
+def available_datasets(self, configured_datasets=None):
+    """Fake available_datasets for testing multiple file types."""
+    res = self.resolution
+    # update previously configured datasets
+    for is_avail, ds_info in (configured_datasets or []):
+        if is_avail is not None:
+            yield is_avail, ds_info
+
+        matches = self.file_type_matches(ds_info['file_type'])
+        if matches and ds_info.get('resolution') != res:
+            new_info = ds_info.copy()
+            new_info['resolution'] = res
+            yield True, new_info
+        elif is_avail is None:
+            yield is_avail, ds_info
+
+
+def file_type_matches(self, ds_ftype):
+    """Fake file_type_matches for testing multiple file types."""
+    if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
+        return True
+    if self.filetype_info['file_type'] in ds_ftype:
+        return True
+    return None
+
 
 class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     """Test GEOFlippableFileYAMLReader."""
@@ -660,6 +667,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     def test_load_dataset_with_area_for_single_areas(self, ldwa):
         """Test _load_dataset_with_area() for single area definitions."""
         from pyresample.geometry import AreaDefinition
+
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
@@ -766,6 +774,7 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     def test_load_dataset_with_area_for_stacked_areas(self, ldwa):
         """Test _load_dataset_with_area() for stacked area definitions."""
         from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
@@ -1140,6 +1149,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     def test_find_missing_segments(self):
         """Test _find_missing_segments()."""
         from satpy.readers.yaml_reader import _find_missing_segments as fms
+
         # Dataset with only one segment
         filename_info = {'segment': 1}
         fh_seg1 = MagicMock(filename_info=filename_info)

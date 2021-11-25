@@ -26,18 +26,19 @@ areas configuration file (located in $PPP_CONFIG_DIR).
 
 """
 
+import argparse
 import os
 
-from satpy.utils import debug_on
+import yaml
 
 from satpy import Scene
-from mpop.projector import get_area_def
-import argparse
-import yaml
+from satpy.pyresample import get_area_def
+from satpy.utils import debug_on
+
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 
 debug_on()
@@ -67,7 +68,7 @@ if (args.cfg is not None):
         cfg = yaml.load(ymlfile, Loader=UnsafeLoader)
 
 narea = get_area_def(args.areadef)
-global_data = Scene(sensor="images", reader="generic_image", area=narea)
+global_data = Scene(reader="generic_image")
 global_data.load(['image'])
 
 global_data['image'].info['area'] = narea
