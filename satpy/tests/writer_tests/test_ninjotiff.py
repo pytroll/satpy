@@ -128,3 +128,17 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         ds_in = sc["rain_rate"]
         with pytest.raises(NotImplementedError):
             convert_units(ds_in, "millimeter/hour", "m/s")
+
+    @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
+    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    def test_P_image_is_uint8(self, iwsi, save_dataset):
+        """Test that a P-mode image is converted to uint8s."""
+        nt = pyninjotiff_mock.ninjotiff
+        nt.reset_mock()
+        from satpy.writers.ninjotiff import NinjoTIFFWriter
+        ntw = NinjoTIFFWriter()
+        dataset = xr.DataArray([1, 2, 3]).astype(int)
+        img = FakeImage(dataset, 'P')
+        ntw.save_image(img, filename='bla.tif', compute=False)
+        assert nt.save.mock_calls[0][1][0].data.dtype == np.uint8

@@ -20,11 +20,11 @@ files. Satpy also allows users to resample data to geographic projected grids
 The Satpy library acts as a high-level abstraction layer on top of other
 libraries maintained by the Pytroll group including:
 
-- `Pyresample <http://pyresample.readthedocs.io/en/latest/>`_
-- `PySpectral <https://pyspectral.readthedocs.io/en/latest/>`_
-- `Trollimage <http://trollimage.readthedocs.io/en/latest/>`_
-- `Pycoast <https://pycoast.readthedocs.io/en/latest/>`_
-- `Pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
+- `pyresample <http://pyresample.readthedocs.io/en/latest/>`_
+- `pyspectral <https://pyspectral.readthedocs.io/en/latest/>`_
+- `trollimage <http://trollimage.readthedocs.io/en/latest/>`_
+- `pycoast <https://pycoast.readthedocs.io/en/latest/>`_
+- `pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
 - `python-geotiepoints <https://python-geotiepoints.readthedocs.io/en/latest/>`_
 - `pyninjotiff <https://github.com/pytroll/pyninjotiff>`_
 
@@ -143,9 +143,9 @@ the base Satpy installation.
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
       - Nominal
-    * - MTG FCI Level 1C data for Full Disk High Spectral Imagery (FDHSI) in netcdf format
-      - `fci_l1c_fdhsi`
-      - In development
+    * - MTG FCI Level 1C data in NetCDF format
+      - `fci_l1c_nc`
+      - In development (beta for FDHSI files, HRFI not supported yet)
     * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
       - `caliop_l2_cloud`
       - In development
@@ -245,7 +245,7 @@ the base Satpy installation.
     * - IASI level 2 SO2 in BUFR format
       - `iasi_l2_so2_bufr`
       - Beta
-    * - HY-2B Scatterometer level 2b data in HDF5 format
+    * - HY-2B Scatterometer level 2b data in HDF5 format from both EUMETSAT and NSOAS
       - `hy2_scat_l2b_h5`
       - Beta
     * - OMPS EDR data in HDF5 format

@@ -38,7 +38,7 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 
 # These are the default channel adjustment factors.
 # Defined in the product notice: S3.PN-SLSTR-L1.06
-# https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_S3A_PN_SLSTR_L1_06&RevisionSelectionMethod=LatestReleased&Rendition=Web
+# https://www4-int.eumetsat.int/media/42788
 CHANCALIB_FACTORS = {'S1_nadir': 1.0,
                      'S2_nadir': 1.0,
                      'S3_nadir': 1.0,
@@ -231,6 +231,15 @@ class NCSLSTR1B(BaseFileHandler):
 class NCSLSTRAngles(BaseFileHandler):
     """Filehandler for angles."""
 
+    def _loadcart(self, fname):
+        """Load a cartesian file of appropriate type."""
+        cartf = xr.open_dataset(fname,
+                                decode_cf=True,
+                                mask_and_scale=True,
+                                chunks={'columns': CHUNK_SIZE,
+                                        'rows': CHUNK_SIZE})
+        return cartf
+
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the angles reader."""
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
@@ -245,29 +254,23 @@ class NCSLSTRAngles(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
-
         self.view = filename_info['view']
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
 
-        cart_file = os.path.join(
+        carta_file = os.path.join(
+            os.path.dirname(self.filename), 'cartesian_a{}.nc'.format(self.view[0]))
+        carti_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view[0]))
-        self.cart = xr.open_dataset(cart_file,
-                                    decode_cf=True,
-                                    mask_and_scale=True,
-                                    chunks={'columns': CHUNK_SIZE,
-                                            'rows': CHUNK_SIZE})
         cartx_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_tx.nc')
-        self.cartx = xr.open_dataset(cartx_file,
-                                     decode_cf=True,
-                                     mask_and_scale=True,
-                                     chunks={'columns': CHUNK_SIZE,
-                                             'rows': CHUNK_SIZE})
+        self.carta = self._loadcart(carta_file)
+        self.carti = self._loadcart(carti_file)
+        self.cartx = self._loadcart(cartx_file)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if not info['view'].name.startswith(self.view):
+        if not key['view'].name.startswith(self.view[0]):
             return
         logger.debug('Reading %s.', key['name'])
         # Check if file_key is specified in the yaml
@@ -283,15 +286,19 @@ class NCSLSTRAngles(BaseFileHandler):
 
         if c_step != 1 or l_step != 1:
             logger.debug('Interpolating %s.', key['name'])
-
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
             tie_x = self.cartx['x_tx'].data[0, :][::-1]
             tie_y = self.cartx['y_tx'].data[:, 0]
-            full_x = self.cart['x_i' + self.view[0]].data
-            full_y = self.cart['y_i' + self.view[0]].data
+            if key.get('resolution', 1000) == 500:
+                full_x = self.carta['x_a' + self.view[0]].data
+                full_y = self.carta['y_a' + self.view[0]].data
+            else:
+                full_x = self.carti['x_i' + self.view[0]].data
+                full_y = self.carti['y_i' + self.view[0]].data
 
             variable = variable.fillna(0)
+            variable.attrs['resolution'] = key.get('resolution', 1000)
 
             from scipy.interpolate import RectBivariateSpline
             spl = RectBivariateSpline(

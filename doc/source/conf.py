@@ -234,8 +234,8 @@ htmlhelp_basename = 'NWCSAFMSGPPdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'satpy.tex', u'satpy documentation',
-   u'SMHI', 'manual'),
+  ('index', 'satpy.tex', 'Satpy Documentation',
+   'Satpy Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -268,7 +268,7 @@ intersphinx_mapping = {
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
     'pytest': ('https://docs.pytest.org/en/stable/', None),
     'python': ('https://docs.python.org/3', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),

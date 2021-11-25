@@ -109,6 +109,9 @@ u_vis_refl_exp = xr.DataArray(
         dtype=np.float32
     ),
     dims=('y', 'x'),
+    coords={
+        'acq_time': ('y', acq_time_vis_exp),
+    },
     attrs=attrs_exp
 )
 acq_time_ir_wv_exp = [np.datetime64('1970-01-01 00:30'),
@@ -194,6 +197,9 @@ quality_pixel_bitmask_exp = xr.DataArray(
         dtype=np.uint8
     ),
     dims=('y', 'x'),
+    coords={
+        'acq_time': ('y', acq_time_vis_exp),
+    },
     attrs=attrs_exp
 )
 sza_vis_exp = xr.DataArray(
@@ -267,10 +273,8 @@ def fixture_fake_dataset():
             'count_vis': (('y', 'x'), count_vis),
             'count_wv': (('y_ir_wv', 'x_ir_wv'), count_wv),
             'count_ir': (('y_ir_wv', 'x_ir_wv'), count_ir),
-            'toa_bidirectional_reflectance_vis': (
-                ('y', 'x'), vis_refl_exp / 100),
-            'u_independent_toa_bidirectional_reflectance': (
-                ('y', 'x'), u_vis_refl_exp / 100),
+            'toa_bidirectional_reflectance_vis': vis_refl_exp / 100,
+            'u_independent_toa_bidirectional_reflectance': u_vis_refl_exp / 100,
             'quality_pixel_bitmask': (('y', 'x'), mask),
             'solar_zenith_angle': (('y_tie', 'x_tie'), sza),
             'time_ir_wv': (('y_ir_wv', 'x_ir_wv'), time),

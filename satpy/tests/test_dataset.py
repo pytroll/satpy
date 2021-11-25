@@ -252,7 +252,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}},
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}},
                        {'_FillValue': np.nan,
                         'valid_range': np.array([0., 0.00032], dtype=np.float32),
                         'ancillary_variables': ['cpp_status_flag',
@@ -261,7 +262,8 @@ class TestCombineMetadata(unittest.TestCase):
                                                 'cpp_reff_pal',
                                                 '-'],
                         'platform_name': 'NOAA-20',
-                        'sensor': {'viirs'}})
+                        'sensor': {'viirs'},
+                        'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}})
 
         expected = {'_FillValue': np.nan,
                     'valid_range': np.array([0., 0.00032], dtype=np.float32),
@@ -271,12 +273,15 @@ class TestCombineMetadata(unittest.TestCase):
                                             'cpp_reff_pal',
                                             '-'],
                     'platform_name': 'NOAA-20',
-                    'sensor': {'viirs'}}
+                    'sensor': {'viirs'},
+                    'raw_metadata': {'foo': {'bar': np.array([1, 2, 3])}}}
 
         from satpy.dataset.metadata import combine_metadata
         result = combine_metadata(*mda_objects)
         assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
         assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
+        np.testing.assert_equal(result.pop('raw_metadata'),
+                                expected.pop('raw_metadata'))
         assert result == expected
 
     def test_combine_one_metadata_object(self):
@@ -306,6 +311,64 @@ class TestCombineMetadata(unittest.TestCase):
         assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
         assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
         assert result == expected
+
+
+def test_combine_dicts_close():
+    """Test combination of dictionaries whose values are close."""
+    from satpy.dataset.metadata import combine_metadata
+    attrs = {
+        'raw_metadata': {
+            'a': 1,
+            'b': 'foo',
+            'c': [1, 2, 3],
+            'd': {
+                'e': np.str('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3]),
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+        }
+    }
+    attrs_close = {
+        'raw_metadata': {
+            'a': 1 + 1E-12,
+            'b': 'foo',
+            'c': np.array([1, 2, 3]) + 1E-12,
+            'd': {
+                'e': np.str('bar'),
+                'f': datetime(2020, 1, 1, 12, 15, 30),
+                'g': np.array([1, 2, 3]) + 1E-12
+            },
+            'h': np.array([datetime(2020, 1, 1), datetime(2020, 1, 1)])
+        }
+    }
+    test_metadata = [attrs, attrs_close]
+    result = combine_metadata(*test_metadata)
+    assert result == attrs
+
+
+@pytest.mark.parametrize(
+    "test_mda",
+    [
+        # a/b/c/d different
+        {'a': np.array([1, 2, 3]), 'd': 123},
+        {'a': {'b': np.array([4, 5, 6]), 'c': 1.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 2.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'bar'},
+        # a/b/c/d type different
+        np.array([1, 2, 3]),
+        {'a': {'b': 'baz', 'c': 1.0}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 'baz'}, 'd': 'foo'},
+        {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 1.0}
+    ]
+)
+def test_combine_dicts_different(test_mda):
+    """Test combination of dictionaries differing in various ways."""
+    from satpy.dataset.metadata import combine_metadata
+    mda = {'a': {'b': np.array([1, 2, 3]), 'c': 1.0}, 'd': 'foo'}
+    test_metadata = [{'raw_metadata': mda}, {'raw_metadata': test_mda}]
+    result = combine_metadata(*test_metadata)
+    assert not result
 
 
 def test_dataid():
@@ -566,6 +629,39 @@ class TestIDQueryInteractions(unittest.TestCase):
         dsids, distances = dq.sort_dataids(dids)
         assert distances[0] < distances[1]
         assert distances[1] < distances[2]
+
+    def test_seviri_hrv_has_priority_over_vis008(self):
+        """Check that the HRV channel has priority over VIS008 when querying 0.8µm."""
+        dids = [DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='HRV',
+                       wavelength=WavelengthRange(min=0.5, central=0.7, max=0.9, unit='µm'), resolution=1000.134348869,
+                       calibration="counts", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS006',
+                       wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit='µm'),
+                       resolution=3000.403165817, calibration="counts", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="reflectance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="radiance", modifiers=()),
+                DataID(self.default_id_keys_config, name='VIS008',
+                       wavelength=WavelengthRange(min=0.74, central=0.81, max=0.88, unit='µm'),
+                       resolution=3000.403165817, calibration="counts", modifiers=())]
+        dq = DataQuery(wavelength=0.8)
+        res, distances = dq.sort_dataids(dids)
+        assert res[0].name == "HRV"
 
 
 def test_frequency_range_channel_equality():

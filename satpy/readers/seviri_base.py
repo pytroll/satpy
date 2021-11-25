@@ -114,16 +114,6 @@ The SEVIRI L1.5 readers provide the following metadata:
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite
   position, as well as the projection centre. See the `Metadata` section in
   the :doc:`../readers` chapter for more information.
-* The ``raw_metadata`` attribute provides raw metadata from the file header
-  (HRIT and Native format). By default, arrays with more than 100 elements are
-  excluded to limit memory usage. This threshold can be adjusted using the
-  ``mda_max_array_size`` reader keyword argument:
-
-  .. code-block:: python
-
-       scene = satpy.Scene(filenames,
-                          reader='seviri_l1b_hrit/native',
-                          reader_kwargs={'mda_max_array_size': 1000})
 
 * The ``acq_time`` coordinate provides the mean acquisition time for each
   scanline. Use a ``MultiIndex`` to enable selection by acquisition time:
@@ -136,6 +126,20 @@ The SEVIRI L1.5 readers provide the following metadata:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
+* Raw metadata from the file header can be included by setting the reader
+  argument ``include_raw_metadata=True`` (HRIT and Native format only). Note
+  that this comes with a performance penalty of up to 10% if raw metadata from
+  multiple segments or scans need to be combined. By default arrays with more
+  than 100 elements are excluded to limit the performance penalty. This
+  threshold can be adjusted using the ``mda_max_array_size`` reader keyword
+  argument:
+
+  .. code-block:: python
+
+       scene = satpy.Scene(filenames,
+                          reader='seviri_l1b_hrit/native',
+                          reader_kwargs={'include_raw_metadata': True,
+                                         'mda_max_array_size': 1000})
 
 References:
     - `MSG Level 1.5 Image Data Format Description`_

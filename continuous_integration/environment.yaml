@@ -26,6 +26,7 @@ dependencies:
   - h5netcdf
   - gdal
   - rasterio
+  - bottleneck
   - rioxarray
   - imageio
   - pyhdf
@@ -39,6 +40,7 @@ dependencies:
   - geoviews
   - pytest
   - pytest-cov
+  - pytest-lazy-fixture
   - fsspec
   - pylibtiff
   - python-geotiepoints

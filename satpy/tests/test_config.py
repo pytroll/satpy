@@ -18,6 +18,7 @@
 """Test objects and functions in the satpy.config module."""
 
 import os
+import sys
 import unittest
 from unittest import mock
 import pytest
@@ -153,16 +154,39 @@ class TestConfigObject:
         """Test that multiple config paths are accepted."""
         from importlib import reload
         import satpy
+        exp_paths, env_paths = _os_specific_multipaths()
         old_vars = {
-            'SATPY_CONFIG_PATH': '/my/configs1:/my/configs2:/my/configs3',
+            'SATPY_CONFIG_PATH': env_paths,
         }
 
         with mock.patch.dict('os.environ', old_vars):
             reload(satpy._config)
             reload(satpy)
-            assert satpy.config.get('config_path') == ['/my/configs1',
-                                                       '/my/configs2',
-                                                       '/my/configs3']
+            assert satpy.config.get('config_path') == exp_paths
+
+    def test_config_path_multiple_load(self):
+        """Test that config paths from subprocesses load properly.
+
+        Satpy modifies the config path environment variable when it is imported.
+        If Satpy is imported again from a subprocess then it should be able to parse this
+        modified variable.
+        """
+        from importlib import reload
+        import satpy
+        exp_paths, env_paths = _os_specific_multipaths()
+        old_vars = {
+            'SATPY_CONFIG_PATH': env_paths,
+        }
+
+        with mock.patch.dict('os.environ', old_vars):
+            # these reloads will update env variable "SATPY_CONFIG_PATH"
+            reload(satpy._config)
+            reload(satpy)
+
+            # load the updated env variable and parse it again.
+            reload(satpy._config)
+            reload(satpy)
+            assert satpy.config.get('config_path') == exp_paths
 
     def test_bad_str_config_path(self):
         """Test that a str config path isn't allowed."""
@@ -181,3 +205,11 @@ class TestConfigObject:
         # strings are not allowed, lists are
         with satpy.config.set(config_path='/single/string/paths/are/bad'):
             pytest.raises(ValueError, satpy._config.get_config_path_safe)
+
+
+def _os_specific_multipaths():
+    exp_paths = ['/my/configs1', '/my/configs2', '/my/configs3']
+    if sys.platform.startswith("win"):
+        exp_paths = ["C:" + p for p in exp_paths]
+    path_str = os.pathsep.join(exp_paths)
+    return exp_paths, path_str

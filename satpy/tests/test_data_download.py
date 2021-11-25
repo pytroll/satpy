@@ -27,7 +27,7 @@ from satpy.aux_download import DataDownloadMixin
 
 pooch = pytest.importorskip("pooch")
 
-README_URL = "https://raw.githubusercontent.com/pytroll/satpy/master/README.rst"
+README_URL = "https://raw.githubusercontent.com/pytroll/satpy/main/README.rst"
 
 
 class UnfriendlyModifier(ModifierBase, DataDownloadMixin):

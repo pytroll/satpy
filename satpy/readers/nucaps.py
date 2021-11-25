@@ -133,14 +133,12 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         """Return standard sensor or instrument name for the file's data."""
         try:
             res = self['/attr/instrument_name']
-            if isinstance(res, np.ndarray):
-                res = str(res.astype(str))
             res = [x.strip() for x in res.split(',')]
             if len(res) == 1:
-                return res[0]
-            return res
+                return res[0].lower()
         except KeyError:
-            return ['CrIS', 'ATMS', 'VIIRS']
+            res = ['CrIS', 'ATMS', 'VIIRS']
+        return set(name.lower() for name in res)
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
@@ -209,7 +207,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             if 'Number_of_CrIS_FORs' in sp.dims:
                 sp = sp.rename({'Number_of_CrIS_FORs': 'y'})
             if 'surface_pressure' in ds_info:
-                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp))
+                ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp), dim='y')
             else:
                 ds_info['surface_pressure'] = sp
             # include all the pressure levels
@@ -221,6 +219,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             data = data.where((data <= valid_max))  # | (data >= valid_min))
         if fill_value is not None:
             data = data.where(data != fill_value)
+            # this _FillValue is no longer valid
+            metadata.pop('_FillValue', None)
+            data.attrs.pop('_FillValue', None)
 
         data.attrs.update(metadata)
         # Older format

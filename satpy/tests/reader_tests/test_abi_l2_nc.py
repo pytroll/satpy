@@ -22,65 +22,78 @@ import unittest
 from unittest import mock
 
 
+def _create_cmip_dataset():
+    proj = xr.DataArray(
+        [],
+        attrs={
+            'semi_major_axis': 1.,
+            'semi_minor_axis': 1.,
+            'perspective_point_height': 1.,
+            'longitude_of_projection_origin': -90.,
+            'sweep_angle_axis': u'x'
+        }
+    )
+    x__ = xr.DataArray(
+        [0, 1],
+        attrs={'scale_factor': 2., 'add_offset': -1.},
+        dims=('x',),
+    )
+    y__ = xr.DataArray(
+        [0, 1],
+        attrs={'scale_factor': -2., 'add_offset': 1.},
+        dims=('y',),
+    )
+
+    ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2)),
+                         dims=('y', 'x'),
+                         attrs={'scale_factor': 0.3052037,
+                                'add_offset': 0.,
+                                '_FillValue': np.array(-1).astype(np.int16),
+                                '_Unsigned': 'True',
+                                'units': 'm'},)
+
+    fake_dataset = xr.Dataset(
+        data_vars={
+            'goes_imager_projection': proj,
+            'x': x__,
+            'y': y__,
+            'HT': ht_da,
+            "nominal_satellite_subpoint_lat": np.array(0.0),
+            "nominal_satellite_subpoint_lon": np.array(-89.5),
+            "nominal_satellite_height": np.array(35786.02),
+            "spatial_resolution": "10km at nadir",
+
+        },
+        attrs={
+            "time_coverage_start": "2017-09-20T17:30:40.8Z",
+            "time_coverage_end": "2017-09-20T17:41:17.5Z",
+            "spatial_resolution": "2km at nadir",
+        }
+    )
+    return fake_dataset
+
+
+def _create_mcmip_dataset():
+    fake_dataset = _create_cmip_dataset()
+    fake_dataset = fake_dataset.copy(deep=True)
+    fake_dataset['CMI_C14'] = fake_dataset['HT']
+    del fake_dataset['HT']
+    return fake_dataset
+
+
 class Test_NC_ABI_L2_base(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_):
+    def setUp(self):
         """Create fake data for the tests."""
         from satpy.readers.abi_l2_nc import NC_ABI_L2
-
-        proj = xr.DataArray(
-            [],
-            attrs={
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'perspective_point_height': 1.,
-                'longitude_of_projection_origin': -90.,
-                'sweep_angle_axis': u'x'
-            }
-        )
-        x__ = xr.DataArray(
-            [0, 1],
-            attrs={'scale_factor': 2., 'add_offset': -1.},
-            dims=('x',),
-        )
-        y__ = xr.DataArray(
-            [0, 1],
-            attrs={'scale_factor': -2., 'add_offset': 1.},
-            dims=('y',),
-        )
-
-        ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2)),
-                             dims=('y', 'x'),
-                             attrs={'scale_factor': 0.3052037,
-                                    'add_offset': 0.,
-                                    '_FillValue': np.array(-1).astype(np.int16),
-                                    '_Unsigned': 'True',
-                                    'units': 'm'},)
-
-        fake_dataset = xr.Dataset(
-            data_vars={
-                'goes_imager_projection': proj,
-                'x': x__,
-                'y': y__,
-                'HT': ht_da,
-                "nominal_satellite_subpoint_lat": np.array(0.0),
-                "nominal_satellite_subpoint_lon": np.array(-89.5),
-                "nominal_satellite_height": np.array(35786.02),
-                "spatial_resolution": "10km at nadir",
-
-            },
-            attrs={
-                "time_coverage_start": "2017-09-20T17:30:40.8Z",
-                "time_coverage_end": "2017-09-20T17:41:17.5Z",
-            }
-        )
-        xr_.open_dataset.return_value = fake_dataset
-        self.reader = NC_ABI_L2('filename',
-                                {'platform_shortname': 'G16', 'observation_type': 'HT',
-                                 'scan_mode': 'M3'},
-                                {'filetype': 'info'})
+        fake_cmip_dataset = _create_cmip_dataset()
+        with mock.patch('satpy.readers.abi_base.xr') as xr_:
+            xr_.open_dataset.return_value = fake_cmip_dataset
+            self.reader = NC_ABI_L2('filename',
+                                    {'platform_shortname': 'G16',
+                                     'scan_mode': 'M3'},
+                                    {'file_type': 'info'})
 
 
 class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
@@ -113,6 +126,56 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
 
         self.assertTrue(np.allclose(res.data, exp_data, equal_nan=True))
         self.assertDictEqual(dict(res.attrs), exp_attrs)
+
+
+class TestMCMIPReading:
+    """Test cases of the MCMIP file format."""
+
+    @mock.patch('satpy.readers.abi_base.xr')
+    def test_mcmip_get_dataset(self, xr_):
+        """Test getting channel from MCMIP file."""
+        from satpy import Scene
+        from satpy.dataset.dataid import WavelengthRange
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        xr_.open_dataset.return_value = _create_mcmip_dataset()
+
+        fn = "OR_ABI-L2-MCMIPF-M6_G16_s20192600241149_e20192600243534_c20192600245360.nc"
+        scn = Scene(reader='abi_l2_nc', filenames=[fn])
+        scn.load(['C14'])
+
+        exp_data = np.array([[2 * 0.3052037, np.nan],
+                             [32768 * 0.3052037, 32767 * 0.3052037]])
+
+        exp_attrs = {'instrument_ID': None,
+                     'modifiers': (),
+                     'name': 'C14',
+                     'orbital_slot': None,
+                     'reader': 'abi_l2_nc',
+                     'platform_name': 'GOES-16',
+                     'platform_shortname': 'G16',
+                     'production_site': None,
+                     'satellite_altitude': 35786020.,
+                     'satellite_latitude': 0.0,
+                     'satellite_longitude': -89.5,
+                     'scan_mode': 'M6',
+                     'scene_id': None,
+                     'sensor': 'abi',
+                     'timeline_ID': None,
+                     'start_time': datetime(2017, 9, 20, 17, 30, 40, 800000),
+                     'end_time': datetime(2017, 9, 20, 17, 41, 17, 500000),
+                     'calibration': 'brightness_temperature',
+                     'ancillary_variables': [],
+                     'wavelength': WavelengthRange(10.8, 11.2, 11.6, unit='µm'),
+                     'units': 'm'}
+
+        res = scn['C14']
+        np.testing.assert_allclose(res.data, exp_data, equal_nan=True)
+        assert isinstance(res.attrs['area'], AreaDefinition)
+        # don't complicate the comparison below
+        for key in ('area', '_satpy_id'):
+            del res.attrs[key]
+        assert dict(res.attrs) == exp_attrs
 
 
 class Test_NC_ABI_L2_area_fixedgrid(Test_NC_ABI_L2_base):

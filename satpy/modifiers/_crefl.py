@@ -22,10 +22,9 @@ import warnings
 
 import numpy as np
 import xarray as xr
-from dask import array as da
 from satpy.aux_download import DataDownloadMixin, retrieve
 from satpy.modifiers import ModifierBase
-from satpy.utils import get_satpos
+from satpy.modifiers._angles import get_angles
 
 LOG = logging.getLogger(__name__)
 
@@ -73,7 +72,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
 
     def __call__(self, datasets, optional_datasets, **info):
         """Create modified DataArray object by applying the crefl algorithm."""
-        from satpy.composites.crefl_utils import get_coefficients
+        from satpy.modifiers._crefl_utils import get_coefficients
         refl_data, *angles = self._get_data_and_angles(datasets, optional_datasets)
         coefficients = get_coefficients(refl_data.attrs["sensor"],
                                         refl_data.attrs["wavelength"],
@@ -86,7 +85,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         return results
 
     def _call_crefl(self, refl_data, coefficients, angles):
-        from satpy.composites.crefl_utils import run_crefl
+        from satpy.modifiers._crefl_utils import run_crefl
         avg_elevation = self._get_average_elevation()
         lons, lats = refl_data.attrs['area'].get_lonlats(chunks=refl_data.chunks)
         is_percent = refl_data.attrs["units"] == "%"
@@ -110,64 +109,59 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         LOG.debug("Loading CREFL averaged elevation information from: %s",
                   self.dem_cache_key)
         local_filename = retrieve(self.dem_cache_key)
+        avg_elevation = self._read_var_from_hdf4_file(local_filename, self.dem_sds).astype(np.float64)
+        if isinstance(avg_elevation, np.ma.MaskedArray):
+            avg_elevation = avg_elevation.filled(np.nan)
+        return avg_elevation
+
+    @staticmethod
+    def _read_var_from_hdf4_file(local_filename, var_name):
+        try:
+            return ReflectanceCorrector._read_var_from_hdf4_file_pyhdf(local_filename, var_name)
+        except (ImportError, OSError):
+            return ReflectanceCorrector._read_var_from_hdf4_file_netcdf4(local_filename, var_name)
+
+    @staticmethod
+    def _read_var_from_hdf4_file_netcdf4(local_filename, var_name):
         from netCDF4 import Dataset as NCDataset
         # HDF4 file, NetCDF library needs to be compiled with HDF4 support
         nc = NCDataset(local_filename, "r")
         # average elevation is stored as a 16-bit signed integer but with
         # scale factor 1 and offset 0, convert it to float here
-        avg_elevation = nc.variables[self.dem_sds][:].astype(np.float64)
-        if isinstance(avg_elevation, np.ma.MaskedArray):
-            avg_elevation = avg_elevation.filled(np.nan)
-        return avg_elevation
+        return nc.variables[var_name][:]
+
+    @staticmethod
+    def _read_var_from_hdf4_file_pyhdf(local_filename, var_name):
+        from pyhdf.SD import SD, SDC
+        f = SD(local_filename, SDC.READ)
+        var = f.select(var_name)
+        data = var[:]
+        fill = ReflectanceCorrector._read_fill_value_from_hdf4(var, data.dtype)
+        return np.ma.MaskedArray(data, data == fill)
+
+    @staticmethod
+    def _read_fill_value_from_hdf4(var, dtype):
+        from pyhdf.error import HDF4Error
+        try:
+            return var.getfillvalue()
+        except HDF4Error:
+            return np.iinfo(dtype).min
 
     def _get_data_and_angles(self, datasets, optional_datasets):
-        angles = self._extract_angle_data_arrays(datasets, optional_datasets)
+        vis, angles = self._extract_angle_data_arrays(datasets, optional_datasets)
         angles = [xr.DataArray(dask_arr, dims=('y', 'x')) for dask_arr in angles]
-        return [datasets[0]] + angles
+        return [vis] + angles
 
     def _extract_angle_data_arrays(self, datasets, optional_datasets):
         all_datasets = datasets + optional_datasets
         if len(all_datasets) == 1:
             vis = self.match_data_arrays(datasets)[0]
-            return self.get_angles(vis)
+            return vis, get_angles(vis)
         if len(all_datasets) == 5:
             vis, *angles = self.match_data_arrays(
                 datasets + optional_datasets)
             # get the dask array underneath
-            return [data_arr.data for data_arr in angles]
+            return vis, [data_arr.data for data_arr in angles]
         raise ValueError("Not sure how to handle provided dependencies. "
                          "Either all 4 angles must be provided or none of "
                          "of them.")
-
-    def get_angles(self, vis):
-        """Get sun and satellite angles to use in crefl calculations."""
-        lons, lats = self._get_valid_lonlats(vis)
-        sun_angles = self._get_sun_angles(vis, lons, lats)
-        sat_angles = self._get_sensor_angles(vis, lons, lats)
-        # sata, satz, suna, sunz
-        return sat_angles + sun_angles
-
-    def _get_valid_lonlats(self, vis):
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        return lons, lats
-
-    def _get_sun_angles(self, vis, lons, lats):
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-        return suna, sunz
-
-    def _get_sensor_angles(self, vis, lons, lats):
-        from pyorbital.orbital import get_observer_look
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz

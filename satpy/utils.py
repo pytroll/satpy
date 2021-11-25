@@ -18,6 +18,8 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module defining various utilities."""
 
+from __future__ import annotations
+
 import logging
 import os
 import warnings
@@ -25,6 +27,7 @@ import contextlib
 from typing import Mapping
 
 import numpy as np
+import xarray as xr
 import yaml
 from yaml import BaseLoader
 
@@ -457,3 +460,35 @@ def check_satpy(readers=None, writers=None, extras=None):
     for module_name, res in sorted(_check_import(module_names).items()):
         print(module_name + ': ', res)
     print()
+
+
+def unify_chunks(*data_arrays: xr.DataArray) -> list[xr.DataArray]:
+    """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
+
+    This is mostly used in :class:`satpy.composites.CompositeBase` to safe
+    guard against running :func:`dask.array.core.map_blocks` with arrays of
+    different chunk sizes. Doing so can cause unexpected results or errors.
+    However, xarray's ``unify_chunks`` will raise an exception if dimensions
+    of the provided DataArrays are different sizes. This is a common case for
+    Satpy. For example, the "bands" dimension may be 1 (L), 2 (LA), 3 (RGB), or
+    4 (RGBA) for most compositor operations that combine other composites
+    together.
+
+    """
+    if not hasattr(xr, "unify_chunks"):
+        return data_arrays
+    if not _all_dims_same_size(data_arrays):
+        return data_arrays
+    return list(xr.unify_chunks(*data_arrays))
+
+
+def _all_dims_same_size(data_arrays: list[xr.DataArray]) -> bool:
+    known_sizes = {}
+    for data_arr in data_arrays:
+        for dim, dim_size in data_arr.sizes.items():
+            known_size = known_sizes.setdefault(dim, dim_size)
+            if dim_size != known_size:
+                # this dimension is a different size than previously found
+                # xarray.unify_chunks will error out if we tried to use it
+                return False
+    return True
