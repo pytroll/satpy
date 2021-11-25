@@ -781,15 +781,7 @@ class Scene:
         """
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
-        if isinstance(destination_area, str):
-            destination_area = get_area_def(destination_area)
-        if hasattr(destination_area, 'freeze'):
-            try:
-                finest_area = new_scn.finest_area()
-                destination_area = destination_area.freeze(finest_area)
-            except ValueError:
-                raise ValueError("No dataset areas available to freeze "
-                                 "DynamicAreaDefinition.")
+        destination_area = self._get_finalized_destination_area(destination_area, new_scn)
 
         resamplers = {}
         reductions = {}
@@ -811,34 +803,9 @@ class Scene:
                 continue
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
-            try:
-                if reduce_data:
-                    key = source_area
-                    try:
-                        (slice_x, slice_y), source_area = reductions[key]
-                    except KeyError:
-                        if resample_kwargs.get('resampler') == 'gradient_search':
-                            factor = resample_kwargs.get('shape_divisible_by', 2)
-                        else:
-                            factor = None
-                        try:
-                            slice_x, slice_y = source_area.get_area_slices(
-                                destination_area, shape_divisible_by=factor)
-                        except TypeError:
-                            slice_x, slice_y = source_area.get_area_slices(
-                                destination_area)
-                        source_area = source_area[slice_y, slice_x]
-                        reductions[key] = (slice_x, slice_y), source_area
-                    dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
-                else:
-                    LOG.debug("Data reduction disabled by the user")
-            except NotImplementedError:
-                LOG.info("Not reducing data before resampling.")
-            if source_area not in resamplers:
-                key, resampler = prepare_resampler(
-                    source_area, destination_area, **resample_kwargs)
-                resamplers[source_area] = resampler
-                self._resamplers[key] = resampler
+            dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
+                                                     reduce_data, reductions, resample_kwargs)
+            self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area, **kwargs)
@@ -847,6 +814,51 @@ class Scene:
                 new_scn._datasets[ds_id] = res
             if parent_dataset is not None:
                 replace_anc(res, pres)
+
+    def _get_finalized_destination_area(self, destination_area, new_scn):
+        if isinstance(destination_area, str):
+            destination_area = get_area_def(destination_area)
+        if hasattr(destination_area, 'freeze'):
+            try:
+                finest_area = new_scn.finest_area()
+                destination_area = destination_area.freeze(finest_area)
+            except ValueError:
+                raise ValueError("No dataset areas available to freeze "
+                                 "DynamicAreaDefinition.")
+        return destination_area
+
+    def _prepare_resampler(self, source_area, destination_area, resamplers, resample_kwargs):
+        if source_area not in resamplers:
+            key, resampler = prepare_resampler(
+                source_area, destination_area, **resample_kwargs)
+            resamplers[source_area] = resampler
+            self._resamplers[key] = resampler
+
+    def _reduce_data(self, dataset, source_area, destination_area, reduce_data, reductions, resample_kwargs):
+        try:
+            if reduce_data:
+                key = source_area
+                try:
+                    (slice_x, slice_y), source_area = reductions[key]
+                except KeyError:
+                    if resample_kwargs.get('resampler') == 'gradient_search':
+                        factor = resample_kwargs.get('shape_divisible_by', 2)
+                    else:
+                        factor = None
+                    try:
+                        slice_x, slice_y = source_area.get_area_slices(
+                            destination_area, shape_divisible_by=factor)
+                    except TypeError:
+                        slice_x, slice_y = source_area.get_area_slices(
+                            destination_area)
+                    source_area = source_area[slice_y, slice_x]
+                    reductions[key] = (slice_x, slice_y), source_area
+                dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
+            else:
+                LOG.debug("Data reduction disabled by the user")
+        except NotImplementedError:
+            LOG.info("Not reducing data before resampling.")
+        return dataset, source_area
 
     def resample(self, destination=None, datasets=None, generate=True,
                  unload=True, resampler=None, reduce_data=True,
