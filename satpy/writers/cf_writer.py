@@ -638,10 +638,7 @@ class CFWriter(Writer):
             original_name, name = _handle_dataarray_name(name, numeric_name_prefix)
             new_data = new_data.rename(name)
 
-        # Remove _satpy* attributes
-        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
-        for satpy_attr in satpy_attrs:
-            new_data.attrs.pop(satpy_attr)
+        CFWriter._remove_satpy_attributes(new_data)
 
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
@@ -653,32 +650,14 @@ class CFWriter(Writer):
             new_data.attrs['ancillary_variables'] = ' '.join(anc)
         # TODO: make this a grid mapping or lon/lats
         # new_data.attrs['area'] = str(new_data.attrs.get('area'))
-        for key, val in new_data.attrs.copy().items():
-            if val is None:
-                new_data.attrs.pop(key)
-            if key == 'ancillary_variables' and val == []:
-                new_data.attrs.pop(key)
-        new_data.attrs.pop('_last_resampler', None)
+        CFWriter._cleanup_attrs(new_data)
+
         if compression is not None:
             new_data.encoding.update(compression)
 
-        if 'time' in new_data.coords:
-            new_data['time'].encoding['units'] = epoch
-            new_data['time'].attrs['standard_name'] = 'time'
-            new_data['time'].attrs.pop('bounds', None)
-            if 'time' not in new_data.dims:
-                new_data = new_data.expand_dims('time')
+        new_data = CFWriter._encode_time(new_data, epoch)
 
-        if 'x' in new_data.coords:
-            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
-            new_data['x'].attrs['units'] = 'm'
-
-        if 'y' in new_data.coords:
-            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
-            new_data['y'].attrs['units'] = 'm'
-
-        if 'crs' in new_data.coords:
-            new_data = new_data.drop_vars('crs')
+        new_data = CFWriter._encode_coords(new_data)
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
             new_data.attrs['long_name'] = new_data.name
@@ -696,6 +675,44 @@ class CFWriter(Writer):
         new_data.attrs = encode_attrs_nc(new_data.attrs)
 
         return new_data
+
+    @staticmethod
+    def _cleanup_attrs(new_data):
+        for key, val in new_data.attrs.copy().items():
+            if val is None:
+                new_data.attrs.pop(key)
+            if key == 'ancillary_variables' and val == []:
+                new_data.attrs.pop(key)
+
+    @staticmethod
+    def _encode_coords(new_data):
+        if 'x' in new_data.coords:
+            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
+            new_data['x'].attrs['units'] = 'm'
+        if 'y' in new_data.coords:
+            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
+            new_data['y'].attrs['units'] = 'm'
+        if 'crs' in new_data.coords:
+            new_data = new_data.drop_vars('crs')
+        return new_data
+
+    @staticmethod
+    def _encode_time(new_data, epoch):
+        if 'time' in new_data.coords:
+            new_data['time'].encoding['units'] = epoch
+            new_data['time'].attrs['standard_name'] = 'time'
+            new_data['time'].attrs.pop('bounds', None)
+            if 'time' not in new_data.dims:
+                new_data = new_data.expand_dims('time')
+        return new_data
+
+    @staticmethod
+    def _remove_satpy_attributes(new_data):
+        # Remove _satpy* attributes
+        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+        for satpy_attr in satpy_attrs:
+            new_data.attrs.pop(satpy_attr)
+        new_data.attrs.pop('_last_resampler', None)
 
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):
