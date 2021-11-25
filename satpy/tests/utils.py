@@ -246,6 +246,25 @@ class FakeFileHandler(BaseFileHandler):
                          attrs=attrs,
                          dims=['y', 'x'])
 
+    def available_datasets(self, configured_datasets=None):
+        """Report YAML datasets available unless 'not_available' is specified during creation."""
+        not_available_names = self.kwargs.get("not_available", [])
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
+                continue
+            ft_matches = self.file_type_matches(ds_info['file_type'])
+            if not ft_matches:
+                yield None, ds_info
+                continue
+            # mimic what happens when a reader "knows" about one variable
+            # but the files loaded don't have that variable
+            is_avail = ds_info["name"] not in not_available_names
+            yield is_avail, ds_info
+
 
 class CustomScheduler(object):
     """Scheduler raising an exception if data are computed too many times."""

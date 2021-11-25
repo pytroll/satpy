@@ -193,17 +193,16 @@ def _find_registerable_files_compositors(sensors=None):
     Compositor objects should register files when they are initialized.
 
     """
-    from satpy.composites.config_loader import CompositorLoader
-    composite_loader = CompositorLoader()
+    from satpy.composites.config_loader import all_composite_sensors, load_compositor_configs_for_sensors
     if sensors is None:
-        sensors = composite_loader.all_composite_sensors()
+        sensors = all_composite_sensors()
     if sensors:
-        composite_loader.load_compositors(sensors)
-    _register_modifier_files(composite_loader)
+        mods = load_compositor_configs_for_sensors(sensors)[1]
+        _register_modifier_files(mods)
 
 
-def _register_modifier_files(composite_loader):
-    for mod_sensor_dict in composite_loader.modifiers.values():
+def _register_modifier_files(modifiers):
+    for mod_sensor_dict in modifiers.values():
         for mod_name, (mod_cls, mod_props) in mod_sensor_dict.items():
             try:
                 mod_cls(**mod_props)

@@ -23,7 +23,7 @@ from typing import Container, Iterable, Optional
 
 import numpy as np
 
-from satpy import DataID
+from satpy import DataID, DatasetDict
 from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
 from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
@@ -183,12 +183,16 @@ class DependencyTree(Tree):
         """
         super().__init__()
         self.readers = readers
-        self.compositors = compositors or {}
-        self.modifiers = modifiers or {}
+        self.compositors = {}
+        self.modifiers = {}
         self._available_only = available_only
+        self.update_compositors_and_modifiers(compositors or {}, modifiers or {})
 
     def update_compositors_and_modifiers(self, compositors: dict, modifiers: dict) -> None:
         """Add additional compositors and modifiers to the tree.
+
+        Provided dictionaries and the first sub-level dictionaries are copied
+        to avoid modifying the input.
 
         Args:
             compositors (dict):
@@ -197,8 +201,10 @@ class DependencyTree(Tree):
                 Sensor name -> Modifier name -> (Modifier Class, modifier options)
 
         """
-        self.compositors.update(compositors)
-        self.modifiers.update(modifiers)
+        for sensor_name, sensor_comps in compositors.items():
+            self.compositors.setdefault(sensor_name, DatasetDict()).update(sensor_comps)
+        for sensor_name, sensor_mods in modifiers.items():
+            self.modifiers.setdefault(sensor_name, {}).update(sensor_mods)
 
     def copy(self):
         """Copy this node tree.

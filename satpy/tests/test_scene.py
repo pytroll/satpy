@@ -711,6 +711,18 @@ class TestSceneAvailableDatasets:
                       reader='fake1_1ds')
         assert 'comp2' not in scene.available_composite_names()
 
+    def test_available_composites_known_versus_all(self):
+        """Test available_composite_ids when some datasets aren't available."""
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1',
+                      reader_kwargs={"not_available": ["ds2", "ds3"]})
+        all_comps = scene.all_composite_names()
+        avail_comps = scene.available_composite_names()
+        # there should always be more known composites than available composites
+        assert len(all_comps) > len(avail_comps)
+        for not_avail_comp in ("comp2", "comp3"):
+            assert not_avail_comp in all_comps
+            assert not_avail_comp not in avail_comps
+
 
 class TestSceneLoading:
     """Test the Scene objects `.load` method."""
