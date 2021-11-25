@@ -23,17 +23,18 @@ of writing.
 
 """
 import logging
-import numpy as np
-import xarray as xr
-import dask.array as da
-from pyproj import Proj
-from pyresample import geometry
 from datetime import datetime
 
-from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.dataset import DataQuery
+import dask.array as da
+import numpy as np
 import pygrib
+import xarray as xr
+from pyproj import Proj
+from pyresample import geometry
+
+from satpy import CHUNK_SIZE
+from satpy.dataset import DataQuery
+from satpy.readers.file_handlers import BaseFileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -101,9 +102,9 @@ class GRIBFileHandler(BaseFileHandler):
             self._msg_datasets[msg_id] = ds_info
 
     @staticmethod
-    def _convert_datetime(msg, date_key, time_key, format="%Y%m%d%H%M"):
+    def _convert_datetime(msg, date_key, time_key, date_format="%Y%m%d%H%M"):
         date_str = "{:d}{:04d}".format(msg[date_key], msg[time_key])
-        return datetime.strptime(date_str, format)
+        return datetime.strptime(date_str, date_format)
 
     @property
     def start_time(self):

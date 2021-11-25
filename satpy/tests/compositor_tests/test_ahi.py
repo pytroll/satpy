@@ -30,11 +30,12 @@ class TestAHIComposites(unittest.TestCase):
 
     def test_corrected_green(self):
         """Test adjusting the 'green' band."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.ahi import GreenCorrector
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.ahi import GreenCorrector
         rows = 5
         cols = 10
         area = AreaDefinition(

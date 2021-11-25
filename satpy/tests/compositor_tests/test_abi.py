@@ -30,11 +30,12 @@ class TestABIComposites(unittest.TestCase):
 
     def test_simulated_green(self):
         """Test creating a fake 'green' band."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.abi import SimulatedGreen
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.abi import SimulatedGreen
         rows = 5
         cols = 10
         area = AreaDefinition(

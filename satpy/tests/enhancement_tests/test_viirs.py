@@ -18,9 +18,10 @@
 """Unit testing for the VIIRS enhancement function."""
 
 import unittest
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 
 class TestVIIRSEnhancement(unittest.TestCase):

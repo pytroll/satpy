@@ -17,14 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.nucaps module."""
 
+import datetime
 import os
 import unittest
-import datetime
 from unittest import mock
+
 import numpy as np
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
 
 DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_FILE_SHAPE = (120,)

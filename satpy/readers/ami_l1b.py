@@ -20,16 +20,16 @@
 import logging
 from datetime import datetime, timedelta
 
-import numpy as np
-import xarray as xr
 import dask.array as da
+import numpy as np
 import pyproj
-
-from satpy.readers.utils import get_user_calibration_factors, apply_rad_correction
-from satpy.readers._geos_area import get_area_definition, get_area_extent
+import xarray as xr
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
-from satpy.readers.file_handlers import BaseFileHandler
+
 from satpy import CHUNK_SIZE
+from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import apply_rad_correction, get_user_calibration_factors
 
 logger = logging.getLogger(__name__)
 

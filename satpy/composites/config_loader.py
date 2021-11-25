@@ -18,25 +18,24 @@
 """Classes for loading compositor and modifier configuration files."""
 from __future__ import annotations
 
-import os
 import logging
+import os
 import warnings
+from functools import lru_cache, update_wrapper
 from typing import Callable, Iterable
-from functools import update_wrapper, lru_cache
 
 import yaml
 
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 import satpy
-from satpy import DataQuery, DataID
-from satpy._config import (get_entry_points_config_dirs, config_search_paths,
-                           glob_config)
-from satpy.utils import recursive_dict_update
+from satpy import DataID, DataQuery, DatasetDict
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.dataset.dataid import minimal_default_keys_config
+from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)
 

@@ -24,11 +24,13 @@ The files read by this reader are described in the official Real Time Data Servi
 """
 
 import logging
+from datetime import datetime
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-from datetime import datetime
-from satpy.readers._geos_area import get_area_extent, get_area_definition
+
+from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)

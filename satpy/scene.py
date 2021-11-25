@@ -22,22 +22,19 @@ import logging
 import os
 import warnings
 
+import numpy as np
+import xarray as xr
+from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
+from xarray import DataArray
+
 from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
-from satpy.dataset import (DataQuery, DataID, dataset_walker,
-                           replace_anc, combine_metadata)
-from satpy.node import MissingDependencies, ReaderNode, CompositorNode, Node
+from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
+from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
-from satpy.dataset import DatasetDict
-from satpy.resample import (resample_dataset,
-                            prepare_resampler, get_area_def)
+from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.writers import load_writer
-from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
-
-import xarray as xr
-from xarray import DataArray
-import numpy as np
 
 LOG = logging.getLogger(__name__)
 
@@ -132,7 +129,7 @@ class Scene:
                             reader_kwargs=reader_kwargs)
 
     @property
-    def sensor_names(self) -> set[str, ...]:
+    def sensor_names(self) -> set[str]:
         """Return sensor names for the data currently contained in this Scene.
 
         Sensor information is collected from data contained in the Scene
@@ -149,7 +146,7 @@ class Scene:
                                 for sensor in reader_instance.sensor_names])
         return sensor_names
 
-    def _contained_sensor_names(self) -> set[str, ...]:
+    def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()
         for data_arr in self.values():
             if "sensor" not in data_arr.attrs:
@@ -215,24 +212,9 @@ class Scene:
         if datasets is None:
             datasets = list(self.values())
 
-        areas = []
-        for ds in datasets:
-            if isinstance(ds, BaseDefinition):
-                areas.append(ds)
-                continue
-            elif not isinstance(ds, DataArray):
-                ds = self[ds]
-            area = ds.attrs.get('area')
-            areas.append(area)
+        areas = self._gather_all_areas(datasets)
 
-        areas = [x for x in areas if x is not None]
-        if not areas:
-            raise ValueError("No dataset areas available")
-
-        if not all(isinstance(x, type(areas[0]))
-                   for x in areas[1:]):
-            raise ValueError("Can't compare areas of different types")
-        elif isinstance(areas[0], AreaDefinition):
+        if isinstance(areas[0], AreaDefinition):
             first_crs = areas[0].crs
             if not all(ad.crs == first_crs for ad in areas[1:]):
                 raise ValueError("Can't compare areas with different "
@@ -246,6 +228,29 @@ class Scene:
 
         # find the highest/lowest area among the provided
         return compare_func(areas, key=key_func)
+
+    def _gather_all_areas(self, datasets):
+        """Gather all areas from datasets.
+
+        They have to be of the same type, and at least one dataset should have
+        an area.
+        """
+        areas = []
+        for ds in datasets:
+            if isinstance(ds, BaseDefinition):
+                areas.append(ds)
+                continue
+            elif not isinstance(ds, DataArray):
+                ds = self[ds]
+            area = ds.attrs.get('area')
+            areas.append(area)
+        areas = [x for x in areas if x is not None]
+        if not areas:
+            raise ValueError("No dataset areas available")
+        if not all(isinstance(x, type(areas[0]))
+                   for x in areas[1:]):
+            raise ValueError("Can't compare areas of different types")
+        return areas
 
     def finest_area(self, datasets=None):
         """Get highest resolution area for the provided datasets.
@@ -783,15 +788,7 @@ class Scene:
         """
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
-        if isinstance(destination_area, str):
-            destination_area = get_area_def(destination_area)
-        if hasattr(destination_area, 'freeze'):
-            try:
-                finest_area = new_scn.finest_area()
-                destination_area = destination_area.freeze(finest_area)
-            except ValueError:
-                raise ValueError("No dataset areas available to freeze "
-                                 "DynamicAreaDefinition.")
+        destination_area = self._get_finalized_destination_area(destination_area, new_scn)
 
         resamplers = {}
         reductions = {}
@@ -813,34 +810,9 @@ class Scene:
                 continue
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
-            try:
-                if reduce_data:
-                    key = source_area
-                    try:
-                        (slice_x, slice_y), source_area = reductions[key]
-                    except KeyError:
-                        if resample_kwargs.get('resampler') == 'gradient_search':
-                            factor = resample_kwargs.get('shape_divisible_by', 2)
-                        else:
-                            factor = None
-                        try:
-                            slice_x, slice_y = source_area.get_area_slices(
-                                destination_area, shape_divisible_by=factor)
-                        except TypeError:
-                            slice_x, slice_y = source_area.get_area_slices(
-                                destination_area)
-                        source_area = source_area[slice_y, slice_x]
-                        reductions[key] = (slice_x, slice_y), source_area
-                    dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
-                else:
-                    LOG.debug("Data reduction disabled by the user")
-            except NotImplementedError:
-                LOG.info("Not reducing data before resampling.")
-            if source_area not in resamplers:
-                key, resampler = prepare_resampler(
-                    source_area, destination_area, **resample_kwargs)
-                resamplers[source_area] = resampler
-                self._resamplers[key] = resampler
+            dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
+                                                     reduce_data, reductions, resample_kwargs)
+            self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area, **kwargs)
@@ -849,6 +821,51 @@ class Scene:
                 new_scn._datasets[ds_id] = res
             if parent_dataset is not None:
                 replace_anc(res, pres)
+
+    def _get_finalized_destination_area(self, destination_area, new_scn):
+        if isinstance(destination_area, str):
+            destination_area = get_area_def(destination_area)
+        if hasattr(destination_area, 'freeze'):
+            try:
+                finest_area = new_scn.finest_area()
+                destination_area = destination_area.freeze(finest_area)
+            except ValueError:
+                raise ValueError("No dataset areas available to freeze "
+                                 "DynamicAreaDefinition.")
+        return destination_area
+
+    def _prepare_resampler(self, source_area, destination_area, resamplers, resample_kwargs):
+        if source_area not in resamplers:
+            key, resampler = prepare_resampler(
+                source_area, destination_area, **resample_kwargs)
+            resamplers[source_area] = resampler
+            self._resamplers[key] = resampler
+
+    def _reduce_data(self, dataset, source_area, destination_area, reduce_data, reductions, resample_kwargs):
+        try:
+            if reduce_data:
+                key = source_area
+                try:
+                    (slice_x, slice_y), source_area = reductions[key]
+                except KeyError:
+                    if resample_kwargs.get('resampler') == 'gradient_search':
+                        factor = resample_kwargs.get('shape_divisible_by', 2)
+                    else:
+                        factor = None
+                    try:
+                        slice_x, slice_y = source_area.get_area_slices(
+                            destination_area, shape_divisible_by=factor)
+                    except TypeError:
+                        slice_x, slice_y = source_area.get_area_slices(
+                            destination_area)
+                    source_area = source_area[slice_y, slice_x]
+                    reductions[key] = (slice_x, slice_y), source_area
+                dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
+            else:
+                LOG.debug("Data reduction disabled by the user")
+        except NotImplementedError:
+            LOG.info("Not reducing data before resampling.")
+        return dataset, source_area
 
     def resample(self, destination=None, datasets=None, generate=True,
                  unload=True, resampler=None, reduce_data=True,
@@ -912,8 +929,8 @@ class Scene:
         .. _pycoast: https://pycoast.readthedocs.io/
 
         """
-        from satpy.writers import get_enhanced_image
         from satpy.utils import in_ipynb
+        from satpy.writers import get_enhanced_image
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         if not in_ipynb():
             img.show()
@@ -1325,7 +1342,7 @@ class Scene:
             self._generate_composite(node, keepables)
         return keepables
 
-    def _generate_composite(self, comp_node: Node, keepables: set):
+    def _generate_composite(self, comp_node: CompositorNode, keepables: set):
         """Collect all composite prereqs and create the specified composite.
 
         Args:

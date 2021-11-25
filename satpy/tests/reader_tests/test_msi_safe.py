@@ -21,10 +21,10 @@ import unittest.mock as mock
 from io import BytesIO, StringIO
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dataid
-import pytest
 
 mtd_tile_xml = b"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <n1:Level-1C_Tile_ID xmlns:n1="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://psd-14.sentinel2.eo.esa.int/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd /gpfs/dpc/app/s2ipf/FORMAT_METADATA_TILE_L1C/02.14.00/scripts/../../../schemas/02.17.00/PSD/S2_PDI_Level-1C_Tile_Metadata.xsd">

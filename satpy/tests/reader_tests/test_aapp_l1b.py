@@ -257,7 +257,7 @@ class TestNegativeCalibrationSlope(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.aapp_l1b import _SCANTYPE, _HEADERTYPE
+        from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE
         calvis = np.array([[[617200000, -24330000, 1840000000, -632800000, 498],  # calvis
                             [0, 0, 0, 0, 0],
                             [540000000, -21300002, 1610000000, -553699968, 501]],

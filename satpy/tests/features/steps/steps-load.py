@@ -18,8 +18,9 @@
 """Behaviour steps for loading."""
 
 import os
-from behave import use_step_matcher, given, when, then
 from urllib.request import urlopen
+
+from behave import given, then, use_step_matcher, when
 
 use_step_matcher("re")
 
@@ -44,8 +45,9 @@ def step_impl_data_available(context):
 @when(u'user loads the data without providing a config file')
 def step_impl_user_loads_no_config(context):
     """Load the data without a config."""
-    from satpy import Scene, find_files_and_readers
     from datetime import datetime
+
+    from satpy import Scene, find_files_and_readers
     os.chdir("/tmp/")
     readers_files = find_files_and_readers(sensor='viirs',
                                            start_time=datetime(2015, 3, 11, 11, 20),
@@ -71,8 +73,9 @@ def step_impl_items_not_available(context):
 @when(u'user wants to know what data is available')
 def step_impl_user_checks_availability(context):
     """Check availability."""
-    from satpy import Scene, find_files_and_readers
     from datetime import datetime
+
+    from satpy import Scene, find_files_and_readers
     os.chdir("/tmp/")
     reader_files = find_files_and_readers(sensor="viirs",
                                           start_time=datetime(2015, 3, 11, 11, 20),
@@ -90,8 +93,9 @@ def step_impl_available_datasets_are_returned(context):
 @given("datasets with the same name")
 def step_impl_datasets_with_same_name(context):
     """Datasets with the same name but different other ID parameters."""
-    from satpy import Scene
     from xarray import DataArray
+
+    from satpy import Scene
     from satpy.tests.utils import make_dataid
     scn = Scene()
     scn[make_dataid(name='ds1', calibration='radiance')] = DataArray([[1, 2], [3, 4]])

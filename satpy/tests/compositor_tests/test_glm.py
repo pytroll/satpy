@@ -28,11 +28,12 @@ class TestGLMComposites:
 
     def test_highlight_compositor(self):
         """Test creating a highlight composite."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.glm import HighlightCompositor
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.glm import HighlightCompositor
         rows = 5
         cols = 10
         area = AreaDefinition(

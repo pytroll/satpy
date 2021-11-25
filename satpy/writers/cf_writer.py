@@ -567,6 +567,45 @@ def _handle_dataarray_name(original_name, numeric_name_prefix):
     return original_name, name
 
 
+def _get_compression(compression):
+    warnings.warn("The default behaviour of the CF writer will soon change to not compress data by default.",
+                  FutureWarning)
+    if compression is None:
+        compression = {'zlib': True}
+    else:
+        warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
+                      "DataArrays to tune compression from now on.", FutureWarning)
+    return compression
+
+
+def _set_history(root):
+    _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+    if 'history' in root.attrs:
+        if isinstance(root.attrs['history'], list):
+            root.attrs['history'] = ''.join(root.attrs['history'])
+        root.attrs['history'] += '\n' + _history_create
+    else:
+        root.attrs['history'] = _history_create
+
+
+def _get_groups(groups, datasets, root):
+    if groups is None:
+        # Groups are not CF-1.7 compliant
+        if 'Conventions' not in root.attrs:
+            root.attrs['Conventions'] = CF_VERSION
+        # Write all datasets to the file root without creating a group
+        groups_ = {None: datasets}
+    else:
+        # User specified a group assignment using dataset names. Collect the corresponding datasets.
+        groups_ = defaultdict(list)
+        for dataset in datasets:
+            for group_name, group_members in groups.items():
+                if dataset.attrs['name'] in group_members:
+                    groups_[group_name].append(dataset)
+                    break
+    return groups_
+
+
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
@@ -599,10 +638,7 @@ class CFWriter(Writer):
             original_name, name = _handle_dataarray_name(name, numeric_name_prefix)
             new_data = new_data.rename(name)
 
-        # Remove _satpy* attributes
-        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
-        for satpy_attr in satpy_attrs:
-            new_data.attrs.pop(satpy_attr)
+        CFWriter._remove_satpy_attributes(new_data)
 
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
@@ -614,32 +650,14 @@ class CFWriter(Writer):
             new_data.attrs['ancillary_variables'] = ' '.join(anc)
         # TODO: make this a grid mapping or lon/lats
         # new_data.attrs['area'] = str(new_data.attrs.get('area'))
-        for key, val in new_data.attrs.copy().items():
-            if val is None:
-                new_data.attrs.pop(key)
-            if key == 'ancillary_variables' and val == []:
-                new_data.attrs.pop(key)
-        new_data.attrs.pop('_last_resampler', None)
+        CFWriter._cleanup_attrs(new_data)
+
         if compression is not None:
             new_data.encoding.update(compression)
 
-        if 'time' in new_data.coords:
-            new_data['time'].encoding['units'] = epoch
-            new_data['time'].attrs['standard_name'] = 'time'
-            new_data['time'].attrs.pop('bounds', None)
-            if 'time' not in new_data.dims:
-                new_data = new_data.expand_dims('time')
+        new_data = CFWriter._encode_time(new_data, epoch)
 
-        if 'x' in new_data.coords:
-            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
-            new_data['x'].attrs['units'] = 'm'
-
-        if 'y' in new_data.coords:
-            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
-            new_data['y'].attrs['units'] = 'm'
-
-        if 'crs' in new_data.coords:
-            new_data = new_data.drop_vars('crs')
+        new_data = CFWriter._encode_coords(new_data)
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
             new_data.attrs['long_name'] = new_data.name
@@ -657,6 +675,44 @@ class CFWriter(Writer):
         new_data.attrs = encode_attrs_nc(new_data.attrs)
 
         return new_data
+
+    @staticmethod
+    def _cleanup_attrs(new_data):
+        for key, val in new_data.attrs.copy().items():
+            if val is None:
+                new_data.attrs.pop(key)
+            if key == 'ancillary_variables' and val == []:
+                new_data.attrs.pop(key)
+
+    @staticmethod
+    def _encode_coords(new_data):
+        if 'x' in new_data.coords:
+            new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
+            new_data['x'].attrs['units'] = 'm'
+        if 'y' in new_data.coords:
+            new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
+            new_data['y'].attrs['units'] = 'm'
+        if 'crs' in new_data.coords:
+            new_data = new_data.drop_vars('crs')
+        return new_data
+
+    @staticmethod
+    def _encode_time(new_data, epoch):
+        if 'time' in new_data.coords:
+            new_data['time'].encoding['units'] = epoch
+            new_data['time'].attrs['standard_name'] = 'time'
+            new_data['time'].attrs.pop('bounds', None)
+            if 'time' not in new_data.dims:
+                new_data = new_data.expand_dims('time')
+        return new_data
+
+    @staticmethod
+    def _remove_satpy_attributes(new_data):
+        # Remove _satpy* attributes
+        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+        for satpy_attr in satpy_attrs:
+            new_data.attrs.pop(satpy_attr)
+        new_data.attrs.pop('_last_resampler', None)
 
     @staticmethod
     def update_encoding(dataset, to_netcdf_kwargs):
@@ -751,13 +807,7 @@ class CFWriter(Writer):
 
         """
         logger.info('Saving datasets to NetCDF4/CF.')
-        warnings.warn("The default behaviour of the CF writer will soon change to not compress data by default.",
-                      FutureWarning)
-        if compression is None:
-            compression = {'zlib': True}
-        else:
-            warnings.warn("The `compression` keyword will soon be deprecated. Please use the `encoding` of the "
-                          "DataArrays to tune compression from now on.", FutureWarning)
+        compression = _get_compression(compression)
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
@@ -767,13 +817,8 @@ class CFWriter(Writer):
             if flatten_attrs:
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
-        _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
-        if 'history' in root.attrs:
-            if isinstance(root.attrs['history'], list):
-                root.attrs['history'] = ''.join(root.attrs['history'])
-            root.attrs['history'] += '\n' + _history_create
-        else:
-            root.attrs['history'] = _history_create
+
+        _set_history(root)
 
         # Remove satpy-specific kwargs
         to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
@@ -785,20 +830,7 @@ class CFWriter(Writer):
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
         init_nc_kwargs.pop('unlimited_dims', None)
 
-        if groups is None:
-            # Groups are not CF-1.7 compliant
-            if 'Conventions' not in root.attrs:
-                root.attrs['Conventions'] = CF_VERSION
-            # Write all datasets to the file root without creating a group
-            groups_ = {None: datasets}
-        else:
-            # User specified a group assignment using dataset names. Collect the corresponding datasets.
-            groups_ = defaultdict(list)
-            for dataset in datasets:
-                for group_name, group_members in groups.items():
-                    if dataset.attrs['name'] in group_members:
-                        groups_[group_name].append(dataset)
-                        break
+        groups_ = _get_groups(groups, datasets, root)
 
         written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 

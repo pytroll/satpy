@@ -24,9 +24,10 @@ import numpy as np
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
-from satpy import available_readers, Scene
-from ._modis_fixtures import _shape_for_resolution
+from satpy import Scene, available_readers
+
 from ..utils import CustomScheduler, make_dataid
+from ._modis_fixtures import _shape_for_resolution
 
 
 def _check_shared_metadata(data_arr, expect_area=False):

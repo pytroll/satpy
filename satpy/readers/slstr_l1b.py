@@ -17,19 +17,18 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SLSTR L1b reader."""
 
-import warnings
 import logging
 import os
 import re
-
+import warnings
 from datetime import datetime
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

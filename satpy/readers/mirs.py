@@ -17,16 +17,18 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to MiRS product."""
 
-import os
-import logging
 import datetime
+import logging
+import os
+from collections import Counter
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-from collections import Counter
+
 from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.aux_download import retrieve
+from satpy.readers.file_handlers import BaseFileHandler
 
 LOG = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +37,7 @@ try:
     # try getting setuptools/distribute's version of resource retrieval first
     from pkg_resources import resource_string as get_resource_string
 except ImportError:
-    from pkgutil import get_data as get_resource_string
+    from pkgutil import get_data as get_resource_string  # type: ignore
 
 #
 

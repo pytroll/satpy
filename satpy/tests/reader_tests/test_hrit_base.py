@@ -19,13 +19,13 @@
 
 import os
 import unittest
-from unittest import mock
 from datetime import datetime
-from tempfile import gettempdir, NamedTemporaryFile
+from tempfile import NamedTemporaryFile, gettempdir
+from unittest import mock
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, decompress
+from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
 
 
 class TestHRITDecompress(unittest.TestCase):

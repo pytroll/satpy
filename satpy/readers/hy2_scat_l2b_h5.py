@@ -21,9 +21,10 @@ Distributed by Eumetsat in HDF5 format.
 Also handle the HDF5 files from NSOAS, based on a file example.
 """
 
+from datetime import datetime
+
 import numpy as np
 import xarray as xr
-from datetime import datetime
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 

@@ -20,8 +20,8 @@
 import unittest
 from unittest import mock
 
-import pytest
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dataid

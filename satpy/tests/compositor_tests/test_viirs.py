@@ -30,11 +30,12 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_histogram_dnb(self):
         """Test the 'histogram_dnb' compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import HistogramDNB
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import HistogramDNB
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -74,11 +75,12 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_adaptive_dnb(self):
         """Test the 'adaptive_dnb' compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import AdaptiveDNB
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import AdaptiveDNB
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -116,11 +118,12 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_erf_dnb(self):
         """Test the 'dynamic_dnb' or ERF DNB compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import ERFDNB
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import ERFDNB
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -170,11 +173,12 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_hncc_dnb(self):
         """Test the 'hncc_dnb' compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import NCCZinke
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import NCCZinke
         rows = 5
         cols = 10
         area = AreaDefinition(

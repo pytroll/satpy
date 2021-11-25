@@ -18,17 +18,17 @@
 """Tests for modifiers in modifiers/__init__.py."""
 
 import unittest
-from unittest import mock
 from datetime import datetime, timedelta
 from glob import glob
+from unittest import mock
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-import satpy
-
 from pyresample.geometry import AreaDefinition
+
+import satpy
 
 
 class TestSunZenithCorrector(unittest.TestCase):
@@ -347,8 +347,9 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
 
     def test_call(self):
         """Test atmospherical correction."""
-        from satpy.modifiers import PSPAtmosphericalCorrection
         from pyresample.geometry import SwathDefinition
+
+        from satpy.modifiers import PSPAtmosphericalCorrection
 
         # Patch methods
         lons = np.zeros((5, 5))
@@ -446,8 +447,12 @@ class TestAngleGeneration:
     )
     def test_cache_get_angles(self, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
         """Test get_angles when caching is enabled."""
-        from satpy.modifiers.angles import (get_angles, STATIC_EARTH_INERTIAL_DATETIME,
-                                            _get_sensor_angles_from_sat_pos, _get_valid_lonlats)
+        from satpy.modifiers.angles import (
+            STATIC_EARTH_INERTIAL_DATETIME,
+            _get_sensor_angles_from_sat_pos,
+            _get_valid_lonlats,
+            get_angles,
+        )
 
         # Patch methods
         data = _get_angle_test_data()

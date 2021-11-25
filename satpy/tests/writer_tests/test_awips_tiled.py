@@ -20,15 +20,16 @@
 import logging
 import os
 import warnings
-from glob import glob
 from datetime import datetime, timedelta
+from glob import glob
 
-import numpy as np
 import dask
 import dask.array as da
+import numpy as np
+import pytest
 import xarray as xr
 from pyproj import CRS
-import pytest
+
 from satpy.resample import update_resampled_coords
 
 
@@ -213,8 +214,8 @@ class TestAWIPSTiledWriter:
     )
     def test_basic_numbered_tiles(self, tile_count, tile_size):
         """Test creating a multiple numbered tiles."""
-        from satpy.writers.awips_tiled import AWIPSTiledWriter
         from satpy.tests.utils import CustomScheduler
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = self._get_test_data()
         area_def = self._get_test_area()
         input_data_arr = self._get_test_lcc_data(data, area_def)
@@ -251,6 +252,7 @@ class TestAWIPSTiledWriter:
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid."""
         import xarray as xr
+
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         data = self._get_test_data(shape=(2000, 1000), chunks=500)
@@ -270,6 +272,7 @@ class TestAWIPSTiledWriter:
     def test_basic_lettered_tiles_diff_projection(self):
         """Test creating a lettered grid from data with differing projection.."""
         import xarray as xr
+
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         crs = CRS("+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=45 +lat_1=45 +units=m +no_defs")
@@ -291,9 +294,11 @@ class TestAWIPSTiledWriter:
     def test_lettered_tiles_update_existing(self):
         """Test updating lettered tiles with additional data."""
         import shutil
-        import xarray as xr
-        from satpy.writers.awips_tiled import AWIPSTiledWriter
+
         import dask
+        import xarray as xr
+
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         first_base_dir = os.path.join(self.base_dir, 'first')
         w = AWIPSTiledWriter(base_dir=first_base_dir, compress=True)
         shape = (2000, 1000)
@@ -361,6 +366,7 @@ class TestAWIPSTiledWriter:
     def test_lettered_tiles_sector_ref(self):
         """Test creating a lettered grid using the sector as reference."""
         import xarray as xr
+
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         data = self._get_test_data(shape=(2000, 1000), chunks=500)
@@ -422,8 +428,9 @@ class TestAWIPSTiledWriter:
 
     def test_basic_numbered_tiles_rgb(self):
         """Test creating a multiple numbered tiles with RGB."""
-        from satpy.writers.awips_tiled import AWIPSTiledWriter
         import xarray as xr
+
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         data = da.from_array(np.linspace(0., 1., 60000, dtype=np.float32).reshape((3, 200, 100)), chunks=50)
         area_def = self._get_test_area()
@@ -461,9 +468,11 @@ class TestAWIPSTiledWriter:
     )
     def test_multivar_numbered_tiles_glm(self, sector, extra_kwargs):
         """Test creating a tiles with multiple variables."""
-        import xarray as xr
-        from satpy.writers.awips_tiled import AWIPSTiledWriter
         import os
+
+        import xarray as xr
+
+        from satpy.writers.awips_tiled import AWIPSTiledWriter
         os.environ['ORGANIZATION'] = '1' * 50
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
         data = self._get_test_data()

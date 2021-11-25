@@ -21,6 +21,7 @@ import os
 import sys
 import unittest
 from datetime import datetime
+
 import numpy as np
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
@@ -128,6 +129,7 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
     def setUp(self):
         """Create temporary file to perform tests with."""
         import tempfile
+
         from satpy.readers.ascat_l2_soilmoisture_bufr import AscatSoilMoistureBufr
         self.base_dir = tempfile.mkdtemp()
         self.fname = save_test_data(self.base_dir)

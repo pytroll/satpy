@@ -18,14 +18,15 @@
 
 
 import os
-import numpy as np
-import xarray as xr
-import dask.array as da
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-from datetime import datetime
 import unittest
+from datetime import datetime
 from unittest import mock
 
+import dask.array as da
+import numpy as np
+import xarray as xr
+
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_SHAPE = (3600, 1800)
 DEFAULT_LAT_DATA = np.linspace(-89.95, 89.95,
@@ -87,8 +88,8 @@ class TestHdf5IMERG(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.gpm_imerg import Hdf5IMERG
         from satpy._config import config_search_paths
+        from satpy.readers.gpm_imerg import Hdf5IMERG
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(Hdf5IMERG, '__bases__', (FakeHDF5FileHandler2,))
@@ -102,6 +103,7 @@ class TestHdf5IMERG(unittest.TestCase):
     def test_load_data(self):
         """Test loading data."""
         from satpy.readers import load_reader
+
         # Filename to test, needed for start and end times
         filenames = [
             '3B-HHR.MS.MRG.3IMERG.20200131-S233000-E235959.1410.V06B.HDF5', ]

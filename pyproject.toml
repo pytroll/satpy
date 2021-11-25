@@ -4,3 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 write_to = "satpy/version.py"
+
+[tool.isort]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+profile = "black"
+skip_gitignore = true
+default_section = "THIRDPARTY"
+known_first_party = "satpy"
+line_length = 120

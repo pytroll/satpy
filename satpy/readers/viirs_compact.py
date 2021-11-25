@@ -37,6 +37,7 @@ import dask.array as da
 import h5py
 import numpy as np
 import xarray as xr
+
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str

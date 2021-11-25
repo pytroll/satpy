@@ -17,13 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'cmsaf-claas2_l2_nc' reader."""
 
-import os
 import datetime
+import os
+from unittest import mock
+
 import numpy as np
-import xarray as xr
 import numpy.testing
 import pytest
-from unittest import mock
+import xarray as xr
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 

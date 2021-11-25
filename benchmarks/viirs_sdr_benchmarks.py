@@ -17,8 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark VIIRS SDR operations.."""
 
-import os
+from __future__ import annotations
+
 import glob
+import os
 
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
@@ -28,7 +30,7 @@ class VIIRSSDRBenchmarkBase:
     """Shared methods for working with VIIRS SDR data."""
 
     timeout = 600
-    data_files = []
+    data_files: list[str] = []
 
     def setup_cache(self):
         """Fetch the data files."""

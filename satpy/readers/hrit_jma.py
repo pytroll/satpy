@@ -97,10 +97,14 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function)
 from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.hrit_base import (
+    HRITFileHandler,
+    ancillary_text,
+    annotation_header,
+    base_hdr_map,
+    image_data_function,
+)
 from satpy.readers.utils import get_geostationary_mask
 
 logger = logging.getLogger('hrit_jma')
@@ -122,7 +126,7 @@ image_observation_time = np.dtype([('times', '|S1')])
 image_quality_information = np.dtype([('quality', '|S1')])
 
 
-jma_variable_length_headers = {}
+jma_variable_length_headers: dict = {}
 
 jma_text_headers = {image_data_function: 'image_data_function',
                     annotation_header: 'annotation_header',
@@ -411,14 +415,14 @@ class HRITJMAFileHandler(HRITFileHandler):
 
         if calibration == 'counts':
             return data
-        elif calibration == 'radiance':
+        if calibration == 'radiance':
             raise NotImplementedError("Can't calibrate to radiance.")
-        else:
-            cal = self.calibration_table
-            res = data.data.map_blocks(self._interp, cal, dtype=cal[:, 0].dtype)
-            res = xr.DataArray(res,
-                               dims=data.dims, attrs=data.attrs,
-                               coords=data.coords)
+
+        cal = self.calibration_table
+        res = data.data.map_blocks(self._interp, cal, dtype=cal[:, 0].dtype)
+        res = xr.DataArray(res,
+                           dims=data.dims, attrs=data.attrs,
+                           coords=data.coords)
         res = res.where(data < 65535)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
