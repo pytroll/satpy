@@ -1639,11 +1639,11 @@ class TestSceneResampling:
         multi-sensor composites provided can still be read.
         """
         scene1 = Scene(filenames=["fake1_1.txt"], reader="fake1")
-        scene1.load(["ds2"])
+        scene1.load(["ds1"])
         scene2 = Scene(filenames=["fake4_1.txt"], reader="fake4")
         scene2.load(["ds4_b"])
         scene3 = Scene()
-        scene3["ds2"] = scene1["ds2"]
+        scene3["ds1"] = scene1["ds1"]
         scene3["ds4_b"] = scene2["ds4_b"]
         scene3.load(["comp_multi"])
 

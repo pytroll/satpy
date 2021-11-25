@@ -200,6 +200,10 @@ class FakeCompositor(GenericCompositor):
                          dims=['y', 'x', 'bands'],
                          coords={'bands': ['R', 'G', 'B']})
 
+    def check_geolocation(self, data_arrays):
+        """For testing purposes, geolocation always matches."""
+        return True
+
 
 class FakeFileHandler(BaseFileHandler):
     """Fake file handler to be used by test readers."""
