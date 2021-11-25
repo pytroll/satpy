@@ -38,6 +38,7 @@ dynamically discovered from the provided files.
 
 import logging
 from datetime import datetime
+from typing import Tuple
 
 import numpy as np
 import xarray as xr
@@ -54,10 +55,10 @@ logger = logging.getLogger(__name__)
 class GAASPFileHandler(BaseFileHandler):
     """Generic file handler for GAASP output files."""
 
-    y_dims: tuple[str, ...] = (
+    y_dims: Tuple[str, ...] = (
         'Number_of_Scans',
     )
-    x_dims: tuple[str, ...] = (
+    x_dims: Tuple[str, ...] = (
         'Number_of_hi_rez_FOVs',
         'Number_of_low_rez_FOVs',
     )
