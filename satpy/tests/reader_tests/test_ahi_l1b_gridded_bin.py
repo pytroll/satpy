@@ -155,8 +155,6 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
         """Fake unzipping."""
         if fname[-3:] == 'bz2':
             return fname[:-4]
-        else:
-            return fname
 
     @mock.patch('satpy.readers.ahi_l1b_gridded_bin.unzip_file',
                 mock.MagicMock(side_effect=new_unzip))
@@ -209,6 +207,13 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
             self.assertEqual(res.attrs['name'], self.key['name'])
             self.assertEqual(res.attrs['wavelength'], self.info['wavelength'])
 
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('os.remove')
+    def test_destructor(self, exist_patch, remove_patch):
+        """Check that file handler deletes files if needed."""
+        del self.fh
+        remove_patch.assert_called()
+
 
 class TestAHIGriddedLUTs(unittest.TestCase):
     """Test case for the downloading and preparing LUTs."""
@@ -224,7 +229,7 @@ class TestAHIGriddedLUTs(unittest.TestCase):
                 tmpf = os.path.join(tempfile.tempdir, namer)
                 with open(tmpf, 'w') as tmp_fid:
                     tmp_fid.write("TEST\n")
-                tar_handle.add(tmpf, arcname='count2tbb/'+namer)
+                tar_handle.add(tmpf, arcname='count2tbb_v102/'+namer)
                 os.remove(tmpf)
 
     def setUp(self):
@@ -262,14 +267,16 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         tempdir = tempfile.gettempdir()
         print(self.fh.lut_dir)
         self.fh._get_luts()
-        self.assertFalse(os.path.exists(os.path.join(tempdir, 'count2tbb/')))
+        self.assertFalse(os.path.exists(os.path.join(tempdir, 'count2tbb_v102/')))
         for lut_name in AHI_LUT_NAMES:
             self.assertTrue(os.path.isfile(os.path.join(self.fh.lut_dir, lut_name)))
 
-    @mock.patch('ftplib.FTP')
-    def test_download_luts(self, mock_ftp):
+    @mock.patch('requests.get')
+    @mock.patch('shutil.copyfileobj')
+    def test_download_luts(self, mock_requests, mock_shutil):
         """Test that the FTP library is called for downloading LUTS."""
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
             self.fh._download_luts('/test_file')
-            mock_ftp.assert_called()
+            mock_requests.assert_called()
+            mock_shutil.assert_called()

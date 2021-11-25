@@ -148,7 +148,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
         response = requests.get(AHI_REMOTE_LUTS, stream=True)
         with open(file_name, 'wb') as out_file:
             shutil.copyfileobj(response.raw, out_file)
-        del response
 
     @staticmethod
     def _untar_luts(tarred_file, outdir):
