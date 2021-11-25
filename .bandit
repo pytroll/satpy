@@ -1,2 +1,2 @@
 skips: ["B506"]
-exclude: ["satpy/tests"]
+exclude_dirs: ["satpy/tests"]
