@@ -1285,9 +1285,9 @@ class BackgroundCompositor(GenericCompositor):
                 chan = xr.where(chan.isnull(), bg_band, chan)
                 data.append(chan)
         else:
-            data = xr.where(foreground.isnull(), background, foreground)
+            data_arr = xr.where(foreground.isnull(), background, foreground)
             # Split to separate bands so the mode is correct
-            data = [data.sel(bands=b) for b in data['bands']]
+            data = [data_arr.sel(bands=b) for b in data_arr['bands']]
 
         return data
 

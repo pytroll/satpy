@@ -25,7 +25,7 @@ import yaml
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 from satpy import DataID, DataQuery, DatasetDict
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config

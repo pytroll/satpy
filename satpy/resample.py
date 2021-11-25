@@ -185,7 +185,7 @@ BIL_COORDINATES = {'bilinear_s': ('x1', ),
                    'out_coords_x': ('x2', ),
                    'out_coords_y': ('y2', )}
 
-resamplers_cache = WeakValueDictionary()
+resamplers_cache: WeakValueDictionary[tuple, object] = WeakValueDictionary()
 
 PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 

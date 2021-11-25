@@ -34,7 +34,7 @@ import yaml
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition

@@ -16,6 +16,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test generic writer functions."""
 
+from __future__ import annotations
+
 import os
 import shutil
 import unittest
@@ -116,7 +118,7 @@ class TestEnhancer(unittest.TestCase):
 
 class _BaseCustomEnhancementConfigTests:
 
-    TEST_CONFIGS = {}
+    TEST_CONFIGS: dict[str, str] = {}
 
     @classmethod
     def setup_class(cls):

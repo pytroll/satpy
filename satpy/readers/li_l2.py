@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+# type: ignore
 """Interface to MTG-LI L2 product NetCDF files
 
 The reader is based on preliminary test data provided by EUMETSAT.

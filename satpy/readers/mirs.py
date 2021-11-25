@@ -37,7 +37,7 @@ try:
     # try getting setuptools/distribute's version of resource retrieval first
     from pkg_resources import resource_string as get_resource_string
 except ImportError:
-    from pkgutil import get_data as get_resource_string
+    from pkgutil import get_data as get_resource_string  # type: ignore
 
 #
 
