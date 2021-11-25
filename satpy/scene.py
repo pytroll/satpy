@@ -31,7 +31,7 @@ from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import CompositorLoader
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
-from satpy.node import CompositorNode, MissingDependencies, Node, ReaderNode
+from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.writers import load_writer

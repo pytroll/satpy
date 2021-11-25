@@ -24,6 +24,7 @@ from collections import namedtuple
 from contextlib import suppress
 from copy import copy, deepcopy
 from enum import Enum, IntEnum
+from typing import NoReturn
 
 import numpy as np
 
@@ -418,7 +419,7 @@ class DataID(dict):
             self._hash = hash(tuple(sorted(self.items())))
         return self._hash
 
-    def _immutable(self, *args, **kws):
+    def _immutable(self, *args, **kws) -> NoReturn:
         """Raise and error."""
         raise TypeError('Cannot change a DataID')
 
@@ -443,10 +444,10 @@ class DataID(dict):
 
     __setitem__ = _immutable
     __delitem__ = _immutable
-    pop = _immutable
+    pop = _immutable  # type: ignore
     popitem = _immutable
     clear = _immutable
-    update = _immutable
+    update = _immutable  # type: ignore
     setdefault = _immutable
 
     def _find_modifiers_key(self):
