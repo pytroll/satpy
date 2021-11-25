@@ -1693,6 +1693,7 @@ class TestSceneResampling:
         scene3["ds1"] = scene1["ds1"]
         scene3["ds4_b"] = scene2["ds4_b"]
         scene3.load(["comp_multi"])
+        assert "comp_multi" in scene3
 
     def test_comps_need_resampling_optional_mod_deps(self):
         """Test that a composite with complex dependencies.
