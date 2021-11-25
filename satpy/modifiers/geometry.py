@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
 
-    coszen_cache: WeakValueDictionary[tuple[datetime, str], Optional[xr.DataArray]] = WeakValueDictionary()
+    coszen_cache: "WeakValueDictionary[tuple[datetime, str], Optional[xr.DataArray]]" = WeakValueDictionary()
 
     def __init__(self, max_sza=95.0, **kwargs):
         """Collect custom configuration values.
