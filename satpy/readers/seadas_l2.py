@@ -40,7 +40,9 @@ class SEADASL2HDFFileHandler(HDF4FileHandler):
     def _rows_per_scan(self):
         if "modis" in self.sensor_names:
             return 10
-        return 16
+        if "viirs" in self.sensor_names:
+            return 16
+        raise ValueError(f"Don't know how to read data for sensors: {self.sensor_names}")
 
     def _platform_name(self):
         platform = self["/attr/Mission"]
