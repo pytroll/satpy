@@ -24,7 +24,7 @@ import shutil
 from datetime import datetime
 from functools import update_wrapper
 from glob import glob
-from typing import Any, Callable, Optional, Union, cast
+from typing import Any, Callable, Optional, Union
 
 import dask
 import dask.array as da
@@ -160,9 +160,6 @@ class ZarrCacheHelper:
         should_cache = should_cache and can_cache
         if cache_dir is None:
             cache_dir = satpy.config.get("cache_dir")
-        if cache_dir is None:
-            should_cache = False
-        cache_dir = cast(str, cache_dir)
         return should_cache, cache_dir
 
     def _cache_results(self, res, zarr_format):
@@ -218,7 +215,7 @@ def _hash_args(*args):
         elif isinstance(arg, datetime):
             arg = arg.isoformat(" ")
         hashable_args.append(arg)
-    arg_hash = hashlib.sha1()
+    arg_hash = hashlib.sha1()  # nosec
     arg_hash.update(json.dumps(tuple(hashable_args)).encode('utf8'))
     return arg_hash.hexdigest()
 
@@ -297,7 +294,7 @@ def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]
     return suna, sunz
 
 
-def _get_sun_angles_wrapper(lons: da.Array, lats: da.Array, start_time: datetime) -> tuple[da.Array, da.Array]:
+def _get_sun_angles_wrapper(lons: da.Array, lats: da.Array, start_time: datetime) -> np.ndarray:
     with ignore_invalid_float_warnings():
         suna = get_alt_az(start_time, lons, lats)[1]
         suna = np.rad2deg(suna)
@@ -325,7 +322,7 @@ def _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt, start_time, area_
     return res[0], res[1]
 
 
-def _get_sensor_angles_wrapper(lons, lats, start_time, sat_lon, sat_lat, sat_alt):
+def _get_sensor_angles_wrapper(lons, lats, start_time, sat_lon, sat_lat, sat_alt) -> np.ndarray:
     with ignore_invalid_float_warnings():
         sata, satel = get_observer_look(
             sat_lon,
