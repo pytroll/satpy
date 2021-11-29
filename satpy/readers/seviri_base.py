@@ -449,7 +449,12 @@ class MpefProductHeader(object):
             ('TerminationSpace', 'S1'),
             ('EncodingVersion', np.uint16),
             ('Channel', np.uint8),
-            ('Filler', 'S20'),
+            ('ImageLocation', 'S3'),
+            ('CalMode', np.bool),
+            ('CalValidity', np.bool),
+            ('Padding', 'S2'),
+            ('OffsetToData', np.uint32),
+            ('Padding2', 'S9'),
             ('RepeatCycle', 'S15'),
         ]
 
