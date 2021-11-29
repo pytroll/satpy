@@ -70,15 +70,7 @@ def recarray2dict(arr):
             res[key] = recarray2dict(data)
         else:
             if data.size == 1:
-                data = data[0]
-                if ntype[:2] == '|S':
-                    # Python2 and Python3 handle strings differently
-                    try:
-                        data = data.decode()
-                    except ValueError:
-                        pass
-                    data = data.split(':')[0].strip()
-                res[key] = data
+                res[key] = data[0]
             else:
                 res[key] = data.squeeze()
 
