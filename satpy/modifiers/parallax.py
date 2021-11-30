@@ -22,7 +22,6 @@ as cloud top height.
 from datetime import datetime
 
 import numpy as np
-import projection
 import xarray as xr
 from pyorbital.orbital import A as EARTH_RADIUS
 from pyorbital.orbital import get_observer_look
@@ -30,6 +29,8 @@ from pyresample.geometry import SwathDefinition
 from scipy.signal import convolve
 
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
+
+from . import projection
 
 
 def parallax_correct(sat_lon, sat_lat, sat_alt, lon, lat, height):
