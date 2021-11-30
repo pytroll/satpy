@@ -17,6 +17,12 @@
 
 Routines related to parallax correction using datasets involving height, such
 as cloud top height.
+
+The geolocation of (geostationary) satellite imagery is calculated
+on the assumption of a clear view from the satellite to the surface.
+When a cloud blocks the view of the surface, the geolocation is not
+accurate for the cloud top.  This module contains routines to project
+the geolocation onto the cloud top.
 """
 
 from datetime import datetime
@@ -34,21 +40,35 @@ from . import projection
 
 
 def parallax_correct(sat_lon, sat_lat, sat_alt, lon, lat, height):
-    """Correct parallax.
+    """Calculate parallax correction.
 
-    Using satellite position, correct the parallax for coordinates lon, lat,
-    and height.
+    Calculate parallax correction based on satellite position and
+    (cloud top) height coordinates in geodetic (unprojected) coordinates.
+    This function calculates the latitude and longitude belonging to the
+    cloud top, based on the location of the satellite and the location
+    of the cloud.
+
+    For scenes that are only partly cloudy, the user might set the cloud top
+    height for clear-sky pixels to NaN.  This function will return a corrected
+    lat/lon as NaN as well.  The user can use the original lat/lon for those
+    pixels or use the higher level :class:`ParallaxCorrection` class.
+
+    This function assumes a spherical Earth.
 
     Args:
-        sat_lon: Satellite longitude
-        sat_lat: Satellite latitude
-        sat_alt: Satellite altitude
-        lon: Dataset longitudes
-        lat: Dataset latitudes
-        height: Dataset altitudes
+        sat_lon (number): Satellite longitude in geodetic coordinates [°]
+        sat_lat (number): Satellite latitude in geodetic coordinates [°]
+        sat_alt (number): Satellite altitude above the Earth surface [km]
+        lon (array or number): Longitudes of pixel or pixels to be corrected,
+            in geodetic coordinates [°]
+        lat (array or number): Latitudes of pixel/pixels to be corrected, in
+            geodetic coordinates [°]
+        height (array or number): Heights of pixels on which the correction
+            will be based.  Typically this is the cloud based height. [km]
 
     Returns:
-        (corrected_lon, corrected_lat)
+        (corrected_lon, corrected_lat): New geolocation for the longitude and
+            latitude that were to be corrected, in geodetic coordinates. [°]
     """
     X_sat = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
     X = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS
@@ -73,13 +93,36 @@ def parallax_correct(sat_lon, sat_lat, sat_alt, lon, lat, height):
 class ParallaxCorrection:
     """Class for parallax corrections.
 
-    Initialise using a base area.
+    This class contains higher-level functionality to wrap the parallal
+    correction calculations in :func:`parallax_correct`.  The class is
+    initialised using a base area, which is the area for which a corrected
+    geolocation will be calculated.  The resulting object is a callable.
+    Calling the object with an array of (cloud top) heights returns a
+    :class:`~pyresample.geometry.SwathDefinition` describing the new ,
+    corrected geolocation.  This ``SwathDefinition`` can then be used for
+    resampling a satpy Scene, yielding a corrected geolocation for all datasets
+    in the Scene.  For example::
+
+      >>> global_scene = satpy.Scene(reader="seviri_l1b_hrit", filenames=files_sat)
+      >>> global_scene.load(['IR_087','IR_120'])
+      >>> global_nwc = satpy.Scene(filenames=files_nwc)
+      >>> global_nwc.load(['ctth'])
+      >>> area_def = satpy.resample.get_area_def(area)
+      >>> parallax_correction = ParallaxCorrection(area_def)
+      >>> plax_corr_area = parallax_correction(global_nwc["ctth"])
+      >>> local_scene = global_scene.resample(plax_corr_area)
+      >>> local_nwc = global_nwc.resample(plax_corr_area)
+
+    Note that the ``ctth`` dataset must contain geolocation metadata, such as
+    set in the ``orbital_parameters`` dataset attribute by many readers.
     """
 
     def __init__(self, base_area):
         """Initialise parallax correction class.
 
-        See class docstring for documentation.
+        Args:
+            base_area (pyresample.AreaDefinition): Area for which calculated
+                geolocation will be calculated.
         """
         self.base_area = base_area
         self.source_area = None
@@ -93,7 +136,7 @@ class ParallaxCorrection:
                 to be corrected).
 
         Returns:
-            pyresample.geometry.SwathDefinition: Swathdefinition with correct
+            pyresample.geometry.SwathDefinition: Swathdefinition with corrected
                 lat/lon coordinates.
         """
         return self.corrected_area(cth_dataset)
