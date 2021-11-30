@@ -307,7 +307,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='nominal',
+                 mask_space=True, calib_mode='update',
                  user_calibration=None):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
@@ -658,7 +658,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                 user_slope, user_offset = get_user_calibration_factors(self.band_name,
                                                                        self.user_calibration)
 
-        data = (data * dn_gain + dn_offset).clip(0)
+        data = (data * dn_gain + dn_offset)
         # If using radiance correction factors from GSICS or similar, apply here
         if correction_type == 'RAD':
             data = apply_rad_correction(data, user_slope, user_offset)
