@@ -112,6 +112,8 @@ class ParallaxCorrection:
       >>> plax_corr_area = parallax_correction(global_nwc["ctth"])
       >>> local_scene = global_scene.resample(plax_corr_area)
       >>> local_nwc = global_nwc.resample(plax_corr_area)
+      >>> local_scene[...].attrs["area"] = area_def
+      >>> local_nwc[...].attrs["area"] = area_def
 
     Note that the ``ctth`` dataset must contain geolocation metadata, such as
     set in the ``orbital_parameters`` dataset attribute by many readers.
@@ -145,6 +147,8 @@ class ParallaxCorrection:
         """Corrected area.
 
         Calculate the corrected SwathDefinition for dataset.
+
+        Returns a parallax corrected swathdefinition of the base area.
         """
         area = cth_dataset.area
         (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
@@ -172,44 +176,6 @@ class ParallaxCorrection:
 
         return SwathDefinition(proj_lon, proj_lat)
 
-    def correct_points(self, cth_dataset, lons, lats):
-        """To be documented."""
-        area = cth_dataset.area
-        (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
-        cth_dataset = self._preprocess_cth(cth_dataset)
-        grid_proj = projection.GridProjection(area)
-        (y, x) = grid_proj(lons, lats)
-
-        x0 = np.floor(x).astype(int)
-        x1 = x0+1
-        y0 = np.floor(y).astype(int)
-        y1 = y0+1
-        valid = (x0 >= 0) & (x1 < area.width) & \
-            (y0 >= 0) & (y1 < area.height)
-        x0 = xr.DataArray(x0[valid], dims=("y",))
-        x1 = xr.DataArray(x1[valid], dims=("y",))
-        y0 = xr.DataArray(y0[valid], dims=("y",))
-        y1 = xr.DataArray(y1[valid], dims=("y",))
-
-        h00 = np.array(cth_dataset[y0, x0])
-        h01 = np.array(cth_dataset[y0, x1])
-        h10 = np.array(cth_dataset[y1, x0])
-        h11 = np.array(cth_dataset[y1, x1])
-        dx = x[valid]-x0
-        h0 = h00 + dx*(h01-h00)
-        h1 = h10 + dx*(h11-h10)
-        h = h0 + (y[valid]-y0)*(h1-h0)
-        h = np.array(h)
-
-        mask = ~valid
-        corr_lon = np.ma.MaskedArray(lons, mask=mask)
-        corr_lat = np.ma.MaskedArray(lats, mask=mask)
-        (corr_lon[valid], corr_lat[valid]) = parallax_correct(
-            sat_lon, sat_lat, sat_alt, lons[valid], lats[valid], h
-        )
-
-        return corr_lon, corr_lat
-
     def _preprocess_cth(self, cth_dataset):
         """To be documented."""
         units = cth_dataset.units
@@ -225,6 +191,13 @@ class ParallaxCorrection:
         x = x.round().astype(int)
         y = y.round().astype(int)
 
+        # set of points it starts with on an irregular "grid"
+        # needs to go from irregular "grid" to regular grid
+        # kernel density interpolation for regridding from irregular grid into
+        # to regular one
+        # radial basis interpolation
+        # calculates estimate of needed size of convolution kernel for density
+        # estimation
         valid = (x >= 0) & (x < self.base_area.width) & \
             (y >= 0) & (y < self.base_area.height)
         num_in_area = np.count_nonzero(valid)

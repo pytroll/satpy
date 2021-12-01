@@ -152,7 +152,12 @@ def test_correct_area(fake_area_5x5):
                     "satellite_actual_latitude": 0.0},
                 "units": "m"
                     })
-    new_area = corrector(sc["CTH_mixed"])
+    # check that lat/lons remain the same for clearsky
+    new_area = corrector(sc["CTH_clear"])
+    np.testing.assert_allclose(
+            new_area.get_lonlats(),
+            fake_area_5x5.get_lonlats())
+    new_area = corrector(sc["CTH_constant"])
     assert new_area.shape == fake_area_5x5.shape
     old_lonlats = fake_area_5x5.get_lonlats()
     new_lonlats = new_area.get_lonlats()

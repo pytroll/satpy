@@ -1,5 +1,7 @@
 # Copyright (c) 2021 Satpy developers
 #
+# DELETE!
+#
 # This file is part of satpy.
 #
 # satpy is free software: you can redistribute it and/or modify it under the
