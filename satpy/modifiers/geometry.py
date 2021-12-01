@@ -68,19 +68,8 @@ class SunZenithCorrectorBase(ModifierBase):
         if coszen is None and not info.get('optional_datasets'):
             # we were not given SZA, generate cos(SZA)
             logger.debug("Computing sun zenith angles.")
-            # coords = {}
-            # if 'y' in vis.coords and 'x' in vis.coords:
-            #     coords['y'] = vis['y']
-            #     coords['x'] = vis['x']
-
             from .angles import get_cos_sza
             coszen = get_cos_sza(vis)
-            # lons, lats = vis.attrs["area"].get_lonlats(chunks=vis.data.chunks)
-            # coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
-            #                       dims=['y', 'x'], coords=coords)
-            # import dask.array as da
-            # coszen = xr.DataArray(da.ones_like(lons),
-            #                       dims=['y', 'x'], coords=coords)
             if self.max_sza is not None:
                 coszen = coszen.where(coszen >= self.max_sza_cos)
             self.coszen_cache[key] = coszen

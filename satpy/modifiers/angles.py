@@ -298,7 +298,7 @@ def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str] = "auto") -> tu
 
 def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.data.chunks)
-    suna = da.map_blocks(_get_alt_az_wrapper, lons, lats,
+    suna = da.map_blocks(_get_sun_azimuth_ndarray, lons, lats,
                          data_arr.attrs["start_time"],
                          dtype=lons.dtype, meta=np.array((), dtype=lons.dtype),
                          chunks=lons.chunks)
@@ -310,7 +310,7 @@ def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]
 
 
 def _get_cos_sza(utc_time, lons, lats):
-    cos_sza = da.map_blocks(_cos_zen_wrapper,
+    cos_sza = da.map_blocks(_cos_zen_ndarray,
                             lons, lats, utc_time,
                             meta=np.array((), dtype=lons.dtype),
                             dtype=lons.dtype,
@@ -318,23 +318,16 @@ def _get_cos_sza(utc_time, lons, lats):
     return cos_sza
 
 
-def _cos_zen_wrapper(lons, lats, utc_time):
+def _cos_zen_ndarray(lons, lats, utc_time):
     with ignore_invalid_float_warnings():
         return pyob_cos_zen(utc_time, lons, lats)
 
 
-def _get_alt_az_wrapper(lons: np.ndarray, lats: np.ndarray, start_time: datetime) -> np.ndarray:
+def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: datetime) -> np.ndarray:
     with ignore_invalid_float_warnings():
         suna = get_alt_az(start_time, lons, lats)[1]
         suna = np.rad2deg(suna)
     return suna
-
-
-# def _get_sza_wrapper(lons: np.ndarray, lats: np.ndarray, start_time: datetime) -> np.ndarray:
-#     with ignore_invalid_float_warnings():
-#         # return np.rad2deg(np.arccos(cos_zen(utc_time, lon, lat)))
-#         sunz = sun_zenith_angle(start_time, lons, lats)
-#     return sunz
 
 
 def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
@@ -351,13 +344,13 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
 @cache_to_zarr_if("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)
 def _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt, start_time, area_def, chunks):
     lons, lats = _get_valid_lonlats(area_def, chunks)
-    res = da.map_blocks(_get_sensor_angles_wrapper, lons, lats, start_time, sat_lon, sat_lat, sat_alt,
+    res = da.map_blocks(_get_sensor_angles_ndarray, lons, lats, start_time, sat_lon, sat_lat, sat_alt,
                         dtype=lons.dtype, meta=np.array((), dtype=lons.dtype), new_axis=[0],
                         chunks=(2,) + lons.chunks)
     return res[0], res[1]
 
 
-def _get_sensor_angles_wrapper(lons, lats, start_time, sat_lon, sat_lat, sat_alt) -> np.ndarray:
+def _get_sensor_angles_ndarray(lons, lats, start_time, sat_lon, sat_lat, sat_alt) -> np.ndarray:
     with ignore_invalid_float_warnings():
         sata, satel = get_observer_look(
             sat_lon,
@@ -369,7 +362,10 @@ def _get_sensor_angles_wrapper(lons, lats, start_time, sat_lon, sat_lat, sat_alt
         return np.stack([sata, satz])
 
 
-def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
+def sunzen_corr_cos(data: da.Array,
+                    cos_zen: da.Array,
+                    limit: float = 88.,
+                    max_sza: Optional[float] = 95.) -> da.Array:
     """Perform Sun zenith angle correction.
 
     The correction is based on the provided cosine of the zenith
@@ -381,13 +377,16 @@ def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
     0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
 
     """
-    return da.map_blocks(_sunzen_corr_cos_wrapper,
+    return da.map_blocks(_sunzen_corr_cos_ndarray,
                          data, cos_zen, limit, max_sza,
                          meta=np.array((), dtype=data.dtype),
                          chunks=data.chunks)
 
 
-def _sunzen_corr_cos_wrapper(data, cos_zen, limit, max_sza):
+def _sunzen_corr_cos_ndarray(data: np.ndarray,
+                             cos_zen: np.ndarray,
+                             limit: float,
+                             max_sza: Optional[float]) -> np.ndarray:
     # Convert the zenith angle limit to cosine of zenith angle
     limit_rad = np.deg2rad(limit)
     limit_cos = np.cos(limit_rad)
@@ -405,11 +404,7 @@ def _sunzen_corr_cos_wrapper(data, cos_zen, limit, max_sza):
     else:
         # Use constant value (the limit) for larger zenith angles
         grad_factor = 1.
-    # corr[cos_zen <= limit_cos] = grad_factor / limit_cos
-    # corr = corr.where(cos_zen > limit_cos, grad_factor / limit_cos)
     corr = np.where(cos_zen > limit_cos, corr, grad_factor / limit_cos)
     # Force "night" pixels to 0 (where SZA is invalid)
     corr[np.isnan(cos_zen)] = 0
-    # corr = corr.where(cos_zen.notnull(), 0)
-
     return data * corr
