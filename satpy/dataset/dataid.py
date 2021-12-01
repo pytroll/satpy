@@ -24,7 +24,7 @@ from collections import namedtuple
 from contextlib import suppress
 from copy import copy, deepcopy
 from enum import Enum, IntEnum
-from typing import NoReturn
+from typing import NamedTuple, NoReturn
 
 import numpy as np
 
@@ -70,6 +70,105 @@ class ValueList(IntEnum):
     def __repr__(self):
         """Represent the values."""
         return '<' + str(self) + '>'
+
+
+class FrequencyRangeBase(NamedTuple):
+    """Base class for frequency ranges.
+
+    This is needed because of this bug: https://bugs.python.org/issue41629
+    """
+
+    central: float
+    bandwidth: float
+    unit: str = "GHz"
+
+
+class FrequencyRange(FrequencyRangeBase):
+    """A named tuple for frequency ranges.
+
+    The elements of the range are central and bandwidth values, and optionally
+    a unit (defaults to GHz). No clever unit conversion is done here, it's just
+    used for checking that two ranges are comparable.
+
+    This type is used for passive microwave sensors.
+
+    """
+
+    def __eq__(self, other):
+        """Return if two channel frequencies are equal.
+
+        Args:
+            other (tuple or scalar): (central frq, band width frq) or scalar frq
+
+        Return:
+            True if other is a scalar and min <= other <= max, or if other is
+            a tuple equal to self, False otherwise.
+
+        """
+        if other is None:
+            return False
+        elif isinstance(other, numbers.Number):
+            return other in self
+        elif isinstance(other, (tuple, list)) and len(other) == 2:
+            return self[:2] == other
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        """Return the opposite of `__eq__`."""
+        return not self == other
+
+    def __lt__(self, other):
+        """Compare to another frequency."""
+        if other is None:
+            return False
+        return super().__lt__(other)
+
+    def __gt__(self, other):
+        """Compare to another frequency."""
+        if other is None:
+            return True
+        return super().__gt__(other)
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
+    def __str__(self):
+        """Format for print out."""
+        return "{0.central} {0.unit} ({0.bandwidth} {0.unit})".format(self)
+
+    def __contains__(self, other):
+        """Check if this range contains *other*."""
+        if other is None:
+            return False
+        elif isinstance(other, numbers.Number):
+            return self.central - self.bandwidth/2. <= other <= self.central + self.bandwidth/2.
+
+        with suppress(AttributeError):
+            if self.unit != other.unit:
+                raise NotImplementedError("Can't compare frequency ranges with different units.")
+            return (self.central - self.bandwidth/2. <= other.central - other.bandwidth/2. and
+                    self.central + self.bandwidth/2. >= other.central + other.bandwidth/2.)
+        return False
+
+    def distance(self, value):
+        """Get the distance from value."""
+        if self == value:
+            try:
+                return abs(value.central - self.central)
+            except AttributeError:
+                if isinstance(value, (tuple, list)):
+                    return abs(value[0] - self.central)
+                return abs(value - self.central)
+        else:
+            return np.inf
+
+    @classmethod
+    def convert(cls, frq):
+        """Convert `frq` to this type if possible."""
+        if isinstance(frq, dict):
+            return cls(**frq)
+        return frq
 
 
 wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))  # type: ignore

@@ -24,6 +24,7 @@ import os
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
+from contextlib import suppress
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
@@ -301,7 +302,10 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 ds_info = dataset.copy()
                 for key in dsid.keys():
                     if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][dsid.get(key)])
+                        with suppress(KeyError):
+                            # KeyError is suppressed in case the key does not represent interesting metadata,
+                            # eg a custom type
+                            ds_info.update(ds_info[key][dsid.get(key)])
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = dsid.get(key)
