@@ -10,9 +10,7 @@ reader:
   sensors: [ fci ]
 
 # Source: MTG FCI L1 Product User Guide [FCIL1PUG]
-# ftp://ftp.eumetsat.int/pub/OPS/out/test-data/Test-data-for-External-Users/MTG/MTG_FCI_L1C_Enhanced_and_Non-Nominal_Test_Data/PDF_MTG_FCI_L1_PUG.pdf
-# and Example Products for Pytroll Workshop Package Description,
-# EUM/MTG/DOC/19/1079228
+# https://www.eumetsat.int/media/45923
 file_types:
   fci_l1c_fdhsi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
