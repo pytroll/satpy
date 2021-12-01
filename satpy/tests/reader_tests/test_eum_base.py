@@ -86,6 +86,14 @@ class TestRecarray2Dict(unittest.TestCase):
             ('PlannedRepeatCycleEnd', time_cds_expanded)
         ])
 
+        test_mph = [
+            ('ImageLocation', 'S3'),
+            ]
+
+        mph_string = np.array([
+            "OPE",
+            ], dtype=test_mph)
+
         # planned acquisition time, add extra dimensions
         # these should be removed by recarray2dict
         pat = np.array([[[(
@@ -99,7 +107,10 @@ class TestRecarray2Dict(unittest.TestCase):
             'PlannedRepeatCycleEnd': datetime(2018, 1, 2, 11, 45, 9, 417918)
         }
 
+        test_exp = {'ImageLocation': "OPE"}
         self.assertEqual(recarray2dict(pat), expected)
+
+        self.assertEqual(recarray2dict(mph_string), test_exp)
 
 
 class TestGetServiceMode(unittest.TestCase):
