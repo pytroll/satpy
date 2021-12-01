@@ -19,6 +19,7 @@
 
 import unittest
 from unittest import mock
+
 import numpy as np
 import xarray as xr
 
@@ -102,6 +103,7 @@ class TestSCMIFileHandler(unittest.TestCase):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
+
         from satpy.tests.utils import make_dataid
         self.assertEqual(self.reader.start_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))

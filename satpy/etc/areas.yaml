@@ -133,7 +133,7 @@ EuropeCanary:
     upper_right_xy: [4178061.408400173, 5570248.477339261]
 
 EastEurope:
-  description: Easten part of Northern disk MSG image 0 degrees
+  description: Eastern part of Northern disk MSG image 0 degrees
   projection:
     proj: geos
     lon_0: 0.0
@@ -219,6 +219,252 @@ mtg_fci_fdss_2km:
   area_extent:
     lower_left_xy: [-5567999.994200589, -5567999.994200589]
     upper_right_xy: [5567999.994206558,  5567999.994206558]
+    units: m
+
+# Geostationary Operational Environmental Satellite (GOES) / ABI Instrument
+
+# Full disk
+
+goes_east_abi_f_500m:
+  description: GOES East ABI Full Disk at 500 m SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -75
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 21696
+    width: 21696
+  area_extent:
+    lower_left_xy: [-5434894.885056, -5434894.885056]
+    upper_right_xy: [5434894.885056, 5434894.885056]
+    units: m
+
+goes_east_abi_f_1km:
+  description: GOES East ABI Full Disk at 1 km SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -75
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 10848
+    width: 10848
+  area_extent:
+    lower_left_xy: [-5434894.885056, -5434894.885056]
+    upper_right_xy: [5434894.885056, 5434894.885056]
+    units: m
+
+goes_east_abi_f_2km:
+  description: GOES East ABI Full Disk at 2 km SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -75
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 5424
+    width: 5424
+  area_extent:
+    lower_left_xy: [-5434894.885056, -5434894.885056]
+    upper_right_xy: [5434894.885056, 5434894.885056]
+    units: m
+
+goes_west_abi_f_500m:
+  description: GOES West ABI Full Disk at 500 m SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -137
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 21696
+    width: 21696
+  area_extent:
+    lower_left_xy: [-5434894.885056, -5434894.885056]
+    upper_right_xy: [5434894.885056, 5434894.885056]
+    units: m
+
+goes_west_abi_f_1km:
+  description: GOES West ABI Full Disk at 1 km SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -137
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 10848
+    width: 10848
+  area_extent:
+    lower_left_xy: [-5434894.885056, -5434894.885056]
+    upper_right_xy: [5434894.885056, 5434894.885056]
+    units: m
+
+goes_west_abi_f_2km:
+  description: GOES West ABI Full Disk at 2 km SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -137
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 5424
+    width: 5424
+  area_extent:
+    lower_left_xy: [-5434894.885056, -5434894.885056]
+    upper_right_xy: [5434894.885056, 5434894.885056]
+    units: m
+
+# Regional
+
+goes_east_abi_c_500m:
+  description: GOES East ABI CONUS at 500 m SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -75
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 6000
+    width: 10000
+  area_extent:
+    lower_left_xy: [-3627271.29128, 1583173.65752]
+    upper_right_xy: [1382771.92872, 4589199.58952]
+    units: m
+
+goes_east_abi_c_1km:
+  description: GOES East ABI CONUS at 1 km SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -75
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 3000
+    width: 5000
+  area_extent:
+    lower_left_xy: [-3627271.29128, 1583173.65752]
+    upper_right_xy: [1382771.92872, 4589199.58952]
+    units: m
+
+goes_east_abi_c_2km:
+  description: GOES East ABI CONUS at 2 km SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -75
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 1500
+    width: 2500
+  area_extent:
+    lower_left_xy: [-3627271.29128, 1583173.65752]
+    upper_right_xy: [1382771.92872, 4589199.58952]
+    units: m
+
+goes_west_abi_p_500m:
+  description: GOES West ABI PACUS at 500 m resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -137
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 6000
+    width: 10000
+  area_extent:
+    lower_left_xy: [-2505021.61, 1583173.65752]
+    upper_right_xy: [2505021.61, 4589199.58952]
+    units: m
+
+goes_west_abi_p_1km:
+  description: GOES West ABI PACUS at 1 km SSP resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -137
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 3000
+    width: 5000
+  area_extent:
+    lower_left_xy: [-2505021.61, 1583173.65752]
+    upper_right_xy: [2505021.61, 4589199.58952]
+    units: m
+
+goes_west_abi_p_2km:
+  description: GOES West ABI PACUS at 2 km resolution
+  projection:
+    proj: geos
+    sweep: x
+    lon_0: -137
+    h: 35786023
+    x_0: 0
+    y_0: 0
+    ellps: GRS80
+    no_defs: null
+    type: crs
+  shape:
+    height: 1500
+    width: 2500
+  area_extent:
+    lower_left_xy: [-2505021.61, 1583173.65752]
+    upper_right_xy: [2505021.61, 4589199.58952]
     units: m
 
 # -----------------------------------------------------------------------------

@@ -48,11 +48,10 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
-
-from satpy._compat import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -149,13 +148,9 @@ class NCOLCIBase(BaseFileHandler):
 class NCOLCICal(NCOLCIBase):
     """Dummy class for calibration."""
 
-    pass
-
 
 class NCOLCIGeo(NCOLCIBase):
     """Dummy class for navigation."""
-
-    pass
 
 
 class NCOLCIChannelBase(NCOLCIBase):

@@ -29,8 +29,9 @@ References:
 """
 
 import logging
-import pandas as pd
+
 import dask.array as da
+import pandas as pd
 import xarray as xr
 
 from satpy import CHUNK_SIZE

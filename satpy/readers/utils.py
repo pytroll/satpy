@@ -25,19 +25,15 @@ import tempfile
 import warnings
 from contextlib import closing
 from io import BytesIO
-from subprocess import Popen, PIPE
+from shutil import which
+from subprocess import PIPE, Popen
 
 import numpy as np
 import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
-from satpy import CHUNK_SIZE
 
-try:
-    from shutil import which
-except ImportError:
-    # python 2 - won't be used, but needed for mocking in tests
-    which = None
+from satpy import CHUNK_SIZE
 
 LOGGER = logging.getLogger(__name__)
 

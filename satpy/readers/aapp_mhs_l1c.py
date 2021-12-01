@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2020 Adam.Dybbroe
+# Copyright (c) 2020, 2021 Pytroll developers
 
 # Author(s):
 
-#   Adam.Dybbroe <a000680@c21856.ad.smhi.se>
+#   Adam Dybbroe <Firstname.Lastname@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,8 @@ https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_F
 import dask.array as da
 import numpy as np
 from datetime import datetime, timedelta
-
+import numbers
+from contextlib import suppress
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.aapp_l1b import create_xarray
@@ -340,7 +341,7 @@ _SCANTYPE = np.dtype([("scnlin", "<i4"),
                       ("scalti", "<i4"),  # sat altitude above reference ellipsoid, km*10
                       ("spare2", "<i4", (2, )),
                       # Calibration
-                      ("btemps", "<i4", (90, 5)),  # BT data for Bnfovs 10^2 x scene brightness temperature (K), channels 1-5
+                      ("btemps", "<i4", (90, 5)),  # BT data for Bnfovs 10^2 x scene Tb (K), channels 1-5
                       ("dataqual", "<i4", (90, )),
                       ("filler", "<i4", (55, ))
                       ])

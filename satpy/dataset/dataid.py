@@ -23,7 +23,8 @@ import warnings
 from collections import namedtuple
 from contextlib import suppress
 from copy import copy, deepcopy
-from enum import IntEnum, Enum
+from enum import Enum, IntEnum
+from typing import NoReturn
 
 import numpy as np
 
@@ -71,12 +72,8 @@ class ValueList(IntEnum):
         return '<' + str(self) + '>'
 
 
-try:
-    frqklass = namedtuple("FrequencyRange", "central bandwidth unit",
-                          defaults=('GHz',))
-except TypeError:  # Python 3.6
-    frqklass = namedtuple("FrequencyRange", "central bandwidth unit")
-    frqklass.__new__.__defaults__ = ('GHz',)
+frqklass = namedtuple("FrequencyRange", "central bandwidth unit",
+                      defaults=('GHz',))
 
 
 class FrequencyRange(frqklass):
@@ -171,11 +168,7 @@ class FrequencyRange(frqklass):
 #
 
 
-try:
-    wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
-except TypeError:  # python 3.6
-    wlklass = namedtuple("WavelengthRange", "min central max unit")
-    wlklass.__new__.__defaults__ = ('µm',)
+wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))  # type: ignore
 
 
 class WavelengthRange(wlklass):
@@ -199,9 +192,9 @@ class WavelengthRange(wlklass):
         """
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             return other in self
-        elif isinstance(other, (tuple, list)) and len(other) == 3:
+        if isinstance(other, (tuple, list)) and len(other) == 3:
             return self[:3] == other
         return super().__eq__(other)
 
@@ -233,7 +226,7 @@ class WavelengthRange(wlklass):
         """Check if this range contains *other*."""
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             return self.min <= other <= self.max
         with suppress(AttributeError):
             if self.unit != other.unit:
@@ -300,7 +293,7 @@ class ModifierTuple(tuple):
         """Convert `modifiers` to this type if possible."""
         if modifiers is None:
             return None
-        elif not isinstance(modifiers, (cls, tuple, list)):
+        if not isinstance(modifiers, (cls, tuple, list)):
             raise TypeError("'DataID' modifiers must be a tuple or None, "
                             "not {}".format(type(modifiers)))
         return cls(modifiers)
@@ -411,23 +404,17 @@ class DataID(dict):
         if not keyvals:
             return curated
         for key, val in self._id_keys.items():
-            if val is not None:
-                if key in keyvals or val.get('default') is not None or val.get('required'):
-                    curated_val = keyvals.get(key, val.get('default'))
-                    if 'required' in val and curated_val is None:
-                        raise ValueError('Required field {} missing.'.format(key))
-                    if 'type' in val:
-                        curated[key] = val['type'].convert(curated_val)
-                    elif curated_val is not None:
-                        curated[key] = curated_val
-            else:
-                try:
-                    curated_val = keyvals[key]
-                except KeyError:
-                    pass
-                else:
-                    if curated_val is not None:
-                        curated[key] = curated_val
+            if val is None:
+                val = {}
+            if key in keyvals or val.get('default') is not None or val.get('required'):
+                curated_val = keyvals.get(key, val.get('default'))
+                if 'required' in val and curated_val is None:
+                    raise ValueError('Required field {} missing.'.format(key))
+                if 'type' in val:
+                    curated[key] = val['type'].convert(curated_val)
+                elif curated_val is not None:
+                    curated[key] = curated_val
+
         return curated
 
     @classmethod
@@ -528,7 +515,7 @@ class DataID(dict):
             self._hash = hash(tuple(sorted(self.items())))
         return self._hash
 
-    def _immutable(self, *args, **kws):
+    def _immutable(self, *args, **kws) -> NoReturn:
         """Raise and error."""
         raise TypeError('Cannot change a DataID')
 
@@ -544,33 +531,19 @@ class DataID(dict):
             elif key in self:
                 val = self[key]
                 list_self.append(val)
-                if isinstance(val, numbers.Number):
-                    list_other.append(0)
-                elif isinstance(val, str):
-                    list_other.append('')
-                elif isinstance(val, tuple):
-                    list_other.append(tuple())
-                else:
-                    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+                list_other.append(_generalize_value_for_comparison(val))
             elif key in other:
                 val = other[key]
                 list_other.append(val)
-                if isinstance(val, numbers.Number):
-                    list_self.append(0)
-                elif isinstance(val, str):
-                    list_self.append('')
-                elif isinstance(val, tuple):
-                    list_self.append(tuple())
-                else:
-                    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+                list_self.append(_generalize_value_for_comparison(val))
         return tuple(list_self) < tuple(list_other)
 
     __setitem__ = _immutable
     __delitem__ = _immutable
-    pop = _immutable
+    pop = _immutable  # type: ignore
     popitem = _immutable
     clear = _immutable
-    update = _immutable
+    update = _immutable  # type: ignore
     setdefault = _immutable
 
     def _find_modifiers_key(self):
@@ -592,6 +565,18 @@ class DataID(dict):
         except KeyError:
             return False
         return bool(self[key])
+
+
+def _generalize_value_for_comparison(val):
+    """Get a generalize value for comparisons."""
+    if isinstance(val, numbers.Number):
+        return 0
+    elif isinstance(val, str):
+        return ""
+    elif isinstance(val, tuple):
+        return tuple()
+    else:
+        raise NotImplementedError("Don't know how to generalize " + str(type(val)))
 
 
 class DataQuery:
@@ -763,40 +748,51 @@ class DataQuery:
             sorted_dataids.append(dataid)
             distance = 0
             for key in keys:
+                if distance == np.inf:
+                    break
                 val = self._dict.get(key, '*')
                 if val == '*':
-                    try:
-                        # for enums
-                        distance += dataid.get(key).value
-                    except AttributeError:
-                        if isinstance(dataid.get(key), numbers.Number):
-                            distance += dataid.get(key)
-                        elif isinstance(dataid.get(key), tuple):
-                            distance += len(dataid.get(key))
+                    distance = self._add_absolute_distance(dataid, key, distance)
                 else:
                     try:
                         dataid_val = dataid[key]
                     except KeyError:
                         distance += big_distance
                         continue
-                    try:
-                        distance += dataid_val.distance(val)
-                    except AttributeError:
-                        if not isinstance(val, list):
-                            val = [val]
-                        if dataid_val not in val:
-                            distance = np.inf
-                            break
-                        elif isinstance(dataid_val, numbers.Number):
-                            # so as to get the highest resolution first
-                            # FIXME: this ought to be clarified, not sure that
-                            # higher resolution is preferable is all cases.
-                            # Moreover this might break with other numerical
-                            # values.
-                            distance += dataid_val
+                    distance = self._add_distance_from_query(dataid_val, val, distance)
             distances.append(distance)
         distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
         return dataids, distances
+
+    @staticmethod
+    def _add_absolute_distance(dataid, key, distance):
+        try:
+            # for enums
+            distance += dataid.get(key).value
+        except AttributeError:
+            if isinstance(dataid.get(key), numbers.Number):
+                distance += dataid.get(key)
+            elif isinstance(dataid.get(key), tuple):
+                distance += len(dataid.get(key))
+        return distance
+
+    @staticmethod
+    def _add_distance_from_query(dataid_val, requested_val, distance):
+        try:
+            distance += dataid_val.distance(requested_val)
+        except AttributeError:
+            if not isinstance(requested_val, list):
+                requested_val = [requested_val]
+            if dataid_val not in requested_val:
+                distance = np.inf
+            elif isinstance(dataid_val, numbers.Number):
+                # so as to get the highest resolution first
+                # FIXME: this ought to be clarified, not sure that
+                # higher resolution is preferable is all cases.
+                # Moreover this might break with other numerical
+                # values.
+                distance += dataid_val
+        return distance
 
     def create_less_modified_query(self):
         """Create a query with one less modifier."""

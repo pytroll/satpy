@@ -22,9 +22,7 @@ from unittest import mock
 
 import numpy as np
 
-from satpy.readers.seviri_l1b_hrit import (
-    HRITMSGFileHandler, HRITMSGPrologueFileHandler
-)
+from satpy.readers.seviri_l1b_hrit import HRITMSGFileHandler, HRITMSGPrologueFileHandler
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 
 

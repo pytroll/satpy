@@ -16,31 +16,33 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared objects of the various reader classes."""
+from __future__ import annotations
 
 import logging
 import os
+import pickle
 import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
-import pickle
 
 import yaml
 
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 from satpy._config import config_search_paths, glob_config
-from .yaml_reader import (AbstractYAMLReader,
-                          load_yaml_configs as load_yaml_reader_configs)
+
+from .yaml_reader import AbstractYAMLReader
+from .yaml_reader import load_yaml_configs as load_yaml_reader_configs
 
 LOG = logging.getLogger(__name__)
 
 
 # Old Name -> New Name
 PENDING_OLD_READER_NAMES = {'fci_l1c_fdhsi': 'fci_l1c_nc'}
-OLD_READER_NAMES = {}
+OLD_READER_NAMES: dict[str, str] = {}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
@@ -538,27 +540,10 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
 
     """
     reader_instances = {}
-    if not filenames and not reader:
-        # used for an empty Scene
+    if _early_exit(filenames, reader):
         return {}
-    if reader and filenames is not None and not filenames:
-        # user made a mistake in their glob pattern
-        raise ValueError("'filenames' was provided but is empty.")
-    if not filenames:
-        LOG.warning("'filenames' required to create readers and load data")
-        return {}
-    if reader is None and isinstance(filenames, dict):
-        # filenames is a dictionary of reader_name -> filenames
-        reader = list(filenames.keys())
-        remaining_filenames = set(f for fl in filenames.values() for f in fl)
-    elif reader and isinstance(filenames, dict):
-        # filenames is a dictionary of reader_name -> filenames
-        # but they only want one of the readers
-        filenames = filenames[reader]
-        remaining_filenames = set(filenames or [])
-    else:
-        remaining_filenames = set(filenames or [])
 
+    reader, filenames, remaining_filenames = _get_reader_and_filenames(reader, filenames)
     (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
 
     for idx, reader_configs in enumerate(configs_for_reader(reader)):
@@ -589,15 +574,51 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
         if not remaining_filenames:
             break
 
+    _check_remaining_files(remaining_filenames)
+    _check_reader_instances(reader_instances)
+    return reader_instances
+
+
+def _early_exit(filenames, reader):
+    if not filenames and not reader:
+        # used for an empty Scene
+        return True
+    if reader and filenames is not None and not filenames:
+        # user made a mistake in their glob pattern
+        raise ValueError("'filenames' was provided but is empty.")
+    if not filenames:
+        LOG.warning("'filenames' required to create readers and load data")
+        return True
+    return False
+
+
+def _get_reader_and_filenames(reader, filenames):
+    if reader is None and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        reader = list(filenames.keys())
+        remaining_filenames = set(f for fl in filenames.values() for f in fl)
+    elif reader and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        # but they only want one of the readers
+        filenames = filenames[reader]
+        remaining_filenames = set(filenames or [])
+    else:
+        remaining_filenames = set(filenames or [])
+    return reader, filenames, remaining_filenames
+
+
+def _check_remaining_files(remaining_filenames):
     if remaining_filenames:
         LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
+
+
+def _check_reader_instances(reader_instances):
     if not reader_instances:
         raise ValueError("No supported files found")
     if not any(list(r.available_dataset_ids) for r in reader_instances.values()):
         raise ValueError("No dataset could be loaded. Either missing "
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
-    return reader_instances
 
 
 def _get_reader_kwargs(reader, reader_kwargs):

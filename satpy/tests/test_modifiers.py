@@ -18,13 +18,17 @@
 """Tests for modifiers in modifiers/__init__.py."""
 
 import unittest
+from datetime import datetime, timedelta
+from glob import glob
 from unittest import mock
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition
+
+import satpy
 
 
 class TestSunZenithCorrector(unittest.TestCase):
@@ -343,8 +347,9 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
 
     def test_call(self):
         """Test atmospherical correction."""
-        from satpy.modifiers import PSPAtmosphericalCorrection
         from pyresample.geometry import SwathDefinition
+
+        from satpy.modifiers import PSPAtmosphericalCorrection
 
         # Patch methods
         lons = np.zeros((5, 5))
@@ -375,39 +380,119 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         res.compute()
 
 
-class TestAngleGeneration(unittest.TestCase):
+def _get_angle_test_data():
+    orb_params = {
+        "satellite_nominal_altitude": 12345678,
+        "satellite_nominal_longitude": 10.0,
+        "satellite_nominal_latitude": 0.0,
+    }
+    area = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 5,
+        (-2500, -2500, 2500, 2500),
+    )
+    stime = datetime(2020, 1, 1, 12, 0, 0)
+    data = da.zeros((5, 5), chunks=2)
+    vis = xr.DataArray(data,
+                       attrs={
+                           'area': area,
+                           'start_time': stime,
+                           'orbital_parameters': orb_params,
+                       })
+    return vis
+
+
+def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
+    # change data slightly
+    new_data = orig_data.copy()
+    old_lon = new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"]
+    new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"] = old_lon + lon_offset
+    new_data.attrs["start_time"] = new_data.attrs["start_time"] + timedelta(hours=36)
+    return new_data
+
+
+def _diff_sat_pos_datetime(orig_data):
+    return _similar_sat_pos_datetime(orig_data, lon_offset=0.05)
+
+
+class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
-    @mock.patch('satpy.modifiers._angles.get_satpos')
-    @mock.patch('satpy.modifiers._angles.get_observer_look')
-    @mock.patch('satpy.modifiers._angles.get_alt_az')
-    def test_get_angles(self, get_alt_az, get_observer_look, get_satpos):
+    def test_get_angles(self):
         """Test sun and satellite angle calculation."""
-        from satpy.modifiers._angles import get_angles
+        from satpy.modifiers.angles import get_angles
+        data = _get_angle_test_data()
 
-        # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        get_observer_look.return_value = 0, 0
-        get_alt_az.return_value = 0, 0
-        area = mock.MagicMock()
-        lons = np.zeros((5, 5))
-        lons[1, 1] = np.inf
-        lons = da.from_array(lons, chunks=5)
-        lats = np.zeros((5, 5))
-        lats[1, 1] = np.inf
-        lats = da.from_array(lats, chunks=5)
-        area.get_lonlats.return_value = (lons, lats)
-        stime = datetime(2020, 1, 1, 12, 0, 0)
-        vis = mock.MagicMock(attrs={'area': area, 'start_time': stime})
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
+            angles = get_angles(data)
+            assert all(isinstance(x, xr.DataArray) for x in angles)
+            da.compute(angles)
 
-        # Compute angles
-        get_angles(vis)
-
+        # get_observer_look should have been called once per array chunk
+        assert gol.call_count == data.data.blocks.size
         # Check arguments of get_orbserver_look() call, especially the altitude
         # unit conversion from meters to kilometers
-        get_observer_look.assert_called_once()
-        args = get_observer_look.call_args[0]
-        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, stime))
-        self.assertIsInstance(args[4], da.Array)
-        self.assertIsInstance(args[5], da.Array)
-        self.assertEqual(args[6], 0)
+        args = gol.call_args[0]
+        assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
+
+    @pytest.mark.parametrize(
+        ("input2_func", "exp_equal_sun", "exp_num_zarr"),
+        [
+            (lambda x: x, True, 4),
+            (_similar_sat_pos_datetime, False, 4),
+            (_diff_sat_pos_datetime, False, 6),
+        ]
+    )
+    def test_cache_get_angles(self, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
+        """Test get_angles when caching is enabled."""
+        from satpy.modifiers.angles import (
+            STATIC_EARTH_INERTIAL_DATETIME,
+            _get_sensor_angles_from_sat_pos,
+            _get_valid_lonlats,
+            get_angles,
+        )
+
+        # Patch methods
+        data = _get_angle_test_data()
+        additional_cache = exp_num_zarr > 4
+
+        # Compute angles
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
+            res = get_angles(data)
+            assert all(isinstance(x, xr.DataArray) for x in res)
+
+            # call again, should be cached
+            new_data = input2_func(data)
+            res2 = get_angles(new_data)
+            assert all(isinstance(x, xr.DataArray) for x in res2)
+            res, res2 = da.compute(res, res2)
+            for r1, r2 in zip(res[:2], res2[:2]):
+                if additional_cache:
+                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
+                else:
+                    np.testing.assert_allclose(r1, r2)
+
+            for r1, r2 in zip(res[2:], res2[2:]):
+                if exp_equal_sun:
+                    np.testing.assert_allclose(r1, r2)
+                else:
+                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
+
+            zarr_dirs = glob(str(tmpdir / "*.zarr"))
+            assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
+
+            _get_sensor_angles_from_sat_pos.cache_clear()
+            _get_valid_lonlats.cache_clear()
+            zarr_dirs = glob(str(tmpdir / "*.zarr"))
+            assert len(zarr_dirs) == 0
+
+        assert gol.call_count == data.data.blocks.size * (int(additional_cache) + 1)
+        args = gol.call_args_list[0][0]
+        assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
+        exp_sat_lon = 10.1 if additional_cache else 10.0
+        args = gol.call_args_list[-1][0]
+        assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)

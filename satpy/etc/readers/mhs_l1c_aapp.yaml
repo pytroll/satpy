@@ -1,36 +1,36 @@
 reader:
-    name: mhs_l1c_aapp
-    description: AAPP l1c Reader for AMSU-B/MHS data
-    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-    sensors: [mhs,]
-    default_channels: [1, 2, 3, 4, 5]
+  name: mhs_l1c_aapp
+  description: AAPP l1c Reader for AMSU-B/MHS data
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [mhs,]
+  default_channels: [1, 2, 3, 4, 5]
 
-data_identification_keys:
-  name:
-    required: true
-  # frequency_stripes:
-  #   type: !!python/name:satpy.readers.my_mhs_reader.FrequencyStripes
-  frequency_range:
-    type: !!python/name:satpy.dataset.dataid.FrequencyRange
-  resolution:
-  polarization:
-    enum:
-      - H
-      - V
-  calibration:
-    enum:
+  data_identification_keys:
+    name:
+      required: true
+    # frequency_stripes:
+    #   type: !!python/name:satpy.readers.my_mhs_reader.FrequencyStripes
+    frequency_range:
+      type: !!python/name:satpy.dataset.dataid.FrequencyRange
+    resolution:
+    polarization:
+      enum:
+        - H
+        - V
+    calibration:
+      enum:
         - brightness_temperature
-    transitive: true
-  modifiers:
-    required: true
-    default: []
-    type: !!python/name:satpy.dataset.ModifierTuple
+      transitive: true
+    modifiers:
+      required: true
+      default: []
+      type: !!python/name:satpy.dataset.ModifierTuple
     
 datasets:
     '1':
         name: '1'
         frequency_range:
-           center: 89.
+           central: 89.
            bandwidth: 2.8
            unit: GHz
           
@@ -44,71 +44,71 @@ datasets:
             - latitude
         file_type: mhs_aapp_l1c
         
-    '2':
-        name: '2'
-        frequency_range:
-           center: 157.
-           bandwidth: 2.8
-           unit: GHz
+    # '2':
+    #     name: '2'
+    #     frequency_range:
+    #        central: 157.
+    #        bandwidth: 2.8
+    #        unit: GHz
 
-        polarization: 'V'
-        resolution: 16000
-        calibration:
-          brightness_temperature:
-            standard_name: toa_brightness_temperature
-        coordinates:
-            - longitude
-            - latitude
-        file_type: mhs_aapp_l1c
+    #     polarization: 'V'
+    #     resolution: 16000
+    #     calibration:
+    #       brightness_temperature:
+    #         standard_name: toa_brightness_temperature
+    #     coordinates:
+    #         - longitude
+    #         - latitude
+    #     file_type: mhs_aapp_l1c
         
-    '3':
-        name: '3'
-        #wavelength: [183.31, -1., 1., 1.0]
-        #wavelength_unit: GHz
-        polarization: 'V'
-        # frequency_stripes:
-        #   unit: GHz
-        #   center: 183.31
-        #   left: -1.0
-        #   right: 1.0
-        #   bandwidth: 1.0
+    # '3':
+    #     name: '3'
+    #     #wavelength: [183.31, -1., 1., 1.0]
+    #     #wavelength_unit: GHz
+    #     polarization: 'V'
+    #     # frequency_stripes:
+    #     #   unit: GHz
+    #     #   center: 183.31
+    #     #   left: -1.0
+    #     #   right: 1.0
+    #     #   bandwidth: 1.0
           
-        resolution: 16000
-        calibration:
-          brightness_temperature:
-            standard_name: toa_brightness_temperature
-        coordinates:
-            - longitude
-            - latitude
-        file_type: mhs_aapp_l1c
+    #     resolution: 16000
+    #     calibration:
+    #       brightness_temperature:
+    #         standard_name: toa_brightness_temperature
+    #     coordinates:
+    #         - longitude
+    #         - latitude
+    #     file_type: mhs_aapp_l1c
         
-    '4':
-        name: '4'
-        #wavelength: [183.31, -3., 3., 2.0]
-        #wavelength_unit: GHz
-        polarization: 'H'
-        resolution: 16000
-        calibration:
-          brightness_temperature:
-            standard_name: toa_brightness_temperature
-        coordinates:
-            - longitude
-            - latitude
-        file_type: mhs_aapp_l1c
+    # '4':
+    #     name: '4'
+    #     #wavelength: [183.31, -3., 3., 2.0]
+    #     #wavelength_unit: GHz
+    #     polarization: 'H'
+    #     resolution: 16000
+    #     calibration:
+    #       brightness_temperature:
+    #         standard_name: toa_brightness_temperature
+    #     coordinates:
+    #         - longitude
+    #         - latitude
+    #     file_type: mhs_aapp_l1c
         
-    '5':
-        name: '5'
-        #wavelength: [183.31, -7., 7., 2.0]
-        #wavelength_unit: GHz
-        polarization: 'V'
-        resolution: 16000
-        calibration:
-          brightness_temperature:
-            standard_name: toa_brightness_temperature
-        coordinates:
-            - longitude
-            - latitude
-        file_type: mhs_aapp_l1c
+    # '5':
+    #     name: '5'
+    #     #wavelength: [183.31, -7., 7., 2.0]
+    #     #wavelength_unit: GHz
+    #     polarization: 'V'
+    #     resolution: 16000
+    #     calibration:
+    #       brightness_temperature:
+    #         standard_name: toa_brightness_temperature
+    #     coordinates:
+    #         - longitude
+    #         - latitude
+    #     file_type: mhs_aapp_l1c
         
         
     solar_zenith_angle:

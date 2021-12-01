@@ -26,7 +26,7 @@ from unittest import mock
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hrpt import dtype, HRPTFile
+from satpy.readers.hrpt import HRPTFile, dtype
 from satpy.tests.reader_tests.test_avhrr_l1b_gaclac import PygacPatcher
 from satpy.tests.utils import make_dataid
 
@@ -110,7 +110,7 @@ class CalibratorPatcher(PygacPatcher):
 
         # Import things to patch here to make them patchable. Otherwise another function
         # might import it first which would prevent a successful patch.
-        from pygac.calibration import calibrate_solar, calibrate_thermal, Calibrator
+        from pygac.calibration import Calibrator, calibrate_solar, calibrate_thermal
         self.Calibrator = Calibrator
         self.calibrate_thermal = calibrate_thermal
         self.calibrate_thermal.side_effect = fake_calibrate_thermal

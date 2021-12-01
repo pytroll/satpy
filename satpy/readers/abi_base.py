@@ -18,7 +18,6 @@
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
 import logging
-from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
@@ -285,8 +284,3 @@ class NC_ABI_BASE(BaseFileHandler):
         else:
             raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
         return res
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError):
-            self.nc.close()

@@ -133,8 +133,9 @@ class TestIasiL2(unittest.TestCase):
 
     def setUp(self):
         """Create temporary data to test on."""
-        import tempfile
         import datetime as dt
+        import tempfile
+
         from satpy.readers.iasi_l2 import IASIL2HDF5
 
         self.base_dir = tempfile.mkdtemp()
@@ -165,10 +166,10 @@ class TestIasiL2(unittest.TestCase):
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
         scn = Scene(reader='iasi_l2', filenames=[fname])
-        self.assertTrue('start_time' in scn.attrs)
-        self.assertTrue('end_time' in scn.attrs)
-        self.assertTrue('sensor' in scn.attrs)
-        self.assertTrue('iasi' in scn.attrs['sensor'])
+        assert scn.start_time is not None
+        assert scn.end_time is not None
+        assert scn.sensor_names
+        assert 'iasi' in scn.sensor_names
 
     def test_scene_load_available_datasets(self):
         """Test that all datasets are available."""
@@ -274,6 +275,7 @@ class TestIasiL2(unittest.TestCase):
     def test_read_dataset(self):
         """Test read_dataset() function."""
         import h5py
+
         from satpy.readers.iasi_l2 import read_dataset
         from satpy.tests.utils import make_dataid
         with h5py.File(self.fname, 'r') as fid:
@@ -291,6 +293,7 @@ class TestIasiL2(unittest.TestCase):
     def test_read_geo(self):
         """Test read_geo() function."""
         import h5py
+
         from satpy.readers.iasi_l2 import read_geo
         from satpy.tests.utils import make_dataid
         with h5py.File(self.fname, 'r') as fid:

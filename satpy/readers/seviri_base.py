@@ -158,15 +158,14 @@ References:
 
 import warnings
 
-import numpy as np
-from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
+import numpy as np
 import pyproj
+from numpy.polynomial.chebyshev import Chebyshev
 
-from satpy.readers.utils import apply_earthsun_distance_correction
-from satpy.readers.eum_base import (time_cds_short,
-                                    issue_revision)
 from satpy import CHUNK_SIZE
+from satpy.readers.eum_base import issue_revision, time_cds_short
+from satpy.readers.utils import apply_earthsun_distance_correction
 
 PLATFORM_DICT = {
     'MET08': 'Meteosat-8',

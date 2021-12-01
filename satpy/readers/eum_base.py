@@ -18,6 +18,7 @@
 """Utilities for EUMETSAT satellite data."""
 
 from datetime import datetime, timedelta
+
 import numpy as np
 
 # 6 bytes, 8 bytes, 10 bytes

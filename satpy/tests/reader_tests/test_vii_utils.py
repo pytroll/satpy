@@ -18,10 +18,9 @@
 
 """The vii_utils reader tests package."""
 
-import satpy.readers.vii_utils
-
 import unittest
 
+import satpy.readers.vii_utils
 
 # Constants to be tested
 C1 = 1.191062e+8

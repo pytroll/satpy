@@ -23,9 +23,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from satpy.dataset.dataid import (DataQuery, DataID,
-                                  WavelengthRange, FrequencyRange,
-                                  ModifierTuple, minimal_default_keys_config)
+from satpy.dataset.dataid import (DataID, DataQuery, ModifierTuple, FrequencyRange,
+                                  WavelengthRange, minimal_default_keys_config)
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -34,10 +33,9 @@ class TestDataID(unittest.TestCase):
 
     def test_basic_init(self):
         """Test basic ways of creating a DataID."""
-        from satpy.dataset.dataid import (
-            DataID,
-            default_id_keys_config as dikc,
-            minimal_default_keys_config as mdkc)
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
+        from satpy.dataset.dataid import minimal_default_keys_config as mdkc
 
         did = DataID(dikc, name="a")
         assert did['name'] == 'a'
@@ -56,12 +54,14 @@ class TestDataID(unittest.TestCase):
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         self.assertRaises(TypeError, DataID, dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DataID(dikc, name="a", wavelength=None)
 
@@ -71,13 +71,15 @@ class TestDataID(unittest.TestCase):
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         with pytest.raises(ValueError):
             DataID(dikc, name='C05', calibration='_bad_')
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -86,7 +88,8 @@ class TestDataID(unittest.TestCase):
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID
+        from satpy.dataset.dataid import default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -135,9 +138,10 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
-        from satpy.dataset.metadata import combine_metadata
         from numpy import arange, ones
         from xarray import DataArray
+
+        from satpy.dataset.metadata import combine_metadata
         dts = [
             {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
             {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
@@ -235,8 +239,9 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_dask_arrays(self):
         """Test combining values that are dask arrays."""
-        from satpy.dataset.metadata import combine_metadata
         import dask.array as da
+
+        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))},
                          {'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
         result = combine_metadata(*test_metadata)
@@ -373,7 +378,7 @@ def test_combine_dicts_different(test_mda):
 
 def test_dataid():
     """Test the DataID object."""
-    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple, ValueList
+    from satpy.dataset.dataid import DataID, ModifierTuple, ValueList, WavelengthRange
 
     # Check that enum is translated to type.
     did = make_dataid()
@@ -435,7 +440,7 @@ def test_dataid():
 
 def test_dataid_equal_if_enums_different():
     """Check that dataids with different enums but same items are equal."""
-    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple
+    from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
     id_keys_config1 = {'name': None,
                        'wavelength': {
                            'type': WavelengthRange,
@@ -478,8 +483,10 @@ def test_dataid_equal_if_enums_different():
 
 def test_dataid_copy():
     """Test copying a DataID."""
-    from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
     from copy import deepcopy
+
+    from satpy.dataset.dataid import DataID
+    from satpy.dataset.dataid import default_id_keys_config as dikc
 
     did = DataID(dikc, name="a", resolution=1000)
     did2 = deepcopy(did)
@@ -489,8 +496,9 @@ def test_dataid_copy():
 
 def test_dataid_pickle():
     """Test dataid pickling roundtrip."""
-    from satpy.tests.utils import make_dataid
     import pickle
+
+    from satpy.tests.utils import make_dataid
     did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
     assert did == pickle.loads(pickle.dumps(did))
 
