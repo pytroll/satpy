@@ -17,6 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes for corrections based on sun and other angles."""
 
+from __future__ import annotations
+
 import logging
 import time
 from datetime import datetime
@@ -135,7 +137,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def _apply_correction(self, proj, coszen):
         logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        print("Applying sunzen: ", proj.chunks == coszen.chunks)
         res = proj.copy()
         res.data = sunzen_corr_cos(proj.data, coszen.data, limit=self.correction_limit, max_sza=self.max_sza)
         return res
