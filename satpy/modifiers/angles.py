@@ -288,7 +288,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
 
 
 @cache_to_zarr_if("cache_lonlats")
-def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str] = "auto") -> tuple[da.Array, da.Array]:
+def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         lons, lats = area.get_lonlats(chunks=chunks)
         lons = da.where(lons >= 1e30, np.nan, lons)
