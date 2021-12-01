@@ -35,7 +35,7 @@ try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader  # type: ignore
-
+import more_itertools as mit
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
@@ -48,6 +48,9 @@ from satpy.resample import add_crs_xy_coords, get_area_def
 from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)
+
+FCI_WIDTH_TO_GRID_TYPE = {11136: '1km',
+                          5568: '2km'}
 
 
 def listify_string(something):
@@ -1176,23 +1179,25 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                 "Could not load {} from any provided files".format(dsid))
 
         padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
+        if padding_fci_scene:
+            chunk_heights_FCI = _get_chunk_heights_for_FCI(file_handlers)
 
         empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
                 if padding_fci_scene:
+                    segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][counter + 1]
                     slice_list[i] = _get_empty_segment_with_height(empty_segment,
-                                                                   _get_FCI_L1c_FDHSI_chunk_height(
-                                                                       empty_segment.shape[1], i + 1),
+                                                                   segment_height,
                                                                    dim=dim)
                 else:
                     slice_list[i] = empty_segment
 
         while expected_segments > counter:
             if padding_fci_scene:
+                segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][counter + 1]
                 slice_list.append(_get_empty_segment_with_height(empty_segment,
-                                                                 _get_FCI_L1c_FDHSI_chunk_height(
-                                                                     empty_segment.shape[1], counter + 1),
+                                                                 segment_height,
                                                                  dim=dim))
             else:
                 slice_list.append(empty_segment)
@@ -1342,8 +1347,8 @@ def _get_new_areadef_heights(previous_area, previous_seg_size, segment_n, paddin
         # retrieve the chunk/segment pixel height
         new_height_px = _get_FCI_L1c_FDHSI_chunk_height(previous_seg_size[1], segment_n)
         # scale the previous vertical area extent using the new pixel height
-        new_height_proj_coord = (previous_area.area_extent[1] - previous_area.area_extent[3]) * new_height_px / \
-            previous_seg_size[0]
+        prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
+        new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
     else:
         # all other cases have constant segment size, so reuse the previous segment heights
         new_height_px = previous_seg_size[0]
@@ -1381,3 +1386,70 @@ def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):
             chunk_width))
 
     return chunk_height
+
+
+def _get_chunk_heights_for_FCI(file_handlers):
+    chunk_sizes = {'1km': _compute_optimal_chunk_sizes_for_FCI(file_handlers, '1km', expected_size=11136),
+                   '2km': _compute_optimal_chunk_sizes_for_FCI(file_handlers, '2km', expected_size=5568)}
+
+    return chunk_sizes
+
+
+def _compute_optimal_chunk_sizes_for_FCI(file_handlers, grid_type, expected_size):
+    # initialise positioning arrays
+    exp_chunk_nr = file_handlers[0].filetype_info['expected_segments']
+    chunk_heights = np.zeros(exp_chunk_nr)
+    chunk_start_rows = np.zeros(exp_chunk_nr)
+    chunk_end_rows = np.zeros(exp_chunk_nr)
+
+    # populate positioning arrays with available information from loaded chunks
+    for fh in file_handlers:
+        current_fh_chunk_nr = fh.filename_info['segment'] - 1
+        chunk_heights[current_fh_chunk_nr] = fh.chunk_position_info[grid_type]['chunk_height']
+        chunk_start_rows[current_fh_chunk_nr] = fh.chunk_position_info[grid_type]['start_position_row']
+        chunk_end_rows[current_fh_chunk_nr] = fh.chunk_position_info[grid_type]['end_position_row']
+
+    # populate start row of first chunk and end row of last chunk with known values
+    chunk_start_rows[0] = 1
+    chunk_end_rows[exp_chunk_nr - 1] = expected_size
+
+    # find missing chunks and group contiguous missing chunks together
+    groups_missing_chunks = [list(group) for group in mit.consecutive_groups(np.where(chunk_heights == 0)[0])]
+
+    for group in groups_missing_chunks:
+        # populate start row of first missing chunk using the end row of the previous chunk
+        # if this is the first chunk in the full-disk, it will have a non-zero value already
+        if chunk_start_rows[group[0]] == 0:
+            chunk_start_rows[group[0]] = chunk_end_rows[group[0] - 1] + 1
+        # populate end row of last missing chunk using the start row of the following chunk
+        # if this is the last chunk in the full-disk, it will have a non-zero value already
+        if chunk_end_rows[group[-1]] == 0:
+            chunk_end_rows[group[-1]] = chunk_start_rows[group[-1] + 1] - 1
+
+        # compute gap size of missing chunks group
+        size_gap = chunk_end_rows[group[-1]] - chunk_start_rows[group[0]] + 1
+        # split the gap by the number of missing chunks in (almost) equal parts
+        proposed_sizes_missing_chunks = split_integer_in_most_equal_parts(size_gap, len(group))
+        # populate the rest of the start and end rows and heights using computed sizes of missing chunks
+        for n in range(len(group)):
+            # first and last missing chunks start and end have been populated already
+            if n != 0:
+                chunk_start_rows[group[n]] = chunk_start_rows[group[n - 1]] + proposed_sizes_missing_chunks[n] + 1
+            if n != len(group) - 1:
+                chunk_end_rows[group[n]] = chunk_start_rows[group[n]] + proposed_sizes_missing_chunks[n]
+            chunk_heights[group[n]] = proposed_sizes_missing_chunks[n]
+
+    return chunk_heights
+
+
+def split_integer_in_most_equal_parts(x, n):
+    """Split an integer number x in n parts that are as equally-sizes as possible."""
+    if x % n == 0:
+        return np.repeat(x // n, n).astype('int')
+    else:
+        # split the remainder amount over the last remainder parts
+        remainder = int(x % n)
+        mod = int(x // n)
+        ar = np.repeat(mod, n)
+        ar[-remainder:] = mod + 1
+        return ar.astype('int')

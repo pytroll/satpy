@@ -173,6 +173,18 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
+        # store position information of chunk
+        self.chunk_position_info = {
+            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
+                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
+                    'chunk_height': self['data/vis_04/measured/end_position_row'].item() -
+                    self['data/vis_04/measured/start_position_row'].item() + 1},
+            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
+                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
+                    'chunk_height': self['data/ir_105/measured/end_position_row'].item() -
+                    self['data/ir_105/measured/start_position_row'].item() + 1}
+        }
+
         self._cache = {}
 
     @property
