@@ -337,7 +337,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
             assert res[ch].shape == (200 * 2, 11136)
             assert res[ch].dtype == np.uint16
             assert res[ch].attrs["calibration"] == "counts"
-            assert res[ch].attrs["units"] == "1"
+            assert res[ch].attrs["units"] == "count"
             if ch == 'ir_38':
                 numpy.testing.assert_array_equal(res[ch][~0], 1)
                 numpy.testing.assert_array_equal(res[ch][0], 5000)
@@ -363,7 +363,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
             assert res[ch].shape == (200, 11136)
             assert res[ch].dtype == np.float64
             assert res[ch].attrs["calibration"] == "radiance"
-            assert res[ch].attrs["units"] == 'mW.m-2.sr-1.(cm-1)-1'
+            assert res[ch].attrs["units"] == 'mW m-2 sr-1 (cm-1)-1'
             if ch == 'ir_38':
                 numpy.testing.assert_array_equal(res[ch][~0], 15)
                 numpy.testing.assert_array_equal(res[ch][0], 9700)
