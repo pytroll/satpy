@@ -23,6 +23,7 @@ on the assumption of a clear view from the satellite to the surface.
 When a cloud blocks the view of the surface, the geolocation is not
 accurate for the cloud top.  This module contains routines to project
 the geolocation onto the cloud top.
+
 """
 
 from datetime import datetime
@@ -39,8 +40,16 @@ from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 from . import projection
 
 
-def parallax_correct(sat_lon, sat_lat, sat_alt, lon, lat, height):
-    """Calculate parallax correction.
+def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
+    """Calculate forward parallax effect.
+
+    Calculate the forward parallax effect.  When a satellite instrument
+    observes the Earth, the geolocation assumes it sees the Earth surface at
+    the geoid (elevation zero).  In reality, the ray may stop short of the
+    geoid as it observes, for example, a cloud or elevated ground.  This
+    function calculates the forward parallax effect.  If the view of a pixel at
+    location (lat, lon) is blocked by a cloud at height h, we calculate the
+    location of this blocking.
 
     Calculate parallax correction based on satellite position and
     (cloud top) height coordinates in geodetic (unprojected) coordinates.
@@ -94,7 +103,7 @@ class ParallaxCorrection:
     """Class for parallax corrections.
 
     This class contains higher-level functionality to wrap the parallal
-    correction calculations in :func:`parallax_correct`.  The class is
+    correction calculations in :func:`forward_parallax`.  The class is
     initialised using a base area, which is the area for which a corrected
     geolocation will be calculated.  The resulting object is a callable.
     Calling the object with an array of (cloud top) heights returns a
@@ -109,7 +118,7 @@ class ParallaxCorrection:
       >>> global_nwc.load(['ctth'])
       >>> area_def = satpy.resample.get_area_def(area)
       >>> parallax_correction = ParallaxCorrection(area_def)
-      >>> plax_corr_area = parallax_correction(global_nwc["ctth"])
+      >>> plax_corr_area = forward_parallax(global_nwc["ctth"])
       >>> local_scene = global_scene.resample(plax_corr_area)
       >>> local_nwc = global_nwc.resample(plax_corr_area)
       >>> local_scene[...].attrs["area"] = area_def
@@ -156,7 +165,7 @@ class ParallaxCorrection:
         (pixel_lon, pixel_lat) = area.get_lonlats()
 
         # Pixel coordinates according to parallax correction
-        (corr_lon, corr_lat) = parallax_correct(
+        (corr_lon, corr_lat) = forward_parallax(
             sat_lon, sat_lat, sat_alt,
             np.array(pixel_lon), np.array(pixel_lat), np.array(cth_dataset)
         )
@@ -185,6 +194,11 @@ class ParallaxCorrection:
         return cth
 
     def _invert_lonlat(self, pixel_lon, pixel_lat, source_area):
+        """Invert the lon/lat coordinate transformation.
+
+        When a satellite observes a cloud, a reprojection onto the cloud has
+        already happened.
+        """
         (source_lon, source_lat) = source_area.get_lonlats()
         grid_projection = projection.GridProjection(self.base_area)
         (y, x) = grid_projection(source_lon, source_lat)

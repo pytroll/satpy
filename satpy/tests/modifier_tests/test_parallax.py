@@ -21,8 +21,8 @@ from pyresample import create_area_def
 
 
 @pytest.fixture
-def fake_area_5x5():
-    """Get a 5×5 fake area to use for parallax correction testing."""
+def fake_area_5x5_wide():
+    """Get a 5×5 fake widely spaced area to use for parallax correction testing."""
     return create_area_def(
         "fribullus_xax",
         "epsg:4326",
@@ -32,51 +32,65 @@ def fake_area_5x5():
 
 
 @pytest.fixture
-def fake_area_10x10():
-    """Get a 10×10 fake area to use for parallax correction testing."""
+def fake_area_5x5_tight():
+    """Get a 5×5 fake tightly spaced area to use for parallax correction testing."""
     return create_area_def(
         "fribullus_xax",
         "epsg:4326",
         units="degrees",
-        area_extent=[-10, -10, 10, 10],
+        area_extent=[0, 40, 0.1, 40.1],
+        shape=(5, 5))
+
+
+@pytest.fixture
+def fake_area_10x10_tight():
+    """Get a 10×10 fake tightly spaced area to use for parallax correction testing.
+
+    This area is an extension of fake_area_5x5_tight.
+    """
+    return create_area_def(
+        "fribullux xax",
+        "epsg:4326",
+        units="degrees",
+        area_extent=[-0.04, 39.96, 0.16, 40.16],
         shape=(10, 10))
 
 
-def test_parallax_correct_ssp():
+def test_forward_parallax_ssp():
     """Test that at SSP, parallax correction does nothing."""
-    from ...modifiers.parallax import parallax_correct
+    from ...modifiers.parallax import forward_parallax
     sat_lat = sat_lon = lon = lat = 0.
     height = 5000.
     sat_alt = 30_000_000.
-    corr_lon, corr_lat = parallax_correct(
+    corr_lon, corr_lat = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, height)
     assert corr_lon == corr_lat == 0
 
 
-def test_parallax_correct_clearsky():
+def test_forward_parallax_clearsky():
     """Test parallax correction for clearsky case (returns NaN)."""
-    from ...modifiers.parallax import parallax_correct
+    from ...modifiers.parallax import forward_parallax
     sat_lat = sat_lon = 0
     lat = np.linspace(-20, 20, 25).reshape(5, 5)
     lon = np.linspace(-20, 20, 25).reshape(5, 5).T
     height = np.full((5, 5), np.nan)  # no CTH --> clearsky
     sat_alt = 35_000.  # km
-    (corr_lon, corr_lat) = parallax_correct(
+    (corr_lon, corr_lat) = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, height)
     # clearsky becomes NaN
     assert np.isnan(corr_lon).all()
     assert np.isnan(corr_lat).all()
 
 
-def test_parallax_correct_cloudy():
+def test_forward_parallax_cloudy():
     """Test parallax correction for fully cloudy scene."""
-    from ...modifiers.parallax import parallax_correct
+    from ...modifiers.parallax import forward_parallax
     sat_lat = sat_lon = 0
     lat = np.linspace(-20, 20, 25).reshape(5, 5)
     lon = np.linspace(-20, 20, 25).reshape(5, 5).T
     height = np.full((5, 5), 10)  # constant high clouds at 10 km
     sat_alt = 35_000.
-    (corr_lon, corr_lat) = parallax_correct(
+    (corr_lon, corr_lat) = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, height)
     # should be equal only at SSP
     delta_lon = corr_lon - lon
@@ -97,9 +111,9 @@ def test_parallax_correct_cloudy():
         corr_lon[4, 4], 19.950061)  # FIXME confirm reference value
 
 
-def test_parallax_correct_mixed():
+def test_forward_parallax_mixed():
     """Test parallax correction for mixed cloudy case."""
-    from ...modifiers.parallax import parallax_correct
+    from ...modifiers.parallax import forward_parallax
 
     sat_lon = sat_lat = 0
     sat_alt = 35_785_831.0
@@ -111,7 +125,7 @@ def test_parallax_correct_mixed():
         [np.nan, 7., 8., 9., np.nan],
         [np.nan, 7., 7., 7., np.nan],
         [np.nan, 4., 3., np.nan, np.nan]])
-    (corrected_lon, corrected_lat) = parallax_correct(
+    (corrected_lon, corrected_lat) = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, alt)
     assert corrected_lon.shape == lon.shape
     assert corrected_lat.shape == lat.shape
@@ -123,28 +137,23 @@ def test_parallax_correct_mixed():
     assert np.isfinite(corrected_lat[~np.isnan(alt)]).all()
 
 
-def test_init_parallaxcorrection(fake_area_5x5):
+def test_init_parallaxcorrection(fake_area_5x5_wide):
     """Test that ParallaxCorrection class can be instantiated."""
     from ...modifiers.parallax import ParallaxCorrection
-    ParallaxCorrection(fake_area_5x5)
+    ParallaxCorrection(fake_area_5x5_wide)
 
 
-def test_correct_area(fake_area_5x5):
+def test_correct_area(fake_area_5x5_tight, fake_area_10x10_tight):
     """Test that ParallaxCorrection can correct an Areadefinition."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
-    corrector = ParallaxCorrection(fake_area_5x5)
+    corrector = ParallaxCorrection(fake_area_5x5_tight)
 
     sc = make_fake_scene(
-            {"CTH_constant": np.full((5, 5), 10000),
-             "CTH_clear": np.full((5, 5), np.nan),
-             "CTH_mixed": np.array([[np.nan, np.nan, 5000, 6000, np.nan],
-                                    [np.nan, 6000, 7000, 7000, 7000],
-                                    [np.nan, 7000, 8000, 9000, np.nan],
-                                    [np.nan, 7000, 7000, 7000, np.nan],
-                                    [np.nan, 4000, 3000, np.nan, np.nan]])},
+            {"CTH_constant": np.full((10, 10), 10000),
+             "CTH_clear": np.full((10, 10), np.nan)},
             daskify=False,
-            area=fake_area_5x5,
+            area=fake_area_10x10_tight,
             common_attrs={
                 "orbital_parameters": {
                     "satellite_actual_altitude": 35_000_000,
@@ -156,10 +165,10 @@ def test_correct_area(fake_area_5x5):
     new_area = corrector(sc["CTH_clear"])
     np.testing.assert_allclose(
             new_area.get_lonlats(),
-            fake_area_5x5.get_lonlats())
+            fake_area_5x5_tight.get_lonlats())
     new_area = corrector(sc["CTH_constant"])
-    assert new_area.shape == fake_area_5x5.shape
-    old_lonlats = fake_area_5x5.get_lonlats()
+    assert new_area.shape == fake_area_5x5_tight.shape
+    old_lonlats = fake_area_5x5_tight.get_lonlats()
     new_lonlats = new_area.get_lonlats()
     # no change at SSP where old_lat = new_lat = 0
     assert (old_lonlats[0][2, 2] == old_lonlats[1][2, 2]
