@@ -23,7 +23,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from satpy.dataset.dataid import (DataID, DataQuery, ModifierTuple, FrequencyRange,
+from satpy.dataset.dataid import (DataID, DataQuery, ModifierTuple,
                                   WavelengthRange, minimal_default_keys_config)
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
@@ -676,17 +676,38 @@ def test_frequency_double_side_band_channel_equality():
     """Test the frequency double side band object: check if two bands are 'equal'"""
     from satpy.dataset.dataid import FrequencyDoubleSideBand
 
-    frqr = FrequencyDoubleSideBand(183, 7, 2)
-    assert None != frqr
-    assert 183 != frqr
-    assert 190 == frqr
-    assert 176 == frqr
-    assert 175.5 != frqr
-    assert 175.5 in frqr
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+    assert frq_dsb is not None
+    assert 183 != frq_dsb
+    assert 190 == frq_dsb
+    assert 176 == frq_dsb
+    assert 175.5 == frq_dsb
+    mydist = frq_dsb.distance(175.5)
+    assert mydist == 0.5
 
-    assert frqr != FrequencyDoubleSideBand(183, 6.5, 3)
-    assert frqr in FrequencyDoubleSideBand(183, 6.5, 3)
-    assert frqr not in FrequencyDoubleSideBand(183, 4, 2)
+    assert 175.5 in frq_dsb
+
+    assert frq_dsb != FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frq_dsb not in FrequencyDoubleSideBand(183, 4, 2)
+
+    mydist = frq_dsb.distance(185)
+    assert mydist == np.inf
+
+    mydist = frq_dsb.distance(190.5)
+    assert mydist == 0.5
+
+    mydist = frq_dsb.distance((183, 7.0, 2))
+    assert mydist == 0
+
+    mydist = frq_dsb.distance((183, 7.0, 1))
+    assert mydist == 0
+
+    mydist = frq_dsb.distance(FrequencyDoubleSideBand(183, 7.0, 2))
+    assert mydist == 0
+
+    np.testing.assert_almost_equal(frq_dsb.distance(175.6), 0.4)
+    np.testing.assert_almost_equal(frq_dsb.distance(190.1), 0.1)
 
 
 def test_frequency_range_channel_equality():
@@ -738,6 +759,9 @@ def test_wavelength_range():
     # Check __str__
     assert str(wr) == "2 µm (1-3 µm)"
     assert str(wr2) == "2 nm (1-3 nm)"
+
+    wr = WavelengthRange(10.5, 11.5, 12.5)
+    np.testing.assert_almost_equal(wr.distance(11.1), 0.4)
 
 
 def test_wavelength_range_cf_roundtrip():

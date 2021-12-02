@@ -122,9 +122,9 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
         if other is None:
             return False
         elif isinstance(other, numbers.Number):
-            return other == self.central + self.side or other == self.central - self.side
+            return other in self
         elif isinstance(other, (tuple, list)) and len(other) == 3:
-            return self[:3] == other
+            return other in self
         return super().__eq__(other)
 
     def __ne__(self, other):
@@ -164,6 +164,16 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
                 return True
             return False
 
+        elif isinstance(other, (tuple, list)) and len(other) == 3:
+            return ((self.central - self.side - self.bandwidth/2. <=
+                     other[0] - other[1] - other[2]/2. and
+                     self.central - self.side + self.bandwidth/2. >=
+                     other[0] - other[1] + other[2]/2.) or
+                    (self.central + self.side - self.bandwidth/2. <=
+                     other[0] + other[1] - other[2]/2. and
+                     self.central + self.side + self.bandwidth/2. >=
+                     other[0] + other[1] + other[2]/2.))
+
         with suppress(AttributeError):
             if self.unit != other.unit:
                 raise NotImplementedError("Can't compare frequency ranges with different units.")
@@ -177,6 +187,30 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
                      other.central + other.side + other.bandwidth/2.))
 
         return False
+
+    def distance(self, value):
+        """Get the distance from value."""
+        if self == value:
+            try:
+                left_side_dist = abs(value.central - value.side - (self.central - self.side))
+                right_side_dist = abs(value.central + value.side - (self.central + self.side))
+                return min(left_side_dist, right_side_dist)
+            except AttributeError:
+                if isinstance(value, (tuple, list)):
+                    return abs((value[0] - value[1]) - (self.central - self.side))
+
+                left_side_dist = abs(value - (self.central - self.side))
+                right_side_dist = abs(value - (self.central + self.side))
+                return min(left_side_dist, right_side_dist)
+        else:
+            return np.inf
+
+    @classmethod
+    def convert(cls, frq):
+        """Convert `frq` to this type if possible."""
+        if isinstance(frq, dict):
+            return cls(**frq)
+        return frq
 
 
 class FrequencyRangeBase(NamedTuple):
@@ -258,17 +292,17 @@ class FrequencyRange(FrequencyRangeBase):
                     self.central + self.bandwidth/2. >= other.central + other.bandwidth/2.)
         return False
 
-    def distance(self, value):
-        """Get the distance from value."""
-        if self == value:
-            try:
-                return abs(value.central - self.central)
-            except AttributeError:
-                if isinstance(value, (tuple, list)):
-                    return abs(value[0] - self.central)
-                return abs(value - self.central)
-        else:
-            return np.inf
+    # def distance(self, value):
+    #     """Get the distance from value."""
+    #     if self == value:
+    #         try:
+    #             return abs(value.central - self.central)
+    #         except AttributeError:
+    #             if isinstance(value, (tuple, list)):
+    #                 return abs(value[0] - self.central)
+    #             return abs(value - self.central)
+    #     else:
+    #         return np.inf
 
     @classmethod
     def convert(cls, frq):

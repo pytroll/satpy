@@ -215,18 +215,22 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.dataset.dataid import FrequencyRange, FrequencyStripes, ModifierTuple
+        from satpy.dataset.dataid import FrequencyRange, FrequencyDoubleSideBand, ModifierTuple
         res_dict = {'reader': {'name': 'mhs_l1c_aapp',
                                'description': 'AAPP l1c Reader for AMSU-B/MHS data',
                                'sensors': ['mhs'],
-                               'data_identification_keys': {'name': {'required': 'true'},
+                               'default_channels': [1, 2, 3, 4, 5],
+                               'data_identification_keys': {'name': {'required': True},
+                                                            'frequency_double_sideband':
+                                                            {'type': FrequencyDoubleSideBand},
                                                             'frequency_range': {'type': FrequencyRange},
                                                             'resolution': None,
                                                             'polarization': {'enum': ['H', 'V']},
-                                                            'calibration': {'enum': ['brightness_temperature'],
-                                                                            'transitive': 'true'},
-                                                            'modifiers': {'required': 'true', 'default': [],
-                                                                          'type': ModifierTuple}}},
+                                                            'calibration': {'enum': ['brightness_temperature'], 'transitive': True},
+                                                            'modifiers': {'required': True,
+                                                                          'default': [],
+                                                                          'type': ModifierTuple}},
+                               'config_files': ('satpy/etc/readers/mhs_l1c_aapp.yaml',)},
                     'datasets': {'1': {'name': '1',
                                        'frequency_range': {'central': 89.0, 'bandwidth': 2.8, 'unit': 'GHz'},
                                        'polarization': 'V',
@@ -242,11 +246,10 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
                                        'coordinates': ['longitude', 'latitude'],
                                        'file_type': 'mhs_aapp_l1c'},
                                  '3': {'name': '3',
-                                       'frequency_stripes': {'unit': 'GHz',
-                                                             'center': 183.31,
-                                                             'left': -1.0,
-                                                             'right': 1.0,
-                                                             'bandwidth': 1.0},
+                                       'frequency_double_sideband': {'unit': 'GHz',
+                                                                     'central': 183.31,
+                                                                     'side': 1.0,
+                                                                     'bandwidth': 1.0},
                                        'polarization': 'V',
                                        'resolution': 16000,
                                        'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
@@ -264,14 +267,11 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
 
     def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
         """Test custom type with dictionary contents gets parsed correctly."""
-        from satpy.dataset.dataid import FrequencyRange
+        from satpy.dataset.dataid import FrequencyRange, FrequencyDoubleSideBand
         ds_ids = list(self.reader.all_dataset_ids)
         assert ds_ids[0]["frequency_range"] == FrequencyRange(89., 2.8, "GHz")
 
-        import ipdb
-        ipdb.set_trace()
-
-        assert ds_ids[0]["frequency_stripes"] == FrequencyStripes(183.31, -1., 1., 1., "GHz")
+        assert ds_ids[2]["frequency_double_sideband"] == FrequencyDoubleSideBand(183.31, 1., 1., "GHz")
 
 
 class TestFileFileYAMLReader(unittest.TestCase):
