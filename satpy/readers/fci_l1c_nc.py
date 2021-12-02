@@ -269,9 +269,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             res.attrs.pop("scale_factor")
             res.attrs.pop("warm_scale_factor")
 
-        if key['calibration'] == 'radiance':
-            res.attrs.update({'radiance_unit_conversion_coefficient':  self[measured +
-                                                                            '/radiance_unit_conversion_coefficient']})
         # remove attributes from original file which don't apply anymore
         res.attrs.pop('long_name')
 
@@ -479,6 +476,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             data = (data * data.attrs.get("scale_factor", 1) +
                     data.attrs.get("add_offset", 0))
 
+        measured = self.get_channel_measured_group_path(key['name'])
+        data.attrs.update({'radiance_unit_conversion_coefficient': self[measured +
+                                                                        '/radiance_unit_conversion_coefficient']})
         return data
 
     def calibrate_rad_to_bt(self, radiance, key):
