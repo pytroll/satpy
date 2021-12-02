@@ -25,7 +25,7 @@ reader:
       required: true
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
-    
+
 datasets:
     '1':
         name: '1'
@@ -58,7 +58,6 @@ datasets:
             - longitude
             - latitude
         file_type: mhs_aapp_l1c
-        
     '3':
         name: '3'
         frequency_double_sideband:
@@ -75,7 +74,6 @@ datasets:
             - longitude
             - latitude
         file_type: mhs_aapp_l1c
-        
     '4':
         name: '4'
         frequency_double_sideband:
@@ -92,7 +90,6 @@ datasets:
             - longitude
             - latitude
         file_type: mhs_aapp_l1c
-        
     '5':
         name: '5'
         frequency_double_sideband:
