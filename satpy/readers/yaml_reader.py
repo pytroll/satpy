@@ -1186,7 +1186,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         for i, sli in enumerate(slice_list):
             if sli is None:
                 if padding_fci_scene:
-                    segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][counter + 1]
+                    segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][i]
                     slice_list[i] = _get_empty_segment_with_height(empty_segment,
                                                                    segment_height,
                                                                    dim=dim)
@@ -1195,7 +1195,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
         while expected_segments > counter:
             if padding_fci_scene:
-                segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][counter + 1]
+                segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][counter]
                 slice_list.append(_get_empty_segment_with_height(empty_segment,
                                                                  segment_height,
                                                                  dim=dim))
@@ -1439,7 +1439,7 @@ def _compute_optimal_chunk_sizes_for_FCI(file_handlers, grid_type, expected_size
                 chunk_end_rows[group[n]] = chunk_start_rows[group[n]] + proposed_sizes_missing_chunks[n]
             chunk_heights[group[n]] = proposed_sizes_missing_chunks[n]
 
-    return chunk_heights
+    return chunk_heights.astype('int')
 
 
 def split_integer_in_most_equal_parts(x, n):
