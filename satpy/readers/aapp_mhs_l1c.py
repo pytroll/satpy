@@ -26,15 +26,17 @@ https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_F
 
 """
 
-import dask.array as da
-import numpy as np
-from datetime import datetime, timedelta
+import logging
 import numbers
 from contextlib import suppress
+from datetime import datetime, timedelta
+
+import dask.array as da
+import numpy as np
+
 from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.aapp_l1b import create_xarray
-import logging
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

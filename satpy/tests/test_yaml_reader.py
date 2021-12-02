@@ -29,10 +29,9 @@ import xarray as xr
 
 import satpy.readers.yaml_reader as yr
 from satpy.dataset import DataQuery
+from satpy.dataset.dataid import FrequencyDoubleSideBand, FrequencyRange, ModifierTuple
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.tests.utils import make_dataid
-
-from satpy.dataset.dataid import FrequencyRange, FrequencyDoubleSideBand, ModifierTuple
 
 MHS_YAML_READER_DICT = {
     'reader': {'name': 'mhs_l1c_aapp',
@@ -270,7 +269,7 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
 
     def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
         """Test custom type with dictionary contents gets parsed correctly."""
-        from satpy.dataset.dataid import FrequencyRange, FrequencyDoubleSideBand
+        from satpy.dataset.dataid import FrequencyDoubleSideBand, FrequencyRange
         ds_ids = list(self.reader.all_dataset_ids)
         assert ds_ids[0]["frequency_range"] == FrequencyRange(89., 2.8, "GHz")
 
