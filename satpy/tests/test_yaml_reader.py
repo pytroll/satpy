@@ -32,6 +32,52 @@ from satpy.dataset import DataQuery
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.tests.utils import make_dataid
 
+from satpy.dataset.dataid import FrequencyRange, FrequencyDoubleSideBand, ModifierTuple
+
+MHS_YAML_READER_DICT = {
+    'reader': {'name': 'mhs_l1c_aapp',
+               'description': 'AAPP l1c Reader for AMSU-B/MHS data',
+               'sensors': ['mhs'],
+               'default_channels': [1, 2, 3, 4, 5],
+               'data_identification_keys': {'name': {'required': True},
+                                            'frequency_double_sideband':
+                                            {'type': FrequencyDoubleSideBand},
+                                            'frequency_range': {'type': FrequencyRange},
+                                            'resolution': None,
+                                            'polarization': {'enum': ['H', 'V']},
+                                            'calibration': {'enum': ['brightness_temperature'], 'transitive': True},
+                                            'modifiers': {'required': True,
+                                                          'default': [],
+                                                          'type': ModifierTuple}},
+               'config_files': ('satpy/etc/readers/mhs_l1c_aapp.yaml',)},
+    'datasets': {'1': {'name': '1',
+                       'frequency_range': {'central': 89.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'},
+                 '2': {'name': '2',
+                       'frequency_range': {'central': 157.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'},
+                 '3': {'name': '3',
+                       'frequency_double_sideband': {'unit': 'GHz',
+                                                     'central': 183.31,
+                                                     'side': 1.0,
+                                                     'bandwidth': 1.0},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'}},
+    'file_types': {'mhs_aapp_l1c': {'file_reader': BaseFileHandler,
+                                    'file_patterns': [
+                                        'mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c']}}}  # noqa
+
 
 class FakeFH(BaseFileHandler):
     """Fake file handler class."""
@@ -215,51 +261,8 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.dataset.dataid import FrequencyRange, FrequencyDoubleSideBand, ModifierTuple
-        res_dict = {'reader': {'name': 'mhs_l1c_aapp',
-                               'description': 'AAPP l1c Reader for AMSU-B/MHS data',
-                               'sensors': ['mhs'],
-                               'default_channels': [1, 2, 3, 4, 5],
-                               'data_identification_keys': {'name': {'required': True},
-                                                            'frequency_double_sideband':
-                                                            {'type': FrequencyDoubleSideBand},
-                                                            'frequency_range': {'type': FrequencyRange},
-                                                            'resolution': None,
-                                                            'polarization': {'enum': ['H', 'V']},
-                                                            'calibration': {'enum': ['brightness_temperature'], 'transitive': True},
-                                                            'modifiers': {'required': True,
-                                                                          'default': [],
-                                                                          'type': ModifierTuple}},
-                               'config_files': ('satpy/etc/readers/mhs_l1c_aapp.yaml',)},
-                    'datasets': {'1': {'name': '1',
-                                       'frequency_range': {'central': 89.0, 'bandwidth': 2.8, 'unit': 'GHz'},
-                                       'polarization': 'V',
-                                       'resolution': 16000,
-                                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
-                                       'coordinates': ['longitude', 'latitude'],
-                                       'file_type': 'mhs_aapp_l1c'},
-                                 '2': {'name': '2',
-                                       'frequency_range': {'central': 157.0, 'bandwidth': 2.8, 'unit': 'GHz'},
-                                       'polarization': 'V',
-                                       'resolution': 16000,
-                                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
-                                       'coordinates': ['longitude', 'latitude'],
-                                       'file_type': 'mhs_aapp_l1c'},
-                                 '3': {'name': '3',
-                                       'frequency_double_sideband': {'unit': 'GHz',
-                                                                     'central': 183.31,
-                                                                     'side': 1.0,
-                                                                     'bandwidth': 1.0},
-                                       'polarization': 'V',
-                                       'resolution': 16000,
-                                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
-                                       'coordinates': ['longitude', 'latitude'],
-                                       'file_type': 'mhs_aapp_l1c'}},
-                    'file_types': {'mhs_aapp_l1c': {'file_reader': BaseFileHandler,
-                                                    'file_patterns': [
-                                                        'mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c']}}}  # noqa
-        self.config = res_dict
-        self.reader = yr.FileYAMLReader(res_dict,
+        self.config = MHS_YAML_READER_DICT
+        self.reader = yr.FileYAMLReader(MHS_YAML_READER_DICT,
                                         filter_parameters={
                                             'start_time': datetime(2000, 1, 1),
                                             'end_time': datetime(2000, 1, 2),
