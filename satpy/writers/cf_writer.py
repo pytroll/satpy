@@ -763,9 +763,10 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
-                      flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
-                      compression=None, include_orig_name=True, numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, group_attrs=None,
+                      engine=None, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
+                      pretty=False, compression=None, include_orig_name=True,
+                      numeric_name_prefix='CHANNEL_', **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -781,6 +782,8 @@ class CFWriter(Writer):
                 results will not be fully CF compliant!
             header_attrs:
                 Global attributes to be included
+            group_attrs:
+                Group attributes to be included
             engine (str):
                 Module to be used for writing netCDF files. Follows xarray's
                 :meth:`~xarray.Dataset.to_netcdf` engine choices with a
@@ -850,6 +853,11 @@ class CFWriter(Writer):
             else:
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
+
+            if group_attrs is not None:
+                if flatten_attrs:
+                    group_attrs = flatten_dict(group_attrs)
+                dataset.attrs = encode_attrs_nc(group_attrs)
 
             encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix)
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
