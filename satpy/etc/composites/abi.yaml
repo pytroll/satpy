@@ -363,6 +363,7 @@ composites:
       - name: C04
       - name: C02
       - name: C05
+
   ash:
     description: >
       Ash RGB, for GOESR: NASA, NOAA
@@ -680,3 +681,22 @@ composites:
     prerequisites:
       - name: C14
     standard_name: highlighted_toa_brightness_temperature
+
+  # NOAA GOES-R Level-2 ABI Cloud Mask product  
+  binary_cloud_mask:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - BCM
+    standard_name: binary_cloud_mask
+
+  four_level_cloud_mask:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - ACM
+    standard_name: four_level_cloud_mask
+
+  cloud_probability:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - Cloud_Probabilities
+    standard_name: cloud_probability
