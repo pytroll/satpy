@@ -156,7 +156,7 @@ enhancements:
           min_in: 163.0
           max_in: 330.0
 
-  # NOAA GOES-R Level-2 ABI Cloud Mask product        
+  # NOAA GOES-R Level-2 ABI Cloud Mask product
   # https://www.goes-r.gov/products/baseline-clear-sky-mask.html
   binary_cloud_mask:
     standard_name: binary_cloud_mask

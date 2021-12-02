@@ -682,7 +682,7 @@ composites:
       - name: C14
     standard_name: highlighted_toa_brightness_temperature
 
-  # NOAA GOES-R Level-2 ABI Cloud Mask product  
+  # NOAA GOES-R Level-2 ABI Cloud Mask product
   binary_cloud_mask:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
