@@ -463,8 +463,9 @@ class TestCFWriter(unittest.TestCase):
 
     def test_group_attrs(self):
         """Check group attributes are set."""
-        from satpy import Scene
         import xarray as xr
+
+        from satpy import Scene
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
