@@ -443,16 +443,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key['calibration'] == "counts":
-            # from package description, this just means not applying add_offset
-            # and scale_factor
-            pass
-        elif key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
+        if key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
             data = self.calibrate_counts_to_physical_quantity(data, key)
-        else:
+        elif key['calibration'] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance' or 'radiance', got "
+                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
                 + key['calibration'] + ".")
 
         return data
