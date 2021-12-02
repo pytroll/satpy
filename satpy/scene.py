@@ -1143,6 +1143,36 @@ class Scene:
                                           **kwargs)
         return writer.save_datasets(dataarrays, compute=compute, **save_kwargs)
 
+    def compute(self, **kwargs):
+        """Call `compute` on all Scene datasets.
+
+        See :meth:`xarray.DataArray.compute` for more details.
+        """
+        new_scn = self.copy()
+        for k in new_scn.datasets.keys():
+            new_scn[k] = new_scn[k].compute(**kwargs)
+        return new_scn
+
+    def persist(self, **kwargs):
+        """Call `persist` on all Scene datasets.
+
+        See :meth:`xarray.DataArray.persist` for more details.
+        """
+        new_scn = self.copy()
+        for k in new_scn.datasets.keys():
+            new_scn[k] = new_scn[k].persist(**kwargs)
+        return new_scn
+
+    def chunk(self, **kwargs):
+        """Call `chunk` on all Scene datasets.
+
+        See :meth:`xarray.DataArray.chunk` for more details.
+        """
+        new_scn = self.copy()
+        for k in new_scn.datasets.keys():
+            new_scn[k] = new_scn[k].chunk(**kwargs)
+        return new_scn
+
     @staticmethod
     def _get_writer_by_ext(extension):
         """Find the writer matching the ``extension``.
