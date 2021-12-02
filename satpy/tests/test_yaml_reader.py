@@ -1139,6 +1139,7 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area() for the FCI case."""
+        # implicitly checks also _extract_chunk_location_dicts and chunk_heights for the first-chunk-missing case
         from satpy.readers.yaml_reader import FCIChunksYAMLReader
         reader = FCIChunksYAMLReader()
         seg2_area = MagicMock()
@@ -1169,7 +1170,7 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs)
         self.assertEqual(len(res), 2)
 
-        # the later vertical chunk (nr. 2) size is 278, which is exactly double the size
+        # The later vertical chunk (nr. 2) size is 278, which is exactly double the size
         # of the gap left by the missing first chunk (139, as the second chunk starts at line 140).
         # Therefore, the new vertical area extent for the first chunk should be
         # half of the previous size (1000-500)/2=250.
@@ -1183,6 +1184,7 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_later_segments_area(self, AreaDefinition):
         """Test _pad_later_segments_area() in the FCI padding case."""
+        # implicitly checks also _extract_chunk_location_dicts and chunk_heights for the last-chunk-missing case
         from satpy.readers.yaml_reader import FCIChunksYAMLReader
         reader = FCIChunksYAMLReader()
 
@@ -1212,7 +1214,8 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         res = reader._pad_later_segments_area(file_handlers, dataid)
         self.assertEqual(len(res), 2)
 
-        # The previous chunk size is 556, which is exactly double the size of the FCI chunk 2 size (278)
+        # The previous chunk size is 556, which is exactly double the size of the gap left
+        # by the missing last chunk (278, as the second-to-last chunk ends at line 11136 - 278 )
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 1000+250=1250
         seg2_extent = (0, 1250, 200, 1000)
