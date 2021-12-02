@@ -1149,7 +1149,7 @@ class Scene:
         See :meth:`xarray.DataArray.compute` for more details.
         """
         new_scn = self.copy()
-        for k in new_scn.datasets.keys():
+        for k in new_scn._datasets.keys():
             new_scn[k] = new_scn[k].compute(**kwargs)
         return new_scn
 
@@ -1159,7 +1159,7 @@ class Scene:
         See :meth:`xarray.DataArray.persist` for more details.
         """
         new_scn = self.copy()
-        for k in new_scn.datasets.keys():
+        for k in new_scn._datasets.keys():
             new_scn[k] = new_scn[k].persist(**kwargs)
         return new_scn
 
@@ -1169,7 +1169,7 @@ class Scene:
         See :meth:`xarray.DataArray.chunk` for more details.
         """
         new_scn = self.copy()
-        for k in new_scn.datasets.keys():
+        for k in new_scn._datasets.keys():
             new_scn[k] = new_scn[k].chunk(**kwargs)
         return new_scn
 
