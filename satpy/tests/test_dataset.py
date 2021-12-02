@@ -23,8 +23,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from satpy.dataset.dataid import (DataID, DataQuery, ModifierTuple,
-                                  WavelengthRange, minimal_default_keys_config)
+from satpy.dataset.dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, minimal_default_keys_config
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -719,6 +718,7 @@ def test_frequency_range_channel_equality():
     assert 1.7 == frqr
     assert 1.2 != frqr
     assert frqr == (2, 1)
+
     assert frqr == (2, 1, 'GHz')
 
 
