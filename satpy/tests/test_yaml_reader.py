@@ -1058,10 +1058,12 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_later_segments_area_for_FCI_padding(self, AreaDefinition):
         """Test _pad_later_segments_area() in the FCI padding case."""
-        from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
+        from satpy.readers.yaml_reader import FCIChunksYAMLReader
+        reader = FCIChunksYAMLReader()
 
         seg1_area = MagicMock()
         seg1_area.crs = 'some_crs'
@@ -1076,12 +1078,20 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         fh_1.filetype_info = filetype_info
         fh_1.filename_info = filename_info
         fh_1.get_area_def = get_area_def
+        fh_1.chunk_position_info = {
+            '1km': {'start_position_row': 11136-278-556,
+                    'end_position_row': 11136-278,
+                    'chunk_height': 556},
+            '2km': {'start_position_row': 140,
+                    'end_position_row': 140+277,
+                    'chunk_height': 278}}
         file_handlers = [fh_1]
+        reader._extract_chunk_location_dicts(file_handlers)
         dataid = 'dataid'
-        res = plsa(file_handlers, dataid)
+        res = reader._pad_later_segments_area(file_handlers, dataid)
         self.assertEqual(len(res), 2)
 
-        # the previous chunk size is 556, which is exactly double the size of the FCI chunk 2 size (278)
+        # The previous chunk size is 556, which is exactly double the size of the FCI chunk 2 size (278)
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 1000+250=1250
         seg2_extent = (0, 1250, 200, 1000)
@@ -1118,11 +1128,12 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
                          seg1_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area_for_FCI_padding(self, AreaDefinition):
         """Test _pad_earlier_segments_area() for the FCI case."""
-        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
-
+        from satpy.readers.yaml_reader import FCIChunksYAMLReader
+        reader = FCIChunksYAMLReader()
         seg2_area = MagicMock()
         seg2_area.crs = 'some_crs'
         seg2_area.area_extent = [0, 1000, 200, 500]
@@ -1136,14 +1147,25 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         fh_2.filetype_info = filetype_info
         fh_2.filename_info = filename_info
         fh_2.get_area_def = get_area_def
+        fh_2.chunk_position_info = {
+            '1km': {'start_position_row': 101,
+                    'end_position_row': 202,
+                    'chunk_height': 101},
+            '2km': {'start_position_row': 140,
+                    'end_position_row': 140+277,
+                    'chunk_height': 278}
+        }
         file_handlers = [fh_2]
+        reader._extract_chunk_location_dicts(file_handlers)
         dataid = 'dataid'
         area_defs = {2: seg2_area}
-        res = pesa(file_handlers, dataid, area_defs)
+        res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs)
         self.assertEqual(len(res), 2)
 
-        # the previous chunk size is 278, which is exactly double the size of the FCI chunk 1 size (139)
-        # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
+        # the later vertical chunk (nr. 2) size is 278, which is exactly double the size
+        # of the gap left by the missing first chunk (139, as the second chunk starts at line 140).
+        # Therefore, the new vertical area extent for the first chunk should be
+        # half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 500-250=250
         seg1_extent = (0, 500, 200, 250)
         expected_call = ('fill', 'fill', 'fill', 'some_crs', 5568, 139,
