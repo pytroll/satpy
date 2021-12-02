@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2019, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -208,6 +208,70 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
 
         self.reader.create_filehandlers(filelist)
         self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
+
+
+class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
+    """Test units from FileYAMLReader with custom id_keys."""
+
+    def setUp(self):
+        """Set up the test case."""
+        from satpy.dataset.dataid import FrequencyRange, FrequencyStripes, ModifierTuple
+        res_dict = {'reader': {'name': 'mhs_l1c_aapp',
+                               'description': 'AAPP l1c Reader for AMSU-B/MHS data',
+                               'sensors': ['mhs'],
+                               'data_identification_keys': {'name': {'required': 'true'},
+                                                            'frequency_range': {'type': FrequencyRange},
+                                                            'resolution': None,
+                                                            'polarization': {'enum': ['H', 'V']},
+                                                            'calibration': {'enum': ['brightness_temperature'],
+                                                                            'transitive': 'true'},
+                                                            'modifiers': {'required': 'true', 'default': [],
+                                                                          'type': ModifierTuple}}},
+                    'datasets': {'1': {'name': '1',
+                                       'frequency_range': {'central': 89.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                                       'polarization': 'V',
+                                       'resolution': 16000,
+                                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                                       'coordinates': ['longitude', 'latitude'],
+                                       'file_type': 'mhs_aapp_l1c'},
+                                 '2': {'name': '2',
+                                       'frequency_range': {'central': 157.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                                       'polarization': 'V',
+                                       'resolution': 16000,
+                                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                                       'coordinates': ['longitude', 'latitude'],
+                                       'file_type': 'mhs_aapp_l1c'},
+                                 '3': {'name': '3',
+                                       'frequency_stripes': {'unit': 'GHz',
+                                                             'center': 183.31,
+                                                             'left': -1.0,
+                                                             'right': 1.0,
+                                                             'bandwidth': 1.0},
+                                       'polarization': 'V',
+                                       'resolution': 16000,
+                                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                                       'coordinates': ['longitude', 'latitude'],
+                                       'file_type': 'mhs_aapp_l1c'}},
+                    'file_types': {'mhs_aapp_l1c': {'file_reader': BaseFileHandler,
+                                                    'file_patterns': [
+                                                        'mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c']}}}  # noqa
+        self.config = res_dict
+        self.reader = yr.FileYAMLReader(res_dict,
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2),
+                                        })
+
+    def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
+        """Test custom type with dictionary contents gets parsed correctly."""
+        from satpy.dataset.dataid import FrequencyRange
+        ds_ids = list(self.reader.all_dataset_ids)
+        assert ds_ids[0]["frequency_range"] == FrequencyRange(89., 2.8, "GHz")
+
+        import ipdb
+        ipdb.set_trace()
+
+        assert ds_ids[0]["frequency_stripes"] == FrequencyStripes(183.31, -1., 1., 1., "GHz")
 
 
 class TestFileFileYAMLReader(unittest.TestCase):

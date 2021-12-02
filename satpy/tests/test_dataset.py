@@ -672,6 +672,23 @@ class TestIDQueryInteractions(unittest.TestCase):
         assert res[0].name == "HRV"
 
 
+def test_frequency_double_side_band_channel_equality():
+    """Test the frequency double side band object: check if two bands are 'equal'"""
+    from satpy.dataset.dataid import FrequencyDoubleSideBand
+
+    frqr = FrequencyDoubleSideBand(183, 7, 2)
+    assert None != frqr
+    assert 183 != frqr
+    assert 190 == frqr
+    assert 176 == frqr
+    assert 175.5 != frqr
+    assert 175.5 in frqr
+
+    assert frqr != FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frqr in FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frqr not in FrequencyDoubleSideBand(183, 4, 2)
+
+
 def test_frequency_range_channel_equality():
     """Test the frequency range object: check if two bands are 'equal'"""
     from satpy.dataset.dataid import FrequencyRange
