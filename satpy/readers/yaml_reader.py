@@ -35,12 +35,14 @@ try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader  # type: ignore
+
 import more_itertools as mit
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
 
 from satpy import DatasetDict
+from satpy._compat import cached_property
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, DataQuery, get_key
 from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
@@ -1164,8 +1166,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                     fh.filename_info['segment'] = fh.filename_info.get('count_in_repeat_cycle', 1)
         return created_fhs
 
-    @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True):
+    def _load_dataset(self, dsid, ds_info, file_handlers, dim='y', pad_data=True):
         """Load only a piece of the dataset."""
         if not pad_data:
             return FileYAMLReader._load_dataset(dsid, ds_info,
@@ -1178,29 +1179,13 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
-        padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
-        if padding_fci_scene:
-            chunk_heights_FCI = _get_chunk_heights_for_FCI(file_handlers)
-
-        empty_segment = xr.full_like(projectable, np.nan)
+        self.empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
-                if padding_fci_scene:
-                    segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][i]
-                    slice_list[i] = _get_empty_segment_with_height(empty_segment,
-                                                                   segment_height,
-                                                                   dim=dim)
-                else:
-                    slice_list[i] = empty_segment
+                slice_list[i] = self._get_empty_segment(dim=dim, idx=i)
 
         while expected_segments > counter:
-            if padding_fci_scene:
-                segment_height = chunk_heights_FCI[FCI_WIDTH_TO_GRID_TYPE[empty_segment.shape[1]]][counter]
-                slice_list.append(_get_empty_segment_with_height(empty_segment,
-                                                                 segment_height,
-                                                                 dim=dim))
-            else:
-                slice_list.append(empty_segment)
+            slice_list.append(self._get_empty_segment(dim=dim, idx=counter))
 
             counter += 1
 
@@ -1213,6 +1198,9 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
         res.attrs = combined_info
         return res
+
+    def _get_empty_segment(self, **kwargs):
+        return self.empty_segment
 
     def _load_area_def(self, dsid, file_handlers, pad_data=True):
         """Load the area definition of *dsid* with padding."""
@@ -1367,6 +1355,38 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
     return empty_segment
 
 
+class FCIChunksYAMLReader(GEOSegmentYAMLReader):
+    """FCIChunksYAMLReader."""
+
+    def create_filehandlers(self, filenames, fh_kwargs=None):
+        """Create file handler objects and determine expected segments for each."""
+        created_fhs = super().create_filehandlers(filenames, fh_kwargs=fh_kwargs)
+        self._extract_chunk_location_dicts(created_fhs['fci_l1c_fdhsi'])
+        return created_fhs
+
+    def _extract_chunk_location_dicts(self, filehandlers):
+        self.chunk_infos = []
+        for fh in filehandlers:
+            chk_infos = fh.chunk_position_info
+            chk_infos.update({'chunk_nr': fh.filename_info['segment'] - 1})
+            self.chunk_infos.append(chk_infos)
+        self.exp_chunk_nr = filehandlers[0].filetype_info['expected_segments']
+        return
+
+    def _get_empty_segment(self, dim=None, idx=None):
+        segment_height = self.chunk_heights[FCI_WIDTH_TO_GRID_TYPE[self.empty_segment.shape[1]]][idx]
+        return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
+
+    @cached_property
+    def chunk_heights(self):
+        """Compute FCI padded chunk heights."""
+        chunk_sizes = {'1km': _compute_optimal_chunk_sizes_for_FCI(self.chunk_infos, '1km', 11136,
+                                                                   self.exp_chunk_nr),
+                       '2km': _compute_optimal_chunk_sizes_for_FCI(self.chunk_infos, '2km', 5568,
+                                                                   self.exp_chunk_nr)}
+        return chunk_sizes
+
+
 def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):
     """Get the height in pixels of a FCI L1c FDHSI chunk given the chunk width and number (starting from 1)."""
     if chunk_width == 11136:
@@ -1388,26 +1408,18 @@ def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):
     return chunk_height
 
 
-def _get_chunk_heights_for_FCI(file_handlers):
-    chunk_sizes = {'1km': _compute_optimal_chunk_sizes_for_FCI(file_handlers, '1km', expected_size=11136),
-                   '2km': _compute_optimal_chunk_sizes_for_FCI(file_handlers, '2km', expected_size=5568)}
-
-    return chunk_sizes
-
-
-def _compute_optimal_chunk_sizes_for_FCI(file_handlers, grid_type, expected_size):
+def _compute_optimal_chunk_sizes_for_FCI(chk_infos, grid_type, expected_size, exp_chunk_nr):
     # initialise positioning arrays
-    exp_chunk_nr = file_handlers[0].filetype_info['expected_segments']
     chunk_heights = np.zeros(exp_chunk_nr)
     chunk_start_rows = np.zeros(exp_chunk_nr)
     chunk_end_rows = np.zeros(exp_chunk_nr)
 
     # populate positioning arrays with available information from loaded chunks
-    for fh in file_handlers:
-        current_fh_chunk_nr = fh.filename_info['segment'] - 1
-        chunk_heights[current_fh_chunk_nr] = fh.chunk_position_info[grid_type]['chunk_height']
-        chunk_start_rows[current_fh_chunk_nr] = fh.chunk_position_info[grid_type]['start_position_row']
-        chunk_end_rows[current_fh_chunk_nr] = fh.chunk_position_info[grid_type]['end_position_row']
+    for chk_info in chk_infos:
+        current_fh_chunk_nr = chk_info['chunk_nr']
+        chunk_heights[current_fh_chunk_nr] = chk_info[grid_type]['chunk_height']
+        chunk_start_rows[current_fh_chunk_nr] = chk_info[grid_type]['start_position_row']
+        chunk_end_rows[current_fh_chunk_nr] = chk_info[grid_type]['end_position_row']
 
     # populate start row of first chunk and end row of last chunk with known values
     chunk_start_rows[0] = 1
