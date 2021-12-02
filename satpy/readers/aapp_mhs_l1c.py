@@ -250,7 +250,6 @@ class MHSAAPPL1CFile(BaseFileHandler):
 
     def calibrate(self, dataset_id):
         """Calibrate the data."""
-
         units = {'brightness_temperature': 'K'}
 
         mask = True

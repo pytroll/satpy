@@ -673,7 +673,7 @@ class TestIDQueryInteractions(unittest.TestCase):
 
 
 def test_frequency_double_side_band_channel_equality():
-    """Test the frequency double side band object: check if two bands are 'equal'"""
+    """Test the frequency double side band object: check if two bands are 'equal'."""
     from satpy.dataset.dataid import FrequencyDoubleSideBand
 
     frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
@@ -711,11 +711,11 @@ def test_frequency_double_side_band_channel_equality():
 
 
 def test_frequency_range_channel_equality():
-    """Test the frequency range object: check if two bands are 'equal'"""
+    """Test the frequency range object: check if two bands are 'equal'."""
     from satpy.dataset.dataid import FrequencyRange
 
     frqr = FrequencyRange(2, 1)
-    assert None != frqr
+    assert frqr is not None
     assert 1.7 == frqr
     assert 1.2 != frqr
     assert frqr == (2, 1)
@@ -723,7 +723,7 @@ def test_frequency_range_channel_equality():
 
 
 def test_frequency_range_channel_containment():
-    """Test the frequency range object: channel containment"""
+    """Test the frequency range object: channel containment."""
     from satpy.dataset.dataid import FrequencyRange
 
     frqr = FrequencyRange(2, 1)
