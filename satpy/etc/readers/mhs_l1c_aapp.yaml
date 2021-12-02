@@ -63,7 +63,7 @@ datasets:
         
     '3':
         name: '3'
-        frequency_doube_sideband:
+        frequency_double_sideband:
           unit: GHz
           central: 183.31
           side: 1.0
@@ -81,7 +81,7 @@ datasets:
         
     '4':
         name: '4'
-        frequency_doube_sideband:
+        frequency_double_sideband:
           unit: GHz
           central: 183.31
           side: 3.0
@@ -99,7 +99,7 @@ datasets:
         
     '5':
         name: '5'
-        frequency_doube_sideband:
+        frequency_double_sideband:
           unit: GHz
           central: 183.31
           side: 7.0
