@@ -75,12 +75,36 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     filetype_info={}
                 )
 
-                # Checks the correct file open call
-                mock_file.assert_called_with('test.grib', 'rb')
-
                 # Checks that the codes_grib_multi_support_on function has been called
                 self.ec_.codes_grib_multi_support_on.assert_called()
 
+                # Restarts the id generator and clears the call history
+                fake_gid_generator = (i for i in FAKE_GID)
+                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+                self.ec_.codes_grib_new_from_file.reset_mock()
+                self.ec_.codes_release.reset_mock()
+
+                # Checks the correct execution of the get_dataset function with a valid parameter_number
+                valid_dataset = self.reader.get_dataset(None, {'parameter_number': 30})
+                # Checks the correct file open call
+                mock_file.assert_called_with('test.grib', 'rb')
+                # Checks that the dataset has been created as a DataArray object
+                self.assertEqual(valid_dataset._extract_mock_name(), 'xr.DataArray()')
+                # Checks that codes_release has been called after each codes_grib_new_from_file call
+                # (except after the last one which has returned a None)
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
+                                 self.ec_.codes_release.call_count + 1)
+
+                # Restarts the id generator and clears the call history
+                fake_gid_generator = (i for i in FAKE_GID)
+                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+                self.ec_.codes_grib_new_from_file.reset_mock()
+                self.ec_.codes_release.reset_mock()
+
+                # Checks the correct execution of the get_dataset function with an invalid parameter_number
+                invalid_dataset = self.reader.get_dataset(None, {'parameter_number': 50})
+                # Checks that the function returns None
+                self.assertEqual(invalid_dataset, None)
                 # Checks that codes_release has been called after each codes_grib_new_from_file call
                 # (except after the last one which has returned a None)
                 self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
@@ -90,15 +114,15 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 self.assertEqual(REPEAT_CYCLE_DURATION, 15)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
-                global_attributes = self.reader._get_global_attributes()
-                expected_global_attributes = {
+                attributes = self.reader._get_attributes()
+                expected_attributes = {
                     'orbital_parameters': {
                         'projection_longitude': 10.
                     },
                     'sensor': 'seviri',
                     'platform_name': 'Meteosat-11'
                 }
-                self.assertEqual(global_attributes, expected_global_attributes)
+                self.assertEqual(attributes, expected_attributes)
 
                 # Checks the reading of an array from the message
                 self.reader._get_xarray_from_msg(0)
@@ -149,32 +173,3 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                         self.assertEqual(args[0], expected_pdict)
                         # The second argument must be the return result of calculate_area_extent
                         self.assertEqual(args[1]._extract_mock_name(), 'calculate_area_extent()')
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with a valid parameter_number
-                valid_dataset = self.reader.get_dataset(None, {'parameter_number': 30})
-                # Checks that the dataset has been created as a DataArray object
-                self.assertEqual(valid_dataset._extract_mock_name(), 'xr.DataArray()')
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
-                                 self.ec_.codes_release.call_count)
-
-                # Restarts the id generator and clears the call history
-                fake_gid_generator = (i for i in FAKE_GID)
-                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
-                self.ec_.codes_grib_new_from_file.reset_mock()
-                self.ec_.codes_release.reset_mock()
-
-                # Checks the correct execution of the get_dataset function with an invalid parameter_number
-                invalid_dataset = self.reader.get_dataset(None, {'parameter_number': 50})
-                # Checks that the function returns None
-                self.assertEqual(invalid_dataset, None)
-                # Checks that codes_release has been called after each codes_grib_new_from_file call
-                # (except after the last one which has returned a None)
-                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
-                                 self.ec_.codes_release.call_count + 1)

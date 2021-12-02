@@ -93,7 +93,6 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         xarr = None
         message_found = False
         with open(self.filename, 'rb') as fh:
-            print('Number of messages:', ec.codes_count_in_file(fh))
 
             # Iterate over all messages and fetch data when the correct parameter number is found
             while True:
