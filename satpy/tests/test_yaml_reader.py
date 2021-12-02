@@ -1012,8 +1012,8 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader._load_area_def')
     @patch('satpy.readers.yaml_reader._stack_area_defs')
-    @patch('satpy.readers.yaml_reader._pad_earlier_segments_area')
-    @patch('satpy.readers.yaml_reader._pad_later_segments_area')
+    @patch('satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_earlier_segments_area')
+    @patch('satpy.readers.yaml_reader.GEOSegmentYAMLReader._pad_later_segments_area')
     def test_load_area_def(self, pesa, plsa, sad, parent_load_area_def):
         """Test _load_area_def()."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
@@ -1030,10 +1030,12 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         reader._load_area_def(dataid, file_handlers, pad_data=False)
         parent_load_area_def.assert_called_once_with(dataid, file_handlers)
 
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_later_segments_area(self, AreaDefinition):
         """Test _pad_later_segments_area()."""
-        from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
 
         seg1_area = MagicMock()
         seg1_area.crs = 'some_crs'
@@ -1049,7 +1051,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         fh_1.get_area_def = get_area_def
         file_handlers = [fh_1]
         dataid = 'dataid'
-        res = plsa(file_handlers, dataid)
+        res = reader._pad_later_segments_area(file_handlers, dataid)
         self.assertEqual(len(res), 2)
         seg2_extent = (0, 1500, 200, 1000)
         expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
@@ -1087,10 +1089,12 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
-        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
 
         seg2_area = MagicMock()
         seg2_area.crs = 'some_crs'
@@ -1107,7 +1111,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         file_handlers = [fh_2]
         dataid = 'dataid'
         area_defs = {2: seg2_area}
-        res = pesa(file_handlers, dataid, area_defs)
+        res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs)
         self.assertEqual(len(res), 2)
         seg1_extent = (0, 500, 200, 0)
         expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
