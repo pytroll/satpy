@@ -77,22 +77,15 @@ class TestMakeTimeCdsRecarray(unittest.TestCase):
 class TestRecarray2Dict(unittest.TestCase):
     """Test TestRecarray2Dict."""
 
-    def test_fun(self):
+    def test_timestamps(self):
         """Test function for TestRecarray2Dict."""
         # datatype definition
+
         pat_dt = np.dtype([
             ('TrueRepeatCycleStart', time_cds_expanded),
             ('PlanForwardScanEnd', time_cds_expanded),
             ('PlannedRepeatCycleEnd', time_cds_expanded)
         ])
-
-        test_mph = [
-            ('ImageLocation', 'S3'),
-            ]
-
-        mph_string = np.array([
-            "OPE",
-            ], dtype=test_mph)
 
         # planned acquisition time, add extra dimensions
         # these should be removed by recarray2dict
@@ -107,9 +100,27 @@ class TestRecarray2Dict(unittest.TestCase):
             'PlannedRepeatCycleEnd': datetime(2018, 1, 2, 11, 45, 9, 417918)
         }
 
-        test_exp = {'ImageLocation': "OPE"}
         self.assertEqual(recarray2dict(pat), expected)
 
+    def test_mpef_product_header(self):
+        """Test function for TestRecarray2Dict and mpef product header"""
+        mpef_header = np.dtype([
+            ('ImageLocation', 'S3'),
+            ('GsicsCalMode', np.bool),
+            ('GsicsCalValidity', np.bool),
+            ('Padding', 'S2'),
+            ('OffsetToData', np.uint32),
+            ('Padding2', 'S9'), ])
+
+        mph_string = np.array([('OPE', True, False, 'XX', 1000, '12345678')], dtype=mpef_header)
+
+        test_exp = {'ImageLocation': "OPE",
+                    'GsicsCalMode': True,
+                    'GsicsCalValidity': False,
+                    'Padding': 'XX',
+                    'OffsetToData': 1000,
+                    'Padding2': '12345678'
+                    }
         self.assertEqual(recarray2dict(mph_string), test_exp)
 
 

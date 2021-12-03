@@ -78,7 +78,7 @@ def recarray2dict(arr):
                     except ValueError:
                         continue
                     data = data.split(':')[0].strip()
-                    res[key] = data
+                res[key] = data
             else:
                 res[key] = data.squeeze()
 
