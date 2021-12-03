@@ -20,28 +20,38 @@ import pytest
 from pyresample import create_area_def
 
 
-@pytest.fixture
-def fake_areas(request):
+def _get_fake_areas(center, sizes, resolution):
     """Get multiple square areas with the same center.
 
     Returns multiple square areas centered at the same location
 
-    Args (via request.params):
+    Args:
         center (Tuple[float, float]): Center of all areass
         sizes (List[int]): Sizes of areas
+        resolution (float): Resolution of fake area.
 
     Returns:
         List of areas.
     """
-    (center, sizes) = request.param
     return [create_area_def(
         "fribullus_xax",
         "epsg:4326",
         units="degrees",
-        resolution=0.1,
+        resolution=resolution,
         center=center,
         shape=(size, size))
         for size in sizes]
+
+
+def _get_attrs(lat, lon, height=35_000_000):
+    """Get attributes for datasets in fake scene."""
+    return {
+        "orbital_parameters": {
+            "satellite_actual_altitude": height,
+            "satellite_actual_longitude": lon,
+            "satellite_actual_latitude": lat},
+        "units": "m"
+        }
 
 
 @pytest.fixture
@@ -103,7 +113,7 @@ def test_forward_parallax_cloudy():
     # should be larger the further we get from SSP
     assert (delta_lon[2, 1:] < delta_lon[2, :-1]).all()
     assert (delta_lat[1:, 1] < delta_lat[:-1, 1]).all()
-    # reference value from Simon Proud
+    # reference value to be confirmed!
     np.testing.assert_allclose(
         corr_lat[4, 4], 19.955884)  # FIXME confirm reference value
     np.testing.assert_allclose(
@@ -136,34 +146,35 @@ def test_forward_parallax_mixed():
     assert np.isfinite(corrected_lat[~np.isnan(alt)]).all()
 
 
-def test_init_parallaxcorrection(fake_area_5x5_wide):
+@pytest.mark.parametrize("center", [(0, 0), (80, -10), (-180, 5)])
+@pytest.mark.parametrize("sizes", [[5, 9]])
+@pytest.mark.parametrize("resolution", [0.05, 1, 10])
+def test_init_parallaxcorrection(center, sizes, resolution):
     """Test that ParallaxCorrection class can be instantiated."""
     from ...modifiers.parallax import ParallaxCorrection
-    ParallaxCorrection(fake_area_5x5_wide)
+    fake_area = _get_fake_areas(center, sizes, resolution)[0]
+    ParallaxCorrection(fake_area)
 
 
-@pytest.mark.parametrize(
-    "fake_areas",
-    [((0, 0), [5, 9]), ((0, 40), [5, 9])],
-    indirect=True)
-def test_correct_area_clearsky(fake_areas):
-    """Test that ParallaxCorrection doesn't touch clearsky."""
+@pytest.mark.parametrize("center", [(0, 0), (0, 40), (180, 0)])
+@pytest.mark.parametrize("sizes", [[5, 9]])
+@pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
+def test_correct_area_clearsky(center, sizes, resolution):
+    """Test that ParallaxCorrection doesn't touch clearsky.
+
+    For areas centered at either (0, 0) or (0, 40), ensure that if a scene
+    is fully clear-sky, that the lat/lons aren't touched.
+    """
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
-    (fake_area_small, fake_area_large) = fake_areas
+    (fake_area_small, fake_area_large) = _get_fake_areas(center, sizes, resolution)
     corrector = ParallaxCorrection(fake_area_small)
 
     sc = make_fake_scene(
-            {"CTH_clear": np.full((9, 9), np.nan)},
+            {"CTH_clear": np.full((sizes[1], sizes[1]), np.nan)},
             daskify=False,
             area=fake_area_large,
-            common_attrs={
-                "orbital_parameters": {
-                    "satellite_actual_altitude": 35_000_000,
-                    "satellite_actual_longitude": 0.0,
-                    "satellite_actual_latitude": 0.0},
-                "units": "m"
-                    })
+            common_attrs=_get_attrs(0, 0, 35_000_000))
 
     new_area = corrector(sc["CTH_clear"])
     np.testing.assert_allclose(
@@ -171,32 +182,26 @@ def test_correct_area_clearsky(fake_areas):
             fake_area_small.get_lonlats())
 
 
-@pytest.mark.parametrize(
-    "fake_areas",
-    [((0, 0), [5, 9])],
-    indirect=True)
-def test_correct_area_ssp(fake_areas):
+@pytest.mark.parametrize("center,sat_lon", [((0, 0), 0),
+                                            ((90, 0), 90),
+                                            ((180, 0), 180)])
+@pytest.mark.parametrize("sizes", [[5, 9]])
+@pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
+def test_correct_area_ssp(center, sizes, resolution, sat_lon):
     """Test that ParallaxCorrection doesn't touch SSP."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
-    (fake_area_small, fake_area_large) = fake_areas
+    (fake_area_small, fake_area_large) = _get_fake_areas(center, sizes, resolution)
     corrector = ParallaxCorrection(fake_area_small)
 
     sc = make_fake_scene(
-            {"CTH_constant": np.full((9, 9), 10000),
-             "CTH_clear": np.full((9, 9), np.nan)},
+            {"CTH_constant": np.full((sizes[1], sizes[1]), 10000)},
             daskify=False,
             area=fake_area_large,
-            common_attrs={
-                "orbital_parameters": {
-                    "satellite_actual_altitude": 35_000_000,
-                    "satellite_actual_longitude": 0.0,
-                    "satellite_actual_latitude": 0.0},
-                "units": "m"
-                    })
+            common_attrs=_get_attrs(0, sat_lon, 35_000_000))
     new_area = corrector(sc["CTH_constant"])
     assert new_area.shape == fake_area_small.shape
     old_lonlats = fake_area_small.get_lonlats()
     new_lonlats = new_area.get_lonlats()
-    assert (old_lonlats[0][2, 2] == old_lonlats[1][2, 2]
-            == new_lonlats[0][2, 2] == new_lonlats[1][2, 2])
+    assert old_lonlats[0][2, 2] == new_lonlats[0][2, 2] == sat_lon
+    assert old_lonlats[1][2, 2] == new_lonlats[1][2, 2] == 0.0
