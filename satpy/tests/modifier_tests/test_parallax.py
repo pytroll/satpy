@@ -156,25 +156,24 @@ def test_init_parallaxcorrection(center, sizes, resolution):
     ParallaxCorrection(fake_area)
 
 
-@pytest.mark.parametrize("center", [(0, 0), (0, 40), (180, 0)])
-@pytest.mark.parametrize("sizes", [[5, 9]])
+@pytest.mark.parametrize("sat_lat,sat_lon,ar_lat,ar_lon",
+                         [(0, 0, 0, 0), (0, 0, 40, 0)])
 @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
-def test_correct_area_clearsky(center, sizes, resolution):
-    """Test that ParallaxCorrection doesn't touch clearsky.
-
-    For areas centered at either (0, 0) or (0, 40), ensure that if a scene
-    is fully clear-sky, that the lat/lons aren't touched.
-    """
+def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution):
+    """Test that ParallaxCorrection doesn't change clearsky geolocation."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
-    (fake_area_small, fake_area_large) = _get_fake_areas(center, sizes, resolution)
+    small = 5
+    large = 9
+    (fake_area_small, fake_area_large) = _get_fake_areas(
+            (ar_lon, ar_lat), [small, large], resolution)
     corrector = ParallaxCorrection(fake_area_small)
 
     sc = make_fake_scene(
-            {"CTH_clear": np.full((sizes[1], sizes[1]), np.nan)},
+            {"CTH_clear": np.full((large, large), np.nan)},
             daskify=False,
             area=fake_area_large,
-            common_attrs=_get_attrs(0, 0, 35_000_000))
+            common_attrs=_get_attrs(sat_lat, sat_lon, 35_000_000))
 
     new_area = corrector(sc["CTH_clear"])
     np.testing.assert_allclose(
@@ -182,26 +181,59 @@ def test_correct_area_clearsky(center, sizes, resolution):
             fake_area_small.get_lonlats())
 
 
-@pytest.mark.parametrize("center,sat_lon", [((0, 0), 0),
-                                            ((90, 0), 90),
-                                            ((180, 0), 180)])
-@pytest.mark.parametrize("sizes", [[5, 9]])
+@pytest.mark.parametrize("lat,lon",
+                         [(0, 0), (0, 40), (0, 180),
+                          (90, 0)])  # relevant for Арктика satellites
 @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
-def test_correct_area_ssp(center, sizes, resolution, sat_lon):
+def test_correct_area_ssp(lat, lon, resolution):
     """Test that ParallaxCorrection doesn't touch SSP."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
-    (fake_area_small, fake_area_large) = _get_fake_areas(center, sizes, resolution)
+    small = 5
+    large = 9
+    (fake_area_small, fake_area_large) = _get_fake_areas(
+            (lon, lat), [small, large], resolution)
     corrector = ParallaxCorrection(fake_area_small)
 
     sc = make_fake_scene(
-            {"CTH_constant": np.full((sizes[1], sizes[1]), 10000)},
+            {"CTH_constant": np.full((large, large), 10000)},
             daskify=False,
             area=fake_area_large,
-            common_attrs=_get_attrs(0, sat_lon, 35_000_000))
+            common_attrs=_get_attrs(lon, lat, 35_000_000))
     new_area = corrector(sc["CTH_constant"])
     assert new_area.shape == fake_area_small.shape
     old_lonlats = fake_area_small.get_lonlats()
     new_lonlats = new_area.get_lonlats()
-    assert old_lonlats[0][2, 2] == new_lonlats[0][2, 2] == sat_lon
-    assert old_lonlats[1][2, 2] == new_lonlats[1][2, 2] == 0.0
+    assert old_lonlats[0][2, 2] == new_lonlats[0][2, 2] == lon
+    assert old_lonlats[1][2, 2] == new_lonlats[1][2, 2] == lat
+
+
+def test_correct_area_partlycloudy():
+    """Test ParallaxCorrection for partly cloudy situation."""
+    from ...modifiers.parallax import ParallaxCorrection
+    from ..utils import make_fake_scene
+    small = 5
+    large = 9
+    (fake_area_small, fake_area_large) = _get_fake_areas(
+            (0, 50), [small, large], 0.1)
+    corrector = ParallaxCorrection(fake_area_small)
+
+    sc = make_fake_scene(
+           {"CTH": np.array([
+                [np.nan, np.nan, 5., 6., 7., 6., 5., np.nan, np.nan],
+                [np.nan, 6., 7., 7., 7., np.nan, np.nan, np.nan, np.nan],
+                [np.nan, 7., 8., 9., np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, 7., 7., 7., np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, 4., 3., np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, 5., 8., 8., 8., 6, np.nan, np.nan],
+                [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
+                [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
+                [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
+                ])},
+           daskify=False,
+           area=fake_area_large,
+           common_attrs=_get_attrs(0, 0, 40_000_000))
+    new_area = corrector(sc["CTH"])
+    assert new_area.shape == fake_area_small.shape
+
+    # TODO: add more tests here

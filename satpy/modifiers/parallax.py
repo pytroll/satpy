@@ -18,12 +18,13 @@
 Routines related to parallax correction using datasets involving height, such
 as cloud top height.
 
-The geolocation of (geostationary) satellite imagery is calculated
-on the assumption of a clear view from the satellite to the surface.
-When a cloud blocks the view of the surface, the geolocation is not
-accurate for the cloud top.  This module contains routines to project
-the geolocation onto the cloud top.
-
+The geolocation of (geostationary) satellite imagery is calculated by
+agencies or in satpy readers with the assumption of a clear view from
+the satellite to the geoid.  When a cloud blocks the view of the Earth
+surface on the surface is above sea level, the geolocation is not accurate
+for the cloud or mountain top.  This module contains routines to correct
+imagery such that pixels are shifted or interpolated to correct for this
+parallax effect.
 """
 
 from datetime import datetime
