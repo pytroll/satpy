@@ -49,13 +49,13 @@ from satpy.readers.seviri_base import (
     OrbitPolynomialFinder,
     SEVIRICalibrationHandler,
     add_scanline_acq_time,
+    calculate_area_extent,
     create_coef_dict,
     dec10216,
     get_cds_time,
     get_satpos,
     pad_data_horizontally,
     pad_data_vertically,
-    calculate_area_extent,
 )
 from satpy.readers.seviri_l1b_native_hdr import (
     DEFAULT_15_SECONDARY_PRODUCT_HEADER,
