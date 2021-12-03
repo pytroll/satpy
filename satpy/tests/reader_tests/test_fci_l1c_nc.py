@@ -62,6 +62,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         rad = meas + "/effective_radiance"
         qual = meas + "/pixel_quality"
         index_map = meas + "/index_map"
+        rad_conv_coeff = meas + "/radiance_unit_conversion_coefficient"
         pos = meas + "/{:s}_position_{:s}"
         shp = rad + "/shape"
         x = meas + "/x"
@@ -127,6 +128,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             (da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 6000) + 1,
             dims=("y", "x"))
 
+        data[rad_conv_coeff.format(ch_str)] = xrda(1234.56)
         data[pos.format(ch_str, "start", "row")] = xrda(0)
         data[pos.format(ch_str, "start", "column")] = xrda(0)
         data[pos.format(ch_str, "end", "row")] = xrda(nrows)
@@ -337,7 +339,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
             assert res[ch].shape == (200 * 2, 11136)
             assert res[ch].dtype == np.uint16
             assert res[ch].attrs["calibration"] == "counts"
-            assert res[ch].attrs["units"] == "1"
+            assert res[ch].attrs["units"] == "count"
             if ch == 'ir_38':
                 numpy.testing.assert_array_equal(res[ch][~0], 1)
                 numpy.testing.assert_array_equal(res[ch][0], 5000)
@@ -363,7 +365,8 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
             assert res[ch].shape == (200, 11136)
             assert res[ch].dtype == np.float64
             assert res[ch].attrs["calibration"] == "radiance"
-            assert res[ch].attrs["units"] == 'mW.m-2.sr-1.(cm-1)-1'
+            assert res[ch].attrs["units"] == 'mW m-2 sr-1 (cm-1)-1'
+            assert res[ch].attrs["radiance_unit_conversion_coefficient"] == 1234.56
             if ch == 'ir_38':
                 numpy.testing.assert_array_equal(res[ch][~0], 15)
                 numpy.testing.assert_array_equal(res[ch][0], 9700)
