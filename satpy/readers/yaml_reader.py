@@ -1347,6 +1347,8 @@ class FCIChunksYAMLReader(GEOSegmentYAMLReader):
     FCI L1c chunking configuration. Since the size of the FCI L1c chunks is configurable by the data producer,
     this YAMLReader computes the sizes of the padded chunks using the information available in the files, so that
     gaps of any size can be filled as needed.
+
+    For more information on please see the documentation of GEOSegmentYAMLReader.
     """
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
