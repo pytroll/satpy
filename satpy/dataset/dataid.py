@@ -121,9 +121,9 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
         """
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             return other in self
-        elif isinstance(other, (tuple, list)) and len(other) == 3:
+        if isinstance(other, (tuple, list)) and len(other) == 3:
             return other in self
         return super().__eq__(other)
 
@@ -248,9 +248,9 @@ class FrequencyRange(FrequencyRangeBase):
         """
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             return other in self
-        elif isinstance(other, (tuple, list)) and len(other) == 2:
+        if isinstance(other, (tuple, list)) and len(other) == 2:
             return self[:2] == other
         return super().__eq__(other)
 
@@ -292,17 +292,17 @@ class FrequencyRange(FrequencyRangeBase):
                     self.central + self.bandwidth/2. >= other.central + other.bandwidth/2.)
         return False
 
-    # def distance(self, value):
-    #     """Get the distance from value."""
-    #     if self == value:
-    #         try:
-    #             return abs(value.central - self.central)
-    #         except AttributeError:
-    #             if isinstance(value, (tuple, list)):
-    #                 return abs(value[0] - self.central)
-    #             return abs(value - self.central)
-    #     else:
-    #         return np.inf
+    def distance(self, value):
+        """Get the distance from value."""
+        if self == value:
+            try:
+                return abs(value.central - self.central)
+            except AttributeError:
+                if isinstance(value, (tuple, list)):
+                    return abs(value[0] - self.central)
+                return abs(value - self.central)
+        else:
+            return np.inf
 
     @classmethod
     def convert(cls, frq):

@@ -681,20 +681,26 @@ def test_frequency_double_side_band_channel_equality():
     assert 190 == frq_dsb
     assert 176 == frq_dsb
     assert 175.5 == frq_dsb
+
+    assert frq_dsb != FrequencyDoubleSideBand(183, 6.5, 3)
+
+
+def test_frequency_double_side_band_channel_distances():
+    """Test the frequency double side band object: get the distance between two bands."""
+    from satpy.dataset.dataid import FrequencyDoubleSideBand
+
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
     mydist = frq_dsb.distance(175.5)
     assert mydist == 0.5
 
-    assert 175.5 in frq_dsb
+    mydist = frq_dsb.distance(190.5)
+    assert mydist == 0.5
 
-    assert frq_dsb != FrequencyDoubleSideBand(183, 6.5, 3)
-    assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3)
-    assert frq_dsb not in FrequencyDoubleSideBand(183, 4, 2)
+    np.testing.assert_almost_equal(frq_dsb.distance(175.6), 0.4)
+    np.testing.assert_almost_equal(frq_dsb.distance(190.1), 0.1)
 
     mydist = frq_dsb.distance(185)
     assert mydist == np.inf
-
-    mydist = frq_dsb.distance(190.5)
-    assert mydist == 0.5
 
     mydist = frq_dsb.distance((183, 7.0, 2))
     assert mydist == 0
@@ -705,8 +711,16 @@ def test_frequency_double_side_band_channel_equality():
     mydist = frq_dsb.distance(FrequencyDoubleSideBand(183, 7.0, 2))
     assert mydist == 0
 
-    np.testing.assert_almost_equal(frq_dsb.distance(175.6), 0.4)
-    np.testing.assert_almost_equal(frq_dsb.distance(190.1), 0.1)
+
+def test_frequency_double_side_band_channel_containment():
+    """Test the frequency double side band object: check if one band contains another."""
+    from satpy.dataset.dataid import FrequencyDoubleSideBand
+
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+
+    assert 175.5 in frq_dsb
+    assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frq_dsb not in FrequencyDoubleSideBand(183, 4, 2)
 
 
 def test_frequency_range_channel_equality():
