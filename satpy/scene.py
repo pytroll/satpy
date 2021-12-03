@@ -135,16 +135,15 @@ class Scene:
         Sensor information is collected from data contained in the Scene
         whether loaded from a reader or generated as a composite with
         :meth:`load` or added manually using ``scn["name"] = data_arr``).
-        If no data is currently contained in the Scene or no sensor
-        information is found in the data metadata, loaded readers will be
-        consulted for sensor information.
+        Sensor information is also collected from any loaded readers.
+        In some rare cases this may mean that the reader includes sensor
+        information for data that isn't actually loaded or even available.
 
         """
-        sensor_names = self._contained_sensor_names()
-        if not sensor_names:
-            sensor_names = set([sensor for reader_instance in self._readers.values()
-                                for sensor in reader_instance.sensor_names])
-        return sensor_names
+        contained_sensor_names = self._contained_sensor_names()
+        reader_sensor_names = set([sensor for reader_instance in self._readers.values()
+                                   for sensor in reader_instance.sensor_names])
+        return contained_sensor_names | reader_sensor_names
 
     def _contained_sensor_names(self) -> set[str]:
         sensor_names = set()

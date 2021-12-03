@@ -193,7 +193,7 @@ PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 def hash_dict(the_dict, the_hash=None):
     """Calculate a hash for a dictionary."""
     if the_hash is None:
-        the_hash = hashlib.sha1()
+        the_hash = hashlib.sha1()  # nosec
     the_hash.update(json.dumps(the_dict, sort_keys=True).encode('utf-8'))
     return the_hash
 
@@ -991,7 +991,9 @@ class NativeResampler(BaseResampler):
 
         new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
                       tuple(int(x / x_size) for x in d.chunks[1]))
-        return da.core.map_blocks(_mean, d, y_size, x_size, dtype=d.dtype, chunks=new_chunks)
+        return da.core.map_blocks(_mean, d, y_size, x_size,
+                                  meta=np.array((), dtype=d.dtype),
+                                  dtype=d.dtype, chunks=new_chunks)
 
     @classmethod
     def expand_reduce(cls, d_arr, repeats):

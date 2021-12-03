@@ -98,6 +98,41 @@ class TestScene:
             assert scene.start_time == FAKE_FILEHANDLER_START
             assert scene.end_time == FAKE_FILEHANDLER_END
 
+    @pytest.mark.parametrize(
+        ("reader", "filenames", "exp_sensors"),
+        [
+            ("fake1", ["fake1_1.txt"], {"fake_sensor"}),
+            (None, {"fake1": ["fake1_1.txt"], "fake2_1ds": ["fake2_1ds_1.txt"]}, {"fake_sensor", "fake_sensor2"}),
+        ]
+    )
+    def test_sensor_names_readers(self, reader, filenames, exp_sensors):
+        """Test that Scene sensor_names handles different cases properly."""
+        scene = Scene(reader=reader, filenames=filenames)
+        assert scene.start_time == FAKE_FILEHANDLER_START
+        assert scene.end_time == FAKE_FILEHANDLER_END
+        assert scene.sensor_names == exp_sensors
+
+    @pytest.mark.parametrize(
+        ("include_reader", "added_sensor", "exp_sensors"),
+        [
+            (False, "my_sensor", {"my_sensor"}),
+            (True, "my_sensor", {"my_sensor", "fake_sensor"}),
+            (False, {"my_sensor"}, {"my_sensor"}),
+            (True, {"my_sensor"}, {"my_sensor", "fake_sensor"}),
+            (False, {"my_sensor1", "my_sensor2"}, {"my_sensor1", "my_sensor2"}),
+            (True, {"my_sensor1", "my_sensor2"}, {"my_sensor1", "my_sensor2", "fake_sensor"}),
+        ]
+    )
+    def test_sensor_names_added_datasets(self, include_reader, added_sensor, exp_sensors):
+        """Test that Scene sensor_names handles contained sensors properly."""
+        if include_reader:
+            scene = Scene(reader="fake1", filenames=["fake1_1.txt"])
+        else:
+            scene = Scene()
+
+        scene["my_ds"] = xr.DataArray([], attrs={"sensor": added_sensor})
+        assert scene.sensor_names == exp_sensors
+
     def test_init_alone(self):
         """Test simple initialization."""
         scn = Scene()
@@ -1658,6 +1693,7 @@ class TestSceneResampling:
         scene3["ds1"] = scene1["ds1"]
         scene3["ds4_b"] = scene2["ds4_b"]
         scene3.load(["comp_multi"])
+        assert "comp_multi" in scene3
 
     def test_comps_need_resampling_optional_mod_deps(self):
         """Test that a composite with complex dependencies.
