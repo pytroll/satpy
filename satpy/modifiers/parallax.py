@@ -32,12 +32,10 @@ import numpy as np
 import xarray as xr
 from pyorbital.orbital import A as EARTH_RADIUS
 from pyorbital.orbital import get_observer_look
+from pyresample.bilinear import NumpyBilinearResampler
 from pyresample.geometry import SwathDefinition
-from scipy.signal import convolve
 
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
-
-from . import projection
 
 
 def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
@@ -136,8 +134,6 @@ class ParallaxCorrection:
                 geolocation will be calculated.
         """
         self.base_area = base_area
-        self.source_area = None
-        self.resampler = None  # we prepare this lazily
 
     def __call__(self, cth_dataset):
         """Apply parallax correction to dataset.
@@ -200,47 +196,13 @@ class ParallaxCorrection:
         already happened.
         """
         (source_lon, source_lat) = source_area.get_lonlats()
-        grid_projection = projection.GridProjection(self.base_area)
-        (y, x) = grid_projection(source_lon, source_lat)
-        x = x.round().astype(int)
-        y = y.round().astype(int)
+        resampler = NumpyBilinearResampler(source_area, self.base_area, 50000.0)
+        lon_diff = source_lon - pixel_lon
+        lat_diff = source_lat - pixel_lat
+        inv_lon_diff = resampler.resample(lon_diff)
+        inv_lat_diff = resampler.resample(lat_diff)
 
-        # set of points it starts with on an irregular "grid"
-        # needs to go from irregular "grid" to regular grid
-        # kernel density interpolation for regridding from irregular grid into
-        # to regular one
-        # radial basis interpolation
-        # calculates estimate of needed size of convolution kernel for density
-        # estimation
-        valid = (x >= 0) & (x < self.base_area.width) & \
-            (y >= 0) & (y < self.base_area.height)
-        num_in_area = np.count_nonzero(valid)
-        s = np.sqrt(np.prod(self.base_area.shape) / num_in_area) / 1.18
-        r = int(round(s*4))
-        (kx, ky) = np.mgrid[-r:r+1, -r:r+1]
-        k = np.exp(-0.5*(kx**2+ky**2)/s**2)
-        k /= k.sum()
-
-        # reevaluate for the expanded area
-        valid = ((x >= -r) & (x < self.base_area.width + r) &
-                 (y >= -r) & (y < self.base_area.height + r))
-        x = x[valid] + r
-        y = y[valid]+r
-        pixel_lon = pixel_lon[valid]
-        pixel_lat = pixel_lat[valid]
-        expanded_shape = (self.base_area.shape[0]+2*r, self.base_area.shape[1]+2*r)
-
-        mask = np.zeros(expanded_shape)
-        mask[y, x] = 1
-        weight_sum = convolve(mask, k, mode='same')
-
-        def inv_coord(pixel_coord):
-            c = np.zeros(expanded_shape)
-            c[y, x] = pixel_coord
-            c = convolve(c, k, mode='same') / weight_sum
-            return c[r:-r, r:-r].copy().astype(np.float32)
-
-        inv_lon = inv_coord(pixel_lon)
-        inv_lat = inv_coord(pixel_lat)
-
+        (base_lon, base_lat) = self.base_area.get_lonlats()
+        inv_lon = base_lon + inv_lon_diff
+        inv_lat = base_lat + inv_lat_diff
         return (inv_lon.astype(np.float32), inv_lat.astype(np.float32))
