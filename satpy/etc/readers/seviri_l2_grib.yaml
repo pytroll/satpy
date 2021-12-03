@@ -289,13 +289,13 @@ datasets:
     units: "1"
     long_name:  num_accumulations
 
-  azimuth_angle:
-    name: azimuth_angle
+  solar_zenith_angle:
+    name: solar_zenith_angle
     resolution: 3000.403165817
     file_type: grib_seviri_crm
     parameter_number: 7
     units: degrees
-    long_name: azimuth_angle
+    long_name: solar_zenith_angle
 
   relative_azimuth_angle:
     name: relative_azimuth_angle
