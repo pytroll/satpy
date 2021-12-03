@@ -551,17 +551,15 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _mask_space(self, data):
         """Mask space pixels."""
-        return data.where(get_geostationary_mask(self.area))
+        return data.where(get_geostationary_mask(self.area, chunks=data.chunks))
 
     def read_band(self, key, info):
         """Read the data."""
-        tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             header = self._read_header(fp_)
             res = self._read_data(fp_, header)
         res = self._mask_invalid(data=res, header=header)
         self._header = header
-        logger.debug("Reading time " + str(datetime.now() - tic))
 
         # Calibrate
         res = self.calibrate(res, key['calibration'])
@@ -610,8 +608,6 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        tic = datetime.now()
-
         if calibration == 'counts':
             return data
 
@@ -621,8 +617,6 @@ class AHIHSDFileHandler(BaseFileHandler):
             data = self._vis_calibrate(data)
         elif calibration == 'brightness_temperature':
             data = self._ir_calibrate(data)
-
-        logger.debug("Calibration time " + str(datetime.now() - tic))
         return data
 
     def convert_to_radiance(self, data):
@@ -642,27 +636,26 @@ class AHIHSDFileHandler(BaseFileHandler):
             dn_offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
         # Assume no user correction
-        correction_type = None
-        if isinstance(self.user_calibration, dict):
-            # Check if we have DN correction coeffs
-            if 'type' in self.user_calibration:
-                correction_type = self.user_calibration['type']
-            else:
-                # If not, assume radiance correction
-                correction_type = 'RAD'
-            if correction_type == 'DN':
-                # Replace file calibration with user calibration
-                dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
-                                                                  self.user_calibration)
-            elif correction_type == 'RAD':
-                user_slope, user_offset = get_user_calibration_factors(self.band_name,
-                                                                       self.user_calibration)
+        correction_type = self._get_user_calibration_correction_type()
+        if correction_type == 'DN':
+            # Replace file calibration with user calibration
+            dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
+                                                              self.user_calibration)
 
         data = (data * dn_gain + dn_offset).clip(0)
         # If using radiance correction factors from GSICS or similar, apply here
         if correction_type == 'RAD':
+            user_slope, user_offset = get_user_calibration_factors(self.band_name,
+                                                                   self.user_calibration)
             data = apply_rad_correction(data, user_slope, user_offset)
         return data
+
+    def _get_user_calibration_correction_type(self):
+        correction_type = None
+        if isinstance(self.user_calibration, dict):
+            # Check if we have DN correction coeffs
+            correction_type = self.user_calibration.get('type', 'RAD')
+        return correction_type
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""
