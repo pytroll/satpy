@@ -500,6 +500,7 @@ file_types:
     - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D02QKM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.250m.hdf'
+    - '{platform_indicator:1s}{start_time:%Y%j%H%M%S}.L1B_QKM'
     file_reader: !!python/name:satpy.readers.modis_l1b.MixedHDFEOSReader
   hdf_eos_data_500m:
     file_patterns:
@@ -508,6 +509,7 @@ file_types:
     - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D02HKM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.500m.hdf'
+    - '{platform_indicator:1s}{start_time:%Y%j%H%M%S}.L1B_HKM'
     file_reader: !!python/name:satpy.readers.modis_l1b.MixedHDFEOSReader
   hdf_eos_data_1000m:
     file_patterns:
@@ -517,6 +519,7 @@ file_types:
     - 'thin_M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D021KM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
+    - '{platform_indicator:1s}{start_time:%Y%j%H%M%S}.L1B_LAC'
     - 'M{platform_indicator:1s}D021KM_A{start_time:%Y%j_%H%M}_{collection:03d}_NRT.hdf'
     file_reader: !!python/name:satpy.readers.modis_l1b.MixedHDFEOSReader
   hdf_eos_geo:
@@ -526,4 +529,5 @@ file_types:
     - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
+    - '{platform_indicator:1s}{start_time:%Y%j%H%M%S}.GEO'
     file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSGeoReader

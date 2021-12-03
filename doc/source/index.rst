@@ -20,11 +20,11 @@ files. Satpy also allows users to resample data to geographic projected grids
 The Satpy library acts as a high-level abstraction layer on top of other
 libraries maintained by the Pytroll group including:
 
-- `Pyresample <http://pyresample.readthedocs.io/en/latest/>`_
-- `PySpectral <https://pyspectral.readthedocs.io/en/latest/>`_
-- `Trollimage <http://trollimage.readthedocs.io/en/latest/>`_
-- `Pycoast <https://pycoast.readthedocs.io/en/latest/>`_
-- `Pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
+- `pyresample <http://pyresample.readthedocs.io/en/latest/>`_
+- `pyspectral <https://pyspectral.readthedocs.io/en/latest/>`_
+- `trollimage <http://trollimage.readthedocs.io/en/latest/>`_
+- `pycoast <https://pycoast.readthedocs.io/en/latest/>`_
+- `pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
 - `python-geotiepoints <https://python-geotiepoints.readthedocs.io/en/latest/>`_
 - `pyninjotiff <https://github.com/pytroll/pyninjotiff>`_
 

@@ -1,3 +1,68 @@
+## Version 0.31.0 (2021/11/03)
+
+### Issues Closed
+
+* [Isse1866](https://github.com/pytroll/satpy/issues/1866) - Data Type of AHI NetCDF Output
+* [Isse1859](https://github.com/pytroll/satpy/issues/1859) - Yaml UnsafeLoader ImportErrror on colab.google ([PR1860](https://github.com/pytroll/satpy/pull/1860) by [@arammer](https://github.com/abrammer))
+* [Isse1853](https://m/pytroll/satpy/pull/1864) by [@djhoese](https://github.com/djhoese))
+
+In this release 12 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR1868](https://github.com/pytroll/satpy/pull/1868) - Fix MiRS reader not working with new versions of dask
+* [PR1860](https://github.com/pytroll/satpy/pull/1860) - Catch ImportError on UnsafeLoader in composites/config_loader ([1859](https://github.com/pytroll/satpy/issues/1859))
+* [PR1855](https://github.com/pytroll/satpy/pull/1855) - Fix 'acspo' reader producing non-y/x dimension names
+* [PR1854](https://github.com/pytroll/satpy/pull/1854) - Fix 'awips_tiled' writer doing unnecessary attribute formatting
+* [PR1849](https://github.com/pytroll/satpy/pull/1849) - Update AGRI reader to ensure that angles can be correctly loaded.
+
+#### Features added
+
+* [PR1850](https://github.com/pytroll/satpy/pull/1850) - Adapt msi-safe to the new product format ([1847](https://github.com/pytroll/satpy/issues/1847))
+* [PR1839](https://github.com/pytroll/satpy/pull/1839) - Add ninjogeotiff writer to write GeoTIFFs including necessary NinJo tags in GDALMetadata ([1838](https://github.com/pytroll/satpy/issues/1838))
+* [PR1743](https://github.com/pytroll/satpy/pull/1743) - Add option to configure group_files behaviour on empty groups in case of multiple readers ([1742](https://github.com/pytroll/satpy/issues/1742))
+
+#### Documentation changes
+
+* [PR1867](https://github.com/pytroll/satpy/pull/1867) - Update PDF metadata for sphinx documentation
+* [PR1864](https://github.com/pytroll/satpy/pull/1864) - Update Scene.save_datasets to clarify what will be saved ([1138](https://github.com/pytroll/satpy/issues/1138))
+* [PR1862](https://github.com/pytroll/satpy/pull/1862) - Correct phrasing of upside-down
+* [PR1852](https://github.com/pytroll/satpy/pull/1852) - Fix reference to dask distributed setup page
+
+In this release 12 pull requests were closed.
+
+
+## Version 0.30.1 (2021/09/28)
+
+### Issues Closed
+
+* [Isse1835](https://github.com/pytroll/satpy/issues/1835) - scipy module error?
+* [Isse1832](https://github.com/pytroll/satpy/issues/1832) - variable from python to composite
+* [Isse1831](https://github.com/pytroll/satpy/issues/1831) - example yml files for other readers
+* [Isse1829](https://github.com/pytroll/satpy/issues/1829) - pytest satpy/tests does not work ([PR1830](https://github.com/pytroll/satpy/pull/1830) by [@djhoese](https://github.com/djhoese))
+* [Isse1828](https://github.com/pytroll/satpy/issues/1828) - Error occurred plotting Himawari-8
+* [Isse1484](https://github.com/pytroll/satpy/issues/1484) - Broken links to new EUMETSAT website ([PR1827](https://github.com/pytroll/satpy/pull/1827) by [@pdeyl](https://github.com/pdebuyl))
+
+In this release 6 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR1837](https://github.com/pytroll/satpy/pull/1837) - Fix config path handling on Windows
+* [PR1827](https://github.com/pytroll/satpy/pull/1827) - Fix eumetsat urls in satpy/readers ([1484](https://github.com/pytroll/satpy/issues/1484))
+
+#### Documentation changes
+
+* [PR1837](https://github.com/pytroll/satpy/pull/1837) - Fix config path handling on Windows
+* [PR1830](https://github.com/pytroll/satpy/pull/1830) - Move tests_require to special "tests" extra for easier installation ([1829](https://github.com/pytroll/satpy/issues/1829))
+* [PR1827](https://github.com/pytroll/satpy/pull/1827) - Fix eumetsat urls in satpy/readers ([1484](https://github.com/pytroll/satpy/issues/1484))
+
+In this release 5 pull requests were closed.
+
+
 ## Version 0.30.0 (2021/09/17)
 
 ### Issues Closed

@@ -1040,7 +1040,13 @@ class Scene:
 
     def save_datasets(self, writer=None, filename=None, datasets=None, compute=True,
                       **kwargs):
-        """Save all the datasets present in a scene to disk using ``writer``.
+        """Save requested datasets present in a scene to disk using ``writer``.
+
+        Note that dependency datasets (those loaded solely to create another
+        and not requested explicitly) that may be contained in this Scene will
+        not be saved by default. The default datasets are those explicitly
+        requested through ``.load`` and exist in the Scene currently. Specify
+        dependency datasets using the ``datasets`` keyword argument.
 
         Args:
             writer (str): Name of writer to use when writing data to disk.
@@ -1051,7 +1057,9 @@ class Scene:
                             dataset to. It may include string formatting
                             patterns that will be filled in by dataset
                             attributes.
-            datasets (iterable): Limit written products to these datasets
+            datasets (iterable): Limit written products to these datasets.
+                Elements can be string name, a wavelength as a number, a
+                DataID, or DataQuery object.
             compute (bool): If `True` (default), compute all of the saves to
                 disk. If `False` then the return value is either a
                 :doc:`dask:delayed` object or two lists to be passed to

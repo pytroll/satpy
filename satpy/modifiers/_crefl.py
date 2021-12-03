@@ -22,10 +22,9 @@ import warnings
 
 import numpy as np
 import xarray as xr
-from dask import array as da
 from satpy.aux_download import DataDownloadMixin, retrieve
 from satpy.modifiers import ModifierBase
-from satpy.utils import get_satpos
+from satpy.modifiers._angles import get_angles
 
 LOG = logging.getLogger(__name__)
 
@@ -157,7 +156,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         all_datasets = datasets + optional_datasets
         if len(all_datasets) == 1:
             vis = self.match_data_arrays(datasets)[0]
-            return vis, self.get_angles(vis)
+            return vis, get_angles(vis)
         if len(all_datasets) == 5:
             vis, *angles = self.match_data_arrays(
                 datasets + optional_datasets)
@@ -166,36 +165,3 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
         raise ValueError("Not sure how to handle provided dependencies. "
                          "Either all 4 angles must be provided or none of "
                          "of them.")
-
-    def get_angles(self, vis):
-        """Get sun and satellite angles to use in crefl calculations."""
-        lons, lats = self._get_valid_lonlats(vis)
-        sun_angles = self._get_sun_angles(vis, lons, lats)
-        sat_angles = self._get_sensor_angles(vis, lons, lats)
-        # sata, satz, suna, sunz
-        return sat_angles + sun_angles
-
-    def _get_valid_lonlats(self, vis):
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        return lons, lats
-
-    def _get_sun_angles(self, vis, lons, lats):
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-        return suna, sunz
-
-    def _get_sensor_angles(self, vis, lons, lats):
-        from pyorbital.orbital import get_observer_look
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz

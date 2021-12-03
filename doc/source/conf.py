@@ -234,8 +234,8 @@ htmlhelp_basename = 'NWCSAFMSGPPdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'satpy.tex', u'satpy documentation',
-   u'SMHI', 'manual'),
+  ('index', 'satpy.tex', 'Satpy Documentation',
+   'Satpy Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
