@@ -21,6 +21,30 @@ from pyresample import create_area_def
 
 
 @pytest.fixture
+def fake_areas(request):
+    """Get multiple square areas with the same center.
+
+    Returns multiple square areas centered at the same location
+
+    Args (via request.params):
+        center (Tuple[float, float]): Center of all areass
+        sizes (List[int]): Sizes of areas
+
+    Returns:
+        List of areas.
+    """
+    (center, sizes) = request.param
+    return [create_area_def(
+        "fribullus_xax",
+        "epsg:4326",
+        units="degrees",
+        resolution=0.1,
+        center=center,
+        shape=(size, size))
+        for size in sizes]
+
+
+@pytest.fixture
 def fake_area_5x5_wide():
     """Get a 5×5 fake widely spaced area to use for parallax correction testing."""
     return create_area_def(
@@ -29,31 +53,6 @@ def fake_area_5x5_wide():
         units="degrees",
         area_extent=[-10, -10, 10, 10],
         shape=(5, 5))
-
-
-@pytest.fixture
-def fake_area_5x5_tight():
-    """Get a 5×5 fake tightly spaced area to use for parallax correction testing."""
-    return create_area_def(
-        "fribullus_xax",
-        "epsg:4326",
-        units="degrees",
-        area_extent=[0, 40, 0.1, 40.1],
-        shape=(5, 5))
-
-
-@pytest.fixture
-def fake_area_10x10_tight():
-    """Get a 10×10 fake tightly spaced area to use for parallax correction testing.
-
-    This area is an extension of fake_area_5x5_tight.
-    """
-    return create_area_def(
-        "fribullux xax",
-        "epsg:4326",
-        units="degrees",
-        area_extent=[-0.04, 39.96, 0.16, 40.16],
-        shape=(10, 10))
 
 
 def test_forward_parallax_ssp():
@@ -143,17 +142,21 @@ def test_init_parallaxcorrection(fake_area_5x5_wide):
     ParallaxCorrection(fake_area_5x5_wide)
 
 
-def test_correct_area(fake_area_5x5_tight, fake_area_10x10_tight):
-    """Test that ParallaxCorrection can correct an Areadefinition."""
+@pytest.mark.parametrize(
+    "fake_areas",
+    [((0, 0), [5, 9]), ((0, 40), [5, 9])],
+    indirect=True)
+def test_correct_area_clearsky(fake_areas):
+    """Test that ParallaxCorrection doesn't touch clearsky."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
-    corrector = ParallaxCorrection(fake_area_5x5_tight)
+    (fake_area_small, fake_area_large) = fake_areas
+    corrector = ParallaxCorrection(fake_area_small)
 
     sc = make_fake_scene(
-            {"CTH_constant": np.full((10, 10), 10000),
-             "CTH_clear": np.full((10, 10), np.nan)},
+            {"CTH_clear": np.full((9, 9), np.nan)},
             daskify=False,
-            area=fake_area_10x10_tight,
+            area=fake_area_large,
             common_attrs={
                 "orbital_parameters": {
                     "satellite_actual_altitude": 35_000_000,
@@ -161,19 +164,39 @@ def test_correct_area(fake_area_5x5_tight, fake_area_10x10_tight):
                     "satellite_actual_latitude": 0.0},
                 "units": "m"
                     })
-    # check that lat/lons remain the same for clearsky
+
     new_area = corrector(sc["CTH_clear"])
     np.testing.assert_allclose(
             new_area.get_lonlats(),
-            fake_area_5x5_tight.get_lonlats())
+            fake_area_small.get_lonlats())
+
+
+@pytest.mark.parametrize(
+    "fake_areas",
+    [((0, 0), [5, 9])],
+    indirect=True)
+def test_correct_area_ssp(fake_areas):
+    """Test that ParallaxCorrection doesn't touch SSP."""
+    from ...modifiers.parallax import ParallaxCorrection
+    from ..utils import make_fake_scene
+    (fake_area_small, fake_area_large) = fake_areas
+    corrector = ParallaxCorrection(fake_area_small)
+
+    sc = make_fake_scene(
+            {"CTH_constant": np.full((9, 9), 10000),
+             "CTH_clear": np.full((9, 9), np.nan)},
+            daskify=False,
+            area=fake_area_large,
+            common_attrs={
+                "orbital_parameters": {
+                    "satellite_actual_altitude": 35_000_000,
+                    "satellite_actual_longitude": 0.0,
+                    "satellite_actual_latitude": 0.0},
+                "units": "m"
+                    })
     new_area = corrector(sc["CTH_constant"])
-    assert new_area.shape == fake_area_5x5_tight.shape
-    old_lonlats = fake_area_5x5_tight.get_lonlats()
+    assert new_area.shape == fake_area_small.shape
+    old_lonlats = fake_area_small.get_lonlats()
     new_lonlats = new_area.get_lonlats()
-    # no change at SSP where old_lat = new_lat = 0
     assert (old_lonlats[0][2, 2] == old_lonlats[1][2, 2]
             == new_lonlats[0][2, 2] == new_lonlats[1][2, 2])
-    # no change where we had NaN
-    np.testing.assert_array_equal(
-        old_lonlats[0][(clear := np.isnan(sc["CTH_mixed"].values))],
-        new_lonlats[0][clear])
