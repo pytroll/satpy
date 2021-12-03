@@ -25,9 +25,11 @@ from unittest import mock
 
 import numpy as np
 
+from satpy.tests.utils import make_dataid
+
 # Dictionary to be used as fake GRIB message
 FAKE_MESSAGE = {
-    'longitudeOfSubSatellitePointInDegrees': 10.0,
+    'longitudeOfSubSatellitePointInDegrees': 9.5,
     'dataDate': 20191020,
     'dataTime': 1745,
     'Nx': 1000,
@@ -75,6 +77,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     filetype_info={}
                 )
 
+                dataset_id = make_dataid(name='dummmy', resolution=3000)
+
                 # Checks that the codes_grib_multi_support_on function has been called
                 self.ec_.codes_grib_multi_support_on.assert_called()
 
@@ -85,7 +89,7 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 self.ec_.codes_release.reset_mock()
 
                 # Checks the correct execution of the get_dataset function with a valid parameter_number
-                valid_dataset = self.reader.get_dataset(None, {'parameter_number': 30})
+                valid_dataset = self.reader.get_dataset(dataset_id, {'parameter_number': 30})
                 # Checks the correct file open call
                 mock_file.assert_called_with('test.grib', 'rb')
                 # Checks that the dataset has been created as a DataArray object
@@ -102,7 +106,7 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 self.ec_.codes_release.reset_mock()
 
                 # Checks the correct execution of the get_dataset function with an invalid parameter_number
-                invalid_dataset = self.reader.get_dataset(None, {'parameter_number': 50})
+                invalid_dataset = self.reader.get_dataset(dataset_id, {'parameter_number': 50})
                 # Checks that the function returns None
                 self.assertEqual(invalid_dataset, None)
                 # Checks that codes_release has been called after each codes_grib_new_from_file call
@@ -117,7 +121,7 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 attributes = self.reader._get_attributes()
                 expected_attributes = {
                     'orbital_parameters': {
-                        'projection_longitude': 10.
+                        'projection_longitude': 9.5
                     },
                     'sensor': 'seviri',
                     'platform_name': 'Meteosat-11'
@@ -143,16 +147,16 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     'a': 6400000.,
                     'b': 6300000.,
                     'h': 32000000.,
-                    'ssp_lon': 10.,
+                    'ssp_lon': 9.5,
                     'nlines': 1000,
                     'ncols': 1200,
-                    'a_name': 'geos_seviri',
-                    'a_desc': 'Calculated area for SEVIRI L2 GRIB product',
-                    'p_id': 'geos',
+                    'a_name': 'msg_seviri_rss_3km',
+                    'a_desc': 'MSG SEVIRI Rapid Scanning Service area definition with 3 km resolution',
+                    'p_id': '',
                 }
                 self.assertEqual(pdict, expected_pdict)
                 expected_area_dict = {
-                    'center_point': 500.5,
+                    'center_point': 500,
                     'north': 1200,
                     'east': 1,
                     'west': 1000,
@@ -166,8 +170,9 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     with mock.patch('satpy.readers.seviri_l2_grib.get_area_definition', mock.Mock()) as gad:
                         self.reader.get_area_def(mock.Mock(resolution=400.))
                         # Asserts that calculate_area_extent has been called with the correct arguments
+                        expected_args = (500, 1200, 1, 1, 1000, 0, 0, 400, 400)
                         name, args, kwargs = cae.mock_calls[0]
-                        self.assertEqual(args[0]['resolution'], 400.)
+                        self.assertEqual(args, expected_args)
                         # Asserts that get_area_definition has been called with the correct arguments
                         name, args, kwargs = gad.mock_calls[0]
                         self.assertEqual(args[0], expected_pdict)
