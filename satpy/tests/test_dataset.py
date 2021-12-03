@@ -745,6 +745,22 @@ def test_frequency_range_channel_containment():
     assert 2.8 not in frqr
 
 
+def test_frequency_range_channel_distances():
+    """Test the frequency range object: derive distances between bands."""
+    from satpy.dataset.dataid import FrequencyRange
+
+    frqr = FrequencyRange(190.0, 2)
+
+    mydist = frqr.distance(FrequencyRange(190, 2))
+    assert mydist == 0
+    mydist = frqr.distance(FrequencyRange(189.5, 2))
+    assert mydist == np.inf
+    mydist = frqr.distance(189.5)
+    assert mydist == 0.5
+    mydist = frqr.distance(188.0)
+    assert mydist == np.inf
+
+
 def test_wavelength_range():
     """Test the wavelength range object."""
     from satpy.dataset.dataid import WavelengthRange
