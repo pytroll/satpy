@@ -826,39 +826,32 @@ class OrbitPolynomialFinder:
         return closest_match, distance
 
 
-def calculate_area_extent(area_dict):
+def calculate_area_extent(center_point, north, east, south, west, we_offset, ns_offset, column_step, line_step):
     """Calculate the area extent seen by a geostationary satellite.
 
     Args:
-        area_dict: A dictionary containing the required parameters
-            center_point: Center point for the projection
-            resolution: Pixel resulution in meters
-            north: Northmost row number
-            east: Eastmost column number
-            west: Westmost column number
-            south: Southmost row number
-            [column_offset: Column offset, defaults to 0 if not given]
-            [row_offset: Row offset, defaults to 0 if not given]
+        center_point: Center point for the projection
+        north: Northmost row number
+        east: Eastmost column number
+        west: Westmost column number
+        south: Southmost row number
+        we_offset: Column offset
+        ns_offset: Row offset
+        column_step: Pixel resulution in meters in east-west direction
+        line_step: Pixel resulution in meters in soutth-north direction
     Returns:
         tuple: An area extent for the scene defined by the lower left and
                upper right corners
 
+    # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
+    # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
     """
-    # For Earth model 2 and full disk resolution center point
-    # column and row is (1856.5, 1856.5)
-    # See: MSG Level 1.5 Image Data Format Description, Figure 7
-    cp_c = area_dict['center_point'] + area_dict.get('column_offset', 0)
-    cp_r = area_dict['center_point'] + area_dict.get('row_offset', 0)
+    ll_c = (center_point - east + 0.5 + we_offset) * column_step
+    ll_l = (north - center_point + 0.5 + ns_offset) * line_step
+    ur_c = (center_point - west - 0.5 + we_offset) * column_step
+    ur_l = (south - center_point - 0.5 + ns_offset) * line_step
 
-    # Calculate column and row for lower left and upper right corners.
-    ll_c = (area_dict['west'] - cp_c)
-    ll_r = (area_dict['north'] - cp_r + 1)
-    ur_c = (area_dict['east'] - cp_c - 1)
-    ur_r = (area_dict['south'] - cp_r)
-
-    aex = np.array([ll_c, ll_r, ur_c, ur_r]) * area_dict['resolution']
-
-    return tuple(aex)
+    return (ll_c, ll_l, ur_c, ur_l)
 
 
 def create_coef_dict(coefs_nominal, coefs_gsics, radiance_type, ext_coefs):
