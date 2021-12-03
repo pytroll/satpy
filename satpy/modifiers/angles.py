@@ -268,7 +268,7 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
     Note that this function can benefit from the ``satpy.config`` parameters
     :ref:`cache_lonlats <config_cache_lonlats_setting>` and
     :ref:`cache_sensor_angles <config_cache_sensor_angles_setting>`
-    being set to ``True``.
+    being set to ``True``. Values are in degrees.
 
     """
     satz = _get_sensor_angles(data_arr)[1]
@@ -279,7 +279,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
     """Generate the cosine of the solar zenith angle for the provided data.
 
     Returns:
-        DataArray with the same shape as ``data_arr``. Units are radians.
+        DataArray with the same shape as ``data_arr``.
 
     """
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.chunks)
