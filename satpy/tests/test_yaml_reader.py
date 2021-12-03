@@ -1026,18 +1026,11 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
-        seg1_area = MagicMock()
-        seg1_area.crs = 'some_crs'
-        seg1_area.area_extent = [0, 1000, 200, 500]
-        seg1_area.shape = [200, 500]
-        get_area_def = MagicMock()
-        get_area_def.return_value = seg1_area
-        fh_1 = MagicMock()
-        filetype_info = {'expected_segments': 2}
-        filename_info = {'segment': 1}
-        fh_1.filetype_info = filetype_info
-        fh_1.filename_info = filename_info
-        fh_1.get_area_def = get_area_def
+        expected_segments = 2
+        segment = 1
+        aex = [0, 1000, 200, 500]
+        ashape = [200, 500]
+        fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, None)
         file_handlers = [fh_1]
         dataid = 'dataid'
         res = reader._pad_later_segments_area(file_handlers, dataid)
@@ -1054,18 +1047,12 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
 
-        seg2_area = MagicMock()
-        seg2_area.crs = 'some_crs'
-        seg2_area.area_extent = [0, 1000, 200, 500]
-        seg2_area.shape = [200, 500]
-        get_area_def = MagicMock()
-        get_area_def.return_value = seg2_area
-        fh_2 = MagicMock()
-        filetype_info = {'expected_segments': 2}
-        filename_info = {'segment': 2}
-        fh_2.filetype_info = filetype_info
-        fh_2.filename_info = filename_info
-        fh_2.get_area_def = get_area_def
+        expected_segments = 2
+        segment = 2
+        aex = [0, 1000, 200, 500]
+        ashape = [200, 500]
+        fh_2, seg2_area = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, None)
+
         file_handlers = [fh_2]
         dataid = 'dataid'
         area_defs = {2: seg2_area}
@@ -1120,6 +1107,23 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertTrue(proj is projectable)
 
 
+def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info):
+    seg_area = MagicMock()
+    seg_area.crs = 'some_crs'
+    seg_area.area_extent = aex
+    seg_area.shape = ashape
+    get_area_def = MagicMock()
+    get_area_def.return_value = seg_area
+    fh = MagicMock()
+    filetype_info = {'expected_segments': expected_segments}
+    filename_info = {'segment': segment}
+    fh.filetype_info = filetype_info
+    fh.filename_info = filename_info
+    fh.get_area_def = get_area_def
+    fh.chunk_position_info = chk_pos_info
+    return fh, seg_area
+
+
 class TestFCIChunksYAMLReader(unittest.TestCase):
     """Test FCIChunksYAMLReader."""
 
@@ -1130,20 +1134,8 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         # implicitly checks also _extract_chunk_location_dicts and chunk_heights for the first-chunk-missing case
         from satpy.readers.yaml_reader import FCIChunksYAMLReader
         reader = FCIChunksYAMLReader()
-        seg2_area = MagicMock()
-        seg2_area.crs = 'some_crs'
-        seg2_area.area_extent = [0, 1000, 200, 500]
-        seg2_area.shape = [278, 5568]
-        get_area_def = MagicMock()
-        get_area_def.return_value = seg2_area
-        fh_2 = MagicMock()
-        filetype_info = {'expected_segments': 2}
-        filename_info = {'segment': 2}
-        fh_2.filetype_info = filetype_info
-        fh_2.filename_info = filename_info
-        fh_2.get_area_def = get_area_def
         # setting to 0 or None values that shouldn't be relevant
-        fh_2.chunk_position_info = {
+        chk_pos_info = {
             '1km': {'start_position_row': 0,
                     'end_position_row': 0,
                     'chunk_height': 0},
@@ -1151,6 +1143,12 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
                     'end_position_row': None,
                     'chunk_height': 278}
         }
+        expected_segments = 2
+        segment = 2
+        aex = [0, 1000, 200, 500]
+        ashape = [278, 5568]
+        fh_2, seg2_area = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
+
         file_handlers = [fh_2]
         reader._extract_chunk_location_dicts(file_handlers)
         dataid = 'dataid'
@@ -1176,26 +1174,19 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import FCIChunksYAMLReader
         reader = FCIChunksYAMLReader()
 
-        seg1_area = MagicMock()
-        seg1_area.crs = 'some_crs'
-        seg1_area.area_extent = [0, 1000, 200, 500]
-        seg1_area.shape = [556, 11136]
-        get_area_def = MagicMock()
-        get_area_def.return_value = seg1_area
-        fh_1 = MagicMock()
-        filetype_info = {'expected_segments': 2}
-        filename_info = {'segment': 1}
-        fh_1.filetype_info = filetype_info
-        fh_1.filename_info = filename_info
-        fh_1.get_area_def = get_area_def
-        # setting to 0 or None values that shouldn't be relevant
-        fh_1.chunk_position_info = {
+        chk_pos_info = {
             '1km': {'start_position_row': None,
                     'end_position_row': 11136 - 278,
                     'chunk_height': 556},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
                     'chunk_height': 0}}
+
+        expected_segments = 2
+        segment = 1
+        aex = [0, 1000, 200, 500]
+        ashape = [556, 11136]
+        fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
         file_handlers = [fh_1]
         reader._extract_chunk_location_dicts(file_handlers)
         dataid = 'dataid'
@@ -1228,66 +1219,40 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
 
         AreaDefinition.side_effect = side_effect_areadef
 
-        seg1_area = MagicMock()
-        seg1_area.crs = 'some_crs'
-        seg1_area.area_extent = [0, 1000, 200, 500]
-        seg1_area.shape = [100, 11136]
-        get_area_def = MagicMock()
-        get_area_def.return_value = seg1_area
-        fh_1 = MagicMock()
-        filetype_info = {'expected_segments': 8}
-        filename_info = {'segment': 1}
-        fh_1.filetype_info = filetype_info
-        fh_1.filename_info = filename_info
-        fh_1.get_area_def = get_area_def
-        # setting to 0 or None values that shouldn't be relevant
-        fh_1.chunk_position_info = {
+        chk_pos_info = {
             '1km': {'start_position_row': 11136 - 600 - 100 + 1,
                     'end_position_row': 11136 - 600,
                     'chunk_height': 100},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
                     'chunk_height': 0}}
+        expected_segments = 8
+        segment = 1
+        aex = [0, 1000, 200, 500]
+        ashape = [100, 11136]
+        fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
-        seg4_area = MagicMock()
-        seg4_area.crs = 'some_crs'
-        seg4_area.area_extent = [0, 1000, 200, 500]
-        seg4_area.shape = [100, 11136]
-        get_area_def = MagicMock()
-        get_area_def.return_value = seg4_area
-        fh_4 = MagicMock()
-        filetype_info = {'expected_segments': 8}
-        filename_info = {'segment': 4}
-        fh_4.filetype_info = filetype_info
-        fh_4.filename_info = filename_info
-        fh_4.get_area_def = get_area_def
-        fh_4.chunk_position_info = {
+        chk_pos_info = {
             '1km': {'start_position_row': 11136 - 300 - 100 + 1,
                     'end_position_row': 11136 - 300,
                     'chunk_height': 100},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
                     'chunk_height': 0}}
+        segment = 4
+        fh_4, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
-        seg5_area = MagicMock()
-        seg5_area.crs = 'some_crs'
-        seg5_area.area_extent = [0, 1000, 200, 500]
-        seg5_area.shape = [100, 11136]
-        get_area_def_5 = MagicMock()
-        get_area_def_5.return_value = seg5_area
-        fh_5 = MagicMock()
-        filename_info = {'segment': 8}
-        fh_5.filetype_info = filetype_info
-        fh_5.filename_info = filename_info
-        fh_5.get_area_def = get_area_def_5
-        fh_5.chunk_position_info = {
+        chk_pos_info = {
             '1km': {'start_position_row': 11136 - 100 + 1,
                     'end_position_row': None,
                     'chunk_height': 100},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
                     'chunk_height': 0}}
-        file_handlers = [fh_1, fh_4, fh_5]
+        segment = 8
+        fh_8, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
+
+        file_handlers = [fh_1, fh_4, fh_8]
 
         reader._extract_chunk_location_dicts(file_handlers)
         dataid = 'dataid'
