@@ -249,9 +249,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         scene.load([0.6])
 
     The AHI HSD data files contain multiple VIS channel calibration
-    coefficients. By default, the standard coefficients in header block 5
-    are used. If the user prefers the updated calibration coefficients then
-    they can pass calib_mode='update' when creating a scene::
+    coefficients. By default, the updated coefficients in header block 6
+    are used. If the user prefers the default calibration coefficients from
+    block 5 then they can pass calib_mode='nominal' when creating a scene::
 
         import satpy
         import glob
