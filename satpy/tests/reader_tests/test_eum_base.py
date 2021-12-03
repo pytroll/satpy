@@ -21,6 +21,7 @@ import unittest
 from datetime import datetime
 
 import numpy as np
+from satpy.readers.seviri_base import mpef_product_header
 
 from satpy.readers.eum_base import (
     get_service_mode,
@@ -104,24 +105,20 @@ class TestRecarray2Dict(unittest.TestCase):
 
     def test_mpef_product_header(self):
         """Test function for TestRecarray2Dict and mpef product header."""
-        mpef_header = np.dtype([
-            ('ImageLocation', 'S3'),
-            ('GsicsCalMode', np.bool),
-            ('GsicsCalValidity', np.bool),
-            ('Padding', 'S2'),
-            ('OffsetToData', np.uint32),
-            ('Padding2', 'S9'), ])
 
-        mph_string = np.array([('OPE', True, False, 'XX', 1000, '12345678')], dtype=mpef_header)
-
-        test_exp = {'ImageLocation': "OPE",
+        names = ['ImageLocation', 'GsicsCalMode', 'GsicsCalValidity',
+                 'Padding', 'OffsetToData', 'Padding2']
+        mpef_header = np.dtype([(name, mpef_product_header.fields[name][0])
+                                for name in names])
+        mph_struct = np.array([('OPE', True, False, 'XX', 1000, '12345678')], dtype=mpef_header)
+        test_mph = {'ImageLocation': "OPE",
                     'GsicsCalMode': True,
                     'GsicsCalValidity': False,
                     'Padding': 'XX',
                     'OffsetToData': 1000,
                     'Padding2': '12345678'
                     }
-        self.assertEqual(recarray2dict(mph_string), test_exp)
+        self.assertEqual(recarray2dict(mph_struct), test_mph)
 
 
 class TestGetServiceMode(unittest.TestCase):
