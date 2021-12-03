@@ -33,7 +33,8 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers._geos_area import get_area_definition
+from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import PLATFORM_DICT, REPEAT_CYCLE_DURATION, calculate_area_extent
 
@@ -67,10 +68,21 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
-        # The area extension depends on the resolution of the dataset
-        area_dict = self._area_dict.copy()
-        area_dict['resolution'] = dataset_id.resolution
-        area_extent = calculate_area_extent(area_dict)
+        # The area extension depends on the pixel-level resolution and possible segment size of the dataset
+        column_step = dataset_id.resolution
+        line_step = dataset_id.resolution
+
+        center_point = self._area_dict['center_point']
+        south = self._area_dict['south']
+        north = self._area_dict['north']
+        east = self._area_dict['east']
+        west = self._area_dict['west']
+
+        we_offset = self._area_dict.get('column_offset', 0)
+        ns_offset = self._area_dict.get('row_offset', 0)
+
+        area_extent = calculate_area_extent(center_point, north, east, south, west,
+                                            we_offset, ns_offset, column_step, line_step)
 
         # Call the get_area_definition function to obtain the area
         area_def = get_area_definition(self._pdict, area_extent)
@@ -110,6 +122,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
                 if parameter_number == dataset_info['parameter_number']:
 
+                    self._res = dataset_id.resolution
                     self._read_attributes(gid)
 
                     # Read the missing value
@@ -170,6 +183,15 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                     west: coodinate of the west limit
                     south: coodinate of the south limit
         """
+        # Get name of area definition
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': self._res,
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', self._ssp_lon)})
+
         # Read all projection and area parameters from the message
         earth_major_axis_in_meters = self._get_from_msg(gid, 'earthMajorAxis') * 1000.0  # [m]
         earth_minor_axis_in_meters = self._get_from_msg(gid, 'earthMinorAxis') * 1000.0  # [m]
@@ -185,14 +207,14 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             'ssp_lon': self._ssp_lon,
             'nlines': self._ncols,
             'ncols': self._nrows,
-            'a_name': 'geos_seviri',
-            'a_desc': 'Calculated area for SEVIRI L2 GRIB product',
-            'p_id': 'geos',
+            'a_name': area_naming['area_id'],
+            'a_desc': area_naming['description'],
+            'p_id': "",
         }
 
         # Compute the dictionary with the area extension
         area_dict = {
-            'center_point': xp_in_grid_lengths + 0.5,
+            'center_point': xp_in_grid_lengths,
             'north': self._nrows,
             'east': 1,
             'west': self._ncols,
