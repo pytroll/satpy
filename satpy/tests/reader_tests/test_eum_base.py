@@ -105,7 +105,6 @@ class TestRecarray2Dict(unittest.TestCase):
 
     def test_mpef_product_header(self):
         """Test function for TestRecarray2Dict and mpef product header."""
-
         names = ['ImageLocation', 'GsicsCalMode', 'GsicsCalValidity',
                  'Padding', 'OffsetToData', 'Padding2']
         mpef_header = np.dtype([(name, mpef_product_header.fields[name][0])
