@@ -22,7 +22,7 @@ import random
 import unittest
 from datetime import datetime
 from tempfile import mkdtemp
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import numpy as np
 import xarray as xr
@@ -968,18 +968,6 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertTrue(slice_list[0] is empty_segment)
         self.assertTrue(slice_list[1] is empty_segment)
 
-        # Check that new FCI empty segment is generated if missing in the middle and at the end
-        fake_fh = MagicMock()
-        fake_fh.filename_info = {}
-        fake_fh.filetype_info = {'file_type': 'fci_l1c_fdhsi'}
-        empty_segment.shape = (140, 5568)
-        slice_list[4] = None
-        counter = 7
-        mss.return_value = (counter, expected_segments, slice_list,
-                            failure, projectable)
-        res = reader._load_dataset(dataid, ds_info, [fake_fh])
-        assert 2 == geswh.call_count
-
         # Disable padding
         res = reader._load_dataset(dataid, ds_info, file_handlers,
                                    pad_data=False)
@@ -1149,18 +1137,18 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         get_area_def = MagicMock()
         get_area_def.return_value = seg2_area
         fh_2 = MagicMock()
-        filetype_info = {'expected_segments': 2,
-                         'file_type': 'fci_l1c_fdhsi'}
+        filetype_info = {'expected_segments': 2}
         filename_info = {'segment': 2}
         fh_2.filetype_info = filetype_info
         fh_2.filename_info = filename_info
         fh_2.get_area_def = get_area_def
+        # setting to 0 or None values that shouldn't be relevant
         fh_2.chunk_position_info = {
-            '1km': {'start_position_row': 101,
-                    'end_position_row': 202,
-                    'chunk_height': 101},
+            '1km': {'start_position_row': 0,
+                    'end_position_row': 0,
+                    'chunk_height': 0},
             '2km': {'start_position_row': 140,
-                    'end_position_row': 140 + 277,
+                    'end_position_row': None,
                     'chunk_height': 278}
         }
         file_handlers = [fh_2]
@@ -1195,19 +1183,19 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         get_area_def = MagicMock()
         get_area_def.return_value = seg1_area
         fh_1 = MagicMock()
-        filetype_info = {'expected_segments': 2,
-                         'file_type': 'fci_l1c_fdhsi'}
+        filetype_info = {'expected_segments': 2}
         filename_info = {'segment': 1}
         fh_1.filetype_info = filetype_info
         fh_1.filename_info = filename_info
         fh_1.get_area_def = get_area_def
+        # setting to 0 or None values that shouldn't be relevant
         fh_1.chunk_position_info = {
-            '1km': {'start_position_row': 11136 - 278 - 556,
+            '1km': {'start_position_row': None,
                     'end_position_row': 11136 - 278,
                     'chunk_height': 556},
-            '2km': {'start_position_row': 140,
-                    'end_position_row': 140 + 277,
-                    'chunk_height': 278}}
+            '2km': {'start_position_row': 0,
+                    'end_position_row': 0,
+                    'chunk_height': 0}}
         file_handlers = [fh_1]
         reader._extract_chunk_location_dicts(file_handlers)
         dataid = 'dataid'
@@ -1222,3 +1210,130 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         expected_call = ('fill', 'fill', 'fill', 'some_crs', 11136, 278,
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch('satpy.readers.yaml_reader.AreaDefinition')
+    def test_pad_later_segments_area_for_multiple_chunks_gap(self, AreaDefinition):
+        """Test _pad_later_segments_area() in the FCI padding case for mulitple gaps with multiple chunks."""
+        # implicitly checks also _extract_chunk_location_dicts and chunk_heights for multi-chunk gaps
+        from satpy.readers.yaml_reader import FCIChunksYAMLReader
+        reader = FCIChunksYAMLReader()
+
+        def side_effect_areadef(a, b, c, crs, width, height, aex):
+            m = MagicMock()
+            m.shape = [height, width]
+            m.area_extent = aex
+            m.crs = crs
+            return m
+
+        AreaDefinition.side_effect = side_effect_areadef
+
+        seg1_area = MagicMock()
+        seg1_area.crs = 'some_crs'
+        seg1_area.area_extent = [0, 1000, 200, 500]
+        seg1_area.shape = [100, 11136]
+        get_area_def = MagicMock()
+        get_area_def.return_value = seg1_area
+        fh_1 = MagicMock()
+        filetype_info = {'expected_segments': 8}
+        filename_info = {'segment': 1}
+        fh_1.filetype_info = filetype_info
+        fh_1.filename_info = filename_info
+        fh_1.get_area_def = get_area_def
+        # setting to 0 or None values that shouldn't be relevant
+        fh_1.chunk_position_info = {
+            '1km': {'start_position_row': 11136 - 600 - 100 + 1,
+                    'end_position_row': 11136 - 600,
+                    'chunk_height': 100},
+            '2km': {'start_position_row': 0,
+                    'end_position_row': 0,
+                    'chunk_height': 0}}
+
+        seg4_area = MagicMock()
+        seg4_area.crs = 'some_crs'
+        seg4_area.area_extent = [0, 1000, 200, 500]
+        seg4_area.shape = [100, 11136]
+        get_area_def = MagicMock()
+        get_area_def.return_value = seg4_area
+        fh_4 = MagicMock()
+        filetype_info = {'expected_segments': 8}
+        filename_info = {'segment': 4}
+        fh_4.filetype_info = filetype_info
+        fh_4.filename_info = filename_info
+        fh_4.get_area_def = get_area_def
+        fh_4.chunk_position_info = {
+            '1km': {'start_position_row': 11136 - 300 - 100 + 1,
+                    'end_position_row': 11136 - 300,
+                    'chunk_height': 100},
+            '2km': {'start_position_row': 0,
+                    'end_position_row': 0,
+                    'chunk_height': 0}}
+
+        seg5_area = MagicMock()
+        seg5_area.crs = 'some_crs'
+        seg5_area.area_extent = [0, 1000, 200, 500]
+        seg5_area.shape = [100, 11136]
+        get_area_def_5 = MagicMock()
+        get_area_def_5.return_value = seg5_area
+        fh_5 = MagicMock()
+        filename_info = {'segment': 8}
+        fh_5.filetype_info = filetype_info
+        fh_5.filename_info = filename_info
+        fh_5.get_area_def = get_area_def_5
+        fh_5.chunk_position_info = {
+            '1km': {'start_position_row': 11136 - 100 + 1,
+                    'end_position_row': None,
+                    'chunk_height': 100},
+            '2km': {'start_position_row': 0,
+                    'end_position_row': 0,
+                    'chunk_height': 0}}
+        file_handlers = [fh_1, fh_4, fh_5]
+
+        reader._extract_chunk_location_dicts(file_handlers)
+        dataid = 'dataid'
+        res = reader._pad_later_segments_area(file_handlers, dataid)
+        self.assertEqual(len(res), 8)
+
+        # Regarding the chunk sizes:
+        # First group of missing chunks:
+        # The end position row of the gap is the start row of the last available chunk-1:11136-300-100+1-1=10736
+        # The start position row of the gap is the end row fo the first available chunk+1: 11136-600+1=10837
+        # hence the gap is 10736-10537+1=200 px high
+        # The 200px have to be split between two missing chunks, the most equal way to do it is with
+        # sizes 100: 100+100=200
+        # Second group:
+        # The end position row of the gap is the start row of the last chunk -1: 11136-100+1-1=11036
+        # The start position row of the gap is the end row fo the first chunk +1: 11136-300+1=10837
+        # hence the gap is 11036-10837+1=200 px high
+        # The 200px have to be split between three missing chunks, the most equal way to do it is with
+        # sizes 66 and 67: 66+67+67=200
+
+        # Regarding the heights:
+        # First group:
+        # The first chunk has 100px height and 500 area extent height.
+        # The first padded chunk has 100px height -> 500*100/100=500 area extent height ->1000+500=1500
+        # The second padded chunk has 100px height -> 500*100/100=500 area extent height ->1500+500=2000
+        # Second group:
+        # The first chunk has 100px height and 500 area extent height.
+        # The first padded chunk has 66px height -> 500*66/100=330 area extent height ->1000+330=1330
+        # The second padded chunk has 67px height -> 500*67/100=335 area extent height ->1330+335=1665
+        # The first padded chunk has 67px height -> 500*67/100=335 area extent height ->1665+335=2000
+        self.assertEqual(AreaDefinition.call_count, 5)
+        expected_call1 = ('fill', 'fill', 'fill', 'some_crs', 11136, 100,
+                          (0, 1500.0, 200, 1000))
+        expected_call2 = ('fill', 'fill', 'fill', 'some_crs', 11136, 100,
+                          (0, 2000.0, 200, 1500))
+        expected_call3 = ('fill', 'fill', 'fill', 'some_crs', 11136, 66,
+                          (0, 1330.0, 200, 1000))
+        expected_call4 = ('fill', 'fill', 'fill', 'some_crs', 11136, 67,
+                          (0, 1665.0, 200, 1330.0))
+        expected_call5 = ('fill', 'fill', 'fill', 'some_crs', 11136, 67,
+                          (0, 2000.0, 200, 1665.0))
+
+        AreaDefinition.side_effect = None
+        AreaDefinition.assert_has_calls([call(*expected_call1),
+                                         call(*expected_call2),
+                                         call(*expected_call3),
+                                         call(*expected_call4),
+                                         call(*expected_call5)
+                                         ])
