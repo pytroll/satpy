@@ -1341,7 +1341,13 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
 
 
 class FCIChunksYAMLReader(GEOSegmentYAMLReader):
-    """FCIChunksYAMLReader."""
+    """FCIChunksYAMLReader for handling FCI L1c chunk files.
+
+    This YAMLReader ovverrides  parts of the GEOSegmentYAMLReader to account for specific format properties of the
+    FCI L1c chunking configuration. Since the size of the FCI L1c chunks is configurable by the data producer,
+    this YAMLReader computes the sizes of the padded chunks using the information available in the files, so that
+    gaps of any size can be filled as needed.
+    """
 
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Create file handler objects and determine expected segments for each."""
