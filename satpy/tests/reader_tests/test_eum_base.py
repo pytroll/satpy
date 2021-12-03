@@ -17,11 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """EUMETSAT base reader tests package."""
 
+import numpy as np
 import unittest
 from datetime import datetime
-
-import numpy as np
-from satpy.readers.seviri_base import mpef_product_header
 
 from satpy.readers.eum_base import (
     get_service_mode,
@@ -31,6 +29,7 @@ from satpy.readers.eum_base import (
     time_cds_short,
     timecds2datetime,
 )
+from satpy.readers.seviri_base import mpef_product_header
 
 
 class TestMakeTimeCdsDictionary(unittest.TestCase):
