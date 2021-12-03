@@ -195,6 +195,10 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         # Read all projection and area parameters from the message
         earth_major_axis_in_meters = self._get_from_msg(gid, 'earthMajorAxis') * 1000.0  # [m]
         earth_minor_axis_in_meters = self._get_from_msg(gid, 'earthMinorAxis') * 1000.0  # [m]
+
+        earth_major_axis_in_meters = self._scale_earth_axis(earth_major_axis_in_meters)
+        earth_minor_axis_in_meters = self._scale_earth_axis(earth_minor_axis_in_meters)
+
         nr_in_radius_of_earth = self._get_from_msg(gid, 'NrInRadiusOfEarth')
         xp_in_grid_lengths = self._get_from_msg(gid, 'XpInGridLengths')
         h_in_meters = earth_major_axis_in_meters * (nr_in_radius_of_earth - 1.0)  # [m]
@@ -222,6 +226,19 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         }
 
         return pdict, area_dict
+
+    @staticmethod
+    def _scale_earth_axis(data):
+        """Scale Earth axis data to make sure the value matched the expected unit [m].
+
+        The earthMinorAxis value stored in the aerosol over sea product is scaled incorrectly by a factor of 1e8. This
+        method provides a flexible temporarily workaraound by making sure that all earth axis values are scaled such
+        that they are on the order of millions of meters as expected by the reader. As soon as the scaling issue has
+        been resolved by EUMETSAT this workaround can be removed.
+
+        """
+        scale_factor = 10 ** np.ceil(np.log10(1e6/data))
+        return data * scale_factor
 
     def _get_xarray_from_msg(self, gid):
         """Read the values from the GRIB message and return a DataArray object.
