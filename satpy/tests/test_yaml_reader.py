@@ -833,6 +833,25 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.coords['time'], np.flip(np.arange(4)))
 
 
+def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info):
+    seg_area = MagicMock()
+    seg_area.crs = 'some_crs'
+    seg_area.area_extent = aex
+    seg_area.shape = ashape
+    get_area_def = MagicMock()
+    get_area_def.return_value = seg_area
+
+    fh = MagicMock()
+    filetype_info = {'expected_segments': expected_segments}
+    filename_info = {'segment': segment}
+    fh.filetype_info = filetype_info
+    fh.filename_info = filename_info
+    fh.get_area_def = get_area_def
+    fh.chunk_position_info = chk_pos_info
+
+    return fh, seg_area
+
+
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
 
@@ -1105,23 +1124,6 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertEqual(slice_list, [None, projectable, None])
         self.assertFalse(failure)
         self.assertTrue(proj is projectable)
-
-
-def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info):
-    seg_area = MagicMock()
-    seg_area.crs = 'some_crs'
-    seg_area.area_extent = aex
-    seg_area.shape = ashape
-    get_area_def = MagicMock()
-    get_area_def.return_value = seg_area
-    fh = MagicMock()
-    filetype_info = {'expected_segments': expected_segments}
-    filename_info = {'segment': segment}
-    fh.filetype_info = filetype_info
-    fh.filename_info = filename_info
-    fh.get_area_def = get_area_def
-    fh.chunk_position_info = chk_pos_info
-    return fh, seg_area
 
 
 class TestFCIChunksYAMLReader(unittest.TestCase):

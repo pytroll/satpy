@@ -1221,7 +1221,6 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
         return area_def
 
-
     def _pad_later_segments_area(self, file_handlers, dsid):
         """Pad area definitions for missing segments that are later in sequence than the first available."""
         seg_size = None
@@ -1374,7 +1373,7 @@ class FCIChunksYAMLReader(GEOSegmentYAMLReader):
 
     def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None):
         # retrieve the chunk/segment pixel height
-        new_height_px = self.chunk_heights[FCI_WIDTH_TO_GRID_TYPE[previous_seg_size[1]]][segment_n-1]
+        new_height_px = self.chunk_heights[FCI_WIDTH_TO_GRID_TYPE[previous_seg_size[1]]][segment_n - 1]
         # scale the previous vertical area extent using the new pixel height
         prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
         new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
@@ -1384,16 +1383,8 @@ class FCIChunksYAMLReader(GEOSegmentYAMLReader):
 
 def _compute_optimal_chunk_sizes_for_FCI(chk_infos, grid_type, expected_size, exp_chunk_nr):
     # initialise positioning arrays
-    chunk_heights = np.zeros(exp_chunk_nr)
-    chunk_start_rows = np.zeros(exp_chunk_nr)
-    chunk_end_rows = np.zeros(exp_chunk_nr)
-
-    # populate positioning arrays with available information from loaded chunks
-    for chk_info in chk_infos:
-        current_fh_chunk_nr = chk_info['chunk_nr']
-        chunk_heights[current_fh_chunk_nr] = chk_info[grid_type]['chunk_height']
-        chunk_start_rows[current_fh_chunk_nr] = chk_info[grid_type]['start_position_row']
-        chunk_end_rows[current_fh_chunk_nr] = chk_info[grid_type]['end_position_row']
+    chunk_start_rows, chunk_end_rows, chunk_heights = _initialise_positioning_arrays_for_FCI(chk_infos, grid_type,
+                                                                                             exp_chunk_nr)
 
     # populate start row of first chunk and end row of last chunk with known values
     chunk_start_rows[0] = 1
@@ -1403,29 +1394,45 @@ def _compute_optimal_chunk_sizes_for_FCI(chk_infos, grid_type, expected_size, ex
     groups_missing_chunks = [list(group) for group in mit.consecutive_groups(np.where(chunk_heights == 0)[0])]
 
     for group in groups_missing_chunks:
-        # populate start row of first missing chunk using the end row of the previous chunk
-        # if this is the first chunk in the full-disk, it will have a non-zero value already
-        if chunk_start_rows[group[0]] == 0:
-            chunk_start_rows[group[0]] = chunk_end_rows[group[0] - 1] + 1
-        # populate end row of last missing chunk using the start row of the following chunk
-        # if this is the last chunk in the full-disk, it will have a non-zero value already
-        if chunk_end_rows[group[-1]] == 0:
-            chunk_end_rows[group[-1]] = chunk_start_rows[group[-1] + 1] - 1
-
-        # compute gap size of missing chunks group
-        size_gap = chunk_end_rows[group[-1]] - chunk_start_rows[group[0]] + 1
-        # split the gap by the number of missing chunks in (almost) equal parts
-        proposed_sizes_missing_chunks = split_integer_in_most_equal_parts(size_gap, len(group))
-        # populate the rest of the start and end rows and heights using computed sizes of missing chunks
-        for n in range(len(group)):
-            # first and last missing chunks start and end have been populated already
-            if n != 0:
-                chunk_start_rows[group[n]] = chunk_start_rows[group[n - 1]] + proposed_sizes_missing_chunks[n] + 1
-            if n != len(group) - 1:
-                chunk_end_rows[group[n]] = chunk_start_rows[group[n]] + proposed_sizes_missing_chunks[n]
-            chunk_heights[group[n]] = proposed_sizes_missing_chunks[n]
+        _compute_positioning_data_for_missing_group(chunk_start_rows, chunk_end_rows, chunk_heights, group)
 
     return chunk_heights.astype('int')
+
+
+def _compute_positioning_data_for_missing_group(chunk_start_rows, chunk_end_rows, chunk_heights, group):
+    # populate start row of first missing chunk using the end row of the previous chunk
+    # if this is the first chunk in the full-disk, it will have a non-zero value already
+    if chunk_start_rows[group[0]] == 0:
+        chunk_start_rows[group[0]] = chunk_end_rows[group[0] - 1] + 1
+    # populate end row of last missing chunk using the start row of the following chunk
+    # if this is the last chunk in the full-disk, it will have a non-zero value already
+    if chunk_end_rows[group[-1]] == 0:
+        chunk_end_rows[group[-1]] = chunk_start_rows[group[-1] + 1] - 1
+    # compute gap size of missing chunks group
+    size_gap = chunk_end_rows[group[-1]] - chunk_start_rows[group[0]] + 1
+    # split the gap by the number of missing chunks in (almost) equal parts
+    proposed_sizes_missing_chunks = split_integer_in_most_equal_parts(size_gap, len(group))
+    # populate the rest of the start and end rows and heights using computed sizes of missing chunks
+    for n in range(len(group)):
+        # first and last missing chunks start and end have been populated already
+        if n != 0:
+            chunk_start_rows[group[n]] = chunk_start_rows[group[n - 1]] + proposed_sizes_missing_chunks[n] + 1
+        if n != len(group) - 1:
+            chunk_end_rows[group[n]] = chunk_start_rows[group[n]] + proposed_sizes_missing_chunks[n]
+        chunk_heights[group[n]] = proposed_sizes_missing_chunks[n]
+
+
+def _initialise_positioning_arrays_for_FCI(chk_infos, grid_type, exp_chunk_nr):
+    chunk_heights = np.zeros(exp_chunk_nr)
+    chunk_start_rows = np.zeros(exp_chunk_nr)
+    chunk_end_rows = np.zeros(exp_chunk_nr)
+    # populate positioning arrays with available information from loaded chunks
+    for chk_info in chk_infos:
+        current_fh_chunk_nr = chk_info['chunk_nr']
+        chunk_heights[current_fh_chunk_nr] = chk_info[grid_type]['chunk_height']
+        chunk_start_rows[current_fh_chunk_nr] = chk_info[grid_type]['start_position_row']
+        chunk_end_rows[current_fh_chunk_nr] = chk_info[grid_type]['end_position_row']
+    return chunk_start_rows, chunk_end_rows, chunk_heights
 
 
 def split_integer_in_most_equal_parts(x, n):
