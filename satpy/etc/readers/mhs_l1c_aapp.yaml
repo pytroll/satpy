@@ -3,7 +3,7 @@ reader:
   description: AAPP l1c Reader for AMSU-B/MHS data
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [mhs,]
-  default_channels: [1, 2, 3, 4, 5]
+  default_channels: []
 
   data_identification_keys:
     name:
@@ -65,7 +65,7 @@ datasets:
           central: 183.31
           side: 1.0
           bandwidth: 1.0
-        polarization: 'V'
+        polarization: 'H'
         resolution: 16000
         calibration:
           brightness_temperature:
@@ -92,10 +92,9 @@ datasets:
         file_type: mhs_aapp_l1c
     '5':
         name: '5'
-        frequency_double_sideband:
+        frequency_range:
           unit: GHz
-          central: 183.31
-          side: 7.0
+          central: 190.311
           bandwidth: 2.0
         polarization: 'V'
         resolution: 16000
