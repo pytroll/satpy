@@ -194,7 +194,7 @@ datasets:
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 20
-    units: "um"
+    units: "1"
     long_name: aerosol_optical_thickness_vis06
 
   aerosol_optical_thickness_vis08:
@@ -202,7 +202,7 @@ datasets:
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 21
-    units: "um"
+    units: "1"
     long_name: aerosol_optical_thickness_vis08
 
   aerosol_optical_thickness_vis16:
@@ -210,8 +210,8 @@ datasets:
     resolution: 9001.209497451
     file_type: grib_seviri_aes
     parameter_number: 22
-    units: "um"
-    long_name: aerosol_optical_thickness_vis06
+    units: "1"
+    long_name: aerosol_optical_thickness_vis16
 
   angstroem_coefficient:
     name: angstroem_coefficient
@@ -234,7 +234,7 @@ datasets:
     resolution: 9001.209497451
     file_type: grib_seviri_cth
     parameter_number: 2
-    units: Pa
+    units: m
     long_name: cloud_top_height
 
   cloud_top_quality:
@@ -248,6 +248,7 @@ datasets:
   vis_refl_06:
     name: vis_refl_06
     resolution: 3000.403165817
+    wavelength: [0.56, 0.635, 0.71]
     file_type: grib_seviri_crm
     parameter_number: 9
     units: "%"
@@ -256,6 +257,7 @@ datasets:
   vis_refl_08:
     name: vis_refl_08
     resolution: 3000.403165817
+    wavelength: [0.74, 0.81, 0.88]
     file_type: grib_seviri_crm
     parameter_number: 10
     units: "%"
@@ -264,6 +266,7 @@ datasets:
   vis_refl_16:
     name: vis_refl_16
     resolution: 3000.403165817
+    wavelength: [1.5, 1.64, 1.78]
     file_type: grib_seviri_crm
     parameter_number: 11
     units: "%"
@@ -272,6 +275,7 @@ datasets:
   nir_refl_39:
     name: nir_refl_39
     resolution: 3000.403165817
+    wavelength: [3.48, 3.92, 4.36]
     file_type: grib_seviri_crm
     parameter_number: 12
     units: "%"
