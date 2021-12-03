@@ -103,7 +103,7 @@ class TestRecarray2Dict(unittest.TestCase):
         self.assertEqual(recarray2dict(pat), expected)
 
     def test_mpef_product_header(self):
-        """Test function for TestRecarray2Dict and mpef product header"""
+        """Test function for TestRecarray2Dict and mpef product header."""
         mpef_header = np.dtype([
             ('ImageLocation', 'S3'),
             ('GsicsCalMode', np.bool),
