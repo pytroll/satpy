@@ -161,7 +161,7 @@ class MHSAAPPL1CFile(BaseFileHandler):
         lons, lats = self._get_coordinates_in_degrees()
         if coordinate_id == 'longitude':
             return create_xarray(lons)
-        elif coordinate_id == 'latitude':
+        if coordinate_id == 'latitude':
             return create_xarray(lats)
         else:
             raise KeyError("Coordinate {} unknown.".format(coordinate_id))

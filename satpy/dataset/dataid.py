@@ -155,7 +155,7 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
         """Check if this double-side-band 'contains' *other*."""
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             if (self.central + self.side - self.bandwidth/2. <= other
                     <= self.central + self.side + self.bandwidth/2.):
                 return True
@@ -164,7 +164,7 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
                 return True
             return False
 
-        elif isinstance(other, (tuple, list)) and len(other) == 3:
+        if isinstance(other, (tuple, list)) and len(other) == 3:
             return ((self.central - self.side - self.bandwidth/2. <=
                      other[0] - other[1] - other[2]/2. and
                      self.central - self.side + self.bandwidth/2. >=
@@ -282,7 +282,7 @@ class FrequencyRange(FrequencyRangeBase):
         """Check if this range contains *other*."""
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
             return self.central - self.bandwidth/2. <= other <= self.central + self.bandwidth/2.
 
         with suppress(AttributeError):
@@ -715,9 +715,9 @@ def _generalize_value_for_comparison(val):
     """Get a generalize value for comparisons."""
     if isinstance(val, numbers.Number):
         return 0
-    elif isinstance(val, str):
+    if isinstance(val, str):
         return ""
-    elif isinstance(val, tuple):
+    if isinstance(val, tuple):
         return tuple()
     else:
         raise NotImplementedError("Don't know how to generalize " + str(type(val)))

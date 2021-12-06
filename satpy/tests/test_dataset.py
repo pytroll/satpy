@@ -671,6 +671,30 @@ class TestIDQueryInteractions(unittest.TestCase):
         assert res[0].name == "HRV"
 
 
+def test_frequency_double_side_band_class_method_convert():
+    """Test the frequency double side band object: test the class method convert."""
+    from satpy.dataset.dataid import FrequencyDoubleSideBand
+
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+
+    res = frq_dsb.convert(185)
+    assert res == 185
+
+    res = frq_dsb.convert({'central': 185, 'side': 7, 'bandwidth': 2})
+    assert res == FrequencyDoubleSideBand(185, 7, 2)
+
+
+def test_frequency_double_side_band_channel_str():
+    """Test the frequency double side band object: test the band description."""
+    from satpy.dataset.dataid import FrequencyDoubleSideBand
+
+    frq_dsb1 = FrequencyDoubleSideBand(183, 7, 2)
+    frq_dsb2 = FrequencyDoubleSideBand(183000, 7000, 2000, 'MHz')
+
+    assert str(frq_dsb1) == "183 GHz (7_2 GHz)"
+    assert str(frq_dsb2) == "183000 MHz (7000_2000 MHz)"
+
+
 def test_frequency_double_side_band_channel_equality():
     """Test the frequency double side band object: check if two bands are 'equal'."""
     from satpy.dataset.dataid import FrequencyDoubleSideBand
@@ -683,6 +707,13 @@ def test_frequency_double_side_band_channel_equality():
     assert 175.5 == frq_dsb
 
     assert frq_dsb != FrequencyDoubleSideBand(183, 6.5, 3)
+
+    frq_dsb = None
+    assert FrequencyDoubleSideBand(183, 7, 2) != frq_dsb
+
+    assert frq_dsb < FrequencyDoubleSideBand(183, 7, 2)
+    assert FrequencyDoubleSideBand(182, 7, 2) < FrequencyDoubleSideBand(183, 7, 2)
+    assert FrequencyDoubleSideBand(184, 7, 2) > FrequencyDoubleSideBand(183, 7, 2)
 
 
 def test_frequency_double_side_band_channel_distances():
@@ -722,6 +753,27 @@ def test_frequency_double_side_band_channel_containment():
     assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3)
     assert frq_dsb not in FrequencyDoubleSideBand(183, 4, 2)
 
+    with pytest.raises(NotImplementedError):
+        assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3, 'MHz')
+
+    frq_dsb = None
+    assert (frq_dsb in FrequencyDoubleSideBand(183, 3, 2)) is False
+
+    assert '183' not in FrequencyDoubleSideBand(183, 3, 2)
+
+
+def test_frequency_range_class_method_convert():
+    """Test the frequency range object: test the class method convert."""
+    from satpy.dataset.dataid import FrequencyRange
+
+    frq_dsb = FrequencyRange(89, 2)
+
+    res = frq_dsb.convert(89)
+    assert res == 89
+
+    res = frq_dsb.convert({'central': 89, 'bandwidth': 2})
+    assert res == FrequencyRange(89, 2)
+
 
 def test_frequency_range_channel_equality():
     """Test the frequency range object: check if two bands are 'equal'."""
@@ -743,6 +795,14 @@ def test_frequency_range_channel_containment():
     frqr = FrequencyRange(2, 1)
     assert 1.7 in frqr
     assert 2.8 not in frqr
+
+    with pytest.raises(NotImplementedError):
+        assert frqr in FrequencyRange(89, 2, 'MHz')
+
+    frqr = None
+    assert (frqr in FrequencyRange(89, 2)) is False
+
+    assert '89' not in FrequencyRange(89, 2)
 
 
 def test_frequency_range_channel_distances():
