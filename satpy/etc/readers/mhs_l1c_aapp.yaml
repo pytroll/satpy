@@ -42,7 +42,6 @@ datasets:
             - longitude
             - latitude
         file_type: mhs_aapp_l1c
-        
     '2':
         name: '2'
         frequency_range:
