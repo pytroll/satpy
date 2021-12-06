@@ -33,8 +33,8 @@ import numpy as np
 import xarray as xr
 from pyorbital.orbital import A as EARTH_RADIUS
 from pyorbital.orbital import get_observer_look
-from pyresample.bilinear import NumpyBilinearResampler
 from pyresample.geometry import SwathDefinition
+from pyresample.kd_tree import resample_nearest
 
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 
@@ -197,13 +197,12 @@ class ParallaxCorrection:
         already happened.
         """
         (source_lon, source_lat) = source_area.get_lonlats()
-        resampler = NumpyBilinearResampler(source_area, self.base_area, 50000.0)
         lon_diff = source_lon - pixel_lon
         lat_diff = source_lat - pixel_lat
-        inv_lon_diff = resampler.resample(lon_diff)
-        inv_lat_diff = resampler.resample(lat_diff)
+        inv_lon_diff = resample_nearest(source_area, lon_diff, self.base_area, 50000.0)
+        inv_lat_diff = resample_nearest(source_area, lat_diff, self.base_area, 50000.0)
 
         (base_lon, base_lat) = self.base_area.get_lonlats()
         inv_lon = base_lon + inv_lon_diff
         inv_lat = base_lat + inv_lat_diff
-        return (inv_lon.astype(np.float32), inv_lat.astype(np.float32))
+        return (inv_lon, inv_lat)

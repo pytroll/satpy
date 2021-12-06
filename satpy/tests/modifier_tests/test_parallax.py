@@ -13,7 +13,6 @@
 
 """Tests related to parallax correction."""
 
-
 import dask.array as da
 import numpy as np
 import pytest
@@ -204,8 +203,22 @@ def test_correct_area_ssp(lat, lon, resolution):
     assert new_area.shape == fake_area_small.shape
     old_lonlats = fake_area_small.get_lonlats()
     new_lonlats = new_area.get_lonlats()
-    assert old_lonlats[0][2, 2] == new_lonlats[0][2, 2] == lon
-    assert old_lonlats[1][2, 2] == new_lonlats[1][2, 2] == lat
+    np.testing.assert_allclose(
+            old_lonlats[0][2, 2],
+            new_lonlats[0][2, 2],
+            atol=1e-9)
+    np.testing.assert_allclose(
+            old_lonlats[0][2, 2],
+            lon,
+            atol=1e-9)
+    np.testing.assert_allclose(
+            old_lonlats[1][2, 2],
+            new_lonlats[1][2, 2],
+            atol=1e-9)
+    np.testing.assert_allclose(
+            old_lonlats[1][2, 2],
+            lat,
+            atol=1e-9)
 
 
 def test_correct_area_partlycloudy():
