@@ -259,6 +259,21 @@ class TestUtils(unittest.TestCase):
         self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
 
 
+@pytest.mark.parametrize(
+    "attrs",
+    (
+        {'satellite_altitude': 1},
+        {'satellite_longitude': 1, 'satellite_latitude': 1}
+    )
+)
+def test_get_satpos_fails_with_informative_error(attrs):
+    """Test that get_satpos raises an informative error message."""
+    dataset = mock.MagicMock(attrs=attrs)
+    with pytest.raises(KeyError) as err:
+        get_satpos(dataset)
+    assert not str(err.value).startswith("satellite_")
+
+
 def test_make_fake_scene():
     """Test the make_fake_scene utility.
 

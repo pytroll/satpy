@@ -302,16 +302,13 @@ def get_satpos(dataset):
 
         lon, lat = _get_sat_lonlat(orb_params)
     except KeyError:
-        # Legacy
-        lon = dataset.attrs['satellite_longitude']
-        lat = dataset.attrs['satellite_latitude']
-        alt = dataset.attrs['satellite_altitude']
+        alt = _get_sat_altitude_legacy(dataset)
+        lon, lat = _get_sat_lonlat_legacy(dataset)
 
     return lon, lat, alt
 
 
 def _get_sat_altitude(orb_params):
-    # Altitude
     try:
         alt = orb_params['satellite_actual_altitude']
     except KeyError:
@@ -324,7 +321,6 @@ def _get_sat_altitude(orb_params):
 
 
 def _get_sat_lonlat(orb_params):
-    # Longitude & Latitude
     try:
         lon = orb_params['nadir_longitude']
         lat = orb_params['nadir_latitude']
@@ -341,6 +337,24 @@ def _get_sat_lonlat(orb_params):
                 lat = orb_params['projection_latitude']
                 warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
     return lon, lat
+
+
+def _get_sat_altitude_legacy(dataset):
+    try:
+        return dataset.attrs['satellite_altitude']
+    except KeyError:
+        raise KeyError("Unable to determine satellite altitude. Either the reader doesn't "
+                       "provide that information or geolocation datasets are not available.")
+
+
+def _get_sat_lonlat_legacy(dataset):
+    try:
+        lon = dataset.attrs['satellite_longitude']
+        lat = dataset.attrs['satellite_latitude']
+        return lon, lat
+    except KeyError:
+        raise KeyError("Unable to determine satellite lon/lat. Either the reader doesn't "
+                       "provide that information or geolocation datasets are not available.")
 
 
 def recursive_dict_update(d, u):
