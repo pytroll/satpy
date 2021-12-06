@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2012-2020 Satpy developers
+# Copyright (c) 2012-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -41,6 +41,8 @@ LINE_CHUNK = CHUNK_SIZE ** 2 // 2048
 logger = logging.getLogger(__name__)
 
 CHANNEL_NAMES = ['1', '2', '3a', '3b', '4', '5']
+AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
+
 
 ANGLES = ['sensor_zenith_angle',
           'solar_zenith_angle',
@@ -63,23 +65,110 @@ def create_xarray(arr):
     return res
 
 
-class AVHRRAAPPL1BFile(BaseFileHandler):
+class AAPPL1BaseFileHandler(BaseFileHandler):
+    """A base file handler for the AAPP level-1 formats."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Initialize AAPP level-1 file handler object."""
+        super(AAPPL1BaseFileHandler, self).__init__(filename, filename_info, filetype_info)
+
+        self.channels = None
+        self.units = None
+
+        self.sensor = "unknown"
+
+        self._data = None
+        self._header = None
+        self._shape = None
+        self.area = None
+        self._header_offset = 0
+
+        self._channel_names = []
+        self._angle_names = []
+
+        self._scan_type = np.dtype([("siteid", "<i2")])
+        self._header_type = np.dtype([("siteid", "<i2")])
+
+    @property
+    def start_time(self):
+        """Get the time of the first observation."""
+        return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
+            days=int(self._data['scnlindy'][0]) - 1,
+            milliseconds=int(self._data['scnlintime'][0]))
+
+    @property
+    def end_time(self):
+        """Get the time of the final observation."""
+        return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
+            days=int(self._data['scnlindy'][-1]) - 1,
+            milliseconds=int(self._data['scnlintime'][-1]))
+
+    def _update_dataset_attributes(self, dataset, key, info):
+        dataset.attrs.update({'platform_name': self.platform_name,
+                              'sensor': self.sensor})
+        dataset.attrs.update(key.to_dict())
+        for meta_key in ('standard_name', 'units'):
+            if meta_key in info:
+                dataset.attrs.setdefault(meta_key, info[meta_key])
+
+    def read(self):
+        """Read the data."""
+        tic = datetime.now()
+        header = np.memmap(self.filename, dtype=self._header_type, mode="r", shape=(1, ))
+        data = np.memmap(self.filename, dtype=self._scan_type, offset=self._header_offset, mode="r")
+        logger.debug("Reading time %s", str(datetime.now() - tic))
+
+        self._header = header
+        self._data = data
+
+    def _calibrate_active_channel_data(self, key):
+        """Calibrate active channel data only."""
+        raise NotImplementedError("This should be implemented in the sub class")
+
+    def get_dataset(self, key, info):
+        """Get a dataset from the file."""
+        if key['name'] in self._channel_names:
+            dataset = self._calibrate_active_channel_data(key)
+            if dataset is None:
+                return None
+        elif key['name'] in ['longitude', 'latitude']:
+            dataset = self.navigate(key['name'])
+            dataset.attrs = info
+        elif key['name'] in self._angle_names:
+            dataset = self.get_angles(key['name'])
+        else:
+            raise ValueError("Not a supported dataset: %s", key['name'])
+
+        self._update_dataset_attributes(dataset, key, info)
+
+        if not self._shape:
+            self._shape = dataset.shape
+
+        return dataset
+
+
+class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
     """Reader for AVHRR L1B files created from the AAPP software."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize object information by reading the input file."""
         super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info,
                                                filetype_info)
+
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
 
-        self._data = None
-        self._header = None
         self._is3b = None
         self._is3a = None
-        self._shape = None
-        self.area = None
         self.sensor = 'avhrr-3'
+        self._header_offset = 22016
+
+        self._channel_names = CHANNEL_NAMES
+        self._angle_names = ANGLES
+
+        self._scan_type = _SCANTYPE
+        self._header_type = _HEADERTYPE
+
         self.read()
 
         self.active_channels = self._get_active_channels()
@@ -92,6 +181,13 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
     def _get_active_channels(self):
         status = self._get_channel_binary_status_from_header()
         return self._convert_binary_channel_status_to_activation_dict(status)
+
+    def _calibrate_active_channel_data(self, key):
+        """Calibrate active channel data only."""
+        if self.active_channels[key['name']]:
+            return self.calibrate(key)
+        else:
+            return None
 
     def _get_channel_binary_status_from_header(self):
         status = self._header['inststat1'].item()
@@ -113,65 +209,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             activated[channel_name] = bool(status >> bit & 1)
         return activated
 
-    @property
-    def start_time(self):
-        """Get the time of the first observation."""
-        return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][0]) - 1,
-            milliseconds=int(self._data['scnlintime'][0]))
-
-    @property
-    def end_time(self):
-        """Get the time of the final observation."""
-        return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][-1]) - 1,
-            milliseconds=int(self._data['scnlintime'][-1]))
-
-    def get_dataset(self, key, info):
-        """Get a dataset from the file."""
-        if key['name'] in CHANNEL_NAMES:
-            if self.active_channels[key['name']]:
-                dataset = self.calibrate(key)
-            else:
-                return None
-        elif key['name'] in ['longitude', 'latitude']:
-            dataset = self.navigate(key['name'])
-            dataset.attrs = info
-        elif key['name'] in ANGLES:
-            dataset = self.get_angles(key['name'])
-        else:
-            raise ValueError("Not a supported dataset: %s", key['name'])
-
-        self._update_dataset_attributes(dataset, key, info)
-
-        if not self._shape:
-            self._shape = dataset.shape
-
-        return dataset
-
-    def _update_dataset_attributes(self, dataset, key, info):
-        dataset.attrs.update({'platform_name': self.platform_name,
-                              'sensor': self.sensor})
-        dataset.attrs.update(key.to_dict())
-        for meta_key in ('standard_name', 'units'):
-            if meta_key in info:
-                dataset.attrs.setdefault(meta_key, info[meta_key])
-
-    def read(self):
-        """Read the data."""
-        tic = datetime.now()
-        header = np.memmap(self.filename, dtype=_HEADERTYPE, mode="r", shape=(1, ))
-        data = np.memmap(self.filename, dtype=_SCANTYPE, offset=22016, mode="r")
-
-        logger.debug("Reading time %s", str(datetime.now() - tic))
-
-        self._header = header
-        self._data = data
-
     def available_datasets(self, configured_datasets=None):
         """Get the available datasets."""
         for _, mda in configured_datasets:
-            if mda['name'] in CHANNEL_NAMES:
+            if mda['name'] in self._channel_names:
                 yield self.active_channels[mda['name']], mda
             else:
                 yield True, mda
@@ -180,7 +221,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         """Get sun-satellite viewing angles."""
         sunz, satz, azidiff = self._get_all_interpolated_angles()
 
-        name_to_variable = dict(zip(ANGLES, (satz, sunz, azidiff)))
+        name_to_variable = dict(zip(self._angle_names, (satz, sunz, azidiff)))
         return create_xarray(name_to_variable[angle_id])
 
     @functools.lru_cache(maxsize=10)
@@ -226,10 +267,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         lons, lats = self._get_all_interpolated_coordinates()
         if coordinate_id == 'longitude':
             return create_xarray(lons)
-        elif coordinate_id == 'latitude':
+        if coordinate_id == 'latitude':
             return create_xarray(lats)
-        else:
-            raise KeyError("Coordinate {} unknown.".format(coordinate_id))
+
+        raise KeyError("Coordinate {} unknown.".format(coordinate_id))
 
     @functools.lru_cache(maxsize=10)
     def _get_all_interpolated_coordinates(self):
@@ -294,8 +335,6 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         ds.attrs.update(dataset_id._asdict())
         return ds
 
-
-AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
 
 # AAPP 1b header
 

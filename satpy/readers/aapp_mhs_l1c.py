@@ -27,14 +27,12 @@ https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_F
 """
 
 import logging
-from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
 
 from satpy import CHUNK_SIZE
-from satpy.readers.aapp_l1b import create_xarray
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.aapp_l1b import AAPPL1BaseFileHandler, create_xarray
 
 logger = logging.getLogger(__name__)
 
@@ -56,25 +54,28 @@ PLATFORM_NAMES = {15: 'NOAA-15',
 
 MHS_PLATFORMS = ['Metop-A', 'Metop-B', 'Metop-C', 'NOAA-18', 'NOAA-19']
 
-ANGLES = ['sensor_zenith_angle', 'sensor_azimuth_angle',
-          'solar_zenith_angle', 'solar_azimuth_difference_angle']
+MHS_ANGLES = ['sensor_zenith_angle', 'sensor_azimuth_angle',
+              'solar_zenith_angle', 'solar_azimuth_difference_angle']
 
 
-class MHSAAPPL1CFile(BaseFileHandler):
+class MHSAAPPL1CFile(AAPPL1BaseFileHandler):
     """Reader for AMSU-B/MHS L1C files created from the AAPP software."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize object information by reading the input file."""
         super(MHSAAPPL1CFile, self).__init__(filename, filename_info,
                                              filetype_info)
+
         self.channels = {i: None for i in MHS_CHANNEL_NAMES_SET}
         self.units = {i: 'brightness_temperature' for i in MHS_CHANNEL_NAMES_SET}
 
-        self._data = None
-        self._header = None
+        self._header_offset = HEADER_LENGTH
 
-        self._shape = None
-        self.area = None
+        self._channel_names = MHS_CHANNEL_NAMES
+        self._angle_names = MHS_ANGLES
+
+        self._scan_type = _SCANTYPE
+        self._header_type = _HEADERTYPE
 
         self.read()
 
@@ -83,20 +84,6 @@ class MHSAAPPL1CFile(BaseFileHandler):
             raise ValueError("Unsupported platform ID: %d" % self._header['satid'])
 
         self._get_sensorname()
-
-    @property
-    def start_time(self):
-        """Get the time of the first observation."""
-        return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][0]) - 1,
-            milliseconds=int(self._data['scnlintime'][0]))
-
-    @property
-    def end_time(self):
-        """Get the time of the final observation."""
-        return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
-            days=int(self._data['scnlindy'][-1]) - 1,
-            milliseconds=int(self._data['scnlintime'][-1]))
 
     def _get_sensorname(self):
         """Get the sensor name from the header."""
@@ -107,44 +94,6 @@ class MHSAAPPL1CFile(BaseFileHandler):
         else:
             raise IOError("Sensor neither MHS nor AMSU-B!")
 
-    def get_dataset(self, key, info):
-        """Get a dataset from the file."""
-        if key['name'] in MHS_CHANNEL_NAMES:
-            dataset = self.calibrate(key)
-
-        elif key['name'] in ['longitude', 'latitude']:
-            dataset = self.navigate(key['name'])
-            dataset.attrs = info
-        elif key['name'] in ANGLES:
-            dataset = self.get_angles(key['name'])
-        else:
-            raise ValueError("Not a supported dataset: %s", key['name'])
-
-        self._update_dataset_attributes(dataset, key, info)
-
-        if not self._shape:
-            self._shape = dataset.shape
-
-        return dataset
-
-    def _update_dataset_attributes(self, dataset, key, info):
-        dataset.attrs.update({'platform_name': self.platform_name,
-                              'sensor': self.sensor})
-        dataset.attrs.update(key.to_dict())
-        for meta_key in ('standard_name', 'units'):
-            if meta_key in info:
-                dataset.attrs.setdefault(meta_key, info[meta_key])
-
-    def read(self):
-        """Read the data."""
-        tic = datetime.now()
-        header = np.memmap(self.filename, dtype=_HEADERTYPE, mode="r", shape=(1, ))
-        data = np.memmap(self.filename, dtype=_SCANTYPE, offset=HEADER_LENGTH, mode="r")
-        logger.debug("Reading time %s", str(datetime.now() - tic))
-
-        self._header = header
-        self._data = data
-
     def get_angles(self, angle_id):
         """Get sun-satellite viewing angles."""
         satz = self._data["angles"][:, :, 0] * 1e-2
@@ -153,7 +102,7 @@ class MHSAAPPL1CFile(BaseFileHandler):
         sunz = self._data["angles"][:, :, 2] * 1e-2
         suna = self._data["angles"][:, :, 3] * 1e-2
 
-        name_to_variable = dict(zip(ANGLES, (satz, sata, sunz, suna)))
+        name_to_variable = dict(zip(MHS_ANGLES, (satz, sata, sunz, suna)))
         return create_xarray(name_to_variable[angle_id])
 
     def navigate(self, coordinate_id):
@@ -163,13 +112,17 @@ class MHSAAPPL1CFile(BaseFileHandler):
             return create_xarray(lons)
         if coordinate_id == 'latitude':
             return create_xarray(lats)
-        else:
-            raise KeyError("Coordinate {} unknown.".format(coordinate_id))
+
+        raise KeyError("Coordinate {} unknown.".format(coordinate_id))
 
     def _get_coordinates_in_degrees(self):
         lons = self._data["latlon"][:, :, 1] * 1e-4
         lats = self._data["latlon"][:, :, 0] * 1e-4
         return lons, lats
+
+    def _calibrate_active_channel_data(self, key):
+        """Calibrate active channel data only."""
+        return self.calibrate(key)
 
     def calibrate(self, dataset_id):
         """Calibrate the data."""
