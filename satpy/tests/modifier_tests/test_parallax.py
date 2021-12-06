@@ -16,6 +16,7 @@
 import dask.array as da
 import numpy as np
 import pytest
+from pyproj import Geod
 from pyresample import create_area_def
 
 
@@ -90,33 +91,46 @@ def test_forward_parallax_clearsky():
     assert np.isnan(corr_lat).all()
 
 
-def test_forward_parallax_cloudy():
-    """Test parallax correction for fully cloudy scene."""
+@pytest.mark.parametrize("lat,lon", [(0, 0), (0, 40), (0, 179.9)])
+@pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
+def test_forward_parallax_cloudy_ssp(lat, lon, resolution):
+    """Test parallax correction for fully cloudy scene at SSP."""
     from ...modifiers.parallax import forward_parallax
-    sat_lat = sat_lon = 0
-    lat = np.linspace(-20, 20, 25).reshape(5, 5)
-    lon = np.linspace(-20, 20, 25).reshape(5, 5).T
-    height = np.full((5, 5), 10)  # constant high clouds at 10 km
+
+    N = 5
+    lats = np.linspace(lat-N*resolution, lat+N*resolution, 25).reshape(N, N)
+    lons = np.linspace(lon-N*resolution, lon+N*resolution, 25).reshape(N, N).T
+    height = np.full((N, N), 10)  # constant high clouds at 10 km
     sat_alt = 35_000.
     (corr_lon, corr_lat) = forward_parallax(
-        sat_lon, sat_lat, sat_alt, lon, lat, height)
-    # should be equal only at SSP
-    delta_lon = corr_lon - lon
-    delta_lat = corr_lat - lat
-    assert delta_lat[2, 2] == delta_lon[2, 2] == 0
-    assert (delta_lat == 0).sum() == 1
-    assert (delta_lon == 0).sum() == 1
+        lon, lat, sat_alt, lons, lats, height)
+    # confirm movements behave as expected
+    geod = Geod(ellps="sphere")
+    corr_dist = geod.inv(np.tile(lon, [N, N]), np.tile(lat, [N, N]), corr_lon, corr_lat)[2]
+    corr_delta = geod.inv(corr_lon, corr_lat, lons, lats)[2]
+    uncorr_dist = geod.inv(np.tile(lon, [N, N]), np.tile(lat, [N, N]), lons, lats)[2]
+    # should be equal at SSP and nowhere else
+    np.testing.assert_allclose(corr_delta[2, 2], 0, atol=1e-9)
+    assert np.isclose(corr_delta, 0, atol=1e-9).sum() == 1
     # should always get closer to SSP
-    assert (abs(corr_lon) <= abs(lon)).all()
-    assert (abs(corr_lat) <= abs(lat)).all()
+    assert (corr_dist <= uncorr_dist).all()
     # should be larger the further we get from SSP
-    assert (delta_lon[2, 1:] < delta_lon[2, :-1]).all()
-    assert (delta_lat[1:, 1] < delta_lat[:-1, 1]).all()
-    # reference value to be confirmed!
-    np.testing.assert_allclose(
-        corr_lat[4, 4], 19.955884)  # FIXME confirm reference value
-    np.testing.assert_allclose(
-        corr_lon[4, 4], 19.950061)  # FIXME confirm reference value
+    assert (np.diff(corr_delta[N//2, :N//2+1]) < 0).all()
+    assert (np.diff(corr_delta[N//2, N//2:]) > 0).all()
+    assert (np.diff(corr_delta[N//2:, N//2]) > 0).all()
+    assert (np.diff(corr_delta[:N//2+1, N//2]) < 0).all()
+    assert (np.diff(np.diag(corr_delta)[:N//2+1]) < 0).all()
+    assert (np.diff(np.diag(corr_delta)[N//2:]) > 0).all()
+
+
+def test_forward_parallax_cloudy():
+    """Test parallax correction values for cloudy case."""
+    raise NotImplementedError("Test to be implemented!")
+#    # reference value to be confirmed!
+#    np.testing.assert_allclose(
+#        corr_lat[4, 4], 19.955884)  # FIXME confirm reference value
+#    np.testing.assert_allclose(
+#        corr_lon[4, 4], 19.950061)  # FIXME confirm reference value
 
 
 def test_forward_parallax_mixed():
