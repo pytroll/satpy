@@ -60,9 +60,8 @@ Note that the resulting file will not be fully CF compliant.
 Dataset Encoding
 ~~~~~~~~~~~~~~~~
 
-Dataset encoding can be specified in two ways:
-
-1) Via the ``encoding`` keyword argument of ``save_datasets``:
+Dataset encoding can be specified via the ``encoding`` keyword argument of
+``save_datasets``:
 
     >>> my_encoding = {
     ...    'my_dataset_1': {
@@ -79,12 +78,8 @@ Dataset encoding can be specified in two ways:
     >>> scn.save_datasets(writer='cf', filename='encoding_test.nc', encoding=my_encoding)
 
 
-2) Via the ``encoding`` attribute of the datasets in a scene. For example
-
-    >>> scn['my_dataset'].encoding = {'zlib': False}
-    >>> scn.save_datasets(writer='cf', filename='encoding_test.nc')
-
-See the `xarray encoding documentation`_ for all encoding options.
+The ``encoding`` attribute of individual datasets will be ignored. See the
+`xarray encoding documentation`_ for all encoding options.
 
 
 Attribute Encoding
