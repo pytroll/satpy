@@ -106,6 +106,8 @@ def test_forward_parallax_cloudy_ssp(lat, lon, resolution):
         lon, lat, sat_alt, lons, lats, height)
     # confirm movements behave as expected
     geod = Geod(ellps="sphere")
+    # need to use np.tile here as geod.inv doesn't seem to broadcast (not
+    # when turning lon/lat in arrays of size (1, 1) either)
     corr_dist = geod.inv(np.tile(lon, [N, N]), np.tile(lat, [N, N]), corr_lon, corr_lat)[2]
     corr_delta = geod.inv(corr_lon, corr_lat, lons, lats)[2]
     uncorr_dist = geod.inv(np.tile(lon, [N, N]), np.tile(lat, [N, N]), lons, lats)[2]
@@ -123,14 +125,21 @@ def test_forward_parallax_cloudy_ssp(lat, lon, resolution):
     assert (np.diff(np.diag(corr_delta)[N//2:]) > 0).all()
 
 
-def test_forward_parallax_cloudy():
-    """Test parallax correction values for cloudy case."""
-    raise NotImplementedError("Test to be implemented!")
-#    # reference value to be confirmed!
-#    np.testing.assert_allclose(
-#        corr_lat[4, 4], 19.955884)  # FIXME confirm reference value
-#    np.testing.assert_allclose(
-#        corr_lon[4, 4], 19.950061)  # FIXME confirm reference value
+def test_forward_parallax_cloudy_slant():
+    """Test parallax correction for fully cloudy scene (not SSP)."""
+    from ...modifiers.parallax import forward_parallax
+    sat_lat = sat_lon = 0
+    lat = np.linspace(-20, 20, 25).reshape(5, 5)
+    lon = np.linspace(-20, 20, 25).reshape(5, 5).T
+    height = np.full((5, 5), 10)  # constant high clouds at 10 km
+    sat_alt = 35_000.
+    (corr_lon, corr_lat) = forward_parallax(
+        sat_lon, sat_lat, sat_alt, lon, lat, height)
+    # reference value to be confirmed!
+    np.testing.assert_allclose(
+        corr_lat[4, 4], 19.955884)  # FIXME confirm reference value
+    np.testing.assert_allclose(
+        corr_lon[4, 4], 19.950061)  # FIXME confirm reference value
 
 
 def test_forward_parallax_mixed():
