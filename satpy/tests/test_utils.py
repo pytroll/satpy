@@ -254,16 +254,19 @@ class TestUtils(unittest.TestCase):
         warn_mock.assert_called()
 
         # Legacy
+        warn_mock.reset_mock()
         dataset.attrs.pop('orbital_parameters')
         lon, lat, alt = get_satpos(dataset)
         self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
+        warn_mock.assert_called()
 
 
 @pytest.mark.parametrize(
     "attrs",
     (
-        {'satellite_altitude': 1},
-        {'satellite_longitude': 1, 'satellite_latitude': 1}
+        {},
+        {'orbital_parameters':  {'projection_longitude': 1}},
+        {'satellite_altitude': 1}
     )
 )
 def test_get_satpos_fails_with_informative_error(attrs):
@@ -272,6 +275,7 @@ def test_get_satpos_fails_with_informative_error(attrs):
     with pytest.raises(KeyError) as err:
         get_satpos(dataset)
     assert not str(err.value).startswith("satellite_")
+    assert not str(err.value).startswith("orbital_")
 
 
 def test_make_fake_scene():

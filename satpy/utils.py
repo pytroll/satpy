@@ -296,15 +296,22 @@ def get_satpos(dataset):
 
     """
     try:
-        orb_params = dataset.attrs['orbital_parameters']
-
-        alt = _get_sat_altitude(orb_params)
-
-        lon, lat = _get_sat_lonlat(orb_params)
+        return _get_satpos(dataset)
     except KeyError:
-        alt = _get_sat_altitude_legacy(dataset)
-        lon, lat = _get_sat_lonlat_legacy(dataset)
+        warnings.warn('Failed to get satellite position from orbital '
+                      'parameters, using legacy attributes instead.')
+        try:
+            return _get_satpos_legacy(dataset)
+        except KeyError:
+            raise KeyError("Unable to determine satellite position. Either"
+                           "the reader doesn't provide that information or"
+                           "geolocation datasets are not available.")
 
+
+def _get_satpos(dataset):
+    orb_params = dataset.attrs['orbital_parameters']
+    alt = _get_sat_altitude(orb_params)
+    lon, lat = _get_sat_lonlat(orb_params)
     return lon, lat, alt
 
 
@@ -339,22 +346,11 @@ def _get_sat_lonlat(orb_params):
     return lon, lat
 
 
-def _get_sat_altitude_legacy(dataset):
-    try:
-        return dataset.attrs['satellite_altitude']
-    except KeyError:
-        raise KeyError("Unable to determine satellite altitude. Either the reader doesn't "
-                       "provide that information or geolocation datasets are not available.")
-
-
-def _get_sat_lonlat_legacy(dataset):
-    try:
-        lon = dataset.attrs['satellite_longitude']
-        lat = dataset.attrs['satellite_latitude']
-        return lon, lat
-    except KeyError:
-        raise KeyError("Unable to determine satellite lon/lat. Either the reader doesn't "
-                       "provide that information or geolocation datasets are not available.")
+def _get_satpos_legacy(dataset):
+    lon = dataset.attrs['satellite_longitude']
+    lat = dataset.attrs['satellite_latitude']
+    alt = dataset.attrs['satellite_altitude']
+    return lon, lat, alt
 
 
 def recursive_dict_update(d, u):
