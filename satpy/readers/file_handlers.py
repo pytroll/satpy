@@ -20,9 +20,30 @@
 from abc import ABCMeta
 
 import numpy as np
+import xarray as xr
 from pyresample.geometry import SwathDefinition
 
 from satpy.dataset import combine_metadata
+from satpy.readers import open_file_or_filename
+
+
+def open_dataset(filename, *args, **kwargs):
+    """Open a file with xarray.
+
+    Args:
+       filename (Union[str, FSFile]):
+           The path to the file to open. Can be a `string` or
+           :class:`~satpy.readers.FSFile` object which allows using
+           `fsspec` or `s3fs` like files.
+
+    Returns:
+       xarray.Dataset:
+
+    Notes:
+       This can be used to enable readers to open remote files.
+    """
+    f_obj = open_file_or_filename(filename)
+    return xr.open_dataset(f_obj, *args, **kwargs)
 
 
 class BaseFileHandler(metaclass=ABCMeta):
