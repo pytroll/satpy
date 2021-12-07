@@ -170,7 +170,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     with mock.patch('satpy.readers.seviri_l2_grib.get_area_definition', mock.Mock()) as gad:
                         self.reader.get_area_def(mock.Mock(resolution=400.))
                         # Asserts that calculate_area_extent has been called with the correct arguments
-                        expected_args = (500, 1200, 1, 1, 1000, 0, 0, 400, 400)
+                        expected_args = ({'center_point': 500, 'east': 1, 'west': 1000, 'south': 1, 'north': 1200,
+                                         'column_step': 400., 'line_step': 400.},)
                         name, args, kwargs = cae.mock_calls[0]
                         self.assertEqual(args, expected_args)
                         # Asserts that get_area_definition has been called with the correct arguments

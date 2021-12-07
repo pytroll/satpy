@@ -68,21 +68,10 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
-        # The area extension depends on the pixel-level resolution and possible segment size of the dataset
-        column_step = dataset_id.resolution
-        line_step = dataset_id.resolution
+        self._area_dict['column_step'] = dataset_id.resolution
+        self._area_dict['line_step'] = dataset_id.resolution
 
-        center_point = self._area_dict['center_point']
-        south = self._area_dict['south']
-        north = self._area_dict['north']
-        east = self._area_dict['east']
-        west = self._area_dict['west']
-
-        we_offset = self._area_dict.get('column_offset', 0)
-        ns_offset = self._area_dict.get('row_offset', 0)
-
-        area_extent = calculate_area_extent(center_point, north, east, south, west,
-                                            we_offset, ns_offset, column_step, line_step)
+        area_extent = calculate_area_extent(self._area_dict)
 
         # Call the get_area_definition function to obtain the area
         area_def = get_area_definition(self._pdict, area_extent)

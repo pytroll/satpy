@@ -409,8 +409,19 @@ class NativeMSGFileHandler(BaseFileHandler):
 
             nlines = north_bound - south_bound + 1
             ncolumns = west_bound - east_bound + 1
-            aex = calculate_area_extent(center_point, north_bound, east_bound, south_bound, west_bound,
-                                        we_offset, ns_offset, column_step, line_step)
+
+            area_dict = {'center_point': center_point,
+                         'east': east_bound,
+                         'west': west_bound,
+                         'south': south_bound,
+                         'north': north_bound,
+                         'column_step': column_step,
+                         'line_step': line_step,
+                         'column_offset': we_offset,
+                         'line_offset': ns_offset
+                         }
+
+            aex = calculate_area_extent(area_dict)
 
             aex_data['area_extent'].append(aex)
             aex_data['nlines'].append(nlines)

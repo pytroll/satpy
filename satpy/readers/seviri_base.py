@@ -826,19 +826,21 @@ class OrbitPolynomialFinder:
         return closest_match, distance
 
 
-def calculate_area_extent(center_point, north, east, south, west, we_offset, ns_offset, column_step, line_step):
+# def calculate_area_extent(center_point, north, east, south, west, we_offset, ns_offset, column_step, line_step):
+def calculate_area_extent(area_dict):
     """Calculate the area extent seen by a geostationary satellite.
 
     Args:
-        center_point: Center point for the projection
-        north: Northmost row number
-        east: Eastmost column number
-        west: Westmost column number
-        south: Southmost row number
-        we_offset: Column offset
-        ns_offset: Row offset
-        column_step: Pixel resulution in meters in east-west direction
-        line_step: Pixel resulution in meters in soutth-north direction
+        area_dict: A dictionary containing the required parameters
+            center_point: Center point for the projection
+            north: Northmost row number
+            east: Eastmost column number
+            west: Westmost column number
+            south: Southmost row number
+            column_step: Pixel resulution in meters in east-west direction
+            line_step: Pixel resulution in meters in soutth-north direction
+            [column_offset: Column offset, defaults to 0 if not given]
+            [line_offset: Line offset, defaults to 0 if not given]
     Returns:
         tuple: An area extent for the scene defined by the lower left and
                upper right corners
@@ -846,10 +848,20 @@ def calculate_area_extent(center_point, north, east, south, west, we_offset, ns_
     # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
     # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
     """
-    ll_c = (center_point - east + 0.5 + we_offset) * column_step
-    ll_l = (north - center_point + 0.5 + ns_offset) * line_step
-    ur_c = (center_point - west - 0.5 + we_offset) * column_step
-    ur_l = (south - center_point - 0.5 + ns_offset) * line_step
+    center_point = area_dict['center_point']
+    east = area_dict['east']
+    west = area_dict['west']
+    south = area_dict['south']
+    north = area_dict['north']
+    column_step = area_dict['column_step']
+    line_step = area_dict['line_step']
+    column_offset = area_dict.get('column_offset', 0)
+    line_offset = area_dict.get('line_offset', 0)
+
+    ll_c = (center_point - east + 0.5 + column_offset) * column_step
+    ll_l = (north - center_point + 0.5 + line_offset) * line_step
+    ur_c = (center_point - west - 0.5 + column_offset) * column_step
+    ur_l = (south - center_point - 0.5 + line_offset) * line_step
 
     return (ll_c, ll_l, ur_c, ur_l)
 
