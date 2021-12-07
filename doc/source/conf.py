@@ -278,4 +278,5 @@ intersphinx_mapping = {
     'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
     'donfig': ('https://donfig.readthedocs.io/en/latest', None),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
+    'fsspec': ('https://filesystem-spec.readthedocs.io/en/latest/', None),
 }
