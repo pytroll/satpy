@@ -284,12 +284,17 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
 def get_satpos(dataset):
     """Get satellite position from dataset attributes.
 
+    Satellite position is looked up in the `orbital_parameters` dictionary
+    in the dataset attributes, so readers must provide that information.
+
     Preferences are:
 
     * Longitude & Latitude: Nadir, actual, nominal, projection
     * Altitude: Actual, nominal, projection
 
-    A warning is issued when projection values have to be used because nothing else is available.
+    A warning is issued when projection values have to be used because nothing
+    else is available. If the `orbital_parameters` are missing, the method
+    falls back to the legacy attributes `satellite_*`.
 
     Returns:
         Geodetic longitude, latitude, altitude
