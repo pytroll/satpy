@@ -1147,6 +1147,8 @@ class Scene:
         """Call `compute` on all Scene datasets.
 
         See :meth:`xarray.DataArray.compute` for more details.
+        Note that this will convert the contents of the DataArray to numpy arrays which
+        may not work with all parts of Satpy which may expect dask arrays.
         """
         from dask import compute
         new_scn = self.copy()
