@@ -70,7 +70,7 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize AAPP level-1 file handler object."""
-        super(AAPPL1BaseFileHandler, self).__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self.channels = None
         self.units = None
