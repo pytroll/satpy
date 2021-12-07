@@ -29,6 +29,7 @@ import numpy as np
 from netCDF4 import Dataset
 
 from satpy.readers.fci_l2_nc import PRODUCT_DATA_DURATION_MINUTES, FciL2NCFileHandler, FciL2NCSegmentFileHandler
+from satpy.tests.utils import make_dataid
 
 
 class TestFciL2NCFileHandler(unittest.TestCase):
@@ -74,7 +75,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             two_layers_dataset[1, :, :] = 2 * np.ones((100, 10))
 
             mtg_geos_projection = nc.createVariable('mtg_geos_projection', int, dimensions=())
-            mtg_geos_projection.longitude_of_projection_origin = 10.0
+            mtg_geos_projection.longitude_of_projection_origin = 0.0
             mtg_geos_projection.semi_major_axis = 6378137.
             mtg_geos_projection.semi_minor_axis = 6356752.
             mtg_geos_projection.perspective_point_height = 35786400.
@@ -110,7 +111,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
         self.assertEqual(self.reader._spacecraft_name, 'test_platform')
         self.assertEqual(self.reader._sensor_name, 'test_data_source')
-        self.assertEqual(self.reader.ssp_lon, 10.0)
+        self.assertEqual(self.reader.ssp_lon, 0.0)
 
         global_attributes = self.reader._get_global_attributes()
         expected_global_attributes = {
@@ -120,7 +121,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             'end_time': datetime.datetime(year=2017, month=9, day=20,
                                           hour=17, minute=41, second=17),
             'spacecraft_name': 'test_platform',
-            'ssp_lon': 10.0,
+            'ssp_lon': 0.0,
             'sensor': 'test_data_source',
             'creation_time': datetime.datetime(year=2017, month=9, day=20,
                                                hour=12, minute=30, second=30),
@@ -128,45 +129,42 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         }
         self.assertEqual(global_attributes, expected_global_attributes)
 
-    @mock.patch('satpy.readers.fci_l2_nc.get_area_definition')
+    @mock.patch('satpy.readers.fci_l2_nc.geometry.AreaDefinition')
     @mock.patch('satpy.readers.fci_l2_nc.make_ext')
     def test_area_definition(self, me_, gad_):
         """Test the area definition computation."""
-        self.reader._compute_area_def()
+        self.reader._compute_area_def(make_dataid(name='test_area_def', resolution=2000))
 
         # Asserts that the make_ext function was called with the correct arguments
         me_.assert_called_once()
-        name, args, kwargs = me_.mock_calls[0]
-        self.assertTrue(np.allclose(args[0], 0.0))
-        self.assertTrue(np.allclose(args[1], 515.6620))
-        self.assertTrue(np.allclose(args[2], 0.0))
-        self.assertTrue(np.allclose(args[3], 5672.28217))
-        self.assertTrue(np.allclose(args[4], 35786400.))
+        args, kwargs = me_.call_args
+        self.assertTrue(np.allclose(args, [-0.0, -515.6620, 5672.28217, 0.0, 35786400.]))
 
-        p_dict = {
-            'nlines': 100,
-            'ncols': 10,
-            'ssp_lon': 10.0,
-            'a': 6378137.,
-            'b': 6356752.,
-            'h': 35786400.,
-            'a_name': 'FCI Area',
-            'a_desc': 'Area for FCI instrument',
-            'p_id': 'geos'
-        }
+        proj_dict = {'a': 6378137.,
+                     'b': 6356752.,
+                     'lon_0': 0.0,
+                     'h': 35786400,
+                     'proj': 'geos',
+                     'units': 'm'}
 
         # Asserts that the get_area_definition function was called with the correct arguments
         gad_.assert_called_once()
-        name, args, kwargs = gad_.mock_calls[0]
-        self.assertEqual(args[0], p_dict)
+        args, kwargs = gad_.call_args
+        self.assertEqual(args[0], 'mtg_fci_fdss_2km')
+        self.assertEqual(args[1], 'MTG FCI Full Disk Scanning Service area definition with 2 km resolution')
+        self.assertEqual(args[2], '')
+        self.assertEqual(args[3], proj_dict)
+        self.assertEqual(args[4], 10)
+        self.assertEqual(args[5], 100)
         # The second argument must be the return result of the make_ext function
-        self.assertEqual(args[1]._extract_mock_name(), 'make_ext()')
+        self.assertEqual(args[6]._extract_mock_name(), 'make_ext()')
 
     def test_dataset(self):
         """Test the execution of the get_dataset function."""
         # Checks the correct execution of the get_dataset function with a valid file_key
-        dataset = self.reader.get_dataset(None,
-                                          {'file_key': 'test_one_layer',
+        dataset = self.reader.get_dataset(make_dataid(name='test_one_layer', resolution=2000),
+                                          {'name': 'test_one_layer',
+                                           'file_key': 'test_one_layer',
                                            'fill_value': -999, 'mask_value': 0.,
                                            'file_type': 'test_file_type'})
 
@@ -176,8 +174,9 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(dataset.attrs['fill_value'], -999)
 
         # Checks the correct execution of the get_dataset function with a valid file_key & layer
-        dataset = self.reader.get_dataset(None,
-                                          {'file_key': 'test_two_layers', 'layer': 1,
+        dataset = self.reader.get_dataset(make_dataid(name='test_two_layers', resolution=2000),
+                                          {'name': 'test_two_layers',
+                                           'file_key': 'test_two_layers', 'layer': 1,
                                            'fill_value': -999, 'mask_value': 0,
                                            'file_type': 'test_file_type'})
         self.assertTrue(np.allclose(dataset.values, 2 * np.ones((100, 10))))
@@ -185,12 +184,25 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(dataset.attrs['spacecraft_name'], 'test_platform')
 
         # Checks the correct execution of the get_dataset function with an invalid file_key
-        invalid_dataset = self.reader.get_dataset(None,
-                                                  {'file_key': 'test_invalid',
+        invalid_dataset = self.reader.get_dataset(make_dataid(name='test_invalid', resolution=2000),
+                                                  {'name': 'test_invalid',
+                                                   'file_key': 'test_invalid',
                                                    'fill_value': -999, 'mask_value': 0,
                                                    'file_type': 'test_file_type'})
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
+
+        # Checks the correct execution of the get_dataset function when computing total optical thickness by summing up
+        # the contributions from two layers (in log10 space)
+        dataset = self.reader.get_dataset(make_dataid(name='retrieved_cloud_optical_thickness', resolution=2000),
+                                          {'name': 'retrieved_cloud_optical_thickness',
+                                           'file_key': 'test_two_layers',
+                                           'fill_value': -999, 'mask_value': 0,
+                                           'file_type': 'test_file_type'})
+        # Checks that the function returns None
+        expected_sum = np.empty((100, 10))
+        expected_sum[:] = np.log10(10**2 + 10**1)
+        self.assertTrue(np.allclose(dataset.values, expected_sum))
 
 
 class TestFciL2NCSegmentFileHandler(unittest.TestCase):
@@ -202,8 +214,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         self.seg_test_file = str(uuid.uuid4()) + ".nc"
         with Dataset(self.seg_test_file, 'w') as nc:
             # Create dimensions
-            nc.createDimension('number_of_FoR_cols', 10)
-            nc.createDimension('number_of_FoR_rows', 100)
+            nc.createDimension('number_of_FoR_cols', 348)
+            nc.createDimension('number_of_FoR_rows', 348)
             nc.createDimension('number_of_channels', 8)
             nc.createDimension('number_of_categories', 6)
 
@@ -216,11 +228,11 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             # Add datasets
             x = nc.createVariable('x', np.float32, dimensions=('number_of_FoR_cols',))
             x.standard_name = 'projection_x_coordinate'
-            x[:] = np.arange(10)
+            x[:] = np.arange(348)
 
             y = nc.createVariable('y', np.float32, dimensions=('number_of_FoR_rows',))
             x.standard_name = 'projection_y_coordinate'
-            y[:] = np.arange(100)
+            y[:] = np.arange(348)
 
             chans = nc.createVariable('channels', np.float32, dimensions=('number_of_channels',))
             chans.standard_name = 'fci_channels'
@@ -233,7 +245,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             test_dataset = nc.createVariable('test_values', np.float32,
                                              dimensions=('number_of_FoR_rows', 'number_of_FoR_cols',
                                                          'number_of_channels', 'number_of_categories'))
-            test_dataset[:] = np.ones((100, 10, 8, 6))
+            test_dataset[:] = np.ones((348, 348, 8, 6))
             test_dataset.test_attr = 'attr'
             test_dataset.units = 'test_units'
 
@@ -290,20 +302,32 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
     def test_dataset(self):
         """Test the execution of the get_dataset function."""
         # Checks the correct execution of the get_dataset function with a valid file_key
-        dataset = self.segment_reader.get_dataset(None,
-                                                  {'file_key': 'test_values',
+        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                                  {'name': 'test_values',
+                                                   'file_key': 'test_values',
                                                    'fill_value': -999, 'mask_value': 0, })
-        self.assertTrue(np.allclose(dataset.values, np.ones((100, 10, 8, 6))))
+        self.assertTrue(np.allclose(dataset.values, np.ones((348, 348, 8, 6))))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
 
         # Checks the correct execution of the get_dataset function with an invalid file_key
-        invalid_dataset = self.segment_reader.get_dataset(None,
-                                                          {'file_key': 'test_invalid',
+        invalid_dataset = self.segment_reader.get_dataset(make_dataid(name='test_invalid', resolution=32000),
+                                                          {'name': 'test_invalid',
+                                                           'file_key': 'test_invalid',
                                                            'fill_value': -999, 'mask_value': 0})
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
+
+        # Checks the correct execution of the get_dataset function with dimensions that do not match expected area def.
+        self.assertRaises(NotImplementedError,
+                          self.segment_reader.get_dataset,
+                          make_dataid(name='test_wrong_dims', resolution=6000),
+                          {'name': 'test_wrong_dims',
+                           'file_key': 'test_values',
+                           'fill_value': -999, 'mask_value': 0,
+                           }
+                          )
 
 
 class TestFciL2NCErrorFileHandler(unittest.TestCase):
@@ -403,7 +427,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             y[:] = np.arange(1)
 
             mtg_geos_projection = nc_byte.createVariable('mtg_geos_projection', int, dimensions=())
-            mtg_geos_projection.longitude_of_projection_origin = 10.0
+            mtg_geos_projection.longitude_of_projection_origin = 0.0
             mtg_geos_projection.semi_major_axis = 6378137.
             mtg_geos_projection.semi_minor_axis = 6356752.
             mtg_geos_projection.perspective_point_height = 35786400.
@@ -434,8 +458,9 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
     def test_byte_extraction(self):
         """Test the execution of the get_dataset function."""
         # Value of 1 is expected to be returned for this test
-        dataset = self.byte_reader.get_dataset(None,
-                                               {'file_key': 'cloud_mask_test_flag',
+        dataset = self.byte_reader.get_dataset(make_dataid(name='cloud_mask_test_flag', resolution=2000),
+                                               {'name': 'cloud_mask_test_flag',
+                                                'file_key': 'cloud_mask_test_flag',
                                                 'fill_value': -999, 'mask_value': 0.,
                                                 'file_type': 'nc_fci_test_clm',
                                                 'extract_byte': 1,
@@ -444,8 +469,9 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
         self.assertEqual(dataset.values, 1)
 
         # Value of 0 is expected fto be returned or this test
-        dataset = self.byte_reader.get_dataset(None,
-                                               {'file_key': 'cloud_mask_test_flag',
+        dataset = self.byte_reader.get_dataset(make_dataid(name='cloud_mask_test_flag', resolution=2000),
+                                               {'name': 'cloud_mask_test_flag',
+                                                'file_key': 'cloud_mask_test_flag',
                                                 'fill_value': -999, 'mask_value': 0.,
                                                 'file_type': 'nc_fci_test_clm',
                                                 'extract_byte': 23,

@@ -24,10 +24,13 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import xarray as xr
+from pyresample import geometry
 
 from satpy import CHUNK_SIZE
-from satpy.readers._geos_area import get_area_definition, make_ext
+from satpy.readers._geos_area import get_geos_area_naming, make_ext
+from satpy.readers.eum_base import get_service_mode
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.resample import get_area_def
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +138,6 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         self.ncols = self.nc['x'].size
         self._projection = self.nc['mtg_geos_projection']
 
-        # Compute the area definition
-        self._area_def = self._compute_area_def()
-
     @property
     def ssp_lon(self):
         """Return subsatellite point longitude."""
@@ -150,6 +150,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
         var_key = dataset_info['file_key']
+        par_name = dataset_info['name']
         logger.debug('Reading in file to get dataset with key %s.', var_key)
 
         try:
@@ -158,18 +159,15 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
             logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
             return None
 
-        # TODO in some of the test files, invalid pixels contain the value defined as "fill_value" in the YAML file
-        # instead of being masked directly in the netCDF variable.
-        # therefore NaN is applied where such value is found or (0 if the array contains integer values)
-        # the next 11 lines have to be removed once the product files are correctly configured
-        try:
-            mask_value = dataset_info['mask_value']
-        except KeyError:
-            mask_value = np.NaN
-        try:
-            fill_value = dataset_info['fill_value']
-        except KeyError:
-            fill_value = np.NaN
+        # Compute the area definition
+        self._area_def = self._compute_area_def(dataset_id)
+
+        # In some of the test files, invalid pixels may be represented by different values. These are currentlyI
+        # identified using "fill_value" and "mask_value" in the YAML file. Any pixel with a value that equals either
+        # "fill_value" or "mask_value" will be set to NaN.
+        # Todo: clean up when test files contain clean data.
+        mask_value = dataset_info.get('mask_value', np.NaN)
+        fill_value = dataset_info.get('fill_value', np.NaN)
 
         if dataset_info['file_type'] == 'nc_fci_test_clm':
             data_values = variable.where(variable != fill_value, mask_value).astype('uint32', copy=False)
@@ -181,9 +179,14 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
 
         # If the variable has 3 dimensions, select the required layer
         if variable.ndim == 3:
-            layer = dataset_info.get('layer', 0)
-            logger.debug('Selecting the layer %d.', layer)
-            variable = variable.sel(maximum_number_of_layers=layer)
+            if par_name == 'retrieved_cloud_optical_thickness':
+                variable = self.get_total_cot(variable)
+
+            else:
+                # Extract data from layer defined in yaml-file
+                layer = dataset_info['layer']
+                logger.debug('Selecting the layer %d.', layer)
+                variable = variable.sel(maximum_number_of_layers=layer)
 
         if dataset_info['file_type'] == 'nc_fci_test_clm' and var_key != 'cloud_mask_cmrt6_test_result':
             variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
@@ -203,26 +206,36 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         """Return the area definition (common to all data in product)."""
         return self._area_def
 
-    def _compute_area_def(self):
+    def _compute_area_def(self, dataset_id):
         """Compute the area definition.
 
         Returns:
             AreaDefinition: A pyresample AreaDefinition object containing the area definition.
 
         """
-        # Read the projection data from the mtg_geos_projection variable
-        a = float(self._projection.attrs['semi_major_axis'])
-        b = float(self._projection.attrs['semi_minor_axis'])
-        h = float(self._projection.attrs['perspective_point_height'])
+        area_extent = self._get_area_extent()
+        area_naming, proj_dict = self._get_proj_area(dataset_id)
+        area_def = geometry.AreaDefinition(
+            area_naming['area_id'],
+            area_naming['description'],
+            "",
+            proj_dict,
+            self.ncols,
+            self.nlines,
+            area_extent)
 
-        # TODO sweep_angle_axis value not handled at the moment, therefore commented out
+        return area_def
+
+    def _get_area_extent(self):
+        """Calculate area extent of dataset."""
+        # Todo: Sweep_angle_axis value not handled at the moment, therefore commented out
         # sweep_axis = self._projection.attrs['sweep_angle_axis']
 
         # Coordinates of the pixel in radians
         x = self.nc['x']
         y = self.nc['y']
-        # TODO conversion to radians: offset and scale factor are missing from some test NetCDF file
-        # TODO the next two lines should be removed when the offset and scale factor are correctly configured
+        # Todo: Conversion to radians: offset and scale factor are missing from some test NetCDF file
+        # Todo: The next three lines should be removed when the offset and scale factor are correctly configured
         if not hasattr(x, 'standard_name'):
             x = np.radians(x * 0.003202134 - 8.914740401)
             y = np.radians(y * 0.003202134 - 8.914740401)
@@ -232,29 +245,58 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         y_deg = np.degrees(y)
 
         # Select the extreme points of the extension area
-        x_l, x_r = x_deg.values[0], x_deg.values[-1]
-        y_l, y_u = y_deg.values[0], y_deg.values[-1]
+        # Todo: The area extent currently refers to pixel centers, fix such that it refers to pixel corners
+        x_l, x_r = -x_deg.values[0], -x_deg.values[-1]
+        y_l, y_u = y_deg.values[-1], y_deg.values[0]
 
         # Compute the extension area in meters
+        h = float(self._projection.attrs['perspective_point_height'])
         area_extent = make_ext(x_l, x_r, y_l, y_u, h)
 
-        # Assemble the projection definition dictionary
-        p_dict = {
-            'nlines': self.nlines,
-            'ncols': self.ncols,
-            'ssp_lon': self.ssp_lon,
-            'a': a,
-            'b': b,
-            'h': h,
-            'a_name': 'FCI Area',                 # TODO to be confirmed
-            'a_desc': 'Area for FCI instrument',  # TODO to be confirmed
-            'p_id': 'geos'
-        }
+        return area_extent
 
-        # Compute the area definition
-        area_def = get_area_definition(p_dict, area_extent)
+    def _get_proj_area(self, dataset_id):
+        """Extract projection and area information."""
+        # Read the projection data from the mtg_geos_projection variable
+        a = float(self._projection.attrs['semi_major_axis'])
+        b = float(self._projection.attrs['semi_minor_axis'])
+        h = float(self._projection.attrs['perspective_point_height'])
 
-        return area_def
+        res = dataset_id.resolution
+
+        area_naming_input_dict = {'platform_name': 'mtg',
+                                  'instrument_name': 'fci',
+                                  'resolution': res,
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('fci', self.ssp_lon)})
+
+        proj_dict = {'a': a,
+                     'b': b,
+                     'lon_0': self.ssp_lon,
+                     'h': h,
+                     'proj': 'geos',
+                     'units': 'm'}
+
+        return area_naming, proj_dict
+
+    @staticmethod
+    def get_total_cot(variable):
+        """Sum the cloud optical thickness from the two OCA layers.
+
+        The optical thickness has to be transformed to linear space before adding the values from the two layers. The
+        combined/total optical thickness is then transformed back to logarithmic space.
+        """
+        attrs = variable.attrs
+        variable = 10 ** variable
+        variable = variable.fillna(0.)
+        variable = variable.sum(dim='maximum_number_of_layers', keep_attrs=True)
+        variable = variable.where(variable != 0., np.nan)
+        variable = np.log10(variable)
+        variable.attrs = attrs
+
+        return variable
 
 
 class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
@@ -277,8 +319,63 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         # Read metadata which are common to all datasets
         self.nlines = self.nc['number_of_FoR_rows'].size
         self.ncols = self.nc['number_of_FoR_cols'].size
-
         self.ssp_lon = SSP_DEFAULT
+
+    def get_area_def(self, key):
+        """Return the area definition (common to all data in product)."""
+        return self._area_def
+
+    def _construct_area_def(self, dataset_id):
+        """Construct the area definition.
+
+        Returns:
+            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+
+        """
+        # Todo: make sure that the lat/lons from the AreaDefinition match the latitude and longitude arrays stored in
+        #  the segmented product files.
+        res = dataset_id.resolution
+
+        area_naming_input_dict = {'platform_name': 'mtg',
+                                  'instrument_name': 'fci',
+                                  'resolution': res,
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('fci', self.ssp_lon)})
+
+        # Construct area definition from standardized area definition.
+        stand_area_def = get_area_def(area_naming['area_id'])
+
+        if (stand_area_def.x_size != self.ncols) | (stand_area_def.y_size != self.nlines):
+            raise NotImplementedError('Unrecognised area definition.')
+
+        mod_area_extent = self._modify_area_extent(stand_area_def.area_extent)
+
+        area_def = geometry.AreaDefinition(
+            stand_area_def.area_id,
+            stand_area_def.description,
+            "",
+            stand_area_def.proj_dict,
+            stand_area_def.x_size,
+            stand_area_def.y_size,
+            mod_area_extent)
+
+        return area_def
+
+    @staticmethod
+    def _modify_area_extent(stand_area_extent):
+        """Modify area extent to macth satellite projection.
+
+        Area extent has to be modified since the L2 products are stored with the south-east
+        in the upper-right corner (as opposed to north-east in the standardized area definitions).
+        """
+        ll_x, ll_y, ur_x, ur_y = stand_area_extent
+        ll_y *= -1.
+        ur_y *= -1.
+        area_extent = tuple([ll_x, ll_y, ur_x, ur_y])
+
+        return area_extent
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
@@ -291,11 +388,13 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
             logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
             return None
 
-        # TODO in some of the test files, invalid pixels contain the value defined as "fill_value" in the YAML file
-        # instead of being masked directly in the netCDF variable.
-        # therefore NaN is applied where such value is found or (0 if the array contains integer values)
-        # the next 11 lines have to be removed once the product files are correctly configured
+        # Compute the area definition
+        self._area_def = self._construct_area_def(dataset_id)
 
+        # In some of the test files, invalid pixels may be represented by different values. These are currentlyI
+        # identified using "fill_value" and "mask_value" in the YAML file. Any pixel with a value that equals either
+        # "fill_value" or "mask_value" will be set to NaN.
+        # Todo: clean up when test files contain clean data.
         mask_value = dataset_info.get('mask_value', np.NaN)
         fill_value = dataset_info.get('fill_value', np.NaN)
 
@@ -305,7 +404,6 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
 
         # Rename the dimensions as required by Satpy
         variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
-#       # Manage the attributes of the dataset
         variable.attrs.setdefault('units', None)
 
         variable.attrs.update(dataset_info)
