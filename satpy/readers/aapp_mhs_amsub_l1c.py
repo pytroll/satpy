@@ -39,8 +39,9 @@ logger = logging.getLogger(__name__)
 
 LINE_CHUNK = CHUNK_SIZE ** 2 // 90
 
-MHS_CHANNEL_NAMES = ['1', '2', '3', '4', '5']
-MHS_CHANNEL_NAMES_SET = ('1', '2', '3', '4', '5')
+MHS_AMSUB_CHANNEL_NAMES = ['1', '2', '3', '4', '5']
+MHS_AMSUB_ANGLE_NAMES = ['sensor_zenith_angle', 'sensor_azimuth_angle',
+                         'solar_zenith_angle', 'solar_azimuth_difference_angle']
 
 PLATFORM_NAMES = {15: 'NOAA-15',
                   16: 'NOAA-16',
@@ -52,38 +53,40 @@ PLATFORM_NAMES = {15: 'NOAA-15',
                   3: 'Metop-C',
                   4: 'Metop simulator'}
 
-MHS_PLATFORMS = ['Metop-A', 'Metop-B', 'Metop-C', 'NOAA-18', 'NOAA-19']
-
-MHS_ANGLES = ['sensor_zenith_angle', 'sensor_azimuth_angle',
-              'solar_zenith_angle', 'solar_azimuth_difference_angle']
+MHS_AMSUB_PLATFORMS = ['Metop-A', 'Metop-B', 'Metop-C', 'NOAA-18', 'NOAA-19']
 
 
-class MHSAAPPL1CFile(AAPPL1BaseFileHandler):
+class MHS_AMSUB_AAPPL1CFile(AAPPL1BaseFileHandler):
     """Reader for AMSU-B/MHS L1C files created from the AAPP software."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize object information by reading the input file."""
-        super(MHSAAPPL1CFile, self).__init__(filename, filename_info,
-                                             filetype_info)
+        super(MHS_AMSUB_AAPPL1CFile, self).__init__(filename, filename_info,
+                                                    filetype_info)
 
-        self.channels = {i: None for i in MHS_CHANNEL_NAMES_SET}
-        self.units = {i: 'brightness_temperature' for i in MHS_CHANNEL_NAMES_SET}
+        self.channels = {i: None for i in MHS_AMSUB_CHANNEL_NAMES}
+        self.units = {i: 'brightness_temperature' for i in MHS_AMSUB_CHANNEL_NAMES}
 
+        self._channel_names = MHS_AMSUB_CHANNEL_NAMES
+        self._angle_names = MHS_AMSUB_ANGLE_NAMES
+
+        self._set_filedata_layout()
+        self.read()
+
+        self._get_platform_name()
+        self._get_sensorname()
+
+    def _set_filedata_layout(self):
+        """Set the file data type/layout."""
         self._header_offset = HEADER_LENGTH
-
-        self._channel_names = MHS_CHANNEL_NAMES
-        self._angle_names = MHS_ANGLES
-
         self._scan_type = _SCANTYPE
         self._header_type = _HEADERTYPE
 
-        self.read()
-
+    def _get_platform_name(self):
+        """Get the platform name from the header."""
         self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
         if self.platform_name is None:
             raise ValueError("Unsupported platform ID: %d" % self._header['satid'])
-
-        self._get_sensorname()
 
     def _get_sensorname(self):
         """Get the sensor name from the header."""
@@ -102,7 +105,7 @@ class MHSAAPPL1CFile(AAPPL1BaseFileHandler):
         sunz = self._data["angles"][:, :, 2] * 1e-2
         suna = self._data["angles"][:, :, 3] * 1e-2
 
-        name_to_variable = dict(zip(MHS_ANGLES, (satz, sata, sunz, suna)))
+        name_to_variable = dict(zip(MHS_AMSUB_ANGLE_NAMES, (satz, sata, sunz, suna)))
         return create_xarray(name_to_variable[angle_id])
 
     def navigate(self, coordinate_id):
@@ -154,7 +157,7 @@ def _calibrate(data,
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
     channel = da.from_array(data["btemps"][:, :, chn] / 100., chunks=(LINE_CHUNK, 90))
-    mask &= channel != 0  # What does this do? FIXME!
+    mask &= channel != 0
 
     if calib_type == 'counts':
         return channel

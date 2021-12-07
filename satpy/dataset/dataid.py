@@ -461,47 +461,46 @@ class ModifierTuple(tuple):
 
 #: Default ID keys DataArrays.
 default_id_keys_config = {'name': {
-    'required': True,
-},
-    'wavelength': {
-    'type': WavelengthRange,
-},
-    'resolution': {
-    'transitive': False,
-},
-    'calibration': {
-    'enum': [
-        'reflectance',
-        'brightness_temperature',
-        'radiance',
-        'counts'
-    ],
-    'transitive': True,
-},
-    'modifiers': {
-    'default': ModifierTuple(),
-    'type': ModifierTuple,
-},
-}
-
+                              'required': True,
+                          },
+                          'wavelength': {
+                              'type': WavelengthRange,
+                          },
+                          'resolution': {
+                              'transitive': False,
+                              },
+                          'calibration': {
+                              'enum': [
+                                  'reflectance',
+                                  'brightness_temperature',
+                                  'radiance',
+                                  'counts'
+                                  ],
+                              'transitive': True,
+                          },
+                          'modifiers': {
+                              'default': ModifierTuple(),
+                              'type': ModifierTuple,
+                          },
+                          }
 
 #: Default ID keys for coordinate DataArrays.
 default_co_keys_config = {'name': {
-    'required': True,
-},
-    'resolution': {
-    'transitive': True,
-}
-}
+                              'required': True,
+                          },
+                          'resolution': {
+                              'transitive': True,
+                          }
+                          }
 
 #: Minimal ID keys for DataArrays, for example composites.
 minimal_default_keys_config = {'name': {
-    'required': True,
-},
-    'resolution': {
-    'transitive': True,
-}
-}
+                                  'required': True,
+                              },
+                               'resolution': {
+                                   'transitive': True,
+                               }
+                              }
 
 
 class DataID(dict):

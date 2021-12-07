@@ -25,7 +25,7 @@ import unittest
 
 import numpy as np
 
-from satpy.readers.aapp_mhs_l1c import _HEADERTYPE, _SCANTYPE, HEADER_LENGTH, MHSAAPPL1CFile
+from satpy.readers.aapp_mhs_amsub_l1c import _HEADERTYPE, _SCANTYPE, HEADER_LENGTH, MHS_AMSUB_AAPPL1CFile
 from satpy.tests.utils import make_dataid
 
 SCANLINE1 = [[26798, 27487, 23584, 24816, 26196],
@@ -302,7 +302,7 @@ LATLON_SCLINE1 = [[715994,  787602],
                   [887022, -626300]]
 
 
-class TestMHSAAPPL1CReadData(unittest.TestCase):
+class TestMHS_AMSUB_AAPPL1CReadData(unittest.TestCase):
     """Test the filehandler."""
 
     def setUp(self):
@@ -342,7 +342,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
                               'start_time': datetime.datetime(2020, 9, 17, 10, 6),
                               'orbit_number': 41509}
 
-        self.filetype_info = {'file_reader': MHSAAPPL1CFile,
+        self.filetype_info = {'file_reader': MHS_AMSUB_AAPPL1CFile,
                               'file_patterns':
                               ['mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c'],
                               'file_type': 'mhs_aapp_l1c'}
@@ -354,7 +354,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+            fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
         assert fh_.platform_name == 'Metop-C'
 
@@ -364,7 +364,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+            fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
         assert fh_.platform_name == 'Metop-B'
 
@@ -375,7 +375,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+            fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
         assert fh_.sensor == 'mhs'
 
@@ -385,7 +385,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+            fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
         assert fh_.sensor == 'amsub'
 
@@ -397,7 +397,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             self._data.tofile(tmpfile)
 
             with self.assertRaises(IOError):
-                fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+                fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
     def test_read(self):
         """Test getting the platform name."""
@@ -406,7 +406,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+            fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
 
             info = {}
 
@@ -426,7 +426,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+            fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
             key = make_dataid(name='solar_zenith_angle')
             res = fh_.get_dataset(key, info)
@@ -453,7 +453,7 @@ class TestMHSAAPPL1CReadData(unittest.TestCase):
             tmpfile.seek(HEADER_LENGTH, 0)
             self._data.tofile(tmpfile)
 
-            fh_ = MHSAAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
+            fh_ = MHS_AMSUB_AAPPL1CFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
             key = make_dataid(name='longitude')
             res = fh_.get_dataset(key, info)

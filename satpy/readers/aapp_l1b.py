@@ -40,13 +40,11 @@ LINE_CHUNK = CHUNK_SIZE ** 2 // 2048
 
 logger = logging.getLogger(__name__)
 
-CHANNEL_NAMES = ['1', '2', '3a', '3b', '4', '5']
-AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
+AVHRR_CHANNEL_NAMES = ["1", "2", "3a", "3b", "4", "5"]
 
-
-ANGLES = ['sensor_zenith_angle',
-          'solar_zenith_angle',
-          'sun_sensor_azimuth_difference_angle']
+AVHRR_ANGLE_NAMES = ['sensor_zenith_angle',
+                     'solar_zenith_angle',
+                     'sun_sensor_azimuth_difference_angle']
 
 PLATFORM_NAMES = {4: 'NOAA-15',
                   2: 'NOAA-16',
@@ -74,18 +72,19 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
 
         self.channels = None
         self.units = None
-
         self.sensor = "unknown"
 
         self._data = None
         self._header = None
         self._shape = None
         self.area = None
-        self._header_offset = 0
 
         self._channel_names = []
         self._angle_names = []
 
+    def _set_filedata_layout(self):
+        """Set the file data type/layout."""
+        self._header_offset = 0
         self._scan_type = np.dtype([("siteid", "<i2")])
         self._header_type = np.dtype([("siteid", "<i2")])
 
@@ -160,21 +159,26 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
         self._is3b = None
         self._is3a = None
-        self.sensor = 'avhrr-3'
-        self._header_offset = 22016
+        self._channel_names = AVHRR_CHANNEL_NAMES
+        self._angle_names = AVHRR_ANGLE_NAMES
 
-        self._channel_names = CHANNEL_NAMES
-        self._angle_names = ANGLES
-
-        self._scan_type = _SCANTYPE
-        self._header_type = _HEADERTYPE
-
+        self._set_filedata_layout()
         self.read()
 
         self.active_channels = self._get_active_channels()
 
-        self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
+        self._get_platform_name()
+        self.sensor = 'avhrr-3'
 
+    def _set_filedata_layout(self):
+        """Set the file data type/layout."""
+        self._header_offset = 22016
+        self._scan_type = _SCANTYPE
+        self._header_type = _HEADERTYPE
+
+    def _get_platform_name(self):
+        """Get the platform name from the header."""
+        self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
         if self.platform_name is None:
             raise ValueError("Unsupported platform ID: %d" % self.header['satid'])
 
