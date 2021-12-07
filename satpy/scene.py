@@ -1148,9 +1148,13 @@ class Scene:
 
         See :meth:`xarray.DataArray.compute` for more details.
         """
+        from dask import compute
         new_scn = self.copy()
-        for k in new_scn._datasets.keys():
-            new_scn[k] = new_scn[k].compute(**kwargs)
+        datasets = compute(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
         return new_scn
 
     def persist(self, **kwargs):
@@ -1158,9 +1162,13 @@ class Scene:
 
         See :meth:`xarray.DataArray.persist` for more details.
         """
+        from dask import persist
         new_scn = self.copy()
-        for k in new_scn._datasets.keys():
-            new_scn[k] = new_scn[k].persist(**kwargs)
+        datasets = persist(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
         return new_scn
 
     def chunk(self, **kwargs):
@@ -1171,6 +1179,7 @@ class Scene:
         new_scn = self.copy()
         for k in new_scn._datasets.keys():
             new_scn[k] = new_scn[k].chunk(**kwargs)
+
         return new_scn
 
     @staticmethod
