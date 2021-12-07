@@ -4,7 +4,7 @@ reader:
   long_name: MTG FCI L2 (NetCDF4)
   description: Reader for EUMETSAT MTG FCI L2 files in NetCDF4 format.
   sensors: [fci]
-  reader: !!python/name:readers.yaml_reader.GEOFlippableFileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
   nc_fci_oca:
@@ -40,7 +40,7 @@ file_types:
     file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-TOZ--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc" ]
 
 datasets:
-  
+
 # CLM
   cloud_state:
     name: cloud_state
@@ -106,7 +106,7 @@ datasets:
     long_name: cloud_type
     fill_value: 0
     mask_value: 0
-    
+
   quality_illumination_ct:
     name: quality_illumination_ct
     resolution: 2000
@@ -1162,3 +1162,1086 @@ datasets:
     long_name: pixel_percentage_used_in_segment
     fill_value: 65535
     mask_value: 65535
+
+  reflectance_mean_all_vis04:
+    name: reflectance_mean_all_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 0
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_vis04:
+    name: reflectance_mean_clear_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 0
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_vis04:
+    name: reflectance_mean_cloudy_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 0
+    category_id: 2
+    fill_value: 65535
+
+  reflectance_mean_all_vis05:
+    name: reflectance_mean_all_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 1
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_vis05:
+    name: reflectance_mean_clear_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 1
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_vis05:
+    name: reflectance_mean_cloudy_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 1
+    category_id: 2
+    fill_value: 65535
+
+  reflectance_mean_all_vis06:
+    name: reflectance_mean_all_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 2
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_vis06:
+    name: reflectance_mean_clear_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 2
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_vis06:
+    name: reflectance_mean_cloudy_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 2
+    category_id: 2
+    fill_value: 65535
+
+  reflectance_mean_all_vis08:
+    name: reflectance_mean_all_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 3
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_vis08:
+    name: reflectance_mean_clear_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 3
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_vis08:
+    name: reflectance_mean_cloudy_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 3
+    category_id: 2
+    fill_value: 65535
+
+  reflectance_mean_all_vis09:
+    name: reflectance_mean_all_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 4
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_vis09:
+    name: reflectance_mean_clear_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 4
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_vis09:
+    name: reflectance_mean_cloudy_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 4
+    category_id: 2
+    fill_value: 65535
+
+  reflectance_mean_all_nir13:
+    name: reflectance_mean_all_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 5
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_nir13:
+    name: reflectance_mean_clear_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 5
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_nir13:
+    name: reflectance_mean_cloudy_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 5
+    category_id: 2
+    fill_value: 65535
+
+  reflectance_mean_all_nir16:
+    name: reflectance_mean_all_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 6
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_nir16:
+    name: reflectance_mean_clear_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 6
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_nir16:
+    name: reflectance_mean_cloudy_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 6
+    category_id: 2
+    fill_value: 65535
+
+  reflectance_mean_all_nir22:
+    name: reflectance_mean_all_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_all
+    vis_channel_id: 7
+    category_id: 0
+    fill_value: 65535
+
+  reflectance_mean_clear_nir22:
+    name: reflectance_mean_clear_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_clear
+    vis_channel_id: 7
+    category_id: 1
+    fill_value: 65535
+
+  reflectance_mean_cloudy_nir22:
+    name: reflectance_mean_cloudy_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: reflectance_mean
+    long_name: reflectance_mean_cloudy
+    vis_channel_id: 7
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_ir38:
+    name: bt_mean_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 0
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_ir38:
+    name: bt_mean_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 0
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_ir38:
+    name: bt_mean_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 0
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_wv63:
+    name: bt_mean_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 1
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_wv63:
+    name: bt_mean_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 1
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_wv63:
+    name: bt_mean_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 1
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_wv73:
+    name: bt_mean_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 2
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_wv73:
+    name: bt_mean_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 2
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_wv73:
+    name: bt_mean_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 2
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_ir87:
+    name: bt_mean_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 3
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_ir87:
+    name: bt_mean_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 3
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_ir87:
+    name: bt_mean_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 3
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_ir97:
+    name: bt_mean_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 4
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_ir97:
+    name: bt_mean_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 4
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_ir97:
+    name: bt_mean_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 4
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_ir105:
+    name: bt_mean_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 5
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_ir105:
+    name: bt_mean_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 5
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_ir105:
+    name: bt_mean_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 5
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_ir123:
+    name: bt_mean_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 6
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_ir123:
+    name: bt_mean_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 6
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_ir123:
+    name: bt_mean_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 6
+    category_id: 2
+    fill_value: 65535
+
+  bt_mean_all_ir133:
+    name: bt_mean_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_all
+    ir_channel_id: 7
+    category_id: 0
+    fill_value: 65535
+
+  bt_mean_clear_ir133:
+    name: bt_mean_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_clear
+    ir_channel_id: 7
+    category_id: 1
+    fill_value: 65535
+
+  bt_mean_cloudy_ir133:
+    name: bt_mean_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: bt_mean
+    long_name: bt_mean_cloudy
+    ir_channel_id: 7
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_vis04:
+    name: quality_reflectance_all_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 0
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_vis04:
+    name: quality_reflectance_clear_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 0
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_vis04:
+    name: quality_reflectance_cloudy_vis04
+    resolution: 32000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 0
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_vis05:
+    name: quality_reflectance_all_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 1
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_vis05:
+    name: quality_reflectance_clear_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 1
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_vis05:
+    name: quality_reflectance_cloudy_vis05
+    resolution: 32000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 1
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_vis06:
+    name: quality_reflectance_all_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 2
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_vis06:
+    name: quality_reflectance_clear_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 2
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_vis06:
+    name: quality_reflectance_cloudy_vis06
+    resolution: 32000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 2
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_vis08:
+    name: quality_reflectance_all_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 3
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_vis08:
+    name: quality_reflectance_clear_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 3
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_vis08:
+    name: quality_reflectance_cloudy_vis08
+    resolution: 32000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 3
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_vis09:
+    name: quality_reflectance_all_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 4
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_vis09:
+    name: quality_reflectance_clear_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 4
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_vis09:
+    name: quality_reflectance_cloudy_vis09
+    resolution: 32000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 4
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_nir13:
+    name: quality_reflectance_all_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 5
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_nir13:
+    name: quality_reflectance_clear_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 5
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_nir13:
+    name: quality_reflectance_cloudy_nir13
+    resolution: 32000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 5
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_nir16:
+    name: quality_reflectance_all_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 6
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_nir16:
+    name: quality_reflectance_clear_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 6
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_nir16:
+    name: quality_reflectance_cloudy_nir16
+    resolution: 32000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 6
+    category_id: 2
+    fill_value: 65535
+
+  quality_reflectance_all_nir22:
+    name: quality_reflectance_all_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_all
+    vis_channel_id: 7
+    category_id: 0
+    fill_value: 65535
+
+  quality_reflectance_clear_nir22:
+    name: quality_reflectance_clear_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_clear
+    vis_channel_id: 7
+    category_id: 1
+    fill_value: 65535
+
+  quality_reflectance_cloudy_nir22:
+    name: quality_reflectance_cloudy_nir22
+    resolution: 32000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_asr
+    file_key: quality_reflectance
+    long_name: quality_reflectance_cloudy
+    vis_channel_id: 7
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_ir38:
+    name: quality_bt_all_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 0
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_ir38:
+    name: quality_bt_clear_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 0
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_ir38:
+    name: quality_bt_cloudy_ir38
+    resolution: 32000
+    wavelength: [3.4, 3.8, 4.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 0
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_wv63:
+    name: quality_bt_all_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 1
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_wv63:
+    name: quality_bt_clear_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 1
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_wv63:
+    name: quality_bt_cloudy_wv63
+    resolution: 32000
+    wavelength: [5.3, 6.3, 7.3]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 1
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_wv73:
+    name: quality_bt_all_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 2
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_wv73:
+    name: quality_bt_clear_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 2
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_wv73:
+    name: quality_bt_cloudy_wv73
+    resolution: 32000
+    wavelength: [6.85, 7.35, 7.85]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 2
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_ir87:
+    name: quality_bt_all_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 3
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_ir87:
+    name: quality_bt_clear_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 3
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_ir87:
+    name: quality_bt_cloudy_ir87
+    resolution: 32000
+    wavelength: [8.3, 8.7, 9.1]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 3
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_ir97:
+    name: quality_bt_all_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 4
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_ir97:
+    name: quality_bt_clear_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 4
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_ir97:
+    name: quality_bt_cloudy_ir97
+    resolution: 32000
+    wavelength: [9.36, 9.66, 9.96]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 4
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_ir105:
+    name: quality_bt_all_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 5
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_ir105:
+    name: quality_bt_clear_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 5
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_ir105:
+    name: quality_bt_cloudy_ir105
+    resolution: 32000
+    wavelength: [9.8, 10.5, 11.2]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 5
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_ir123:
+    name: quality_bt_all_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 6
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_ir123:
+    name: quality_bt_clear_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 6
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_ir123:
+    name: quality_bt_cloudy_ir123
+    resolution: 32000
+    wavelength: [11.8, 12.3, 12.8]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 6
+    category_id: 2
+    fill_value: 65535
+
+  quality_bt_all_ir133:
+    name: quality_bt_all_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_all
+    ir_channel_id: 7
+    category_id: 0
+    fill_value: 65535
+
+  quality_bt_clear_ir133:
+    name: quality_bt_clear_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_clear
+    ir_channel_id: 7
+    category_id: 1
+    fill_value: 65535
+
+  quality_bt_cloudy_ir133:
+    name: quality_bt_cloudy_ir133
+    resolution: 32000
+    wavelength: [12.7, 13.3, 13.9]
+    file_type: nc_fci_asr
+    file_key: quality_bt
+    long_name: quality_bt_cloudy
+    ir_channel_id: 7
+    category_id: 2
+    fill_value: 65535
+
+  pixel_percentage_all:
+    name: pixel_percentage_all
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: pixel_percentage_all
+    category_id: 0
+    fill_value: 65535
+
+  pixel_percentage_clear:
+    name: pixel_percentage_clear
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: pixel_percentage_clear
+    category_id: 1
+    fill_value: 65535
+
+  pixel_percentage_cloudy:
+    name: pixel_percentage_cloudy
+    resolution: 32000
+    file_type: nc_fci_asr
+    file_key: pixel_percentage
+    long_name: pixel_percentage_cloudy
+    category_id: 2
+    fill_value: 65535

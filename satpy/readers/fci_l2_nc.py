@@ -165,7 +165,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         # In some of the test files, invalid pixels may be represented by different values. These are currentlyI
         # identified using "fill_value" and "mask_value" in the YAML file. Any pixel with a value that equals either
         # "fill_value" or "mask_value" will be set to NaN.
-        # Todo: clean up when test files contain clean data.
+        # TODO clean up when test files contain clean data.
         mask_value = dataset_info.get('mask_value', np.NaN)
         fill_value = dataset_info.get('fill_value', np.NaN)
 
@@ -228,14 +228,14 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
 
     def _get_area_extent(self):
         """Calculate area extent of dataset."""
-        # Todo: Sweep_angle_axis value not handled at the moment, therefore commented out
+        # TODO Sweep_angle_axis value not handled at the moment, therefore commented out
         # sweep_axis = self._projection.attrs['sweep_angle_axis']
 
         # Coordinates of the pixel in radians
         x = self.nc['x']
         y = self.nc['y']
-        # Todo: Conversion to radians: offset and scale factor are missing from some test NetCDF file
-        # Todo: The next three lines should be removed when the offset and scale factor are correctly configured
+        # TODO Conversion to radians: offset and scale factor are missing from some test NetCDF file
+        # TODO The next three lines should be removed when the offset and scale factor are correctly configured
         if not hasattr(x, 'standard_name'):
             x = np.radians(x * 0.003202134 - 8.914740401)
             y = np.radians(y * 0.003202134 - 8.914740401)
@@ -245,7 +245,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         y_deg = np.degrees(y)
 
         # Select the extreme points of the extension area
-        # Todo: The area extent currently refers to pixel centers, fix such that it refers to pixel corners
+        # TODO The area extent currently refers to pixel centers, fix such that it refers to pixel corners
         x_l, x_r = -x_deg.values[0], -x_deg.values[-1]
         y_l, y_u = y_deg.values[-1], y_deg.values[0]
 
@@ -332,7 +332,7 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
             AreaDefinition: A pyresample AreaDefinition object containing the area definition.
 
         """
-        # Todo: make sure that the lat/lons from the AreaDefinition match the latitude and longitude arrays stored in
+        # TODO make sure that the lat/lons from the AreaDefinition match the latitude and longitude arrays stored in
         #  the segmented product files.
         res = dataset_id.resolution
 
@@ -394,7 +394,7 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         # In some of the test files, invalid pixels may be represented by different values. These are currentlyI
         # identified using "fill_value" and "mask_value" in the YAML file. Any pixel with a value that equals either
         # "fill_value" or "mask_value" will be set to NaN.
-        # Todo: clean up when test files contain clean data.
+        # TODO clean up when test files contain clean data.
         mask_value = dataset_info.get('mask_value', np.NaN)
         fill_value = dataset_info.get('fill_value', np.NaN)
 
@@ -402,11 +402,43 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         float_variable.attrs = variable.attrs
         variable = float_variable
 
+        if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
+            variable = self._slice_dataset(variable, dataset_info)
+
         # Rename the dimensions as required by Satpy
         variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
         variable.attrs.setdefault('units', None)
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
+
+        return variable
+
+    @staticmethod
+    def _slice_dataset(variable, dataset_info):
+        """Slice data if dimension layers have been provided in yaml-file."""
+        if 'number_of_categories' in variable.dims:
+            cat_id = dataset_info.get('category_id', None)
+            if cat_id is not None:
+                logger.debug('Selecting category-id %i.' % cat_id)
+                variable = variable.sel(number_of_categories=cat_id)
+
+        if 'number_of_channels' in variable.dims:
+            channel_id = dataset_info.get('channel_id', None)
+            if channel_id is not None:
+                logger.debug('Selecting FCI channel-id %i.' % channel_id)
+                variable = variable.sel(number_of_channels=channel_id)
+
+        if 'number_of_vis_channels' in variable.dims:
+            channel_id = dataset_info.get('vis_channel_id', None)
+            if channel_id is not None:
+                logger.debug('Selecting FCI VIS/NIR channel-id %i.' % channel_id)
+                variable = variable.sel(number_of_vis_channels=channel_id, )
+
+        if 'number_of_ir_channels' in variable.dims:
+            channel_id = dataset_info.get('ir_channel_id', None)
+            if channel_id is not None:
+                logger.debug('Selecting FCI IR channel-id %i.' % channel_id)
+                variable = variable.sel(number_of_ir_channels=channel_id)
 
         return variable
