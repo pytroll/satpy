@@ -135,11 +135,11 @@ def test_forward_parallax_cloudy_slant():
     sat_alt = 35_000.
     (corr_lon, corr_lat) = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, height)
-    # reference value to be confirmed!
+    # reference value from Simon Proud
     np.testing.assert_allclose(
-        corr_lat[4, 4], 19.955884)  # FIXME confirm reference value
+        corr_lat[4, 4], 19.955, rtol=5e-4)
     np.testing.assert_allclose(
-        corr_lon[4, 4], 19.950061)  # FIXME confirm reference value
+        corr_lon[4, 4], 19.960, rtol=5e-4)
 
 
 def test_forward_parallax_mixed():
