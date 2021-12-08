@@ -29,7 +29,8 @@ import xarray as xr
 
 import satpy.readers.yaml_reader as yr
 from satpy.dataset import DataQuery
-from satpy.dataset.dataid import FrequencyDoubleSideBand, FrequencyRange, ModifierTuple
+from satpy.dataset.dataid import ModifierTuple
+from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand, FrequencyRange
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.tests.utils import make_dataid
 
