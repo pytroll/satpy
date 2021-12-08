@@ -924,4 +924,9 @@ enhancements:
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
-        kwargs: {stretch: crude, min_stretch: 0, max_stretch: 20.0}
+        kwargs:
+          stretch: log
+          base: "10"
+          factor: 21.0
+          min_stretch: 0.0
+          max_stretch: 20.0

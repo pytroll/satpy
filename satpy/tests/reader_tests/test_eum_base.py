@@ -30,6 +30,7 @@ from satpy.readers.eum_base import (
     time_cds_short,
     timecds2datetime,
 )
+from satpy.readers.seviri_base import mpef_product_header
 
 
 class TestMakeTimeCdsDictionary(unittest.TestCase):
@@ -77,9 +78,10 @@ class TestMakeTimeCdsRecarray(unittest.TestCase):
 class TestRecarray2Dict(unittest.TestCase):
     """Test TestRecarray2Dict."""
 
-    def test_fun(self):
+    def test_timestamps(self):
         """Test function for TestRecarray2Dict."""
         # datatype definition
+
         pat_dt = np.dtype([
             ('TrueRepeatCycleStart', time_cds_expanded),
             ('PlanForwardScanEnd', time_cds_expanded),
@@ -100,6 +102,22 @@ class TestRecarray2Dict(unittest.TestCase):
         }
 
         self.assertEqual(recarray2dict(pat), expected)
+
+    def test_mpef_product_header(self):
+        """Test function for TestRecarray2Dict and mpef product header."""
+        names = ['ImageLocation', 'GsicsCalMode', 'GsicsCalValidity',
+                 'Padding', 'OffsetToData', 'Padding2']
+        mpef_header = np.dtype([(name, mpef_product_header.fields[name][0])
+                                for name in names])
+        mph_struct = np.array([('OPE', True, False, 'XX', 1000, '12345678')], dtype=mpef_header)
+        test_mph = {'ImageLocation': "OPE",
+                    'GsicsCalMode': True,
+                    'GsicsCalValidity': False,
+                    'Padding': 'XX',
+                    'OffsetToData': 1000,
+                    'Padding2': '12345678'
+                    }
+        self.assertEqual(recarray2dict(mph_struct), test_mph)
 
 
 class TestGetServiceMode(unittest.TestCase):

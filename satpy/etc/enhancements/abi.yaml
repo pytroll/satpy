@@ -156,6 +156,18 @@ enhancements:
           min_in: 163.0
           max_in: 330.0
 
+  # EumetSat cloud phase and cloud type RGB recipes
+  # http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+  cloud_phase:
+    standard_name: cloud_phase
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,  0,   0]
+          max_stretch: [50, 50, 100]
+
   # NOAA GOES-R Level-2 ABI Cloud Mask product
   # https://www.goes-r.gov/products/baseline-clear-sky-mask.html
   binary_cloud_mask:
