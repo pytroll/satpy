@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2020 Satpy developers
+# Copyright (c) 2015-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -244,7 +244,6 @@ default_id_keys_config = {'name': {
                           },
                           }
 
-
 #: Default ID keys for coordinate DataArrays.
 default_co_keys_config = {'name': {
                               'required': True,
@@ -475,12 +474,12 @@ def _generalize_value_for_comparison(val):
     """Get a generalize value for comparisons."""
     if isinstance(val, numbers.Number):
         return 0
-    elif isinstance(val, str):
+    if isinstance(val, str):
         return ""
-    elif isinstance(val, tuple):
+    if isinstance(val, tuple):
         return tuple()
-    else:
-        raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+
+    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
 
 
 class DataQuery:
