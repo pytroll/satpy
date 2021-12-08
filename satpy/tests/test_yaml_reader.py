@@ -270,7 +270,6 @@ class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
 
     def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
         """Test custom type with dictionary contents gets parsed correctly."""
-        from satpy.dataset.dataid import FrequencyDoubleSideBand, FrequencyRange
         ds_ids = list(self.reader.all_dataset_ids)
         assert ds_ids[0]["frequency_range"] == FrequencyRange(89., 2.8, "GHz")
 
