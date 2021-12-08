@@ -76,9 +76,9 @@ def recarray2dict(arr):
                     try:
                         data = data.decode()
                     except ValueError:
-                        res[key] = None
-                        continue
-                    data = data.split(':')[0].strip()
+                        data = None
+                    else:
+                        data = data.split(':')[0].strip()
                 res[key] = data
             else:
                 res[key] = data.squeeze()
