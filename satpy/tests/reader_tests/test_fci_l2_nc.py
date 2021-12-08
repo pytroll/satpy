@@ -245,7 +245,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             test_dataset = nc.createVariable('test_values', np.float32,
                                              dimensions=('number_of_FoR_rows', 'number_of_FoR_cols',
                                                          'number_of_channels', 'number_of_categories'))
-            test_dataset[:] = np.ones((348, 348, 8, 6))
+
+            test_dataset[:] = self._get_unique_array(range(8), range(6))
             test_dataset.test_attr = 'attr'
             test_dataset.units = 'test_units'
 
@@ -306,7 +307,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                                   {'name': 'test_values',
                                                    'file_key': 'test_values',
                                                    'fill_value': -999, 'mask_value': 0, })
-        self.assertTrue(np.allclose(dataset.values, np.ones((348, 348, 8, 6))))
+        expected_dataset = self._get_unique_array(range(8), range(6))
+        self.assertTrue(np.allclose(dataset.values, expected_dataset))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
@@ -328,6 +330,64 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                            'fill_value': -999, 'mask_value': 0,
                            }
                           )
+
+    def test_dataset_slicing(self):
+        """Test the execution of the _slice_dataset function."""
+        # Checks the correct execution of the _slice_dataset function with 'channel_id' and 'category_id' set
+        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                                  {'name': 'test_values',
+                                                   'file_key': 'test_values',
+                                                   'fill_value': -999, 'mask_value': 0,
+                                                   'channel_id': 0, 'category_id': 1})
+        expected_dataset = self._get_unique_array(0, 1)
+        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+
+        # Checks the correct execution of the _slice_dataset function with 'category_id' set
+        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                                  {'name': 'test_values',
+                                                   'file_key': 'test_values',
+                                                   'fill_value': -999, 'mask_value': 0,
+                                                   'category_id': 5})
+        expected_dataset = self._get_unique_array(range(8), 5)
+        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+
+        # Checks the correct execution of the _slice_dataset function with 'vis_channel_id' and 'category_id' set
+        self.segment_reader.nc = self.segment_reader.nc.rename_dims({'number_of_channels': 'number_of_vis_channels'})
+        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                                  {'name': 'test_values',
+                                                   'file_key': 'test_values',
+                                                   'fill_value': -999, 'mask_value': 0,
+                                                   'vis_channel_id': 3, 'category_id': 3})
+        expected_dataset = self._get_unique_array(3, 3)
+        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+
+        # Checks the correct execution of the _slice_dataset function with 'ir_channel_id' set
+        self.segment_reader.nc = self.segment_reader.nc.rename_dims({'number_of_vis_channels': 'number_of_ir_channels'})
+        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                                  {'name': 'test_values',
+                                                   'file_key': 'test_values',
+                                                   'fill_value': -999, 'mask_value': 0,
+                                                   'ir_channel_id': 4})
+        expected_dataset = self._get_unique_array(4, range(6))
+        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+
+    @staticmethod
+    def _get_unique_array(iarr, jarr):
+        if not hasattr(iarr, '__iter__'):
+            iarr = [iarr]
+
+        if not hasattr(jarr, '__iter__'):
+            jarr = [jarr]
+
+        array = np.zeros((348, 348, 8, 6))
+        for i in iarr:
+            for j in jarr:
+                array[:, :, i, j] = (i * 10) + j
+
+        array = array[:, :, list(iarr), :]
+        array = array[:, :, :, list(jarr)]
+
+        return np.squeeze(array)
 
 
 class TestFciL2NCErrorFileHandler(unittest.TestCase):
