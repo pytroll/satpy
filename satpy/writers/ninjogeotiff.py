@@ -432,6 +432,8 @@ class NinJoTagGenerator:
 
     def get_transparent_pixel(self):
         """Get the transparent pixel value, also known as the fill value."""
+        if self.fill_value is None:
+            return -1
         return self.fill_value
 
     def get_xmaximum(self):
