@@ -46,15 +46,15 @@ AVHRR_ANGLE_NAMES = ['sensor_zenith_angle',
                      'solar_zenith_angle',
                      'sun_sensor_azimuth_difference_angle']
 
-PLATFORM_NAMES = {4: 'NOAA-15',
-                  2: 'NOAA-16',
-                  6: 'NOAA-17',
-                  7: 'NOAA-18',
-                  8: 'NOAA-19',
-                  11: 'Metop-B',
-                  12: 'Metop-A',
-                  13: 'Metop-C',
-                  14: 'Metop simulator'}
+AVHRR_PLATFORM_IDS2NAMES = {4: 'NOAA-15',
+                            2: 'NOAA-16',
+                            6: 'NOAA-17',
+                            7: 'NOAA-18',
+                            8: 'NOAA-19',
+                            11: 'Metop-B',
+                            12: 'Metop-A',
+                            13: 'Metop-C',
+                            14: 'Metop simulator'}
 
 
 def create_xarray(arr):
@@ -76,7 +76,6 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
 
         self._data = None
         self._header = None
-        self._shape = None
         self.area = None
 
         self._channel_names = []
@@ -110,6 +109,12 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
             if meta_key in info:
                 dataset.attrs.setdefault(meta_key, info[meta_key])
 
+    def _get_platform_name(self, platform_names_lookup):
+        """Get the platform name from the file header."""
+        self.platform_name = platform_names_lookup.get(self._header['satid'][0], None)
+        if self.platform_name is None:
+            raise ValueError("Unsupported platform ID: %d" % self.header['satid'])
+
     def read(self):
         """Read the data."""
         tic = datetime.now()
@@ -139,10 +144,6 @@ class AAPPL1BaseFileHandler(BaseFileHandler):
             raise ValueError("Not a supported dataset: %s", key['name'])
 
         self._update_dataset_attributes(dataset, key, info)
-
-        if not self._shape:
-            self._shape = dataset.shape
-
         return dataset
 
 
@@ -167,7 +168,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
         self.active_channels = self._get_active_channels()
 
-        self._get_platform_name()
+        self._get_platform_name(AVHRR_PLATFORM_IDS2NAMES)
         self.sensor = 'avhrr-3'
 
     def _set_filedata_layout(self):
@@ -175,12 +176,6 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         self._header_offset = 22016
         self._scan_type = _SCANTYPE
         self._header_type = _HEADERTYPE
-
-    def _get_platform_name(self):
-        """Get the platform name from the header."""
-        self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
-        if self.platform_name is None:
-            raise ValueError("Unsupported platform ID: %d" % self.header['satid'])
 
     def _get_active_channels(self):
         status = self._get_channel_binary_status_from_header()
@@ -190,8 +185,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         """Calibrate active channel data only."""
         if self.active_channels[key['name']]:
             return self.calibrate(key)
-        else:
-            return None
+        return None
 
     def _get_channel_binary_status_from_header(self):
         status = self._header['inststat1'].item()

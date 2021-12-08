@@ -718,8 +718,8 @@ def _generalize_value_for_comparison(val):
         return ""
     if isinstance(val, tuple):
         return tuple()
-    else:
-        raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+
+    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
 
 
 class DataQuery:

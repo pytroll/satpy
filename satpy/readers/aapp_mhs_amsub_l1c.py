@@ -43,15 +43,15 @@ MHS_AMSUB_CHANNEL_NAMES = ['1', '2', '3', '4', '5']
 MHS_AMSUB_ANGLE_NAMES = ['sensor_zenith_angle', 'sensor_azimuth_angle',
                          'solar_zenith_angle', 'solar_azimuth_difference_angle']
 
-PLATFORM_NAMES = {15: 'NOAA-15',
-                  16: 'NOAA-16',
-                  17: 'NOAA-17',
-                  18: 'NOAA-18',
-                  19: 'NOAA-19',
-                  1: 'Metop-B',
-                  2: 'Metop-A',
-                  3: 'Metop-C',
-                  4: 'Metop simulator'}
+MHS_AMSUB_PLATFORM_IDS2NAMES = {15: 'NOAA-15',
+                                16: 'NOAA-16',
+                                17: 'NOAA-17',
+                                18: 'NOAA-18',
+                                19: 'NOAA-19',
+                                1: 'Metop-B',
+                                2: 'Metop-A',
+                                3: 'Metop-C',
+                                4: 'Metop simulator'}
 
 MHS_AMSUB_PLATFORMS = ['Metop-A', 'Metop-B', 'Metop-C', 'NOAA-18', 'NOAA-19']
 
@@ -73,7 +73,7 @@ class MHS_AMSUB_AAPPL1CFile(AAPPL1BaseFileHandler):
         self._set_filedata_layout()
         self.read()
 
-        self._get_platform_name()
+        self._get_platform_name(MHS_AMSUB_PLATFORM_IDS2NAMES)
         self._get_sensorname()
 
     def _set_filedata_layout(self):
@@ -81,12 +81,6 @@ class MHS_AMSUB_AAPPL1CFile(AAPPL1BaseFileHandler):
         self._header_offset = HEADER_LENGTH
         self._scan_type = _SCANTYPE
         self._header_type = _HEADERTYPE
-
-    def _get_platform_name(self):
-        """Get the platform name from the header."""
-        self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
-        if self.platform_name is None:
-            raise ValueError("Unsupported platform ID: %d" % self._header['satid'])
 
     def _get_sensorname(self):
         """Get the sensor name from the header."""
