@@ -573,7 +573,7 @@ class TestComputeWriterResults(unittest.TestCase):
         self.assertTrue(os.path.isfile(fname))
 
     def test_geotiff(self):
-        """Test writing to mitiff file."""
+        """Test writing to geotiff file."""
         from satpy.writers import compute_writer_results
         fname = os.path.join(self.base_dir, 'geotiff.tif')
         res = self.scn.save_datasets(filename=fname,
