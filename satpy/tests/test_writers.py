@@ -530,6 +530,10 @@ class TestYAMLFiles(unittest.TestCase):
 class TestComputeWriterResults(unittest.TestCase):
     """Test compute_writer_results()."""
 
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
     def setUp(self):
         """Create temporary directory to save files to and a mock scene."""
         import tempfile
@@ -581,6 +585,24 @@ class TestComputeWriterResults(unittest.TestCase):
                                      writer='geotiff', compute=False)
         compute_writer_results([res])
         self.assertTrue(os.path.isfile(fname))
+
+    def test_cog(self):
+        """Test writing to cloud-optimized geotiff (COG) file."""
+        from satpy.writers import compute_writer_results
+        import logging
+
+        fname = os.path.join(self.base_dir, 'geotiff.tif')
+        with self._caplog.at_level(logging.DEBUG):
+            res = self.scn.save_datasets(filename=fname,
+                                         datasets=['test'],
+                                         driver='COG',
+                                         tile=True,
+                                         blockxsize=32,
+                                         blockysize=32,
+                                         writer='geotiff', compute=False)
+            compute_writer_results([res])
+        assert "driver: COG" in self._caplog.text
+
 
 # FIXME: This reader needs more information than exist at the moment
 #    def test_mitiff(self):

@@ -79,7 +79,8 @@ class GeoTIFFWriter(ImageWriter):
                     "profile",
                     "bigtiff",
                     "pixeltype",
-                    "copy_src_overviews",)
+                    "copy_src_overviews",
+                    "driver",)
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         """Init the writer."""
