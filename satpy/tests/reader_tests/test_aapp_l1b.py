@@ -23,6 +23,7 @@ import tempfile
 import unittest
 from contextlib import suppress
 from unittest import mock
+
 import numpy as np
 
 from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
