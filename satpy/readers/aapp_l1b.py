@@ -194,10 +194,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         azidiff40km = self._data["ang"][:, :, 2] * 1e-2
         return sunz40km, satz40km, azidiff40km
 
-    def _interpolate_arrays(self, *input_arrays):
+    def _interpolate_arrays(self, *input_arrays, geolocation=False):
         lines = input_arrays[0].shape[0]
         try:
-            interpolator = self._create_40km_interpolator(lines, *input_arrays)
+            interpolator = self._create_40km_interpolator(lines, *input_arrays, geolocation=geolocation)
         except ImportError:
             logger.warning("Could not interpolate, python-geotiepoints missing.")
             output_arrays = input_arrays
@@ -208,8 +208,12 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         return output_arrays
 
     @staticmethod
-    def _create_40km_interpolator(lines, *arrays_40km):
-        from geotiepoints.interpolator import Interpolator
+    def _create_40km_interpolator(lines, *arrays_40km, geolocation=False):
+        if geolocation:
+            # Slower but accurate at datum line
+            from geotiepoints.geointerpolator import GeoInterpolator as Interpolator
+        else:
+            from geotiepoints.interpolator import Interpolator
         cols40km = np.arange(24, 2048, 40)
         cols1km = np.arange(2048)
         rows40km = np.arange(lines)
@@ -234,7 +238,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
     @functools.lru_cache(maxsize=10)
     def _get_all_interpolated_coordinates(self):
         lons40km, lats40km = self._get_coordinates_in_degrees()
-        return self._interpolate_arrays(lons40km, lats40km)
+        return self._interpolate_arrays(lons40km, lats40km, geolocation=True)
 
     def _get_coordinates_in_degrees(self):
         lons40km = self._data["pos"][:, :, 1] * 1e-4
