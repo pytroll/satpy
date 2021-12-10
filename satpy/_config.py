@@ -17,16 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Configuration directory and file handling."""
 
+import ast
 import glob
 import logging
 import os
 import sys
 from collections import OrderedDict
 
+import appdirs
 import pkg_resources
 from donfig import Config
-import appdirs
-import ast
 
 LOG = logging.getLogger(__name__)
 
@@ -37,6 +37,8 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 _satpy_dirs = appdirs.AppDirs(appname='satpy', appauthor='pytroll')
 _CONFIG_DEFAULTS = {
     'cache_dir': _satpy_dirs.user_cache_dir,
+    'cache_lonlats': False,
+    'cache_sensor_angles': False,
     'config_path': [],
     'data_dir': _satpy_dirs.user_data_dir,
     'demo_data_dir': '.',
@@ -75,14 +77,14 @@ if _satpy_config_path is not None:
     if _satpy_config_path.startswith("["):
         # 'SATPY_CONFIG_PATH' is set by previous satpy config as a reprsentation of a 'list'
         # need to use 'ast.literal_eval' to parse the string back to a list
-        _satpy_config_path = ast.literal_eval(_satpy_config_path)
+        _satpy_config_path_list = ast.literal_eval(_satpy_config_path)
     else:
         # colon-separated are ordered by custom -> builtins
         # i.e. last-applied/highest priority to first-applied/lowest priority
-        _satpy_config_path = _satpy_config_path.split(os.pathsep)
+        _satpy_config_path_list = _satpy_config_path.split(os.pathsep)
 
-    os.environ['SATPY_CONFIG_PATH'] = repr(_satpy_config_path)
-    for config_dir in _satpy_config_path:
+    os.environ['SATPY_CONFIG_PATH'] = repr(_satpy_config_path_list)
+    for config_dir in _satpy_config_path_list:
         _CONFIG_PATHS.append(os.path.join(config_dir, 'satpy.yaml'))
 
 _ancpath = os.getenv('SATPY_ANCPATH', None)

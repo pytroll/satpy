@@ -19,12 +19,12 @@
 """EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
 
 import logging
-
 from datetime import datetime
+
+from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 from satpy.readers.vii_utils import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
-from geotiepoints.viiinterpolator import tie_points_interpolation, tie_points_geo_interpolation
 
 logger = logging.getLogger(__name__)
 

@@ -25,10 +25,12 @@ platforms as well assuming no file format changes.
 
 """
 from datetime import datetime
-from satpy.readers.hdf5_utils import HDF5FileHandler
-from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
-import numpy as np
+
 import dask.array as da
+import numpy as np
+from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
+
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
 class MERSI2L1B(HDF5FileHandler):
@@ -94,23 +96,7 @@ class MERSI2L1B(HDF5FileHandler):
         if 'rows_per_scan' in self.filetype_info:
             attrs.setdefault('rows_per_scan', self.filetype_info['rows_per_scan'])
 
-        fill_value = attrs.pop('FillValue', np.nan)  # covered by valid_range
-        valid_range = attrs.pop('valid_range', None)
-        if dataset_id.get('calibration') == 'counts':
-            # preserve integer type of counts if possible
-            attrs['_FillValue'] = fill_value
-            new_fill = fill_value
-        else:
-            new_fill = np.nan
-        if valid_range is not None:
-            # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
-            # in the HDF data, this is hardcoded here.
-            if dataset_id['name'] in ['24', '25'] and valid_range[1] == 4095:
-                valid_range[1] = 25000
-            # typically bad_values == 65535, saturated == 65534
-            # dead detector == 65533
-            data = data.where((data >= valid_range[0]) &
-                              (data <= valid_range[1]), new_fill)
+        data = self._mask_data(data, dataset_id, attrs)
 
         slope = attrs.pop('Slope', None)
         intercept = attrs.pop('Intercept', None)
@@ -128,36 +114,12 @@ class MERSI2L1B(HDF5FileHandler):
                                             ds_info['calibration_index'])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2
         elif dataset_id.get('calibration') == "brightness_temperature":
-            cal_index = ds_info['calibration_index']
-            # Apparently we don't use these calibration factors for Rad -> BT
-            # coeffs = self._get_coefficients(ds_info['calibration_key'], cal_index)
-            # # coefficients are per-scan, we need to repeat the values for a
-            # # clean alignment
-            # coeffs = np.repeat(coeffs, data.shape[0] // coeffs.shape[1], axis=1)
-            # coeffs = coeffs.rename({
-            #     coeffs.dims[0]: 'coefficients', coeffs.dims[1]: 'y'
-            # })  # match data dims
-            # data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2 + coeffs[3] * data**3
-
+            calibration_index = ds_info['calibration_index']
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
             wave_number = 1. / (dataset_id['wavelength'][1] / 1e6)
-            # pass the dask array
-            bt_data = rad2temp(wave_number, data.data * 1e-5)  # brightness temperature
-            if isinstance(bt_data, np.ndarray):
-                # old versions of pyspectral produce numpy arrays
-                data.data = da.from_array(bt_data, chunks=data.data.chunks)
-            else:
-                # new versions of pyspectral can do dask arrays
-                data.data = bt_data
-            # additional corrections from the file
-            corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][cal_index])
-            corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][cal_index])
-            if corr_coeff_a != 0:
-                data = (data - corr_coeff_b) / corr_coeff_a
-            # Some BT bands seem to have 0 in the first 10 columns
-            # and it is an invalid Kelvin measurement, so let's mask
-            data = data.where(data != 0)
+
+            data = self._get_bt_dataset(data, calibration_index, wave_number)
 
         data.attrs = attrs
         # convert bytes to str
@@ -171,4 +133,58 @@ class MERSI2L1B(HDF5FileHandler):
             'sensor': self.sensor_name,
         })
 
+        return data
+
+    def _mask_data(self, data, dataset_id, attrs):
+        """Mask the data using fill_value and valid_range attributes."""
+        fill_value = attrs.pop('FillValue', np.nan)  # covered by valid_range
+        valid_range = attrs.pop('valid_range', None)
+        if dataset_id.get('calibration') == 'counts':
+            # preserve integer type of counts if possible
+            attrs['_FillValue'] = fill_value
+            new_fill = fill_value
+        else:
+            new_fill = np.nan
+        if valid_range is not None:
+            # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
+            # in the HDF data, this is hardcoded here.
+            if dataset_id['name'] in ['24', '25'] and valid_range[1] == 4095:
+                valid_range[1] = 25000
+            # typically bad_values == 65535, saturated == 65534
+            # dead detector == 65533
+            data = data.where((data >= valid_range[0]) &
+                              (data <= valid_range[1]), new_fill)
+        return data
+
+    def _get_bt_dataset(self, data, calibration_index, wave_number):
+        """Get the dataset as brightness temperature.
+
+        Apparently we don't use these calibration factors for Rad -> BT::
+
+            coeffs = self._get_coefficients(ds_info['calibration_key'], calibration_index)
+            # coefficients are per-scan, we need to repeat the values for a
+            # clean alignment
+            coeffs = np.repeat(coeffs, data.shape[0] // coeffs.shape[1], axis=1)
+            coeffs = coeffs.rename({
+                coeffs.dims[0]: 'coefficients', coeffs.dims[1]: 'y'
+            })  # match data dims
+            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2 + coeffs[3] * data**3
+
+        """
+        # pass the dask array
+        bt_data = rad2temp(wave_number, data.data * 1e-5)  # brightness temperature
+        if isinstance(bt_data, np.ndarray):
+            # old versions of pyspectral produce numpy arrays
+            data.data = da.from_array(bt_data, chunks=data.data.chunks)
+        else:
+            # new versions of pyspectral can do dask arrays
+            data.data = bt_data
+        # additional corrections from the file
+        corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][calibration_index])
+        corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][calibration_index])
+        if corr_coeff_a != 0:
+            data = (data - corr_coeff_b) / corr_coeff_a
+        # Some BT bands seem to have 0 in the first 10 columns
+        # and it is an invalid Kelvin measurement, so let's mask
+        data = data.where(data != 0)
         return data

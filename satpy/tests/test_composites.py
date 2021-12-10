@@ -74,8 +74,9 @@ class TestMatchDataArrays(unittest.TestCase):
 
     def test_mult_ds_diff_area(self):
         """Test that datasets with different areas fail."""
-        from satpy.composites import CompositeBase, IncompatibleAreas
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites import CompositeBase, IncompatibleAreas
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
         ds2.attrs['area'] = AreaDefinition(
@@ -90,6 +91,7 @@ class TestMatchDataArrays(unittest.TestCase):
     def test_mult_ds_diff_dims(self):
         """Test that datasets with different dimensions still pass."""
         from satpy.composites import CompositeBase
+
         # x is still 50, y is still 100, even though they are in
         # different order
         ds1 = self._get_test_ds(shape=(50, 100), dims=('y', 'x'))
@@ -102,6 +104,7 @@ class TestMatchDataArrays(unittest.TestCase):
     def test_mult_ds_diff_size(self):
         """Test that datasets with different sizes fail."""
         from satpy.composites import CompositeBase, IncompatibleAreas
+
         # x is 50 in this one, 100 in ds2
         # y is 100 in this one, 50 in ds2
         ds1 = self._get_test_ds(shape=(50, 100), dims=('x', 'y'))
@@ -173,7 +176,7 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
 
     def test_match_data_arrays(self):
         """Test that all of the areas have to be the same resolution."""
-        from satpy.composites import RatioSharpenedRGB, IncompatibleAreas
+        from satpy.composites import IncompatibleAreas, RatioSharpenedRGB
         comp = RatioSharpenedRGB(name='true_color')
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
 
@@ -476,10 +479,8 @@ class TestInlineComposites(unittest.TestCase):
 
     def test_inline_composites(self):
         """Test that inline composites are working."""
-        from satpy.composites.config_loader import CompositorLoader
-        cl_ = CompositorLoader()
-        cl_.load_sensor_composites('visir')
-        comps = cl_.compositors
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        comps = load_compositor_configs_for_sensors(['visir'])[0]
         # Check that "fog" product has all its prerequisites defined
         keys = comps['visir'].keys()
         fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid['name']][0]
@@ -498,9 +499,7 @@ class TestInlineComposites(unittest.TestCase):
 
         # Check the same for SEVIRI and verify channel names are used
         # in the sub-composite dependencies instead of wavelengths
-        cl_ = CompositorLoader()
-        cl_.load_sensor_composites('seviri')
-        comps = cl_.compositors
+        comps = load_compositor_configs_for_sensors(['seviri'])[0]
         keys = comps['seviri'].keys()
         fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid['name']]
         self.assertEqual(comps['seviri'][fog_dep_ids[0]].attrs['prerequisites'],

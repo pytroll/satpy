@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2019, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,30 +23,30 @@ import logging
 import os
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import deque, OrderedDict
+from collections import OrderedDict, deque
+from contextlib import suppress
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
+import numpy as np
 import xarray as xr
 import yaml
-import numpy as np
 
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
-from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
-from satpy.resample import get_area_def
-from satpy.utils import recursive_dict_update
-from satpy.dataset import DataQuery, DataID, get_key
-from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
-from satpy.aux_download import DataDownloadMixin
-from satpy import DatasetDict
-from satpy.resample import add_crs_xy_coords
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
-from pyresample.geometry import AreaDefinition
+
+from satpy import DatasetDict
+from satpy.aux_download import DataDownloadMixin
+from satpy.dataset import DataID, DataQuery, get_key
+from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
+from satpy.resample import add_crs_xy_coords, get_area_def
+from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)
 
@@ -292,26 +292,8 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             id_keys = get_keys_from_config(self._id_keys, dataset)
 
             # Build each permutation/product of the dataset
-            id_kwargs = []
-            for key, idval in id_keys.items():
-                val = dataset.get(key, idval.get('default') if idval is not None else None)
-                val_type = None
-                if idval is not None:
-                    val_type = idval.get('type')
-                if val_type is not None and issubclass(val_type, tuple):
-                    # special case: wavelength can be [min, nominal, max]
-                    # but is still considered 1 option
-                    id_kwargs.append((val,))
-                elif isinstance(val, (list, tuple, set)):
-                    # this key has multiple choices
-                    # (ex. 250 meter, 500 meter, 1000 meter resolutions)
-                    id_kwargs.append(val)
-                elif isinstance(val, dict):
-                    id_kwargs.append(val.keys())
-                else:
-                    # this key only has one choice so make it a one
-                    # item iterable
-                    id_kwargs.append((val,))
+            id_kwargs = self._build_id_permutations(dataset, id_keys)
+
             for id_params in itertools.product(*id_kwargs):
                 dsid = DataID(id_keys, **dict(zip(id_keys, id_params)))
                 ids.append(dsid)
@@ -320,12 +302,39 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 ds_info = dataset.copy()
                 for key in dsid.keys():
                     if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][dsid.get(key)])
+                        with suppress(KeyError):
+                            # KeyError is suppressed in case the key does not represent interesting metadata,
+                            # eg a custom type
+                            ds_info.update(ds_info[key][dsid.get(key)])
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = dsid.get(key)
                 self.all_ids[dsid] = ds_info
         return ids
+
+    def _build_id_permutations(self, dataset, id_keys):
+        """Build each permutation/product of the dataset."""
+        id_kwargs = []
+        for key, idval in id_keys.items():
+            val = dataset.get(key, idval.get('default') if idval is not None else None)
+            val_type = None
+            if idval is not None:
+                val_type = idval.get('type')
+            if val_type is not None and issubclass(val_type, tuple):
+                # special case: wavelength can be [min, nominal, max]
+                # but is still considered 1 option
+                id_kwargs.append((val,))
+            elif isinstance(val, (list, tuple, set)):
+                # this key has multiple choices
+                # (ex. 250 meter, 500 meter, 1000 meter resolutions)
+                id_kwargs.append(val)
+            elif isinstance(val, dict):
+                id_kwargs.append(val.keys())
+            else:
+                # this key only has one choice so make it a one
+                # item iterable
+                id_kwargs.append((val,))
+        return id_kwargs
 
 
 class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
@@ -862,20 +871,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
     def _load_ancillary_variables(self, datasets, **kwargs):
         """Load the ancillary variables of `datasets`."""
-        all_av_ids = set()
-        for dataset in datasets.values():
-            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
-            if not isinstance(ancillary_variables, (list, tuple, set)):
-                ancillary_variables = ancillary_variables.split(' ')
-            av_ids = []
-            for key in ancillary_variables:
-                try:
-                    av_ids.append(self.get_dataset_key(key))
-                except KeyError:
-                    logger.warning("Can't load ancillary dataset %s", str(key))
-
-            all_av_ids |= set(av_ids)
-            dataset.attrs['ancillary_variables'] = av_ids
+        all_av_ids = self._gather_ancillary_variables_ids(datasets)
         loadable_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
         if not all_av_ids:
             return
@@ -890,6 +886,27 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                 else:
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
+
+    def _gather_ancillary_variables_ids(self, datasets):
+        """Gather ancillary variables' ids.
+
+        This adds/modifies the dataset's `ancillary_variables` attr.
+        """
+        all_av_ids = set()
+        for dataset in datasets.values():
+            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
+            if not isinstance(ancillary_variables, (list, tuple, set)):
+                ancillary_variables = ancillary_variables.split(' ')
+            av_ids = []
+            for key in ancillary_variables:
+                try:
+                    av_ids.append(self.get_dataset_key(key))
+                except KeyError:
+                    logger.warning("Can't load ancillary dataset %s", str(key))
+
+            all_av_ids |= set(av_ids)
+            dataset.attrs['ancillary_variables'] = av_ids
+        return all_av_ids
 
     def get_dataset_key(self, key, available_only=False, **kwargs):
         """Get the fully qualified `DataID` matching `key`.

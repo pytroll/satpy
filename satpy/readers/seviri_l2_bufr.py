@@ -24,12 +24,14 @@ References:
 
 """
 import logging
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-from satpy.readers.seviri_base import mpef_product_header
+
 from satpy.readers.eum_base import recarray2dict
+from satpy.readers.seviri_base import mpef_product_header
 
 try:
     import eccodes as ec
@@ -37,8 +39,8 @@ except ImportError:
     raise ImportError(
         "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('SeviriL2Bufr')
 

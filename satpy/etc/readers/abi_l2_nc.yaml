@@ -150,6 +150,16 @@ datasets:
     file_type: abi_l2_acm
     file_key: BCM
 
+  four_level_cloud_mask:
+    name: ACM
+    file_type: abi_l2_acm
+    file_key: ACM
+
+  cloud_probabilities:
+    name: Cloud_Probabilities
+    file_type: abi_l2_acm
+    file_key: Cloud_Probabilities
+
 # --- Aerosol Detection Products ---
   aerosol_binary_mask:
     name: Aerosol

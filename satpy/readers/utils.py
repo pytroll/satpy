@@ -25,19 +25,15 @@ import tempfile
 import warnings
 from contextlib import closing
 from io import BytesIO
-from subprocess import Popen, PIPE
+from shutil import which
+from subprocess import PIPE, Popen  # nosec
 
 import numpy as np
 import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
-from satpy import CHUNK_SIZE
 
-try:
-    from shutil import which
-except ImportError:
-    # python 2 - won't be used, but needed for mocking in tests
-    which = None
+from satpy import CHUNK_SIZE
 
 LOGGER = logging.getLogger(__name__)
 
@@ -108,12 +104,13 @@ def get_geostationary_angle_extent(geos_area):
     return xmax, ymax
 
 
-def get_geostationary_mask(area):
+def get_geostationary_mask(area, chunks=None):
     """Compute a mask of the earth's shape as seen by a geostationary satellite.
 
     Args:
         area (pyresample.geometry.AreaDefinition) : Corresponding area
                                                     definition
+        chunks (int or tuple): Chunk size for the 2D array that is generated.
 
     Returns:
         Boolean mask, True inside the earth's shape, False outside.
@@ -126,7 +123,7 @@ def get_geostationary_mask(area):
     ymax *= h
 
     # Compute projection coordinates at the centre of each pixel
-    x, y = area.get_proj_coords(chunks=CHUNK_SIZE)
+    x, y = area.get_proj_coords(chunks=chunks or CHUNK_SIZE)
 
     # Compute mask of the earth's elliptical shape
     return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
@@ -220,7 +217,7 @@ def unzip_file(filename):
                 runner = [pbzip,
                           '-dc',
                           filename]
-            p = Popen(runner, stdout=PIPE, stderr=PIPE)
+            p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
             stdout = BytesIO(p.communicate()[0])
             status = p.returncode
             if status != 0:

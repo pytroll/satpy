@@ -26,9 +26,9 @@ the project's GitHub repository:
 import logging
 from datetime import datetime
 
-from satpy.readers.abi_base import NC_ABI_BASE
-
 import numpy as np
+
+from satpy.readers.abi_base import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
 

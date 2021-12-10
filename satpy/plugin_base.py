@@ -24,7 +24,7 @@ import yaml
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 from satpy._config import config_search_paths
 from satpy.utils import recursive_dict_update

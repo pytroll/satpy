@@ -19,9 +19,11 @@
 
 import os
 import unittest
-from unittest import mock
 from contextlib import contextmanager
+from unittest import mock
+
 import numpy as np
+
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -240,8 +242,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     @staticmethod
     def _convert_numpy_content_to_dataarray(final_content):
-        from xarray import DataArray
         import dask.array as da
+        from xarray import DataArray
         for key, val in final_content.items():
             if isinstance(val, np.ndarray):
                 val = da.from_array(val, chunks=val.shape)
@@ -366,8 +368,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init_start_time_beyond(self):
         """Test basic init with start_time after the provided files."""
-        from satpy.readers import load_reader
         from datetime import datetime
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs,
                         filter_parameters={
                             'start_time': datetime(2012, 2, 26)
@@ -379,8 +382,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init_end_time_beyond(self):
         """Test basic init with end_time before the provided files."""
-        from satpy.readers import load_reader
         from datetime import datetime
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs,
                         filter_parameters={
                             'end_time': datetime(2012, 2, 24)
@@ -392,8 +396,9 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
     def test_init_start_end_time(self):
         """Test basic init with end_time before the provided files."""
-        from satpy.readers import load_reader
         from datetime import datetime
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs,
                         filter_parameters={
                             'start_time': datetime(2012, 2, 24),

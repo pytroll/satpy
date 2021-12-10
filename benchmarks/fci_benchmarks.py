@@ -24,6 +24,8 @@ published by EUMETSAT in 2020.
 Also includes some benchmarks trying different resamplers.
 """
 
+from __future__ import annotations
+
 import fnmatch
 import os
 
@@ -39,6 +41,7 @@ class FCI(GeoBenchmarks):
     timeout = 600
     region = "eurol"
     reader = "fci_l1c_nc"
+    filenames: list[str] = []
 
     def setup_cache(self, *args):
         """Fetch the data files."""
@@ -63,73 +66,73 @@ class FCI(GeoBenchmarks):
         """Time to create a scene."""
         names = self._get_filename_selection(chunk)
         self.create_scene(names)
-    time_create_scene.params = ["some", "all"]
-    time_create_scene.param_names = ["channel subset"]
+    time_create_scene.params = ["some", "all"]  # type: ignore
+    time_create_scene.param_names = ["channel subset"]  # type: ignore
 
     def peakmem_create_scene(self, chunk):
         """Peak RAM to create a scene."""
         names = self._get_filename_selection(chunk)
         self.create_scene(names)
-    peakmem_create_scene.params = time_create_scene.params
-    peakmem_create_scene.param_names = time_create_scene.param_names
+    peakmem_create_scene.params = time_create_scene.params  # type: ignore
+    peakmem_create_scene.param_names = time_create_scene.param_names  # type: ignore
 
     def time_load(self, chunk, loadable):
         """Time to create a scene and load one channel or composite."""
         names = self._get_filename_selection(chunk)
         self.load_no_padding(loadable, names)
-    time_load.params = (time_create_scene.params,
+    time_load.params = (time_create_scene.params,  # type: ignore
                         ["ir_105", "natural_color_raw"])
-    time_load.param_names = time_create_scene.param_names + ["dataset"]
+    time_load.param_names = time_create_scene.param_names + ["dataset"]  # type: ignore
 
     def peakmem_load(self, chunk, loadable):
         """Peak RAM to create a scene and load one channel or composite."""
         names = self._get_filename_selection(chunk)
         self.load_no_padding(loadable, names)
-    peakmem_load.params = time_load.params
-    peakmem_load.param_names = time_load.param_names
+    peakmem_load.params = time_load.params  # type: ignore
+    peakmem_load.param_names = time_load.param_names  # type: ignore
 
     def time_compute(self, chunk, loadable):
         """Time to create a scene and load and compute one channel."""
         names = self._get_filename_selection(chunk)
         self.compute_channel(loadable, names)
-    time_compute.params = time_load.params
-    time_compute.param_names = time_load.param_names
+    time_compute.params = time_load.params  # type: ignore
+    time_compute.param_names = time_load.param_names  # type: ignore
 
     def peakmem_compute(self, chunk, loadable):
         """Peak memory for creating a scene and loading and computing one channel."""
         names = self._get_filename_selection(chunk)
         self.compute_channel(loadable, names)
-    peakmem_compute.params = time_compute.params
-    peakmem_compute.param_names = time_compute.param_names
+    peakmem_compute.params = time_compute.params  # type: ignore
+    peakmem_compute.param_names = time_compute.param_names  # type: ignore
 
     def time_load_resample_compute(self, chunk, loadable, mode):
         """Time to load all chunks, resample, and compute."""
         names = self._get_filename_selection(chunk)
         self.compute_composite(loadable, mode, self.region, names)
-    time_load_resample_compute.params = time_load.params + (
+    time_load_resample_compute.params = time_load.params + (  # type: ignore
             ["nearest", "bilinear", "gradient_search"],)
-    time_load_resample_compute.param_names = time_load.param_names + ["resampler"]
+    time_load_resample_compute.param_names = time_load.param_names + ["resampler"]  # type: ignore
 
     def peakmem_load_resample_compute(self, chunk, loadable, mode):
         """Peak memory to load all chunks, resample, and compute."""
         names = self._get_filename_selection(chunk)
         self.compute_composite(loadable, mode, self.region, names)
-    peakmem_load_resample_compute.params = time_load_resample_compute.params
-    peakmem_load_resample_compute.param_names = time_load_resample_compute.param_names
+    peakmem_load_resample_compute.params = time_load_resample_compute.params  # type: ignore
+    peakmem_load_resample_compute.param_names = time_load_resample_compute.param_names  # type: ignore
 
     def time_load_resample_save(self, chunk, loadable, mode):
         """Time to load all chunks, resample, and save."""
         names = self._get_filename_selection(chunk)
         self.save_composite_as_geotiff(loadable, mode, self.region, names)
-    time_load_resample_save.params = time_load_resample_compute.params
-    time_load_resample_save.param_names = time_load_resample_compute.param_names
+    time_load_resample_save.params = time_load_resample_compute.params  # type: ignore
+    time_load_resample_save.param_names = time_load_resample_compute.param_names  # type: ignore
 
     def peakmem_load_resample_save(self, chunk, loadable, mode):
         """Peak memory to load all chunks, resample, and save."""
         names = self._get_filename_selection(chunk)
         self.save_composite_as_geotiff(loadable, mode, self.region, names)
-    peakmem_load_resample_save.params = time_load_resample_save.params
-    peakmem_load_resample_save.param_names = time_load_resample_save.param_names
+    peakmem_load_resample_save.params = time_load_resample_save.params  # type: ignore
+    peakmem_load_resample_save.param_names = time_load_resample_save.param_names  # type: ignore
 
     def _get_filename_selection(self, selection):
         if selection == "some":

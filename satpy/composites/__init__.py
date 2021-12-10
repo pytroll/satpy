@@ -27,12 +27,11 @@ import numpy as np
 import xarray as xr
 
 import satpy
+from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
-from satpy.aux_download import DataDownloadMixin
-from satpy.writers import get_enhanced_image
 from satpy.utils import unify_chunks
-
+from satpy.writers import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 
@@ -1286,9 +1285,9 @@ class BackgroundCompositor(GenericCompositor):
                 chan = xr.where(chan.isnull(), bg_band, chan)
                 data.append(chan)
         else:
-            data = xr.where(foreground.isnull(), background, foreground)
+            data_arr = xr.where(foreground.isnull(), background, foreground)
             # Split to separate bands so the mode is correct
-            data = [data.sel(bands=b) for b in data['bands']]
+            data = [data_arr.sel(bands=b) for b in data_arr['bands']]
 
         return data
 

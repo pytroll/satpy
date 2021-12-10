@@ -24,10 +24,14 @@ from unittest import mock
 import numpy as np
 from xarray import DataArray
 
-from satpy.readers.goes_imager_hrit import (ALTITUDE, HRITGOESFileHandler,
-                                            HRITGOESPrologueFileHandler,
-                                            make_gvar_float, make_sgs_time,
-                                            sgs_time)
+from satpy.readers.goes_imager_hrit import (
+    ALTITUDE,
+    HRITGOESFileHandler,
+    HRITGOESPrologueFileHandler,
+    make_gvar_float,
+    make_sgs_time,
+    sgs_time,
+)
 from satpy.tests.utils import make_dataid
 
 

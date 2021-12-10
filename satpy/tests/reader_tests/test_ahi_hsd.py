@@ -18,11 +18,13 @@
 """The ahi_hsd reader tests package."""
 
 import unittest
-from unittest import mock
 import warnings
-import numpy as np
-import dask.array as da
 from datetime import datetime
+from unittest import mock
+
+import dask.array as da
+import numpy as np
+
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
 
@@ -379,7 +381,7 @@ class TestAHICalibration(unittest.TestCase):
 
         # Radiance
         rad_exp = np.array([[15.2, 11.5],
-                            [7.8, 0]])
+                            [7.8, -3.3]])
         rad = self.fh.calibrate(data=self.counts,
                                 calibration='radiance')
         self.assertTrue(np.allclose(rad, rad_exp))
@@ -403,7 +405,7 @@ class TestAHICalibration(unittest.TestCase):
         # Standard operation
         self.fh.calib_mode = 'UPDATE'
         rad_exp = np.array([[30.4, 23.0],
-                            [15.6, 0.]])
+                            [15.6, -6.6]])
         rad = self.fh.calibrate(data=self.counts, calibration='radiance')
         self.assertTrue(np.allclose(rad, rad_exp))
 
@@ -425,7 +427,7 @@ class TestAHICalibration(unittest.TestCase):
         }
         rad = self.fh.calibrate(data=self.counts, calibration='radiance')
         rad_exp = np.array([[15.2, 11.5],
-                            [7.8, 0]])
+                            [7.8, -3.3]])
         self.assertTrue(np.allclose(rad, rad_exp))
 
     def test_user_calibration(self):
@@ -436,7 +438,7 @@ class TestAHICalibration(unittest.TestCase):
         self.fh.band_name = 'B13'
         rad = self.fh.calibrate(data=self.counts, calibration='radiance').compute()
         rad_exp = np.array([[16.10526316, 12.21052632],
-                            [8.31578947,  0.10526316]])
+                            [8.31578947, -3.36842105]])
         self.assertTrue(np.allclose(rad, rad_exp))
 
         # This is for DN calibration
@@ -445,7 +447,6 @@ class TestAHICalibration(unittest.TestCase):
                                     'type': 'DN'}
         self.fh.band_name = 'B13'
         rad = self.fh.calibrate(data=self.counts, calibration='radiance').compute()
-        print(rad)
         rad_exp = np.array([[15.2, 12.],
-                            [8.8, 0.]])
+                            [8.8, -0.8]])
         self.assertTrue(np.allclose(rad, rad_exp))

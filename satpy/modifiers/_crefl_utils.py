@@ -22,9 +22,9 @@ Ralph's code was originally based on the C crefl code distributed for VIIRS and 
 """
 import logging
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 LOG = logging.getLogger(__name__)
 
