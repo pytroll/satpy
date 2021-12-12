@@ -459,6 +459,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         name_dict = get_geos_area_naming({
             'platform_name': self.platform_name,
             'instrument_name': SENSOR_NAME,
+            # Partial scans are padded to full disk
             'service_name': 'FD',
             'service_desc': 'Full Disk',
             'resolution': dataset_id['resolution']
