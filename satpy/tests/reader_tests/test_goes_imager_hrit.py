@@ -166,3 +166,17 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                              {'projection_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
                               'projection_latitude': 0.0,
                               'projection_altitude': ALTITUDE})
+
+    def test_get_area_def(self):
+        """Test getting the area definition."""
+        self.reader.mda.update({
+            'cfac': 10216334,
+            'lfac': 10216334,
+            'coff': 1408.0,
+            'loff': 944.0,
+            'number_of_lines': 464,
+            'number_of_columns': 2816
+        })
+        dsid = make_dataid(name="CH1", calibration='reflectance', resolution=3000)
+        area = self.reader.get_area_def(dsid)
+        assert area.area_extent == (-5639254.900260435, 1925159.4881528523, 5643261.475678028, 3784210.48191544)
