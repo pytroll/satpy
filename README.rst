@@ -9,7 +9,7 @@ Satpy
 
 .. image:: https://badge.fury.io/py/satpy.svg
     :target: https://badge.fury.io/py/satpy
-    
+
 .. image:: https://anaconda.org/conda-forge/satpy/badges/version.svg
    :target: https://anaconda.org/conda-forge/satpy/
 
