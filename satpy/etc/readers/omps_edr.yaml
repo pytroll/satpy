@@ -240,4 +240,3 @@ datasets:
     coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/CloudFraction
-

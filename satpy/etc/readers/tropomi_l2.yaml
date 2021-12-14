@@ -67,4 +67,3 @@ datasets:
         file_type: tropomi_l2
         file_key: 'PRODUCT/time_utc'
         standard_name: time_utc
-
