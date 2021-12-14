@@ -221,7 +221,7 @@ def test_correct_area_ssp(lat, lon, resolution):
             {"CTH_constant": np.full((large, large), 10000)},
             daskify=False,
             area=fake_area_large,
-            common_attrs=_get_attrs(lon, lat, 35_000_000))
+            common_attrs=_get_attrs(lat, lon, 35_000_000))
     new_area = corrector(sc["CTH_constant"])
     assert new_area.shape == fake_area_small.shape
     old_lonlats = fake_area_small.get_lonlats()
