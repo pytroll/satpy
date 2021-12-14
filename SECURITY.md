@@ -14,6 +14,6 @@ backported more regularly.
 
 ## Reporting a Vulnerability
 
-Do you think you've found a security vunlerability or issue in this project? Let us know by sending
+Do you think you've found a security vulnerability or issue in this project? Let us know by sending
 an email to the maintainers at `pytroll-security@groups.io`. Please include as much information on
 the issue as possible like code examples, documentation on the issue in other packages, etc.
