@@ -5,3 +5,4 @@ writer:
   filename: '{name}_{start_time:%Y%m%d_%H%M%S}.tif'
   compress: DEFLATE
   zlevel: 6
+  tiled: True
