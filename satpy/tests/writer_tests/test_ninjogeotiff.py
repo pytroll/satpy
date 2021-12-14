@@ -366,6 +366,22 @@ def ntg_weird(test_image_weird):
 
 
 @pytest.fixture(scope="module")
+def ntg_no_fill_value(test_image_small_mid_atlantic_L):
+    """Create instance of NinJoTagGenerator class."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_small_mid_atlantic_L,
+            None,
+            "bulgur.tif",
+            ChannelID=900015,
+            DataType="GORN",
+            PhysicUnit="C",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            DataSource="dowsing rod")
+
+
+@pytest.fixture(scope="module")
 def ntg_rgba(test_image_rgba_merc):
     """Create NinJoTagGenerator instance with RGBA image."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
@@ -509,6 +525,7 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.30816176470588236)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]), -49.603125)
     assert tgs["ninjo_PhysicValue"] == "Reflectance"
+    assert tgs["ninjo_TransparentPixel"] == "-1"  # meaning not set
 
 
 def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
@@ -774,13 +791,14 @@ def test_get_ref_lat_2(ntg1, ntg2, ntg3):
     np.testing.assert_allclose(ntg2.get_ref_lat_3(), 0.0)
 
 
-def test_get_transparent_pixel(ntg1, ntg2, ntg3):
+def test_get_transparent_pixel(ntg1, ntg2, ntg3, ntg_no_fill_value):
     """Test getting fill value."""
     tp = ntg1.get_transparent_pixel()
     assert isinstance(tp, int)
     assert tp == 255
-    assert ntg2.get_transparent_pixel() == 0  # when not set ??
+    assert ntg2.get_transparent_pixel() == 0
     assert ntg3.get_transparent_pixel() == 255
+    assert ntg_no_fill_value.get_transparent_pixel() == -1
 
 
 def test_get_xmax(ntg1, ntg2, ntg3):

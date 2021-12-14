@@ -431,7 +431,14 @@ class NinJoTagGenerator:
                 f"{self.dataset.attrs['area'].description}")
 
     def get_transparent_pixel(self):
-        """Get the transparent pixel value, also known as the fill value."""
+        """Get the transparent pixel value, also known as the fill value.
+
+        When the no fill value is defined (value `None`), such as for RGBA or
+        LA images, returns -1, in accordance with the file format
+        specification.
+        """
+        if self.fill_value is None:
+            return -1
         return self.fill_value
 
     def get_xmaximum(self):
