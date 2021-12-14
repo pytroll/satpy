@@ -65,6 +65,20 @@ def fake_area_5x5_wide():
         shape=(5, 5))
 
 
+@pytest.fixture
+def cloud(request):
+    """Give me a cloud.
+
+    Args (via request fixture):
+        int: size of
+    """
+    (size, outer_lo, outer_hi, outer_val, inner_lo, inner_hi, inner_val) = request.param
+    cth = np.full((size, size), np.nan)
+    cth[outer_lo:outer_hi, outer_lo:outer_hi] = outer_val
+    cth[inner_lo:inner_hi, inner_lo:inner_hi] = inner_val
+    return cth
+
+
 def test_forward_parallax_ssp():
     """Test that at SSP, parallax correction does nothing."""
     from ...modifiers.parallax import forward_parallax
@@ -273,3 +287,9 @@ def test_correct_area_partlycloudy():
     assert new_area.shape == fake_area_small.shape
 
     # TODO: add more tests here
+
+
+@pytest.mark.parametrize("cloud", [(9, 2, 8, 5, 3, 6, 8)], indirect=["cloud"])
+def test_cloud(cloud):
+    """Test using cloud."""
+    pass
