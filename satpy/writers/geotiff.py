@@ -208,7 +208,7 @@ class GeoTIFFWriter(ImageWriter):
             include_scale_offset (deprecated, bool): Deprecated.
                 Use ``scale_offset_tags=("scale", "offset")`` to include scale
                 and offset tags.
-            tiled (bool): For performance this defaults to ``True``. 
+            tiled (bool): For performance this defaults to ``True``.
                 Pass ``False`` to created striped TIFF files.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
