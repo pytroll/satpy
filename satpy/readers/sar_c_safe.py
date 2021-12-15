@@ -315,34 +315,32 @@ class AzimuthNoiseReader:
     def _get_padded_dask_pieces(self, pieces, chunks):
         """Get the padded pieces of a slice."""
         pieces = sorted(pieces, key=(lambda x: x.coords['x'][0]))
-        dask_pieces = self._get_full_dask_pieces(pieces, chunks)
-        return dask_pieces
-
-    def _get_full_dask_pieces(self, pieces, chunks):
-        """Get the dask pieces without wholes."""
         dask_pieces = []
         previous_x_end = -1
         piece = pieces[0]
-        next_x_start = piece.coords['x'][0]
-        y_coords = piece.coords['y']
+        next_x_start = piece.coords['x'][0].item()
+        y_shape = len(piece.coords['y'])
 
-        self._fill_dask_pieces(dask_pieces, next_x_start, previous_x_end, y_coords, chunks)
+        x_shape = (next_x_start - previous_x_end - 1)
+        self._fill_dask_pieces(dask_pieces, (y_shape, x_shape), chunks)
+
         for i, piece in enumerate(pieces):
             dask_pieces.append(piece.data)
-            previous_x_end = piece.coords['x'][-1]
+            previous_x_end = piece.coords['x'][-1].item()
             try:
-                next_x_start = pieces[i + 1].coords['x'][0]
+                next_x_start = pieces[i + 1].coords['x'][0].item()
             except IndexError:
                 next_x_start = self._image_shape[1]
-            self._fill_dask_pieces(dask_pieces, next_x_start, previous_x_end, y_coords, chunks)
+
+            x_shape = (next_x_start - previous_x_end - 1)
+            self._fill_dask_pieces(dask_pieces, (y_shape, x_shape), chunks)
 
         return dask_pieces
 
     @staticmethod
-    def _fill_dask_pieces(dask_pieces, next_x_start, previous_x_end, y_coords, chunks):
-        if previous_x_end != next_x_start - 1:
-            missing_x = np.arange(previous_x_end, next_x_start - 1)
-            new_piece = da.full((len(y_coords), len(missing_x)), np.nan, chunks=chunks)
+    def _fill_dask_pieces(dask_pieces, shape, chunks):
+        if shape[1] > 0:
+            new_piece = da.full(shape, np.nan, chunks=chunks)
             dask_pieces.append(new_piece)
 
 
