@@ -316,43 +316,33 @@ class AzimuthNoiseReader:
         """Get the padded pieces of a slice."""
         pieces = sorted(pieces, key=(lambda x: x.coords['x'][0]))
         dask_pieces = self._get_full_dask_pieces(pieces, chunks)
-        self._pad_dask_pieces_before(pieces, dask_pieces, chunks)
-        self._pad_dask_pieces_after(pieces, dask_pieces, chunks)
         return dask_pieces
 
-    @staticmethod
-    def _get_full_dask_pieces(pieces, chunks):
+    def _get_full_dask_pieces(self, pieces, chunks):
         """Get the dask pieces without wholes."""
         dask_pieces = []
-        for i, piece in enumerate(pieces[:-1]):
+        previous_x_end = -1
+        piece = pieces[0]
+        next_x_start = piece.coords['x'][0]
+        y_coords = piece.coords['y']
+
+        self._fill_dask_pieces(dask_pieces, next_x_start, previous_x_end, y_coords, chunks)
+        for i, piece in enumerate(pieces):
             dask_pieces.append(piece.data)
             previous_x_end = piece.coords['x'][-1]
-            next_x_start = pieces[i + 1].coords['x'][0]
-            if previous_x_end != next_x_start - 1:
-                missing_x = np.arange(previous_x_end, next_x_start - 1)
-                missing_y = piece.coords['y']
-                new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
-                dask_pieces.append(new_piece)
-        dask_pieces.append(pieces[-1].data)
+            try:
+                next_x_start = pieces[i + 1].coords['x'][0]
+            except IndexError:
+                next_x_start = self._image_shape[1]
+            self._fill_dask_pieces(dask_pieces, next_x_start, previous_x_end, y_coords, chunks)
+
         return dask_pieces
 
     @staticmethod
-    def _pad_dask_pieces_before(pieces, dask_pieces, chunks):
-        """Pad the dask pieces before."""
-        first_x = min(arr.coords['x'][0] for arr in pieces)
-        if first_x > 0:
-            missing_x = np.arange(first_x)
-            missing_y = pieces[0].coords['y']
-            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
-            dask_pieces.insert(0, new_piece)
-
-    def _pad_dask_pieces_after(self, pieces, dask_pieces, chunks):
-        """Pad the dask pieces after."""
-        last_x = max(arr.coords['x'][-1] for arr in pieces)
-        if last_x < self._image_shape[1] - 1:
-            missing_x = np.arange(last_x + 1, self._image_shape[1])
-            missing_y = pieces[-1].coords['y']
-            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
+    def _fill_dask_pieces(dask_pieces, next_x_start, previous_x_end, y_coords, chunks):
+        if previous_x_end != next_x_start - 1:
+            missing_x = np.arange(previous_x_end, next_x_start - 1)
+            new_piece = da.full((len(y_coords), len(missing_x)), np.nan, chunks=chunks)
             dask_pieces.append(new_piece)
 
 
