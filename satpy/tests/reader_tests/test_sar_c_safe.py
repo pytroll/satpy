@@ -626,8 +626,6 @@ class TestSAFEXMLNoise(unittest.TestCase):
         filename_info = dict(start_time=None, end_time=None, polarization="vv")
         self.annotation_fh = SAFEXMLAnnotation(BytesIO(annotation_xml), filename_info, mock.MagicMock())
         self.noise_fh = SAFEXMLNoise(BytesIO(noise_xml), filename_info, mock.MagicMock(), self.annotation_fh)
-        self.noise_fh_with_holes = SAFEXMLNoise(BytesIO(noise_xml_with_holes), filename_info, mock.MagicMock(),
-                                                self.annotation_fh)
 
         self.expected_azimuth_noise = np.array([[np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                                                 [np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
@@ -653,6 +651,8 @@ class TestSAFEXMLNoise(unittest.TestCase):
                                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                                               ])
 
+        self.noise_fh_with_holes = SAFEXMLNoise(BytesIO(noise_xml_with_holes), filename_info, mock.MagicMock(),
+                                                self.annotation_fh)
         self.expected_azimuth_noise_with_holes = np.array(
             [[np.nan, np.nan, np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan],
              [2, 2, np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan],
