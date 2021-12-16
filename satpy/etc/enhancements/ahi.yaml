@@ -23,4 +23,3 @@ enhancements:
           stretch: crude
           min_stretch: [0.08, 0.08, 0.08]
           max_stretch: [.93, .90, .90]
-
