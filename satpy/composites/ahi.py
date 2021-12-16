@@ -28,10 +28,10 @@ LOG = logging.getLogger(__name__)
 class GreenCorrector(GenericCompositor):
     """Corrector of the AHI green band to compensate for the deficit of chlorophyll signal."""
 
-    def __init__(self, *args, fractions=(0.85, 0.15), **kwargs):
+    def __init__(self, *args, **kwargs):
         """Set default keyword argument values."""
         # XXX: Should this be 0.93 and 0.07
-        self.fractions = fractions
+        self.fractions = kwargs.pop('fractions', [0.85, 0.15])
         super(GreenCorrector, self).__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
