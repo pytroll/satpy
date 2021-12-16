@@ -19,13 +19,14 @@
 
 import os
 import unittest
+
 import numpy as np
 
 try:
     from satpy.readers.netcdf_utils import NetCDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    NetCDF4FileHandler = object
+    NetCDF4FileHandler = object  # type: ignore
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -121,8 +122,9 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
     def test_all_basic(self):
         """Test everything about the NetCDF4 class."""
-        from satpy.readers.netcdf_utils import NetCDF4FileHandler
         import xarray as xr
+
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
         file_handler = NetCDF4FileHandler('test.nc', {}, {})
 
         self.assertEqual(file_handler['/dimension/rows'], 10)

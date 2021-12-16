@@ -54,7 +54,7 @@ One common parameter across almost all Writers is ``filename`` and
     * - GeoTIFF with NinJo tags
       - :class:`ninjogeotiff <satpy.writers.ninjogeotiff.NinJoGeoTIFFWriter>`
       - Beta
-      - 
+      -
 
 Available Writers
 =================

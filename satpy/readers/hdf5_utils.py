@@ -18,14 +18,15 @@
 """Helpers for reading hdf5-based files."""
 
 import logging
+
+import dask.array as da
 import h5py
 import numpy as np
 import xarray as xr
-import dask.array as da
 
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
-from satpy import CHUNK_SIZE
 
 LOG = logging.getLogger(__name__)
 

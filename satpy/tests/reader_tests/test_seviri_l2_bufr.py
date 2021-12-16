@@ -19,9 +19,10 @@
 
 import sys
 import unittest
-from unittest import mock
-import numpy as np
 from datetime import datetime
+from unittest import mock
+
+import numpy as np
 
 FILETYPE_INFO = {'file_type':  'seviri_l2_bufr_csr'}
 
@@ -54,8 +55,9 @@ class TestSeviriL2Bufr(unittest.TestCase):
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def seviri_l2_bufr_test(self, filename):
         """Test the SEVIRI BUFR handler."""
-        from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
         import eccodes as ec
+
+        from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
         buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(buf1, 'unpack', 1)
         samp1 = np.random.uniform(low=250, high=350, size=(128,))

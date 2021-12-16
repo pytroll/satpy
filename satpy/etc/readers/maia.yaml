@@ -43,10 +43,10 @@ datasets:
    coordinates: [Longitude, Latitude ]
 
   CloudMask:
-   name: CloudMask  
+   name: CloudMask
    file_type: maia
    coordinates: [Longitude, Latitude ]
-  
+
 # CloudType and CloudMask are bitfields
 # description of sub fields
   ct:
@@ -54,7 +54,7 @@ datasets:
    file_type: maia
    coordinates: [Longitude, Latitude ]
 
-# Cloud Mask On Pixel  
+# Cloud Mask On Pixel
   cma:
    name: cma
    file_type: maia
@@ -109,7 +109,7 @@ datasets:
    units: degrees celcius
    file_type: maia
    coordinates: [Longitude, Latitude ]
-  
+
   Sat_zenith:
    name: Sat_zenith
    units: degrees
@@ -177,4 +177,3 @@ datasets:
 
    file_type: maia
    coordinates: [Longitude, Latitude ]
-

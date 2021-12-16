@@ -21,6 +21,7 @@ import os
 import sys
 import unittest
 from unittest import mock
+
 import pytest
 
 
@@ -29,12 +30,13 @@ class TestBuiltinAreas(unittest.TestCase):
 
     def test_areas_pyproj(self):
         """Test all areas have valid projections with pyproj."""
+        import numpy as np
         import pyproj
+        import xarray as xr
         from pyresample import parse_area_file
         from pyresample.geometry import SwathDefinition
+
         from satpy.resample import get_area_file
-        import numpy as np
-        import xarray as xr
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
@@ -62,11 +64,12 @@ class TestBuiltinAreas(unittest.TestCase):
         if not hasattr(CRS, 'from_dict'):
             return unittest.skip("RasterIO 1.0+ required")
 
-        from pyresample import parse_area_file
-        from pyresample.geometry import SwathDefinition
-        from satpy.resample import get_area_file
         import numpy as np
         import xarray as xr
+        from pyresample import parse_area_file
+        from pyresample.geometry import SwathDefinition
+
+        from satpy.resample import get_area_file
 
         lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
         lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
@@ -106,6 +109,7 @@ class TestPluginsConfigs(unittest.TestCase):
 
         import satpy
         from satpy._config import get_entry_points_config_dirs
+
         # don't let user env vars affect results
         with satpy.config.set(config_path=[]):
             dirs = get_entry_points_config_dirs('satpy.composites')
@@ -118,8 +122,10 @@ class TestConfigObject:
     def test_custom_config_file(self):
         """Test adding a custom configuration file using SATPY_CONFIG."""
         import tempfile
-        import yaml
         from importlib import reload
+
+        import yaml
+
         import satpy
         my_config_dict = {
             'cache_dir': "/path/to/cache",
@@ -138,6 +144,7 @@ class TestConfigObject:
     def test_deprecated_env_vars(self):
         """Test that deprecated variables are mapped to new config."""
         from importlib import reload
+
         import satpy
         old_vars = {
             'PPP_CONFIG_DIR': '/my/ppp/config/dir',
@@ -153,6 +160,7 @@ class TestConfigObject:
     def test_config_path_multiple(self):
         """Test that multiple config paths are accepted."""
         from importlib import reload
+
         import satpy
         exp_paths, env_paths = _os_specific_multipaths()
         old_vars = {
@@ -172,6 +180,7 @@ class TestConfigObject:
         modified variable.
         """
         from importlib import reload
+
         import satpy
         exp_paths, env_paths = _os_specific_multipaths()
         old_vars = {
@@ -191,6 +200,7 @@ class TestConfigObject:
     def test_bad_str_config_path(self):
         """Test that a str config path isn't allowed."""
         from importlib import reload
+
         import satpy
         old_vars = {
             'SATPY_CONFIG_PATH': '/my/configs1',

@@ -182,13 +182,22 @@ composites:
     standard_name: fire_temperature
     name: fire_temperature_39refl
 
-
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 0.65
-    - 0.85
-    - 10.4
+    - name: B03
+      modifiers: [sunz_corrected]
+    - name: B04
+      modifiers: [sunz_corrected]
+    - name: B13
+    standard_name: overview
+
+  overview_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - B03
+      - B04
+      - B13
     standard_name: overview
 
   natural_color:

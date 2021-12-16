@@ -25,9 +25,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 from satpy.readers.agri_l1 import RESOLUTION_LIST
-
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 ALL_BAND_NAMES = ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
                   "C08", "C09", "C10", "C11", "C12", "C13", "C14"]
@@ -227,8 +226,8 @@ class Test_HDF_AGRI_L1_cal:
 
     def setup(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.agri_l1 import HDF_AGRI_L1
         from satpy._config import config_search_paths
+        from satpy.readers.agri_l1 import HDF_AGRI_L1
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(HDF_AGRI_L1, '__bases__', (FakeHDF5FileHandler2,))
@@ -294,8 +293,8 @@ class Test_HDF_AGRI_L1_cal:
 
     @staticmethod
     def _check_keys_for_dsq(available_datasets, resolution_to_test):
-        from satpy.tests.utils import make_dsq
         from satpy.dataset.data_dict import get_key
+        from satpy.tests.utils import make_dsq
 
         band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
         for band_name in band_names:
@@ -381,8 +380,8 @@ class Test_HDF_AGRI_L1_cal:
 
     @staticmethod
     def _assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test):
-        from satpy.tests.utils import make_dsq
         from satpy.dataset.data_dict import get_key
+        from satpy.tests.utils import make_dsq
 
         other_resolutions = RESOLUTION_LIST.copy()
         other_resolutions.remove(resolution_to_test)

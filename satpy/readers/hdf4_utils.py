@@ -19,10 +19,10 @@
 
 import logging
 
-from pyhdf.SD import SD, SDC, SDS
 import dask.array as da
-import xarray as xr
 import numpy as np
+import xarray as xr
+from pyhdf.SD import SD, SDC, SDS
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler

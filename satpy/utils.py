@@ -20,10 +20,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import warnings
-import contextlib
 from typing import Mapping
 
 import numpy as np
@@ -34,7 +34,7 @@ from yaml import BaseLoader
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 _is_logging_on = False
 TRACE_LEVEL = 5
@@ -240,42 +240,6 @@ def _get_sunz_corr_li_and_shibata(cos_zen):
     return 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
 
 
-def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
-    """Perform Sun zenith angle correction.
-
-    The correction is based on the provided cosine of the zenith
-    angle (``cos_zen``).  The correction is limited
-    to ``limit`` degrees (default: 88.0 degrees).  For larger zenith
-    angles, the correction is the same as at the ``limit`` if ``max_sza``
-    is `None`. The default behavior is to gradually reduce the correction
-    past ``limit`` degrees up to ``max_sza`` where the correction becomes
-    0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
-
-    """
-    # Convert the zenith angle limit to cosine of zenith angle
-    limit_rad = np.deg2rad(limit)
-    limit_cos = np.cos(limit_rad)
-    max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
-
-    # Cosine correction
-    corr = 1. / cos_zen
-    if max_sza is not None:
-        # gradually fall off for larger zenith angle
-        grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
-        # invert the factor so maximum correction is done at `limit` and falls off later
-        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
-        # make sure we don't make anything negative
-        grad_factor = grad_factor.clip(0.)
-    else:
-        # Use constant value (the limit) for larger zenith angles
-        grad_factor = 1.
-    corr = corr.where(cos_zen > limit_cos, grad_factor / limit_cos)
-    # Force "night" pixels to 0 (where SZA is invalid)
-    corr = corr.where(cos_zen.notnull(), 0)
-
-    return data * corr
-
-
 def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     """Perform Sun zenith angle correction.
 
@@ -334,32 +298,9 @@ def get_satpos(dataset):
     try:
         orb_params = dataset.attrs['orbital_parameters']
 
-        # Altitude
-        try:
-            alt = orb_params['satellite_actual_altitude']
-        except KeyError:
-            try:
-                alt = orb_params['satellite_nominal_altitude']
-            except KeyError:
-                alt = orb_params['projection_altitude']
-                warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+        alt = _get_sat_altitude(orb_params)
 
-        # Longitude & Latitude
-        try:
-            lon = orb_params['nadir_longitude']
-            lat = orb_params['nadir_latitude']
-        except KeyError:
-            try:
-                lon = orb_params['satellite_actual_longitude']
-                lat = orb_params['satellite_actual_latitude']
-            except KeyError:
-                try:
-                    lon = orb_params['satellite_nominal_longitude']
-                    lat = orb_params['satellite_nominal_latitude']
-                except KeyError:
-                    lon = orb_params['projection_longitude']
-                    lat = orb_params['projection_latitude']
-                    warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+        lon, lat = _get_sat_lonlat(orb_params)
     except KeyError:
         # Legacy
         lon = dataset.attrs['satellite_longitude']
@@ -367,6 +308,39 @@ def get_satpos(dataset):
         alt = dataset.attrs['satellite_altitude']
 
     return lon, lat, alt
+
+
+def _get_sat_altitude(orb_params):
+    # Altitude
+    try:
+        alt = orb_params['satellite_actual_altitude']
+    except KeyError:
+        try:
+            alt = orb_params['satellite_nominal_altitude']
+        except KeyError:
+            alt = orb_params['projection_altitude']
+            warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+    return alt
+
+
+def _get_sat_lonlat(orb_params):
+    # Longitude & Latitude
+    try:
+        lon = orb_params['nadir_longitude']
+        lat = orb_params['nadir_latitude']
+    except KeyError:
+        try:
+            lon = orb_params['satellite_actual_longitude']
+            lat = orb_params['satellite_actual_latitude']
+        except KeyError:
+            try:
+                lon = orb_params['satellite_nominal_longitude']
+                lat = orb_params['satellite_nominal_latitude']
+            except KeyError:
+                lon = orb_params['projection_longitude']
+                lat = orb_params['projection_latitude']
+                warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+    return lon, lat
 
 
 def recursive_dict_update(d, u):
@@ -462,7 +436,7 @@ def check_satpy(readers=None, writers=None, extras=None):
     print()
 
 
-def unify_chunks(*data_arrays: xr.DataArray) -> list[xr.DataArray]:
+def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
     """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
 
     This is mostly used in :class:`satpy.composites.CompositeBase` to safe
@@ -479,11 +453,11 @@ def unify_chunks(*data_arrays: xr.DataArray) -> list[xr.DataArray]:
         return data_arrays
     if not _all_dims_same_size(data_arrays):
         return data_arrays
-    return list(xr.unify_chunks(*data_arrays))
+    return tuple(xr.unify_chunks(*data_arrays))
 
 
-def _all_dims_same_size(data_arrays: list[xr.DataArray]) -> bool:
-    known_sizes = {}
+def _all_dims_same_size(data_arrays: tuple[xr.DataArray, ...]) -> bool:
+    known_sizes: dict[str, int] = {}
     for data_arr in data_arrays:
         for dim, dim_size in data_arr.sizes.items():
             known_size = known_sizes.setdefault(dim, dim_size)
@@ -492,3 +466,22 @@ def _all_dims_same_size(data_arrays: list[xr.DataArray]) -> bool:
                 # xarray.unify_chunks will error out if we tried to use it
                 return False
     return True
+
+
+@contextlib.contextmanager
+def ignore_invalid_float_warnings():
+    """Ignore warnings generated for working with NaN/inf values.
+
+    Numpy and dask sometimes don't like NaN or inf values in normal function
+    calls. This context manager hides/ignores them inside its context.
+
+    Examples:
+        Use around numpy operations that you expect to produce warnings::
+
+            with ignore_invalid_float_warnings():
+                np.nanmean(np.nan)
+
+    """
+    with np.errstate(invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        yield

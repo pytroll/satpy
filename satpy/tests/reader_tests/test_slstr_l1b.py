@@ -20,10 +20,12 @@ import unittest
 import unittest.mock as mock
 import warnings
 from datetime import datetime
+
 import numpy as np
 import xarray as xr
-from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
-from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
+
+from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
+from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRAngles, NCSLSTRFlag, NCSLSTRGeo
 
 local_id_keys_config = {'name': {
     'required': True,

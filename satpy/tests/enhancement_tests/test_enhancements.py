@@ -19,10 +19,11 @@
 
 import os
 import unittest
+from unittest import mock
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-from unittest import mock
 
 
 class TestEnhancementStretch(unittest.TestCase):
@@ -100,8 +101,9 @@ class TestEnhancementStretch(unittest.TestCase):
 
     def test_colorize(self):
         """Test the colorize enhancement function."""
-        from satpy.enhancements import colorize
         from trollimage.colormap import brbg
+
+        from satpy.enhancements import colorize
         expected = np.array([[
             [np.nan, 3.29409498e-01, 3.29409498e-01,
              4.35952940e-06, 4.35952940e-06],
@@ -119,8 +121,9 @@ class TestEnhancementStretch(unittest.TestCase):
 
     def test_palettize(self):
         """Test the palettize enhancement function."""
-        from satpy.enhancements import palettize
         from trollimage.colormap import brbg
+
+        from satpy.enhancements import palettize
         expected = np.array([[[10, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
         self._test_enhancement(palettize, self.ch1, expected, palettes=brbg)
 
@@ -168,7 +171,9 @@ class TestEnhancementStretch(unittest.TestCase):
     def test_merge_colormaps(self):
         """Test merging colormaps."""
         from trollimage.colormap import Colormap
-        from satpy.enhancements import _merge_colormaps as mcp, create_colormap
+
+        from satpy.enhancements import _merge_colormaps as mcp
+        from satpy.enhancements import create_colormap
         ret_map = mock.MagicMock()
 
         create_colormap_mock = mock.Mock(wraps=create_colormap)
@@ -211,7 +216,6 @@ class TestEnhancementStretch(unittest.TestCase):
 
     def tearDown(self):
         """Clean up."""
-        pass
 
 
 class TestColormapLoading(unittest.TestCase):
@@ -219,8 +223,10 @@ class TestColormapLoading(unittest.TestCase):
 
     def test_cmap_from_file_rgb(self):
         """Test that colormaps can be loaded from a binary file."""
-        from satpy.enhancements import create_colormap
         from tempfile import NamedTemporaryFile
+
+        from satpy.enhancements import create_colormap
+
         # create the colormap file on disk
         with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
             cmap_filename = tmp_cmap.name
@@ -250,8 +256,10 @@ class TestColormapLoading(unittest.TestCase):
 
     def test_cmap_from_file_rgb_1(self):
         """Test that colormaps can be loaded from a binary file with 0-1 colors."""
-        from satpy.enhancements import create_colormap
         from tempfile import NamedTemporaryFile
+
+        from satpy.enhancements import create_colormap
+
         # create the colormap file on disk
         with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
             cmap_filename = tmp_cmap.name
@@ -283,8 +291,10 @@ class TestColormapLoading(unittest.TestCase):
 
     def test_cmap_from_file_vrgb(self):
         """Test that colormaps can be loaded from a binary file with values."""
-        from satpy.enhancements import create_colormap
         from tempfile import NamedTemporaryFile
+
+        from satpy.enhancements import create_colormap
+
         # create the colormap file on disk
         with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
             cmap_filename = tmp_cmap.name
@@ -327,8 +337,10 @@ class TestColormapLoading(unittest.TestCase):
 
     def test_cmap_from_file_vrgba(self):
         """Test that colormaps can be loaded RGBA colors and values."""
-        from satpy.enhancements import create_colormap
         from tempfile import NamedTemporaryFile
+
+        from satpy.enhancements import create_colormap
+
         # create the colormap file on disk
         with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
             cmap_filename = tmp_cmap.name
@@ -364,8 +376,10 @@ class TestColormapLoading(unittest.TestCase):
 
     def test_cmap_from_file_bad_shape(self):
         """Test that unknown array shape causes an error."""
-        from satpy.enhancements import create_colormap
         from tempfile import NamedTemporaryFile
+
+        from satpy.enhancements import create_colormap
+
         # create the colormap file on disk
         with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
             cmap_filename = tmp_cmap.name

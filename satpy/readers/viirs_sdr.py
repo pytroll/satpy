@@ -29,12 +29,13 @@ Format documentation:
 
 """
 import logging
+import os.path
+from contextlib import suppress
 from datetime import datetime, timedelta
 from glob import glob
-import os.path
 
-import numpy as np
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -501,7 +502,7 @@ class VIIRSSDRReader(FileYAMLReader):
         geo_keep = []
         geo_del = []
         for filename, filename_info in filename_items:
-            filename_info['datasets'] = datasets = filename_info['datasets'].split('-')
+            datasets = filename_info['datasets'].split('-')
             if ('GITCO' in datasets) or ('GMTCO' in datasets):
                 if self.use_tc is False:
                     geo_del.append(filename)
@@ -513,19 +514,22 @@ class VIIRSSDRReader(FileYAMLReader):
                 else:
                     geo_keep.append(filename)
         if geo_keep:
-            fdict = dict(filename_items)
-            for to_del in geo_del:
-                for dataset in ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']:
-                    try:
-                        fdict[to_del]['datasets'].remove(dataset)
-                    except ValueError:
-                        pass
-                if not fdict[to_del]['datasets']:
-                    del fdict[to_del]
-            filename_items = fdict.items()
-        for _filename, filename_info in filename_items:
-            filename_info['datasets'] = '-'.join(filename_info['datasets'])
+            filename_items = self._remove_geo_datasets_from_files(filename_items, geo_del)
         return super(VIIRSSDRReader, self).filter_filenames_by_info(filename_items)
+
+    def _remove_geo_datasets_from_files(self, filename_items, files_to_edit):
+        fdict = dict(filename_items)
+        for to_del in files_to_edit:
+            fdict[to_del]['datasets'] = fdict[to_del]['datasets'].split('-')
+            for dataset in ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']:
+                with suppress(ValueError):
+                    fdict[to_del]['datasets'].remove(dataset)
+            if not fdict[to_del]['datasets']:
+                del fdict[to_del]
+            else:
+                fdict[to_del]['datasets'] = "-".join(fdict[to_del]['datasets'])
+        filename_items = fdict.items()
+        return filename_items
 
     def _load_filenames_from_geo_ref(self, dsid):
         """Load filenames from the N_GEO_Ref attribute of a dataset's file."""

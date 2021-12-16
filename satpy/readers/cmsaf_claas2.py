@@ -1,7 +1,9 @@
 """Module containing CMSAF CLAAS v2 FileHandler."""
 
 import datetime
+
 import pyresample.geometry
+
 from .netcdf_utils import NetCDF4FileHandler
 
 
@@ -67,8 +69,8 @@ class CLAAS2(NetCDF4FileHandler):
         ds = self[dataset_id['name']]
         if "time" in ds.dims:
             return ds.squeeze(["time"])
-        else:
-            return ds
+
+        return ds
 
     def get_area_def(self, dataset_id):
         """Get the area definition."""

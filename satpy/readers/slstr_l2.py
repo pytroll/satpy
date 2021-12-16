@@ -17,9 +17,11 @@
 """Reader for Sentinel-3 SLSTR SST data."""
 
 from datetime import datetime
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
+
 import xarray as xr
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 
 class SLSTRL2FileHandler(BaseFileHandler):
@@ -30,8 +32,8 @@ class SLSTRL2FileHandler(BaseFileHandler):
         super(SLSTRL2FileHandler, self).__init__(filename, filename_info, filetype_info)
 
         if filename.endswith('tar'):
-            import tarfile
             import os
+            import tarfile
             import tempfile
             with tempfile.TemporaryDirectory() as tempdir:
                 with tarfile.open(name=filename, mode='r') as tf:

@@ -16,10 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l2_nc reader tests package."""
 
-import numpy as np
-import xarray as xr
 import unittest
 from unittest import mock
+
+import numpy as np
+import xarray as xr
 
 
 def _create_cmip_dataset():
@@ -134,10 +135,12 @@ class TestMCMIPReading:
     @mock.patch('satpy.readers.abi_base.xr')
     def test_mcmip_get_dataset(self, xr_):
         """Test getting channel from MCMIP file."""
+        from datetime import datetime
+
+        from pyresample.geometry import AreaDefinition
+
         from satpy import Scene
         from satpy.dataset.dataid import WavelengthRange
-        from datetime import datetime
-        from pyresample.geometry import AreaDefinition
         xr_.open_dataset.return_value = _create_mcmip_dataset()
 
         fn = "OR_ABI-L2-MCMIPF-M6_G16_s20192600241149_e20192600243534_c20192600245360.nc"

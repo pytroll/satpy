@@ -14,10 +14,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""ScatSat-1 L2B Reader, distributed by Eumetsat in HDF5 format
-"""
+# type: ignore
+"""ScatSat-1 L2B Reader, distributed by Eumetsat in HDF5 format."""
 
 from datetime import datetime
+
 import h5py
 
 from satpy.dataset import Dataset

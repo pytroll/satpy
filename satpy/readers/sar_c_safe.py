@@ -35,10 +35,10 @@ References:
 """
 
 import logging
-import xml.etree.ElementTree as ET
 from functools import lru_cache
 from threading import Lock
 
+import defusedxml.ElementTree as ET
 import numpy as np
 import rasterio
 import rioxarray
@@ -281,16 +281,20 @@ class AzimuthNoiseReader:
 
     def _create_dask_slice_from_block_line(self, current_line, chunks):
         """Create a dask slice from the blocks at the current line."""
-        current_blocks = self._find_blocks_covering_line(current_line)
-        current_blocks.sort(key=(lambda x: x.coords['x'][0]))
-
-        next_line = min((arr.coords['y'][-1] for arr in current_blocks))
-        current_y = np.arange(current_line, next_line + 1)
-
-        pieces = [arr.sel(y=current_y) for arr in current_blocks]
+        pieces = self._get_array_pieces_for_current_line(current_line)
         dask_pieces = self._get_padded_dask_pieces(pieces, chunks)
         new_slice = da.hstack(dask_pieces)
+
         return new_slice
+
+    def _get_array_pieces_for_current_line(self, current_line):
+        """Get the array pieces that cover the current line."""
+        current_blocks = self._find_blocks_covering_line(current_line)
+        current_blocks.sort(key=(lambda x: x.coords['x'][0]))
+        next_line = self._get_next_start_line(current_blocks, current_line)
+        current_y = np.arange(current_line, next_line)
+        pieces = [arr.sel(y=current_y) for arr in current_blocks]
+        return pieces
 
     def _find_blocks_covering_line(self, current_line):
         """Find the blocks covering a given line."""
@@ -300,30 +304,43 @@ class AzimuthNoiseReader:
                 current_blocks.append(block)
         return current_blocks
 
+    def _get_next_start_line(self, current_blocks, current_line):
+        next_line = min((arr.coords['y'][-1] for arr in current_blocks)) + 1
+        blocks_starting_soon = [block for block in self.blocks if current_line < block.coords["y"][0] < next_line]
+        if blocks_starting_soon:
+            next_start_line = min((arr.coords["y"][0] for arr in blocks_starting_soon))
+            next_line = min(next_line, next_start_line)
+        return next_line
+
     def _get_padded_dask_pieces(self, pieces, chunks):
         """Get the padded pieces of a slice."""
-        dask_pieces = [piece.data for piece in pieces]
-        self._pad_dask_pieces_before(pieces, dask_pieces, chunks)
-        self._pad_dask_pieces_after(pieces, dask_pieces, chunks)
+        pieces = sorted(pieces, key=(lambda x: x.coords['x'][0]))
+        dask_pieces = []
+        previous_x_end = -1
+        piece = pieces[0]
+        next_x_start = piece.coords['x'][0].item()
+        y_shape = len(piece.coords['y'])
+
+        x_shape = (next_x_start - previous_x_end - 1)
+        self._fill_dask_pieces(dask_pieces, (y_shape, x_shape), chunks)
+
+        for i, piece in enumerate(pieces):
+            dask_pieces.append(piece.data)
+            previous_x_end = piece.coords['x'][-1].item()
+            try:
+                next_x_start = pieces[i + 1].coords['x'][0].item()
+            except IndexError:
+                next_x_start = self._image_shape[1]
+
+            x_shape = (next_x_start - previous_x_end - 1)
+            self._fill_dask_pieces(dask_pieces, (y_shape, x_shape), chunks)
+
         return dask_pieces
 
     @staticmethod
-    def _pad_dask_pieces_before(pieces, dask_pieces, chunks):
-        """Pad the dask pieces before."""
-        first_x = min(arr.coords['x'][0] for arr in pieces)
-        if first_x > 0:
-            missing_x = np.arange(first_x)
-            missing_y = pieces[0].coords['y']
-            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
-            dask_pieces.insert(0, new_piece)
-
-    def _pad_dask_pieces_after(self, pieces, dask_pieces, chunks):
-        """Pad the dask pieces after."""
-        last_x = max(arr.coords['x'][-1] for arr in pieces)
-        if last_x < self._image_shape[1] - 1:
-            missing_x = np.arange(last_x + 1, self._image_shape[1])
-            missing_y = pieces[-1].coords['y']
-            new_piece = da.full((len(missing_y), len(missing_x)), np.nan, chunks=chunks)
+    def _fill_dask_pieces(dask_pieces, shape, chunks):
+        if shape[1] > 0:
+            new_piece = da.full(shape, np.nan, chunks=chunks)
             dask_pieces.append(new_piece)
 
 
@@ -479,8 +496,7 @@ def intp(grid_x, grid_y, interpolator):
 
 def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
-    from scipy.interpolate.interpnd import (LinearNDInterpolator,
-                                            _ndim_coords_from_arrays)
+    from scipy.interpolate.interpnd import LinearNDInterpolator, _ndim_coords_from_arrays
 
     if isinstance(chunks, (list, tuple)):
         vchunks, hchunks = chunks

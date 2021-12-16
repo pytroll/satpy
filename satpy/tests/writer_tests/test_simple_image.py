@@ -38,9 +38,10 @@ class TestPillowWriter(unittest.TestCase):
     @staticmethod
     def _get_test_datasets():
         """Create DataArray for testing."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -64,8 +65,9 @@ class TestPillowWriter(unittest.TestCase):
     def test_simple_delayed_write(self):
         """Test writing datasets with delayed computation."""
         from dask.delayed import Delayed
-        from satpy.writers.simple_image import PillowWriter
+
         from satpy.writers import compute_writer_results
+        from satpy.writers.simple_image import PillowWriter
         datasets = self._get_test_datasets()
         w = PillowWriter(base_dir=self.base_dir)
         res = w.save_datasets(datasets, compute=False)

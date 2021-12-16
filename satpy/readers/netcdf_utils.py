@@ -17,11 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading netcdf-based files."""
 
-import netCDF4
 import logging
+
+import dask.array as da
+import netCDF4
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
