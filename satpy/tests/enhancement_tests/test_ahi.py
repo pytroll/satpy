@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit testing for the AHI enhancement function."""
 
-import unittest
 import numpy as np
 import xarray as xr
 import dask.array as da
