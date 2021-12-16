@@ -23,15 +23,16 @@ from typing import Optional
 
 import numpy as np
 import pytest
-from pyhdf.SD import SDC, SD
+from pyhdf.SD import SD, SDC
 
 # Level 1 Fixtures
 
-AVAILABLE_1KM_VIS_PRODUCT_NAMES = list(range(8, 13)) + ['13lo', '13hi', '14lo', '14hi'] + list(range(15, 20))
-AVAILABLE_1KM_VIS_PRODUCT_NAMES = [str(x) for x in AVAILABLE_1KM_VIS_PRODUCT_NAMES]
+AVAILABLE_1KM_VIS_PRODUCT_NAMES = [str(x) for x in range(8, 13)]
+AVAILABLE_1KM_VIS_PRODUCT_NAMES += ['13lo', '13hi', '14lo', '14hi']
+AVAILABLE_1KM_VIS_PRODUCT_NAMES += [str(x) for x in range(15, 20)]
 AVAILABLE_1KM_IR_PRODUCT_NAMES = [str(x) for x in range(20, 37)]
 AVAILABLE_1KM_PRODUCT_NAMES = AVAILABLE_1KM_VIS_PRODUCT_NAMES + AVAILABLE_1KM_IR_PRODUCT_NAMES
-AVAILABLE_HKM_PRODUCT_NAMES = [str(x) for x in list(range(3, 8))]
+AVAILABLE_HKM_PRODUCT_NAMES = [str(x) for x in range(3, 8)]
 AVAILABLE_QKM_PRODUCT_NAMES = ['1', '2']
 SCAN_LEN_5KM = 406
 SCAN_WIDTH_5KM = 270

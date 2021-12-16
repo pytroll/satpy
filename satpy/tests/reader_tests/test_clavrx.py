@@ -18,14 +18,15 @@
 """Module for testing the satpy.readers.clavrx module."""
 
 import os
-import numpy as np
-import dask.array as da
-import xarray as xr
-from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
-from pyresample.geometry import AreaDefinition, SwathDefinition
-
 import unittest
 from unittest import mock
+
+import dask.array as da
+import numpy as np
+import xarray as xr
+from pyresample.geometry import AreaDefinition, SwathDefinition
+
+from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -205,8 +206,9 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
     def test_load_all(self):
         """Test loading all test datasets."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -336,8 +338,9 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
     def test_no_nav_donor(self):
         """Test exception raised when no donor file is available."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -348,8 +351,9 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
     def test_load_all_old_donor(self):
         """Test loading all test datasets with old donor."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([
@@ -391,8 +395,9 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
 
     def test_load_all_new_donor(self):
         """Test loading all test datasets with new donor."""
-        from satpy.readers import load_reader
         import xarray as xr
+
+        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.clavrx.SDS', xr.DataArray):
             loadables = r.select_files_from_pathnames([

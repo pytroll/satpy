@@ -25,11 +25,10 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-
 from pyresample import create_area_def
-from satpy.writers import get_enhanced_image
-from satpy import Scene
 
+from satpy import Scene
+from satpy.writers import get_enhanced_image
 
 try:
     from math import prod
@@ -37,7 +36,7 @@ except ImportError:  # Remove when dropping Python < 3.8
     from functools import reduce
     from operator import mul
 
-    def prod(iterable):
+    def prod(iterable):  # type: ignore
         """Drop-in replacement for math.prod."""
         return reduce(mul, iterable, 1)
 
@@ -367,6 +366,22 @@ def ntg_weird(test_image_weird):
 
 
 @pytest.fixture(scope="module")
+def ntg_no_fill_value(test_image_small_mid_atlantic_L):
+    """Create instance of NinJoTagGenerator class."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    return NinJoTagGenerator(
+            test_image_small_mid_atlantic_L,
+            None,
+            "bulgur.tif",
+            ChannelID=900015,
+            DataType="GORN",
+            PhysicUnit="C",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            DataSource="dowsing rod")
+
+
+@pytest.fixture(scope="module")
 def ntg_rgba(test_image_rgba_merc):
     """Create NinJoTagGenerator instance with RGBA image."""
     from satpy.writers.ninjogeotiff import NinJoTagGenerator
@@ -431,6 +446,7 @@ def patch_datetime_now(monkeypatch):
 def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
     """Test that it writes a GeoTIFF with the appropriate NinJo-tags."""
     import rasterio
+
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
@@ -461,6 +477,7 @@ def test_write_and_read_file(test_image_small_mid_atlantic_L, tmp_path):
 def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
     """Test writing and reading RGB."""
     import rasterio
+
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
@@ -486,6 +503,7 @@ def test_write_and_read_file_RGB(test_image_large_asia_RGB, tmp_path):
 def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     """Test writing and reading LA image."""
     import rasterio
+
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
@@ -507,13 +525,15 @@ def test_write_and_read_file_LA(test_image_latlon, tmp_path):
     np.testing.assert_allclose(float(tgs["ninjo_Gradient"]), 0.30816176470588236)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]), -49.603125)
     assert tgs["ninjo_PhysicValue"] == "Reflectance"
+    assert tgs["ninjo_TransparentPixel"] == "-1"  # meaning not set
 
 
 def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     """Test writing and reading P image."""
     import rasterio
-    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     from trollimage.colormap import Colormap
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
     ngtw.save_image(
@@ -771,13 +791,14 @@ def test_get_ref_lat_2(ntg1, ntg2, ntg3):
     np.testing.assert_allclose(ntg2.get_ref_lat_3(), 0.0)
 
 
-def test_get_transparent_pixel(ntg1, ntg2, ntg3):
+def test_get_transparent_pixel(ntg1, ntg2, ntg3, ntg_no_fill_value):
     """Test getting fill value."""
     tp = ntg1.get_transparent_pixel()
     assert isinstance(tp, int)
     assert tp == 255
-    assert ntg2.get_transparent_pixel() == 0  # when not set ??
+    assert ntg2.get_transparent_pixel() == 0
     assert ntg3.get_transparent_pixel() == 255
+    assert ntg_no_fill_value.get_transparent_pixel() == -1
 
 
 def test_get_xmax(ntg1, ntg2, ntg3):

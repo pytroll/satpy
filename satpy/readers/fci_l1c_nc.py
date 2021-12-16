@@ -63,6 +63,9 @@ geolocation calculations.
 The reading routine supports channel data in counts, radiances, and (depending
 on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on the formulas indicated in
 `PUG`_.
+Radiance datasets are returned in units of radiance per unit wavenumber (mW m-2 sr-1 (cm-1)-1). Radiances can be
+converted to units of radiance per unit wavelength (W m-2 um-1 sr-1) by multiplying with the
+`radiance_unit_conversion_coefficient` dataset attribute.
 
 For each channel, it also supports a number of auxiliary datasets, such as the pixel quality,
 the index map and the related geometric and acquisition parameters: time,
@@ -84,15 +87,15 @@ All auxiliary data can be obtained by prepending the channel name such as
 .. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
 """
 
-from __future__ import (division, absolute_import, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+
 import numpy as np
 import xarray as xr
-
-from pyresample import geometry
 from netCDF4 import default_fillvals
+from pyresample import geometry
+
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
@@ -120,8 +123,8 @@ def _get_aux_data_name_from_dsname(dsname):
     aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
     if len(aux_data_name) > 0:
         return aux_data_name[0]
-    else:
-        return None
+
+    return None
 
 
 def _get_channel_name_from_dsname(dsname):
@@ -230,7 +233,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         res = self.calibrate(data, key)
 
         # pre-calibration units no longer apply
-        info.pop("units")
         attrs.pop("units")
 
         # For each channel, the effective_radiance contains in the
@@ -438,16 +440,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key['calibration'] == "counts":
-            # from package description, this just means not applying add_offset
-            # and scale_factor
-            data.attrs["units"] = "1"
-        elif key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
+        if key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
             data = self.calibrate_counts_to_physical_quantity(data, key)
-        else:
+        elif key['calibration'] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance' or 'radiance', got "
+                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
                 + key['calibration'] + ".")
 
         return data
@@ -467,7 +465,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     def calibrate_counts_to_rad(self, data, key):
         """Calibrate counts to radiances."""
-        radiance_units = data.attrs["units"]
         if key['name'] == 'ir_38':
             data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
                             (data * data.attrs.get("warm_scale_factor", 1) +
@@ -479,8 +476,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             data = (data * data.attrs.get("scale_factor", 1) +
                     data.attrs.get("add_offset", 0))
 
-        data.attrs["units"] = radiance_units
-
+        measured = self.get_channel_measured_group_path(key['name'])
+        data.attrs.update({'radiance_unit_conversion_coefficient': self[measured +
+                                                                        '/radiance_unit_conversion_coefficient']})
         return data
 
     def calibrate_rad_to_bt(self, radiance, key):
@@ -512,7 +510,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         denom = a * np.log(1 + (c1 * vc ** 3) / radiance)
 
         res = nom / denom - b / a
-        res.attrs["units"] = "K"
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
@@ -531,5 +528,4 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
 
         res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
-        res.attrs["units"] = "%"
         return res

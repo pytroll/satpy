@@ -27,8 +27,9 @@ import numpy as np
 import numpy.testing
 import pyresample.geometry
 import xarray as xr
-from satpy.readers import utils as hf
 from pyproj import CRS
+
+from satpy.readers import utils as hf
 
 
 class TestHelpers(unittest.TestCase):

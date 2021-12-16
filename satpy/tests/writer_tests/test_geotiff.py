@@ -19,6 +19,7 @@
 
 import unittest
 from unittest import mock
+
 import numpy as np
 
 
@@ -40,9 +41,10 @@ class TestGeoTIFFWriter(unittest.TestCase):
 
     def _get_test_datasets(self):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
@@ -66,6 +68,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
     def test_simple_delayed_write(self):
         """Test writing can be delayed."""
         import dask.array as da
+
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter(base_dir=self.base_dir)
@@ -86,9 +89,10 @@ class TestGeoTIFFWriter(unittest.TestCase):
 
     def test_colormap_write(self):
         """Test writing an image with a colormap."""
-        from satpy.writers.geotiff import GeoTIFFWriter
-        from trollimage.xrimage import XRImage
         from trollimage.colormap import spectral
+        from trollimage.xrimage import XRImage
+
+        from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
         w = GeoTIFFWriter(base_dir=self.base_dir)
         # we'd have to customize enhancements to test this through
@@ -164,3 +168,13 @@ class TestGeoTIFFWriter(unittest.TestCase):
             w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
             called_include = save_method.call_args[1]['include_scale_offset_tags']
             self.assertTrue(called_include)
+
+    def test_tiled_value_from_config(self):
+        """Test tiled value coming from the writer config."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, compute=False)
+            self.assertEqual(save_method.call_args[1]['tiled'], True)

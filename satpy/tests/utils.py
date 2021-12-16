@@ -16,21 +16,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests."""
 
-from unittest import mock
 from datetime import datetime
+from unittest import mock
 
-from satpy import Scene
-from satpy.dataset import DataID, DataQuery
-from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.composites import GenericCompositor, IncompatibleAreas
-from satpy.modifiers import ModifierBase
-
-from pyresample.geometry import SwathDefinition, BaseDefinition
-from pyresample import create_area_def
-from xarray import DataArray
 import dask.array as da
 import numpy as np
+from pyresample import create_area_def
+from pyresample.geometry import BaseDefinition, SwathDefinition
+from xarray import DataArray
+
+from satpy import Scene
+from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.dataset import DataID, DataQuery
+from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
+from satpy.modifiers import ModifierBase
+from satpy.readers.file_handlers import BaseFileHandler
 
 FAKE_FILEHANDLER_START = datetime(2020, 1, 1, 0, 0, 0)
 FAKE_FILEHANDLER_END = datetime(2020, 1, 1, 1, 0, 0)
@@ -245,6 +245,25 @@ class FakeFileHandler(BaseFileHandler):
         return DataArray(data=da.zeros((rows, cols)),
                          attrs=attrs,
                          dims=['y', 'x'])
+
+    def available_datasets(self, configured_datasets=None):
+        """Report YAML datasets available unless 'not_available' is specified during creation."""
+        not_available_names = self.kwargs.get("not_available", [])
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
+                continue
+            ft_matches = self.file_type_matches(ds_info['file_type'])
+            if not ft_matches:
+                yield None, ds_info
+                continue
+            # mimic what happens when a reader "knows" about one variable
+            # but the files loaded don't have that variable
+            is_avail = ds_info["name"] not in not_available_names
+            yield is_avail, ds_info
 
 
 class CustomScheduler(object):

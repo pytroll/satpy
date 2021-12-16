@@ -153,19 +153,15 @@ References
 """
 
 import abc
-from functools import lru_cache
 import warnings
+from functools import lru_cache
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers._geos_area import (
-    sampling_to_lfac_cfac,
-    get_area_definition,
-    get_area_extent
-)
+from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
 from satpy.readers.file_handlers import BaseFileHandler
 
 EQUATOR_RADIUS = 6378140.0

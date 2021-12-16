@@ -18,19 +18,18 @@
 
 """The vii_l1b_nc reader tests package."""
 
+import datetime
 import os
+import unittest
+import uuid
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-import datetime
 from netCDF4 import Dataset
-import uuid
 
 from satpy.readers.vii_l1b_nc import ViiL1bNCFileHandler
 from satpy.readers.vii_utils import MEAN_EARTH_RADIUS
-
-import unittest
 
 TEST_FILE = 'test_file_vii_l1b_nc.nc'
 

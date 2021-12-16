@@ -16,7 +16,7 @@ Available Readers
 =================
 
 To get a list of available readers use the `available_readers` function. By default,
-it returns the names of available readers. To return additional reader information 
+it returns the names of available readers. To return additional reader information
 use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers

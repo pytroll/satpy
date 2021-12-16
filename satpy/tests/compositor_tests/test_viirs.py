@@ -25,17 +25,17 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
-        from satpy.composites.config_loader import CompositorLoader
-        cl = CompositorLoader()
-        cl.load_sensor_composites('viirs')
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        load_compositor_configs_for_sensors(['viirs'])
 
     def test_histogram_dnb(self):
         """Test the 'histogram_dnb' compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import HistogramDNB
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import HistogramDNB
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -75,11 +75,12 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_adaptive_dnb(self):
         """Test the 'adaptive_dnb' compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import AdaptiveDNB
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import AdaptiveDNB
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -117,11 +118,12 @@ class TestVIIRSComposites(unittest.TestCase):
 
     def test_erf_dnb(self):
         """Test the 'dynamic_dnb' or ERF DNB compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import ERFDNB
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import ERFDNB
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -135,6 +137,7 @@ class TestVIIRSComposites(unittest.TestCase):
                       standard_name='toa_outgoing_radiance_per_'
                                     'unit_wavelength')
         dnb = np.zeros((rows, cols)) + 0.25
+        dnb[2, :cols // 2] = np.nan
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
         dnb = da.from_array(dnb, chunks=25)
@@ -166,16 +169,21 @@ class TestVIIRSComposites(unittest.TestCase):
                          'equalized_radiance')
         data = res.compute()
         unique = np.unique(data)
-        np.testing.assert_allclose(unique, [0.00000000e+00, 1.00446703e-01, 1.64116082e-01, 2.09233451e-01,
-                                            1.43916324e+02, 2.03528498e+02, 2.49270516e+02])
+        assert np.isnan(unique).any()
+        nonnan_unique = unique[~np.isnan(unique)]
+        np.testing.assert_allclose(
+            nonnan_unique,
+            [0.00000000e+00, 1.00446703e-01, 1.64116082e-01, 2.09233451e-01,
+             1.43916324e+02, 2.03528498e+02, 2.49270516e+02])
 
     def test_hncc_dnb(self):
         """Test the 'hncc_dnb' compositor."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.viirs import NCCZinke
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.viirs import NCCZinke
         rows = 5
         cols = 10
         area = AreaDefinition(

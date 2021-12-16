@@ -17,11 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Demo FCI data download."""
 
-import tarfile
 import pathlib
+import tarfile
 import tempfile
-from . import utils
+
 from satpy import config
+
+from . import utils
 
 _fci_uncompressed_nominal = (
     "https://sftp.eumetsat.int/public/folder/UsCVknVOOkSyCdgpMimJNQ/"

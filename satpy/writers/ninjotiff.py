@@ -80,12 +80,11 @@ The metadata to provide to the writer can also be stored in a configuration file
 import logging
 
 import numpy as np
-import xarray as xr
-
 import pyninjotiff.ninjotiff as nt
-from satpy.writers import ImageWriter
+import xarray as xr
 from trollimage.xrimage import invert_scale_offset
 
+from satpy.writers import ImageWriter
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,79 @@
+## Version 0.33.0 (2021/12/10)
+
+### Issues Closed
+
+* [Issue 1930](https://github.com/pytroll/satpy/issues/1930) - ninjogeotiff writer produces file with ninjo_TransparentPixel=None ([PR 1931](https://github.com/pytroll/satpy/pull/1931) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 1902](https://github.com/pytroll/satpy/issues/1902) - High memory usage generating composites from ABI/AHI
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1931](https://github.com/pytroll/satpy/pull/1931) - When no fill value is used, write TransparentPixel=-1 in ninjogeotiff headers ([1930](https://github.com/pytroll/satpy/issues/1930))
+* [PR 1926](https://github.com/pytroll/satpy/pull/1926) - Update seadas_l2 chlor_a enhancement to use new log10 stretch
+* [PR 1922](https://github.com/pytroll/satpy/pull/1922) - Fix ABI cloud_phase composite recipe and enhancement
+
+#### Features added
+
+* [PR 1917](https://github.com/pytroll/satpy/pull/1917) - Add support to read and visualize NOAA GOESR L2+ cloud mask products
+* [PR 1912](https://github.com/pytroll/satpy/pull/1912) - Add Frequency range
+* [PR 1908](https://github.com/pytroll/satpy/pull/1908) - Update AHI HSD calibration coefficients
+* [PR 1905](https://github.com/pytroll/satpy/pull/1905) - Updated mpef product header to include new fields
+* [PR 1882](https://github.com/pytroll/satpy/pull/1882) - Update GDAL_OPTIONS with driver= and COG-specific options
+* [PR 1370](https://github.com/pytroll/satpy/pull/1370) - Add support for reading AAPP level-1c MHS/AMSU-B data
+
+#### Refactoring
+
+* [PR 1910](https://github.com/pytroll/satpy/pull/1910) - Refactor SZA and cos(SZA) generation to reduce duplicate computations
+
+In this release 10 pull requests were closed.
+
+
+## Version 0.32.0 (2021/12/01)
+
+### Issues Closed
+
+* [Isse1900](https://github.com/pytroll/satpy/issues/1900) - Load composites mixed from files or provided data ([PR1901](https://github.com/pytroll/satpy/pull/1901) by [@djhoese](https://github.com/djhoese))
+* [Isse1898](https://github.com/pytroll/satpy/issues/1898) - Loading composites without file handlers fails with KeyError ([PR1899](https://github.com/pytroll/satpy/pull/1899) by [@erritholl](https://github.com/gerritholl))
+* [Isse1893](https://github.com/pytroll/satpy/issues/1893) - Download and install Satpy for raspberry pi
+* [Isse1889](https://github.com/pytroll/satpy/issues/1889) - Question: How to release loaded data from memory?
+* [Isse1880](https://github.com/pytroll/satpy/issues/1880) - Add area definitions corresponding to geostationary imager fields of regard ([PR1881](https://github.com/pytroll/satpy/pull/1881) by [@erritholl](https://github.com/gerritholl))
+* [Isse1879](https://github.com/pytroll/satpy/issues/1879) - How to use histogram enhancement in yaml files?
+* [Isse1749](https://github.com/pytroll/satpy/issues/1749) - Load from blended scene ([PR 1797](https://github.com/pytroll/satpy/pull/1797) by [@djhoese](https://github.com/djhoese))
+* [Issue 1747](https://github.com/pytroll/satpy/issues/1747) - Load composites without file handlers. ([PR 1797](https://github.com/pytroll/satpy/pull/1797) by [@djhoese](https://github.com/djhoese))
+* [Issue 1456](https://github.com/pytroll/satpy/issues/1456) - Default cache directory should respect XDG Base Directory Specification.
+* [Issue 583](https://github.com/pytroll/satpy/issues/583) - PPP_CONFIG_DIR set locally does not include the global dir for the eps_l1b reader
+
+In this release 10 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1899](https://github.com/pytroll/satpy/pull/1899) - Fix loading multi-sensor composites for manually added data ([1898](https://github.com/pytroll/satpy/issues/1898))
+* [PR 1891](https://github.com/pytroll/satpy/pull/1891) - Fix file handlers improperly matching some file types
+* [PR 1884](https://github.com/pytroll/satpy/pull/1884) - Fix nucaps reader failing when given multiple input files
+
+#### Features added
+
+* [PR 1901](https://github.com/pytroll/satpy/pull/1901) - Update Scene.sensor_names to include sensors from readers and contained data ([1900](https://github.com/pytroll/satpy/issues/1900))
+* [PR 1897](https://github.com/pytroll/satpy/pull/1897) - Update AHI gridded reader to use HTTP instead of FTP
+* [PR 1894](https://github.com/pytroll/satpy/pull/1894) - Add 'seadas_l2' reader for 'chlor_a' product
+* [PR 1892](https://github.com/pytroll/satpy/pull/1892) - Add new pre-commit checks
+* [PR 1888](https://github.com/pytroll/satpy/pull/1888) - Optimize composite YAML loading
+* [PR 1885](https://github.com/pytroll/satpy/pull/1885) - Add optional on-disk zarr caching to sensor angle generation
+* [PR 1881](https://github.com/pytroll/satpy/pull/1881) - Add area definitions for GOES ABI FOR ([1880](https://github.com/pytroll/satpy/issues/1880))
+* [PR 1797](https://github.com/pytroll/satpy/pull/1797) - Allow loading of composites after Scene resampling ([1752](https://github.com/pytroll/satpy/issues/1752), [1749](https://github.com/pytroll/satpy/issues/1749), [1747](https://github.com/pytroll/satpy/issues/1747))
+
+#### Documentation changes
+
+* [PR 1873](https://github.com/pytroll/satpy/pull/1873) - Fix a typo in the ninjogeotiff documentation
+
+In this release 12 pull requests were closed.
+
+
 ## Version 0.31.0 (2021/11/03)
 
 ### Issues Closed

@@ -17,15 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """IASI L2 HDF5 files."""
 
-import h5py
-import numpy as np
-import xarray as xr
-import dask.array as da
 import datetime as dt
 import logging
 
-from satpy.readers.file_handlers import BaseFileHandler
+import dask.array as da
+import h5py
+import numpy as np
+import xarray as xr
+
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 # Scan timing values taken from
 # http://oiswww.eumetsat.org/WEBOPS/eps-pg/IASI-L1/IASIL1-PG-4ProdOverview.htm
