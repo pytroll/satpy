@@ -46,7 +46,6 @@ PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
 # it to a single time for easier caching. It is *only* used if caching.
 STATIC_EARTH_INERTIAL_DATETIME = datetime(2000, 1, 1, 12, 0, 0)
 DEFAULT_UNCACHE_TYPES = (SwathDefinition, xr.DataArray, da.Array)
-DEFAULT_UNHASH_TYPES = DEFAULT_UNCACHE_TYPES
 HASHABLE_GEOMETRIES = (AreaDefinition, StackedAreaDefinition)
 
 
@@ -208,7 +207,7 @@ def cache_to_zarr_if(
     return _decorator
 
 
-def _hash_args(*args, unhashable_types=DEFAULT_UNHASH_TYPES):
+def _hash_args(*args, unhashable_types=DEFAULT_UNCACHE_TYPES):
     import json
     hashable_args = []
     for arg in args:
