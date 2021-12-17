@@ -20,6 +20,7 @@
 import unittest
 from datetime import datetime, timedelta
 from glob import glob
+from typing import Optional, Union
 from unittest import mock
 
 import dask.array as da
@@ -432,27 +433,56 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         res.compute()
 
 
-def _get_angle_test_data():
-    orb_params = {
-        "satellite_nominal_altitude": 12345678,
-        "satellite_nominal_longitude": 10.0,
-        "satellite_nominal_latitude": 0.0,
-    }
+def _angle_cache_area_def():
     area = AreaDefinition(
         "test", "", "",
         {"proj": "merc"},
         5, 5,
         (-2500, -2500, 2500, 2500),
     )
+    return area
+
+
+def _angle_cache_stacked_area_def():
+    area1 = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 2,
+        (-2500, 500, 2500, 2500),
+    )
+    area2 = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 3,
+        (-2500, -2500, 2500, 500),
+    )
+    return StackedAreaDefinition(area1, area2)
+
+
+def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDefinition]] = None,
+                         chunks: Optional[Union[int, tuple]] = 2) -> xr.DataArray:
+    if area_def is None:
+        area_def = _angle_cache_area_def()
+    orb_params = {
+        "satellite_nominal_altitude": 12345678,
+        "satellite_nominal_longitude": 10.0,
+        "satellite_nominal_latitude": 0.0,
+    }
     stime = datetime(2020, 1, 1, 12, 0, 0)
-    data = da.zeros((5, 5), chunks=2)
+    data = da.zeros((5, 5), chunks=chunks)
+    print(data.chunks)
     vis = xr.DataArray(data,
                        attrs={
-                           'area': area,
+                           'area': area_def,
                            'start_time': stime,
                            'orbital_parameters': orb_params,
                        })
     return vis
+
+
+def _get_stacked_angle_test_data():
+    return _get_angle_test_data(area_def=_angle_cache_stacked_area_def(),
+                                chunks=(5, (2, 2, 1)))
 
 
 def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
@@ -471,10 +501,11 @@ def _diff_sat_pos_datetime(orig_data):
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
-    def test_get_angles(self):
+    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
+    def test_get_angles(self, input_func):
         """Test sun and satellite angle calculation."""
         from satpy.modifiers.angles import get_angles
-        data = _get_angle_test_data()
+        data = input_func()
 
         from pyorbital.orbital import get_observer_look
         with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
@@ -497,7 +528,8 @@ class TestAngleGeneration:
             (_diff_sat_pos_datetime, False, 6),
         ]
     )
-    def test_cache_get_angles(self, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
+    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
+    def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
         """Test get_angles when caching is enabled."""
         from satpy.modifiers.angles import (
             STATIC_EARTH_INERTIAL_DATETIME,
@@ -507,7 +539,7 @@ class TestAngleGeneration:
         )
 
         # Patch methods
-        data = _get_angle_test_data()
+        data = input_func()
         additional_cache = exp_num_zarr > 4
 
         # Compute angles
