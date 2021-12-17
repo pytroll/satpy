@@ -31,81 +31,110 @@ from pyresample.geometry import AreaDefinition
 import satpy
 
 
-class TestSunZenithCorrector(unittest.TestCase):
+@pytest.fixture(scope="session")
+def sunz_area_def():
+    """Get fake area for testing sunz generation."""
+    area = AreaDefinition('test', 'test', 'test',
+                          {'proj': 'merc'}, 2, 2,
+                          (-2000, -2000, 2000, 2000))
+    return area
+
+
+@pytest.fixture(scope="session")
+def sunz_bigger_area_def():
+    """Get area that is twice the size of 'sunz_area_def'."""
+    bigger_area = AreaDefinition('test', 'test', 'test',
+                                 {'proj': 'merc'}, 4, 4,
+                                 (-2000, -2000, 2000, 2000))
+    return bigger_area
+
+
+def _shared_sunz_attrs(area_def):
+    attrs = {'area': area_def,
+             'start_time': datetime(2018, 1, 1, 18),
+             'modifiers': tuple(),
+             'name': 'test_vis'}
+    return attrs
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1(sunz_area_def):
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(sunz_area_def)
+    ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 1], 'x': [0, 1]})
+    return ds1
+
+
+@pytest.fixture(scope="session")
+def sunz_ds2(sunz_bigger_area_def):
+    """Generate larger fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(sunz_bigger_area_def)
+    ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
+    return ds2
+
+
+@pytest.fixture(scope="session")
+def sunz_sza(sunz_area_def):
+    """Generate fake solar zenith angle data array for testing."""
+    sza = xr.DataArray(
+        np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
+                                           chunks=2))),
+        attrs={'area': sunz_area_def},
+        dims=('y', 'x'),
+        coords={'y': [0, 1], 'x': [0, 1]},
+    )
+    return sza
+
+
+class TestSunZenithCorrector:
     """Test case for the zenith corrector."""
 
-    def setUp(self):
-        """Create test data."""
-        from pyresample.geometry import AreaDefinition
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'merc'}, 2, 2,
-                              (-2000, -2000, 2000, 2000))
-        bigger_area = AreaDefinition('test', 'test', 'test',
-                                     {'proj': 'merc'}, 4, 4,
-                                     (-2000, -2000, 2000, 2000))
-        attrs = {'area': area,
-                 'start_time': datetime(2018, 1, 1, 18),
-                 'modifiers': tuple(),
-                 'name': 'test_vis'}
-        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        self.ds1 = ds1
-        ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
-        ds2.attrs['area'] = bigger_area
-        self.ds2 = ds2
-        self.sza = xr.DataArray(
-            np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
-                                               chunks=2))),
-            attrs={'area': area},
-            dims=('y', 'x'),
-            coords={'y': [0, 1], 'x': [0, 1]},
-        )
-
-    def test_basic_default_not_provided(self):
+    def test_basic_default_not_provided(self, sunz_ds1):
         """Test default limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertIn('y', res.coords)
-        self.assertIn('x', res.coords)
-        ds1 = self.ds1.copy().drop_vars(('y', 'x'))
+        assert 'y' in res.coords
+        assert 'x' in res.coords
+        ds1 = sunz_ds1.copy().drop_vars(('y', 'x'))
         res = comp((ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertNotIn('y', res.coords)
-        self.assertNotIn('x', res.coords)
+        assert 'y' not in res.coords
+        assert 'x' not in res.coords
 
-    def test_basic_lims_not_provided(self):
+    def test_basic_lims_not_provided(self, sunz_ds1):
         """Test custom limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_basic_default_provided(self):
+    def test_basic_default_provided(self, sunz_ds1, sunz_sza):
         """Test default limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((sunz_ds1, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
 
-    def test_basic_lims_provided(self):
+    def test_basic_lims_provided(self, sunz_ds1, sunz_sza):
         """Test custom limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((sunz_ds1, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_imcompatible_areas(self):
+    def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         with pytest.raises(IncompatibleAreas):
-            comp((self.ds2, self.sza), test_attr='test')
+            comp((sunz_ds2, sunz_sza), test_attr='test')
 
 
 class TestNIRReflectance(unittest.TestCase):
