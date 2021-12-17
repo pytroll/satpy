@@ -26,13 +26,13 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-from pyresample.geometry import AreaDefinition
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+from pytest_lazyfixture import lazy_fixture
 
 import satpy
 
 
-@pytest.fixture(scope="session")
-def sunz_area_def():
+def _sunz_area_def():
     """Get fake area for testing sunz generation."""
     area = AreaDefinition('test', 'test', 'test',
                           {'proj': 'merc'}, 2, 2,
@@ -40,13 +40,23 @@ def sunz_area_def():
     return area
 
 
-@pytest.fixture(scope="session")
-def sunz_bigger_area_def():
+def _sunz_bigger_area_def():
     """Get area that is twice the size of 'sunz_area_def'."""
     bigger_area = AreaDefinition('test', 'test', 'test',
                                  {'proj': 'merc'}, 4, 4,
                                  (-2000, -2000, 2000, 2000))
     return bigger_area
+
+
+def _sunz_stacked_area_def():
+    """Get fake stacked area for testing sunz generation."""
+    area1 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, 0, 2000, 2000))
+    area2 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, -2000, 2000, 0))
+    return StackedAreaDefinition(area1, area2)
 
 
 def _shared_sunz_attrs(area_def):
@@ -57,10 +67,7 @@ def _shared_sunz_attrs(area_def):
     return attrs
 
 
-@pytest.fixture(scope="session")
-def sunz_ds1(sunz_area_def):
-    """Generate fake dataset for sunz tests."""
-    attrs = _shared_sunz_attrs(sunz_area_def)
+def _get_ds1(attrs):
     ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
                        attrs=attrs, dims=('y', 'x'),
                        coords={'y': [0, 1], 'x': [0, 1]})
@@ -68,9 +75,23 @@ def sunz_ds1(sunz_area_def):
 
 
 @pytest.fixture(scope="session")
-def sunz_ds2(sunz_bigger_area_def):
+def sunz_ds1():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1_stacked():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_stacked_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds2():
     """Generate larger fake dataset for sunz tests."""
-    attrs = _shared_sunz_attrs(sunz_bigger_area_def)
+    attrs = _shared_sunz_attrs(_sunz_bigger_area_def())
     ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
                        attrs=attrs, dims=('y', 'x'),
                        coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
@@ -78,12 +99,12 @@ def sunz_ds2(sunz_bigger_area_def):
 
 
 @pytest.fixture(scope="session")
-def sunz_sza(sunz_area_def):
+def sunz_sza():
     """Generate fake solar zenith angle data array for testing."""
     sza = xr.DataArray(
         np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
                                            chunks=2))),
-        attrs={'area': sunz_area_def},
+        attrs={'area': _sunz_area_def()},
         dims=('y', 'x'),
         coords={'y': [0, 1], 'x': [0, 1]},
     )
@@ -114,18 +135,20 @@ class TestSunZenithCorrector:
         res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_basic_default_provided(self, sunz_ds1, sunz_sza):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_default_provided(self, data_arr, sunz_sza):
         """Test default limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((sunz_ds1, sunz_sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
 
-    def test_basic_lims_provided(self, sunz_ds1, sunz_sza):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_lims_provided(self, data_arr, sunz_sza):
         """Test custom limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((sunz_ds1, sunz_sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
     def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
