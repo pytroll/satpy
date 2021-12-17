@@ -45,8 +45,9 @@ PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
 # The difference is on the order of 1e-10 at most as time changes so we force
 # it to a single time for easier caching. It is *only* used if caching.
 STATIC_EARTH_INERTIAL_DATETIME = datetime(2000, 1, 1, 12, 0, 0)
-DEFAULT_UNCACHE_TYPES = (SwathDefinition, StackedAreaDefinition, xr.DataArray, da.Array)
+DEFAULT_UNCACHE_TYPES = (SwathDefinition, xr.DataArray, da.Array)
 DEFAULT_UNHASH_TYPES = DEFAULT_UNCACHE_TYPES
+HASHABLE_GEOMETRIES = (AreaDefinition, StackedAreaDefinition)
 
 
 class ZarrCacheHelper:
@@ -213,7 +214,7 @@ def _hash_args(*args, unhashable_types=DEFAULT_UNHASH_TYPES):
     for arg in args:
         if isinstance(arg, unhashable_types):
             continue
-        if isinstance(arg, AreaDefinition):
+        if isinstance(arg, HASHABLE_GEOMETRIES):
             arg = hash(arg)
         elif isinstance(arg, datetime):
             arg = arg.isoformat(" ")
