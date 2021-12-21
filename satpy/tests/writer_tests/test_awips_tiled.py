@@ -19,7 +19,6 @@
 
 import logging
 import os
-import warnings
 from datetime import datetime, timedelta
 from glob import glob
 
@@ -197,12 +196,8 @@ class TestAWIPSTiledWriter:
         input_data_arr = self._get_test_lcc_data(data, area_def)
         input_data_arr.attrs["units"] = "this is a really long units string"
         w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
-        with warnings.catch_warnings(record=True) as caught_warnings:
+        with pytest.warns(UserWarning, match=r'.*this is a really long units string.*too long.*'):
             w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
-        assert len(caught_warnings) == 1
-        warn_msg = caught_warnings[0].message.args[0]
-        assert "too long" in warn_msg
-        assert "this is a really long units string" in warn_msg
 
     @pytest.mark.parametrize(
         ("tile_count", "tile_size"),
