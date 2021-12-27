@@ -493,7 +493,7 @@ composites:
       - wavelength: 0.64
         modifiers: [sunz_corrected]
       - wavelength: 1.61
-        modifiers: [sunz_correct]
+        modifiers: [sunz_corrected]
     standard_name: cloud_type
 
   cloud_type_raw:
