@@ -560,9 +560,9 @@ composites:
     prerequisites:
       - name: M15
       - name: I01
-        modifiers: [sunz_corrected, rayleigh_corrected]
+        modifiers: [sunz_corrected_iband, rayleigh_corrected]
       - name: I03
-        modifiers: [sunz_corrected]
+        modifiers: [sunz_corrected_iband]
     standard_name: cloud_phase_distinction
 
   cloud_phase_distinction_raw:
@@ -584,7 +584,7 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: I03
-        modifiers: [sunz_corrected]
+        modifiers: [sunz_corrected_iband]
       - name: M11
         modifiers: [sunz_corrected]
       - name: M05
@@ -611,9 +611,9 @@ composites:
       - name: M09
         modifiers: [sunz_corrected]
       - name: I01
-        modifiers: [sunz_corrected]
+        modifiers: [sunz_corrected_iband]
       - name: I03
-        modifiers: [sunz_corrected]
+        modifiers: [sunz_corrected_iband]
     standard_name: cloud_type
 
   cloud_type_raw:
