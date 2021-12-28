@@ -608,11 +608,11 @@ composites:
       EUMETRAIN Quick Guide: http://eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-      - wavelength: M09
+      - name: M09
         modifiers: [sunz_corrected]
-      - wavelength: I01
+      - name: I01
         modifiers: [sunz_corrected]
-      - wavelength: I03
+      - name: I03
         modifiers: [sunz_corrected]
     standard_name: cloud_type
 
@@ -621,7 +621,7 @@ composites:
       Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-      - wavelength: M09
-      - wavelength: I01
-      - wavelength: I03
+      - name: M09
+      - name: I01
+      - name: I03
     standard_name: cloud_type_raw
