@@ -559,9 +559,9 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: M15
-      - name: I1
+      - name: I01
         modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: I3
+      - name: I03
         modifiers: [sunz_corrected]
     standard_name: cloud_phase_distinction
 
@@ -571,8 +571,8 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: M15
-      - name: I1
-      - name: I3
+      - name: I01
+      - name: I03
     standard_name: cloud_phase_distinction
 
   cloud_phase:
@@ -583,11 +583,11 @@ composites:
       Recipe : http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-      - name: I3
+      - name: I03
         modifiers: [sunz_corrected]
       - name: M11
         modifiers: [sunz_corrected]
-      - name: M5
+      - name: M05
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: cloud_phase
 
@@ -596,9 +596,9 @@ composites:
       same as cloud_phase RGB product, without modifiers
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-      - name: I3
+      - name: I03
       - name: M11
-      - name: M5
+      - name: M05
     standard_name: cloud_phase
 
   cloud_type:
@@ -608,11 +608,11 @@ composites:
       EUMETRAIN Quick Guide: http://eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-      - wavelength: M9
+      - wavelength: M09
         modifiers: [sunz_corrected]
-      - wavelength: I1
+      - wavelength: I01
         modifiers: [sunz_corrected]
-      - wavelength: I3
+      - wavelength: I03
         modifiers: [sunz_corrected]
     standard_name: cloud_type
 
@@ -621,7 +621,7 @@ composites:
       Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-      - wavelength: M9
-      - wavelength: I1
-      - wavelength: I3
+      - wavelength: M09
+      - wavelength: I01
+      - wavelength: I03
     standard_name: cloud_type_raw
