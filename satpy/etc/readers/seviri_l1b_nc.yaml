@@ -218,5 +218,3 @@ datasets:
         units: count
     file_type: seviri_l1b_nc
     nc_key: 'ch6'
-
-

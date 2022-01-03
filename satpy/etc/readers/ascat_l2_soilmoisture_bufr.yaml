@@ -49,4 +49,3 @@ datasets:
     coordinates: [longitude, latitude]
     key: soilMoistureQuality
     fill_value: -1.e+100
-

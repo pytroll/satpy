@@ -49,4 +49,3 @@ datasets:
       750:
         file_type: chlora_seadas_viirs
     coordinates: [longitude, latitude]
-

@@ -20,92 +20,145 @@
 import unittest
 from datetime import datetime, timedelta
 from glob import glob
+from typing import Optional, Union
 from unittest import mock
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-from pyresample.geometry import AreaDefinition
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+from pytest_lazyfixture import lazy_fixture
 
 import satpy
 
 
-class TestSunZenithCorrector(unittest.TestCase):
+def _sunz_area_def():
+    """Get fake area for testing sunz generation."""
+    area = AreaDefinition('test', 'test', 'test',
+                          {'proj': 'merc'}, 2, 2,
+                          (-2000, -2000, 2000, 2000))
+    return area
+
+
+def _sunz_bigger_area_def():
+    """Get area that is twice the size of 'sunz_area_def'."""
+    bigger_area = AreaDefinition('test', 'test', 'test',
+                                 {'proj': 'merc'}, 4, 4,
+                                 (-2000, -2000, 2000, 2000))
+    return bigger_area
+
+
+def _sunz_stacked_area_def():
+    """Get fake stacked area for testing sunz generation."""
+    area1 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, 0, 2000, 2000))
+    area2 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, -2000, 2000, 0))
+    return StackedAreaDefinition(area1, area2)
+
+
+def _shared_sunz_attrs(area_def):
+    attrs = {'area': area_def,
+             'start_time': datetime(2018, 1, 1, 18),
+             'modifiers': tuple(),
+             'name': 'test_vis'}
+    return attrs
+
+
+def _get_ds1(attrs):
+    ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 1], 'x': [0, 1]})
+    return ds1
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1_stacked():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_stacked_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds2():
+    """Generate larger fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_bigger_area_def())
+    ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
+    return ds2
+
+
+@pytest.fixture(scope="session")
+def sunz_sza():
+    """Generate fake solar zenith angle data array for testing."""
+    sza = xr.DataArray(
+        np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
+                                           chunks=2))),
+        attrs={'area': _sunz_area_def()},
+        dims=('y', 'x'),
+        coords={'y': [0, 1], 'x': [0, 1]},
+    )
+    return sza
+
+
+class TestSunZenithCorrector:
     """Test case for the zenith corrector."""
 
-    def setUp(self):
-        """Create test data."""
-        from pyresample.geometry import AreaDefinition
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'merc'}, 2, 2,
-                              (-2000, -2000, 2000, 2000))
-        bigger_area = AreaDefinition('test', 'test', 'test',
-                                     {'proj': 'merc'}, 4, 4,
-                                     (-2000, -2000, 2000, 2000))
-        attrs = {'area': area,
-                 'start_time': datetime(2018, 1, 1, 18),
-                 'modifiers': tuple(),
-                 'name': 'test_vis'}
-        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        self.ds1 = ds1
-        ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
-        ds2.attrs['area'] = bigger_area
-        self.ds2 = ds2
-        self.sza = xr.DataArray(
-            np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
-                                               chunks=2))),
-            attrs={'area': area},
-            dims=('y', 'x'),
-            coords={'y': [0, 1], 'x': [0, 1]},
-        )
-
-    def test_basic_default_not_provided(self):
+    def test_basic_default_not_provided(self, sunz_ds1):
         """Test default limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertIn('y', res.coords)
-        self.assertIn('x', res.coords)
-        ds1 = self.ds1.copy().drop_vars(('y', 'x'))
+        assert 'y' in res.coords
+        assert 'x' in res.coords
+        ds1 = sunz_ds1.copy().drop_vars(('y', 'x'))
         res = comp((ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertNotIn('y', res.coords)
-        self.assertNotIn('x', res.coords)
+        assert 'y' not in res.coords
+        assert 'x' not in res.coords
 
-    def test_basic_lims_not_provided(self):
+    def test_basic_lims_not_provided(self, sunz_ds1):
         """Test custom limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_basic_default_provided(self):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_default_provided(self, data_arr, sunz_sza):
         """Test default limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
 
-    def test_basic_lims_provided(self):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_lims_provided(self, data_arr, sunz_sza):
         """Test custom limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_imcompatible_areas(self):
+    def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         with pytest.raises(IncompatibleAreas):
-            comp((self.ds2, self.sza), test_attr='test')
+            comp((sunz_ds2, sunz_sza), test_attr='test')
 
 
 class TestNIRReflectance(unittest.TestCase):
@@ -380,27 +433,56 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         res.compute()
 
 
-def _get_angle_test_data():
-    orb_params = {
-        "satellite_nominal_altitude": 12345678,
-        "satellite_nominal_longitude": 10.0,
-        "satellite_nominal_latitude": 0.0,
-    }
+def _angle_cache_area_def():
     area = AreaDefinition(
         "test", "", "",
         {"proj": "merc"},
         5, 5,
         (-2500, -2500, 2500, 2500),
     )
+    return area
+
+
+def _angle_cache_stacked_area_def():
+    area1 = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 2,
+        (-2500, 500, 2500, 2500),
+    )
+    area2 = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 3,
+        (-2500, -2500, 2500, 500),
+    )
+    return StackedAreaDefinition(area1, area2)
+
+
+def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDefinition]] = None,
+                         chunks: Optional[Union[int, tuple]] = 2) -> xr.DataArray:
+    if area_def is None:
+        area_def = _angle_cache_area_def()
+    orb_params = {
+        "satellite_nominal_altitude": 12345678,
+        "satellite_nominal_longitude": 10.0,
+        "satellite_nominal_latitude": 0.0,
+    }
     stime = datetime(2020, 1, 1, 12, 0, 0)
-    data = da.zeros((5, 5), chunks=2)
+    data = da.zeros((5, 5), chunks=chunks)
+    print(data.chunks)
     vis = xr.DataArray(data,
                        attrs={
-                           'area': area,
+                           'area': area_def,
                            'start_time': stime,
                            'orbital_parameters': orb_params,
                        })
     return vis
+
+
+def _get_stacked_angle_test_data():
+    return _get_angle_test_data(area_def=_angle_cache_stacked_area_def(),
+                                chunks=(5, (2, 2, 1)))
 
 
 def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
@@ -419,10 +501,11 @@ def _diff_sat_pos_datetime(orig_data):
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
-    def test_get_angles(self):
+    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
+    def test_get_angles(self, input_func):
         """Test sun and satellite angle calculation."""
         from satpy.modifiers.angles import get_angles
-        data = _get_angle_test_data()
+        data = input_func()
 
         from pyorbital.orbital import get_observer_look
         with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
@@ -445,7 +528,8 @@ class TestAngleGeneration:
             (_diff_sat_pos_datetime, False, 6),
         ]
     )
-    def test_cache_get_angles(self, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
+    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
+    def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
         """Test get_angles when caching is enabled."""
         from satpy.modifiers.angles import (
             STATIC_EARTH_INERTIAL_DATETIME,
@@ -455,7 +539,7 @@ class TestAngleGeneration:
         )
 
         # Patch methods
-        data = _get_angle_test_data()
+        data = input_func()
         additional_cache = exp_num_zarr > 4
 
         # Compute angles

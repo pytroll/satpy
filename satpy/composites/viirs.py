@@ -340,7 +340,7 @@ class ERFDNB(CompositeBase):
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
-            inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
+            inner_sqrt.data = np.clip(inner_sqrt.data, 0, None)
             output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()

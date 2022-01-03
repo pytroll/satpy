@@ -187,4 +187,3 @@ datasets:
     resolution: 3000
     file_type: h5_nwcsaf_ctth
     file_key: CTTH_QUALITY
-

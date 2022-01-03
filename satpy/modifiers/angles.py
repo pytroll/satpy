@@ -33,18 +33,20 @@ from dask import array as da
 from pyorbital.astronomy import cos_zen as pyob_cos_zen
 from pyorbital.astronomy import get_alt_az
 from pyorbital.orbital import get_observer_look
-from pyresample.geometry import AreaDefinition, SwathDefinition
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 
 import satpy
 from satpy.utils import get_satpos, ignore_invalid_float_warnings
 
-PRGeometry = Union[SwathDefinition, AreaDefinition]
+PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
 
 # Arbitrary time used when computing sensor angles that is passed to
 # pyorbital's get_observer_look function.
 # The difference is on the order of 1e-10 at most as time changes so we force
 # it to a single time for easier caching. It is *only* used if caching.
 STATIC_EARTH_INERTIAL_DATETIME = datetime(2000, 1, 1, 12, 0, 0)
+DEFAULT_UNCACHE_TYPES = (SwathDefinition, xr.DataArray, da.Array)
+HASHABLE_GEOMETRIES = (AreaDefinition, StackedAreaDefinition)
 
 
 class ZarrCacheHelper:
@@ -100,7 +102,7 @@ class ZarrCacheHelper:
     def __init__(self,
                  func: Callable,
                  cache_config_key: str,
-                 uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
+                 uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
                  sanitize_args_func: Callable = None,
                  cache_version: int = 1,
                  ):
@@ -135,7 +137,7 @@ class ZarrCacheHelper:
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
         """Call the decorated function."""
         new_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
-        arg_hash = _hash_args(*new_args)
+        arg_hash = _hash_args(*new_args, unhashable_types=self._uncacheable_arg_types)
         should_cache, cache_dir = self._get_should_cache_and_cache_dir(new_args, cache_dir)
         zarr_fn = self._zarr_pattern(arg_hash)
         zarr_format = os.path.join(cache_dir, zarr_fn)
@@ -183,7 +185,7 @@ class ZarrCacheHelper:
 
 def cache_to_zarr_if(
         cache_config_key: str,
-        uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
+        uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
         sanitize_args_func: Callable = None,
 ) -> Callable:
     """Decorate a function and cache the results as a zarr array on disk.
@@ -205,13 +207,13 @@ def cache_to_zarr_if(
     return _decorator
 
 
-def _hash_args(*args):
+def _hash_args(*args, unhashable_types=DEFAULT_UNCACHE_TYPES):
     import json
     hashable_args = []
     for arg in args:
-        if isinstance(arg, (xr.DataArray, da.Array, SwathDefinition)):
+        if isinstance(arg, unhashable_types):
             continue
-        if isinstance(arg, AreaDefinition):
+        if isinstance(arg, HASHABLE_GEOMETRIES):
             arg = hash(arg)
         elif isinstance(arg, datetime):
             arg = arg.isoformat(" ")

@@ -118,5 +118,3 @@ created.
     $ virtualenv /path/to/pytroll-env
     $ source /path/to/pytroll-env/bin/activate
     $ pip install satpy
-
-
