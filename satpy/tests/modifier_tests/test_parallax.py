@@ -129,6 +129,8 @@ def test_forward_parallax_cloudy_ssp(lat, lon, resolution):
     np.testing.assert_allclose(corr_delta[2, 2], 0, atol=1e-9)
     assert np.isclose(corr_delta, 0, atol=1e-9).sum() == 1
     # should always get closer to SSP
+    assert corr_dist[2, 2] == 0.0
+    assert uncorr_dist[2, 2] == 0.0
     assert (corr_dist <= uncorr_dist).all()
     # should be larger the further we get from SSP
     assert (np.diff(corr_delta[N//2, :N//2+1]) < 0).all()
