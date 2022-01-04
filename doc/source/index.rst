@@ -68,6 +68,8 @@ the base Satpy installation.
 
     Satpy API <api/modules>
     faq
+    Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
+    Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
 .. _reader_table:
 
