@@ -18,18 +18,18 @@
 """Unit testing the enhancements functions, e.g. cira_stretch."""
 
 import os
-import unittest
 from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 
-class TestEnhancementStretch(unittest.TestCase):
+class TestEnhancementStretch:
     """Class for testing enhancements in satpy.enhancements."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create test data used by every test."""
         data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
         data[0, 0] = np.nan  # one bad value for testing
@@ -51,10 +51,8 @@ class TestEnhancementStretch(unittest.TestCase):
         img = XRImage(data)
         func(img, **kwargs)
 
-        self.assertIsInstance(img.data.data, da.Array)
-        self.assertListEqual(sorted(pre_attrs.keys()),
-                             sorted(img.data.attrs.keys()),
-                             "DataArray attributes were not preserved")
+        assert isinstance(img.data.data, da.Array)
+        assert sorted(pre_attrs.keys()) == sorted(img.data.attrs.keys()), "DataArray attributes were not preserved"
 
         np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
 
@@ -182,7 +180,7 @@ class TestEnhancementStretch(unittest.TestCase):
 
         with mock.patch('satpy.enhancements.create_colormap', create_colormap_mock):
             res = mcp(kwargs)
-        self.assertTrue(res is cmap1)
+        assert res is cmap1
         create_colormap_mock.assert_not_called()
         create_colormap_mock.reset_mock()
         ret_map.reset_mock()
@@ -218,7 +216,7 @@ class TestEnhancementStretch(unittest.TestCase):
         """Clean up."""
 
 
-class TestColormapLoading(unittest.TestCase):
+class TestColormapLoading:
     """Test utilities used with colormaps."""
 
     def test_cmap_from_file_rgb(self):
@@ -239,18 +237,18 @@ class TestColormapLoading(unittest.TestCase):
 
         try:
             cmap = create_colormap({'filename': cmap_filename})
-            self.assertEqual(cmap.colors.shape[0], 4)
+            assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 0)
-            self.assertEqual(cmap.values[-1], 1.0)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 0
+            assert cmap.values[-1] == 1.0
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
-            self.assertEqual(cmap.colors.shape[0], 4)
+            assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 50)
-            self.assertEqual(cmap.values[-1], 100)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 50
+            assert cmap.values[-1] == 100
         finally:
             os.remove(cmap_filename)
 
@@ -273,19 +271,19 @@ class TestColormapLoading(unittest.TestCase):
         try:
             cmap = create_colormap({'filename': cmap_filename,
                                     'color_scale': 1})
-            self.assertEqual(cmap.colors.shape[0], 4)
+            assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 0)
-            self.assertEqual(cmap.values[-1], 1.0)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 0
+            assert cmap.values[-1] == 1.0
 
             cmap = create_colormap({'filename': cmap_filename, 'color_scale': 1,
                                     'min_value': 50, 'max_value': 100})
-            self.assertEqual(cmap.colors.shape[0], 4)
+            assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 50)
-            self.assertEqual(cmap.values[-1], 100)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 50
+            assert cmap.values[-1] == 100
         finally:
             os.remove(cmap_filename)
 
@@ -308,30 +306,31 @@ class TestColormapLoading(unittest.TestCase):
         try:
             # default mode of VRGB
             cmap = create_colormap({'filename': cmap_filename})
-            self.assertEqual(cmap.colors.shape[0], 4)
+            assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 128)
-            self.assertEqual(cmap.values[-1], 134)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 128
+            assert cmap.values[-1] == 134
 
             cmap = create_colormap({'filename': cmap_filename, 'colormap_mode': 'RGBA'})
-            self.assertEqual(cmap.colors.shape[0], 4)
-            self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            assert cmap.colors.shape[0] == 4
+            assert cmap.colors.shape[1] == 4  # RGBA
             np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 0)
-            self.assertEqual(cmap.values[-1], 1.0)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 0
+            assert cmap.values[-1] == 1.0
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
-            self.assertEqual(cmap.colors.shape[0], 4)
+            assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 50)
-            self.assertEqual(cmap.values[-1], 100)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 50
+            assert cmap.values[-1] == 100
 
-            self.assertRaises(ValueError, create_colormap,
-                              {'filename': cmap_filename, 'colormap_mode': 'RGB',
-                               'min_value': 50, 'max_value': 100})
+            with pytest.raises(ValueError):
+                create_colormap({
+                    'filename': cmap_filename, 'colormap_mode': 'RGB',
+                    'min_value': 50, 'max_value': 100})
         finally:
             os.remove(cmap_filename)
 
@@ -354,23 +353,25 @@ class TestColormapLoading(unittest.TestCase):
         try:
             # default mode of VRGBA
             cmap = create_colormap({'filename': cmap_filename})
-            self.assertEqual(cmap.colors.shape[0], 4)
-            self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            assert cmap.colors.shape[0] == 4
+            assert cmap.colors.shape[1] == 4  # RGBA
             np.testing.assert_equal(cmap.colors[0], [128 / 255.0, 1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 128)
-            self.assertEqual(cmap.values[-1], 134)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 128
+            assert cmap.values[-1] == 134
 
-            self.assertRaises(ValueError, create_colormap,
-                              {'filename': cmap_filename, 'colormap_mode': 'RGBA'})
+            with pytest.raises(ValueError):
+                create_colormap({
+                    'filename': cmap_filename,
+                    'colormap_mode': 'RGBA'})
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
-            self.assertEqual(cmap.colors.shape[0], 4)
-            self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            assert cmap.colors.shape[0] == 4
+            assert cmap.colors.shape[1] == 4  # RGBA
             np.testing.assert_equal(cmap.colors[0], [128 / 255.0, 1.0, 0, 0])
-            self.assertEqual(cmap.values.shape[0], 4)
-            self.assertEqual(cmap.values[0], 50)
-            self.assertEqual(cmap.values[-1], 100)
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 50
+            assert cmap.values[-1] == 100
         finally:
             os.remove(cmap_filename)
 
@@ -391,8 +392,8 @@ class TestColormapLoading(unittest.TestCase):
             ]))
 
         try:
-            self.assertRaises(ValueError, create_colormap,
-                              {'filename': cmap_filename})
+            with pytest.raises(ValueError):
+                create_colormap({'filename': cmap_filename})
         finally:
             os.remove(cmap_filename)
 
@@ -407,7 +408,8 @@ class TestColormapLoading(unittest.TestCase):
     def test_cmap_no_colormap(self):
         """Test that being unable to create a colormap raises an error."""
         from satpy.enhancements import create_colormap
-        self.assertRaises(ValueError, create_colormap, {})
+        with pytest.raises(ValueError):
+            create_colormap({})
 
     def test_cmap_list(self):
         """Test that colors can be a list/tuple."""
@@ -420,15 +422,15 @@ class TestColormapLoading(unittest.TestCase):
         ]
         values = [2, 4, 6, 8]
         cmap = create_colormap({'colors': colors, 'color_scale': 1})
-        self.assertEqual(cmap.colors.shape[0], 4)
+        assert cmap.colors.shape[0] == 4
         np.testing.assert_equal(cmap.colors[0], [0.0, 0.0, 1.0])
-        self.assertEqual(cmap.values.shape[0], 4)
-        self.assertEqual(cmap.values[0], 0)
-        self.assertEqual(cmap.values[-1], 1.0)
+        assert cmap.values.shape[0] == 4
+        assert cmap.values[0] == 0
+        assert cmap.values[-1] == 1.0
 
         cmap = create_colormap({'colors': colors, 'color_scale': 1, 'values': values})
-        self.assertEqual(cmap.colors.shape[0], 4)
+        assert cmap.colors.shape[0] == 4
         np.testing.assert_equal(cmap.colors[0], [0.0, 0.0, 1.0])
-        self.assertEqual(cmap.values.shape[0], 4)
-        self.assertEqual(cmap.values[0], 2)
-        self.assertEqual(cmap.values[-1], 8)
+        assert cmap.values.shape[0] == 4
+        assert cmap.values[0] == 2
+        assert cmap.values[-1] == 8
