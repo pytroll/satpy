@@ -67,10 +67,19 @@ def fake_area_5x5_wide():
 
 @pytest.fixture
 def cloud(request):
-    """Give me a cloud.
+    """Return an array representing a square cloud.
+
+    Return an array representing a square cloud with a larger lower and a
+    smaller higher part.
 
     Args (via request fixture):
-        int: size of
+        int: size of array
+        int: Index of start of outer cloud.
+        int: Index of end of outer cloud.
+        int: Value (CTH) of outer cloud.
+        int: Index of start of inner cloud.
+        int: Index of start of outer cloud.
+        int: Value (CTH) of inner cloud.
     """
     (size, outer_lo, outer_hi, outer_val, inner_lo, inner_hi, inner_val) = request.param
     cth = np.full((size, size), np.nan)
@@ -266,6 +275,7 @@ def test_correct_area_partlycloudy():
     large = 9
     (fake_area_small, fake_area_large) = _get_fake_areas(
             (0, 50), [small, large], 0.1)
+    (fake_area_lons, fake_area_lats) = fake_area_small.get_lonlats()
     corrector = ParallaxCorrection(fake_area_small)
 
     sc = make_fake_scene(
@@ -285,8 +295,92 @@ def test_correct_area_partlycloudy():
            common_attrs=_get_attrs(0, 0, 40_000_000))
     new_area = corrector(sc["CTH"])
     assert new_area.shape == fake_area_small.shape
+    (new_lons, new_lats) = new_area.get_lonlats()
+    assert fake_area_lons[3, 4] != new_lons[3, 4]
 
-    # TODO: add more tests here
+    np.testing.assert_allclose(
+        new_lons,
+        np.array([
+            [-0.19999939, -0.09999966, 0.0, 0.1, 0.2],
+            [-0.19999947, -0.09999973, 0.0, 0.1, 0.2],
+            [-0.19999977, -0.1, 0.0, 0.1, 0.2],
+            [-0.19999962, -0.0999997, 0.0, 0.0999997, 0.19999955],
+            [-0.19999932, -0.09999966, 0.0, 0.09999966, 0.19999932]]))
+    np.testing.assert_allclose(
+        new_lats,
+        np.array([
+            [50.19991371, 50.19990292, 50.2, 50.2, 50.2],
+            [50.09992476, 50.09992476, 50.1, 50.1, 50.1],
+            [49.99996787, 50.0, 50.0, 50.0, 50.0],
+            [49.89994664, 49.89991462, 49.89991462, 49.89991462, 49.89993597],
+            [49.79990429, 49.79990429, 49.79990429, 49.79990429, 49.79990429]]))
+
+
+@pytest.mark.parametrize("res1,res2", [(0.01, 1), (1, 0.01)])
+def test_correct_area_clearsky_different_resolutions(res1, res2):
+    """Test clearsky correction when areas have different resolutions."""
+    from ...modifiers.parallax import ParallaxCorrection
+    from ..utils import make_fake_scene
+    areas_res1 = _get_fake_areas((0, 0), [5, 9], res1)
+    areas_res2 = _get_fake_areas((0, 0), [5, 9], res2)
+    fake_area_small = areas_res1[0]
+    fake_area_large = areas_res2[1]
+
+    with pytest.warns(None) as record:
+        sc = make_fake_scene(
+                {"CTH_clear": np.full((9, 9), np.nan)},
+                daskify=False,
+                area=fake_area_large,
+                common_attrs=_get_attrs(0, 0, 35_000_000))
+    assert len(record) == 0
+
+    corrector = ParallaxCorrection(fake_area_small)
+    new_area = corrector(sc["CTH_clear"])
+    np.testing.assert_allclose(
+            new_area.get_lonlats(),
+            fake_area_small.get_lonlats())
+
+
+def test_correct_area_cloudy_no_overlap():
+    """Test cloudy correction when areas have no overlap."""
+    from ...modifiers.parallax import MissingHeightError, ParallaxCorrection
+    from ..utils import make_fake_scene
+    areas_00 = _get_fake_areas((0, 40), [5, 9], 0.1)
+    areas_shift = _get_fake_areas((90, 20), [5, 9], 0.1)
+    fake_area_small = areas_00[0]
+    fake_area_large = areas_shift[1]
+
+    sc = make_fake_scene(
+            {"CTH_constant": np.full((9, 9), 10000)},
+            daskify=False,
+            area=fake_area_large,
+            common_attrs=_get_attrs(0, 0, 35_000_000))
+
+    corrector = ParallaxCorrection(fake_area_small)
+    with pytest.raises(MissingHeightError):
+        corrector(sc["CTH_constant"])
+
+
+def test_correct_area_cloudy_partly_shifted():
+    """Test cloudy correction when areas overlap only partly."""
+    from ...modifiers.parallax import IncompleteHeightWarning, ParallaxCorrection
+    from ..utils import make_fake_scene
+    areas_00 = _get_fake_areas((0, 40), [5, 9], 0.1)
+    areas_shift = _get_fake_areas((0.5, 40), [5, 9], 0.1)
+    fake_area_small = areas_00[0]
+    fake_area_large = areas_shift[1]
+
+    sc = make_fake_scene(
+            {"CTH_constant": np.full((9, 9), 10000)},
+            daskify=False,
+            area=fake_area_large,
+            common_attrs=_get_attrs(0, 0, 35_000_000))
+
+    corrector = ParallaxCorrection(fake_area_small)
+
+    with pytest.warns(IncompleteHeightWarning):
+        new_area = corrector(sc["CTH_constant"])
+    assert new_area.shape == fake_area_small.shape
 
 
 @pytest.mark.parametrize("cloud", [(9, 2, 8, 5, 3, 6, 8)], indirect=["cloud"])

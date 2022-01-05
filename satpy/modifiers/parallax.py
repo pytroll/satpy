@@ -27,6 +27,7 @@ imagery such that pixels are shifted or interpolated to correct for this
 parallax effect.
 """
 
+import warnings
 from datetime import datetime
 
 import numpy as np
@@ -37,6 +38,14 @@ from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import resample_nearest
 
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
+
+
+class MissingHeightError(ValueError):
+    """Raised when heights do not overlap with area to be corrected."""
+
+
+class IncompleteHeightWarning(UserWarning):
+    """Raised when heights only partially overlap with area to be corrected."""
 
 
 def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
@@ -159,6 +168,7 @@ class ParallaxCorrection:
         area = cth_dataset.area
         (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
         cth_dataset = self._preprocess_cth(cth_dataset)
+        self._check_overlap(cth_dataset)
         (pixel_lon, pixel_lat) = area.get_lonlats()
 
         # Pixel coordinates according to parallax correction
@@ -181,6 +191,19 @@ class ParallaxCorrection:
         proj_lat = xr.DataArray(proj_lat)
 
         return SwathDefinition(proj_lon, proj_lat)
+
+    def _check_overlap(self, cth_dataset):
+        """Ensure cth_dataset is usable for parallax correction.
+
+        Checks the coverage of ``cth_dataset`` compared to the ``base_area``.  If
+        the entirety of ``base_area`` is covered by ``cth_dataset``, do
+        nothing.  If only part of ``base_area`` is covered by ``cth_dataset``,
+        raise a `IncompleteHeightWarning`.  If none of ``base_area`` is covered
+        by ``cth_dataset``, raise a `MissingHeightError`.
+        """
+        warnings.warn(
+            "Overlap checking not impelemented. Waiting for "
+            "fix for https://github.com/pytroll/pyresample/issues/329")
 
     def _preprocess_cth(self, cth_dataset):
         """To be documented."""
