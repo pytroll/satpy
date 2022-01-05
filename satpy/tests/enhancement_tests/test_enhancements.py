@@ -219,7 +219,40 @@ class TestEnhancementStretch:
 class TestColormapLoading:
     """Test utilities used with colormaps."""
 
-    def test_cmap_from_file_rgb(self):
+    @pytest.mark.parametrize(
+        ("cmap_data", "extra_kwargs", "unset_first_value", "unset_last_value", "colormap_mode"),
+        [
+            # RGB - 255
+            (np.array([
+                [255, 0, 0],
+                [255, 255, 0],
+                [255, 255, 255],
+                [0, 0, 255],
+            ]), {}, 0.0, 1.0, None),
+            # RGB - 1.0
+            (np.array([
+                [1, 0, 0],
+                [1, 1, 0],
+                [1, 1, 1],
+                [0, 0, 1],
+            ]), {"color_scale": 1}, 0.0, 1.0, None),
+            # VRGB - 255
+            (np.array([
+                [128, 255, 0, 0],
+                [130, 255, 255, 0],
+                [132, 255, 255, 255],
+                [134, 0, 0, 255],
+            ]), {}, 128, 134, "VRGB"),
+            # VRGBA - 255
+            (np.array([
+                [128, 128, 255, 0, 0],  # value, R, G, B, A
+                [130, 130, 255, 255, 0],
+                [132, 132, 255, 255, 255],
+                [134, 134, 0, 0, 255],
+            ]), {}, 128, 134, "VRGBA"),
+        ],
+    )
+    def test_cmap_from_npy_file_rgb(self, cmap_data, extra_kwargs, unset_first_value, unset_last_value, colormap_mode):
         """Test that colormaps can be loaded from a binary file."""
         from tempfile import NamedTemporaryFile
 
@@ -228,150 +261,53 @@ class TestColormapLoading:
         # create the colormap file on disk
         with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
             cmap_filename = tmp_cmap.name
-            np.save(cmap_filename, np.array([
-                [255, 0, 0],
-                [255, 255, 0],
-                [255, 255, 255],
-                [0, 0, 255],
-            ]))
+            np.save(cmap_filename, cmap_data)
+
+        first_color = [1.0, 0.0, 0.0]
+        if colormap_mode is not None and colormap_mode == "VRGBA":
+            first_color = [128.0 / 255.0] + first_color
 
         try:
-            cmap = create_colormap({'filename': cmap_filename})
+            kwargs1 = {"filename": cmap_filename}
+            kwargs1.update(extra_kwargs)
+            cmap = create_colormap(kwargs1)
             assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
+            np.testing.assert_equal(cmap.colors[0], first_color)
             assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 0
-            assert cmap.values[-1] == 1.0
+            assert cmap.values[0] == unset_first_value
+            assert cmap.values[-1] == unset_last_value
 
-            cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
+            kwargs2 = {"filename": cmap_filename, "min_value": 50, "max_value": 100}
+            kwargs2.update(extra_kwargs)
+            cmap = create_colormap(kwargs2)
             assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 50
-            assert cmap.values[-1] == 100
-        finally:
-            os.remove(cmap_filename)
-
-    def test_cmap_from_file_rgb_1(self):
-        """Test that colormaps can be loaded from a binary file with 0-1 colors."""
-        from tempfile import NamedTemporaryFile
-
-        from satpy.enhancements import create_colormap
-
-        # create the colormap file on disk
-        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
-            cmap_filename = tmp_cmap.name
-            np.save(cmap_filename, np.array([
-                [1, 0, 0],
-                [1, 1, 0],
-                [1, 1, 1],
-                [0, 0, 1],
-            ]))
-
-        try:
-            cmap = create_colormap({'filename': cmap_filename,
-                                    'color_scale': 1})
-            assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 0
-            assert cmap.values[-1] == 1.0
-
-            cmap = create_colormap({'filename': cmap_filename, 'color_scale': 1,
-                                    'min_value': 50, 'max_value': 100})
-            assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 50
-            assert cmap.values[-1] == 100
-        finally:
-            os.remove(cmap_filename)
-
-    def test_cmap_from_file_vrgb(self):
-        """Test that colormaps can be loaded from a binary file with values."""
-        from tempfile import NamedTemporaryFile
-
-        from satpy.enhancements import create_colormap
-
-        # create the colormap file on disk
-        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
-            cmap_filename = tmp_cmap.name
-            np.save(cmap_filename, np.array([
-                [128, 255, 0, 0],
-                [130, 255, 255, 0],
-                [132, 255, 255, 255],
-                [134, 0, 0, 255],
-            ]))
-
-        try:
-            # default mode of VRGB
-            cmap = create_colormap({'filename': cmap_filename})
-            assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 128
-            assert cmap.values[-1] == 134
-
-            cmap = create_colormap({'filename': cmap_filename, 'colormap_mode': 'RGBA'})
-            assert cmap.colors.shape[0] == 4
-            assert cmap.colors.shape[1] == 4  # RGBA
-            np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 0
-            assert cmap.values[-1] == 1.0
-
-            cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
-            assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
+            np.testing.assert_equal(cmap.colors[0], first_color)
             assert cmap.values.shape[0] == 4
             assert cmap.values[0] == 50
             assert cmap.values[-1] == 100
 
-            with pytest.raises(ValueError):
-                create_colormap({
-                    'filename': cmap_filename, 'colormap_mode': 'RGB',
-                    'min_value': 50, 'max_value': 100})
-        finally:
-            os.remove(cmap_filename)
+            # Force colormap mode of VRGB to RGBA
+            if colormap_mode is not None and colormap_mode == "VRGB":
+                cmap = create_colormap({"filename": cmap_filename, "colormap_mode": "RGBA"})
+                assert cmap.colors.shape[0] == 4
+                assert cmap.colors.shape[1] == 4  # RGBA
+                np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
+                assert cmap.values.shape[0] == 4
+                assert cmap.values[0] == 0
+                assert cmap.values[-1] == 1.0
 
-    def test_cmap_from_file_vrgba(self):
-        """Test that colormaps can be loaded RGBA colors and values."""
-        from tempfile import NamedTemporaryFile
+            # Force colormap_mode to not match the data and we should see an exception
+            if colormap_mode is not None and colormap_mode.endswith("A"):
+                with pytest.raises(ValueError):
+                    create_colormap({
+                        'filename': cmap_filename, 'colormap_mode': colormap_mode[:-1],
+                        'min_value': 50, 'max_value': 100})
 
-        from satpy.enhancements import create_colormap
-
-        # create the colormap file on disk
-        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
-            cmap_filename = tmp_cmap.name
-            np.save(cmap_filename, np.array([
-                [128, 128, 255, 0, 0],  # value, R, G, B, A
-                [130, 130, 255, 255, 0],
-                [132, 132, 255, 255, 255],
-                [134, 134, 0, 0, 255],
-            ]))
-
-        try:
-            # default mode of VRGBA
-            cmap = create_colormap({'filename': cmap_filename})
-            assert cmap.colors.shape[0] == 4
-            assert cmap.colors.shape[1] == 4  # RGBA
-            np.testing.assert_equal(cmap.colors[0], [128 / 255.0, 1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 128
-            assert cmap.values[-1] == 134
-
-            with pytest.raises(ValueError):
-                create_colormap({
-                    'filename': cmap_filename,
-                    'colormap_mode': 'RGBA'})
-
-            cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
-            assert cmap.colors.shape[0] == 4
-            assert cmap.colors.shape[1] == 4  # RGBA
-            np.testing.assert_equal(cmap.colors[0], [128 / 255.0, 1.0, 0, 0])
-            assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 50
-            assert cmap.values[-1] == 100
+            # Force colormap_mode VRGBA to RGBA and we should see an exception
+            if colormap_mode is not None and colormap_mode == "VRGBA":
+                with pytest.raises(ValueError):
+                    create_colormap({
+                        'filename': cmap_filename, 'colormap_mode': "RGBA"})
         finally:
             os.remove(cmap_filename)
 
