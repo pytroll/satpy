@@ -216,49 +216,51 @@ class TestEnhancementStretch:
         """Clean up."""
 
 
+def _generate_cmap_test_data(color_scale, colormap_mode):
+    cmap_data = np.array([
+        [1, 0, 0],
+        [1, 1, 0],
+        [1, 1, 1],
+        [0, 0, 1],
+    ], dtype=np.float64)
+    if len(colormap_mode) != 3:
+        _cmap_data = cmap_data
+        cmap_data = np.empty((cmap_data.shape[0], len(colormap_mode)),
+                             dtype=np.float64)
+        if colormap_mode.startswith("V") or colormap_mode.endswith("A"):
+            cmap_data[:, 0] = np.array([128, 130, 132, 134]) / 255.0
+            cmap_data[:, -3:] = _cmap_data
+        if colormap_mode.startswith("V") and colormap_mode.endswith("A"):
+            cmap_data[:, 1] = np.array([128, 130, 132, 134]) / 255.0
+    if color_scale is None or color_scale == 255:
+        cmap_data = (cmap_data * 255).astype(np.uint8)
+    return cmap_data
+
+
 class TestColormapLoading:
     """Test utilities used with colormaps."""
 
     @pytest.mark.parametrize(
-        ("cmap_data", "extra_kwargs", "unset_first_value", "unset_last_value", "colormap_mode"),
+        ("color_scale", "colormap_mode"),
         [
             # RGB - 255
-            (np.array([
-                [255, 0, 0],
-                [255, 255, 0],
-                [255, 255, 255],
-                [0, 0, 255],
-            ]), {}, 0.0, 1.0, None),
+            (None, "RGB"),
             # RGB - 1.0
-            (np.array([
-                [1, 0, 0],
-                [1, 1, 0],
-                [1, 1, 1],
-                [0, 0, 1],
-            ]), {"color_scale": 1}, 0.0, 1.0, None),
+            (1.0, "RGB"),
             # VRGB - 255
-            (np.array([
-                [128, 255, 0, 0],
-                [130, 255, 255, 0],
-                [132, 255, 255, 255],
-                [134, 0, 0, 255],
-            ]), {}, 128, 134, "VRGB"),
+            (None, "VRGB"),
             # VRGBA - 255
-            (np.array([
-                [128, 128, 255, 0, 0],  # value, R, G, B, A
-                [130, 130, 255, 255, 0],
-                [132, 132, 255, 255, 255],
-                [134, 134, 0, 0, 255],
-            ]), {}, 128, 134, "VRGBA"),
+            (None, "VRGBA"),
         ],
     )
-    def test_cmap_from_npy_file_rgb(self, cmap_data, extra_kwargs, unset_first_value, unset_last_value, colormap_mode):
+    def test_cmap_from_npy_file_rgb(self, color_scale, colormap_mode):
         """Test that colormaps can be loaded from a binary file."""
         from tempfile import NamedTemporaryFile
 
         from satpy.enhancements import create_colormap
 
         # create the colormap file on disk
+        cmap_data = _generate_cmap_test_data(color_scale, colormap_mode)
         with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
             cmap_filename = tmp_cmap.name
             np.save(cmap_filename, cmap_data)
@@ -266,10 +268,14 @@ class TestColormapLoading:
         first_color = [1.0, 0.0, 0.0]
         if colormap_mode is not None and colormap_mode == "VRGBA":
             first_color = [128.0 / 255.0] + first_color
+        kwargs1 = {"filename": cmap_filename}
+        if color_scale is not None:
+            kwargs1["color_scale"] = color_scale
+
+        unset_first_value = 128.0 if colormap_mode.startswith("V") else 0.0
+        unset_last_value = 134.0 if colormap_mode.startswith("V") else 1.0
 
         try:
-            kwargs1 = {"filename": cmap_filename}
-            kwargs1.update(extra_kwargs)
             cmap = create_colormap(kwargs1)
             assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], first_color)
@@ -277,8 +283,8 @@ class TestColormapLoading:
             assert cmap.values[0] == unset_first_value
             assert cmap.values[-1] == unset_last_value
 
-            kwargs2 = {"filename": cmap_filename, "min_value": 50, "max_value": 100}
-            kwargs2.update(extra_kwargs)
+            kwargs2 = kwargs1.copy()
+            kwargs2.update({"min_value": 50, "max_value": 100})
             cmap = create_colormap(kwargs2)
             assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], first_color)
