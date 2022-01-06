@@ -510,7 +510,7 @@ composites:
     standard_name: ncc_radiance
     units: "1"
 
-  night_overview:
+  dnb_hncc_overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - hncc_dnb
