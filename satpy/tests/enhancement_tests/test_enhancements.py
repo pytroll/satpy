@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit testing the enhancements functions, e.g. cira_stretch."""
 
+import contextlib
 import os
 from tempfile import NamedTemporaryFile
 from unittest import mock
@@ -217,6 +218,21 @@ class TestEnhancementStretch:
         """Clean up."""
 
 
+@contextlib.contextmanager
+def closed_named_temp_file(**kwargs):
+    """Named temporary file context manager that closes the file after creation.
+
+    This helps with Windows systems which can get upset with opening or
+    deleting a file that is already open.
+
+    """
+    try:
+        with NamedTemporaryFile(delete=False, **kwargs) as tmp_cmap:
+            yield tmp_cmap.name
+    finally:
+        os.remove(tmp_cmap.name)
+
+
 def _generate_cmap_test_data(color_scale, colormap_mode):
     cmap_data = np.array([
         [1, 0, 0],
@@ -249,23 +265,21 @@ class TestColormapLoading:
 
         # create the colormap file on disk
         cmap_data = _generate_cmap_test_data(color_scale, colormap_mode)
-        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
-            cmap_filename = tmp_cmap.name
+        with closed_named_temp_file(suffix=".npy") as cmap_filename:
             np.save(cmap_filename, cmap_data)
 
-        unset_first_value = 128.0 / 255.0 if colormap_mode.startswith("V") else 0.0
-        unset_last_value = 134.0 / 255.0 if colormap_mode.startswith("V") else 1.0
-        if (color_scale is None or color_scale == 255) and colormap_mode.startswith("V"):
-            unset_first_value *= 255
-            unset_last_value *= 255
-        first_color = [1.0, 0.0, 0.0]
-        if colormap_mode is not None and colormap_mode == "VRGBA":
-            first_color = [128.0 / 255.0] + first_color
-        kwargs1 = {"filename": cmap_filename}
-        if color_scale is not None:
-            kwargs1["color_scale"] = color_scale
+            unset_first_value = 128.0 / 255.0 if colormap_mode.startswith("V") else 0.0
+            unset_last_value = 134.0 / 255.0 if colormap_mode.startswith("V") else 1.0
+            if (color_scale is None or color_scale == 255) and colormap_mode.startswith("V"):
+                unset_first_value *= 255
+                unset_last_value *= 255
+            first_color = [1.0, 0.0, 0.0]
+            if colormap_mode is not None and colormap_mode == "VRGBA":
+                first_color = [128.0 / 255.0] + first_color
+            kwargs1 = {"filename": cmap_filename}
+            if color_scale is not None:
+                kwargs1["color_scale"] = color_scale
 
-        try:
             cmap = create_colormap(kwargs1)
             assert cmap.colors.shape[0] == 4
             np.testing.assert_equal(cmap.colors[0], first_color)
@@ -306,16 +320,13 @@ class TestColormapLoading:
                 with pytest.raises(ValueError):
                     create_colormap({
                         'filename': cmap_filename, 'colormap_mode': "RGBA"})
-        finally:
-            os.remove(cmap_filename)
 
     def test_cmap_from_file_bad_shape(self):
         """Test that unknown array shape causes an error."""
         from satpy.enhancements import create_colormap
 
         # create the colormap file on disk
-        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
-            cmap_filename = tmp_cmap.name
+        with closed_named_temp_file(suffix='.npy') as cmap_filename:
             np.save(cmap_filename, np.array([
                 [0],
                 [64],
@@ -323,11 +334,8 @@ class TestColormapLoading:
                 [255],
             ]))
 
-        try:
             with pytest.raises(ValueError):
                 create_colormap({'filename': cmap_filename})
-        finally:
-            os.remove(cmap_filename)
 
     def test_cmap_from_trollimage(self):
         """Test that colormaps in trollimage can be loaded."""
