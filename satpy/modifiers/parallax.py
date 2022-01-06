@@ -136,14 +136,21 @@ class ParallaxCorrection:
     set in the ``orbital_parameters`` dataset attribute by many readers.
     """
 
-    def __init__(self, base_area):
+    def __init__(self, base_area,
+                 resampler=resample_nearest, search_radius=50_000):
         """Initialise parallax correction class.
 
         Args:
             base_area (pyresample.AreaDefinition): Area for which calculated
                 geolocation will be calculated.
+            resampler (function): Function to use for resampling.  Must
+                have same interface as
+                :func:`pyresample.kd_tree.resample_nearest`.
+            search_radius (number): Search radius to use with resampler.
         """
         self.base_area = base_area
+        self.resampler = resampler
+        self.search_radius = search_radius
 
     def __call__(self, cth_dataset):
         """Apply parallax correction to dataset.
@@ -222,8 +229,12 @@ class ParallaxCorrection:
         (source_lon, source_lat) = source_area.get_lonlats()
         lon_diff = source_lon - pixel_lon
         lat_diff = source_lat - pixel_lat
-        inv_lon_diff = resample_nearest(source_area, lon_diff, self.base_area, 50000.0)
-        inv_lat_diff = resample_nearest(source_area, lat_diff, self.base_area, 50000.0)
+        inv_lon_diff = self.resampler(
+                source_area, lon_diff, self.base_area,
+                self.search_radius)
+        inv_lat_diff = self.resampler(
+                source_area, lat_diff, self.base_area,
+                self.search_radius)
 
         (base_lon, base_lat) = self.base_area.get_lonlats()
         inv_lon = base_lon + inv_lon_diff

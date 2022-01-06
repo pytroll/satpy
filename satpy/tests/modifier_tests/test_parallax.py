@@ -15,9 +15,11 @@
 
 import dask.array as da
 import numpy as np
+import pyresample.kd_tree
 import pytest
 from pyproj import Geod
 from pyresample import create_area_def
+from pyresample.bilinear import NumpyBilinearResampler
 
 
 def _get_fake_areas(center, sizes, resolution):
@@ -86,6 +88,23 @@ def cloud(request):
     cth[outer_lo:outer_hi, outer_lo:outer_hi] = outer_val
     cth[inner_lo:inner_hi, inner_lo:inner_hi] = inner_val
     return cth
+
+
+@pytest.fixture
+def resampler(request):
+    """Return a resampler function."""
+    resampler_name = request.param
+    if resampler_name == "nearest":
+        return pyresample.kd_tree.resample_nearest
+    elif resampler_name == "bilinear":
+        def resample_bilinear(source_area, what, base_area, search_radius):
+            sampler = NumpyBilinearResampler(
+                    source_area, base_area, search_radius)
+            return sampler.resample(what)
+        return resample_bilinear
+    else:
+        raise ValueError("resampler name must be 'nearest' or 'bilinear', "
+                         f"got {resampler_name!s}")
 
 
 def test_forward_parallax_ssp():
@@ -198,13 +217,29 @@ def test_init_parallaxcorrection(center, sizes, resolution):
     """Test that ParallaxCorrection class can be instantiated."""
     from ...modifiers.parallax import ParallaxCorrection
     fake_area = _get_fake_areas(center, sizes, resolution)[0]
-    ParallaxCorrection(fake_area)
+    pc = ParallaxCorrection(fake_area)
+    assert pc.base_area == fake_area
+    assert pc.search_radius == 50_000
+    pc = ParallaxCorrection(fake_area, search_radius=25_000)
+    assert pc.search_radius == 25_000
 
 
 @pytest.mark.parametrize("sat_lat,sat_lon,ar_lat,ar_lon",
                          [(0, 0, 0, 0), (0, 0, 40, 0)])
 @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
-def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution):
+@pytest.mark.parametrize(
+        "resampler",
+        ["nearest",
+         pytest.param(
+             "bilinear",
+             marks=pytest.mark.xfail(
+                 reason="parallax correction may fail with bilinear"))],
+        indirect=["resampler"])
+# FIXME: pytest.mark.xfail is marking too much!  How to mark only some
+# combinations of parameters?  See
+# https://stackoverflow.com/q/64349115/974555
+def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
+                               resampler):
     """Test that ParallaxCorrection doesn't change clearsky geolocation."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
@@ -212,7 +247,7 @@ def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution):
     large = 9
     (fake_area_small, fake_area_large) = _get_fake_areas(
             (ar_lon, ar_lat), [small, large], resolution)
-    corrector = ParallaxCorrection(fake_area_small)
+    corrector = ParallaxCorrection(fake_area_small, resampler)
 
     sc = make_fake_scene(
             {"CTH_clear": np.full((large, large), np.nan)},
@@ -230,7 +265,18 @@ def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution):
                          [(0, 0), (0, 40), (0, 180),
                           (90, 0)])  # relevant for Арктика satellites
 @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
-def test_correct_area_ssp(lat, lon, resolution):
+@pytest.mark.parametrize(
+        "resampler",
+        ["nearest",
+         pytest.param(
+             "bilinear",
+             marks=pytest.mark.xfail(
+                 reason="parallax correction may fail with bilinear"))],
+        indirect=["resampler"])
+# FIXME: the mark is selecting too many parameters; it only fails when
+# lat/lon are 0/180 or 90/0.  Not sure how to select only some parameter
+# combinations?  See https://stackoverflow.com/q/64349115/974555.
+def test_correct_area_ssp(lat, lon, resolution, resampler):
     """Test that ParallaxCorrection doesn't touch SSP."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
@@ -238,7 +284,7 @@ def test_correct_area_ssp(lat, lon, resolution):
     large = 9
     (fake_area_small, fake_area_large) = _get_fake_areas(
             (lon, lat), [small, large], resolution)
-    corrector = ParallaxCorrection(fake_area_small)
+    corrector = ParallaxCorrection(fake_area_small, resampler)
 
     sc = make_fake_scene(
             {"CTH_constant": np.full((large, large), 10000)},
@@ -267,7 +313,13 @@ def test_correct_area_ssp(lat, lon, resolution):
             atol=1e-9)
 
 
-def test_correct_area_partlycloudy():
+@pytest.mark.parametrize(
+        "resampler",
+        ["nearest",
+         pytest.param("bilinear", marks=pytest.mark.xfail(
+             reason="parallax correction inaccurate with bilinear"))],
+        indirect=["resampler"])
+def test_correct_area_partlycloudy(resampler):
     """Test ParallaxCorrection for partly cloudy situation."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
@@ -276,7 +328,7 @@ def test_correct_area_partlycloudy():
     (fake_area_small, fake_area_large) = _get_fake_areas(
             (0, 50), [small, large], 0.1)
     (fake_area_lons, fake_area_lats) = fake_area_small.get_lonlats()
-    corrector = ParallaxCorrection(fake_area_small)
+    corrector = ParallaxCorrection(fake_area_small, resampler)
 
     sc = make_fake_scene(
            {"CTH": np.array([
