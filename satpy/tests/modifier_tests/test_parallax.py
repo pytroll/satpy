@@ -468,11 +468,11 @@ def test_parallax_modifier_interface():
     fake_bt = xr.DataArray(
             np.linspace(220, 230, 25).reshape(5, 5),
             dims=("y", "x"),
-            attrs={"area": area_small} | _get_attrs(0, 0, 35_000_000))
+            attrs={"area": area_small, **_get_attrs(0, 0, 35_000_000)})
     cth_clear = xr.DataArray(
             np.full((9, 9), np.nan),
             dims=("y", "x"),
-            attrs={"area": area_large} | _get_attrs(0, 0, 35_000_000))
+            attrs={"area": area_large, **_get_attrs(0, 0, 35_000_000)})
     modif = ParallaxCorrectionModifier(
             name="parallax_corrected_dataset",
             prerequisites=[fake_bt, cth_clear],
