@@ -65,3 +65,14 @@ semi-automagically have to define their own modifier and then apply
 that modifier for their composites or datasets.  An example is included
 with the :class:`~satpy.modifiers.parallax.ParallaxCorrectionModifier`
 API documentation.
+
+The parallax correction is currently experimental and subject to change.
+Although it is covered by tests, there may be cases that yield unexpected
+or incorrect results.  By default, it uses nearest neighbour resampling.
+It can use a different resampling method, but parallax correction
+results are known to be wrong near the poles and the antimeridian when
+using bilinear resampling.  It does not yet perform any checks that the
+provided (cloud top) height covers the area of the dataset for which
+the parallax correction shall be applied.
+
+.. versionadded:: 0.34

@@ -25,6 +25,9 @@ surface on the surface is above sea level, the geolocation is not accurate
 for the cloud or mountain top.  This module contains routines to correct
 imagery such that pixels are shifted or interpolated to correct for this
 parallax effect.
+
+See also the :doc:`../modifiers` page in the documentation for an introduction to
+parallax correction as a modifier in Satpy.
 """
 
 import inspect
@@ -87,7 +90,8 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
             will be based.  Typically this is the cloud based height. [km]
 
     Returns:
-        (corrected_lon, corrected_lat): New geolocation for the longitude and
+        tuple[float, float]: New geolocation
+            New geolocation ``(lon, lat)`` for the longitude and
             latitude that were to be corrected, in geodetic coordinates. [°]
     """
     X_sat = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
@@ -137,6 +141,11 @@ class ParallaxCorrection:
 
     Note that the ``ctth`` dataset must contain geolocation metadata, such as
     set in the ``orbital_parameters`` dataset attribute by many readers.
+
+    This produce can be configured as a modifier using the
+    :class:`ParallaxCorrectionModifier` class.  However, the modifier can only
+    be applied to one dataset at the time, which may not provide optimal
+    performance.
     """
 
     def __init__(self, base_area,
@@ -144,11 +153,15 @@ class ParallaxCorrection:
         """Initialise parallax correction class.
 
         Args:
-            base_area (pyresample.AreaDefinition): Area for which calculated
+            base_area (:class:`~pyresample.AreaDefinition`): Area for which calculated
                 geolocation will be calculated.
             resampler (function): Function to use for resampling.  Must
                 have same interface as
-                :func:`pyresample.kd_tree.resample_nearest`.
+                :func:`~pyresample.kd_tree.resample_nearest`.  Note that using
+                the bilinear resampler included with Satpy yields incorrect results
+                near the poles and the antimeridian for the purposes of
+                parallax correction.  The default, the nearest neighbour
+                resampling, yiedls correct results.
             search_radius (number): Search radius to use with resampler.
         """
         self.base_area = base_area
@@ -163,7 +176,7 @@ class ParallaxCorrection:
                 to be corrected).
 
         Returns:
-            pyresample.geometry.SwathDefinition: Swathdefinition with corrected
+            :class:'~pyresample.geometry.SwathDefinition`: Swathdefinition with corrected
                 lat/lon coordinates.
         """
         return self.corrected_area(cth_dataset)
