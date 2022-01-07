@@ -13,6 +13,8 @@
 
 """Tests related to parallax correction."""
 
+import unittest.mock
+
 import dask.array as da
 import numpy as np
 import pyresample.kd_tree
@@ -209,6 +211,21 @@ def test_forward_parallax_mixed():
     # otherwise no nans
     assert np.isfinite(corrected_lon[~np.isnan(alt)]).all()
     assert np.isfinite(corrected_lat[~np.isnan(alt)]).all()
+
+
+def test_forward_parallax_horizon():
+    """Test that exception is raised if satellites exactly at the horizon.
+
+    Test the rather unlikely case of a satellite elevation of exactly 0
+    """
+    from ...modifiers.parallax import forward_parallax
+    sat_lat = sat_lon = lon = lat = 0.
+    height = 5000.
+    sat_alt = 30_000_000.
+    with unittest.mock.patch("satpy.modifiers.parallax.get_observer_look") as smpg:
+        smpg.return_value = (0, 0)
+        with pytest.raises(NotImplementedError):
+            forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height)
 
 
 @pytest.mark.parametrize("center", [(0, 0), (80, -10), (-180, 5)])

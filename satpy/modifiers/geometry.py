@@ -173,8 +173,3 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
     def _apply_correction(self, proj, coszen):
         logger.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
         return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
-
-
-def parallax_correction(sc):
-    """Apply parallax correction to entire scene."""
-    return sc

@@ -101,7 +101,10 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
     (_, elevation) = get_observer_look(
             sat_lon, sat_lat, sat_alt,
             datetime(2000, 1, 1), lon, lat, EARTH_RADIUS)
-    # TODO: handle cases where this could divide by 0
+    if elevation == 0:
+        raise NotImplementedError(
+                "Parallax correction not implemented for "
+                "satellite elevation 0")
     parallax_distance = height / np.sin(np.deg2rad(elevation))
 
     X_d = X - X_sat
