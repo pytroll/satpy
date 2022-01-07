@@ -248,8 +248,10 @@ class ParallaxCorrection:
 class ParallaxCorrectionModifier(ModifierBase):
     """Modifier for parallax correction.
 
-    Uses the :class:`ParallaxCorrection` class, which in turn uses the
-    :func:`forward_parallax` function.
+    Apply parallax correction as a modifier.  Uses the
+    :class:`ParallaxCorrection` class, which in turn uses the
+    :func:`forward_parallax` function.  See the documentation there for
+    details on the behaviour.
 
     To use this, add in your ``etc/modifiers/visir.yaml`` something like::
 
@@ -261,6 +263,8 @@ class ParallaxCorrectionModifier(ModifierBase):
             - name: CTH
             resampler: !!python/name:pyresample.kd_tree.resample_nearest
             search_radius: 50000
+
+    Here, ``resampler`` and ``search_radius`` are optional.
 
     Alternately, you can use the lower-level API directly with the
     :class:`ParallaxCorrection` class, which may be more efficient if multiple
@@ -277,6 +281,8 @@ class ParallaxCorrectionModifier(ModifierBase):
         (to_be_corrected, cth) = projectables
         base_area = to_be_corrected.attrs["area"]
         kwargs = {}
+        # only pass on those attributes that are arguments by
+        # ParallaxCorrection.__init__
         sig = inspect.signature(ParallaxCorrection.__init__)
         for k in sig.parameters.keys() & self.attrs.keys():
             kwargs[k] = self.attrs[k]
