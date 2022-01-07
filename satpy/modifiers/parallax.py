@@ -37,6 +37,7 @@ from pyorbital.orbital import get_observer_look
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import resample_nearest
 
+from satpy.modifiers import ModifierBase
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 
 
@@ -240,3 +241,34 @@ class ParallaxCorrection:
         inv_lon = base_lon + inv_lon_diff
         inv_lat = base_lat + inv_lat_diff
         return (inv_lon, inv_lat)
+
+
+class ParallaxCorrectionModifier(ModifierBase):
+    """Modifier for parallax correction.
+
+    Uses the :class:`ParallaxCorrection` class, which in turn uses the
+    :func:`forward_parallax` function.
+
+    To use this, add in your ``etc/modifiers/visir.yaml`` something like::
+
+        modifiers:
+          parallax_corrected_NIR08:
+            modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
+            prerequisites:
+            - name: VIS008
+            - name: CTH
+            resampler: !!python/name:pyresample.kd_tree.resample_nearest
+            search_radius: 50000
+    """
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Apply parallax correction.
+
+        The argument ``projectables`` needs to contain the dataset to be
+        projected and the height to use for the correction.
+        """
+        (to_be_corrected, cth) = projectables
+        base_area = to_be_corrected.attrs["area"]
+        corrector = ParallaxCorrection(base_area, **self.attrs)
+        corrector(cth)
+        raise NotImplementedError()
