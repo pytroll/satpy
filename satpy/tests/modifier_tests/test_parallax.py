@@ -313,13 +313,14 @@ def test_correct_area_ssp(lat, lon, resolution, resampler):
             atol=1e-9)
 
 
+@pytest.mark.parametrize("daskify", [False, True])
 @pytest.mark.parametrize(
         "resampler",
         ["nearest",
          pytest.param("bilinear", marks=pytest.mark.xfail(
              reason="parallax correction inaccurate with bilinear"))],
         indirect=["resampler"])
-def test_correct_area_partlycloudy(resampler):
+def test_correct_area_partlycloudy(daskify, resampler):
     """Test ParallaxCorrection for partly cloudy situation."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
@@ -342,7 +343,7 @@ def test_correct_area_partlycloudy(resampler):
                 [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
                 [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
                 ])},
-           daskify=False,
+           daskify=daskify,
            area=fake_area_large,
            common_attrs=_get_attrs(0, 0, 40_000_000))
     new_area = corrector(sc["CTH"])
@@ -433,6 +434,22 @@ def test_correct_area_cloudy_partly_shifted():
     with pytest.warns(IncompleteHeightWarning):
         new_area = corrector(sc["CTH_constant"])
     assert new_area.shape == fake_area_small.shape
+
+
+def test_correct_area_cloudy_same_area():
+    """Test cloudy correction when areas are the same."""
+    from ...modifiers.parallax import ParallaxCorrection
+    from ..utils import make_fake_scene
+    area = _get_fake_areas((0, 0), [9], 0.1)[0]
+
+    sc = make_fake_scene(
+            {"CTH_constant": np.full((9, 9), 10000)},
+            daskify=False,
+            area=area,
+            common_attrs=_get_attrs(0, 0, 35_000_000))
+
+    corrector = ParallaxCorrection(area)
+    corrector(sc["CTH_constant"])
 
 
 @pytest.mark.parametrize("cloud", [(9, 2, 8, 5, 3, 6, 8)], indirect=["cloud"])
