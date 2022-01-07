@@ -59,6 +59,7 @@ the base Satpy installation.
     composites
     resample
     enhancements
+    modifiers
     writers
     multiscene
     dev_guide/index
