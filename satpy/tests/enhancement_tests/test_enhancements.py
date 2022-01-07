@@ -27,6 +27,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from satpy.enhancements import create_colormap
+
 
 class TestEnhancementStretch:
     """Class for testing enhancements in satpy.enhancements."""
@@ -259,13 +261,16 @@ class TestColormapLoading:
 
     @pytest.mark.parametrize("color_scale", [None, 1.0])
     @pytest.mark.parametrize("colormap_mode", ["RGB", "VRGB", "VRGBA"])
-    def test_cmap_from_npy_file_rgb(self, color_scale, colormap_mode):
+    @pytest.mark.parametrize("extra_kwargs",
+                             [
+                                 {},
+                                 {"min_value": 50, "max_value": 100},
+                             ])
+    def test_cmap_from_npy_file_rgb(self, color_scale, colormap_mode, extra_kwargs):
         """Test that colormaps can be loaded from a binary file."""
-        from satpy.enhancements import create_colormap
-
         # create the colormap file on disk
-        cmap_data = _generate_cmap_test_data(color_scale, colormap_mode)
         with closed_named_temp_file(suffix=".npy") as cmap_filename:
+            cmap_data = _generate_cmap_test_data(color_scale, colormap_mode)
             np.save(cmap_filename, cmap_data)
 
             unset_first_value = 128.0 / 255.0 if colormap_mode.startswith("V") else 0.0
@@ -273,10 +278,16 @@ class TestColormapLoading:
             if (color_scale is None or color_scale == 255) and colormap_mode.startswith("V"):
                 unset_first_value *= 255
                 unset_last_value *= 255
+            if "min_value" in extra_kwargs:
+                unset_first_value = extra_kwargs["min_value"]
+                unset_last_value = extra_kwargs["max_value"]
+
             first_color = [1.0, 0.0, 0.0]
-            if colormap_mode is not None and colormap_mode == "VRGBA":
+            if colormap_mode == "VRGBA":
                 first_color = [128.0 / 255.0] + first_color
+
             kwargs1 = {"filename": cmap_filename}
+            kwargs1.update(extra_kwargs)
             if color_scale is not None:
                 kwargs1["color_scale"] = color_scale
 
@@ -287,39 +298,35 @@ class TestColormapLoading:
             assert cmap.values[0] == unset_first_value
             assert cmap.values[-1] == unset_last_value
 
-            kwargs2 = kwargs1.copy()
-            kwargs2.update({"min_value": 50, "max_value": 100})
-            cmap = create_colormap(kwargs2)
+    def test_cmap_vrgb_as_rgba(self):
+        """Test that data created as VRGB still reads as RGBA."""
+        with closed_named_temp_file(suffix=".npy") as cmap_filename:
+            cmap_data = _generate_cmap_test_data(None, "VRGB")
+            np.save(cmap_filename, cmap_data)
+            cmap = create_colormap({'filename': cmap_filename, 'colormap_mode': "RGBA"})
             assert cmap.colors.shape[0] == 4
-            np.testing.assert_equal(cmap.colors[0], first_color)
+            assert cmap.colors.shape[1] == 4  # RGBA
+            np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
             assert cmap.values.shape[0] == 4
-            assert cmap.values[0] == 50
-            assert cmap.values[-1] == 100
+            assert cmap.values[0] == 0
+            assert cmap.values[-1] == 1.0
 
-            # Force colormap mode of VRGB to RGBA
-            if colormap_mode is not None and colormap_mode == "VRGB":
-                kwargs3 = kwargs1.copy()
-                kwargs3["colormap_mode"] = "RGBA"
-                cmap = create_colormap(kwargs3)
-                assert cmap.colors.shape[0] == 4
-                assert cmap.colors.shape[1] == 4  # RGBA
-                np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
-                assert cmap.values.shape[0] == 4
-                assert cmap.values[0] == 0
-                assert cmap.values[-1] == 1.0
-
-            # Force colormap_mode to not match the data and we should see an exception
-            if colormap_mode is not None and colormap_mode.endswith("A"):
-                with pytest.raises(ValueError):
-                    create_colormap({
-                        'filename': cmap_filename, 'colormap_mode': colormap_mode[:-1],
-                        'min_value': 50, 'max_value': 100})
-
+    @pytest.mark.parametrize(
+        ("real_mode", "forced_mode"),
+        [
+            ("VRGBA", "RGBA"),
+            ("VRGBA", "VRGB"),
+            ("RGBA", "RGB"),
+        ]
+    )
+    def test_cmap_bad_mode(self, real_mode, forced_mode):
+        """Test that reading colormaps with the wrong mode fails."""
+        with closed_named_temp_file(suffix=".npy") as cmap_filename:
+            cmap_data = _generate_cmap_test_data(None, real_mode)
+            np.save(cmap_filename, cmap_data)
             # Force colormap_mode VRGBA to RGBA and we should see an exception
-            if colormap_mode is not None and colormap_mode == "VRGBA":
-                with pytest.raises(ValueError):
-                    create_colormap({
-                        'filename': cmap_filename, 'colormap_mode': "RGBA"})
+            with pytest.raises(ValueError):
+                create_colormap({'filename': cmap_filename, 'colormap_mode': forced_mode})
 
     def test_cmap_from_file_bad_shape(self):
         """Test that unknown array shape causes an error."""
