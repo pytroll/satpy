@@ -395,6 +395,7 @@ def test_correct_area_clearsky_different_resolutions(res1, res2):
             fake_area_small.get_lonlats())
 
 
+@pytest.mark.xfail(reason="awaiting pyresample fixes")
 def test_correct_area_cloudy_no_overlap():
     """Test cloudy correction when areas have no overlap."""
     from ...modifiers.parallax import MissingHeightError, ParallaxCorrection
@@ -415,6 +416,7 @@ def test_correct_area_cloudy_no_overlap():
         corrector(sc["CTH_constant"])
 
 
+@pytest.mark.xfail(reason="awaiting pyresample fixes")
 def test_correct_area_cloudy_partly_shifted():
     """Test cloudy correction when areas overlap only partly."""
     from ...modifiers.parallax import IncompleteHeightWarning, ParallaxCorrection
