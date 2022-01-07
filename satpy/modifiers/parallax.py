@@ -27,6 +27,7 @@ imagery such that pixels are shifted or interpolated to correct for this
 parallax effect.
 """
 
+import inspect
 import warnings
 from datetime import datetime
 
@@ -37,6 +38,7 @@ from pyorbital.orbital import get_observer_look
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import resample_nearest
 
+from satpy import Scene
 from satpy.modifiers import ModifierBase
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 
@@ -127,7 +129,7 @@ class ParallaxCorrection:
       >>> global_nwc.load(['ctth'])
       >>> area_def = satpy.resample.get_area_def(area)
       >>> parallax_correction = ParallaxCorrection(area_def)
-      >>> plax_corr_area = forward_parallax(global_nwc["ctth"])
+      >>> plax_corr_area = parallax_correction(global_nwc["ctth"])
       >>> local_scene = global_scene.resample(plax_corr_area)
       >>> local_nwc = global_nwc.resample(plax_corr_area)
       >>> local_scene[...].attrs["area"] = area_def
@@ -252,13 +254,17 @@ class ParallaxCorrectionModifier(ModifierBase):
     To use this, add in your ``etc/modifiers/visir.yaml`` something like::
 
         modifiers:
-          parallax_corrected_NIR08:
+          parallax_corrected_NIR008:
             modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
             prerequisites:
-            - name: VIS008
+            - name: NIR008
             - name: CTH
             resampler: !!python/name:pyresample.kd_tree.resample_nearest
             search_radius: 50000
+
+    Alternately, you can use the lower-level API directly with the
+    :class:`ParallaxCorrection` class, which may be more efficient if multiple
+    datasets need to be resampled.
     """
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -267,8 +273,17 @@ class ParallaxCorrectionModifier(ModifierBase):
         The argument ``projectables`` needs to contain the dataset to be
         projected and the height to use for the correction.
         """
+        # NB: Can I avoid creating a scene object here?
         (to_be_corrected, cth) = projectables
         base_area = to_be_corrected.attrs["area"]
-        corrector = ParallaxCorrection(base_area, **self.attrs)
-        corrector(cth)
-        raise NotImplementedError()
+        kwargs = {}
+        sig = inspect.signature(ParallaxCorrection.__init__)
+        for k in sig.parameters.keys() & self.attrs.keys():
+            kwargs[k] = self.attrs[k]
+        corrector = ParallaxCorrection(base_area, **kwargs)
+        plax_corr_area = corrector(cth)
+        global_scene = Scene()
+        global_scene["dataset"] = to_be_corrected
+        local_scene = global_scene.resample(plax_corr_area)
+        local_scene["dataset"].attrs["area"] = base_area
+        return local_scene["dataset"]

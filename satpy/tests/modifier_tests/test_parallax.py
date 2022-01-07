@@ -17,6 +17,7 @@ import dask.array as da
 import numpy as np
 import pyresample.kd_tree
 import pytest
+import xarray as xr
 from pyproj import Geod
 from pyresample import create_area_def
 from pyresample.bilinear import NumpyBilinearResampler
@@ -456,3 +457,24 @@ def test_correct_area_cloudy_same_area():
 def test_cloud(cloud):
     """Test using cloud."""
     pass
+
+
+def test_parallax_modifier_interface():
+    """Test the modifier interface."""
+    from ...modifiers.parallax import ParallaxCorrectionModifier
+    (area_small, area_large) = _get_fake_areas((0, 0), [5, 9], 0.1)
+    fake_bt = xr.DataArray(
+            np.linspace(220, 230, 25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={"area": area_small} | _get_attrs(0, 0, 35_000_000))
+    cth_clear = xr.DataArray(
+            np.full((9, 9), np.nan),
+            dims=("y", "x"),
+            attrs={"area": area_large} | _get_attrs(0, 0, 35_000_000))
+    modif = ParallaxCorrectionModifier(
+            name="parallax_corrected_dataset",
+            prerequisites=[fake_bt, cth_clear],
+            optional_prerequisites=[],
+            search_radius=25_000)
+    res = modif([fake_bt, cth_clear], optional_datasets=[])
+    np.testing.assert_allclose(res, fake_bt)
