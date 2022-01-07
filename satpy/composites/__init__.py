@@ -90,7 +90,7 @@ def sub_arrays(proj1, proj2):
 
 
 class CompositeBase:
-    """Base class for all compositors.
+    """Base class for all compositors and modifiers.
 
     A compositor in Satpy is a class that takes in zero or more input
     DataArrays and produces a new DataArray with its own identifier (name).
