@@ -12,6 +12,11 @@ backported more regularly.
 | 0.x.x (latest)   | :white_check_mark: |
 | < 0.33.0   | :x:                |
 
+## Unsafe YAML Loading
+
+Satpy allows for unsafe loading of YAML configuration files. Any YAML files
+from untrusted sources should be sanitized of possibly malicious code.
+
 ## Reporting a Vulnerability
 
 Do you think you've found a security vulnerability or issue in this project? Let us know by sending
