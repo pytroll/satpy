@@ -50,3 +50,18 @@ on those modifiers can be found in the linked API documentation.
 
 A complete list can be found in the ``etc/composites`` source code and
 in the :mod:`~satpy.modifiers` module documentation.
+
+Parallax correction
+-------------------
+
+Since early 2022, Satpy has included a
+modifier for parallax correction, implemented in the
+:class:`~satpy.modifiers.parallax.ParallaxCorrectionModifier` class.
+This modifier is important for some applications, but not applied
+by default to any Satpy datasets or composites, because it can be
+applied to any input dataset and used with any source of (cloud top)
+height.  Therefore, users wishing to apply the parallax correction
+semi-automagically have to define their own modifier and then apply
+that modifier for their composites or datasets.  An example is included
+with the :class:`~satpy.modifiers.parallax.ParallaxCorrectionModifier`
+API documentation.

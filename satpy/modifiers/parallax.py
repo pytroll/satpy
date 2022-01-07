@@ -256,10 +256,9 @@ class ParallaxCorrectionModifier(ModifierBase):
     To use this, add in your ``etc/modifiers/visir.yaml`` something like::
 
         modifiers:
-          parallax_corrected_NIR008:
+          parallax_corrected:
             modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
             prerequisites:
-            - name: NIR008
             - name: CTH
             resampler: !!python/name:pyresample.kd_tree.resample_nearest
             search_radius: 50000
