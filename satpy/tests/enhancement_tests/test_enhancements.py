@@ -274,7 +274,7 @@ class TestColormapLoading:
                                  {},
                                  {"min_value": 50, "max_value": 100},
                              ])
-    @pytest.mark.parametrize("filename_suffix", [".npy"])
+    @pytest.mark.parametrize("filename_suffix", [".npy", ".csv"])
     def test_cmap_from_npy_file_rgb(self, color_scale, colormap_mode, extra_kwargs, filename_suffix):
         """Test that colormaps can be loaded from a binary file."""
         # create the colormap file on disk
@@ -328,7 +328,7 @@ class TestColormapLoading:
             ("RGBA", "RGB"),
         ]
     )
-    @pytest.mark.parametrize("filename_suffix", [".npy"])
+    @pytest.mark.parametrize("filename_suffix", [".npy", ".csv"])
     def test_cmap_bad_mode(self, real_mode, forced_mode, filename_suffix):
         """Test that reading colormaps with the wrong mode fails."""
         with closed_named_temp_file(suffix=filename_suffix) as cmap_filename:

@@ -17,6 +17,7 @@
 """Enhancements."""
 
 import logging
+import os
 import warnings
 from functools import partial
 from numbers import Number
@@ -355,8 +356,11 @@ def create_colormap(palette):
     **From a file**
 
     Colormaps can be loaded from ``.npy`` files as 2D raw arrays with rows for
-    each color. The filename to load can be provided with the ``filename`` key
-    in the provided palette information. The colormap is interpreted as 1 of 4
+    each color or from comma-separated text files where each row represents an
+    element (color) of the colormap. The filename to load can be provided with
+    the ``filename`` key in the provided palette information. A filename
+    ending with ``.npy`` is read as an npy file, all other extensions are
+    read as a comma-separated file. The colormap is interpreted as 1 of 4
     different "colormap modes": ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
     colormap mode can be forced with the ``colormap_mode`` key in the provided
     palette information. If it is not provided then a default will be chosen
@@ -456,7 +460,7 @@ def _create_colormap_from_sequence(colors, palette, color_scale):
 
 def _create_colormap_from_file(filename, palette, color_scale):
     from trollimage.colormap import Colormap
-    data = np.load(filename)
+    data = _read_colormap_data_from_file(filename)
     cols = data.shape[1]
     default_modes = {
         3: 'RGB',
@@ -480,6 +484,14 @@ def _create_colormap_from_file(filename, palette, color_scale):
             colors = colors / float(color_scale)
         values = np.arange(rows) / float(rows - 1)
     return Colormap(*zip(values, colors))
+
+
+def _read_colormap_data_from_file(filename):
+    ext = os.path.splitext(filename)[1]
+    if ext in (".npy",):
+        return np.load(filename)
+    # CSV
+    return np.loadtxt(filename, delimiter=",")
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):
