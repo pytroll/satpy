@@ -35,7 +35,7 @@ from satpy.writers import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 
-NEGLIGIBLE_COORDS = NEGLIBLE_COORDS = ['time']
+NEGLIGIBLE_COORDS = ['time']
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
 MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
@@ -196,7 +196,8 @@ class CompositeBase:
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and any([neglible in coord for neglible in NEGLIBLE_COORDS])]
+                    if coord not in ds.dims and
+                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
             if drop:
                 new_arrays.append(ds.drop(drop))
             else:
@@ -244,16 +245,6 @@ class CompositeBase:
             LOG.debug("Not all areas are the same in "
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
-
-    def check_areas(self, data_arrays):
-        """Do not use.
-
-        Deprecated. Check that the areas of the *data_arrays* are compatible.
-        Use :meth:`match_data_arrays` instead.
-        """
-        warnings.warn('satpy.composites.CompositeBase.check_areas is deprecated, use '
-                      'satpy.composites.CompositeBase.match_data_arrays instead')
-        return self.match_data_arrays(data_arrays)
 
 
 class DifferenceCompositor(CompositeBase):
