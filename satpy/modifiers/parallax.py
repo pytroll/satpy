@@ -94,26 +94,26 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
             New geolocation ``(lon, lat)`` for the longitude and
             latitude that were to be corrected, in geodetic coordinates. [°]
     """
-    X_sat = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
-    X = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS
+    x_sat = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
+    x = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS
     # the datetime doesn't actually affect the result but is required
     # so we use a placeholder
     (_, elevation) = get_observer_look(
             sat_lon, sat_lat, sat_alt,
             datetime(2000, 1, 1), lon, lat, EARTH_RADIUS)
-    if elevation == 0:
+    if np.isscalar(elevation) and elevation == 0:
         raise NotImplementedError(
                 "Parallax correction not implemented for "
                 "satellite elevation 0")
     parallax_distance = height / np.sin(np.deg2rad(elevation))
 
-    X_d = X - X_sat
-    sat_distance = np.sqrt((X_d*X_d).sum(axis=-1))
-    dist_shape = X_d.shape[:-1] + (1,)  # force correct array broadcasting
-    X_top = X - X_d*(parallax_distance/sat_distance).reshape(dist_shape)
+    x_d = x - x_sat
+    sat_distance = np.sqrt((x_d*x_d).sum(axis=-1))
+    dist_shape = x_d.shape[:-1] + (1,)  # force correct array broadcasting
+    x_top = x - x_d*(parallax_distance/sat_distance).reshape(dist_shape)
 
     (corrected_lon, corrected_lat) = xyz2lonlat(
-        X_top[..., 0], X_top[..., 1], X_top[..., 2])
+        x_top[..., 0], x_top[..., 1], x_top[..., 2])
     return (corrected_lon, corrected_lat)
 
 
