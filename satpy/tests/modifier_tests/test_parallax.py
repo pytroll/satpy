@@ -13,6 +13,7 @@
 
 """Tests related to parallax correction."""
 
+import math
 import unittest.mock
 
 import dask.array as da
@@ -242,20 +243,31 @@ def test_init_parallaxcorrection(center, sizes, resolution):
     assert pc.search_radius == 25_000
 
 
+@pytest.fixture
+def xfail_selected_clearsky_combis(request):
+    """Mark certain parameter combinations as failing.
+
+    Clearsky parallax correction fails for some combinations of parameters.
+    This fixture helps to mark only those combinations as failing.
+    """
+    # solution inspired by https://stackoverflow.com/q/64349115/974555
+    ar_lat = request.getfixturevalue("ar_lat")
+    resolution = request.getfixturevalue("resolution")
+    resampler = request.getfixturevalue("resampler")
+
+    if (resampler.__name__ == "resample_bilinear" and
+            ar_lat == 40 and
+            math.isclose(resolution, 0.01)):
+        request.node.add_marker(pytest.mark.xfail(
+             reason="parallax correction may fail with bilinear"))
+
+
 @pytest.mark.parametrize("sat_lat,sat_lon,ar_lat,ar_lon",
                          [(0, 0, 0, 0), (0, 0, 40, 0)])
 @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
-@pytest.mark.parametrize(
-        "resampler",
-        ["nearest",
-         pytest.param(
-             "bilinear",
-             marks=pytest.mark.xfail(
-                 reason="parallax correction may fail with bilinear"))],
-        indirect=["resampler"])
-# FIXME: pytest.mark.xfail is marking too much!  How to mark only some
-# combinations of parameters?  See
-# https://stackoverflow.com/q/64349115/974555
+@pytest.mark.parametrize("resampler", ["nearest", "bilinear"],
+                         indirect=["resampler"])
+@pytest.mark.usefixtures('xfail_selected_clearsky_combis')
 def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
                                resampler):
     """Test that ParallaxCorrection doesn't change clearsky geolocation."""
@@ -279,21 +291,33 @@ def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
             fake_area_small.get_lonlats())
 
 
+@pytest.fixture
+def xfail_selected_ssp_combis(request):
+    """Mark certain parameter combinations as failing.
+
+    SPP parallax correction fails for some combinations of parameters.
+    This fixture helps to mark only those combinations as failing.
+    """
+    # solution inspired by https://stackoverflow.com/q/64349115/974555
+    lon = request.getfixturevalue("lon")
+    lat = request.getfixturevalue("lat")
+    resampler = request.getfixturevalue("resampler")
+
+    if (resampler.__name__ == "resample_bilinear" and
+            (lon == 180 or lat == 90)):
+        request.node.add_marker(pytest.mark.xfail(
+             reason="parallax correction may fail with bilinear"))
+
+
 @pytest.mark.parametrize("lat,lon",
                          [(0, 0), (0, 40), (0, 180),
                           (90, 0)])  # relevant for Арктика satellites
 @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
 @pytest.mark.parametrize(
         "resampler",
-        ["nearest",
-         pytest.param(
-             "bilinear",
-             marks=pytest.mark.xfail(
-                 reason="parallax correction may fail with bilinear"))],
+        ["nearest", "bilinear"],
         indirect=["resampler"])
-# FIXME: the mark is selecting too many parameters; it only fails when
-# lat/lon are 0/180 or 90/0.  Not sure how to select only some parameter
-# combinations?  See https://stackoverflow.com/q/64349115/974555.
+@pytest.mark.usefixtures('xfail_selected_ssp_combis')
 def test_correct_area_ssp(lat, lon, resolution, resampler):
     """Test that ParallaxCorrection doesn't touch SSP."""
     from ...modifiers.parallax import ParallaxCorrection
