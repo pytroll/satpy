@@ -251,12 +251,10 @@ def xfail_selected_clearsky_combis(request):
     This fixture helps to mark only those combinations as failing.
     """
     # solution inspired by https://stackoverflow.com/q/64349115/974555
-    ar_lat = request.getfixturevalue("ar_lat")
     resolution = request.getfixturevalue("resolution")
     resampler = request.getfixturevalue("resampler")
 
     if (resampler.__name__ == "resample_bilinear" and
-            ar_lat == 40 and
             math.isclose(resolution, 0.01)):
         request.node.add_marker(pytest.mark.xfail(
              reason="parallax correction may fail with bilinear"))
