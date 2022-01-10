@@ -29,6 +29,7 @@ import xarray as xr
 from trollimage.xrimage import XRImage
 
 from satpy._compat import ArrayLike
+from satpy._config import get_config_path
 
 LOG = logging.getLogger(__name__)
 
@@ -360,8 +361,12 @@ def create_colormap(palette):
     element (color) of the colormap. The filename to load can be provided with
     the ``filename`` key in the provided palette information. A filename
     ending with ``.npy`` is read as an npy file, all other extensions are
-    read as a comma-separated file. The colormap is interpreted as 1 of 4
-    different "colormap modes": ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
+    read as a comma-separated file. The path to the colormap can be relative
+    if it is stored in a directory specified by :ref:`config_path_setting`.
+    Otherwise it should be an absolute path.
+
+    The colormap is interpreted as 1 of 4 different "colormap modes":
+    ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
     colormap mode can be forced with the ``colormap_mode`` key in the provided
     palette information. If it is not provided then a default will be chosen
     based on the number of columns in the array (3: RGB, 4: VRGB, 5: VRGBA).
@@ -487,6 +492,8 @@ def _create_colormap_from_file(filename, palette, color_scale):
 
 
 def _read_colormap_data_from_file(filename):
+    if not os.path.exists(filename):
+        filename = get_config_path(filename)
     ext = os.path.splitext(filename)[1]
     if ext in (".npy",):
         return np.load(filename)

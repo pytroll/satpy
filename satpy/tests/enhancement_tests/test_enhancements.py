@@ -354,6 +354,26 @@ class TestColormapLoading:
             with pytest.raises(ValueError):
                 create_colormap({'filename': cmap_filename})
 
+    def test_cmap_from_config_path(self, tmp_path):
+        """Test loading a colormap relative to a config path."""
+        import satpy
+        from satpy.enhancements import create_colormap
+
+        cmap_dir = tmp_path / "colormaps"
+        cmap_dir.mkdir()
+        cmap_filename = cmap_dir / "my_colormap.npy"
+        cmap_data = _generate_cmap_test_data(None, "RGBA")
+        np.save(cmap_filename, cmap_data)
+        with satpy.config.set(config_path=[tmp_path]):
+            rel_cmap_filename = os.path.join("colormaps", "my_colormap.npy")
+            cmap = create_colormap({'filename': rel_cmap_filename, 'colormap_mode': "RGBA"})
+            assert cmap.colors.shape[0] == 4
+            assert cmap.colors.shape[1] == 4  # RGBA
+            np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
+            assert cmap.values.shape[0] == 4
+            assert cmap.values[0] == 0
+            assert cmap.values[-1] == 1.0
+
     def test_cmap_from_trollimage(self):
         """Test that colormaps in trollimage can be loaded."""
         from satpy.enhancements import create_colormap
