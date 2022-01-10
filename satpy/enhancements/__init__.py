@@ -356,14 +356,18 @@ def create_colormap(palette):
 
     **From a file**
 
-    Colormaps can be loaded from ``.npy`` files as 2D raw arrays with rows for
-    each color or from comma-separated text files where each row represents an
-    element (color) of the colormap. The filename to load can be provided with
-    the ``filename`` key in the provided palette information. A filename
-    ending with ``.npy`` is read as an npy file, all other extensions are
-    read as a comma-separated file. The path to the colormap can be relative
-    if it is stored in a directory specified by :ref:`config_path_setting`.
-    Otherwise it should be an absolute path.
+    Colormaps can be loaded from ``.npy``, ``.npz``, or comma-separate text
+    files. Numpy (npy/npz) files should be 2D arrays with rows for each color.
+    Comma-separated files should have a row for each color with each column
+    representing a single value/channel. The filename to load can be provided
+    with the ``filename`` key in the provided palette information. A filename
+    ending with ``.npy`` or ``.npz`` is read as a numpy file with
+    :func:`numpy.load`. All other extensions are
+    read as a comma-separated file. For ``.npz`` files the data must be stored
+    as a positional list where the first element represents the colormap to
+    use. See :func:`numpy.savez` for more information. The path to the
+    colormap can be relative if it is stored in a directory specified by
+    :ref:`config_path_setting`. Otherwise it should be an absolute path.
 
     The colormap is interpreted as 1 of 4 different "colormap modes":
     ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
@@ -495,8 +499,13 @@ def _read_colormap_data_from_file(filename):
     if not os.path.exists(filename):
         filename = get_config_path(filename)
     ext = os.path.splitext(filename)[1]
-    if ext in (".npy",):
-        return np.load(filename)
+    if ext in (".npy", ".npz"):
+        file_content = np.load(filename)
+        if ext == ".npz":
+            # .npz is a collection
+            # assume position list-like and get the first element
+            file_content = file_content["arr_0"]
+        return file_content
     # CSV
     return np.loadtxt(filename, delimiter=",")
 

@@ -239,6 +239,8 @@ def _write_cmap_csv(cmap_filename, cmap_data):
     ext = os.path.splitext(cmap_filename)[1]
     if ext in (".npy",):
         np.save(cmap_filename, cmap_data)
+    elif ext in (".npz",):
+        np.savez(cmap_filename, cmap_data)
     else:
         np.savetxt(cmap_filename, cmap_data, delimiter=",")
 
@@ -274,7 +276,7 @@ class TestColormapLoading:
                                  {},
                                  {"min_value": 50, "max_value": 100},
                              ])
-    @pytest.mark.parametrize("filename_suffix", [".npy", ".csv"])
+    @pytest.mark.parametrize("filename_suffix", [".npy", ".npz", ".csv"])
     def test_cmap_from_npy_file_rgb(self, color_scale, colormap_mode, extra_kwargs, filename_suffix):
         """Test that colormaps can be loaded from a binary file."""
         # create the colormap file on disk
