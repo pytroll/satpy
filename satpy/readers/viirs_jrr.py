@@ -49,9 +49,13 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                                   mask_and_scale=True,
                                   chunks={'Columns': CHUNK_SIZE,
                                           'Rows': CHUNK_SIZE})
-        self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
+        if 'columns' in self.nc.dims:
+            self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
+        elif 'Along_Track_375m' in self.nc.dims:
+            self.nc = self.nc.rename({'Along_Scan_375m': 'x', 'Along_Track_375m': 'y'})
+            self.nc = self.nc.rename({'Along_Scan_750m': 'x', 'Along_Track_750m': 'y'})
 
-        # For some reason, no 'standard_name' is defined in the netCDF files, so
+        # For some reason, no 'standard_name' is defined in some netCDF files, so
         # here we manually make the definitions.
         if 'Latitude' in self.nc:
             self.nc['Latitude'].attrs.update({'standard_name': 'latitude'})

@@ -16,10 +16,15 @@ file_types:
         variable_prefix: ""
         file_patterns:
             - 'JRR-ADP_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_surfref_product:
+        file_reader: !!python/name:satpy.readers.viirs_jrr.VIIRSJRRFileHandler
+        variable_prefix: ""
+        file_patterns:
+            - 'SurfRefl_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
 
 
 datasets:
-    # Common datasets
+    # Geolocation datasets
     longitude:
         name: longitude
         standard_name: longitude
@@ -31,6 +36,30 @@ datasets:
         standard_name: latitude
         file_type: [jrr_cloudmask, jrr_aerosol_product]
         file_key: "Latitude"
+        units: 'degrees_north'
+    longitude_375:
+        name: longitude_375
+        standard_name: longitude
+        file_type: jrr_surfref_product
+        file_key: "Longitude_at_375m_resolution"
+        units: 'degrees_east'
+    latitude_375:
+        name: latitude_375
+        standard_name: latitude
+        file_type: jrr_surfref_product
+        file_key: "Latitude_at_375m_resolution"
+        units: 'degrees_north'
+    longitude_750:
+        name: longitude_750
+        standard_name: longitude
+        file_type: jrr_surfref_product
+        file_key: "Longitude_at_750m_resolution"
+        units: 'degrees_east'
+    latitude_750:
+        name: latitude_750
+        standard_name: latitude
+        file_type: jrr_surfref_product
+        file_key: "Latitude_at_750m_resolution"
         units: 'degrees_north'
 
     # Cloudmask product datasets
@@ -187,3 +216,138 @@ datasets:
         flag_meanings: ['No', 'Yes']
         flag_values: [0, 1]
         _FillValue: -128
+
+    # Surface reflectance products
+    surf_refl_I01:
+        name: surf_refl_I01
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band I1"
+        coordinates: [longitude_375, latitude_375]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_I02:
+        name: surf_refl_I02
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band I2"
+        coordinates: [longitude_375, latitude_375]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_I03:
+        name: surf_refl_I03
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band I3"
+        coordinates: [longitude_375, latitude_375]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M01:
+        name: surf_refl_M01
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M1"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M02:
+        name: surf_refl_M02
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M2"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M03:
+        name: surf_refl_M03
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M3"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M04:
+        name: surf_refl_M04
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M4"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M05:
+        name: surf_refl_M05
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M5"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M06:
+        name: surf_refl_M06
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M6"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M07:
+        name: surf_refl_M07
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M7"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M08:
+        name: surf_refl_M08
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M8"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_M10:
+        name: surf_refl_M10
+        file_type: [jrr_surfref_product]
+        file_key: "375m Surface Reflectance Band M10"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_qf1:
+        name: surf_refl_qf1
+        file_type: [jrr_surfref_product]
+        file_key: "QF1 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_qf2:
+        name: surf_refl_qf2
+        file_type: [jrr_surfref_product]
+        file_key: "QF2 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_qf3:
+        name: surf_refl_qf3
+        file_type: [jrr_surfref_product]
+        file_key: "QF3 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_qf4:
+        name: surf_refl_qf4
+        file_type: [jrr_surfref_product]
+        file_key: "QF4 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_qf5:
+        name: surf_refl_qf5
+        file_type: [jrr_surfref_product]
+        file_key: "QF5 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_qf6:
+        name: surf_refl_qf6
+        file_type: [jrr_surfref_product]
+        file_key: "QF6 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
+    surf_refl_qf7:
+        name: surf_refl_qf7
+        file_type: [jrr_surfref_product]
+        file_key: "QF7 Surface Reflectance"
+        coordinates: [longitude_750, latitude_750]
+        units: '1'
+        _FillValue: -9999
