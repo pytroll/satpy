@@ -21,14 +21,11 @@ This module implements readers for the NOAA enterprise level 2 products for the
 VIIRS instrument. These replace the 'old' EDR products.
 """
 
-import logging
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-
-import dask.array as da
-import numpy as np
+from satpy import CHUNK_SIZE
 import xarray as xr
+import logging
 
 # map platform attributes to Oscar standard name
 PLATFORM_MAP = {
