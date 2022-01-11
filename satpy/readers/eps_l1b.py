@@ -299,6 +299,9 @@ class EPSAVHRRFile(BaseFileHandler):
             dataset = self._get_angle_dataarray(key)
         elif key["name"] in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
             dataset = self._get_calibrated_dataarray(key)
+        elif key['name'] == "cloud_flags":
+            array = self["CLOUD_INFORMATION"]
+            dataset = create_xarray(array)              
         else:
             logger.info("Can't load channel in eps_l1b: " + str(key["name"]))
             return
