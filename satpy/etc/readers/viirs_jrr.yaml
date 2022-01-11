@@ -11,24 +11,32 @@ file_types:
         variable_prefix: ""
         file_patterns:
             - 'JRR-CloudMask_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+    jrr_aerosol_product:
+        file_reader: !!python/name:satpy.readers.viirs_jrr.VIIRSJRRFileHandler
+        variable_prefix: ""
+        file_patterns:
+            - 'JRR-ADP_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
 
 
 datasets:
+    # Common datasets
     longitude:
         name: longitude
         standard_name: longitude
-        file_type: [jrr_cloudmask]
+        file_type: [jrr_cloudmask, jrr_aerosol_product]
         file_key: "Longitude"
         units: 'degrees_east'
     latitude:
         name: latitude
         standard_name: latitude
-        file_type: [jrr_cloudmask]
+        file_type: [jrr_cloudmask, jrr_aerosol_product]
         file_key: "Latitude"
         units: 'degrees_north'
+
+    # Cloudmask product datasets
     cloud_mask:
         name: cloud_mask
-        file_type: [jrr_cloudmask]
+        file_type: jrr_cloudmask
         file_key: "CloudMask"
         coordinates: [longitude, latitude]
         units: '1'
@@ -76,5 +84,106 @@ datasets:
         coordinates: [longitude, latitude]
         units: '1'
         flag_meanings: ['Clear', 'Smoky']
+        flag_values: [0, 1]
+        _FillValue: -128
+
+    # Aerosol optical depth product datasets
+    ash_mask:
+        name: ash_mask
+        file_type: [jrr_aerosol_product]
+        file_key: "Ash"
+        coordinates: [longitude, latitude]
+        units: '1'
+        flag_meanings: ['Clear', 'Ash']
+        flag_values: [0, 1]
+        _FillValue: -128
+    cloud_mask_adp:
+        name: cloud_mask_adp
+        file_type: [jrr_aerosol_product]
+        file_key: "Cloud"
+        coordinates: [longitude, latitude]
+        units: '1'
+        flag_meanings: ['Clear', 'Probably Clear', 'Probably Cloudy', 'Cloudy']
+        flag_values: [0, 1, 2, 3]
+        _FillValue: -128
+    dust_smoke_discrimination_index:
+        name: dust_smoke_discrimination_index
+        file_type: [jrr_aerosol_product]
+        file_key: "DSDI"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -999
+    nuc:
+        name: nuc
+        file_type: [jrr_aerosol_product]
+        file_key: "NUC"
+        coordinates: [longitude, latitude]
+        units: '1'
+        flag_meanings: ['No', 'Yes']
+        flag_values: [0, 1]
+        _FillValue: -128
+    pqi1:
+        name: pqi1
+        file_type: [jrr_aerosol_product]
+        file_key: "PQI1"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -128
+    pqi2:
+        name: pqi2
+        file_type: [jrr_aerosol_product]
+        file_key: "PQI2"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -128
+    pqi3:
+        name: pqi3
+        file_type: [jrr_aerosol_product]
+        file_key: "PQI3"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -128
+    pqi4:
+        name: pqi4
+        file_type: [jrr_aerosol_product]
+        file_key: "PQI4"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -128
+    qcflag:
+        name: qcflag
+        file_type: [jrr_aerosol_product]
+        file_key: "QC_Flag"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -128
+    saai:
+        name: saai
+        file_type: [jrr_aerosol_product]
+        file_key: "SAAI"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -999
+    smoke:
+        name: smoke
+        file_type: [jrr_aerosol_product]
+        file_key: "Smoke"
+        coordinates: [longitude, latitude]
+        units: '1'
+        _FillValue: -999
+    smoke_concentration:
+        name: smoke_concentration
+        file_type: [jrr_aerosol_product]
+        file_key: "SmokeCon"
+        coordinates: [longitude, latitude]
+        units: 'ug/m^3'
+        _FillValue: -999
+    snow_ice:
+        name: snow_ice
+        file_type: [jrr_aerosol_product]
+        file_key: "SnowIce"
+        coordinates: [longitude, latitude]
+        units: '1'
+        flag_meanings: ['No', 'Yes']
         flag_values: [0, 1]
         _FillValue: -128
