@@ -36,9 +36,9 @@ All products use the same base reader `viirs_jrr` and can be read through satpy 
         scene.load(['smoke_concentration'])
 
 NOTE:
-    Multiple products contain datasets with the same name! For example, both the cloud mask
-     and aerosol files contain a cloud mask, but these are not identical.
-     For clarity, the aerosol file cloudmask is named `cloud_mask_adp` in this reader.
+Multiple products contain datasets with the same name! For example, both the cloud mask
+and aerosol files contain a cloud mask, but these are not identical.
+For clarity, the aerosol file cloudmask is named `cloud_mask_adp` in this reader.
 """
 
 
