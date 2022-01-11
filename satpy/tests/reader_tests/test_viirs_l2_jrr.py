@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_jrr module.
+
 Note: This is adapted from the test_slstr_l2.py code.
 """
 
@@ -31,6 +32,7 @@ from satpy.readers.viirs_l2_jrr import VIIRSJRRFileHandler
 
 class TestVIIRSJRRReader(unittest.TestCase):
     """Test the VIIRS JRR L2 reader."""
+
     @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
