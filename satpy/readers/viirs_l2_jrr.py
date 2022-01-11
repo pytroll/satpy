@@ -43,7 +43,6 @@ NOTE:
 
 
 from satpy.readers.file_handlers import BaseFileHandler
-from datetime import datetime
 from satpy import CHUNK_SIZE
 import xarray as xr
 import logging
