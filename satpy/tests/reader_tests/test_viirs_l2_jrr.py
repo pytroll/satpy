@@ -20,12 +20,12 @@
 Note: This is adapted from the test_slstr_l2.py code.
 """
 
-from unittest.mock import MagicMock
+import unittest
 from datetime import datetime
 from unittest import mock
-import xarray as xr
-import unittest
+from unittest.mock import MagicMock
 
+import xarray as xr
 
 from satpy.readers.viirs_l2_jrr import VIIRSJRRFileHandler
 

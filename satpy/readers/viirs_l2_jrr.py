@@ -42,10 +42,12 @@ For clarity, the aerosol file cloudmask is named `cloud_mask_adp` in this reader
 """
 
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-import xarray as xr
 import logging
+
+import xarray as xr
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 LOG = logging.getLogger(__name__)
 
