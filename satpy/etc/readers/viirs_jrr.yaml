@@ -1,0 +1,37 @@
+reader:
+    description: VIIRS NOAA Enterprise L2 product reader
+    name: viirs_jrr
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [viirs]
+
+
+file_types:
+    jrr_cloudmask:
+        file_reader: !!python/name:satpy.readers.viirs_jrr.VIIRSJRRFileHandler
+        variable_prefix: ""
+        file_patterns:
+            - 'JRR-CloudMask_{version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time}.nc'
+
+
+datasets:
+    longitude:
+        name: longitude
+        standard_name: longitude
+        file_type: [jrr_cloudmask]
+        file_key: "Longitude"
+        units: 'degrees_east'
+    latitude:
+        name: latitude
+        standard_name: latitude
+        file_type: [jrr_cloudmask]
+        file_key: "Latitude"
+        units: 'degrees_north'
+    cloud_mask:
+        name: cloud_mask
+        file_type: [jrr_cloudmask]
+        file_key: "CloudMask"
+        coordinates: [longitude, latitude]
+        units: '1'
+        flag_meanings: ['Clear', 'Probably Clear', 'Probably Cloudy', 'Cloudy']
+        flag_values: [0, 1, 2, 3]
+        _FillValue: -128
