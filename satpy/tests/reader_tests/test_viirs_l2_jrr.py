@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.viirs_jrr module.
+"""Module for testing the satpy.readers.viirs_l2_jrr module.
 
 Note: This is adapted from the test_slstr_l2.py code.
 """
