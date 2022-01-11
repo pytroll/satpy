@@ -63,6 +63,7 @@ class VIIRSJRRFileHandler(BaseFileHandler):
             self.nc['Longitude'].attrs.update({'standard_name': 'longitude'})
 
         self.algorithm_version = filename_info['platform_shortname']
+        self.sensor_name = 'viirs'
 
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""

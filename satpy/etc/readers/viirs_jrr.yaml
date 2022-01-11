@@ -3,6 +3,8 @@ reader:
     name: viirs_jrr
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [viirs]
+    group_keys: ['platform_shortname']
+    default_datasets:
 
 
 file_types:
@@ -31,40 +33,47 @@ datasets:
         file_type: [jrr_cloudmask, jrr_aerosol_product]
         file_key: "Longitude"
         units: 'degrees_east'
+        resolution: 750
     latitude:
         name: latitude
         standard_name: latitude
         file_type: [jrr_cloudmask, jrr_aerosol_product]
         file_key: "Latitude"
         units: 'degrees_north'
+        resolution: 750
     longitude_375:
         name: longitude_375
         standard_name: longitude
         file_type: jrr_surfref_product
         file_key: "Longitude_at_375m_resolution"
         units: 'degrees_east'
+        resolution: 375
     latitude_375:
         name: latitude_375
         standard_name: latitude
         file_type: jrr_surfref_product
         file_key: "Latitude_at_375m_resolution"
         units: 'degrees_north'
+        resolution: 375
     longitude_750:
         name: longitude_750
         standard_name: longitude
         file_type: jrr_surfref_product
         file_key: "Longitude_at_750m_resolution"
         units: 'degrees_east'
+        resolution: 750
     latitude_750:
         name: latitude_750
         standard_name: latitude
         file_type: jrr_surfref_product
         file_key: "Latitude_at_750m_resolution"
         units: 'degrees_north'
+        resolution: 750
 
     # Cloudmask product datasets
     cloud_mask:
         name: cloud_mask
+        resolution: 750
         file_type: jrr_cloudmask
         file_key: "CloudMask"
         coordinates: [longitude, latitude]
@@ -74,6 +83,7 @@ datasets:
         _FillValue: -128
     cloud_mask_binary:
         name: cloud_mask_binary
+        resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "CloudMaskBinary"
         coordinates: [longitude, latitude]
@@ -83,6 +93,7 @@ datasets:
         _FillValue: -128
     cloud_probability:
         name: cloud_probability
+        resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "CloudProbability"
         coordinates: [longitude, latitude]
@@ -90,6 +101,7 @@ datasets:
         _FillValue: -999.
     dust_mask:
         name: dust_mask
+        resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "Dust_Mask"
         coordinates: [longitude, latitude]
@@ -99,6 +111,7 @@ datasets:
         _FillValue: -128
     fire_mask:
         name: fire_mask
+        resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "Fire_Mask"
         coordinates: [longitude, latitude]
@@ -108,6 +121,7 @@ datasets:
         _FillValue: -128
     smoke_mask:
         name: smoke_mask
+        resolution: 750
         file_type: [jrr_cloudmask]
         file_key: "Smoke_Mask"
         coordinates: [longitude, latitude]
@@ -119,6 +133,7 @@ datasets:
     # Aerosol optical depth product datasets
     ash_mask:
         name: ash_mask
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "Ash"
         coordinates: [longitude, latitude]
@@ -128,6 +143,7 @@ datasets:
         _FillValue: -128
     cloud_mask_adp:
         name: cloud_mask_adp
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "Cloud"
         coordinates: [longitude, latitude]
@@ -137,6 +153,7 @@ datasets:
         _FillValue: -128
     dust_smoke_discrimination_index:
         name: dust_smoke_discrimination_index
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "DSDI"
         coordinates: [longitude, latitude]
@@ -144,6 +161,7 @@ datasets:
         _FillValue: -999
     nuc:
         name: nuc
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "NUC"
         coordinates: [longitude, latitude]
@@ -153,6 +171,7 @@ datasets:
         _FillValue: -128
     pqi1:
         name: pqi1
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI1"
         coordinates: [longitude, latitude]
@@ -160,6 +179,7 @@ datasets:
         _FillValue: -128
     pqi2:
         name: pqi2
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI2"
         coordinates: [longitude, latitude]
@@ -167,6 +187,7 @@ datasets:
         _FillValue: -128
     pqi3:
         name: pqi3
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI3"
         coordinates: [longitude, latitude]
@@ -174,6 +195,7 @@ datasets:
         _FillValue: -128
     pqi4:
         name: pqi4
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "PQI4"
         coordinates: [longitude, latitude]
@@ -181,6 +203,7 @@ datasets:
         _FillValue: -128
     qcflag:
         name: qcflag
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "QC_Flag"
         coordinates: [longitude, latitude]
@@ -188,6 +211,7 @@ datasets:
         _FillValue: -128
     saai:
         name: saai
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "SAAI"
         coordinates: [longitude, latitude]
@@ -195,6 +219,7 @@ datasets:
         _FillValue: -999
     smoke:
         name: smoke
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "Smoke"
         coordinates: [longitude, latitude]
@@ -202,6 +227,7 @@ datasets:
         _FillValue: -999
     smoke_concentration:
         name: smoke_concentration
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "SmokeCon"
         coordinates: [longitude, latitude]
@@ -209,6 +235,7 @@ datasets:
         _FillValue: -999
     snow_ice:
         name: snow_ice
+        resolution: 750
         file_type: [jrr_aerosol_product]
         file_key: "SnowIce"
         coordinates: [longitude, latitude]
@@ -220,6 +247,8 @@ datasets:
     # Surface reflectance products
     surf_refl_I01:
         name: surf_refl_I01
+        resolution: 375
+        wavelength: [0.600, 0.640, 0.680]
         file_type: [jrr_surfref_product]
         file_key: "375m Surface Reflectance Band I1"
         coordinates: [longitude_375, latitude_375]
@@ -227,6 +256,8 @@ datasets:
         _FillValue: -9999
     surf_refl_I02:
         name: surf_refl_I02
+        resolution: 375
+        wavelength: [0.845, 0.865, 0.884]
         file_type: [jrr_surfref_product]
         file_key: "375m Surface Reflectance Band I2"
         coordinates: [longitude_375, latitude_375]
@@ -234,6 +265,8 @@ datasets:
         _FillValue: -9999
     surf_refl_I03:
         name: surf_refl_I03
+        resolution: 375
+        wavelength: [1.580, 1.610, 1.640]
         file_type: [jrr_surfref_product]
         file_key: "375m Surface Reflectance Band I3"
         coordinates: [longitude_375, latitude_375]
@@ -241,69 +274,88 @@ datasets:
         _FillValue: -9999
     surf_refl_M01:
         name: surf_refl_M01
+        resolution: 750
+        wavelength: [0.402, 0.412, 0.422]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M1"
+        file_key: "750m Surface Reflectance Band M1"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M02:
         name: surf_refl_M02
+        resolution: 750
+        wavelength: [0.436, 0.445, 0.454]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M2"
+        file_key: "750m Surface Reflectance Band M2"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M03:
         name: surf_refl_M03
+        resolution: 750
+        wavelength: [0.478, 0.488, 0.498]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M3"
+        file_key: "750m Surface Reflectance Band M3"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M04:
         name: surf_refl_M04
+        resolution: 750
+        wavelength: [0.545, 0.555, 0.565]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M4"
+        file_key: "750m Surface Reflectance Band M4"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M05:
         name: surf_refl_M05
+        resolution: 750
+        wavelength: [0.662, 0.672, 0.682]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M5"
+        file_key: "750m Surface Reflectance Band M5"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M06:
         name: surf_refl_M06
+        resolution: 750
+        wavelength: [0.739, 0.746, 0.754]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M6"
+        file_key: "750m Surface Reflectance Band M6"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M07:
         name: surf_refl_M07
+        resolution: 750
+        wavelength: [0.846, 0.865, 0.885]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M7"
+        file_key: "750m Surface Reflectance Band M7"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M08:
         name: surf_refl_M08
+        resolution: 750
+        wavelength: [1.230, 1.240, 1.250]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M8"
+        file_key: "750m Surface Reflectance Band M8"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_M10:
         name: surf_refl_M10
+        resolution: 750
+        wavelength: [1.580, 1.610, 1.640]
         file_type: [jrr_surfref_product]
-        file_key: "375m Surface Reflectance Band M10"
+        file_key: "750m Surface Reflectance Band M10"
         coordinates: [longitude_750, latitude_750]
         units: '1'
         _FillValue: -9999
     surf_refl_qf1:
         name: surf_refl_qf1
+        resolution: 750
         file_type: [jrr_surfref_product]
         file_key: "QF1 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
@@ -311,6 +363,7 @@ datasets:
         _FillValue: -9999
     surf_refl_qf2:
         name: surf_refl_qf2
+        resolution: 750
         file_type: [jrr_surfref_product]
         file_key: "QF2 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
@@ -318,6 +371,7 @@ datasets:
         _FillValue: -9999
     surf_refl_qf3:
         name: surf_refl_qf3
+        resolution: 750
         file_type: [jrr_surfref_product]
         file_key: "QF3 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
@@ -325,6 +379,7 @@ datasets:
         _FillValue: -9999
     surf_refl_qf4:
         name: surf_refl_qf4
+        resolution: 750
         file_type: [jrr_surfref_product]
         file_key: "QF4 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
@@ -332,6 +387,7 @@ datasets:
         _FillValue: -9999
     surf_refl_qf5:
         name: surf_refl_qf5
+        resolution: 750
         file_type: [jrr_surfref_product]
         file_key: "QF5 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
@@ -339,6 +395,7 @@ datasets:
         _FillValue: -9999
     surf_refl_qf6:
         name: surf_refl_qf6
+        resolution: 750
         file_type: [jrr_surfref_product]
         file_key: "QF6 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
@@ -346,6 +403,7 @@ datasets:
         _FillValue: -9999
     surf_refl_qf7:
         name: surf_refl_qf7
+        resolution: 750
         file_type: [jrr_surfref_product]
         file_key: "QF7 Surface Reflectance"
         coordinates: [longitude_750, latitude_750]
