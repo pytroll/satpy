@@ -235,7 +235,7 @@ def closed_named_temp_file(**kwargs):
         os.remove(tmp_cmap.name)
 
 
-def _write_cmap_csv(cmap_filename, cmap_data):
+def _write_cmap_to_file(cmap_filename, cmap_data):
     ext = os.path.splitext(cmap_filename)[1]
     if ext in (".npy",):
         np.save(cmap_filename, cmap_data)
@@ -277,12 +277,12 @@ class TestColormapLoading:
                                  {"min_value": 50, "max_value": 100},
                              ])
     @pytest.mark.parametrize("filename_suffix", [".npy", ".npz", ".csv"])
-    def test_cmap_from_npy_file_rgb(self, color_scale, colormap_mode, extra_kwargs, filename_suffix):
+    def test_cmap_from_file(self, color_scale, colormap_mode, extra_kwargs, filename_suffix):
         """Test that colormaps can be loaded from a binary file."""
         # create the colormap file on disk
         with closed_named_temp_file(suffix=filename_suffix) as cmap_filename:
             cmap_data = _generate_cmap_test_data(color_scale, colormap_mode)
-            _write_cmap_csv(cmap_filename, cmap_data)
+            _write_cmap_to_file(cmap_filename, cmap_data)
 
             unset_first_value = 128.0 / 255.0 if colormap_mode.startswith("V") else 0.0
             unset_last_value = 134.0 / 255.0 if colormap_mode.startswith("V") else 1.0
@@ -335,7 +335,7 @@ class TestColormapLoading:
         """Test that reading colormaps with the wrong mode fails."""
         with closed_named_temp_file(suffix=filename_suffix) as cmap_filename:
             cmap_data = _generate_cmap_test_data(None, real_mode)
-            _write_cmap_csv(cmap_filename, cmap_data)
+            _write_cmap_to_file(cmap_filename, cmap_data)
             # Force colormap_mode VRGBA to RGBA and we should see an exception
             with pytest.raises(ValueError):
                 create_colormap({'filename': cmap_filename, 'colormap_mode': forced_mode})

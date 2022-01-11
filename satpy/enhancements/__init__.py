@@ -356,7 +356,7 @@ def create_colormap(palette):
 
     **From a file**
 
-    Colormaps can be loaded from ``.npy``, ``.npz``, or comma-separate text
+    Colormaps can be loaded from ``.npy``, ``.npz``, or comma-separated text
     files. Numpy (npy/npz) files should be 2D arrays with rows for each color.
     Comma-separated files should have a row for each color with each column
     representing a single value/channel. The filename to load can be provided
