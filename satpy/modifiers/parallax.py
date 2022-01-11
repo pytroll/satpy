@@ -1,4 +1,4 @@
-# Copyright (c) 2021 Satpy developers
+# Copyright (c) 2021-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -31,6 +31,7 @@ parallax correction as a modifier in Satpy.
 """
 
 import inspect
+import logging
 import warnings
 from datetime import datetime
 
@@ -44,6 +45,8 @@ from pyresample.kd_tree import resample_nearest
 from satpy import Scene
 from satpy.modifiers import ModifierBase
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
+
+logger = logging.getLogger(__name__)
 
 
 class MissingHeightError(ValueError):
@@ -191,6 +194,8 @@ class ParallaxCorrection:
 
         Returns a parallax corrected swathdefinition of the base area.
         """
+        logger.debug("Calculating parallax correction using "
+                     f"{cth_dataset.attrs.get('name', cth_dataset.name)!s}")
         area = cth_dataset.area
         (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
         cth_dataset = self._preprocess_cth(cth_dataset)

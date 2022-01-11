@@ -13,6 +13,7 @@
 
 """Tests related to parallax correction."""
 
+import logging
 import math
 import unittest.mock
 
@@ -267,7 +268,7 @@ def xfail_selected_clearsky_combis(request):
                          indirect=["resampler"])
 @pytest.mark.usefixtures('xfail_selected_clearsky_combis')
 def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
-                               resampler):
+                               resampler, caplog):
     """Test that ParallaxCorrection doesn't change clearsky geolocation."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
@@ -283,7 +284,9 @@ def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
             area=fake_area_large,
             common_attrs=_get_attrs(sat_lat, sat_lon, 35_000_000))
 
-    new_area = corrector(sc["CTH_clear"])
+    with caplog.at_level(logging.DEBUG):
+        new_area = corrector(sc["CTH_clear"])
+    assert "Calculating parallax correction using CTH_clear" in caplog.text
     np.testing.assert_allclose(
             new_area.get_lonlats(),
             fake_area_small.get_lonlats())
@@ -293,7 +296,7 @@ def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
 def xfail_selected_ssp_combis(request):
     """Mark certain parameter combinations as failing.
 
-    SPP parallax correction fails for some combinations of parameters.
+    SSP parallax correction fails for some combinations of parameters.
     This fixture helps to mark only those combinations as failing.
     """
     # solution inspired by https://stackoverflow.com/q/64349115/974555
