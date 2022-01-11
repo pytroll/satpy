@@ -18,7 +18,7 @@
 """Backports and compatibility fixes for satpy."""
 
 try:
-    from functools import cached_property
+    from functools import cached_property  # type: ignore
 except ImportError:
     # for python < 3.8
     from functools import lru_cache
