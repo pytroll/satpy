@@ -27,13 +27,13 @@ supported here, showing example filenames:
  - Surface reflectance: SurfRefl_v1r1_j01_s202112250807275_e202112250808520_c202112250845080.nc
 All products use the same base reader `viirs_l2_jrr` and can be read through satpy with::
 
-        import satpy
-        import glob
+    import satpy
+    import glob
 
-        filenames = glob.glob('JRR-ADP*.nc')
-        scene = satpy.Scene(filenames,
-                            reader='viirs_l2_jrr')
-        scene.load(['smoke_concentration'])
+    filenames = glob.glob('JRR-ADP*.nc')
+    scene = satpy.Scene(filenames,
+                        reader='viirs_l2_jrr')
+    scene.load(['smoke_concentration'])
 
 NOTE:
 Multiple products contain datasets with the same name! For example, both the cloud mask
