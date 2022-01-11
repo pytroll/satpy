@@ -34,7 +34,7 @@ import xarray as xr
 PLATFORM_MAP = {
     "NPP": "Suomi-NPP",
     "J01": "NOAA-20",
-    "J02": "NOAA-21"
+    "J02": "NOAA-21",
 }
 
 LOG = logging.getLogger(__name__)
@@ -53,10 +53,15 @@ class VIIRSJRRFileHandler(BaseFileHandler):
                                   chunks={'Columns': CHUNK_SIZE,
                                           'Rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'Columns': 'x', 'Rows': 'y'})
+
+        # For some reason, no 'standard_name' is defined in the netCDF files, so
+        # here we manually make the definitions.
         if 'Latitude' in self.nc:
             self.nc['Latitude'].attrs.update({'standard_name': 'latitude'})
         if 'Longitude' in self.nc:
             self.nc['Longitude'].attrs.update({'standard_name': 'longitude'})
+
+        self.algorithm_version = filename_info['platform_shortname']
 
     def get_dataset(self, dataset_id, info):
         """Get the dataset."""
@@ -75,11 +80,12 @@ class VIIRSJRRFileHandler(BaseFileHandler):
         return self.filename_info.get('end_time', self.start_time)
 
     @property
-    def sensor_name(self):
-        """Name of sensor for this file."""
-        return self["sensor"]
-
-    @property
     def platform_name(self):
-        """Name of platform/satellite for this file."""
-        return self["platform_name"]
+        """Get platform name."""
+        platform_path = self.filetype_info['platform_name']
+        platform_dict = {'NPP': 'Suomi-NPP',
+                         'JPSS-1': 'NOAA-20',
+                         'J01': 'NOAA-20',
+                         'JPSS-2': 'NOAA-21',
+                         'J02': 'NOAA-21'}
+        return platform_dict[platform_path]
