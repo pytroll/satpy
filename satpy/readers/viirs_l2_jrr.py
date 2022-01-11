@@ -43,16 +43,10 @@ NOTE:
 
 
 from satpy.readers.file_handlers import BaseFileHandler
+from datetime import datetime
 from satpy import CHUNK_SIZE
 import xarray as xr
 import logging
-
-# map platform attributes to Oscar standard name
-PLATFORM_MAP = {
-    "NPP": "Suomi-NPP",
-    "J01": "NOAA-20",
-    "J02": "NOAA-21",
-}
 
 LOG = logging.getLogger(__name__)
 
@@ -99,15 +93,15 @@ class VIIRSJRRFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """Get last date/time when observations were recorded."""
-        return self.filename_info.get('end_time', self.start_time)
+        return self.filename_info['end_time']
 
     @property
     def platform_name(self):
         """Get platform name."""
-        platform_path = self.filetype_info['platform_name']
+        platform_path = self.filename_info['platform_shortname']
         platform_dict = {'NPP': 'Suomi-NPP',
                          'JPSS-1': 'NOAA-20',
                          'J01': 'NOAA-20',
                          'JPSS-2': 'NOAA-21',
                          'J02': 'NOAA-21'}
-        return platform_dict[platform_path]
+        return platform_dict[platform_path.upper()]
