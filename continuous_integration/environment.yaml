@@ -47,6 +47,8 @@ dependencies:
   - python-geotiepoints
   - pooch
   - pip
+  - skyfield
+  - astropy
   - pip:
     - trollsift
     - trollimage
