@@ -115,7 +115,8 @@ jobs:
           git+https://github.com/Unidata/cftime \
           git+https://github.com/mapbox/rasterio \
           git+https://github.com/pydata/bottleneck \
-          git+https://github.com/pydata/xarray;
+          git+https://github.com/pydata/xarray \
+          git+https://github.com/astropy/astropy;
 
       - name: Install satpy
         shell: bash -l {0}
