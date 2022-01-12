@@ -335,7 +335,8 @@ def _get_satpos_alt(cth_dataset):
     from skyfield.api import EarthSatellite, load
     from skyfield.toposlib import wgs84
 
-    tle = tlefile.read(name := cth_dataset.attrs["platform_name"])
+    name = cth_dataset.attrs["platform_name"]
+    tle = tlefile.read(name)
     es = EarthSatellite(tle.line1, tle.line2, name)
     ts = load.timescale()
     gc = es.at(ts.from_datetime(
