@@ -283,19 +283,39 @@ class ParallaxCorrectionModifier(ModifierBase):
 
     To use this, add in your ``etc/modifiers/visir.yaml`` something like::
 
+        sensor_name: visir
+
         modifiers:
           parallax_corrected:
             modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
             prerequisites:
-            - name: CTH
-            resampler: !!python/name:pyresample.kd_tree.resample_nearest
-            search_radius: 50000
+              - "ctth_alti"
 
-    Here, ``resampler`` and ``search_radius`` are optional.
+        composites:
+
+          parallax_corrected_VIS006:
+            compositor: !!python/name:satpy.composites.GenericCompositor
+            prerequisites:
+              - name: VIS006
+                modifiers: [parallax_corrected]
+            standard_name: VIS006
+
+    Here, ``ctth_alti`` is CTH provided by the ``nwcsaf-geo`` reader, so to use it
+    one would have to pass both on scene creation::
+
+        sc = Scene({"seviri_l1b_hrit": files_l1b, "nwcsaf-geo": files_l2})
+        sc.load(["parallax_corrected_VIS006"])
+
+    The CTH product should have a variable attribute "units".  If this is
+    missing, Satpy will assume km for the purposes of parallax correction
+    computations.
 
     Alternately, you can use the lower-level API directly with the
     :class:`ParallaxCorrection` class, which may be more efficient if multiple
-    datasets need to be resampled.
+    datasets need to be corrected.  RGB Composites cannot be modified in this way
+    (i.e. you can't replace "VIS006" by "natural_color").  To get a parallax
+    corrected RGB composite, create a new composite where each input has the
+    modifier applied.
     """
 
     def __call__(self, projectables, optional_datasets=None, **info):

@@ -67,9 +67,12 @@ by default to any Satpy datasets or composites, because it can be
 applied to any input dataset and used with any source of (cloud top)
 height.  Therefore, users wishing to apply the parallax correction
 semi-automagically have to define their own modifier and then apply
-that modifier for their composites or datasets.  An example is included
+that modifier for their datasets.  An example is included
 with the :class:`~satpy.modifiers.parallax.ParallaxCorrectionModifier`
-API documentation.
+API documentation.  Note that Satpy cannot apply modifiers to
+composites, so users wishing to apply parallax correction to a composite
+will have to use a lower level API or duplicate an existing composite
+recipe to use modified inputs.
 
 The parallax correction is directly calculated from the cloud top height.
 Information on satellite position is obtained from cloud top height
