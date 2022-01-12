@@ -13,12 +13,14 @@
 
 """Tests related to parallax correction."""
 
+import datetime
 import logging
 import math
 import unittest.mock
 
 import dask.array as da
 import numpy as np
+import pyorbital.tlefile
 import pyresample.kd_tree
 import pytest
 import xarray as xr
@@ -495,6 +497,43 @@ def test_correct_area_cloudy_same_area():
 
     corrector = ParallaxCorrection(area)
     corrector(sc["CTH_constant"])
+
+
+def test_correct_area_no_orbital_parameters(caplog):
+    """Test ParallaxCorrection when CTH has no orbital parameters.
+
+    Some CTH products, such as NWCSAF-GEO, do not include information
+    on satellite location directly.  Rather, they include platform name,
+    sensor, start time, and end time, that we have to use instead.
+    """
+    from ...modifiers.parallax import ParallaxCorrection
+    from ..utils import make_fake_scene
+    small = 5
+    large = 9
+    (fake_area_small, fake_area_large) = _get_fake_areas(
+            (0, 0), [small, large], 0.05)
+    corrector = ParallaxCorrection(fake_area_small)
+
+    sc = make_fake_scene(
+            {"CTH_clear": np.full((large, large), np.nan)},
+            daskify=False,
+            area=fake_area_large,
+            common_attrs={
+                "platform_name": "Meteosat-42",
+                "sensor": "irives",
+                "start_time": datetime.datetime(3021, 11, 30, 12, 24, 17),
+                "end_time": datetime.datetime(3021, 11, 30, 12, 27, 22)})
+    with unittest.mock.patch("pyorbital.tlefile.read") as plr:
+        plr.return_value = pyorbital.tlefile.Tle(
+                "Meteosat-42",
+                line1="1 40732U 15034A   22011.84285506  .00000004  00000+0  00000+0 0  9995",
+                line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
+        with caplog.at_level(logging.WARNING):
+            new_area = corrector(sc["CTH_clear"])
+    assert "Orbital parameters missing from metadata." in caplog.text
+    np.testing.assert_allclose(
+            new_area.get_lonlats(),
+            fake_area_small.get_lonlats())
 
 
 @pytest.mark.parametrize("cloud", [(9, 2, 8, 5, 3, 6, 8)], indirect=["cloud"])

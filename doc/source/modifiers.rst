@@ -71,6 +71,17 @@ that modifier for their composites or datasets.  An example is included
 with the :class:`~satpy.modifiers.parallax.ParallaxCorrectionModifier`
 API documentation.
 
+The parallax correction is directly calculated from the cloud top height.
+Information on satellite position is obtained from cloud top height
+metadata.  If no orbital parameters are present in the cloud top height
+metadata, Satpy will attempt to calculate orbital parameters from the
+platform name and start time.  The backup calculation requires skyfield
+and astropy to be installed.  If the metadata include neither orbital
+parameters nor platform name and start time, parallax calculation will
+fail.  Because the cloud top height metadata are used, it is essential
+that the cloud top height data are derived from the same platform as
+the measurements to be corrected are taken by.
+
 The parallax correction is currently experimental and subject to change.
 Although it is covered by tests, there may be cases that yield unexpected
 or incorrect results.  By default, it uses nearest neighbour resampling.

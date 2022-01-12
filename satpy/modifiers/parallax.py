@@ -30,10 +30,10 @@ See also the :doc:`../modifiers` page in the documentation for an introduction t
 parallax correction as a modifier in Satpy.
 """
 
+import datetime
 import inspect
 import logging
 import warnings
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -103,7 +103,7 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
     # so we use a placeholder
     (_, elevation) = get_observer_look(
             sat_lon, sat_lat, sat_alt,
-            datetime(2000, 1, 1), lon, lat, EARTH_RADIUS)
+            datetime.datetime(2000, 1, 1), lon, lat, EARTH_RADIUS)
     if np.isscalar(elevation) and elevation == 0:
         raise NotImplementedError(
                 "Parallax correction not implemented for "
@@ -197,7 +197,13 @@ class ParallaxCorrection:
         logger.debug("Calculating parallax correction using "
                      f"{cth_dataset.attrs.get('name', cth_dataset.name)!s}")
         area = cth_dataset.area
-        (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
+        try:
+            (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
+        except KeyError:
+            logger.warning(
+                    "Orbital parameters missing from metadata. "
+                    "Calculating from TLE using skyfield and astropy.")
+            (sat_lon, sat_lat, sat_alt) = _get_satpos_alt(cth_dataset)
         cth_dataset = self._preprocess_cth(cth_dataset)
         self._check_overlap(cth_dataset)
         (pixel_lon, pixel_lat) = area.get_lonlats()
@@ -238,10 +244,11 @@ class ParallaxCorrection:
 
     def _preprocess_cth(self, cth_dataset):
         """To be documented."""
-        units = cth_dataset.units
         cth = cth_dataset.copy().fillna(0.0)
-        if units == 'm':  # convert to km
-            cth = cth * 1e-3
+        if "units" in cth_dataset.attrs.keys():
+            units = cth_dataset.attrs["units"]
+            if units == 'm':  # convert to km
+                cth = cth * 1e-3
         return cth
 
     def _invert_lonlat(self, pixel_lon, pixel_lat, source_area):
@@ -313,3 +320,26 @@ class ParallaxCorrectionModifier(ModifierBase):
         local_scene = global_scene.resample(plax_corr_area)
         local_scene["dataset"].attrs["area"] = base_area
         return local_scene["dataset"]
+
+
+def _get_satpos_alt(cth_dataset):
+    """Get satellite position if no orbital parameters in metadata.
+
+    Some cloud top height datasets lack orbital parameter information in
+    metadata.  Here, orbital parameters are calculated based on the platform
+    name and start time, via Two Line Element (TLE) information.
+
+    Needs pyorbital, skyfield, and astropy to be installed.
+    """
+    from pyorbital.orbital import tlefile
+    from skyfield.api import EarthSatellite, load
+    from skyfield.toposlib import wgs84
+
+    tle = tlefile.read(name := cth_dataset.attrs["platform_name"])
+    es = EarthSatellite(tle.line1, tle.line2, name)
+    ts = load.timescale()
+    gc = es.at(ts.from_datetime(
+        cth_dataset.attrs["start_time"].replace(tzinfo=datetime.timezone.utc)))
+    (lat, lon) = wgs84.latlon_of(gc)
+    height = wgs84.height_of(gc).to("km")
+    return (lon.degrees, lat.degrees, height.value)
