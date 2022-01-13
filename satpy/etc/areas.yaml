@@ -166,6 +166,57 @@ msg_seviri_iodc_9km:
     lower_left_xy: [-5567248.074173927, -5567248.074173927]
     upper_right_xy: [5567248.074173927, 5567248.074173927]
 
+msg_seviri_fes_48km:
+  description:
+    MSG SEVIRI Full Earth Scanning service area definition
+    with 48 km resolution
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 232
+    width: 232
+  area_extent:
+    lower_left_xy: [-5567248.074173927, -5567248.074173927]
+    upper_right_xy: [5567248.074173927, 5567248.074173927]
+
+msg_seviri_rss_48km:
+  description:
+    MSG SEVIRI Rapid Scanning Service area definition
+    with 48 km resolution
+  projection:
+    proj: geos
+    lon_0: 9.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 232
+    width: 232
+  area_extent:
+    lower_left_xy: [-5567248.074173927, -5567248.074173927]
+    upper_right_xy: [5567248.074173927, 5567248.074173927]
+
+msg_seviri_iodc_48km:
+  description:
+    MSG SEVIRI Indian Ocean Data Coverage service area definition
+    with 48 km resolution
+  projection:
+    proj: geos
+    lon_0: 41.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 232
+    width: 232
+  area_extent:
+    lower_left_xy: [-5567248.074173927, -5567248.074173927]
+    upper_right_xy: [5567248.074173927, 5567248.074173927]
+
 
 # Regional
 
