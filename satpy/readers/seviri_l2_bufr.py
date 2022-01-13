@@ -200,7 +200,9 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
             xarr = xr.DataArray(da.from_array(arr_2d, CHUNK_SIZE), dims=('y', 'x'))
 
-            del dataset_info['coordinates']  # coordinates not relevant for area definition
+            # coordinates not relevant for area definition
+            if 'coordinates' in dataset_info.keys():
+                del dataset_info['coordinates']
             self._add_attributes(xarr, dataset_info)
 
             return xarr
