@@ -78,6 +78,19 @@ AREA_DEF = geometry.AreaDefinition(
 )
 
 
+AREA_DEF_EXT = geometry.AreaDefinition(
+    'msg_seviri_iodc_48km_ext',
+    'MSG SEVIRI Indian Ocean Data Coverage service area definition with 48 km resolution '
+    '(extended outside original 3km grid)',
+    "",
+    {'a': 6378169., 'b': 6356583.8, 'lon_0': DATASET_ATTRS['ssp_lon'],
+     'h': 35785831., 'proj': 'geos', 'units': 'm'},
+    1238,
+    1238,
+    (-5576249.283671378, -5567248.074173927, 5567248.074173927, 5576249.283671378)
+)
+
+
 class TestSeviriL2Bufr(unittest.TestCase):
     """Test NativeMSGBufrHandler."""
 
@@ -181,13 +194,19 @@ class TestSeviriL2Bufr(unittest.TestCase):
                             self.assertEqual(ad, AREA_DEF)
 
                             # Put BUFR data on 2D grid that the 2D array returned by get_dataset should correspond to
-                            icol, irow = ad.get_array_indices_from_lonlat(fh.longitude.compute(),
-                                                                          fh.latitude.compute())
-                            icol, irow = icol.compressed(), irow.compressed()
+                            icol, irow = ad.get_array_coordinates_from_lonlat(fh.longitude.compute(),
+                                                                              fh.latitude.compute())
+                            icol, irow = np.ceil(icol).astype(int), np.ceil(irow).astype(int)
+
                             data = np.empty(ad.shape)
                             data[:] = np.nan
                             data[irow, icol] = np.concatenate((samp1, samp1), axis=0)
                             np.testing.assert_array_equal(z.values, data)
+
+                            # Test that the correct area definition is identified for products with 3 pixel segements
+                            fh.seg_size = 3
+                            ad_ext = fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
+                            self.assertEqual(ad_ext, AREA_DEF_EXT)
 
     def test_seviri_l2_bufr(self):
         """Call the test function."""

@@ -78,7 +78,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
         self.as_area_def = as_area_def
         self.seg_size = seg_size_dict[filetype_info['file_type']]
-        # self._area_def = None
 
     @property
     def start_time(self):
@@ -189,8 +188,9 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             # Compute the area definition
             self._area_def = self._construct_area_def(dataset_id)
 
-            icol, irow = self._area_def.get_array_indices_from_lonlat(self.longitude.compute(), self.latitude.compute())
-            icol, irow = icol.compressed(), irow.compressed()
+            icol, irow = self._area_def.get_array_coordinates_from_lonlat(self.longitude.compute(),
+                                                                          self.latitude.compute())
+            icol, irow = np.ceil(icol).astype(int), np.ceil(irow).astype(int)
 
             # TODO Is there a way to broadcast the data in arr using icol and irow to a 2d dask array without the
             #  intermeidate step of creating a numpy array?
@@ -223,6 +223,12 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
         area_naming = get_geos_area_naming({**area_naming_input_dict,
                                             **get_service_mode('seviri', self.ssp_lon)})
+
+        # Datasets with a segment size of 3 pixels extend outside the original SEVIRI 3km grid (with 1238 x 1238
+        # segments a 3 pixels). Hence, we need to use corresponding area defintions in areas.yaml
+        if self.seg_size == 3:
+            area_naming['area_id'] += '_ext'
+            area_naming['description'] += ' (extended outside original 3km grid)'
 
         # Construct area definition from standardized area definition.
         stand_area_def = get_area_def(area_naming['area_id'])
