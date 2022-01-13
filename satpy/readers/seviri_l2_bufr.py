@@ -29,18 +29,20 @@ from datetime import datetime, timedelta
 import dask.array as da
 import numpy as np
 import xarray as xr
+from pyresample import geometry
 
-from satpy.readers.eum_base import recarray2dict
+from satpy import CHUNK_SIZE
+from satpy.readers._geos_area import get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode, recarray2dict
+from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import mpef_product_header
+from satpy.resample import get_area_def
 
 try:
     import eccodes as ec
 except ImportError:
     raise ImportError(
         "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
-
-from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('SeviriL2Bufr')
 
@@ -55,7 +57,7 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
 class SeviriL2BufrFileHandler(BaseFileHandler):
     """File handler for SEVIRI L2 BUFR products."""
 
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info, as_area_def=False, **kwargs):
         """Initialise the file handler for SEVIRI L2 BUFR data."""
         super(SeviriL2BufrFileHandler, self).__init__(filename,
                                                       filename_info,
@@ -74,7 +76,9 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
             self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
 
+        self.as_area_def = as_area_def
         self.seg_size = seg_size_dict[filetype_info['file_type']]
+        # self._area_def = None
 
     @property
     def start_time(self):
@@ -97,6 +101,13 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         # e.g. E0415
         ssp_lon = self.mpef_header['RectificationLongitude']
         return float(ssp_lon[1:])/10.
+
+    def get_area_def(self, key):
+        """Return the area definition."""
+        try:
+            return self._area_def
+        except AttributeError:
+            raise NotImplementedError
 
     def _read_mpef_header(self):
         """Read MPEF header."""
@@ -154,11 +165,81 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         arr = self.get_array(dataset_info['key'])
         arr[arr == dataset_info['fill_value']] = np.nan
 
+        if not self.as_area_def:
+            xarr = self.get_dataset_with_swath_def(arr, dataset_info)
+        else:
+            xarr = self.get_dataset_with_area_def(arr, dataset_id, dataset_info)
+
+        return xarr
+
+    def get_dataset_with_swath_def(self, arr, dataset_info):
+        """Get dataset with a swath definition."""
         xarr = xr.DataArray(arr, dims=["y"])
+        self._add_attributes(xarr, dataset_info)
+
+        return xarr
+
+    def get_dataset_with_area_def(self, arr, dataset_id, dataset_info):
+        """Get dataset with an area definition."""
+        if dataset_info['name'] in ['latitude', 'longitude']:
+            self.__setattr__(dataset_info['name'], arr)
+            return self.get_dataset_with_swath_def(arr, dataset_info)
+
+        else:
+            # Compute the area definition
+            self._area_def = self._construct_area_def(dataset_id)
+
+            icol, irow = self._area_def.get_array_indices_from_lonlat(self.longitude.compute(), self.latitude.compute())
+            icol, irow = icol.compressed(), irow.compressed()
+
+            # TODO Is there a way to broadcast the data in arr using icol and irow to a 2d dask array without the
+            #  intermeidate step of creating a numpy array?
+            arr_2d = np.empty(self._area_def.shape)
+            arr_2d[:] = np.nan
+            arr_2d[irow, icol] = arr.compute()
+
+            xarr = xr.DataArray(da.from_array(arr_2d, CHUNK_SIZE), dims=('y', 'x'))
+
+            del dataset_info['coordinates']  # coordinates not relevant for area definition
+            self._add_attributes(xarr, dataset_info)
+
+            return xarr
+
+    def _construct_area_def(self, dataset_id):
+        """Construct a standardized area definition based on satellite, instrument, resolution and sub-satellite point.
+
+        Returns:
+            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+
+        """
+        res = dataset_id.resolution
+
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': res,
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', self.ssp_lon)})
+
+        # Construct area definition from standardized area definition.
+        stand_area_def = get_area_def(area_naming['area_id'])
+
+        area_def = geometry.AreaDefinition(
+            stand_area_def.area_id,
+            stand_area_def.description,
+            "",
+            stand_area_def.proj_dict,
+            stand_area_def.x_size,
+            stand_area_def.y_size,
+            stand_area_def.area_extent)
+
+        return area_def
+
+    def _add_attributes(self, xarr, dataset_info):
+        """Add dataset attributes to xarray."""
         xarr.attrs['sensor'] = 'SEVIRI'
         xarr.attrs['platform_name'] = self.platform_name
         xarr.attrs['ssp_lon'] = self.ssp_lon
         xarr.attrs['seg_size'] = self.seg_size
         xarr.attrs.update(dataset_info)
-
-        return xarr
