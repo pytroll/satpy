@@ -71,7 +71,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         if calibration_name == 'brightness_temperature':
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_thermal_index']
-            cw = self._channel_cw_thermal[chan_index] #* 1e-3
+            cw = self._channel_cw_thermal[chan_index] # wavelengths now in µm
             a = self._bt_conversion_a[chan_index]
             b = self._bt_conversion_b[chan_index]
             # Perform the calibration
@@ -80,7 +80,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         elif calibration_name == 'reflectance':
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_solar_index']
-            isi = 1.0*self._integrated_solar_irradiance[chan_index]
+            isi = self._integrated_solar_irradiance[chan_index] # Band averaged solar irradiance in (W/m2/µm)
             # Perform the calibration
             calibrated_variable = self._calibrate_refl(variable, self.angle_factor.values, isi)
             calibrated_variable.attrs = variable.attrs
@@ -125,6 +125,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             numpy ndarray: array containing the calibrated brightness temperature values.
 
         """
+
         log_expr = np.log(1.0 + C1 / ((cw ** 5) * radiance))
         bt_values = b + (a * C2 / (cw * log_expr))
         return bt_values
