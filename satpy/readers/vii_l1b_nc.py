@@ -76,7 +76,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             calibrated_variable = self._calibrate_bt(variable, cw, a, b)
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == 'reflectance':
-            scale = 1/(dataset_info['wavelength'][2] - dataset_info['wavelength'][0])
+            scale = 1e3  # Why needed?
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_solar_index']
             isi = scale * self._integrated_solar_irradiance[chan_index]
@@ -141,5 +141,5 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             numpy ndarray: array containing the calibrated reflectance values.
 
         """
-        refl_values = (np.pi / isi) * angle_factor * radiance
+        refl_values = 100 * (np.pi / isi) * angle_factor * radiance
         return refl_values
