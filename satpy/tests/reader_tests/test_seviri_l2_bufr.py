@@ -138,7 +138,32 @@ class TestSeviriL2Bufr(unittest.TestCase):
                             fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
                                                          as_area_def=as_area_def)
 
-        # Test reading latitude (needed to test AreaDefintiion implementation)
+        # Test reading latitude/longitude (needed to test AreaDefintiion implementation)
+        zlat = self.read_data(buf1, m, fh, DATASET_INFO_LAT)
+        zlon = self.read_data(buf1, m, fh, DATASET_INFO_LON)
+        np.testing.assert_array_equal(zlat.values, np.concatenate((lat, lat), axis=0))
+        np.testing.assert_array_equal(zlon.values, np.concatenate((lon, lon), axis=0))
+
+        # Test reading dataset
+        z = self.read_data(buf1, m, fh, DATASET_INFO)
+
+        # Test dataset attributes
+        self.assertEqual(z.attrs['platform_name'],
+                         DATASET_ATTRS['platform_name'])
+        self.assertEqual(z.attrs['ssp_lon'],
+                         DATASET_ATTRS['ssp_lon'])
+        self.assertEqual(z.attrs['seg_size'],
+                         DATASET_ATTRS['seg_size'])
+
+        # Test dataset with SwathDefintion and AreaDefinition, respectively
+        if not fh.as_area_def:
+            self.as_swath_definition(fh, z, samp1)
+        else:
+            self.as_area_definition(fh, z, samp1)
+
+    @staticmethod
+    def read_data(buf1, m, fh, dataset_info):
+        """Read data from mock file."""
         with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
                             side_effect=[buf1, buf1, None]) as ec1:
@@ -147,43 +172,9 @@ class TestSeviriL2Bufr(unittest.TestCase):
                     ec2.return_value = 1
                     with mock.patch('eccodes.codes_release') as ec5:
                         ec5.return_value = 1
-                        zlat = fh.get_dataset(None, DATASET_INFO_LAT)
-                        np.testing.assert_array_equal(zlat.values, np.concatenate((lat, lat), axis=0))
+                        z = fh.get_dataset(make_dataid(name='dummmy', resolution=48000), dataset_info)
 
-        # Test reading longitude (needed to test AreaDefintiion implementation)
-        with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
-            with mock.patch('eccodes.codes_bufr_new_from_file',
-                            side_effect=[buf1, buf1, None]) as ec1:
-                ec1.return_value = ec1.side_effect
-                with mock.patch('eccodes.codes_set') as ec2:
-                    ec2.return_value = 1
-                    with mock.patch('eccodes.codes_release') as ec5:
-                        ec5.return_value = 1
-                        zlon = fh.get_dataset(None, DATASET_INFO_LON)
-                        np.testing.assert_array_equal(zlon.values, np.concatenate((lon, lon), axis=0))
-
-        with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
-            with mock.patch('eccodes.codes_bufr_new_from_file',
-                            side_effect=[buf1, buf1, None]) as ec1:
-                ec1.return_value = ec1.side_effect
-                with mock.patch('eccodes.codes_set') as ec2:
-                    ec2.return_value = 1
-                    with mock.patch('eccodes.codes_release') as ec5:
-                        ec5.return_value = 1
-                        z = fh.get_dataset(make_dataid(name='dummmy', resolution=48000), DATASET_INFO)
-
-                        # Test dataset attributes
-                        self.assertEqual(z.attrs['platform_name'],
-                                         DATASET_ATTRS['platform_name'])
-                        self.assertEqual(z.attrs['ssp_lon'],
-                                         DATASET_ATTRS['ssp_lon'])
-                        self.assertEqual(z.attrs['seg_size'],
-                                         DATASET_ATTRS['seg_size'])
-
-                        if not fh.as_area_def:
-                            self.as_swath_definition(fh, z, samp1)
-                        else:
-                            self.as_area_definition(fh, z, samp1)
+        return z
 
     def as_swath_definition(self, fh, z, samp1):
         """Perform checks if data loaded as swath definition."""
