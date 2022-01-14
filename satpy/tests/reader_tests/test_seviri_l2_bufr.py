@@ -180,33 +180,38 @@ class TestSeviriL2Bufr(unittest.TestCase):
                         self.assertEqual(z.attrs['seg_size'],
                                          DATASET_ATTRS['seg_size'])
 
-                        # Check dataset with swath definition
                         if not fh.as_area_def:
-                            # with swath definition there will be no area definition implemented
-                            self.assertRaises(NotImplementedError, fh.get_area_def, None)
-                            # concatenate original test arrays as get_dataset will have read and concatented the data
-                            x1 = np.concatenate((samp1, samp1), axis=0)
-                            np.testing.assert_array_equal(z.values, x1)
-
-                        # Check dataset with area definition
+                            self.as_swath_definition(fh, z, samp1)
                         else:
-                            ad = fh.get_area_def(None)
-                            self.assertEqual(ad, AREA_DEF)
+                            self.as_area_definition(fh, z, samp1)
 
-                            # Put BUFR data on 2D grid that the 2D array returned by get_dataset should correspond to
-                            icol, irow = ad.get_array_coordinates_from_lonlat(fh.longitude.compute(),
-                                                                              fh.latitude.compute())
-                            icol, irow = np.ceil(icol).astype(int), np.ceil(irow).astype(int)
+    def as_swath_definition(self, fh, z, samp1):
+        """Perform checks if data loaded as swath definition."""
+        # with swath definition there will be no area definition implemented
+        self.assertRaises(NotImplementedError, fh.get_area_def, None)
+        # concatenate original test arrays as get_dataset will have read and concatented the data
+        x1 = np.concatenate((samp1, samp1), axis=0)
+        np.testing.assert_array_equal(z.values, x1)
 
-                            data = np.empty(ad.shape)
-                            data[:] = np.nan
-                            data[irow, icol] = np.concatenate((samp1, samp1), axis=0)
-                            np.testing.assert_array_equal(z.values, data)
+    def as_area_definition(self, fh, z, samp1):
+        """Perform checks if data loaded as area definition."""
+        ad = fh.get_area_def(None)
+        self.assertEqual(ad, AREA_DEF)
 
-                            # Test that the correct area definition is identified for products with 3 pixel segements
-                            fh.seg_size = 3
-                            ad_ext = fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
-                            self.assertEqual(ad_ext, AREA_DEF_EXT)
+        # Put BUFR data on 2D grid that the 2D array returned by get_dataset should correspond to
+        icol, irow = ad.get_array_coordinates_from_lonlat(fh.longitude.compute(),
+                                                          fh.latitude.compute())
+        icol, irow = np.ceil(icol).astype(int), np.ceil(irow).astype(int)
+
+        data = np.empty(ad.shape)
+        data[:] = np.nan
+        data[irow, icol] = np.concatenate((samp1, samp1), axis=0)
+        np.testing.assert_array_equal(z.values, data)
+
+        # Test that the correct area definition is identified for products with 3 pixel segements
+        fh.seg_size = 3
+        ad_ext = fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
+        self.assertEqual(ad_ext, AREA_DEF_EXT)
 
     def test_seviri_l2_bufr(self):
         """Call the test function."""
