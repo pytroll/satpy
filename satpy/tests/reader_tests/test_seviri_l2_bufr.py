@@ -138,7 +138,7 @@ class TestSeviriL2Bufr(unittest.TestCase):
                             fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
                                                          as_area_def=as_area_def)
 
-        # Test reading latitude (needed to test area defintiion implementation)
+        # Test reading latitude (needed to test AreaDefintiion implementation)
         with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
                             side_effect=[buf1, buf1, None]) as ec1:
@@ -150,7 +150,7 @@ class TestSeviriL2Bufr(unittest.TestCase):
                         zlat = fh.get_dataset(None, DATASET_INFO_LAT)
                         np.testing.assert_array_equal(zlat.values, np.concatenate((lat, lat), axis=0))
 
-        # Test reading longitude (needed to test area defintiion implementation)
+        # Test reading longitude (needed to test AreaDefintiion implementation)
         with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
                             side_effect=[buf1, buf1, None]) as ec1:
@@ -187,14 +187,14 @@ class TestSeviriL2Bufr(unittest.TestCase):
 
     def as_swath_definition(self, fh, z, samp1):
         """Perform checks if data loaded as swath definition."""
-        # with swath definition there will be no area definition implemented
+        # With swath definition there will be no AreaDefinition implemented
         self.assertRaises(NotImplementedError, fh.get_area_def, None)
         # concatenate original test arrays as get_dataset will have read and concatented the data
         x1 = np.concatenate((samp1, samp1), axis=0)
         np.testing.assert_array_equal(z.values, x1)
 
     def as_area_definition(self, fh, z, samp1):
-        """Perform checks if data loaded as area definition."""
+        """Perform checks if data loaded as AreaDefinition."""
         ad = fh.get_area_def(None)
         self.assertEqual(ad, AREA_DEF)
 
@@ -208,7 +208,7 @@ class TestSeviriL2Bufr(unittest.TestCase):
         data[irow, icol] = np.concatenate((samp1, samp1), axis=0)
         np.testing.assert_array_equal(z.values, data)
 
-        # Test that the correct area definition is identified for products with 3 pixel segements
+        # Test that the correct AreaDefinition is identified for products with 3 pixel segements
         fh.seg_size = 3
         ad_ext = fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
         self.assertEqual(ad_ext, AREA_DEF_EXT)

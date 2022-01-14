@@ -55,7 +55,20 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
 
 
 class SeviriL2BufrFileHandler(BaseFileHandler):
-    """File handler for SEVIRI L2 BUFR products."""
+    """File handler for SEVIRI L2 BUFR products.
+
+    **Loading data as AreaDefinition**
+
+    By providing the `as_area_def` as True in the `reader_kwargs`, the dataset is loaded as
+    an AreaDefinition using a standardized AreaDefinition in areas.yaml. By default, the
+    dataset will be loaded as a SwathDefinition, i.e. similar to how the data are stored in
+    in the BUFR file:
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l2_bufr',
+                            reader_kwargs={'as_area_def': False})
+
+    """
 
     def __init__(self, filename, filename_info, filetype_info, as_area_def=False, **kwargs):
         """Initialise the file handler for SEVIRI L2 BUFR data."""
@@ -179,13 +192,12 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         return xarr
 
     def get_dataset_with_area_def(self, arr, dataset_id, dataset_info):
-        """Get dataset with an area definition."""
+        """Get dataset with an AreaDefinition."""
         if dataset_info['name'] in ['latitude', 'longitude']:
             self.__setattr__(dataset_info['name'], arr)
             return self.get_dataset_with_swath_def(arr, dataset_info)
 
         else:
-            # Compute the area definition
             self._area_def = self._construct_area_def(dataset_id)
 
             icol, irow = self._area_def.get_array_coordinates_from_lonlat(self.longitude.compute(),
@@ -196,11 +208,12 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             #  intermeidate step of creating a numpy array?
             arr_2d = np.empty(self._area_def.shape)
             arr_2d[:] = np.nan
+            arr_2d[:] = np.nan
             arr_2d[irow, icol] = arr.compute()
 
             xarr = xr.DataArray(da.from_array(arr_2d, CHUNK_SIZE), dims=('y', 'x'))
 
-            # coordinates not relevant for area definition
+            # coordinates not relevant when using AreaDefinition
             if 'coordinates' in dataset_info.keys():
                 del dataset_info['coordinates']
             self._add_attributes(xarr, dataset_info)
@@ -208,7 +221,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             return xarr
 
     def _construct_area_def(self, dataset_id):
-        """Construct a standardized area definition based on satellite, instrument, resolution and sub-satellite point.
+        """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
 
         Returns:
             AreaDefinition: A pyresample AreaDefinition object containing the area definition.
@@ -230,7 +243,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             area_naming['area_id'] += '_ext'
             area_naming['description'] += ' (extended outside original 3km grid)'
 
-        # Construct area definition from standardized area definition.
+        # Construct AreaDefinition from standardized area definition in areas.yaml.
         stand_area_def = get_area_def(area_naming['area_id'])
 
         area_def = geometry.AreaDefinition(
