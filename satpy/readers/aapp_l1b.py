@@ -36,7 +36,22 @@ from dask import delayed
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
-LINE_CHUNK = CHUNK_SIZE ** 2 // 2048
+CHANNEL_DTYPE = float
+
+
+def get_chunks(shape):
+    """Get chunks from a given shape adapted for AAPP data."""
+    if isinstance(CHUNK_SIZE, str):
+        limit = CHUNK_SIZE
+    else:
+        if isinstance(CHUNK_SIZE, (tuple, list)):
+            array_size = np.product(CHUNK_SIZE)
+        else:
+            array_size = CHUNK_SIZE ** 2
+        limit = array_size * np.dtype(CHANNEL_DTYPE).itemsize
+
+    return da.core.normalize_chunks(("auto", 2048), shape=shape, limit=limit, dtype=CHANNEL_DTYPE)
+
 
 logger = logging.getLogger(__name__)
 
@@ -299,10 +314,11 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
         if dataset_id['name'] in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
+            line_chunks = get_chunks((self._data.shape[0], 2048))[0]
             self._is3a = da.bitwise_and(da.from_array(self._data['scnlinbit'],
-                                                      chunks=LINE_CHUNK), 3) == 0
+                                                      chunks=line_chunks), 3) == 0
             self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
-                                                      chunks=LINE_CHUNK), 3) == 1
+                                                      chunks=line_chunks), 3) == 1
 
         try:
             vis_idx = ['1', '2', '3a'].index(dataset_id['name'])
@@ -530,13 +546,16 @@ def _vis_calibrate(data,
     if calib_type not in ['counts', 'radiance', 'reflectance']:
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
-    channel = da.from_array(data["hrpt"][:, :, chn], chunks=(LINE_CHUNK, 2048))
+    channel_data = data["hrpt"][:, :, chn]
+    chunks = get_chunks(channel_data.shape)
+    line_chunks = chunks[0]
+    channel = da.from_array(channel_data, chunks=chunks)
     mask &= channel != 0
 
     if calib_type == 'counts':
         return channel
 
-    channel = channel.astype(np.float64)
+    channel = channel.astype(CHANNEL_DTYPE)
 
     if calib_type == 'radiance':
         logger.info("Radiances are not yet supported for " +
@@ -554,23 +573,23 @@ def _vis_calibrate(data,
             coeff_idx = 0
 
     intersection = da.from_array(data["calvis"][:, chn, coeff_idx, 4],
-                                 chunks=LINE_CHUNK)
+                                 chunks=line_chunks)
 
     if calib_coeffs is not None:
         logger.info("Updating from external calibration coefficients.")
-        slope1 = da.from_array(calib_coeffs[0], chunks=LINE_CHUNK)
-        intercept1 = da.from_array(calib_coeffs[1], chunks=LINE_CHUNK)
-        slope2 = da.from_array(calib_coeffs[2], chunks=LINE_CHUNK)
-        intercept2 = da.from_array(calib_coeffs[3], chunks=LINE_CHUNK)
+        slope1 = da.from_array(calib_coeffs[0], chunks=line_chunks)
+        intercept1 = da.from_array(calib_coeffs[1], chunks=line_chunks)
+        slope2 = da.from_array(calib_coeffs[2], chunks=line_chunks)
+        intercept2 = da.from_array(calib_coeffs[3], chunks=line_chunks)
     else:
         slope1 = da.from_array(data["calvis"][:, chn, coeff_idx, 0],
-                               chunks=LINE_CHUNK) * 1e-10
+                               chunks=line_chunks) * 1e-10
         intercept1 = da.from_array(data["calvis"][:, chn, coeff_idx, 1],
-                                   chunks=LINE_CHUNK) * 1e-7
+                                   chunks=line_chunks) * 1e-7
         slope2 = da.from_array(data["calvis"][:, chn, coeff_idx, 2],
-                               chunks=LINE_CHUNK) * 1e-10
+                               chunks=line_chunks) * 1e-10
         intercept2 = da.from_array(data["calvis"][:, chn, coeff_idx, 3],
-                                   chunks=LINE_CHUNK) * 1e-7
+                                   chunks=line_chunks) * 1e-7
 
         if chn == 1:
             # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
@@ -597,18 +616,22 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
     *calib_type* in brightness_temperature, radiance, count
 
     """
-    count = da.from_array(data["hrpt"][:, :, irchn + 2], chunks=(LINE_CHUNK, 2048))
+    channel_data = data["hrpt"][:, :, irchn + 2]
+    chunks = get_chunks(channel_data.shape)
+    line_chunks = chunks[0]
+
+    count = da.from_array(channel_data, chunks=chunks)
 
     if calib_type == 0:
         return count
 
     # Mask unnaturally low values
     mask &= count != 0
-    count = count.astype(np.float64)
+    count = count.astype(CHANNEL_DTYPE)
 
-    k1_ = da.from_array(data['calir'][:, irchn, 0, 0], chunks=LINE_CHUNK) / 1.0e9
-    k2_ = da.from_array(data['calir'][:, irchn, 0, 1], chunks=LINE_CHUNK) / 1.0e6
-    k3_ = da.from_array(data['calir'][:, irchn, 0, 2], chunks=LINE_CHUNK) / 1.0e6
+    k1_ = da.from_array(data['calir'][:, irchn, 0, 0], chunks=line_chunks) / 1.0e9
+    k2_ = da.from_array(data['calir'][:, irchn, 0, 1], chunks=line_chunks) / 1.0e6
+    k3_ = da.from_array(data['calir'][:, irchn, 0, 2], chunks=line_chunks) / 1.0e6
 
     # Count to radiance conversion:
     rad = k1_[:, None] * count * count + k2_[:, None] * count + k3_[:, None]
