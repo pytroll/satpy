@@ -194,8 +194,11 @@ class ParallaxCorrection:
 
         Returns a parallax corrected swathdefinition of the base area.
         """
-        logger.debug("Calculating parallax correction using "
-                     f"{cth_dataset.attrs.get('name', cth_dataset.name)!s}")
+        logger.debug("Calculating parallax correction using heights from "
+                     f"{cth_dataset.attrs.get('name', cth_dataset.name)!s}, "
+                     f"with base area {self.base_area.name!s}, resampler "
+                     f"{self.resampler.__name__}, and search radius "
+                     f"{self.search_radius:d}")
         area = cth_dataset.area
         try:
             (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
