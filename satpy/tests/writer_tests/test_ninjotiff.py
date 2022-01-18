@@ -112,7 +112,7 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         ds_in = sc["IR108"]
         for out_unit in ("C", "CELSIUS"):
             ds_out = convert_units(ds_in, "K", out_unit)
-            np.testing.assert_array_almost_equal(ds_in + 273.15, ds_out)
+            np.testing.assert_array_almost_equal(ds_in - 273.15, ds_out)
             assert ds_in.attrs != ds_out.attrs
             assert ds_out.attrs["units"] == out_unit
         # test that keys aren't lost
