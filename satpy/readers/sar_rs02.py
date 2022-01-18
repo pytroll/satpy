@@ -15,7 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for Radarsat 2 SGF SAR data."""
+"""Reader for Radarsat 2 SGF SAR data.
+
+Format description:
+RADARSAT-2 PRODUCT FORMAT DEFINITION
+RN-RP-51-2713
+Issue 1/15:  OCT. 26, 2016
+https://earth.esa.int/eogateway/documents/20142/0/Radarsat-2-Product-Format-Definition.pdf/1ca0cf1e-5a15-a29b-6187-9e5cb1650048
+"""
 
 import defusedxml.ElementTree as ElementTree
 import numpy as np
