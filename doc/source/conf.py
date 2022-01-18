@@ -10,14 +10,14 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
-# To generate apidoc modules:
-#     sphinx-apidoc -f -T -o source/api ../satpy ../satpy/tests
 """Sphinx documentation configuration and setup."""
+
+from __future__ import annotations
 
 import os
 import sys
 from datetime import datetime
+
 from pkg_resources import get_distribution
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -67,7 +67,7 @@ class Mock(object):  # noqa
 # https://github.com/sphinx-doc/sphinx/issues/3920
 MOCK_MODULES = ['h5py']
 for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = Mock()
+    sys.modules[mod_name] = Mock()  # type: ignore
 
 autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4',
                         'pygac', 'pygrib', 'pyhdf', 'pyninjotiff',
@@ -81,7 +81,18 @@ autoclass_content = 'both'  # append class __init__ docstring to the class docst
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary', 'doi_role',
-              'sphinx.ext.viewcode']
+              'sphinx.ext.viewcode', 'sphinxcontrib.apidoc']
+
+# API docs
+apidoc_module_dir = "../../satpy"
+apidoc_output_dir = "api"
+apidoc_excluded_paths = [
+    'readers/caliop_l2_cloud.py',
+    'readers/ghrsst_l3c_sst.py',
+    'readers/li_l2.py',
+    'readers/scatsat1_l2b.py',
+]
+apidoc_separate_modules = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -114,7 +125,7 @@ copyright = u'2009-{}, The PyTroll Team'.format(datetime.utcnow().strftime("%Y")
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_trees = []
+exclude_trees: list[str] = []
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 # default_role = None
@@ -172,11 +183,9 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
-        ],
-     }
+html_css_files = [
+    'theme_overrides.css',  # override wide tables in RTD theme
+]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -228,8 +237,8 @@ htmlhelp_basename = 'NWCSAFMSGPPdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'satpy.tex', u'satpy documentation',
-   u'SMHI', 'manual'),
+  ('index', 'satpy.tex', 'Satpy Documentation',
+   'Satpy Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -262,9 +271,11 @@ intersphinx_mapping = {
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
     'pytest': ('https://docs.pytest.org/en/stable/', None),
     'python': ('https://docs.python.org/3', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
+    'donfig': ('https://donfig.readthedocs.io/en/latest', None),
+    'pooch': ('https://www.fatiando.org/pooch/latest/', None),
 }

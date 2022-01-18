@@ -66,23 +66,23 @@ templates:
 #        value: "${ORGANIZATION}"
       awips_id: {}
 #        value: "{awips_id}"  # special variable created by awips_tiled.py
-      creating_entity:
+      physical_element: {}
+#        value: "{physical_element}"   #special variable created by awips_tiled.py
+      satellite_id:
         value: "{platform_name!u}-{sensor!u}"
-      sector_id: {}  # special handler in awips_tiled.py
+
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
           _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
           _Unsigned: "true"
@@ -117,21 +117,23 @@ templates:
         reader: clavrx
         var_name: data
         attributes:
+          units: {}
           physical_element:
-            raw_value: 'CLAVR-x {name}'
+            value: 'CLAVR-x {name}'
       clavrx_cloud_type:
         reader: clavrx
         name: cloud_type
         var_name: data
         attributes:
-          attributes:
-            physical_element:
-              raw_value: CLAVR-x Cloud Type
+          physical_element:
+            raw_value: CLAVR-x Cloud Type
+          units: {}
       clavrx_cld_temp_acha:
         reader: clavrx
         name: cld_temp_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Top Temperature (ACHA)
       clavrx_cld_height_acha:
@@ -139,6 +141,7 @@ templates:
         name: cld_height_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Top Height (ACHA)
       clavrx_cloud_phase:
@@ -146,6 +149,7 @@ templates:
         name: cloud_phase
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Phase
       clavrx_cld_opd_dcomp:
@@ -153,6 +157,7 @@ templates:
         name: cld_opd_dcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Optical Depth (dcomp)
       clavrx_clld_opd_nlcomp:
@@ -160,6 +165,7 @@ templates:
         name: cloud_opd_nlcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Optical Depth (nlcomp)
       clavrx_cld_reff_dcomp:
@@ -167,6 +173,7 @@ templates:
         name: cld_reff_dcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Effective Radius (dcomp)
       clavrx_cld_reff_nlcomp:
@@ -174,6 +181,7 @@ templates:
         name: cld_reff_nlcomp
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Effective Radius (nlcomp)
       clavrx_cld_emiss_acha:
@@ -181,6 +189,7 @@ templates:
         name: cld_emiss_acha
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Emissivity (ACHA)
       clavrx_refl_lunar_dnb_nom:
@@ -188,6 +197,7 @@ templates:
         name: refl_lunar_dnb_nom
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Cloud Lunar Reflectance
       clavrx_rain_rate:
@@ -195,6 +205,7 @@ templates:
         name: rain_rate
         var_name: data
         attributes:
+          units: {}
           physical_element:
             raw_value: CLAVR-x Rain Rate
 
@@ -777,7 +788,7 @@ templates:
   glm_l2_radc:
     single_variable: false
     # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
-    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
+    filename: '{environment_prefix}_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
     global_attributes:
       # FIXME: This should come from the reader's metadata
       dataset_name:
@@ -801,17 +812,15 @@ templates:
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
 #          _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
 #          _Unsigned: "true"
@@ -951,7 +960,7 @@ templates:
   glm_l2_radf:
     single_variable: false
     # OR_GLM-L2-GLMF-M6_G16_T10_e20201105150300.nc
-    filename: 'OR_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
+    filename: '{environment_prefix}_GLM-L2-GLM{scene_abbr}-{scan_mode}_{platform_shortname}_T{tile_number:02d}_{end_time:%Y%m%d%H%M%S}.nc'
     global_attributes:
       # FIXME: This should come from the reader's metadata
       dataset_name:
@@ -976,17 +985,15 @@ templates:
     coordinates:
       x:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
       #          _Unsigned: "true"
       y:
         attributes:
-          units: {}
-          standard_name:
-            value: '{standard_name}'
+          units:
+            value: "{units}"
         encoding:
           dtype: "int16"
     #          _Unsigned: "true"
@@ -1024,6 +1031,9 @@ templates:
         encoding:
           dtype: int16
           _Unsigned: "true"
+          scale_factor: 1.0000001
+          add_offset: 0.0
+          _FillValue: -1
       flash_extent_density_window:
         name: "flash_extent_density_window"
         var_name: "Flash_extent_density_w5u1"

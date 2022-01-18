@@ -18,12 +18,13 @@
 """The ahi_hsd reader tests package."""
 
 import unittest
-from unittest import mock
 import warnings
-import numpy as np
-import dask.array as da
 from datetime import datetime
-from pyresample.geometry import AreaDefinition
+from unittest import mock
+
+import dask.array as da
+import numpy as np
+
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
 
@@ -135,9 +136,64 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
     def new_unzip(fname):
         """Fake unzipping."""
-        if(fname[-3:] == 'bz2'):
+        if fname[-3:] == 'bz2':
             return fname[:-4]
         return fname
+
+    @staticmethod
+    def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None):
+        if filename_info is None:
+            filename_info = {'segment': 8, 'total_segments': 10}
+        if filetype_info is None:
+            filetype_info = {'file_type': 'hsd_b01'}
+        fh = AHIHSDFileHandler(in_fname, filename_info, filetype_info)
+
+        # Check that the filename is altered for bz2 format files
+        assert in_fname != fh.filename
+
+        fh.proj_info = {
+            'CFAC': 40932549,
+            'COFF': 5500.5,
+            'LFAC': 40932549,
+            'LOFF': 5500.5,
+            'blocklength': 127,
+            'coeff_for_sd': 1737122264.0,
+            'distance_from_earth_center': 42164.0,
+            'earth_equatorial_radius': 6378.137,
+            'earth_polar_radius': 6356.7523,
+            'hblock_number': 3,
+            'req2_rpol2': 1.006739501,
+            'req2_rpol2_req2': 0.0066943844,
+            'resampling_size': 4,
+            'resampling_types': 0,
+            'rpol2_req2': 0.993305616,
+            'spare': '',
+            'sub_lon': 140.7
+        }
+        fh.nav_info = {
+            'SSP_longitude': 140.66,
+            'SSP_latitude': 0.03,
+            'distance_earth_center_to_satellite': 42165.04,
+            'nadir_longitude': 140.67,
+            'nadir_latitude': 0.04
+        }
+        fh.data_info = {
+            'blocklength': 50,
+            'compression_flag_for_data': 0,
+            'hblock_number': 2,
+            'number_of_bits_per_pixel': 16,
+            'number_of_columns': 11000,
+            'number_of_lines': 1100,
+            'spare': ''
+        }
+        fh.basic_info = {
+            'observation_area': np.array(['FLDK']),
+            'observation_start_time': np.array([58413.12523839]),
+            'observation_end_time': np.array([58413.12562439]),
+            'observation_timeline': np.array([300]),
+        }
+        fh.observation_area = fh.basic_info['observation_area']
+        return fh
 
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
@@ -150,56 +206,12 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler('somefile',
-                                       {'segment': 8, 'total_segments': 10},
-                                       filetype_info={'file_type': 'hsd_b01'},
-                                       calib_mode='BAD_MODE')
+                AHIHSDFileHandler('somefile',
+                                  {'segment': 8, 'total_segments': 10},
+                                  filetype_info={'file_type': 'hsd_b01'},
+                                  calib_mode='BAD_MODE')
             in_fname = 'test_file.bz2'
-            fh = AHIHSDFileHandler(in_fname,
-                                   {'segment': 8, 'total_segments': 10},
-                                   filetype_info={'file_type': 'hsd_b01'})
-
-            # Check that the filename is altered for bz2 format files
-            self.assertNotEqual(in_fname, fh.filename)
-
-            fh.proj_info = {'CFAC': 40932549,
-                            'COFF': 5500.5,
-                            'LFAC': 40932549,
-                            'LOFF': 5500.5,
-                            'blocklength': 127,
-                            'coeff_for_sd': 1737122264.0,
-                            'distance_from_earth_center': 42164.0,
-                            'earth_equatorial_radius': 6378.137,
-                            'earth_polar_radius': 6356.7523,
-                            'hblock_number': 3,
-                            'req2_rpol2': 1.006739501,
-                            'req2_rpol2_req2': 0.0066943844,
-                            'resampling_size': 4,
-                            'resampling_types': 0,
-                            'rpol2_req2': 0.993305616,
-                            'spare': '',
-                            'sub_lon': 140.7}
-            fh.nav_info = {'SSP_longitude': 140.66,
-                           'SSP_latitude': 0.03,
-                           'distance_earth_center_to_satellite': 42165.04,
-                           'nadir_longitude': 140.67,
-                           'nadir_latitude': 0.04}
-            fh.data_info = {'blocklength': 50,
-                            'compression_flag_for_data': 0,
-                            'hblock_number': 2,
-                            'number_of_bits_per_pixel': 16,
-                            'number_of_columns': 11000,
-                            'number_of_lines': 1100,
-                            'spare': ''}
-            fh.basic_info = {
-                'observation_area': np.array(['FLDK']),
-                'observation_start_time': np.array([58413.12523839]),
-                'observation_end_time': np.array([58413.12562439]),
-                'observation_timeline': np.array([300]),
-            }
-            fh.observation_area = np2str(fh.basic_info['observation_area'])
-
-            self.fh = fh
+            self.fh = self._create_fake_file_handler(in_fname)
 
     def test_time_properties(self):
         """Test start/end/scheduled time properties."""
@@ -228,11 +240,8 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         """Test masking of space pixels."""
         nrows = 25
         ncols = 100
-        self.fh.area = AreaDefinition('test', 'test', 'test',
-                                      {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
-                                       'proj': 'geos', 'units': 'm'},
-                                      ncols, nrows,
-                                      [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
+        self.fh.data_info['number_of_columns'] = ncols
+        self.fh.data_info['number_of_lines'] = nrows
         calibrate.return_value = np.ones((nrows, ncols))
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
@@ -259,6 +268,33 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
                 self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
                 mask_space.assert_not_called()
+
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
+    def test_scene_loading(self, calibrate, *mocks):
+        """Test masking of space pixels."""
+        from satpy import Scene
+        nrows = 25
+        ncols = 100
+        calibrate.return_value = np.ones((nrows, ncols))
+        m = mock.mock_open()
+        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True), \
+             mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler') as fh_cls:
+            fh_cls.return_value = self.fh
+            self.fh.filename_info['total_segments'] = 1
+            self.fh.filename_info['segment'] = 1
+            self.fh.data_info['number_of_columns'] = ncols
+            self.fh.data_info['number_of_lines'] = nrows
+            scn = Scene(reader='ahi_hsd', filenames=['HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT'])
+            scn.load(['B07'])
+            im = scn['B07']
+
+            # Make sure space masking worked
+            mask = im.to_masked_array().mask
+            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
+            self.assertTrue(np.all(mask == ref_mask))
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
@@ -303,9 +339,11 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
 class TestAHICalibration(unittest.TestCase):
     """Test case for various AHI calibration types."""
+
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
                 return_value=None)
     def setUp(self, *mocks):
+        """Create fake data for testing."""
         self.def_cali = [-0.0037, 15.20]
         self.upd_cali = [-0.0074, 30.40]
         self.bad_cali = [0.0, 0.0]
@@ -343,7 +381,7 @@ class TestAHICalibration(unittest.TestCase):
 
         # Radiance
         rad_exp = np.array([[15.2, 11.5],
-                            [7.8, 0]])
+                            [7.8, -3.3]])
         rad = self.fh.calibrate(data=self.counts,
                                 calibration='radiance')
         self.assertTrue(np.allclose(rad, rad_exp))
@@ -367,7 +405,7 @@ class TestAHICalibration(unittest.TestCase):
         # Standard operation
         self.fh.calib_mode = 'UPDATE'
         rad_exp = np.array([[30.4, 23.0],
-                            [15.6, 0.]])
+                            [15.6, -6.6]])
         rad = self.fh.calibrate(data=self.counts, calibration='radiance')
         self.assertTrue(np.allclose(rad, rad_exp))
 
@@ -389,7 +427,7 @@ class TestAHICalibration(unittest.TestCase):
         }
         rad = self.fh.calibrate(data=self.counts, calibration='radiance')
         rad_exp = np.array([[15.2, 11.5],
-                            [7.8, 0]])
+                            [7.8, -3.3]])
         self.assertTrue(np.allclose(rad, rad_exp))
 
     def test_user_calibration(self):
@@ -400,7 +438,7 @@ class TestAHICalibration(unittest.TestCase):
         self.fh.band_name = 'B13'
         rad = self.fh.calibrate(data=self.counts, calibration='radiance').compute()
         rad_exp = np.array([[16.10526316, 12.21052632],
-                            [8.31578947,  0.10526316]])
+                            [8.31578947, -3.36842105]])
         self.assertTrue(np.allclose(rad, rad_exp))
 
         # This is for DN calibration
@@ -409,7 +447,6 @@ class TestAHICalibration(unittest.TestCase):
                                     'type': 'DN'}
         self.fh.band_name = 'B13'
         rad = self.fh.calibrate(data=self.counts, calibration='radiance').compute()
-        print(rad)
         rad_exp = np.array([[15.2, 12.],
-                            [8.8, 0.]])
+                            [8.8, -0.8]])
         self.assertTrue(np.allclose(rad, rad_exp))

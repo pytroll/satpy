@@ -17,11 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Implementation of a dependency tree."""
 
+from __future__ import annotations
+
+from typing import Container, Iterable, Optional
+
 import numpy as np
 
-from satpy.dataset import create_filtered_query, ModifierTuple
+from satpy import DataID, DatasetDict
+from satpy.dataset import ModifierTuple, create_filtered_query
 from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG
+from satpy.node import EMPTY_LEAF_NAME, LOG, CompositorNode, MissingDependencies, Node, ReaderNode
 
 
 class Tree:
@@ -39,45 +44,58 @@ class Tree:
         # __contains__
         self._all_nodes = _DataIDContainer()
 
-    def leaves(self, nodes=None, unique=True):
+    def leaves(self,
+               limit_nodes_to: Optional[Iterable[DataID]] = None,
+               unique: bool = True
+               ) -> list[Node]:
         """Get the leaves of the tree starting at the root.
 
         Args:
-            nodes (iterable): limit leaves for these node names
-            unique: only include individual leaf nodes once
+            limit_nodes_to: Limit leaves to Nodes with the names (DataIDs)
+                specified.
+            unique: Only include individual leaf nodes once.
 
         Returns:
             list of leaf nodes
 
         """
-        if nodes is None:
+        if limit_nodes_to is None:
             return self._root.leaves(unique=unique)
 
         res = list()
-        for child_id in nodes:
+        for child_id in limit_nodes_to:
             for sub_child in self._all_nodes[child_id].leaves(unique=unique):
                 if not unique or sub_child not in res:
                     res.append(sub_child)
         return res
 
-    def trunk(self, nodes=None, unique=True):
+    def trunk(self,
+              limit_nodes_to: Optional[Iterable[DataID]] = None,
+              unique: bool = True,
+              limit_children_to: Optional[Container[DataID]] = None,
+              ) -> list[Node]:
         """Get the trunk nodes of the tree starting at this root.
 
         Args:
-            nodes (iterable): limit trunk nodes to the names specified or the
-                              children of them that are also trunk nodes.
-            unique: only include individual trunk nodes once
+            limit_nodes_to: Limit searching to trunk nodes with the names
+                (DataIDs) specified and the children of these nodes.
+            unique: Only include individual trunk nodes once
+            limit_children_to: Limit searching to the children with the specified
+                names. These child nodes will be included in the result,
+                but not their children.
 
         Returns:
             list of trunk nodes
 
         """
-        if nodes is None:
-            return self._root.trunk(unique=unique)
+        if limit_nodes_to is None:
+            return self._root.trunk(unique=unique,
+                                    limit_children_to=limit_children_to)
 
         res = list()
-        for child_id in nodes:
-            for sub_child in self._all_nodes[child_id].trunk(unique=unique):
+        for child_id in limit_nodes_to:
+            child_node = self._all_nodes[child_id]
+            for sub_child in child_node.trunk(unique=unique, limit_children_to=limit_children_to):
                 if not unique or sub_child not in res:
                     res.append(sub_child)
         return res
@@ -89,7 +107,8 @@ class Tree:
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
         if self.contains(child.name):
-            assert self._all_nodes[child.name] is child
+            if self._all_nodes[child.name] is not child:
+                raise RuntimeError
         if child is self.empty_node:
             # No need to store "empty" nodes
             return
@@ -136,7 +155,7 @@ class DependencyTree(Tree):
 
     """
 
-    def __init__(self, readers, compositors, modifiers, available_only=False):
+    def __init__(self, readers, compositors=None, modifiers=None, available_only=False):
         """Collect Dataset generating information.
 
         Collect the objects that generate and have information about Datasets
@@ -149,8 +168,10 @@ class DependencyTree(Tree):
 
         Args:
             readers (dict): Reader name -> Reader Object
-            compositors (dict): Sensor name -> Composite ID -> Composite Object
-            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
+            compositors (dict): Sensor name -> Composite ID -> Composite Object.
+                Empty dictionary by default.
+            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options).
+                Empty dictionary by default.
             available_only (bool): Whether only reader's available/loadable
                 datasets should be used when searching for dependencies (True)
                 or use all known/configured datasets regardless of whether the
@@ -162,9 +183,28 @@ class DependencyTree(Tree):
         """
         super().__init__()
         self.readers = readers
-        self.compositors = compositors
-        self.modifiers = modifiers
+        self.compositors = {}
+        self.modifiers = {}
         self._available_only = available_only
+        self.update_compositors_and_modifiers(compositors or {}, modifiers or {})
+
+    def update_compositors_and_modifiers(self, compositors: dict, modifiers: dict) -> None:
+        """Add additional compositors and modifiers to the tree.
+
+        Provided dictionaries and the first sub-level dictionaries are copied
+        to avoid modifying the input.
+
+        Args:
+            compositors (dict):
+                Sensor name -> composite ID -> Composite Object
+            modifiers (dict):
+                Sensor name -> Modifier name -> (Modifier Class, modifier options)
+
+        """
+        for sensor_name, sensor_comps in compositors.items():
+            self.compositors.setdefault(sensor_name, DatasetDict()).update(sensor_comps)
+        for sensor_name, sensor_mods in modifiers.items():
+            self.modifiers.setdefault(sensor_name, {}).update(sensor_mods)
 
     def copy(self):
         """Copy this node tree.
@@ -180,6 +220,15 @@ class DependencyTree(Tree):
             c = c.copy(node_cache=new_tree._all_nodes)
             new_tree.add_child(new_tree._root, c)
         return new_tree
+
+    def update_node_name(self, node, new_name):
+        """Update 'name' property of a node and any related metadata."""
+        old_name = node.name
+        if old_name not in self._all_nodes:
+            raise RuntimeError
+        del self._all_nodes[old_name]
+        node.update_name(new_name)
+        self._all_nodes[new_name] = node
 
     def populate_with_keys(self, dataset_keys: set, query=None):
         """Populate the dependency tree.
@@ -289,17 +338,13 @@ class DependencyTree(Tree):
 
         """
         matching_ids = self._find_matching_ids_in_readers(dataset_key)
-        result = self._get_unique_matching_id(matching_ids, dataset_key, query)
+        unique_id = self._get_unique_matching_id(matching_ids, dataset_key, query)
 
         for reader_name, ids in matching_ids.items():
-            if result in ids:
-                data = {'reader_name': reader_name}
-                break
-        else:
-            raise RuntimeError("Data ID disappeared.")
+            if unique_id in ids:
+                return self._get_unique_reader_node_from_id(unique_id, reader_name)
 
-        result = self._get_unique_node_from_id(result, data)
-        return result
+        raise RuntimeError("Data ID disappeared.")
 
     def _find_matching_ids_in_readers(self, dataset_key):
         matching_ids = {}
@@ -343,13 +388,13 @@ class DependencyTree(Tree):
             raise MissingDependencies
         return result
 
-    def _get_unique_node_from_id(self, result, data):
+    def _get_unique_reader_node_from_id(self, data_id, reader_name):
         try:
             # now that we know we have the exact DataID see if we have already created a Node for it
-            return self.getitem(result)
+            return self.getitem(data_id)
         except KeyError:
             # we haven't created a node yet, create it now
-            return Node(result, data)
+            return ReaderNode(data_id, reader_name)
 
     def _get_subtree_for_existing_name(self, dsq):
         try:

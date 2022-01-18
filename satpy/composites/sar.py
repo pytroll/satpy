@@ -20,6 +20,7 @@
 import logging
 
 import numpy as np
+
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
 
@@ -36,6 +37,16 @@ def overlay(top, bottom, maxval=None):
 
     res = ((2 * top / maxval - 1) * bottom + 2 * top) * bottom / maxval
     return res.clip(min=0)
+
+
+def soft_light(top, bottom, maxval):
+    """Apply soft light.
+
+    http://www.pegtop.net/delphi/articles/blendmodes/softlight.htm
+    """
+    a = top / maxval
+    b = bottom / maxval
+    return (2*a*b + a*a * (1 - 2*b)) * maxval
 
 
 class SARIce(GenericCompositor):
@@ -77,6 +88,20 @@ class SARIceLegacy(GenericCompositor):
         green.attrs = combine_metadata(mhh, mhv)
 
         return super(SARIceLegacy, self).__call__((mhv, green, mhh), *args, **kwargs)
+
+
+class SARIceLog(GenericCompositor):
+    """The SAR Ice composite, using log-scale data."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Create the SAR Ice Log composite."""
+        mhh, mhv = projectables
+        mhh = mhh.clip(-40)
+        mhv = mhv.clip(-38)
+        green = soft_light(mhh + 100, mhv + 100, 100) - 100
+        green.attrs = combine_metadata(mhh, mhv)
+
+        return super().__call__((mhv, green, mhh), *args, **kwargs)
 
 
 class SARRGB(GenericCompositor):

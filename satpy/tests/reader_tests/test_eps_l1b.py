@@ -20,13 +20,14 @@
 import os
 from contextlib import suppress
 from tempfile import mkstemp
-from unittest import TestCase
-from unittest import mock
+from unittest import TestCase, mock
 
 import numpy as np
 import pytest
-import satpy
 import xarray as xr
+
+import satpy
+from satpy._config import get_config_path
 from satpy.readers import eps_l1b as eps
 from satpy.tests.utils import make_dataid
 
@@ -42,7 +43,8 @@ grh_dtype = np.dtype([("record_class", "|i1"),
 def create_sections(structure):
     """Create file sections."""
     sections = {}
-    form = eps.XMLFormat(os.path.join(eps.CONFIG_PATH, "eps_avhrrl1b_6.5.xml"))
+    format_fn = get_config_path("eps_avhrrl1b_6.5.xml")
+    form = eps.XMLFormat(format_fn)
     for count, (rec_class, sub_class) in structure:
         try:
             the_dtype = form.dtype((rec_class, sub_class))
@@ -161,10 +163,6 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         mock__init__.return_value = None
         mock__getitem__.side_effect = mock_getitem
         avhrr_reader = satpy.readers.eps_l1b.EPSAVHRRFile()
-        avhrr_reader.sun_azi = None
-        avhrr_reader.sat_azi = None
-        avhrr_reader.sun_zen = None
-        avhrr_reader.sat_zen = None
         avhrr_reader.scanlines = 7
         avhrr_reader.pixels = 2048
 
@@ -172,9 +170,9 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
             # Get dask arrays
             sun_azi, sun_zen, sat_azi, sat_zen = avhrr_reader.get_full_angles()
             # Convert to numpy array
-            sun_zen_np1 = np.array(avhrr_reader.sun_zen)
+            sun_zen_np1 = np.array(sun_zen)
             # Convert to numpy array again
-            sun_zen_np2 = np.array(avhrr_reader.sun_zen)
+            sun_zen_np2 = np.array(sun_zen)
             assert np.allclose(sun_zen_np1, sun_zen_np2)
 
 

@@ -39,8 +39,11 @@ file_types:
 
   nc_fci_gii:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
-    # TODO: Pattern based on the available test files, not compatible with MTG GFS definitions
     file_patterns: ["W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-GII--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
+
+  nc_fci_toz:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-TOZ--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc" ]
 
 datasets:
 
@@ -104,41 +107,41 @@ datasets:
     standard_name: height_at_cloud_top
     fill_value: -999.
 
-  retrieved_error_cloud_optical_thickness_upper_layer:
-    name: retrieved_error_cloud_optical_thickness_upper_layer
+  retrieval_error_cloud_optical_thickness_upper_layer:
+    name: retrieval_error_cloud_optical_thickness_upper_layer
     file_type: nc_fci_oca
-    file_key: retrieved_error_cloud_optical_thickness
+    file_key: retrieval_error_cloud_optical_thickness
     layer: 0
     standard_name: cloud_optical_depth
     fill_value: -999.
 
-  retrieved_error_cloud_optical_thickness_lower_layer:
-    name: retrieved_error_cloud_optical_thickness_lower_layer
+  retrieval_error_cloud_optical_thickness_lower_layer:
+    name: retrieval_error_cloud_optical_thickness_lower_layer
     file_type: nc_fci_oca
-    file_key: retrieved_error_cloud_optical_thickness
+    file_key: retrieval_error_cloud_optical_thickness
     layer: 1
     standard_name: cloud_optical_depth
     fill_value: -999.
 
-  retrieved_error_cloud_particle_effective_radius:
-    name: retrieved_error_cloud_particle_effective_radius
+  retrieval_error_cloud_particle_effective_radius:
+    name: retrieval_error_cloud_particle_effective_radius
     file_type: nc_fci_oca
-    file_key: retrieved_error_cloud_particle_effective_radius
+    file_key: retrieval_error_cloud_particle_effective_radius
     standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
     fill_value: -999.
 
-  retrieved_error_cloud_top_pressure_upper_layer:
-    name: retrieved_error_cloud_top_pressure_upper_layer
+  retrieval_error_cloud_top_pressure_upper_layer:
+    name: retrieval_error_cloud_top_pressure_upper_layer
     file_type: nc_fci_oca
-    file_key: retrieved_error_cloud_top_pressure
+    file_key: retrieval_error_cloud_top_pressure
     layer: 0
     standard_name: air_pressure_at_cloud_top
     fill_value: -999.
 
-  retrieved_error_cloud_top_pressure_lower_layer:
-    name: retrieved_error_cloud_top_pressure_lower_layer
+  retrieval_error_cloud_top_pressure_lower_layer:
+    name: retrieval_error_cloud_top_pressure_lower_layer
     file_type: nc_fci_oca
-    file_key: retrieved_error_cloud_top_pressure
+    file_key: retrieval_error_cloud_top_pressure
     layer: 1
     standard_name: air_pressure_at_cloud_top
     fill_value: -999.
@@ -654,7 +657,7 @@ datasets:
     name: latitude
     file_key: 'latitude'
 #    resolution:
-    file_type: [nc_fci_gii, nc_fci_asr]
+    file_type: [nc_fci_gii, nc_fci_asr, nc_fci_toz]
     standard_name: latitude
     fill_value: -32767
     mask_value: -32767
@@ -665,7 +668,7 @@ datasets:
     name: longitude
     file_key: 'longitude'
 #    resolution:
-    file_type: [nc_fci_gii, nc_fci_asr]
+    file_type: [nc_fci_gii, nc_fci_asr, nc_fci_toz]
     standard_name: longitude
     fill_value: -32767
     mask_value: -32767
@@ -784,7 +787,7 @@ datasets:
 
   cloud_top_pressure:
     name: cloud_top_pressure
-    file_type: nc_fci_th
+    file_type: nc_fci_cloud
     file_key: cloud_top_pressure
     fill_value: 0
     mask_value: 0
@@ -996,6 +999,50 @@ datasets:
     file_type: nc_fci_asr
     file_key: pixel_percentage
     standard_name: pixel_percentage
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  percent_pixels:
+    name: percent_pixels
+    file_type: nc_fci_toz
+    file_key: percent_pixels
+    standard_name: percent_pixels
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  number_of_iterations:
+    name: number_of_iterations
+    file_type: nc_fci_toz
+    file_key: number_of_iterations
+    standard_name: number_of_iterations
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  retrieval_type:
+    name: retrieval_type
+    file_type: nc_fci_toz
+    file_key: retrieval_type
+    standard_name: retrieval_type
+    fill_value: 65535
+    mask_value: 65535
+    coordinates:
+      - longitude
+      - latitude
+
+  total_ozone:
+    name: total_ozone
+    file_type: nc_fci_toz
+    file_key: total_ozone
+    standard_name: total_ozone
     fill_value: 65535
     mask_value: 65535
     coordinates:

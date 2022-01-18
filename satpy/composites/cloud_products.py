@@ -19,7 +19,7 @@
 
 import numpy as np
 
-from satpy.composites import GenericCompositor, ColormapCompositor
+from satpy.composites import ColormapCompositor, GenericCompositor
 
 
 class CloudTopHeightCompositor(ColormapCompositor):

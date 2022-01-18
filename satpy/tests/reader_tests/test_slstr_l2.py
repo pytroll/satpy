@@ -19,9 +19,10 @@
 
 import unittest
 from unittest import mock
-from unittest.mock import MagicMock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
 import xarray as xr
+
 from satpy.readers.slstr_l2 import SLSTRL2FileHandler
 
 

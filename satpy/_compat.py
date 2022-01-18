@@ -18,11 +18,18 @@
 """Backports and compatibility fixes for satpy."""
 
 try:
-    from functools import cached_property
+    from functools import cached_property  # type: ignore
 except ImportError:
     # for python < 3.8
     from functools import lru_cache
 
-    def cached_property(func):
+    def cached_property(func):  # type: ignore
         """Port back functools.cached_property."""
         return property(lru_cache(maxsize=None)(func))
+
+
+try:
+    from numpy.typing import ArrayLike  # noqa
+except ImportError:
+    # numpy <1.20
+    from numpy import ndarray as ArrayLike  # noqa

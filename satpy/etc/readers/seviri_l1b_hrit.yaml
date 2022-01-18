@@ -160,11 +160,11 @@ file_types:
 
     HRIT_PRO:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-PRO______-{start_time:%Y%m%d%H%M}-__']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-PRO______-{start_time:%Y%m%d%H%M}-__', '{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-PRO______-{start_time:%Y%m%d%H%M}-__.bz2']
 
     HRIT_EPI:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-EPI______-{start_time:%Y%m%d%H%M}-__']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-EPI______-{start_time:%Y%m%d%H%M}-__', '{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-_________-EPI______-{start_time:%Y%m%d%H%M}-__.bz2']
 
 datasets:
   HRV:

@@ -148,26 +148,20 @@ References
     - `[Handbook]`_ MFG User Handbook
     - `[PUG]`_ FIDUCEO MVIRI FCDR Product User Guide
 
-.. _[Handbook]: http://www.eumetsat.int/\
-website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TD06_MARF&\
-RevisionSelectionMethod=LatestReleased&Rendition=Web
+.. _[Handbook]: https://www.eumetsat.int/media/7323
 .. _[PUG]: http://doi.org/10.15770/EUM_SEC_CLM_0009
 """
 
 import abc
-from functools import lru_cache
 import warnings
+from functools import lru_cache
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers._geos_area import (
-    sampling_to_lfac_cfac,
-    get_area_definition,
-    get_area_extent
-)
+from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
 from satpy.readers.file_handlers import BaseFileHandler
 
 EQUATOR_RADIUS = 6378140.0
@@ -608,7 +602,7 @@ class FiduceoMviriBase(BaseFileHandler):
                 ds = qc.mask(ds)
             else:
                 qc.check()
-        ds['acq_time'] = ('y', self._get_acq_time(resolution))
+        ds['acq_time'] = self._get_acq_time(resolution)
         return ds
 
     @lru_cache(maxsize=8)  # 4 angle datasets with two resolutions each

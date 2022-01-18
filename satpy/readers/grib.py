@@ -23,17 +23,18 @@ of writing.
 
 """
 import logging
-import numpy as np
-import xarray as xr
-import dask.array as da
-from pyproj import Proj
-from pyresample import geometry
 from datetime import datetime
 
-from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.dataset import DataQuery
+import dask.array as da
+import numpy as np
 import pygrib
+import xarray as xr
+from pyproj import Proj
+from pyresample import geometry
+
+from satpy import CHUNK_SIZE
+from satpy.dataset import DataQuery
+from satpy.readers.file_handlers import BaseFileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -101,9 +102,9 @@ class GRIBFileHandler(BaseFileHandler):
             self._msg_datasets[msg_id] = ds_info
 
     @staticmethod
-    def _convert_datetime(msg, date_key, time_key, format="%Y%m%d%H%M"):
+    def _convert_datetime(msg, date_key, time_key, date_format="%Y%m%d%H%M"):
         date_str = "{:d}{:04d}".format(msg[date_key], msg[time_key])
-        return datetime.strptime(date_str, format)
+        return datetime.strptime(date_str, date_format)
 
     @property
     def start_time(self):
@@ -271,25 +272,33 @@ class GRIBFileHandler(BaseFileHandler):
             center_description = msg['centreDescription']
         except (RuntimeError, KeyError):
             center_description = None
+
+        key_dicts = {
+            'shortName': 'shortName',
+            'long_name': 'name',
+            'pressureUnits': 'pressureUnits',
+            'typeOfLevel': 'typeOfLevel',
+            'standard_name': 'cfName',
+            'units': 'units',
+            'modelName': 'modelName',
+            'valid_min': 'minimum',
+            'valid_max': 'maximum',
+            'sensor': 'modelName'}
+
         ds_info.update({
             'filename': self.filename,
-            'shortName': msg['shortName'],
-            'long_name': msg['name'],
-            'pressureUnits': msg['pressureUnits'],
-            'typeOfLevel': msg['typeOfLevel'],
-            'standard_name': msg['cfName'],
-            'units': msg['units'],
-            'modelName': msg['modelName'],
             'model_time': model_time,
             'centreDescription': center_description,
-            'valid_min': msg['minimum'],
-            'valid_max': msg['maximum'],
             'start_time': start_time,
             'end_time': end_time,
-            'sensor': msg['modelName'],
-            # National Weather Prediction
-            'platform_name': 'unknown',
-        })
+            'platform_name': 'unknown'})
+
+        for key in key_dicts:
+            if key_dicts[key] in msg.keys():
+                ds_info[key] = msg[key_dicts[key]]
+            else:
+                ds_info[key] = 'unknown'
+
         return ds_info
 
     def get_dataset(self, dataset_id, ds_info):

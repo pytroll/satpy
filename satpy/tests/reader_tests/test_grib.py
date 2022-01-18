@@ -22,8 +22,8 @@ import sys
 from unittest import mock
 
 import numpy as np
-import xarray as xr
 import pytest
+import xarray as xr
 
 from satpy.dataset import DataQuery
 
@@ -41,6 +41,11 @@ TEST_PARAMS = (
         [12.19, 14.34208538, 54.56534318, 57.32843565]
     ),
 )
+
+
+def fake_gribdata():
+    """Return some faked data for use as grib values."""
+    return np.arange(25.).reshape((5, 5))
 
 
 def _round_trip_projection_lonlat_check(area):
@@ -77,6 +82,10 @@ class FakeMessage(object):
         self.projparams = proj_params
         self._latlons = latlons
 
+    def keys(self):
+        """Get message keys."""
+        return self.attrs.keys()
+
     def latlons(self):
         """Get coordinates."""
         return self._latlons
@@ -101,7 +110,7 @@ class FakeGRIB(object):
         else:
             self._messages = [
                 FakeMessage(
-                    values=np.arange(25.).reshape((5, 5)),
+                    values=fake_gribdata(),
                     name='TEST',
                     shortName='t',
                     level=100,
@@ -115,7 +124,7 @@ class FakeGRIB(object):
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
-                    modelName='unknown',
+                    modelName='notknown',
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
@@ -124,7 +133,7 @@ class FakeGRIB(object):
                     latlons=latlons,
                 ),
                 FakeMessage(
-                    values=np.arange(25.).reshape((5, 5)),
+                    values=fake_gribdata(),
                     name='TEST',
                     shortName='t',
                     level=200,
@@ -138,16 +147,16 @@ class FakeGRIB(object):
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
-                    modelName='unknown',
+                    modelName='notknown',
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
-                    jScansPositively=0,
+                    jScansPositively=1,
                     proj_params=proj_params,
                     latlons=latlons,
                 ),
                 FakeMessage(
-                    values=np.arange(25.).reshape((5, 5)),
+                    values=fake_gribdata(),
                     name='TEST',
                     shortName='t',
                     level=300,
@@ -161,7 +170,6 @@ class FakeGRIB(object):
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
-                    modelName='unknown',
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
@@ -190,7 +198,6 @@ class FakeGRIB(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit."""
-        pass
 
 
 class TestGRIBReader:
@@ -200,7 +207,7 @@ class TestGRIBReader:
 
     def setup_method(self):
         """Wrap pygrib to read fake data."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
 
         try:
@@ -307,3 +314,30 @@ class TestGRIBReader:
         if not hasattr(area, 'crs'):
             pytest.skip("Can't test with pyproj < 2.0")
         _round_trip_projection_lonlat_check(area)
+
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_missing_attributes(self, proj_params, lon_corners, lat_corners):
+        """Check that the grib reader handles missing attributes in the grib file."""
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+
+        # This has modelName
+        query_contains = DataQuery(name='t', level=100, modifiers=tuple())
+        # This does not have modelName
+        query_not_contains = DataQuery(name='t', level=300, modifiers=tuple())
+        dataset = self._get_test_datasets([query_contains, query_not_contains], fake_pygrib)
+        assert dataset[query_contains].attrs['modelName'] == 'notknown'
+        assert dataset[query_not_contains].attrs['modelName'] == 'unknown'
+
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_jscanspositively(self, proj_params, lon_corners, lat_corners):
+        """Check that data is flipped if the jScansPositively is present."""
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+
+        # This has no jScansPositively
+        query_not_contains = DataQuery(name='t', level=100, modifiers=tuple())
+        # This contains jScansPositively
+        query_contains = DataQuery(name='t', level=200, modifiers=tuple())
+        dataset = self._get_test_datasets([query_contains, query_not_contains], fake_pygrib)
+
+        np.testing.assert_allclose(fake_gribdata(), dataset[query_not_contains].values)
+        np.testing.assert_allclose(fake_gribdata(), dataset[query_contains].values[::-1])

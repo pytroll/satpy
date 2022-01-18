@@ -15,17 +15,21 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to MTG-FCI-FDHSI L1C NetCDF files.
+"""Interface to MTG-FCI L1c NetCDF files.
 
-This module defines the :class:`FCIFDHSIFileHandler` file handler, to
+This module defines the :class:`FCIL1cNCFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
-Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
+Imager (FCI) Level-1c data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
 in 2022 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
 For simulated test data to be used with this reader, see `test data release`_.
 For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
+.. note::
+    This reader currently supports Full Disk High Spectral Resolution Imagery
+    (FDHSI) files. Support for High Spatial Resolution Fast Imagery (HRFI) files
+    will be implemented when corresponding test datasets will be available.
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -55,12 +59,20 @@ geostationary altitude, and longitude of projection origin, are passed on to
 ``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
 geolocation calculations.
 
-The brightness temperature and reflectance calculation is based on the formulas indicated in
-`PUG`_.
 
 The reading routine supports channel data in counts, radiances, and (depending
-on channel) brightness temperatures or reflectances.  For each channel, it also
-supports the pixel quality, obtained by prepending the channel name such as
+on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on the formulas indicated in
+`PUG`_.
+Radiance datasets are returned in units of radiance per unit wavenumber (mW m-2 sr-1 (cm-1)-1). Radiances can be
+converted to units of radiance per unit wavelength (W m-2 um-1 sr-1) by multiplying with the
+`radiance_unit_conversion_coefficient` dataset attribute.
+
+For each channel, it also supports a number of auxiliary datasets, such as the pixel quality,
+the index map and the related geometric and acquisition parameters: time,
+subsatellite latitude, subsatellite longitude, platform altitude, subsolar latitude, subsolar longitude,
+earth-sun distance, sun-satellite distance,  swath number, and swath direction.
+
+All auxiliary data can be obtained by prepending the channel name such as
 ``"vis_04_pixel_quality"``.
 
 .. warning::
@@ -75,15 +87,15 @@ supports the pixel quality, obtained by prepending the channel name such as
 .. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
 """
 
-from __future__ import (division, absolute_import, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+
 import numpy as np
 import xarray as xr
-
-from pyresample import geometry
 from netCDF4 import default_fillvals
+from pyresample import geometry
+
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
@@ -91,15 +103,52 @@ from .netcdf_utils import NetCDF4FileHandler
 
 logger = logging.getLogger(__name__)
 
+# dict containing all available auxiliary data parameters to be read using the index map. Keys are the
+# parameter name and values are the paths to the variable inside the netcdf
+AUX_DATA = {
+    'subsatellite_latitude': 'state/platform/subsatellite_latitude',
+    'subsatellite_longitude': 'state/platform/subsatellite_longitude',
+    'platform_altitude': 'state/platform/platform_altitude',
+    'subsolar_latitude': 'state/celestial/subsolar_latitude',
+    'subsolar_longitude': 'state/celestial/subsolar_longitude',
+    'earth_sun_distance': 'state/celestial/earth_sun_distance',
+    'sun_satellite_distance': 'state/celestial/sun_satellite_distance',
+    'time': 'time',
+    'swath_number': 'data/swath_number',
+    'swath_direction': 'data/swath_direction',
+}
 
-class FCIFDHSIFileHandler(NetCDF4FileHandler):
-    """Class implementing the MTG FCI FDHSI File .
+
+def _get_aux_data_name_from_dsname(dsname):
+    aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
+    if len(aux_data_name) > 0:
+        return aux_data_name[0]
+
+    return None
+
+
+def _get_channel_name_from_dsname(dsname):
+    # FIXME: replace by .removesuffix after we drop support for Python < 3.9
+    if dsname.endswith("_pixel_quality"):
+        channel_name = dsname[:-len("_pixel_quality")]
+    elif dsname.endswith("_index_map"):
+        channel_name = dsname[:-len("_index_map")]
+    elif _get_aux_data_name_from_dsname(dsname) is not None:
+        channel_name = dsname[:-len(_get_aux_data_name_from_dsname(dsname)) - 1]
+    else:
+        channel_name = dsname
+
+    return channel_name
+
+
+class FCIL1cNCFileHandler(NetCDF4FileHandler):
+    """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
-    Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) reader.
+    Combined Imager (FCI) Level-1c NetCDF reader.
     It is designed to be used through the :class:`~satpy.Scene`
     class using the :mod:`~satpy.Scene.load` method with the reader
-    ``"fci_l1c_fdhsi"``.
+    ``"fci_l1c_nc"``.
 
     """
 
@@ -112,17 +161,17 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     # numbering will be considering MTG-S1 and MTG-S2 will be launched
     # in-between.
     _platform_name_translate = {
-            "MTI1": "MTG-I1",
-            "MTI2": "MTG-I2",
-            "MTI3": "MTG-I3",
-            "MTI4": "MTG-I4"}
+        "MTI1": "MTG-I1",
+        "MTI2": "MTG-I2",
+        "MTI3": "MTG-I3",
+        "MTI4": "MTG-I4"}
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
-        super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
-                                                  filetype_info,
-                                                  cache_var_size=10000,
-                                                  cache_handle=True)
+        super().__init__(filename, filename_info,
+                         filetype_info,
+                         cache_var_size=10000,
+                         cache_handle=True)
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
@@ -143,11 +192,15 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         """Load a dataset."""
         logger.debug('Reading {} from {}'.format(key['name'], self.filename))
         if "pixel_quality" in key['name']:
-            return self._get_dataset_quality(key, info=info)
+            return self._get_dataset_quality(key['name'])
+        elif "index_map" in key['name']:
+            return self._get_dataset_index_map(key['name'])
+        elif _get_aux_data_name_from_dsname(key['name']) is not None:
+            return self._get_dataset_aux_data(key['name'])
         elif any(lb in key['name'] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
-            raise ValueError("Unknown dataset key, not a channel or quality: "
+            raise ValueError("Unknown dataset key, not a channel, quality or auxiliary data: "
                              f"{key['name']:s}")
 
     def _get_dataset_measurand(self, key, info=None):
@@ -180,20 +233,21 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         res = self.calibrate(data, key)
 
         # pre-calibration units no longer apply
-        info.pop("units")
         attrs.pop("units")
 
         # For each channel, the effective_radiance contains in the
         # "ancillary_variables" attribute the value "pixel_quality".  In
         # FileYAMLReader._load_ancillary_variables, satpy will try to load
         # "pixel_quality" but is lacking the context from what group to load
-        # it.  Until we can have multiple pixel_quality variables defined (for
+        # it: in the FCI format, each channel group (data/<channel>/measured) has
+        # its own data variable 'pixel_quality'.
+        # Until we can have multiple pixel_quality variables defined (for
         # example, with https://github.com/pytroll/satpy/pull/1088), rewrite
-        # the ancillary variable to include the channel.  See also
+        # the ancillary variable to include the channel. See also
         # https://github.com/pytroll/satpy/issues/1171.
         if "pixel_quality" in attrs["ancillary_variables"]:
             attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
-                    "pixel_quality", key['name'] + "_pixel_quality")
+                "pixel_quality", key['name'] + "_pixel_quality")
         else:
             raise ValueError(
                 "Unexpected value for attribute ancillary_variables, "
@@ -206,7 +260,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         res.attrs.update(attrs)
 
         res.attrs["platform_name"] = self._platform_name_translate.get(
-                self["/attr/platform"], self["/attr/platform"])
+            self["/attr/platform"], self["/attr/platform"])
 
         # remove unpacking parameters for calibrated data
         if key['calibration'] in ['brightness_temperature', 'reflectance']:
@@ -220,27 +274,56 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return res
 
-    def _get_dataset_quality(self, key, info=None):
-        """Load quality for channel.
-
-        Load a quality field for an FCI channel.  This is a bit involved in
-        case of FCI because each channel group (data/<channel>/measured) has
-        its own data variable 'pixel_quality', referred to in ancillary
-        variables (see also Satpy issue 1171), so some special treatment in
-        necessary.
-        """
-        # FIXME: replace by .removesuffix after we drop support for Python < 3.9
-        if key['name'].endswith("_pixel_quality"):
-            chan_lab = key['name'][:-len("_pixel_quality")]
-        else:
-            raise ValueError("Quality label must end with pixel_quality, got "
-                             f"{key['name']:s}")
-        grp_path = self.get_channel_measured_group_path(chan_lab)
+    def _get_dataset_quality(self, dsname):
+        """Load a quality field for an FCI channel."""
+        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
         return data
 
-    def get_channel_measured_group_path(self, channel):
+    def _get_dataset_index_map(self, dsname):
+        """Load the index map for an FCI channel."""
+        grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
+        dv_path = grp_path + "/index_map"
+        data = self[dv_path]
+
+        data = data.where(data != data.attrs.get('_FillValue', 65535))
+        return data
+
+    def _get_aux_data_lut_vector(self, aux_data_name):
+        """Load the lut vector of an auxiliary variable."""
+        lut = self[AUX_DATA[aux_data_name]]
+
+        fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
+        lut = lut.where(lut != fv)
+
+        return lut
+
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block.astype('uint16')]
+
+    def _get_dataset_aux_data(self, dsname):
+        """Get the auxiliary data arrays using the index map."""
+        # get index map
+        index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
+        # index map indexing starts from 1
+        index_map -= 1
+
+        # get lut values from 1-d vector
+        lut = self._get_aux_data_lut_vector(_get_aux_data_name_from_dsname(dsname))
+
+        # assign lut values based on index map indices
+        aux = index_map.data.map_blocks(self._getitem, lut.data, dtype=lut.data.dtype)
+        aux = xr.DataArray(aux, dims=index_map.dims, attrs=index_map.attrs, coords=index_map.coords)
+
+        # filter out out-of-disk values
+        aux = aux.where(index_map >= 0)
+
+        return aux
+
+    @staticmethod
+    def get_channel_measured_group_path(channel):
         """Get the channel's measured group path."""
         measured_group_path = 'data/{}/measured'.format(channel)
 
@@ -248,19 +331,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
-        # if a user requests a pixel quality before the channel data, the
-        # yaml-reader will ask the area extent of the pixel quality field,
+        # if a user requests a pixel quality or index map before the channel data, the
+        # yaml-reader will ask the area extent of the pixel quality/index map field,
         # which will ultimately end up here
-        if key['name'].endswith("_pixel_quality"):
-            lab = key['name'][:-len("_pixel_quality")]
-        else:
-            lab = key['name']
+        channel_name = _get_channel_name_from_dsname(key['name'])
         # Get metadata for given dataset
-        measured = self.get_channel_measured_group_path(lab)
+        measured = self.get_channel_measured_group_path(channel_name)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
-        logger.debug('Channel {} resolution: {}'.format(lab, ncols))
+        logger.debug('Channel {} resolution: {}'.format(channel_name, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
@@ -268,7 +348,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         extents = {}
         for coord in "xy":
-            coord_radian = self["data/{:s}/measured/{:s}".format(lab, coord)]
+            coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
 
             # FCI defines pixels by centroids (see PUG), while pyresample
@@ -283,9 +363,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             # The values of y go from negative (South) to positive (North) and the scale factor of y is positive.
 
             # South-West corner (x positive, y negative)
-            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor/2
+            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor / 2
             # North-East corner (x negative, y positive)
-            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor/2
+            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor / 2
 
             # convert to arc length in m
             first_coord = first_coord_radian * h  # arc length in m
@@ -313,8 +393,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return area_extent, nlines, ncols
 
-    def get_area_def(self, key, info=None):
-        """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
+    def get_area_def(self, key):
+        """Calculate on-fly area definition for a dataset in geos-projection."""
         # assumption: channels with same resolution should have same area
         # cache results to improve performance
         if key['resolution'] in self._cache:
@@ -360,16 +440,12 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key['calibration'] == "counts":
-            # from package description, this just means not applying add_offset
-            # and scale_factor
-            data.attrs["units"] = "1"
-        elif key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
+        if key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
             data = self.calibrate_counts_to_physical_quantity(data, key)
-        else:
+        elif key['calibration'] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance' or 'radiance', got "
+                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
                 + key['calibration'] + ".")
 
         return data
@@ -389,7 +465,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate_counts_to_rad(self, data, key):
         """Calibrate counts to radiances."""
-        radiance_units = data.attrs["units"]
         if key['name'] == 'ir_38':
             data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
                             (data * data.attrs.get("warm_scale_factor", 1) +
@@ -401,8 +476,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             data = (data * data.attrs.get("scale_factor", 1) +
                     data.attrs.get("add_offset", 0))
 
-        data.attrs["units"] = radiance_units
-
+        measured = self.get_channel_measured_group_path(key['name'])
+        data.attrs.update({'radiance_unit_conversion_coefficient': self[measured +
+                                                                        '/radiance_unit_conversion_coefficient']})
         return data
 
     def calibrate_rad_to_bt(self, radiance, key):
@@ -428,13 +504,12 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                         v.attrs.get("long_name",
                                     "at least one necessary coefficient"),
                         measured))
-                return radiance*np.nan
+                return radiance * np.nan
 
         nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc**3) / radiance)
+        denom = a * np.log(1 + (c1 * vc ** 3) / radiance)
 
         res = nom / denom - b / a
-        res.attrs["units"] = "K"
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
@@ -448,10 +523,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
-            return radiance*np.nan
+            return radiance * np.nan
 
         sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
 
-        res = 100 * radiance * np.pi * sun_earth_distance**2 / cesi
-        res.attrs["units"] = "%"
+        res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
         return res

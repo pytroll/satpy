@@ -20,11 +20,13 @@
 import logging
 from weakref import WeakValueDictionary
 
-import numpy as np
 import dask.array as da
+import numpy as np
+import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.utils import get_satpos
+from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
+from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
 
 logger = logging.getLogger(__name__)
 
@@ -32,29 +34,7 @@ logger = logging.getLogger(__name__)
 class PSPRayleighReflectance(ModifierBase):
     """Pyspectral-based rayleigh corrector for visible channels."""
 
-    _rayleigh_cache = WeakValueDictionary()
-
-    def get_angles(self, vis):
-        """Get the sun and satellite angles from the current dataarray."""
-        from pyorbital.astronomy import get_alt_az, sun_zenith_angle
-        from pyorbital.orbital import get_observer_look
-
-        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
-        lons = da.where(lons >= 1e30, np.nan, lons)
-        lats = da.where(lats >= 1e30, np.nan, lats)
-        sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-        suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
-
-        sat_lon, sat_lat, sat_alt = get_satpos(vis)
-        sata, satel = get_observer_look(
-            sat_lon,
-            sat_lat,
-            sat_alt / 1000.0,  # km
-            vis.attrs['start_time'],
-            lons, lats, 0)
-        satz = 90 - satel
-        return sata, satz, suna, sunz
+    _rayleigh_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.
@@ -64,17 +44,16 @@ class PSPRayleighReflectance(ModifierBase):
         from pyspectral.rayleigh import Rayleigh
         if not optional_datasets or len(optional_datasets) != 4:
             vis, red = self.match_data_arrays(projectables)
-            sata, satz, suna, sunz = self.get_angles(vis)
-            red.data = da.rechunk(red.data, vis.data.chunks)
+            sata, satz, suna, sunz = get_angles(vis)
         else:
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(
                 projectables + optional_datasets)
-            sata, satz, suna, sunz = optional_datasets
-            # get the dask array underneath
-            sata = sata.data
-            satz = satz.data
-            suna = suna.data
-            sunz = sunz.data
+
+        # get the dask array underneath
+        sata = sata.data
+        satz = satz.data
+        suna = suna.data
+        sunz = sunz.data
 
         # First make sure the two azimuth angles are in the range 0-360:
         sata = sata % 360.
@@ -114,6 +93,14 @@ class PSPRayleighReflectance(ModifierBase):
         return proj
 
 
+def _call_mapped_correction(satz, band_data, corrector, band_name):
+    # need to convert to masked array
+    orig_dtype = band_data.dtype
+    band_data = np.ma.masked_where(np.isnan(band_data), band_data)
+    res = corrector.get_correction(satz, band_name, band_data)
+    return res.filled(np.nan).astype(orig_dtype, copy=False)
+
+
 class PSPAtmosphericalCorrection(ModifierBase):
     """Correct for atmospheric effects."""
 
@@ -129,28 +116,19 @@ class PSPAtmosphericalCorrection(ModifierBase):
         if optional_datasets:
             satz = optional_datasets[0]
         else:
-            from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
-            sat_lon, sat_lat, sat_alt = get_satpos(band)
-            try:
-                dummy, satel = get_observer_look(sat_lon,
-                                                 sat_lat,
-                                                 sat_alt / 1000.0,  # km
-                                                 band.attrs['start_time'],
-                                                 lons, lats, 0)
-            except KeyError:
-                raise KeyError(
-                    'Band info is missing some meta data!')
-            satz = 90 - satel
-            del satel
+            satz = get_satellite_zenith_angle(band)
+        satz = satz.data  # get dask array underneath
 
         logger.info('Correction for limb cooling')
         corrector = AtmosphericalCorrection(band.attrs['platform_name'],
                                             band.attrs['sensor'])
 
-        atm_corr = corrector.get_correction(satz, band.attrs['name'], band)
-        proj = band - atm_corr
-        proj.attrs = band.attrs
+        atm_corr = da.map_blocks(_call_mapped_correction, satz, band.data,
+                                 corrector=corrector,
+                                 band_name=band.attrs['name'],
+                                 meta=np.array((), dtype=band.dtype))
+        proj = xr.DataArray(atm_corr, attrs=band.attrs,
+                            dims=band.dims, coords=band.coords)
         self.apply_modifier_info(band, proj)
 
         return proj

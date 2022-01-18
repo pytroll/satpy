@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2019, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -24,10 +24,59 @@ from datetime import datetime
 from tempfile import mkdtemp
 from unittest.mock import MagicMock, patch
 
+import numpy as np
+import xarray as xr
+
 import satpy.readers.yaml_reader as yr
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy.dataset import DataQuery
+from satpy.dataset.dataid import ModifierTuple
+from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand, FrequencyRange
+from satpy.readers.file_handlers import BaseFileHandler
 from satpy.tests.utils import make_dataid
+
+MHS_YAML_READER_DICT = {
+    'reader': {'name': 'mhs_l1c_aapp',
+               'description': 'AAPP l1c Reader for AMSU-B/MHS data',
+               'sensors': ['mhs'],
+               'default_channels': [1, 2, 3, 4, 5],
+               'data_identification_keys': {'name': {'required': True},
+                                            'frequency_double_sideband':
+                                            {'type': FrequencyDoubleSideBand},
+                                            'frequency_range': {'type': FrequencyRange},
+                                            'resolution': None,
+                                            'polarization': {'enum': ['H', 'V']},
+                                            'calibration': {'enum': ['brightness_temperature'], 'transitive': True},
+                                            'modifiers': {'required': True,
+                                                          'default': [],
+                                                          'type': ModifierTuple}},
+               'config_files': ('satpy/etc/readers/mhs_l1c_aapp.yaml',)},
+    'datasets': {'1': {'name': '1',
+                       'frequency_range': {'central': 89.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'},
+                 '2': {'name': '2',
+                       'frequency_range': {'central': 157.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'},
+                 '3': {'name': '3',
+                       'frequency_double_sideband': {'unit': 'GHz',
+                                                     'central': 183.31,
+                                                     'side': 1.0,
+                                                     'bandwidth': 1.0},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'}},
+    'file_types': {'mhs_aapp_l1c': {'file_reader': BaseFileHandler,
+                                    'file_patterns': [
+                                        'mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c']}}}  # noqa
 
 
 class FakeFH(BaseFileHandler):
@@ -205,6 +254,26 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
 
         self.reader.create_filehandlers(filelist)
         self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
+
+
+class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
+    """Test units from FileYAMLReader with custom id_keys."""
+
+    def setUp(self):
+        """Set up the test case."""
+        self.config = MHS_YAML_READER_DICT
+        self.reader = yr.FileYAMLReader(MHS_YAML_READER_DICT,
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2),
+                                        })
+
+    def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
+        """Test custom type with dictionary contents gets parsed correctly."""
+        ds_ids = list(self.reader.all_dataset_ids)
+        assert ds_ids[0]["frequency_range"] == FrequencyRange(89., 2.8, "GHz")
+
+        assert ds_ids[2]["frequency_double_sideband"] == FrequencyDoubleSideBand(183.31, 1., 1., "GHz")
 
 
 class TestFileFileYAMLReader(unittest.TestCase):
@@ -481,6 +550,76 @@ class TestFileFileYAMLReader(unittest.TestCase):
         self.assertIs(proj, xarray.concat.return_value)
 
 
+class TestFileYAMLReaderLoading(unittest.TestCase):
+    """Tests for FileYAMLReader.load."""
+
+    def setUp(self):
+        """Prepare a reader instance with a fake config."""
+        patterns = ['a{something:3s}.bla']
+        res_dict = {'reader': {'name': 'fake',
+                               'sensors': ['canon']},
+                    'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_reader': BaseFileHandler,
+                                              'file_patterns': patterns}},
+                    'datasets': {'ch1': {'name': 'ch01',
+                                         'wavelength': [0.5, 0.6, 0.7],
+                                         'calibration': 'reflectance',
+                                         'file_type': 'ftype1'},
+                                 }}
+
+        self.config = res_dict
+        self.reader = yr.FileYAMLReader(res_dict,
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2),
+                                        })
+        fake_fh = FakeFH(None, None)
+        self.lons = xr.DataArray(np.ones((2, 2)) * 2,
+                                 dims=['y', 'x'],
+                                 attrs={'standard_name': 'longitude',
+                                        'name': 'longitude'})
+        self.lats = xr.DataArray(np.ones((2, 2)) * 2,
+                                 dims=['y', 'x'],
+                                 attrs={'standard_name': 'latitude',
+                                        'name': 'latitude'})
+        self.data = None
+
+        def _assign_array(dsid, *_args, **_kwargs):
+            if dsid['name'] == 'longitude':
+                return self.lons
+            if dsid['name'] == 'latitude':
+                return self.lats
+            return self.data
+
+        fake_fh.get_dataset.side_effect = _assign_array
+        self.reader.file_handlers = {'ftype1': [fake_fh]}
+
+    def test_load_dataset_with_builtin_coords(self):
+        """Test loading a dataset with builtin coordinates."""
+        self.data = xr.DataArray(np.ones((2, 2)),
+                                 coords={'longitude': self.lons,
+                                         'latitude': self.lats},
+                                 dims=['y', 'x'])
+
+        self._check_area_for_ch01()
+
+    def test_load_dataset_with_builtin_coords_in_wrong_order(self):
+        """Test loading a dataset with builtin coordinates in the wrong order."""
+        self.data = xr.DataArray(np.ones((2, 2)),
+                                 coords={'latitude': self.lats,
+                                         'longitude': self.lons},
+                                 dims=['y', 'x'])
+
+        self._check_area_for_ch01()
+
+    def _check_area_for_ch01(self):
+        res = self.reader.load(['ch01'])
+        assert 'area' in res['ch01'].attrs
+        np.testing.assert_array_equal(res['ch01'].attrs['area'].lons, self.lons)
+        np.testing.assert_array_equal(res['ch01'].attrs['area'].lats, self.lats)
+        assert res['ch01'].attrs.get("reader") == "fake"
+
+
 class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
     """Test units from FileYAMLReader with multiple file types."""
 
@@ -531,28 +670,6 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         from functools import partial
         orig_ids = self.reader.all_ids
 
-        def available_datasets(self, configured_datasets=None):
-            res = self.resolution
-            # update previously configured datasets
-            for is_avail, ds_info in (configured_datasets or []):
-                if is_avail is not None:
-                    yield is_avail, ds_info
-
-                matches = self.file_type_matches(ds_info['file_type'])
-                if matches and ds_info.get('resolution') != res:
-                    new_info = ds_info.copy()
-                    new_info['resolution'] = res
-                    yield True, new_info
-                elif is_avail is None:
-                    yield is_avail, ds_info
-
-        def file_type_matches(self, ds_ftype):
-            if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
-                return True
-            elif self.filetype_info['file_type'] in ds_ftype:
-                return True
-            return None
-
         for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
             # need to copy this because the dataset infos will be modified
             _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
@@ -579,6 +696,34 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     if ftype in file_types:
                         self.assertEqual(resol, ds_id['resolution'])
 
+# Test methods
+
+
+def available_datasets(self, configured_datasets=None):
+    """Fake available_datasets for testing multiple file types."""
+    res = self.resolution
+    # update previously configured datasets
+    for is_avail, ds_info in (configured_datasets or []):
+        if is_avail is not None:
+            yield is_avail, ds_info
+
+        matches = self.file_type_matches(ds_info['file_type'])
+        if matches and ds_info.get('resolution') != res:
+            new_info = ds_info.copy()
+            new_info['resolution'] = res
+            yield True, new_info
+        elif is_avail is None:
+            yield is_avail, ds_info
+
+
+def file_type_matches(self, ds_ftype):
+    """Fake file_type_matches for testing multiple file types."""
+    if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
+        return True
+    if self.filetype_info['file_type'] in ds_ftype:
+        return True
+    return None
+
 
 class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     """Test GEOFlippableFileYAMLReader."""
@@ -587,9 +732,8 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_single_areas(self, ldwa):
         """Test _load_dataset_with_area() for single area definitions."""
-        import xarray as xr
-        import numpy as np
         from pyresample.geometry import AreaDefinition
+
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
@@ -614,8 +758,11 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         )
 
         dummy_ds_xr = xr.DataArray(original_array,
-                                   dims=('y', 'x'),
-                                   attrs={'area': area_def})
+                                   coords={'y': np.arange(2),
+                                           'x': np.arange(3),
+                                           'time': ("y", np.arange(2))},
+                                   attrs={'area': area_def},
+                                   dims=('y', 'x'))
         # assign the dummy xr as return for the super _load_dataset_with_area method
         ldwa.return_value = dummy_ds_xr
 
@@ -623,6 +770,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords)
         np.testing.assert_equal(res.values, original_array)
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check wrong input
         with self.assertRaises(ValueError):
@@ -632,11 +782,17 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords, 'native')
         np.testing.assert_equal(res.values, original_array)
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check upright orientation, nothing should change since area is already upright
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, original_array)
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check that left-right image is flipped correctly
         dummy_ds_xr.attrs['area'] = area_def.copy(area_extent=(1500, -1000, -1500, 1000))
@@ -644,6 +800,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.fliplr(original_array))
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.arange(2))
+        np.testing.assert_equal(res.coords['x'], np.flip(np.arange(3)))
+        np.testing.assert_equal(res.coords['time'], np.arange(2))
 
         # check that upside down image is flipped correctly
         dummy_ds_xr.attrs['area'] = area_def.copy(area_extent=(-1500, 1000, 1500, -1000))
@@ -651,6 +810,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         res = reader._load_dataset_with_area(dsid, coords, 'NE')
         np.testing.assert_equal(res.values, np.flipud(original_array))
         np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+        np.testing.assert_equal(res.coords['y'], np.flip(np.arange(2)))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.flip(np.arange(2)))
 
         # check different projection than geos, nothing should be changed
         area_def = AreaDefinition(
@@ -677,9 +839,8 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
     def test_load_dataset_with_area_for_stacked_areas(self, ldwa):
         """Test _load_dataset_with_area() for stacked area definitions."""
-        import xarray as xr
-        import numpy as np
         from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+
         from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
 
         reader = GEOFlippableFileYAMLReader()
@@ -706,6 +867,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
 
         dummy_ds_xr = xr.DataArray(original_array,
                                    dims=('y', 'x'),
+                                   coords={'y': np.arange(4),
+                                           'x': np.arange(3),
+                                           'time': ("y", np.arange(4))},
                                    attrs={'area': StackedAreaDefinition(area_def0, area_def1)})
 
         # check that left-right image is flipped correctly
@@ -716,6 +880,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.values, np.fliplr(original_array))
         np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[0])
         np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[1])
+        np.testing.assert_equal(res.coords['y'], np.arange(4))
+        np.testing.assert_equal(res.coords['x'], np.flip(np.arange(3)))
+        np.testing.assert_equal(res.coords['time'], np.arange(4))
 
         # check that upside down image is flipped correctly
         dummy_ds_xr.attrs['area'].defs[0] = area_def0.copy(area_extent=(-1500, 1000, 1500, -1000))
@@ -726,6 +893,9 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         # note that the order of the stacked areadefs is flipped here, as expected
         np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[0])
         np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[1])
+        np.testing.assert_equal(res.coords['y'], np.flip(np.arange(4)))
+        np.testing.assert_equal(res.coords['x'], np.arange(3))
+        np.testing.assert_equal(res.coords['time'], np.flip(np.arange(4)))
 
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):
@@ -883,8 +1053,6 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
     def test_get_empty_segment_with_height(self):
         """Test _get_empty_segment_with_height()."""
-        import xarray as xr
-        import numpy as np
         from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
 
         dim = 'y'
@@ -934,7 +1102,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
 
         seg1_area = MagicMock()
-        seg1_area.proj_dict = 'proj_dict'
+        seg1_area.crs = 'some_crs'
         seg1_area.area_extent = [0, 1000, 200, 500]
         seg1_area.shape = [200, 500]
         get_area_def = MagicMock()
@@ -950,7 +1118,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         res = plsa(file_handlers, dataid)
         self.assertEqual(len(res), 2)
         seg2_extent = (0, 1500, 200, 1000)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 500, 200,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
@@ -960,7 +1128,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
 
         seg1_area = MagicMock()
-        seg1_area.proj_dict = 'proj_dict'
+        seg1_area.crs = 'some_crs'
         seg1_area.area_extent = [0, 1000, 200, 500]
         seg1_area.shape = [556, 11136]
         get_area_def = MagicMock()
@@ -981,7 +1149,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 1000+250=1250
         seg2_extent = (0, 1250, 200, 1000)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 11136, 278,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 11136, 278,
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
@@ -991,7 +1159,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
-        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.crs = 'some_crs'
         seg2_area.area_extent = [0, 1000, 200, 500]
         seg2_area.shape = [200, 500]
         get_area_def = MagicMock()
@@ -1008,7 +1176,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         res = pesa(file_handlers, dataid, area_defs)
         self.assertEqual(len(res), 2)
         seg1_extent = (0, 500, 200, 0)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 500, 200,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 500, 200,
                          seg1_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
@@ -1018,7 +1186,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
 
         seg2_area = MagicMock()
-        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.crs = 'some_crs'
         seg2_area.area_extent = [0, 1000, 200, 500]
         seg2_area.shape = [278, 5568]
         get_area_def = MagicMock()
@@ -1040,13 +1208,14 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
         # The new area extent lower-left row is therefore 500-250=250
         seg1_extent = (0, 500, 200, 250)
-        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 5568, 139,
+        expected_call = ('fill', 'fill', 'fill', 'some_crs', 5568, 139,
                          seg1_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
     def test_find_missing_segments(self):
         """Test _find_missing_segments()."""
         from satpy.readers.yaml_reader import _find_missing_segments as fms
+
         # Dataset with only one segment
         filename_info = {'segment': 1}
         fh_seg1 = MagicMock(filename_info=filename_info)

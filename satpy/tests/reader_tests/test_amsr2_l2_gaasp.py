@@ -18,12 +18,13 @@
 """Tests for the 'amsr2_l2_gaasp' reader."""
 
 import os
-from unittest import mock
 from datetime import datetime
-import pytest
-import xarray as xr
+from unittest import mock
+
 import dask.array as da
 import numpy as np
+import pytest
+import xarray as xr
 
 MBT_FILENAME = "AMSR2-MBT_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
 PRECIP_FILENAME = "AMSR2-PRECIP_v2r2_GW1_s202008120558310_e202008120607010_c202008120637340.nc"
@@ -171,7 +172,7 @@ class TestGAASPReader:
 
     def setup_method(self):
         """Wrap pygrib to read fake data."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
 
     @pytest.mark.parametrize(

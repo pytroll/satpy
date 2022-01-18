@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2019, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,29 +23,30 @@ import logging
 import os
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections import deque, OrderedDict
+from collections import OrderedDict, deque
+from contextlib import suppress
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
+import numpy as np
 import xarray as xr
 import yaml
-import numpy as np
 
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
-from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
-from satpy.resample import get_area_def
-from satpy.config import recursive_dict_update
-from satpy.dataset import DataQuery, DataID, get_key
-from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
-from satpy import DatasetDict
-from satpy.resample import add_crs_xy_coords
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
-from pyresample.geometry import AreaDefinition
+
+from satpy import DatasetDict
+from satpy.aux_download import DataDownloadMixin
+from satpy.dataset import DataID, DataQuery, get_key
+from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
+from satpy.resample import add_crs_xy_coords, get_area_def
+from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +60,9 @@ def listify_string(something):
     """
     if isinstance(something, str):
         return [something]
-    elif something is not None:
+    if something is not None:
         return list(something)
-    else:
-        return list()
+    return list()
 
 
 def _get_filebase(path, pattern):
@@ -220,8 +220,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         if sensor and not (set(self.info.get("sensors")) &
                            set(listify_string(sensor))):
             return False
-        else:
-            return True
+        return True
 
     def select_files_from_directory(
             self, directory=None, fs=None):
@@ -293,26 +292,8 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             id_keys = get_keys_from_config(self._id_keys, dataset)
 
             # Build each permutation/product of the dataset
-            id_kwargs = []
-            for key, idval in id_keys.items():
-                val = dataset.get(key, idval.get('default') if idval is not None else None)
-                val_type = None
-                if idval is not None:
-                    val_type = idval.get('type')
-                if val_type is not None and issubclass(val_type, tuple):
-                    # special case: wavelength can be [min, nominal, max]
-                    # but is still considered 1 option
-                    id_kwargs.append((val,))
-                elif isinstance(val, (list, tuple, set)):
-                    # this key has multiple choices
-                    # (ex. 250 meter, 500 meter, 1000 meter resolutions)
-                    id_kwargs.append(val)
-                elif isinstance(val, dict):
-                    id_kwargs.append(val.keys())
-                else:
-                    # this key only has one choice so make it a one
-                    # item iterable
-                    id_kwargs.append((val,))
+            id_kwargs = self._build_id_permutations(dataset, id_keys)
+
             for id_params in itertools.product(*id_kwargs):
                 dsid = DataID(id_keys, **dict(zip(id_keys, id_params)))
                 ids.append(dsid)
@@ -321,15 +302,42 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 ds_info = dataset.copy()
                 for key in dsid.keys():
                     if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][dsid.get(key)])
+                        with suppress(KeyError):
+                            # KeyError is suppressed in case the key does not represent interesting metadata,
+                            # eg a custom type
+                            ds_info.update(ds_info[key][dsid.get(key)])
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = dsid.get(key)
                 self.all_ids[dsid] = ds_info
         return ids
 
+    def _build_id_permutations(self, dataset, id_keys):
+        """Build each permutation/product of the dataset."""
+        id_kwargs = []
+        for key, idval in id_keys.items():
+            val = dataset.get(key, idval.get('default') if idval is not None else None)
+            val_type = None
+            if idval is not None:
+                val_type = idval.get('type')
+            if val_type is not None and issubclass(val_type, tuple):
+                # special case: wavelength can be [min, nominal, max]
+                # but is still considered 1 option
+                id_kwargs.append((val,))
+            elif isinstance(val, (list, tuple, set)):
+                # this key has multiple choices
+                # (ex. 250 meter, 500 meter, 1000 meter resolutions)
+                id_kwargs.append(val)
+            elif isinstance(val, dict):
+                id_kwargs.append(val.keys())
+            else:
+                # this key only has one choice so make it a one
+                # item iterable
+                id_kwargs.append((val,))
+        return id_kwargs
 
-class FileYAMLReader(AbstractYAMLReader):
+
+class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
     """Primary reader base class that is configured by a YAML file.
 
     This class uses the idea of per-file "file handler" objects to read file
@@ -354,6 +362,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
         self.coords_cache = WeakValueDictionary()
+        self.register_data_files()
 
     @property
     def sensor_names(self):
@@ -713,6 +722,7 @@ class FileYAMLReader(AbstractYAMLReader):
         # Update the metadata
         proj.attrs['start_time'] = file_handlers[0].start_time
         proj.attrs['end_time'] = file_handlers[-1].end_time
+        proj.attrs['reader'] = self.name
         return proj
 
     def _preferred_filetype(self, filetypes):
@@ -775,32 +785,43 @@ class FileYAMLReader(AbstractYAMLReader):
     def _make_area_from_coords(self, coords):
         """Create an appropriate area with the given *coords*."""
         if len(coords) == 2:
-            lon_sn = coords[0].attrs.get('standard_name')
-            lat_sn = coords[1].attrs.get('standard_name')
-            if lon_sn == 'longitude' and lat_sn == 'latitude':
-                key = None
-                try:
-                    key = (coords[0].data.name, coords[1].data.name)
-                    sdef = self.coords_cache.get(key)
-                except AttributeError:
-                    sdef = None
-                if sdef is None:
-                    sdef = SwathDefinition(*coords)
-                    sensor_str = '_'.join(self.info['sensors'])
-                    shape_str = '_'.join(map(str, coords[0].shape))
-                    sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                     coords[0].attrs['name'],
-                                                     coords[1].attrs['name'])
-                    if key is not None:
-                        self.coords_cache[key] = sdef
-                return sdef
-            else:
-                raise ValueError(
-                    'Coordinates info object missing standard_name key: ' +
-                    str(coords))
-        elif len(coords) != 0:
+            lons, lats = self._get_lons_lats_from_coords(coords)
+            sdef = self._make_swath_definition_from_lons_lats(lons, lats)
+            return sdef
+        if len(coords) != 0:
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
+
+    def _get_lons_lats_from_coords(self, coords):
+        """Get lons and lats from the coords list."""
+        lons, lats = None, None
+        for coord in coords:
+            if coord.attrs.get('standard_name') == 'longitude':
+                lons = coord
+            elif coord.attrs.get('standard_name') == 'latitude':
+                lats = coord
+        if lons is None or lats is None:
+            raise ValueError('Missing longitude or latitude coordinate: ' + str(coords))
+        return lons, lats
+
+    def _make_swath_definition_from_lons_lats(self, lons, lats):
+        """Make a swath definition instance from lons and lats."""
+        key = None
+        try:
+            key = (lons.data.name, lats.data.name)
+            sdef = self.coords_cache.get(key)
+        except AttributeError:
+            sdef = None
+        if sdef is None:
+            sdef = SwathDefinition(lons, lats)
+            sensor_str = '_'.join(self.info['sensors'])
+            shape_str = '_'.join(map(str, lons.shape))
+            sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                             lons.attrs.get('name', lons.name),
+                                             lats.attrs.get('name', lats.name))
+            if key is not None:
+                self.coords_cache[key] = sdef
+        return sdef
 
     def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
         """Get the area for *dsid*."""
@@ -823,35 +844,34 @@ class FileYAMLReader(AbstractYAMLReader):
         if not file_handlers:
             return
 
-        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
-
         try:
             ds = self._load_dataset_data(file_handlers, dsid, **kwargs)
         except (KeyError, ValueError) as err:
             logger.exception("Could not load dataset '%s': %s", dsid, str(err))
             return None
 
+        coords = self._assign_coords_from_dataarray(coords, ds)
+
+        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
+
         if area is not None:
             ds.attrs['area'] = area
             ds = add_crs_xy_coords(ds, area)
         return ds
 
+    @staticmethod
+    def _assign_coords_from_dataarray(coords, ds):
+        """Assign coords from the *ds* dataarray if needed."""
+        if not coords:
+            coords = []
+            for coord in ds.coords.values():
+                if coord.attrs.get('standard_name') in ['longitude', 'latitude']:
+                    coords.append(coord)
+        return coords
+
     def _load_ancillary_variables(self, datasets, **kwargs):
         """Load the ancillary variables of `datasets`."""
-        all_av_ids = set()
-        for dataset in datasets.values():
-            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
-            if not isinstance(ancillary_variables, (list, tuple, set)):
-                ancillary_variables = ancillary_variables.split(' ')
-            av_ids = []
-            for key in ancillary_variables:
-                try:
-                    av_ids.append(self.get_dataset_key(key))
-                except KeyError:
-                    logger.warning("Can't load ancillary dataset %s", str(key))
-
-            all_av_ids |= set(av_ids)
-            dataset.attrs['ancillary_variables'] = av_ids
+        all_av_ids = self._gather_ancillary_variables_ids(datasets)
         loadable_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
         if not all_av_ids:
             return
@@ -866,6 +886,27 @@ class FileYAMLReader(AbstractYAMLReader):
                 else:
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
+
+    def _gather_ancillary_variables_ids(self, datasets):
+        """Gather ancillary variables' ids.
+
+        This adds/modifies the dataset's `ancillary_variables` attr.
+        """
+        all_av_ids = set()
+        for dataset in datasets.values():
+            ancillary_variables = dataset.attrs.get('ancillary_variables', [])
+            if not isinstance(ancillary_variables, (list, tuple, set)):
+                ancillary_variables = ancillary_variables.split(' ')
+            av_ids = []
+            for key in ancillary_variables:
+                try:
+                    av_ids.append(self.get_dataset_key(key))
+                except KeyError:
+                    logger.warning("Can't load ancillary dataset %s", str(key))
+
+            all_av_ids |= set(av_ids)
+            dataset.attrs['ancillary_variables'] = av_ids
+        return all_av_ids
 
     def get_dataset_key(self, key, available_only=False, **kwargs):
         """Get the fully qualified `DataID` matching `key`.
@@ -1013,15 +1054,9 @@ def _get_target_scene_orientation(upper_right_corner):
 
     'NE' corresponds to target_eastright and target_northup being True.
     """
-    if upper_right_corner in ['NW', 'NE']:
-        target_northup = True
-    else:
-        target_northup = False
+    target_northup = upper_right_corner in ['NW', 'NE']
 
-    if upper_right_corner in ['NE', 'SE']:
-        target_eastright = True
-    else:
-        target_eastright = False
+    target_eastright = upper_right_corner in ['NE', 'SE']
 
     return target_eastright, target_northup
 
@@ -1050,10 +1085,10 @@ def _flip_dataset_data_and_area_extents(dataset, area_extents_to_update, flip_di
     """Flip the data and area extents array for a dataset."""
     logger.info("Flipping Dataset {} {}.".format(dataset.attrs.get('name', 'unknown_name'), flip_direction))
     if flip_direction == 'upsidedown':
-        dataset.data = dataset.data[::-1, :]
+        dataset = dataset[::-1, :]
         area_extents_to_update[:, [1, 3]] = area_extents_to_update[:, [3, 1]]
     elif flip_direction == 'leftright':
-        dataset.data = dataset.data[:, ::-1]
+        dataset = dataset[:, ::-1]
         area_extents_to_update[:, [0, 2]] = area_extents_to_update[:, [2, 0]]
     else:
         raise ValueError("Flip direction not recognized. Should be either 'upsidedown' or 'leftright'.")
@@ -1234,7 +1269,7 @@ def _pad_later_segments_area(file_handlers, dsid):
             new_ur_y = area.area_extent[1]
             fill_extent = (area.area_extent[0], new_ll_y,
                            area.area_extent[2], new_ur_y)
-            area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
+            area = AreaDefinition('fill', 'fill', 'fill', area.crs,
                                   seg_size[1], new_height_px,
                                   fill_extent)
 
@@ -1250,7 +1285,6 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
                           fh in file_handlers]
     area = file_handlers[0].get_area_def(dsid)
     seg_size = area.shape
-    proj_dict = area.proj_dict
     padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
 
     for segment in range(available_segments[0] - 1, 0, -1):
@@ -1263,7 +1297,7 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
         fill_extent = (area.area_extent[0], new_ll_y,
                        area.area_extent[2], new_ur_y)
         area = AreaDefinition('fill', 'fill', 'fill',
-                              proj_dict,
+                              area.crs,
                               seg_size[1], new_height_px,
                               fill_extent)
         area_defs[segment] = area
@@ -1326,11 +1360,10 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
     if empty_segment.shape[0] > new_height:
         # if current empty segment is too tall, slice the DataArray
         return empty_segment[:new_height, :]
-    elif empty_segment.shape[0] < new_height:
+    if empty_segment.shape[0] < new_height:
         # if current empty segment is too short, concatenate a slice of the DataArray
         return xr.concat([empty_segment, empty_segment[:new_height - empty_segment.shape[0], :]], dim=dim)
-    else:
-        return empty_segment
+    return empty_segment
 
 
 def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):

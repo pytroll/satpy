@@ -16,11 +16,20 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of utils."""
+from __future__ import annotations
 
+import logging
+import typing
 import unittest
+import warnings
 from unittest import mock
-from numpy import sqrt
-from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters, get_satpos
+
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
+
+from satpy.utils import angle2xyz, get_satpos, lonlat2xyz, proj_units_to_meters, xyz2angle, xyz2lonlat
 
 
 class TestUtils(unittest.TestCase):
@@ -59,14 +68,14 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(z__, -1)
 
         x__, y__, z__ = lonlat2xyz(0, 45)
-        self.assertAlmostEqual(x__, sqrt(2) / 2)
+        self.assertAlmostEqual(x__, np.sqrt(2) / 2)
         self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, sqrt(2) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
 
         x__, y__, z__ = lonlat2xyz(0, 60)
-        self.assertAlmostEqual(x__, sqrt(1) / 2)
+        self.assertAlmostEqual(x__, np.sqrt(1) / 2)
         self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, sqrt(3) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(3) / 2)
 
     def test_angle2xyz(self):
         """Test the lonlat2xyz function."""
@@ -122,13 +131,13 @@ class TestUtils(unittest.TestCase):
 
         x__, y__, z__ = angle2xyz(0, 45)
         self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, sqrt(2) / 2)
-        self.assertAlmostEqual(z__, sqrt(2) / 2)
+        self.assertAlmostEqual(y__, np.sqrt(2) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
 
         x__, y__, z__ = angle2xyz(0, 60)
         self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, sqrt(3) / 2)
-        self.assertAlmostEqual(z__, sqrt(1) / 2)
+        self.assertAlmostEqual(y__, np.sqrt(3) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(1) / 2)
 
     def test_xyz2lonlat(self):
         """Test xyz2lonlat."""
@@ -148,7 +157,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(lon, 0)
         self.assertAlmostEqual(lat, 90)
 
-        lon, lat = xyz2lonlat(sqrt(2) / 2, sqrt(2) / 2, 0)
+        lon, lat = xyz2lonlat(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
         self.assertAlmostEqual(lon, 45)
         self.assertAlmostEqual(lat, 0)
 
@@ -170,7 +179,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(azi, 0)
         self.assertAlmostEqual(zen, 0)
 
-        azi, zen = xyz2angle(sqrt(2) / 2, sqrt(2) / 2, 0)
+        azi, zen = xyz2angle(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
         self.assertAlmostEqual(azi, 45)
         self.assertAlmostEqual(zen, 90)
 
@@ -257,9 +266,6 @@ def test_make_fake_scene():
     purposes, it has grown sufficiently complex that it needs its own
     testing.
     """
-    import numpy as np
-    import dask.array as da
-    import xarray as xr
     from satpy.tests.utils import make_fake_scene
 
     assert make_fake_scene({}).keys() == []
@@ -285,3 +291,126 @@ def test_make_fake_scene():
             attrs={"please": "preserve", "answer": 42})},
         common_attrs={"bad words": "semprini bahnhof veerooster winterbanden"})
     assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}
+
+
+class TestCheckSatpy(unittest.TestCase):
+    """Test the 'check_satpy' function."""
+
+    def test_basic_check_satpy(self):
+        """Test 'check_satpy' basic functionality."""
+        from satpy.utils import check_satpy
+        check_satpy()
+
+    def test_specific_check_satpy(self):
+        """Test 'check_satpy' with specific features provided."""
+        from satpy.utils import check_satpy
+        with mock.patch('satpy.utils.print') as print_mock:
+            check_satpy(readers=['viirs_sdr'], extras=('cartopy', '__fake'))
+            checked_fake = False
+            for call in print_mock.mock_calls:
+                if len(call[1]) > 0 and '__fake' in call[1][0]:
+                    self.assertNotIn('ok', call[1][1])
+                    checked_fake = True
+            self.assertTrue(checked_fake, "Did not find __fake module "
+                                          "mentioned in checks")
+
+
+def test_debug_on(caplog):
+    """Test that debug_on is working as expected."""
+    from satpy.utils import debug, debug_off, debug_on
+
+    def depwarn():
+        logger = logging.getLogger("satpy.silly")
+        logger.debug("But now it's just got SILLY.")
+        warnings.warn("Stop that! It's SILLY.", DeprecationWarning)
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    debug_on(False)
+    filts_before = warnings.filters.copy()
+    # test that logging on, but deprecation warnings still off
+    with caplog.at_level(logging.DEBUG):
+        depwarn()
+    assert warnings.filters == filts_before
+    assert "But now it's just got SILLY." in caplog.text
+    debug_on(True)
+    # test that logging on and deprecation warnings on
+    with pytest.warns(DeprecationWarning):
+        depwarn()
+    assert warnings.filters != filts_before
+    debug_off()  # other tests assume debugging is off
+    # test that filters were reset
+    assert warnings.filters == filts_before
+    with debug():
+        assert warnings.filters != filts_before
+    assert warnings.filters == filts_before
+
+
+def test_logging_on_and_off(caplog):
+    """Test that switching logging on and off works."""
+    from satpy.utils import logging_off, logging_on
+    logger = logging.getLogger("satpy.silly")
+    logging_on()
+    with caplog.at_level(logging.WARNING):
+        logger.debug("I'd like to leave the army please, sir.")
+        logger.warning("Stop that!  It's SILLY.")
+    assert "Stop that!  It's SILLY" in caplog.text
+    assert "I'd like to leave the army please, sir." not in caplog.text
+    logging_off()
+    with caplog.at_level(logging.DEBUG):
+        logger.warning("You've got a nice army base here, Colonel.")
+    assert "You've got a nice army base here, Colonel." not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("shapes", "chunks", "dims", "exp_unified"),
+    [
+        (
+                ((3, 5, 5), (5, 5)),
+                (-1, -1),
+                (("bands", "y", "x"), ("y", "x")),
+                True,
+        ),
+        (
+                ((3, 5, 5), (5, 5)),
+                (-1, 2),
+                (("bands", "y", "x"), ("y", "x")),
+                True,
+        ),
+        (
+                ((4, 5, 5), (3, 5, 5)),
+                (-1, -1),
+                (("bands", "y", "x"), ("bands", "y", "x")),
+                False,
+        ),
+    ],
+)
+def test_unify_chunks(shapes, chunks, dims, exp_unified):
+    """Test unify_chunks utility function."""
+    from satpy.utils import unify_chunks
+    inputs = list(_data_arrays_from_params(shapes, chunks, dims))
+    results = unify_chunks(*inputs)
+    if exp_unified:
+        _verify_unified(results)
+    else:
+        _verify_unchanged_chunks(results, inputs)
+
+
+def _data_arrays_from_params(shapes: list[tuple[int, ...]],
+                             chunks: list[tuple[int, ...]],
+                             dims: list[tuple[int, ...]]
+                             ) -> typing.Generator[xr.DataArray, None, None]:
+    for shape, chunk, dim in zip(shapes, chunks, dims):
+        yield xr.DataArray(da.ones(shape, chunks=chunk), dims=dim)
+
+
+def _verify_unified(data_arrays: list[xr.DataArray]) -> None:
+    dim_chunks: dict[str, int] = {}
+    for data_arr in data_arrays:
+        for dim, chunk_size in zip(data_arr.dims, data_arr.chunks):
+            exp_chunks = dim_chunks.setdefault(dim, chunk_size)
+            assert exp_chunks == chunk_size
+
+
+def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
+                             orig_arrays: list[xr.DataArray]) -> None:
+    for data_arr, orig_arr in zip(data_arrays, orig_arrays):
+        assert data_arr.chunks == orig_arr.chunks

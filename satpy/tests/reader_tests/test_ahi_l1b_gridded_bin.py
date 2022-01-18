@@ -17,21 +17,24 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ahi_l1b_gridded_bin reader tests package."""
 
-import unittest
-from unittest import mock
-import numpy as np
-import dask.array as da
-from pyresample.geometry import AreaDefinition
-from satpy.readers.ahi_l1b_gridded_bin import AHIGriddedFileHandler, AHI_LUT_NAMES
 import os
 import shutil
 import tempfile
+import unittest
+from unittest import mock
+
+import dask.array as da
+import numpy as np
+from pyresample.geometry import AreaDefinition
+
+from satpy.readers.ahi_l1b_gridded_bin import AHI_LUT_NAMES, AHIGriddedFileHandler
 
 
 class TestAHIGriddedArea(unittest.TestCase):
     """Test the AHI gridded reader definition."""
 
     def setUp(self):
+        """Create fake data for testing."""
         self.FULLDISK_SIZES = {0.005: {'x_size': 24000,
                                        'y_size': 24000},
                                0.01: {'x_size': 12000,
@@ -71,7 +74,6 @@ class TestAHIGriddedArea(unittest.TestCase):
 
     def test_area_def(self):
         """Check that a valid full disk area is produced."""
-
         good_area = AreaDefinition('gridded_himawari',
                                    'A gridded Himawari area',
                                    'longlat',
@@ -85,7 +87,7 @@ class TestAHIGriddedArea(unittest.TestCase):
         self.assertEqual(tmp_fh.area, good_area)
 
     def test_bad_area(self):
-        """"Ensure an error is raised for an usupported area."""
+        """Ensure an error is raised for an usupported area."""
         tmp_fh = self.make_fh('ext.01')
         tmp_fh.areaname = 'scanning'
         with self.assertRaises(NotImplementedError):
@@ -111,7 +113,7 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_l1b_gridded_bin.os.path.exists')
     @mock.patch('satpy.readers.ahi_l1b_gridded_bin.np.loadtxt')
     def test_calibrate(self, np_loadtxt, os_exist, get_luts):
-        """Test the calibration modes of AHI using the LUTs"""
+        """Test the calibration modes of AHI using the LUTs."""
         load_return = np.squeeze(np.dstack([np.arange(0, 2048, 1),
                                             np.arange(0, 120, 0.05859375)]))
 
@@ -150,12 +152,11 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
 
 class TestAHIGriddedFileHandler(unittest.TestCase):
     """Test case for the file reading."""
+
     def new_unzip(fname):
         """Fake unzipping."""
         if fname[-3:] == 'bz2':
             return fname[:-4]
-        else:
-            return fname
 
     @mock.patch('satpy.readers.ahi_l1b_gridded_bin.unzip_file',
                 mock.MagicMock(side_effect=new_unzip))
@@ -208,22 +209,29 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
             self.assertEqual(res.attrs['name'], self.key['name'])
             self.assertEqual(res.attrs['wavelength'], self.info['wavelength'])
 
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('os.remove')
+    def test_destructor(self, exist_patch, remove_patch):
+        """Check that file handler deletes files if needed."""
+        del self.fh
+        remove_patch.assert_called()
+
 
 class TestAHIGriddedLUTs(unittest.TestCase):
     """Test case for the downloading and preparing LUTs."""
 
     def mocked_ftp_dl(fname):
         """Fake download of LUT tar file by creating a local tar."""
-        import tempfile
-        import tarfile
         import os
+        import tarfile
+        import tempfile
 
         with tarfile.open(fname, "w:gz") as tar_handle:
             for namer in AHI_LUT_NAMES:
                 tmpf = os.path.join(tempfile.tempdir, namer)
                 with open(tmpf, 'w') as tmp_fid:
                     tmp_fid.write("TEST\n")
-                tar_handle.add(tmpf, arcname='count2tbb/'+namer)
+                tar_handle.add(tmpf, arcname='count2tbb_v102/'+namer)
                 os.remove(tmpf)
 
     def setUp(self):
@@ -261,14 +269,16 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         tempdir = tempfile.gettempdir()
         print(self.fh.lut_dir)
         self.fh._get_luts()
-        self.assertFalse(os.path.exists(os.path.join(tempdir, 'count2tbb/')))
+        self.assertFalse(os.path.exists(os.path.join(tempdir, 'count2tbb_v102/')))
         for lut_name in AHI_LUT_NAMES:
             self.assertTrue(os.path.isfile(os.path.join(self.fh.lut_dir, lut_name)))
 
-    @mock.patch('ftplib.FTP')
-    def test_download_luts(self, mock_ftp):
+    @mock.patch('urllib.request.urlopen')
+    @mock.patch('shutil.copyfileobj')
+    def test_download_luts(self, mock_dl, mock_shutil):
         """Test that the FTP library is called for downloading LUTS."""
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_l1b_gridded_bin.open', m, create=True):
             self.fh._download_luts('/test_file')
-            mock_ftp.assert_called()
+            mock_dl.assert_called()
+            mock_shutil.assert_called()

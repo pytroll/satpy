@@ -17,11 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reads a format from an xml file to create dtypes and scaling factor arrays."""
 
+from __future__ import annotations
+
 from xml.etree.ElementTree import ElementTree
 
 import numpy as np
 
-VARIABLES = {}
+VARIABLES: dict[str, str] = {}
 
 TYPEC = {"boolean": ">i1",
          "integer2": ">i2",
@@ -58,7 +60,7 @@ def process_field(elt, ascii=False):
         except ValueError:
             scale = (10 / np.array(
                 elt.get("scaling-factor").replace("^", "e").split(","),
-                dtype=np.float))
+                dtype=np.float64))
 
     return ((elt.get("name"), current_type, scale))
 

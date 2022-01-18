@@ -90,7 +90,7 @@ def _get_reader_mocked(along_track=3):
     return reader
 
 
-class ModulePatcher(TestCase):
+class PygacPatcher(TestCase):
     """Patch pygac."""
 
     def setUp(self):
@@ -103,23 +103,32 @@ class ModulePatcher(TestCase):
             'pygac.gac_pod': self.pygac.gac_pod,
             'pygac.lac_klm': self.pygac.lac_klm,
             'pygac.lac_pod': self.pygac.lac_pod,
-            'pygac.utils': self.pygac.utils
+            'pygac.utils': self.pygac.utils,
+            'pygac.calibration': self.pygac.calibration,
         }
 
         self.module_patcher = mock.patch.dict('sys.modules', modules)
         self.module_patcher.start()
-
-        # Import GACLACFile here to make it patchable. Otherwise self._get_fh
-        # might import it first which would prevent a successful patch.
-        from satpy.readers.avhrr_l1b_gaclac import GACLACFile
-        self.GACLACFile = GACLACFile
 
     def tearDown(self):
         """Unpatch the pygac imports."""
         self.module_patcher.stop()
 
 
-class TestGACLACFile(ModulePatcher):
+class GACLACFilePatcher(PygacPatcher):
+    """Patch pygac."""
+
+    def setUp(self):
+        """Patch GACLACFile."""
+        super().setUp()
+
+        # Import GACLACFile here to make it patchable. Otherwise self._get_fh
+        # might import it first which would prevent a successful patch.
+        from satpy.readers.avhrr_l1b_gaclac import GACLACFile
+        self.GACLACFile = GACLACFile
+
+
+class TestGACLACFile(GACLACFilePatcher):
     """Test the GACLAC file handler."""
 
     def _get_fh(self, filename='NSS.GHRR.NG.D88002.S0614.E0807.B0670506.WI',
@@ -258,8 +267,8 @@ class TestGACLACFile(ModulePatcher):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
     def test_get_dataset_angles(self, get_angle, *mocks):
         """Test getting the angles."""
-        from satpy.tests.utils import make_dataid
         from satpy.readers.avhrr_l1b_gaclac import ANGLES
+        from satpy.tests.utils import make_dataid
 
         ones = np.ones((3, 3))
         get_angle.return_value = ones
@@ -468,7 +477,7 @@ class TestGACLACFile(ModulePatcher):
         self.assertEqual(data_slc, 'sliced')
 
 
-class TestGetDataset(ModulePatcher):
+class TestGetDataset(GACLACFilePatcher):
     """Test the get_dataset method."""
 
     def setUp(self):

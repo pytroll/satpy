@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2020, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -18,13 +18,14 @@
 """Module for testing the satpy.readers.hy2_scat_l2b_h5 module."""
 
 import os
-import numpy as np
-import xarray as xr
-import dask.array as da
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-
 import unittest
 from unittest import mock
+
+import dask.array as da
+import numpy as np
+import xarray as xr
+
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -63,6 +64,35 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                         'add_offset': 0.,
                         'units': 'degree',
                         'valid range': [-90.0, 90.0],
+                    },
+                    dims=('y', 'x')),
+        }
+        return geo
+
+    def _get_geo_data_nsoas(self, num_rows, num_cols):
+        geo = {
+            'wvc_lon':
+                xr.DataArray(
+                    da.ones((num_rows, num_cols), chunks=1024,
+                            dtype=np.float32),
+                    attrs={
+                        'fill_value': 1.7e+38,
+                        'scale_factor': 1.,
+                        'add_offset': 0.,
+                        'units': 'degree',
+                        'valid_range': [0, 359.99],
+                    },
+                    dims=('y', 'x')),
+            'wvc_lat':
+                xr.DataArray(
+                    da.ones((num_rows, num_cols), chunks=1024,
+                            dtype=np.float32),
+                    attrs={
+                        'fill_value': 1.7e+38,
+                        'scale_factor': 1.,
+                        'add_offset': 0.,
+                        'units': 'degree',
+                        'valid_range': [-90.0, 90.0],
                     },
                     dims=('y', 'x')),
         }
@@ -267,12 +297,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         }
         return wvc_row_time
 
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content."""
-        num_rows = 300
-        num_cols = 10
-        num_amb = 8
-        global_attrs = {
+    def _get_global_attrs(self, num_rows, num_cols):
+        return {
             '/attr/Equator_Crossing_Longitude': '246.408397',
             '/attr/Equator_Crossing_Time': '20200326T01:37:15.875',
             '/attr/HDF_Version_Id': 'HDF5-1.8.16',
@@ -286,7 +312,6 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                                'used as background winds in the CMF'),
             '/attr/L2B_Data_Version': '10',
             '/attr/L2B_Expected_WVC_Rows': np.int32(num_rows),
-            '/attr/L2B_Number_WVC_cells': np.int32(num_cols),
             '/attr/L2B_Processing_Type': 'OPER',
             '/attr/L2B_Processor_Name': 'hy2_sca_l2b_pro',
             '/attr/L2B_Processor_Version': '01.00',
@@ -308,10 +333,22 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             '/attr/WVC_Size': '25000m*25000m',
         }
 
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content."""
+        num_rows = 300
+        num_cols = 10
+        num_amb = 8
+
         test_content = {}
-        test_content.update(global_attrs)
+        test_content.update(self._get_global_attrs(num_rows, num_cols))
         data = {}
-        data = self._get_geo_data(num_rows, num_cols)
+        if 'OPER_SCA_L2B' in filename:
+            test_content.update({'/attr/L2B_Expected_WVC_Cells': np.int32(num_cols)})
+            data = self._get_geo_data_nsoas(num_rows, num_cols)
+        else:
+            test_content.update({'/attr/L2B_Number_WVC_cells': np.int32(num_cols)})
+            data = self._get_geo_data(num_rows, num_cols)
+
         test_content.update(data)
         data = self._get_selection_data(num_rows, num_cols)
         test_content.update(data)
@@ -331,8 +368,8 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
+        from satpy._config import config_search_paths
         from satpy.readers.hy2_scat_l2b_h5 import HY2SCATL2BH5FileHandler
-        from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(HY2SCATL2BH5FileHandler, '__bases__', (FakeHDF5FileHandler2,))
@@ -348,6 +385,22 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         from satpy.readers import load_reader
         filenames = [
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
+
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        self.assertEqual(1, len(files))
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        self.assertTrue(reader.file_handlers)
+
+        res = reader.load(['wvc_lon', 'wvc_lat'])
+        self.assertEqual(2, len(res))
+
+    def test_load_geo_nsoas(self):
+        """Test loading data from nsoas file."""
+        from satpy.readers import load_reader
+        filenames = [
+            'H2B_OPER_SCA_L2B_OR_20210803T100304_20210803T104601_13905_pwp_250_07_owv.h5', ]
 
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
@@ -415,3 +468,33 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         self.assertTrue(reader.file_handlers)
         res = reader.load(['wvc_row_time'])
         self.assertEqual(1, len(res))
+
+    def test_reading_attrs(self):
+        """Test loading data."""
+        from satpy.readers import load_reader
+        filenames = [
+            'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
+
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        res = reader.load(['wvc_lon'])
+        self.assertEqual(res['wvc_lon'].attrs['L2B_Number_WVC_cells'], 10)
+        with self.assertRaises(KeyError):
+            self.assertEqual(res['wvc_lon'].attrs['L2B_Expected_WVC_Cells'], 10)
+
+    def test_reading_attrs_nsoas(self):
+        """Test loading data."""
+        from satpy.readers import load_reader
+        filenames = [
+            'H2B_OPER_SCA_L2B_OR_20210803T100304_20210803T104601_13905_pwp_250_07_owv.h5', ]
+
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        res = reader.load(['wvc_lon'])
+        with self.assertRaises(KeyError):
+            self.assertEqual(res['wvc_lon'].attrs['L2B_Number_WVC_cells'], 10)
+        self.assertEqual(res['wvc_lon'].attrs['L2B_Expected_WVC_Cells'], 10)

@@ -20,16 +20,16 @@
 import logging
 from datetime import datetime, timedelta
 
-import numpy as np
-import xarray as xr
 import dask.array as da
+import numpy as np
 import pyproj
-
-from satpy.readers.utils import get_user_calibration_factors, apply_rad_correction
-from satpy.readers._geos_area import get_area_definition, get_area_extent
+import xarray as xr
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
-from satpy.readers.file_handlers import BaseFileHandler
+
 from satpy import CHUNK_SIZE
+from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import apply_rad_correction, get_user_calibration_factors
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,8 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     AMI data contains GSICS adjustment factors for the IR bands.
     By default, these are not applied. If you wish to apply them then you must
-    set the calibration mode appropriately:
+    set the calibration mode appropriately::
+
         import satpy
         import glob
 
@@ -55,12 +56,15 @@ class AMIL1bNetCDF(BaseFileHandler):
         scene.load(['B13'])
 
     In addition, the GSICS website (and other sources) also supply radiance
-    correction coefficients like so:
-    radiance_corr = (radiance_orig - corr_offset) / corr_slope
+    correction coefficients like so::
+
+        radiance_corr = (radiance_orig - corr_offset) / corr_slope
 
     If you wish to supply such coefficients, pass 'user_calibration' and a
     dictionary containing per-channel slopes and offsets as a reader_kwarg::
+
        user_calibration={'chan': {'slope': slope, 'offset': offset}}
+
     If you do not have coefficients for a particular band, then by default the
     slope will be set to 1 .and the offset to 0.::
 

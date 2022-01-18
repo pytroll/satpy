@@ -19,6 +19,7 @@
 
 import copy
 import logging
+import warnings
 from queue import Queue
 from threading import Thread
 
@@ -29,7 +30,7 @@ import xarray as xr
 
 from satpy.dataset import DataID, combine_metadata
 from satpy.scene import Scene
-from satpy.writers import get_enhanced_image
+from satpy.writers import get_enhanced_image, split_results
 
 try:
     import imageio
@@ -196,6 +197,10 @@ class MultiScene(object):
             scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
         if ensure_all_readers:
+            warnings.warn(
+                "Argument ensure_all_readers is deprecated.  Use "
+                "missing='skip' instead.",
+                DeprecationWarning)
             file_groups = [fg for fg in file_groups if all(fg.values())]
         scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)
@@ -293,6 +298,18 @@ class MultiScene(object):
     def blend(self, blend_function=stack):
         """Blend the datasets into one scene.
 
+        Reduce the :class:`MultiScene` to a single :class:`~satpy.scene.Scene`.  Datasets
+        occurring in each scene will be passed to a blending
+        function, which shall take as input a list of datasets
+        (:class:`xarray.DataArray` objects) and shall return a single
+        dataset (:class:`xarray.DataArray` object).  The blend method
+        then assigns those datasets to the blended scene.
+
+        Blending functions provided in this module are :func:`stack`
+        (the default) and :func:`timeseries`, but the Python built-in
+        function :func:`sum` also works and may be appropriate for
+        some types of data.
+
         .. note::
 
             Blending is not currently optimized for generator-based
@@ -340,18 +357,20 @@ class MultiScene(object):
                 q.task_done()
 
         input_q = Queue(batch_size if batch_size is not None else 1)
-        load_thread = Thread(target=load_data, args=(input_q,))
+        # set threads to daemon so they are killed if error is raised from main thread
+        load_thread = Thread(target=load_data, args=(input_q,), daemon=True)
         load_thread.start()
 
         for scene in scenes_iter:
-            delayed = scene.save_datasets(compute=False, **kwargs)
-            if isinstance(delayed, (list, tuple)) and len(delayed) == 2:
+            delayeds = scene.save_datasets(compute=False, **kwargs)
+            sources, targets, delayeds = split_results(delayeds)
+            if len(sources) > 0:
                 # TODO Make this work for (source, target) datasets
                 # given a target, source combination
                 raise NotImplementedError("Distributed save_datasets does not support writers "
                                           "that return (source, target) combinations at this time. Use "
                                           "the non-distributed save_datasets instead.")
-            future = client.compute(delayed)
+            future = client.compute(delayeds)
             input_q.put(future)
         input_q.put(None)
 

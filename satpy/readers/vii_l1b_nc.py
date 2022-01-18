@@ -19,13 +19,13 @@
 
 The ``vii_l1b_nc`` reader reads and calibrates EPS-SG VII L1b image data in netCDF format. The format is explained
 in the `EPS-SG VII Level 1B Product Format Specification`_.
-References:
-.. _EPS-SG VII Level 1B Product Format Specification: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService
-   =GET_FILE&dDocName=PDF_EPSSG_VII_L1B_PFS&RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+.. _EPS-SG VII Level 1B Product Format Specification: https://www.eumetsat.int/media/44393
 
 """
 
 import logging
+
 import numpy as np
 
 from satpy.readers.vii_base_nc import ViiNCBaseFileHandler

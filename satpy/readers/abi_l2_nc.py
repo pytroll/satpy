@@ -23,6 +23,7 @@ The files read by this reader are described in the official PUG document:
 """
 
 import logging
+
 import numpy as np
 
 from satpy.readers.abi_base import NC_ABI_BASE
@@ -36,6 +37,8 @@ class NC_ABI_L2(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset."""
         var = info['file_key']
+        if self.filetype_info['file_type'] == 'abi_l2_mcmip':
+            var += "_" + key.name
         LOG.debug('Reading in get_dataset %s.', var)
         variable = self[var]
 
@@ -46,7 +49,7 @@ class NC_ABI_L2(NC_ABI_BASE):
                                'units': _units,
                                'satellite_latitude': float(self.nc['nominal_satellite_subpoint_lat']),
                                'satellite_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
-                               'satellite_altitude': float(self.nc['nominal_satellite_height'])})
+                               'satellite_altitude': float(self.nc['nominal_satellite_height']) * 1000.})
 
         variable.attrs.update(key.to_dict())
 

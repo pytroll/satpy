@@ -316,4 +316,3 @@ Helpful functions
 - :doc:`delayed`
 - :func:`~dask.array.rechunk`
 - :attr:`~dask.array.Array.vindex`
-

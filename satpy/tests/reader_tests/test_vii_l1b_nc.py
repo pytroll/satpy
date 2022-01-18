@@ -18,19 +18,18 @@
 
 """The vii_l1b_nc reader tests package."""
 
+import datetime
 import os
+import unittest
+import uuid
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-import datetime
 from netCDF4 import Dataset
-import uuid
 
 from satpy.readers.vii_l1b_nc import ViiL1bNCFileHandler
 from satpy.readers.vii_utils import MEAN_EARTH_RADIUS
-
-import unittest
 
 TEST_FILE = 'test_file_vii_l1b_nc.nc'
 
@@ -42,7 +41,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         """Set up the test."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
         # uses a UUID to avoid permission conflicts during execution of tests in parallel
-        self.test_file_name = TEST_FILE + str(uuid.uuid1())
+        self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
 
         with Dataset(self.test_file_name, 'w') as nc:
             # Create data group

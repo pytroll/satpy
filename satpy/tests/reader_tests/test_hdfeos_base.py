@@ -15,8 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-import unittest
+"""Tests for the HDF-EOS base functionality."""
 
+import unittest
 
 nrt_mda = '''GROUP                  = INVENTORYMETADATA
   GROUPTYPE            = MASTERGROUP
@@ -666,13 +667,16 @@ END
 
 
 class TestReadMDA(unittest.TestCase):
+    """Test reading metadata."""
 
     def test_read_mda(self):
+        """Test reading basic metadata."""
         from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
         res = HDFEOSBaseFileReader.read_mda(nrt_mda)
         self.assertDictEqual(res, nrt_mda_dict)
 
     def test_read_mda_geo_resolution(self):
+        """Test reading geo resolution."""
         from satpy.readers.hdfeos_base import HDFEOSGeoReader
         resolution_l1b = HDFEOSGeoReader.read_geo_resolution(
             HDFEOSGeoReader.read_mda(metadata_modisl1b)

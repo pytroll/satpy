@@ -208,16 +208,17 @@ class TestGLML2Reader(unittest.TestCase):
     @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Create a fake reader to test."""
+        from satpy._config import config_search_paths
         from satpy.readers import load_reader
-        from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         fake_dataset = setup_fake_dataset()
         xr_.open_dataset.return_value = fake_dataset
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'OR_GLM-L2-GLMC-M3_G16_s20192862159000_e20192862200000_c20192862200350.nc',
+            'CSPP_CG_GLM-L2-GLMC-M3_G16_s20192862159000_e20192862200000_c20192862200350.nc',
         ])
-        self.assertEqual(len(loadables), 1)
+        self.assertEqual(len(loadables), 2)
         r.create_filehandlers(loadables)
         self.reader = r
 

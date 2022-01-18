@@ -17,15 +17,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Modifier classes for corrections based on sun and other angles."""
 
+from __future__ import annotations
+
 import logging
 import time
+from datetime import datetime
+from typing import Optional
 from weakref import WeakValueDictionary
 
 import numpy as np
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
+from satpy.modifiers.angles import sunzen_corr_cos
+from satpy.utils import atmospheric_path_length_correction
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +38,7 @@ logger = logging.getLogger(__name__)
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
 
-    coszen = WeakValueDictionary()
+    coszen_cache: "WeakValueDictionary[tuple[datetime, str], Optional[xr.DataArray]]" = WeakValueDictionary()
 
     def __init__(self, max_sza=95.0, **kwargs):
         """Collect custom configuration values.
@@ -59,26 +64,19 @@ class SunZenithCorrectorBase(ModifierBase):
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         logger.debug("Applying sun zen correction")
-        coszen = self.coszen.get(key)
+        coszen = self.coszen_cache.get(key)
         if coszen is None and not info.get('optional_datasets'):
-            # we were not given SZA, generate SZA then calculate cos(SZA)
-            from pyorbital.astronomy import cos_zen
+            # we were not given SZA, generate cos(SZA)
             logger.debug("Computing sun zenith angles.")
-            lons, lats = vis.attrs["area"].get_lonlats(chunks=vis.data.chunks)
-
-            coords = {}
-            if 'y' in vis.coords and 'x' in vis.coords:
-                coords['y'] = vis['y']
-                coords['x'] = vis['x']
-            coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
-                                  dims=['y', 'x'], coords=coords)
+            from .angles import get_cos_sza
+            coszen = get_cos_sza(vis)
             if self.max_sza is not None:
                 coszen = coszen.where(coszen >= self.max_sza_cos)
-            self.coszen[key] = coszen
+            self.coszen_cache[key] = coszen
         elif coszen is None:
             # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
-            self.coszen[key] = coszen
+            self.coszen_cache[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
@@ -128,7 +126,9 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def _apply_correction(self, proj, coszen):
         logger.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
+        res = proj.copy()
+        res.data = sunzen_corr_cos(proj.data, coszen.data, limit=self.correction_limit, max_sza=self.max_sza)
+        return res
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):

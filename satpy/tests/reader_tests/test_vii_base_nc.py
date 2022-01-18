@@ -18,22 +18,17 @@
 
 """The vii_base_nc reader tests package."""
 
+import datetime
 import os
+import unittest
+import uuid
+from unittest import mock
+
 import numpy as np
 import xarray as xr
-import datetime
 from netCDF4 import Dataset
-import uuid
 
-from satpy.readers.vii_base_nc import ViiNCBaseFileHandler, SCAN_ALT_TIE_POINTS, \
-    TIE_POINTS_FACTOR
-
-import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.readers.vii_base_nc import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR, ViiNCBaseFileHandler
 
 TEST_FILE = 'test_file_vii_base_nc.nc'
 
@@ -46,7 +41,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         """Set up the test."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
         # uses a UUID to avoid permission conflicts during execution of tests in parallel
-        self.test_file_name = TEST_FILE + str(uuid.uuid1())
+        self.test_file_name = TEST_FILE + str(uuid.uuid1()) + ".nc"
 
         with Dataset(self.test_file_name, 'w') as nc:
             # Add global attributes
@@ -231,7 +226,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Checks that the _perform_interpolation function is correctly executed
         variable = xr.DataArray(
-            dims=('x', 'y'),
+            dims=('y', 'x'),
             name='test_name',
             attrs={
                 'key_1': 'value_1',
@@ -254,7 +249,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Checks that the _perform_geo_interpolation function is correctly executed
         variable_lon = xr.DataArray(
-            dims=('x', 'y'),
+            dims=('y', 'x'),
             name='test_lon',
             attrs={
                 'key_1': 'value_lon_1',
@@ -263,7 +258,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
             data=np.zeros((10, 100))
         )
         variable_lat = xr.DataArray(
-            dims=('x', 'y'),
+            dims=('y', 'x'),
             name='test_lat',
             attrs={
                 'key_1': 'value_lat_1',
@@ -297,6 +292,22 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         self.assertEqual(return_lat.name, 'test_lat')
         self.assertEqual(return_lat.dims, ('num_pixels', 'num_lines'))
 
+    def test_standardize_dims(self):
+        """Test the standardize dims function."""
+        test_variable = xr.DataArray(
+            dims=('num_pixels', 'num_lines'),
+            name='test_data',
+            attrs={
+                'key_1': 'value_lat_1',
+                'key_2': 'value_lat_2'
+            },
+            data=np.ones((10, 100)) * 1.
+        )
+        out_variable = self.reader._standardize_dims(test_variable)
+        self.assertTrue(np.allclose(out_variable.values, np.ones((100, 10))))
+        self.assertEqual(out_variable.dims, ('y', 'x'))
+        self.assertEqual(out_variable.attrs['key_1'], 'value_lat_1')
+
     @mock.patch('satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_calibration')
     @mock.patch('satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_interpolation')
     @mock.patch('satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_orthorectification')
@@ -309,8 +320,8 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         pi_.assert_not_called()
         po_.assert_not_called()
 
-        self.assertTrue(np.allclose(variable.values, np.ones((10, 100))))
-        self.assertEqual(variable.dims, ('num_pixels', 'num_lines'))
+        self.assertTrue(np.allclose(variable.values, np.ones((100, 10))))
+        self.assertEqual(variable.dims, ('y', 'x'))
         self.assertEqual(variable.attrs['test_attr'], 'attr')
         self.assertEqual(variable.attrs['units'], None)
 

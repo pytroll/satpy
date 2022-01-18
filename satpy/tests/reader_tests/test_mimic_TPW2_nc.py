@@ -20,12 +20,13 @@
 
 import os
 import unittest
-from unittest import mock
 from datetime import datetime
+from unittest import mock
+
 import numpy as np
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 import xarray as xr
 
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.float32
 DEFAULT_FILE_SHAPE = (9001, 18000)
@@ -90,7 +91,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
 
     def setUp(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.mimic_TPW2_nc import MimicTPW2FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library

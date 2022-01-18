@@ -48,11 +48,10 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
 from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
-
-from satpy._compat import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -86,12 +85,12 @@ class BitFlags(object):
         data = self._value
         if isinstance(data, xr.DataArray):
             data = data.data
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
             res = xr.DataArray(res, coords=self._value.coords,
                                attrs=self._value.attrs,
                                dims=self._value.dims)
         else:
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
         return res
 
 
@@ -149,13 +148,9 @@ class NCOLCIBase(BaseFileHandler):
 class NCOLCICal(NCOLCIBase):
     """Dummy class for calibration."""
 
-    pass
-
 
 class NCOLCIGeo(NCOLCIBase):
     """Dummy class for navigation."""
-
-    pass
 
 
 class NCOLCIChannelBase(NCOLCIBase):
@@ -305,7 +300,7 @@ class NCOLCILowResData(BaseFileHandler):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 
@@ -378,7 +373,7 @@ class NCOLCIAngles(NCOLCILowResData):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 
