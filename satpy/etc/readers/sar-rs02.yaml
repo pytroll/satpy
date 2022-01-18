@@ -1,0 +1,125 @@
+reader:
+  description: Reader for Radarsat02 data
+  name: sar-rs02
+  sensors: [sar]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  data_identification_keys:
+    name:
+      required: true
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
+    calibration:
+      enum:
+        - gamma
+        - sigma_nought
+        - beta_nought
+      transitive: true
+    quantity:
+      enum:
+        - natural
+        - dB
+      transitive: true
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    polarization:
+      transitive: true
+    resolution:
+      transitive: false
+
+file_types:
+    rs02_measurement:
+        file_reader: !!python/name:satpy.readers.sar_rs02.SARRS02MeasurementFileHandler
+        file_patterns: ['{mission_id:3s}_{start_time:%Y%m%d_%H%M%S}_{filler1:4s}_{scan_mode:s}_{polarization_set:s}_{processing_level:s}_{filler2:6s}_{filler3:4s}_{filler4:8s}/imagery_{polarization:2s}.tif']
+        requires: [rs02_calibration_beta, rs02_calibration_sigma, rs02_calibration_gamma]
+    rs02_calibration_beta:
+        file_reader: !!python/name:satpy.readers.sar_rs02.SARRS02CalibrationFileHandler
+        file_patterns: ['{mission_id:3s}_{start_time:%Y%m%d_%H%M%S}_{filler1:4s}_{scan_mode:s}_{polarization_set:s}_{processing_level:s}_{filler2:6s}_{filler3:4s}_{filler4:8s}/lutBeta.xml']
+    rs02_calibration_sigma:
+        file_reader: !!python/name:satpy.readers.sar_rs02.SARRS02CalibrationFileHandler
+        file_patterns: ['{mission_id:3s}_{start_time:%Y%m%d_%H%M%S}_{filler1:4s}_{scan_mode:s}_{polarization_set:s}_{processing_level:s}_{filler2:6s}_{filler3:4s}_{filler4:8s}/lutSigma.xml']
+    rs02_calibration_gamma:
+        file_reader: !!python/name:satpy.readers.sar_rs02.SARRS02CalibrationFileHandler
+        file_patterns: ['{mission_id:3s}_{start_time:%Y%m%d_%H%M%S}_{filler1:4s}_{scan_mode:s}_{polarization_set:s}_{processing_level:s}_{filler2:6s}_{filler3:4s}_{filler4:8s}/lutGamma.xml']
+
+
+datasets:
+
+#  latitude:
+#    name: latitude
+#    resolution: 100
+#    file_type: rs02_measurement
+#    standard_name: latitude
+#    polarization: [hh, hv, vv, vh]
+#    units: degree
+#
+#  longitude:
+#    name: longitude
+#    resolution: 100
+#    file_type: rs02_measurement
+#    standard_name: longitude
+#    polarization: [hh, hv, vv, vh]
+#    units: degree
+#
+#  altitude:
+#    name: altitude
+#    resolution: 100
+#    file_type: rs02_measurement
+#    standard_name: altitude
+#    polarization: [hh, hv, vv, vh]
+#    units: meter
+
+
+  measurement:
+    name: measurement
+    sensor: sar
+    wavelength: [5.400, 5.405, 5.410]
+    resolution: 100
+    polarization: [hh, hv, vv, vh]
+    calibration:
+      gamma:
+        standard_name: backscatter
+        units: 1
+      sigma_nought:
+        standard_name: backscatter
+        units: 1
+      beta_nought:
+        standard_name: backscatter
+        units: 1
+    quantity: [natural, dB]
+    #coordinates: [longitude, latitude]
+    file_type: rs02_measurement
+
+  sigma:
+    name: sigma_squared
+    sensor: sar-c
+    resolution: 100
+    polarization: [hh, hv, vv, vh]
+    file_type: rs02_calibration_sigma
+    xml_item: calibrationVector
+    xml_tag: sigma
+
+  beta:
+    name: beta_squared
+    sensor: sar-c
+    resolution: 100
+    polarization: [hh, hv, vv, vh]
+    file_type: rs02_calibration_beta
+    xml_item: calibrationVector
+    xml_tag: beta
+
+  gamma:
+    name: gamma_squared
+    sensor: sar-c
+    resolution: 100
+    polarization: [hh, hv, vv, vh]
+    file_type: rs02_calibration_gamma
+    xml_item: calibrationVector
+    xml_tag: gamma
