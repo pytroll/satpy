@@ -35,7 +35,7 @@ from satpy.writers import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 
-NEGLIBLE_COORDS = ['time']
+NEGLIGIBLE_COORDS = ['time']
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
 MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
@@ -90,7 +90,7 @@ def sub_arrays(proj1, proj2):
 
 
 class CompositeBase:
-    """Base class for all compositors.
+    """Base class for all compositors and modifiers.
 
     A compositor in Satpy is a class that takes in zero or more input
     DataArrays and produces a new DataArray with its own identifier (name).
@@ -153,18 +153,51 @@ class CompositeBase:
                     d[k] = o[k]
 
     def match_data_arrays(self, data_arrays):
-        """Match data arrays so that they can be used together in a composite."""
+        """Match data arrays so that they can be used together in a composite.
+
+        For the purpose of this method, "can be used together" means:
+
+        - All arrays should have the same dimensions.
+        - Either all arrays should have an area, or none should.
+        - If all have an area, the areas should be all the same.
+
+        In addition, negligible non-dimensional coordinates are dropped (see
+        :meth:`drop_coordinates`) and dask chunks are unified (see
+        :func:`satpy.utils.unify_chunks`).
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+
+        Returns:
+            data_arrays (List[arrays]):
+                Arrays with negligible non-dimensional coordinates removed.
+
+        Raises:
+            :class:`IncompatibleAreas`:
+                If dimension or areas do not match.
+            :class:`ValueError`:
+                If some, but not all data arrays lack an area attribute.
+        """
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
         new_arrays = list(unify_chunks(*new_arrays))
         return new_arrays
 
     def drop_coordinates(self, data_arrays):
-        """Drop neglible non-dimensional coordinates."""
+        """Drop negligible non-dimensional coordinates.
+
+        Drops negligible coordinates if they do not correspond to any
+        dimension.  Negligible coordinates are defined in the
+        :attr:`NEGLIGIBLE_COORDS` module attribute.
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+        """
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and any([neglible in coord for neglible in NEGLIBLE_COORDS])]
+                    if coord not in ds.dims and
+                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
             if drop:
                 new_arrays.append(ds.drop(drop))
             else:
@@ -173,7 +206,23 @@ class CompositeBase:
         return new_arrays
 
     def check_geolocation(self, data_arrays):
-        """Check that the geolocations of the *data_arrays* are compatible."""
+        """Check that the geolocations of the *data_arrays* are compatible.
+
+        For the purpose of this method, "compatible" means:
+
+        - All arrays should have the same dimensions.
+        - Either all arrays should have an area, or none should.
+        - If all have an area, the areas should be all the same.
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+
+        Raises:
+            :class:`IncompatibleAreas`:
+                If dimension or areas do not match.
+            :class:`ValueError`:
+                If some, but not all data arrays lack an area attribute.
+        """
         if len(data_arrays) == 1:
             return
 
@@ -196,12 +245,6 @@ class CompositeBase:
             LOG.debug("Not all areas are the same in "
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
-
-    def check_areas(self, data_arrays):
-        """Check that the areas of the *data_arrays* are compatible."""
-        warnings.warn('satpy.composites.CompositeBase.check_areas is deprecated, use '
-                      'satpy.composites.CompositeBase.match_data_arrays instead')
-        return self.match_data_arrays(data_arrays)
 
 
 class DifferenceCompositor(CompositeBase):
