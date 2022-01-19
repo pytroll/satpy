@@ -15,8 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
-"""The vii_l1b_nc reader tests package. This version test the readers for VII test data V2 as per PFS V4A"""
+The vii_l1b_nc reader tests package. This version test the readers for VII test data V2 as per PFS V4A.
+
+"""
 
 
 import datetime
@@ -152,7 +155,6 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         calibrated_variable = self.reader._perform_calibration(variable,
                                                                {'calibration': 'brightness_temperature',
                                                                 'chan_thermal_index': 3})
-
         expected_values = np.ones((600, 72)) * 1101.10413712
         self.assertTrue(np.allclose(calibrated_variable.values, expected_values))
 
