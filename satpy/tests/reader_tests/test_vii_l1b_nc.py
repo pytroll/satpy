@@ -15,9 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
+"""The vii_l1b_nc reader tests package.
 
-The vii_l1b_nc reader tests package. This version test the readers for VII test data V2 as per PFS V4A.
+This version tests the readers for VII test data V2 as per PFS V4A.
 
 """
 
