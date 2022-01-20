@@ -188,9 +188,18 @@ def mjd2datetime64(mjd):
 
 
 class HRITJMAFileHandler(HRITFileHandler):
-    """JMA HRIT format reader."""
+    """JMA HRIT format reader.
 
-    def __init__(self, filename, filename_info, filetype_info):
+    By default, the reader computes the exact start time.  As this time is different for every channel,
+    things like angle calculation (SZA correction) can get very slow.  To use approximate times, the user can
+    define an keyword argument to use the time parsed from the filename::
+
+        scene = Scene(filenames=filenames,
+                      reader='ahi_hrit',
+                      reader_kwargs={'use_exact_start_time': False})
+    """
+
+    def __init__(self, filename, filename_info, filetype_info, use_exact_start_time=True):
         """Initialize the reader."""
         super(HRITJMAFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -198,6 +207,7 @@ class HRITJMAFileHandler(HRITFileHandler):
                                                   jma_variable_length_headers,
                                                   jma_text_headers))
 
+        self._use_exact_start_time = use_exact_start_time
         self.mda['segment_sequence_number'] = self.mda['image_segm_seq_no']
         self.mda['planned_end_segment_number'] = self.mda['total_no_image_segm']
         self.mda['planned_start_segment_number'] = 1
@@ -430,7 +440,9 @@ class HRITJMAFileHandler(HRITFileHandler):
     @property
     def start_time(self):
         """Get start time of the scan."""
-        return self.acq_time[0].astype(datetime)
+        if self._use_exact_start_time:
+            return self.acq_time[0].astype(datetime)
+        return self._start_time
 
     @property
     def end_time(self):
