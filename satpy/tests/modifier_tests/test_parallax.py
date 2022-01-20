@@ -561,3 +561,73 @@ def test_parallax_modifier_interface():
             search_radius=25_000)
     res = modif([fake_bt, cth_clear], optional_datasets=[])
     np.testing.assert_allclose(res, fake_bt)
+
+
+def test_parallax_modifier_interface_with_cloud():
+    """Test the modifier interface with a cloud.
+
+    Test corresponds to a real bug encountered when using CTH data
+    from NWCSAF-GEO, which created strange speckles in Africa (see
+    https://github.com/pytroll/satpy/pull/1904#issuecomment-1011161623
+    for an example).  Create fake CTH corresponding to NWCSAF-GEO area and
+    BT corresponding to full disk SEVIRI, and test that no strange speckles
+    occur.
+    """
+    from ...modifiers.parallax import ParallaxCorrectionModifier
+
+    w_cth = 25
+    h_cth = 15
+    proj_dict = {'a': '6378137', 'h': '35785863', 'proj': 'geos', 'units': 'm'}
+    fake_area_cth = pyresample.create_area_def(
+            area_id="test-area",
+            projection=proj_dict,
+            area_extent=(-2296808.75, 2785874.75, 2293808.25, 5570249.0),
+            shape=(h_cth, w_cth))
+
+    sz_bt = 20
+    fake_area_bt = pyresample.create_area_def(
+            "test-area-2",
+            projection=proj_dict,
+            area_extent=(-5567248.0742, -5513240.8172, 5513240.8172, 5567248.0742),
+            shape=(sz_bt, sz_bt))
+
+    (lons_cth, lats_cth) = fake_area_cth.get_lonlats()
+    fake_cth_data = np.where(
+            np.isfinite(lons_cth) & np.isfinite(lats_cth),
+            15000,
+            np.nan)
+
+    (lons_bt, lats_bt) = fake_area_bt.get_lonlats()
+    fake_bt_data = np.where(
+            np.isfinite(lons_bt) & np.isfinite(lats_bt),
+            np.linspace(200, 300, lons_bt.size).reshape(lons_bt.shape),
+            np.nan)
+
+    attrs = {
+            "orbital_parameters": {
+                "satellite_actual_altitude": 42_000_000,
+                "satellite_actual_longitude": 0,
+                "satellite_actual_latitude": 0,
+                }
+            }
+
+    fake_bt = xr.DataArray(
+            fake_bt_data,
+            dims=("y", "x"),
+            attrs=attrs | {"area": fake_area_bt})
+    fake_cth = xr.DataArray(
+            fake_cth_data,
+            dims=("y", "x"),
+            attrs=attrs | {"area": fake_area_cth})
+
+    modif = ParallaxCorrectionModifier(
+            name="parallax_corrected_dataset",
+            prerequisites=[fake_bt, fake_cth],
+            optional_prerequisites=[],
+            search_radius=25_000)
+
+    res = modif([fake_bt, fake_cth], optional_datasets=[])
+
+    # with a constant cloud, a monotonically increasing BT should still
+    # do so after parallax correction
+    assert not (res.diff("x") < 0).any()
