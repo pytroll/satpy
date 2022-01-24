@@ -103,8 +103,8 @@ class TestSeviriL2Bufr(unittest.TestCase):
         buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(buf1, 'unpack', 1)
         samp1 = np.random.uniform(low=250, high=350, size=(128,))
-        lat = np.random.uniform(low=-20, high=20, size=(128,))
-        lon = np.random.uniform(low=-20, high=20, size=(128,))
+        lat = np.random.uniform(low=-80, high=80, size=(128,))
+        lon = np.random.uniform(low=-38.5, high=121.5, size=(128,))
         # write the bufr test data twice as we want to read in and the concatenate the data in the reader
         # 55 id corresponds to METEOSAT 8
         ec.codes_set(buf1, 'satelliteIdentifier', 55)
@@ -188,16 +188,22 @@ class TestSeviriL2Bufr(unittest.TestCase):
         """Perform checks if data loaded as AreaDefinition."""
         ad = fh.get_area_def(None)
         self.assertEqual(ad, AREA_DEF)
+        data = np.concatenate((samp1, samp1), axis=0)
 
         # Put BUFR data on 2D grid that the 2D array returned by get_dataset should correspond to
         icol, irow = ad.get_array_coordinates_from_lonlat(fh.longitude.compute(),
                                                           fh.latitude.compute())
+        ivalid = np.isfinite(icol)
+        icol = icol[ivalid]
+        irow = irow[ivalid]
+        data = data[ivalid]
+
         icol, irow = np.ceil(icol).astype(int), np.ceil(irow).astype(int)
 
-        data = np.empty(ad.shape)
-        data[:] = np.nan
-        data[irow, icol] = np.concatenate((samp1, samp1), axis=0)
-        np.testing.assert_array_equal(z.values, data)
+        arr_2d = np.empty(ad.shape)
+        arr_2d[:] = np.nan
+        arr_2d[irow, icol] = data
+        np.testing.assert_array_equal(z.values, arr_2d)
 
         # Test that the correct AreaDefinition is identified for products with 3 pixel segements
         fh.seg_size = 3
