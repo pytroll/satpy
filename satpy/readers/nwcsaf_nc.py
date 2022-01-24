@@ -272,8 +272,6 @@ class NcNWCSAF(BaseFileHandler):
         self.cache['lon'] = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
         self.cache['lat'] = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
 
-        return
-
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file.
 
