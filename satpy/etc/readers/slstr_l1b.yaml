@@ -89,6 +89,16 @@ datasets:
     standard_name: latitude
     units: degree
 
+  elevation:
+    name: elevation
+    resolution: [500, 1000]
+    view: [nadir, oblique]
+    stripe: [a, b, i, f]
+    file_type: esa_geo
+    file_key: elevation_{stripe:1s}{view:1s}
+    standard_name: elevation
+    units: m
+
   # The channels S1-S3 are available in nadir (default) and oblique view.
   S1:
     name: S1
