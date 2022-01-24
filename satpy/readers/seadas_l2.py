@@ -19,6 +19,13 @@
 
 This reader currently only supports MODIS and VIIRS Chlorophyll A from SEADAS.
 
+The reader includes an additional keyword argument ``apply_quality_flags``
+which can be used to mask out low-quality pixels based on quality flags
+contained in the file (``l2_flags``). This option defaults to ``False``, but
+when set to ``True`` the "CHLWARN" pixels of the ``l2_flags`` variable
+are masked out. These pixels represent data where the chlorophyll algorithm
+warned about the quality of the result.
+
 """
 
 from datetime import datetime
