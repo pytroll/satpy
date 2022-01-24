@@ -29,7 +29,6 @@ from datetime import datetime, timedelta
 import dask.array as da
 import numpy as np
 import xarray as xr
-from pyresample import geometry
 
 from satpy import CHUNK_SIZE
 from satpy.readers._geos_area import get_geos_area_naming
@@ -246,16 +245,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         # Construct AreaDefinition from standardized area definition in areas.yaml.
         stand_area_def = get_area_def(area_naming['area_id'])
 
-        area_def = geometry.AreaDefinition(
-            stand_area_def.area_id,
-            stand_area_def.description,
-            "",
-            stand_area_def.proj_dict,
-            stand_area_def.x_size,
-            stand_area_def.y_size,
-            stand_area_def.area_extent)
-
-        return area_def
+        return stand_area_def
 
     def _add_attributes(self, xarr, dataset_info):
         """Add dataset attributes to xarray."""

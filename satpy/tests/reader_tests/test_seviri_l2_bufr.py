@@ -79,8 +79,8 @@ AREA_DEF = geometry.AreaDefinition(
 
 
 AREA_DEF_EXT = geometry.AreaDefinition(
-    'msg_seviri_iodc_48km_ext',
-    'MSG SEVIRI Indian Ocean Data Coverage service area definition with 48 km resolution '
+    'msg_seviri_iodc_9km_ext',
+    'MSG SEVIRI Indian Ocean Data Coverage service area definition with 9 km resolution '
     '(extended outside original 3km grid)',
     "",
     {'a': 6378169., 'b': 6356583.8, 'lon_0': DATASET_ATTRS['ssp_lon'],
