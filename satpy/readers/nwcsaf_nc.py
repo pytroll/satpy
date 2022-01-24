@@ -134,10 +134,7 @@ class NcNWCSAF(BaseFileHandler):
             dsid_name = dsid_name + '_reduced'
 
         logger.debug('Reading %s.', dsid_name)
-        try:
-            file_key = self.file_key_prefix + info["file_key"]
-        except KeyError:
-            file_key = dsid_name
+        file_key = self._get_filekey(dsid_name, info)
         variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(dsid, variable, info)
@@ -149,6 +146,13 @@ class NcNWCSAF(BaseFileHandler):
             return self.cache[dsid['name']]
 
         return variable
+
+    def _get_filekey(self, dsid_name, info):
+        try:
+            file_key = self.file_key_prefix + info["file_key"]
+        except KeyError:
+            file_key = dsid_name
+        return file_key
 
     def scale_dataset(self, dsid, variable, info):
         """Scale the data set, applying the attributes from the netCDF file.
