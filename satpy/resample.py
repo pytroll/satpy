@@ -984,7 +984,7 @@ class NativeResampler(BaseResampler):
                                                      **kwargs)
 
     @staticmethod
-    def aggregate(d, y_size, x_size):
+    def _aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array."""
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
@@ -1007,7 +1007,7 @@ class NativeResampler(BaseResampler):
                                   dtype=d.dtype, chunks=new_chunks)
 
     @staticmethod
-    def replicate(d_arr, repeats):
+    def _replicate(d_arr, repeats):
         """Repeat data pixels by the per-axis factors specified."""
         # rechunk so new chunks are the same size as old chunks
         c_size = max(x[0] for x in d_arr.chunks)
@@ -1036,19 +1036,19 @@ class NativeResampler(BaseResampler):
         return d_arr
 
     @classmethod
-    def expand_reduce(cls, d_arr, repeats):
+    def _expand_reduce(cls, d_arr, repeats):
         """Expand reduce."""
         if not isinstance(d_arr, da.Array):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
         if all(x == 1 for x in repeats.values()):
             return d_arr
         if all(x >= 1 for x in repeats.values()):
-            return cls.replicate(d_arr, repeats)
+            return cls._replicate(d_arr, repeats)
         if all(x <= 1 for x in repeats.values()):
             # reduce
             y_size = 1. / repeats[0]
             x_size = 1. / repeats[1]
-            return cls.aggregate(d_arr, y_size, x_size)
+            return cls._aggregate(d_arr, y_size, x_size)
         raise ValueError("Must either expand or reduce in both "
                          "directions")
 
@@ -1081,7 +1081,7 @@ class NativeResampler(BaseResampler):
         repeats[y_axis] = y_repeats
         repeats[x_axis] = x_repeats
 
-        d_arr = self.expand_reduce(data.data, repeats)
+        d_arr = self._expand_reduce(data.data, repeats)
         new_data = xr.DataArray(d_arr, dims=data.dims)
         return update_resampled_coords(data, new_data, target_geo_def)
 
