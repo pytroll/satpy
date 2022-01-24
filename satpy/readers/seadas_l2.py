@@ -31,6 +31,11 @@ TIME_FORMAT = "%Y%j%H%M%S"
 class SEADASL2HDFFileHandler(HDF4FileHandler):
     """Simple handler of SEADAS L2 files."""
 
+    def __init__(self, filename, filename_info, filetype_info, apply_quality_flags=False):
+        """Initialize file handler and determine if data quality flags should be applied."""
+        super().__init__(filename, filename_info, filetype_info)
+        self.apply_quality_flags = apply_quality_flags and "l2_flags" in self
+
     def _add_satpy_metadata(self, data):
         data.attrs["sensor"] = self.sensor_names
         data.attrs["platform_name"] = self._platform_name()
@@ -79,6 +84,10 @@ class SEADASL2HDFFileHandler(HDF4FileHandler):
         valid_range = data.attrs["valid_range"]
         data = data.where(valid_range[0] <= data)
         data = data.where(data <= valid_range[1])
+        if self.apply_quality_flags and not ("lon" in file_key or "lat" in file_key):
+            l2_flags = self["l2_flags"]
+            mask = (l2_flags & 0b00000000010000000000000000000000) != 0
+            data = data.where(~mask)
         for attr_name in ("standard_name", "long_name", "units"):
             val = data.attrs[attr_name]
             if val[-1] == "\x00":
