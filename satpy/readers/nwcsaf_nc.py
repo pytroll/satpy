@@ -89,6 +89,7 @@ class NcNWCSAF(BaseFileHandler):
         self.pps = False
         self.platform_name = None
         self.sensor = None
+        self.file_key_prefix = filetype_info.get("file_key_prefix", "")
 
         try:
             # NWCSAF/Geo:
@@ -133,7 +134,11 @@ class NcNWCSAF(BaseFileHandler):
             dsid_name = dsid_name + '_reduced'
 
         logger.debug('Reading %s.', dsid_name)
-        variable = self.nc[dsid_name]
+        try:
+            file_key = self.file_key_prefix + info["file_key"]
+        except KeyError:
+            file_key = dsid_name
+        variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(dsid, variable, info)
 
@@ -207,13 +212,14 @@ class NcNWCSAF(BaseFileHandler):
         return variable
 
     def _prepare_variable_for_palette(self, variable, info):
-        if 'scale_offset_dataset' in info:
-            so_dataset = self.nc[info['scale_offset_dataset']]
-            scale = so_dataset.attrs['scale_factor']
-            offset = so_dataset.attrs['add_offset']
-        else:
+        try:
+            so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset']]
+        except KeyError:
             scale = 1
             offset = 0
+        else:
+            scale = so_dataset.attrs['scale_factor']
+            offset = so_dataset.attrs['add_offset']
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
         if variable.attrs['palette_meanings'][0] == 1:

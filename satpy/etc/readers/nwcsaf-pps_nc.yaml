@@ -35,8 +35,12 @@ file_types:
     nc_nwcsaf_cpp:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
         file_patterns: ['S_NWC_CPP_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_key_prefix: cpp_
 
-
+    nc_nwcsaf_cmic:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_CMIC_{platform_id}_{orbit_number}_{start_time:%Y%m%dT%H%M%S%f}Z_{end_time:%Y%m%dT%H%M%S%f}Z.nc']
+        file_key_prefix: cmic_
 
 datasets:
 
@@ -214,63 +218,93 @@ datasets:
     file_type: nc_nwcsaf_ctth
 
 
-# ---- CPP products ------------
+# ---- CMIC products (Was CPP in PPS<=2018)------------
 
-  cpp_phase:
-    name: cpp_phase
-    file_type: nc_nwcsaf_cpp
+  cmic_phase:
+    name: cmic_phase
+    file_key: phase
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]
 
-  cpp_phase_pal:
-    name: cpp_phase_pal
-    file_type: nc_nwcsaf_cpp
+  cmic_phase_pal:
+    name: [cmic_phase_pal, cpp_phase_pal]
+    file_key: phase_pal
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
 
-  cpp_reff:
-    name: cpp_reff
-    file_type: nc_nwcsaf_cpp
+  cmic_reff:
+    name: cmic_reff
+    file_key: reff
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]
 
-  cpp_reff_pal:
-    name: cpp_reff_pal
-    scale_offset_dataset: cpp_reff
-    file_type: nc_nwcsaf_cpp
+  cmic_reff_pal:
+    name: [cmic_reff_pal, cpp_reff_pal]
+    file_key: reff_pal
+    scale_offset_dataset: reff
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
 
-  cpp_cot:
-    name: cpp_cot
-    file_type: nc_nwcsaf_cpp
+  cmic_cot:
+    name: cmic_cot
+    file_key: cot
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]
 
-  cpp_cot_pal:
-    name: cpp_cot_pal
-    scale_offset_dataset: cpp_cot
-    file_type: nc_nwcsaf_cpp
+  cmic_cot_pal:
+    name: [cmic_cot_pal, cpp_cot_pal]
+    file_key: cot_pal
+    scale_offset_dataset: cot
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
 
-  cpp_cwp:
-    name: cpp_cwp
-    file_type: nc_nwcsaf_cpp
+  cmic_cwp:
+    name: cmic_cwp
+    file_key: cwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]
 
-  cpp_cwp_pal:
-    name: cpp_cwp_pal
-    scale_offset_dataset: cpp_cwp
-    file_type: nc_nwcsaf_cpp
+  cmic_cwp_pal:
+    name: [cmic_cwp_pal, cpp_cwp_pal]
+    file_key: cwp_pal
+    scale_offset_dataset: cwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
 
-  cpp_iwp:
-    name: cpp_iwp
-    file_type: nc_nwcsaf_cpp
+  cmic_iwp:
+    name: cmic_iwp
+    file_key: iwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]
 
-  cpp_iwp_pal:
-    name: cpp_iwp_pal
-    scale_offset_dataset: cpp_iwp
-    file_type: nc_nwcsaf_cpp
+  cmic_iwp_pal:
+    name: [cmic_iwp_pal, cpp_iwp_pal]
+    file_key: iwp_pal
+    scale_offset_dataset: iwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
 
-  cpp_lwp:
-    name: cpp_lwp
-    file_type: nc_nwcsaf_cpp
+  cmic_lwp:
+    name: cmic_lwp
+    file_key: lwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
     coordinates: [lon, lat]
 
-  cpp_lwp_pal:
-    name: cpp_lwp_pal
-    scale_offset_dataset: cpp_lwp
-    file_type: nc_nwcsaf_cpp
+  cmic_lwp_pal:
+    name: [cmic_lwp_pal, cpp_lwp_pal]
+    file_key: lwp_pal
+    scale_offset_dataset: lwp
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+
+  cmic_status_flag:
+    name: [cmic_status_flag, cpp_status_flag]
+    file_key: status_flag
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_conditions:
+    name: [cmic_conditions, cpp_conditions]
+    file_key: conditions
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]
+
+  cmic_quality:
+    name: [cmic_quality, cpp_quality]
+    file_key: quality
+    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    coordinates: [lon, lat]

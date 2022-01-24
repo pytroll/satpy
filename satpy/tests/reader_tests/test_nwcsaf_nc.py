@@ -19,6 +19,10 @@
 import unittest
 from unittest import mock
 
+import numpy as np
+import pytest
+import xarray as xr
+
 PROJ_KM = {'gdal_projection': '+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000',
            'gdal_xgeo_up_left': -5569500.0,
            'gdal_ygeo_up_left': 5437500.0,
@@ -35,13 +39,17 @@ class TestNcNWCSAF(unittest.TestCase):
     """Test the NcNWCSAF reader."""
 
     @mock.patch('satpy.readers.nwcsaf_nc.unzip_file')
-    @mock.patch('satpy.readers.nwcsaf_nc.xr')
-    def setUp(self, xr_, unzip):
+    @mock.patch('satpy.readers.nwcsaf_nc.xr.open_dataset')
+    def setUp(self, xr_open_dataset, unzip):
         """Set up the test case."""
         from satpy.readers.nwcsaf_nc import NcNWCSAF
-        xr_.return_value = mock.Mock(attrs={})
+        xr_open_dataset.return_value = xr.Dataset({"nx": xr.DataArray(), "ny": xr.DataArray()},
+                                                  attrs={"source": "bla",
+                                                         "satellite_identifier": "blu"})
+        self.fake_dataset = xr_open_dataset.return_value
         unzip.return_value = ''
-        self.scn = NcNWCSAF('filename', {}, {})
+        self.filehandler_class = NcNWCSAF
+        self.scn = self.filehandler_class('filename', {}, {})
 
     def test_sensor_name(self):
         """Test that the correct sensor name is being set."""
@@ -75,7 +83,7 @@ class TestNcNWCSAF(unittest.TestCase):
     def test_get_area_def(self):
         """Test that get_area_def() returns proper area."""
         dsid = {'name': 'foo'}
-        self.scn.nc[dsid['name']].shape = (5, 10)
+        self.scn.nc[dsid['name']] = xr.DataArray(np.zeros((5, 10)))
 
         # a, b and h in kilometers
         self.scn.nc.attrs = PROJ_KM
@@ -149,6 +157,137 @@ class TestNcNWCSAF(unittest.TestCase):
         self.assertNotIn('add_offset', var.attrs)
         self.assertEqual(var.attrs['valid_range'][0], -2000.)
         self.assertEqual(var.attrs['valid_range'][1], 25000.)
+
+    def test_get_dataset_scales_and_offsets(self):
+        """Test that get_dataset() returns scaled and offseted data."""
+        dsid = {'name': 'cpp_cot'}
+        scale = 4
+        offset = 8
+        the_array = xr.DataArray(np.ones((5, 10)), attrs={"scale_factor": np.array(scale, dtype=float),
+                                                          "add_offset": np.array(offset, dtype=float)})
+        self.scn.nc[dsid['name']] = the_array
+
+        info = dict(name="cpp_cot",
+                    file_type="nc_nwcsaf_cpp")
+
+        res = self.scn.get_dataset(dsid, info)
+        np.testing.assert_allclose(res, the_array * scale + offset)
+
+    def test_get_dataset_scales_and_offsets_palette_meanings_using_other_dataset(self):
+        """Test that get_dataset() returns scaled palette_meanings while another dataset as scaling source."""
+        dsid = {'name': 'cpp_cot'}
+        scale = 4
+        offset = 8
+        array = xr.DataArray(np.ones((5, 3)), attrs={"palette_meanings": "1 2 3 4",
+                                                     "fill_value_color": (0, 0, 0)})
+        self.scn.nc[dsid['name']] = array
+
+        so_array = xr.DataArray(np.ones((10, 10)),
+                                attrs={"scale_factor": np.array(scale, dtype=float),
+                                       "add_offset": np.array(offset, dtype=float)},
+                                dims=["lines", "colors"])
+
+        info = dict(name="cpp_cot",
+                    file_type="nc_nwcsaf_cpp",
+                    scale_offset_dataset="scaleoffset")
+        self.scn.nc["scaleoffset"] = so_array
+
+        res = self.scn.get_dataset(dsid, info)
+        np.testing.assert_allclose(res.attrs["palette_meanings"], np.arange(5) * scale + offset)
+
+    def test_get_dataset_raises_when_dataset_missing(self):
+        """Test that get_dataset() raises an error when the requested dataset is missing."""
+        dsid = {'name': 'cpp_cot'}
+        info = dict(name="cpp_cot",
+                    file_type="nc_nwcsaf_cpp")
+        with pytest.raises(KeyError):
+            self.scn.get_dataset(dsid, info)
+
+    def test_get_dataset_uses_file_key_if_present(self):
+        """Test that get_dataset() uses a file_key if present."""
+        dsid_cpp = {'name': 'cpp_cot'}
+        dsid_cmic = {'name': 'cmic_cot'}
+        scale = 4
+        offset = 8
+        the_array = xr.DataArray(np.ones((5, 10)), attrs={"scale_factor": np.array(scale, dtype=float),
+                                                          "add_offset": np.array(offset, dtype=float)})
+        file_key = "cmic_cot"
+        self.scn.nc[file_key] = the_array
+
+        info_cpp = dict(name="cpp_cot",
+                        file_key=file_key,
+                        file_type="nc_nwcsaf_cpp")
+
+        res_cpp = self.scn.get_dataset(dsid_cpp, info_cpp)
+
+        info_cmic = dict(name="cmic_cot",
+                         file_type="nc_nwcsaf_cpp")
+
+        res_cmic = self.scn.get_dataset(dsid_cmic, info_cmic)
+        np.testing.assert_allclose(res_cpp, res_cmic)
+
+
+class TestNcNWCSAFFileKeyPrefix(unittest.TestCase):
+    """Test the NcNWCSAF reader when using a file key prefix."""
+
+    @mock.patch('satpy.readers.nwcsaf_nc.unzip_file')
+    @mock.patch('satpy.readers.nwcsaf_nc.xr.open_dataset')
+    def setUp(self, xr_open_dataset, unzip):
+        """Set up the test case."""
+        from satpy.readers.nwcsaf_nc import NcNWCSAF
+        xr_open_dataset.return_value = xr.Dataset({"nx": xr.DataArray(), "ny": xr.DataArray()},
+                                                  attrs={"source": "bla",
+                                                         "satellite_identifier": "blu"})
+        self.fake_dataset = xr_open_dataset.return_value
+        unzip.return_value = ''
+        self.filehandler_class = NcNWCSAF
+        self.file_key_prefix = "cmic_"
+        self.scn = self.filehandler_class('filename', {}, {"file_key_prefix": self.file_key_prefix})
+
+    def test_get_dataset_uses_file_key_prefix(self):
+        """Test that get_dataset() uses a file_key_prefix."""
+        dsid_cpp = {'name': 'cpp_cot'}
+        dsid_cmic = {'name': 'cmic_cot'}
+        scale = 4
+        offset = 8
+        the_array = xr.DataArray(np.ones((5, 10)), attrs={"scale_factor": np.array(scale, dtype=float),
+                                                          "add_offset": np.array(offset, dtype=float)})
+        file_key = "cot"
+        self.scn.nc[self.file_key_prefix + file_key] = the_array
+
+        info_cpp = dict(name="cpp_cot",
+                        file_key=file_key,
+                        file_type="nc_nwcsaf_cpp")
+
+        res_cpp = self.scn.get_dataset(dsid_cpp, info_cpp)
+
+        info_cmic = dict(name="cmic_cot",
+                         file_type="nc_nwcsaf_cpp")
+
+        res_cmic = self.scn.get_dataset(dsid_cmic, info_cmic)
+        np.testing.assert_allclose(res_cpp, res_cmic)
+
+    def test_get_dataset_scales_and_offsets_palette_meanings_using_other_dataset(self):
+        """Test that get_dataset() returns scaled palette_meanings using another dataset as scaling source."""
+        dsid = {'name': 'cpp_cot_pal'}
+        scale = 4
+        offset = 8
+        array = xr.DataArray(np.ones((5, 3)), attrs={"palette_meanings": "1 2 3 4",
+                                                     "fill_value_color": (0, 0, 0)})
+        self.scn.nc[dsid['name']] = array
+
+        so_array = xr.DataArray(np.ones((10, 10)),
+                                attrs={"scale_factor": np.array(scale, dtype=float),
+                                       "add_offset": np.array(offset, dtype=float)},
+                                dims=["lines", "colors"])
+
+        info = dict(name="cpp_cot_pal",
+                    file_type="nc_nwcsaf_cpp",
+                    scale_offset_dataset="scaleoffset")
+        self.scn.nc[self.file_key_prefix + "scaleoffset"] = so_array
+
+        res = self.scn.get_dataset(dsid, info)
+        np.testing.assert_allclose(res.attrs["palette_meanings"], np.arange(5) * scale + offset)
 
 
 def _check_area_def(area_definition):
