@@ -101,7 +101,7 @@ class TestNcNWCSAF(unittest.TestCase):
         attrs = {'scale_factor': np.array(10),
                  'add_offset': np.array(20)}
         var = xr.DataArray([1, 2, 3], attrs=attrs)
-        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        var = self.scn.scale_dataset(var, 'dummy')
         np.testing.assert_allclose(var, [30, 40, 50])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
@@ -114,7 +114,7 @@ class TestNcNWCSAF(unittest.TestCase):
                  'add_offset': np.array(2.5),
                  '_FillValue': 1}
         var = xr.DataArray([1, 2, 3], attrs=attrs)
-        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        var = self.scn.scale_dataset(var, 'dummy')
         np.testing.assert_allclose(var, [np.nan, 5.5, 7])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
@@ -123,7 +123,7 @@ class TestNcNWCSAF(unittest.TestCase):
                  'add_offset': np.array(2.5),
                  'valid_min': 1.1}
         var = xr.DataArray([1, 2, 3], attrs=attrs)
-        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        var = self.scn.scale_dataset(var, 'dummy')
         np.testing.assert_allclose(var, [np.nan, 5.5, 7])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
@@ -132,7 +132,7 @@ class TestNcNWCSAF(unittest.TestCase):
                  'add_offset': np.array(2.5),
                  'valid_max': 2.1}
         var = xr.DataArray([1, 2, 3], attrs=attrs)
-        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        var = self.scn.scale_dataset(var, 'dummy')
         np.testing.assert_allclose(var, [4, 5.5, np.nan])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
@@ -141,7 +141,7 @@ class TestNcNWCSAF(unittest.TestCase):
                  'add_offset': np.array(2.5),
                  'valid_range': (1.1, 2.1)}
         var = xr.DataArray([1, 2, 3], attrs=attrs)
-        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        var = self.scn.scale_dataset(var, 'dummy')
         np.testing.assert_allclose(var, [np.nan, 5.5, np.nan])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
@@ -151,7 +151,7 @@ class TestNcNWCSAF(unittest.TestCase):
                  'add_offset': np.array(-2000.),
                  'valid_range': (0., 27000.)}
         var = xr.DataArray([1, 2, 3], attrs=attrs)
-        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        var = self.scn.scale_dataset(var, 'dummy')
         np.testing.assert_allclose(var, [-1999., -1998., -1997.])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
