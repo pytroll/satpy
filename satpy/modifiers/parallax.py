@@ -155,7 +155,9 @@ class ParallaxCorrection:
     """
 
     def __init__(self, base_area,
-                 resampler=resample_nearest, search_radius=50_000):
+                 resampler=resample_nearest,
+                 resampler_args={"radius_of_influence": 50_000},  # noqa: B006
+                 debug_mode=False):
         """Initialise parallax correction class.
 
         Args:
@@ -168,11 +170,18 @@ class ParallaxCorrection:
                 near the poles and the antimeridian for the purposes of
                 parallax correction.  The default, the nearest neighbour
                 resampling, yiedls correct results.
-            search_radius (number): Search radius to use with resampler.
+            resampler_args (mapping): Arguments to pass on to resampler.
+                For example, radius_of_influence (number), search radius in metre to
+                use with the resampler.
+            debug_mode (bool): Store diagnostic information in
+                self.diagnostics.  This attribute always apply to the most
+                recently applied operation only.
         """
         self.base_area = base_area
         self.resampler = resampler
-        self.search_radius = search_radius
+        self.resampler_args = resampler_args
+        self.debug_mode = debug_mode
+        self.diagnostics = {}
 
     def __call__(self, cth_dataset):
         """Apply parallax correction to dataset.
@@ -185,6 +194,7 @@ class ParallaxCorrection:
             :class:'~pyresample.geometry.SwathDefinition`: Swathdefinition with corrected
                 lat/lon coordinates.
         """
+        self.diagnostics.clear()
         return self.corrected_area(cth_dataset)
 
     def corrected_area(self, cth_dataset):
@@ -197,8 +207,8 @@ class ParallaxCorrection:
         logger.debug("Calculating parallax correction using heights from "
                      f"{cth_dataset.attrs.get('name', cth_dataset.name)!s}, "
                      f"with base area {self.base_area.name!s}, resampler "
-                     f"{self.resampler.__name__}, and search radius "
-                     f"{self.search_radius:d}")
+                     f"{self.resampler.__name__}, and arguments "
+                     f"{self.resampler_args!s}")
         area = cth_dataset.area
         try:
             (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
@@ -265,14 +275,21 @@ class ParallaxCorrection:
         lat_diff = source_lat - pixel_lat
         inv_lon_diff = self.resampler(
                 source_area, lon_diff, self.base_area,
-                self.search_radius)
+                **self.resampler_args)
         inv_lat_diff = self.resampler(
                 source_area, lat_diff, self.base_area,
-                self.search_radius)
+                **self.resampler_args)
 
         (base_lon, base_lat) = self.base_area.get_lonlats()
         inv_lon = base_lon + inv_lon_diff
         inv_lat = base_lat + inv_lat_diff
+        if self.debug_mode:
+            self.diagnostics["inv_lon"] = inv_lon
+            self.diagnostics["inv_lat"] = inv_lat
+            self.diagnostics["base_lon"] = base_lon
+            self.diagnostics["base_lat"] = base_lat
+            self.diagnostics["inv_lon_diff"] = inv_lon_diff
+            self.diagnostics["inv_lat_diff"] = inv_lat_diff
         return (inv_lon, inv_lat)
 
 
@@ -293,6 +310,8 @@ class ParallaxCorrectionModifier(ModifierBase):
             modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
             prerequisites:
               - "ctth_alti"
+            resampler_args:
+              radius_of_influence: 50000
 
         composites:
 
@@ -330,14 +349,21 @@ class ParallaxCorrectionModifier(ModifierBase):
         # NB: Can I avoid creating a scene object here?
         (to_be_corrected, cth) = projectables
         base_area = to_be_corrected.attrs["area"]
-        kwargs = {}
+        corrector = self._get_corrector(base_area)
+        plax_corr_area = corrector(cth)
+        return self._correct_with_area(to_be_corrected, base_area, plax_corr_area)
+
+    def _get_corrector(self, base_area):
         # only pass on those attributes that are arguments by
         # ParallaxCorrection.__init__
         sig = inspect.signature(ParallaxCorrection.__init__)
+        kwargs = {}
         for k in sig.parameters.keys() & self.attrs.keys():
             kwargs[k] = self.attrs[k]
         corrector = ParallaxCorrection(base_area, **kwargs)
-        plax_corr_area = corrector(cth)
+        return corrector
+
+    def _correct_with_area(self, to_be_corrected, base_area, plax_corr_area):
         global_scene = Scene()
         global_scene["dataset"] = to_be_corrected
         local_scene = global_scene.resample(plax_corr_area)
