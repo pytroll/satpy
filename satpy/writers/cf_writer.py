@@ -702,7 +702,7 @@ class CFWriter(Writer):
             new_data['time'].encoding['units'] = epoch
             new_data['time'].attrs['standard_name'] = 'time'
             new_data['time'].attrs.pop('bounds', None)
-            if 'time' not in new_data.dims and 'time' not in new_data.coords:
+            if 'time' not in new_data.dims and new_data["time"].size not in new_data.shape:
                 new_data = new_data.expand_dims('time')
         return new_data
 

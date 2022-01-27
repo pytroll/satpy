@@ -293,6 +293,24 @@ class TestCFWriter(unittest.TestCase):
                 bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
+    def test_time_coordinate_on_a_swath(self):
+        """Test that time dimension is not added on swath data with time already as a coordinate."""
+        import xarray as xr
+
+        from satpy import Scene
+        scn = Scene()
+        test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
+        scn['test-array'] = xr.DataArray(test_array,
+                                         dims=['y', 'x'],
+                                         coords={'time': ('y', np.array(['2018-05-30T10:05:00',
+                                                                         '2018-05-30T10:05:01',
+                                                                         '2018-05-30T10:05:02',
+                                                                         '2018-05-30T10:05:03'], dtype=np.datetime64))})
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename, decode_cf=True) as f:
+                np.testing.assert_array_equal(f['test-array_time'], scn['test-array']['time'])
+
     def test_bounds(self):
         """Test setting time bounds."""
         import xarray as xr
