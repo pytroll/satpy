@@ -176,7 +176,18 @@ def in_ipynb():
 
 
 def lonlat2xyz(lon, lat):
-    """Convert lon lat to cartesian."""
+    """Convert lon lat to cartesian.
+
+    For a sphere with unit radius, convert the spherical coordinates
+    longitude and latitude to cartesian coordinates.
+
+    Args:
+        lon (number or array of numbers): Longitude in °.
+        lat (number or array of numbers): Latitude in °.
+
+    Returns:
+        (x, y, z) Cartesian coordinates [1]
+    """
     lat = np.deg2rad(lat)
     lon = np.deg2rad(lon)
     x = np.cos(lat) * np.cos(lon)
@@ -186,7 +197,21 @@ def lonlat2xyz(lon, lat):
 
 
 def xyz2lonlat(x, y, z, asin=False):
-    """Convert cartesian to lon lat."""
+    """Convert cartesian to lon lat.
+
+    For a sphere with unit radius, convert cartesian coordinates to spherical
+    coordinates longitude and latitude.
+
+    Args:
+        x (number or array of numbers): x-coordinate, unitless
+        y (number or array of numbers): y-coordinate, unitless
+        z (number or array of numbers): z-coordinate, unitless
+        asin (optional, bool): If true, use arcsin for calculations.
+            If false, use arctan2 for calculations.
+
+    Returns:
+        (lon, lat): Longitude and latitude in °.
+    """
     lon = np.rad2deg(np.arctan2(y, x))
     if asin:
         lat = np.rad2deg(np.arcsin(z))

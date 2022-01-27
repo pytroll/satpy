@@ -61,12 +61,12 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
     """Calculate forward parallax effect.
 
     Calculate the forward parallax effect.  When a satellite instrument
-    observes the Earth, the geolocation assumes it sees the Earth surface at
-    the geoid (elevation zero).  In reality, the ray may stop short of the
-    geoid as it observes, for example, a cloud or elevated ground.  This
-    function calculates the forward parallax effect.  If the view of a pixel at
-    location (lat, lon) is blocked by a cloud at height h, we calculate the
-    location of this blocking.
+    observes the Earth, the geolocation assumes it sees the Earth surface
+    at the geoid (elevation zero).  In reality, the field of view may
+    stop short of the geoid as it observes, for example, a cloud or
+    elevated ground.  This function calculates the forward parallax
+    effect.  If the view of a pixel at location (lat, lon) is blocked
+    by a cloud at height h, we calculate the location of this blocking.
 
     Calculate parallax correction based on satellite position and
     (cloud top) height coordinates in geodetic (unprojected) coordinates.
@@ -84,30 +84,41 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
     Args:
         sat_lon (number): Satellite longitude in geodetic coordinates [°]
         sat_lat (number): Satellite latitude in geodetic coordinates [°]
-        sat_alt (number): Satellite altitude above the Earth surface [km]
+        sat_alt (number): Satellite altitude above the Earth surface [m]
         lon (array or number): Longitudes of pixel or pixels to be corrected,
             in geodetic coordinates [°]
         lat (array or number): Latitudes of pixel/pixels to be corrected, in
             geodetic coordinates [°]
         height (array or number): Heights of pixels on which the correction
-            will be based.  Typically this is the cloud based height. [km]
+            will be based.  Typically this is the cloud based height. [m]
 
     Returns:
         tuple[float, float]: New geolocation
             New geolocation ``(lon, lat)`` for the longitude and
             latitude that were to be corrected, in geodetic coordinates. [°]
     """
+    # Be careful with units here.  Heights may be either in m or km, and may
+    # refer to either the Earth's surface on the Earth's centre.  Cloud top
+    # height is usually reported in metres above the Earth's surface, rarely in
+    # km.  Satellite altitude may be reported in either m or km, but orbital
+    # parameters may be in relation the the Earths centre.  The Earth radius
+    # from pyresample is reported in km.
+
     x_sat = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
-    x = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS
+    x = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS*1e3  # km → m
     # the datetime doesn't actually affect the result but is required
     # so we use a placeholder
     (_, elevation) = get_observer_look(
-            sat_lon, sat_lat, sat_alt,
-            datetime.datetime(2000, 1, 1), lon, lat, EARTH_RADIUS)
+            sat_lon, sat_lat, sat_alt/1e3,  # m → km (wanted by get_observer_look)
+            datetime.datetime(2000, 1, 1), lon, lat, 0)
     if np.isscalar(elevation) and elevation == 0:
         raise NotImplementedError(
                 "Parallax correction not implemented for "
                 "satellite elevation 0")
+    if np.isscalar(elevation) and elevation < 0:
+        raise ValueError(
+                "Satellite is below the horizon.  Cannot calculate parallax "
+                "correction.")
     parallax_distance = height / np.sin(np.deg2rad(elevation))
 
     x_d = x - x_sat
@@ -179,7 +190,7 @@ class ParallaxCorrection:
         """
         self.base_area = base_area
         self.resampler = resampler
-        self.resampler_args = resampler_args
+        self.resampler_args = resampler_args.copy()
         self.debug_mode = debug_mode
         self.diagnostics = {}
 

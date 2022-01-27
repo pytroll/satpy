@@ -104,9 +104,9 @@ def resampler(request):
     if resampler_name == "nearest":
         return pyresample.kd_tree.resample_nearest
     elif resampler_name == "bilinear":
-        def resample_bilinear(source_area, what, base_area, search_radius):
+        def resample_bilinear(source_area, what, base_area, radius_of_influence):
             sampler = NumpyBilinearResampler(
-                    source_area, base_area, search_radius)
+                    source_area, base_area, radius_of_influence)
             return sampler.resample(what)
         return resample_bilinear
     else:
@@ -118,8 +118,8 @@ def test_forward_parallax_ssp():
     """Test that at SSP, parallax correction does nothing."""
     from ...modifiers.parallax import forward_parallax
     sat_lat = sat_lon = lon = lat = 0.
-    height = 5000.
-    sat_alt = 30_000_000.
+    height = 5000.  # m
+    sat_alt = 30_000_000.  # m
     corr_lon, corr_lat = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, height)
     assert corr_lon == corr_lat == 0
@@ -132,7 +132,7 @@ def test_forward_parallax_clearsky():
     lat = np.linspace(-20, 20, 25).reshape(5, 5)
     lon = np.linspace(-20, 20, 25).reshape(5, 5).T
     height = np.full((5, 5), np.nan)  # no CTH --> clearsky
-    sat_alt = 35_000.  # km
+    sat_alt = 35_000_000.  # m above surface
     (corr_lon, corr_lat) = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, height)
     # clearsky becomes NaN
@@ -149,8 +149,8 @@ def test_forward_parallax_cloudy_ssp(lat, lon, resolution):
     N = 5
     lats = np.linspace(lat-N*resolution, lat+N*resolution, 25).reshape(N, N)
     lons = np.linspace(lon-N*resolution, lon+N*resolution, 25).reshape(N, N).T
-    height = np.full((N, N), 10)  # constant high clouds at 10 km
-    sat_alt = 35_000.
+    height = np.full((N, N), 10_000)  # constant high clouds at 10 km
+    sat_alt = 35_000_000.  # satellite at 35 Mm
     (corr_lon, corr_lat) = forward_parallax(
         lon, lat, sat_alt, lons, lats, height)
     # confirm movements behave as expected
@@ -180,8 +180,8 @@ def test_forward_parallax_cloudy_slant():
     sat_lat = sat_lon = 0
     lat = np.linspace(-20, 20, 25).reshape(5, 5)
     lon = np.linspace(-20, 20, 25).reshape(5, 5).T
-    height = np.full((5, 5), 10)  # constant high clouds at 10 km
-    sat_alt = 35_000.
+    height = np.full((5, 5), 10_000)  # constant high clouds at 10 km
+    sat_alt = 35_000_000.  # satellite at 35 Mm
     (corr_lon, corr_lat) = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, height)
     # reference value from Simon Proud
@@ -196,15 +196,15 @@ def test_forward_parallax_mixed():
     from ...modifiers.parallax import forward_parallax
 
     sat_lon = sat_lat = 0
-    sat_alt = 35_785_831.0
+    sat_alt = 35_785_831.0  # m
     lon = da.array([[-20, -10, 0, 10, 20]]*5)
     lat = da.array([[-20, -10, 0, 10, 20]]*5).T
     alt = da.array([
-        [np.nan, np.nan, 5., 6., np.nan],
-        [np.nan, 6., 7., 7., 7.],
-        [np.nan, 7., 8., 9., np.nan],
-        [np.nan, 7., 7., 7., np.nan],
-        [np.nan, 4., 3., np.nan, np.nan]])
+        [np.nan, np.nan, 5000., 6000., np.nan],
+        [np.nan, 6000., 7000., 7000., 7000.],
+        [np.nan, 7000., 8000., 9000., np.nan],
+        [np.nan, 7000., 7000., 7000., np.nan],
+        [np.nan, 4000., 3000., np.nan, np.nan]])
     (corrected_lon, corrected_lat) = forward_parallax(
         sat_lon, sat_lat, sat_alt, lon, lat, alt)
     assert corrected_lon.shape == lon.shape
@@ -241,9 +241,11 @@ def test_init_parallaxcorrection(center, sizes, resolution):
     fake_area = _get_fake_areas(center, sizes, resolution)[0]
     pc = ParallaxCorrection(fake_area)
     assert pc.base_area == fake_area
-    assert pc.search_radius == 50_000
-    pc = ParallaxCorrection(fake_area, search_radius=25_000)
-    assert pc.search_radius == 25_000
+    assert pc.resampler_args["radius_of_influence"] == 50_000
+    pc = ParallaxCorrection(
+            fake_area,
+            resampler_args={"radius_of_influence": 25_000})
+    assert pc.resampler_args["radius_of_influence"] == 25_000
 
 
 @pytest.fixture
@@ -288,7 +290,7 @@ def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
 
     with caplog.at_level(logging.DEBUG):
         new_area = corrector(sc["CTH_clear"])
-    assert "Calculating parallax correction using CTH_clear" in caplog.text
+    assert "Calculating parallax correction using heights from CTH_clear" in caplog.text
     np.testing.assert_allclose(
             new_area.get_lonlats(),
             fake_area_small.get_lonlats())
@@ -378,15 +380,15 @@ def test_correct_area_partlycloudy(daskify, resampler):
 
     sc = make_fake_scene(
            {"CTH": np.array([
-                [np.nan, np.nan, 5., 6., 7., 6., 5., np.nan, np.nan],
-                [np.nan, 6., 7., 7., 7., np.nan, np.nan, np.nan, np.nan],
-                [np.nan, 7., 8., 9., np.nan, np.nan, np.nan, np.nan, np.nan],
-                [np.nan, 7., 7., 7., np.nan, np.nan, np.nan, np.nan, np.nan],
-                [np.nan, 4., 3., np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-                [np.nan, np.nan, 5., 8., 8., 8., 6, np.nan, np.nan],
-                [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
-                [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
-                [np.nan, 9., 9., 9., 9., 9., 9., 9., np.nan],
+                [np.nan, np.nan, 5000., 6000., 7000., 6000., 5000., np.nan, np.nan],
+                [np.nan, 6000., 7000., 7000., 7000., np.nan, np.nan, np.nan, np.nan],
+                [np.nan, 7000., 8000., 9000., np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, 7000., 7000., 7000., np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, 4000., 3000., np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, 5000., 8000., 8000., 8000., 6000., np.nan, np.nan],
+                [np.nan, 9000., 9000., 9000., 9000., 9000., 9000., 9000., np.nan],
+                [np.nan, 9000., 9000., 9000., 9000., 9000., 9000., 9000., np.nan],
+                [np.nan, 9000., 9000., 9000., 9000., 9000., 9000., 9000., np.nan],
                 ])},
            daskify=daskify,
            area=fake_area_large,
@@ -403,7 +405,8 @@ def test_correct_area_partlycloudy(daskify, resampler):
             [-0.19999947, -0.09999973, 0.0, 0.1, 0.2],
             [-0.19999977, -0.1, 0.0, 0.1, 0.2],
             [-0.19999962, -0.0999997, 0.0, 0.0999997, 0.19999955],
-            [-0.19999932, -0.09999966, 0.0, 0.09999966, 0.19999932]]))
+            [-0.19999932, -0.09999966, 0.0, 0.09999966, 0.19999932]]),
+        rtol=1e-5)
     np.testing.assert_allclose(
         new_lats,
         np.array([
@@ -411,7 +414,8 @@ def test_correct_area_partlycloudy(daskify, resampler):
             [50.09992476, 50.09992476, 50.1, 50.1, 50.1],
             [49.99996787, 50.0, 50.0, 50.0, 50.0],
             [49.89994664, 49.89991462, 49.89991462, 49.89991462, 49.89993597],
-            [49.79990429, 49.79990429, 49.79990429, 49.79990429, 49.79990429]]))
+            [49.79990429, 49.79990429, 49.79990429, 49.79990429, 49.79990429]]),
+        rtol=1e-6)
 
 
 @pytest.mark.parametrize("res1,res2", [(0.01, 1), (1, 0.01)])
@@ -605,7 +609,7 @@ def test_parallax_modifier_interface_with_cloud():
 
     attrs = {
             "orbital_parameters": {
-                "satellite_actual_altitude": 42_000_000,
+                "satellite_actual_altitude": 35_000_000,
                 "satellite_actual_longitude": 0,
                 "satellite_actual_latitude": 0,
                 }
