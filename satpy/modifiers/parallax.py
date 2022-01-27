@@ -222,19 +222,20 @@ class ParallaxCorrection:
                      f"{self.resampler_args!s}")
         area = cth_dataset.area
         try:
-            (sat_lon, sat_lat, sat_alt) = get_satpos(cth_dataset)
+            (sat_lon, sat_lat, sat_alt_km) = get_satpos(cth_dataset)
         except KeyError:
             logger.warning(
                     "Orbital parameters missing from metadata. "
                     "Calculating from TLE using skyfield and astropy.")
-            (sat_lon, sat_lat, sat_alt) = _get_satpos_alt(cth_dataset)
+            (sat_lon, sat_lat, sat_alt_km) = _get_satpos_alt(cth_dataset)
+        sat_alt_m = sat_alt_km * 1000
         cth_dataset = self._preprocess_cth(cth_dataset)
         self._check_overlap(cth_dataset)
         (pixel_lon, pixel_lat) = area.get_lonlats()
 
         # Pixel coordinates according to parallax correction
         (corr_lon, corr_lat) = forward_parallax(
-            sat_lon, sat_lat, sat_alt,
+            sat_lon, sat_lat, sat_alt_m,
             np.array(pixel_lon), np.array(pixel_lat), np.array(cth_dataset)
         )
 

@@ -52,11 +52,11 @@ def _get_fake_areas(center, sizes, resolution):
         for size in sizes]
 
 
-def _get_attrs(lat, lon, height=35_000_000):
+def _get_attrs(lat, lon, height=35_000):
     """Get attributes for datasets in fake scene."""
     return {
         "orbital_parameters": {
-            "satellite_actual_altitude": height,
+            "satellite_actual_altitude": height,  # in km above surface
             "satellite_actual_longitude": lon,
             "satellite_actual_latitude": lat},
         "units": "m"
@@ -286,7 +286,7 @@ def test_correct_area_clearsky(sat_lat, sat_lon, ar_lat, ar_lon, resolution,
             {"CTH_clear": np.full((large, large), np.nan)},
             daskify=False,
             area=fake_area_large,
-            common_attrs=_get_attrs(sat_lat, sat_lon, 35_000_000))
+            common_attrs=_get_attrs(sat_lat, sat_lon, 35_000))
 
     with caplog.at_level(logging.DEBUG):
         new_area = corrector(sc["CTH_clear"])
@@ -337,7 +337,7 @@ def test_correct_area_ssp(lat, lon, resolution, resampler):
             {"CTH_constant": np.full((large, large), 10000)},
             daskify=False,
             area=fake_area_large,
-            common_attrs=_get_attrs(lat, lon, 35_000_000))
+            common_attrs=_get_attrs(lat, lon, 35_000))
     new_area = corrector(sc["CTH_constant"])
     assert new_area.shape == fake_area_small.shape
     old_lonlats = fake_area_small.get_lonlats()
@@ -392,7 +392,7 @@ def test_correct_area_partlycloudy(daskify, resampler):
                 ])},
            daskify=daskify,
            area=fake_area_large,
-           common_attrs=_get_attrs(0, 0, 40_000_000))
+           common_attrs=_get_attrs(0, 0, 40_000))
     new_area = corrector(sc["CTH"])
     assert new_area.shape == fake_area_small.shape
     (new_lons, new_lats) = new_area.get_lonlats()
@@ -433,7 +433,7 @@ def test_correct_area_clearsky_different_resolutions(res1, res2):
                 {"CTH_clear": np.full((9, 9), np.nan)},
                 daskify=False,
                 area=fake_area_large,
-                common_attrs=_get_attrs(0, 0, 35_000_000))
+                common_attrs=_get_attrs(0, 0, 35_000))
     assert len(record) == 0
 
     corrector = ParallaxCorrection(fake_area_small)
@@ -457,7 +457,7 @@ def test_correct_area_cloudy_no_overlap():
             {"CTH_constant": np.full((9, 9), 10000)},
             daskify=False,
             area=fake_area_large,
-            common_attrs=_get_attrs(0, 0, 35_000_000))
+            common_attrs=_get_attrs(0, 0, 35_000))
 
     corrector = ParallaxCorrection(fake_area_small)
     with pytest.raises(MissingHeightError):
@@ -478,7 +478,7 @@ def test_correct_area_cloudy_partly_shifted():
             {"CTH_constant": np.full((9, 9), 10000)},
             daskify=False,
             area=fake_area_large,
-            common_attrs=_get_attrs(0, 0, 35_000_000))
+            common_attrs=_get_attrs(0, 0, 35_000))
 
     corrector = ParallaxCorrection(fake_area_small)
 
@@ -497,7 +497,7 @@ def test_correct_area_cloudy_same_area():
             {"CTH_constant": np.full((9, 9), 10000)},
             daskify=False,
             area=area,
-            common_attrs=_get_attrs(0, 0, 35_000_000))
+            common_attrs=_get_attrs(0, 0, 35_000))
 
     corrector = ParallaxCorrection(area)
     corrector(sc["CTH_constant"])
@@ -553,11 +553,11 @@ def test_parallax_modifier_interface():
     fake_bt = xr.DataArray(
             np.linspace(220, 230, 25).reshape(5, 5),
             dims=("y", "x"),
-            attrs={"area": area_small, **_get_attrs(0, 0, 35_000_000)})
+            attrs={"area": area_small, **_get_attrs(0, 0, 35_000)})
     cth_clear = xr.DataArray(
             np.full((9, 9), np.nan),
             dims=("y", "x"),
-            attrs={"area": area_large, **_get_attrs(0, 0, 35_000_000)})
+            attrs={"area": area_large, **_get_attrs(0, 0, 35_000)})
     modif = ParallaxCorrectionModifier(
             name="parallax_corrected_dataset",
             prerequisites=[fake_bt, cth_clear],
