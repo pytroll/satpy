@@ -609,7 +609,7 @@ def test_parallax_modifier_interface_with_cloud():
 
     attrs = {
             "orbital_parameters": {
-                "satellite_actual_altitude": 35_000_000,
+                "satellite_actual_altitude": 35_000,
                 "satellite_actual_longitude": 0,
                 "satellite_actual_latitude": 0,
                 }
@@ -618,11 +618,11 @@ def test_parallax_modifier_interface_with_cloud():
     fake_bt = xr.DataArray(
             fake_bt_data,
             dims=("y", "x"),
-            attrs=attrs | {"area": fake_area_bt})
+            attrs={**attrs, "area": fake_area_bt})
     fake_cth = xr.DataArray(
             fake_cth_data,
             dims=("y", "x"),
-            attrs=attrs | {"area": fake_area_cth})
+            attrs={**attrs, "area": fake_area_cth})
 
     modif = ParallaxCorrectionModifier(
             name="parallax_corrected_dataset",

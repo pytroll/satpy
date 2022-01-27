@@ -229,7 +229,6 @@ class ParallaxCorrection:
                     "Calculating from TLE using skyfield and astropy.")
             (sat_lon, sat_lat, sat_alt_km) = _get_satpos_alt(cth_dataset)
         sat_alt_m = sat_alt_km * 1000
-        cth_dataset = self._preprocess_cth(cth_dataset)
         self._check_overlap(cth_dataset)
         (pixel_lon, pixel_lat) = area.get_lonlats()
 
@@ -266,15 +265,6 @@ class ParallaxCorrection:
         warnings.warn(
             "Overlap checking not impelemented. Waiting for "
             "fix for https://github.com/pytroll/pyresample/issues/329")
-
-    def _preprocess_cth(self, cth_dataset):
-        """To be documented."""
-        cth = cth_dataset.copy().fillna(0.0)
-        if "units" in cth_dataset.attrs.keys():
-            units = cth_dataset.attrs["units"]
-            if units == 'm':  # convert to km
-                cth = cth * 1e-3
-        return cth
 
     def _invert_lonlat(self, pixel_lon, pixel_lat, source_area):
         """Invert the lon/lat coordinate transformation.
