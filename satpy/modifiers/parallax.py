@@ -42,9 +42,10 @@ from pyorbital.orbital import get_observer_look
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import resample_nearest
 
-from satpy import Scene
 from satpy.modifiers import ModifierBase
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
+
+from .. import resample
 
 logger = logging.getLogger(__name__)
 
@@ -348,7 +349,6 @@ class ParallaxCorrectionModifier(ModifierBase):
         The argument ``projectables`` needs to contain the dataset to be
         projected and the height to use for the correction.
         """
-        # NB: Can I avoid creating a scene object here?
         (to_be_corrected, cth) = projectables
         base_area = to_be_corrected.attrs["area"]
         corrector = self._get_corrector(base_area)
@@ -366,11 +366,10 @@ class ParallaxCorrectionModifier(ModifierBase):
         return corrector
 
     def _correct_with_area(self, to_be_corrected, base_area, plax_corr_area):
-        global_scene = Scene()
-        global_scene["dataset"] = to_be_corrected
-        local_scene = global_scene.resample(plax_corr_area)
-        local_scene["dataset"].attrs["area"] = base_area
-        return local_scene["dataset"]
+        corrected = resample.resample_dataset(
+                to_be_corrected, plax_corr_area)
+        corrected.attrs["area"] = base_area
+        return corrected
 
 
 def _get_satpos_alt(cth_dataset):
