@@ -1,0 +1,36 @@
+sensor_name: visir/msu-gsa
+
+composites:
+  overview_raw:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: C03
+    - name: C03
+    - name: C09
+    standard_name: overview
+  overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C09
+    standard_name: overview
+  msugsa_color:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: C01
+      modifiers: [sunz_corrected]
+    standard_name: natural_color
+  msugsa_color_raw:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: C03
+    - name: C02
+    - name: C01
+    standard_name: natural_color
