@@ -700,6 +700,9 @@ def test_modifier_interface_cloud_moves_to_observer(cth):
     landing_zone = res < 250
     idx[landing_zone.data] = False
     np.testing.assert_allclose(res.data[idx], fake_bt.data[idx])
-    # verify that cloud moved south (decreasing y-index)
-    assert (landing_zone.any("y").data.nonzero()[0].mean().compute() <
-            (fake_bt < 250).any("y").data.nonzero()[0].mean())
+    # verify that cloud moved south
+    # the origin is in the north west, so south means a higher y-index
+    # to be sure, check the latitudes!
+    old_cloud_lats = fake_bt.attrs["area"].get_lonlats()[1][(fake_bt < 250).data]
+    new_cloud_lats = res.attrs["area"].get_lonlats()[1][(res < 250).data]
+    assert new_cloud_lats.mean() < old_cloud_lats.mean()
