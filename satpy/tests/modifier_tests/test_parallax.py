@@ -59,7 +59,7 @@ def _get_attrs(lat, lon, height=35_000):
             "satellite_actual_altitude": height,  # in km above surface
             "satellite_actual_longitude": lon,
             "satellite_actual_latitude": lat},
-        "units": "m"
+        "units": "m"  # does not apply to orbital parameters, I think!
         }
 
 
@@ -607,13 +607,7 @@ def test_parallax_modifier_interface_with_cloud():
             np.linspace(200, 300, lons_bt.size).reshape(lons_bt.shape),
             np.nan)
 
-    attrs = {
-            "orbital_parameters": {
-                "satellite_actual_altitude": 35_000,
-                "satellite_actual_longitude": 0,
-                "satellite_actual_latitude": 0,
-                }
-            }
+    attrs = _get_attrs(0, 0)
 
     fake_bt = xr.DataArray(
             fake_bt_data,
@@ -635,3 +629,61 @@ def test_parallax_modifier_interface_with_cloud():
     # with a constant cloud, a monotonically increasing BT should still
     # do so after parallax correction
     assert not (res.diff("x") < 0).any()
+
+
+def test_modifier_interface_cloud_moves_to_observer():
+    """Test that a cloud moves to the observer.
+
+    With the modifier interface, use a high resolution area and test that
+    pixels are moved in the direction of the observer and not away from it.
+    """
+    from ...modifiers.parallax import ParallaxCorrectionModifier
+
+    # make a fake area rather far north with a rather high resolution,
+    # with a cloud in the middle and somewhat consistent brightness
+    # temperatures
+
+    area_føroyar = pyresample.create_area_def(
+            "føroyar", 4087,
+            area_extent=[-861785.8867075047, 6820719.391005835,
+                         -686309.8124887547, 6954386.383193335],
+            resolution=500)
+
+    lat_min_i = 150
+    lat_max_i = 160
+    lon_min_i = 130
+    lon_max_i = 170
+
+    fake_bt_data = np.full(area_føroyar.shape, 300, dtype="f8")
+    fake_cth_data = np.full(area_føroyar.shape, np.nan, dtype="f8")
+    fake_bt_data[lat_min_i:lat_max_i, lon_min_i:lon_max_i] = 200
+    fake_cth_data[lat_min_i:lat_max_i, lon_min_i:lon_max_i] = 10_000
+
+    attrs = _get_attrs(0, 0)
+
+    fake_bt = xr.DataArray(
+            fake_bt_data,
+            dims=("y", "x"),
+            attrs={**attrs, "area": area_føroyar})
+
+    fake_cth = xr.DataArray(
+            fake_cth_data,
+            dims=("y", "x"),
+            attrs={**attrs, "area": area_føroyar})
+
+    modif = ParallaxCorrectionModifier(
+            name="parallax_corrected_dataset",
+            prerequisites=[fake_bt, fake_cth],
+            optional_prerequisites=[],
+            resampler_args={"radius_of_influence": 5000})
+
+    res = modif([fake_bt, fake_cth], optional_datasets=[])
+
+    np.testing.assert_allclose(
+            res.mean().compute().item(),
+            fake_bt.mean().compute().item(),
+            rtol=1e-4)
+    assert res.attrs["area"] == fake_bt.attrs["area"]
+    # verify that cloud moved south
+    assert ((res < 250).any("y").data.nonzero()[0].mean().compute() <
+            (fake_bt < 250).any("y").data.nonzero()[0].mean())
