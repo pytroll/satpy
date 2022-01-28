@@ -632,7 +632,8 @@ def test_parallax_modifier_interface_with_cloud():
 
 
 @pytest.mark.parametrize("cth", [7500, 15000])
-def test_modifier_interface_cloud_moves_to_observer(cth):
+@pytest.mark.parametrize("radius_of_influence", [10000, 25000])
+def test_modifier_interface_cloud_moves_to_observer(cth, radius_of_influence):
     """Test that a cloud moves to the observer.
 
     With the modifier interface, use a high resolution area and test that
@@ -682,7 +683,7 @@ def test_modifier_interface_cloud_moves_to_observer(cth):
             name="parallax_corrected_dataset",
             prerequisites=[fake_bt, fake_cth],
             optional_prerequisites=[],
-            resampler_args={"radius_of_influence": 25_000},
+            resampler_args={"radius_of_influence": radius_of_influence},
             debug_mode=True)
 
     res = modif([fake_bt, fake_cth], optional_datasets=[])
