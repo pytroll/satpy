@@ -631,7 +631,8 @@ def test_parallax_modifier_interface_with_cloud():
     assert not (res.diff("x") < 0).any()
 
 
-def test_modifier_interface_cloud_moves_to_observer():
+@pytest.mark.parametrize("cth", [7500, 15000])
+def test_modifier_interface_cloud_moves_to_observer(cth):
     """Test that a cloud moves to the observer.
 
     With the modifier interface, use a high resolution area and test that
@@ -649,15 +650,21 @@ def test_modifier_interface_cloud_moves_to_observer():
                          -686309.8124887547, 6954386.383193335],
             resolution=500)
 
-    lat_min_i = 150
-    lat_max_i = 160
-    lon_min_i = 130
-    lon_max_i = 170
+    w_cloud = 20
+    h_cloud = 3
 
-    fake_bt_data = np.full(area_føroyar.shape, 300, dtype="f8")
+    lat_min_i = 155
+    lat_max_i = lat_min_i + h_cloud
+    lon_min_i = 140
+    lon_max_i = lon_min_i + w_cloud
+
+    fake_bt_data = np.linspace(
+            270, 330, math.prod(area_føroyar.shape), dtype="f8").reshape(
+                    area_føroyar.shape).round(2)
     fake_cth_data = np.full(area_føroyar.shape, np.nan, dtype="f8")
-    fake_bt_data[lat_min_i:lat_max_i, lon_min_i:lon_max_i] = 200
-    fake_cth_data[lat_min_i:lat_max_i, lon_min_i:lon_max_i] = 10_000
+    fake_bt_data[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = np.linspace(
+            180, 220, w_cloud*h_cloud).reshape(w_cloud, h_cloud).round(2)
+    fake_cth_data[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = cth
 
     attrs = _get_attrs(0, 0)
 
@@ -675,15 +682,24 @@ def test_modifier_interface_cloud_moves_to_observer():
             name="parallax_corrected_dataset",
             prerequisites=[fake_bt, fake_cth],
             optional_prerequisites=[],
-            resampler_args={"radius_of_influence": 5000})
+            resampler_args={"radius_of_influence": 25_000},
+            debug_mode=True)
 
     res = modif([fake_bt, fake_cth], optional_datasets=[])
 
-    np.testing.assert_allclose(
-            res.mean().compute().item(),
-            fake_bt.mean().compute().item(),
-            rtol=1e-4)
+    assert fake_bt.attrs["area"] == area_føroyar  # should not be changed
     assert res.attrs["area"] == fake_bt.attrs["area"]
-    # verify that cloud moved south
-    assert ((res < 250).any("y").data.nonzero()[0].mean().compute() <
+    # confirm old cloud area now fill value
+    assert np.isnan(res[lat_min_i:lat_max_i, lon_min_i:lon_max_i]).all()
+    # confirm rest of the area does not have fill values
+    idx = np.ones_like(fake_bt.data, dtype="?")
+    idx[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = False
+    assert np.isfinite(res.data[idx]).all()
+    # confirm that rest of area pixel values did not change, except where
+    # cloud arrived
+    landing_zone = res < 250
+    idx[landing_zone.data] = False
+    np.testing.assert_allclose(res.data[idx], fake_bt.data[idx])
+    # verify that cloud moved south (decreasing y-index)
+    assert (landing_zone.any("y").data.nonzero()[0].mean().compute() <
             (fake_bt < 250).any("y").data.nonzero()[0].mean())

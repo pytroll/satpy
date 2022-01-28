@@ -239,8 +239,11 @@ class ParallaxCorrection:
             np.array(pixel_lon), np.array(pixel_lat), np.array(cth_dataset)
         )
 
-        corr_lon = xr.DataArray(corr_lon)
-        corr_lat = xr.DataArray(corr_lat)
+        # lons and lats must be data-arrays with dimensions,  see
+        # https://github.com/pytroll/satpy/issues/1434
+        # and https://github.com/pytroll/satpy/issues/1997
+        corr_lon = xr.DataArray(corr_lon, dims=("y", "x"))
+        corr_lat = xr.DataArray(corr_lat, dims=("y", "x"))
         corr_area = SwathDefinition(corr_lon, corr_lat)
 
         # But we are not actually moving pixels, rather we want a
@@ -249,8 +252,8 @@ class ParallaxCorrection:
         # where we should retrieve a value for a given pixel.
         (proj_lon, proj_lat) = self._invert_lonlat(
                 pixel_lon, pixel_lat, corr_area)
-        proj_lon = xr.DataArray(proj_lon)
-        proj_lat = xr.DataArray(proj_lat)
+        proj_lon = xr.DataArray(proj_lon, dims=("y", "x"))
+        proj_lat = xr.DataArray(proj_lat, dims=("y", "x"))
 
         return SwathDefinition(proj_lon, proj_lat)
 
@@ -287,12 +290,19 @@ class ParallaxCorrection:
         inv_lon = base_lon + inv_lon_diff
         inv_lat = base_lat + inv_lat_diff
         if self.debug_mode:
+            self.diagnostics["source_lon"] = source_lon
+            self.diagnostics["source_lat"] = source_lat
             self.diagnostics["inv_lon"] = inv_lon
             self.diagnostics["inv_lat"] = inv_lat
             self.diagnostics["base_lon"] = base_lon
             self.diagnostics["base_lat"] = base_lat
             self.diagnostics["inv_lon_diff"] = inv_lon_diff
             self.diagnostics["inv_lat_diff"] = inv_lat_diff
+            self.diagnostics["pixel_lon"] = pixel_lon
+            self.diagnostics["pixel_lat"] = pixel_lat
+            self.diagnostics["lon_diff"] = lon_diff
+            self.diagnostics["lat_diff"] = lat_diff
+            self.diagnostics["source_area"] = source_area
         return (inv_lon, inv_lat)
 
 
@@ -331,10 +341,6 @@ class ParallaxCorrectionModifier(ModifierBase):
         sc = Scene({"seviri_l1b_hrit": files_l1b, "nwcsaf-geo": files_l2})
         sc.load(["parallax_corrected_VIS006"])
 
-    The CTH product should have a variable attribute "units".  If this is
-    missing, Satpy will assume km for the purposes of parallax correction
-    computations.
-
     Alternately, you can use the lower-level API directly with the
     :class:`ParallaxCorrection` class, which may be more efficient if multiple
     datasets need to be corrected.  RGB Composites cannot be modified in this way
@@ -353,7 +359,8 @@ class ParallaxCorrectionModifier(ModifierBase):
         base_area = to_be_corrected.attrs["area"]
         corrector = self._get_corrector(base_area)
         plax_corr_area = corrector(cth)
-        return self._correct_with_area(to_be_corrected, base_area, plax_corr_area)
+        res = self._correct_with_area(to_be_corrected, base_area, plax_corr_area)
+        return res
 
     def _get_corrector(self, base_area):
         # only pass on those attributes that are arguments by
@@ -366,9 +373,11 @@ class ParallaxCorrectionModifier(ModifierBase):
         return corrector
 
     def _correct_with_area(self, to_be_corrected, base_area, plax_corr_area):
+        to_be_corrected_orig_area = to_be_corrected.attrs["area"]
+        to_be_corrected.attrs["area"] = plax_corr_area
         corrected = resample.resample_dataset(
-                to_be_corrected, plax_corr_area)
-        corrected.attrs["area"] = base_area
+                to_be_corrected, base_area)
+        to_be_corrected.attrs["area"] = to_be_corrected_orig_area
         return corrected
 
 
