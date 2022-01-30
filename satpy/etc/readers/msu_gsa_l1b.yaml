@@ -176,10 +176,10 @@ datasets:
     resolution:
       4000:
         file_type: msugs_l1b
-        file_key: Data/resolution_4km/Solar_Zenith_angle
+        file_key: Data/resolution_4km/Solar_Zenith_Angle
       1000:
         file_type: msugs_l1b
-        file_key: Data/resolution_1km/Solar_Zenith_angle
+        file_key: Data/resolution_1km/Solar_Zenith_Angle
   solar_azimuth_angle:
     name: solar_azimuth_angle
     units: degrees
@@ -187,10 +187,10 @@ datasets:
     resolution:
       4000:
         file_type: msugs_l1b
-        file_key: Data/resolution_4km/Solar_Azimuth_angle
+        file_key: Data/resolution_4km/Solar_Azimuth_Angle
       1000:
         file_type: msugs_l1b
-        file_key: Data/resolution_1km/Solar_Azimuth_angle
+        file_key: Data/resolution_1km/Solar_Azimuth_Angle
   satellite_zenith_angle:
     name: satellite_zenith_angle
     units: degrees
@@ -198,10 +198,10 @@ datasets:
     resolution:
       4000:
         file_type: msugs_l1b
-        file_key: Data/resolution_4km/Satellite_Zenith_angle
+        file_key: Data/resolution_4km/Satellite_Zenith_Angle
       1000:
         file_type: msugs_l1b
-        file_key: Data/resolution_1km/Satellite_Zenith_angle
+        file_key: Data/resolution_1km/Satellite_Zenith_Angle
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     units: degrees
@@ -209,7 +209,8 @@ datasets:
     resolution:
       4000:
         file_type: msugs_l1b
-        file_key: Data/resolution_4km/Satellite_Azimuth_angle
+        file_key: Data/resolution_4km/Satellite_Azimuth_Angle
       1000:
         file_type: msugs_l1b
-        file_key: Data/resolution_1km/Satellite_Azimuth_angle
+        file_key: Data/resolution_1km/Satellite_Azimuth_Angle
+
