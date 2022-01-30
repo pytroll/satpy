@@ -25,6 +25,7 @@ This reader was tested on sample data provided by EUMETSAT.
 
 """
 from datetime import datetime
+
 import numpy as np
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
