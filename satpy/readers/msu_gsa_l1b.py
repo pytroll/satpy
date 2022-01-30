@@ -42,8 +42,10 @@ class MSUGSAFileHandler(HDF5FileHandler):
     @property
     def satellite_altitude(self):
         """Satellite altitude at time of scan.
+
         There is no documentation but this appears to be
-        height above surface in meters."""
+        height above surface in meters.
+        """
         return self['/attr/satellite_observation_point_height']
 
     @property
@@ -58,7 +60,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
 
     @property
     def sensor_name(self):
-        """Sensor name is hardcoded"""
+        """Sensor name is hardcoded."""
         sensor = 'MSU-GS/A'
         return sensor
 
