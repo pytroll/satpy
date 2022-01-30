@@ -47,17 +47,17 @@ class MSUGSAFileHandler(HDF5FileHandler):
         There is no documentation but this appears to be
         height above surface in meters.
         """
-        return self['/attr/satellite_observation_point_height']
+        return float(self['/attr/satellite_observation_point_height'])
 
     @property
     def satellite_latitude(self):
         """Satellite latitude at time of scan."""
-        return self['/attr/satellite_observation_point_latitude']
+        return float(self['/attr/satellite_observation_point_latitude'])
 
     @property
     def satellite_longitude(self):
         """Satellite longitude at time of scan."""
-        return self['/attr/satellite_observation_point_longitude']
+        return float(self['/attr/satellite_observation_point_longitude'])
 
     @property
     def sensor_name(self):
@@ -94,7 +94,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
 
         # Data is given as radiance values, we must convert if we want reflectance
         if dataset_id.get('calibration') == "reflectance":
-            solconst = attrs.pop('F_solar_constant')
+            solconst = float(attrs.pop('F_solar_constant'))
             data = np.pi * data / solconst
             # Satpy expects reflectance values in 0-100 range
             data = data * 100.
