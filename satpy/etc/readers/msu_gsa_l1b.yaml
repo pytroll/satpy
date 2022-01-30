@@ -213,4 +213,3 @@ datasets:
       1000:
         file_type: msugs_l1b
         file_key: Data/resolution_1km/Satellite_Azimuth_Angle
-
