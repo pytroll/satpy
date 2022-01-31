@@ -18,6 +18,8 @@
 """Tests for the 'msu_gsa_l1b' reader."""
 import os
 import unittest
+
+from satpy.tests.utils import make_dataid
 from unittest import mock
 
 import dask.array as da
@@ -120,60 +122,63 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         return test_content
 
 
-class TestMSUGSABReader(unittest.TestCase):
+class TestMSUGSABReader:
     """Test MSU GS/A L1B Reader."""
 
     yaml_file = "msu_gsa_l1b.yaml"
 
-    def setUp(self):
+    def setup(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.msu_gsa_l1b import MSUGSAFileHandler
+        from satpy.readers import load_reader
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(MSUGSAFileHandler, '__bases__', (FakeHDF5FileHandler2,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
-    def tearDown(self):
+        filenames = ['ArcticaM1_202201131245.h5']
+        self.reader = load_reader(self.reader_configs)
+        files = self.reader.select_files_from_pathnames(filenames)
+        self.reader.create_filehandlers(files)
+
+    def teardown(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_msugsa_get_ds(self):
-        """Test loading data when all resolutions are available."""
-        from satpy.readers import load_reader
-        from satpy.tests.utils import make_dataid
-        filenames = ['ArcticaM1_202201131245.h5']
-        reader = load_reader(self.reader_configs)
-        files = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(files)
-        self.assertTrue(reader.file_handlers)
-
-        # Test retrieval in brightness temperature
+    def test_irbt(self):
+        """Test retrieval in brightness temperature."""
         ds_ids = [make_dataid(name='C09', calibration='brightness_temperature')]
-        res = reader.load(ds_ids)
-        self.assertIn('C09', res)
-        self.assertEqual(res['C09'].attrs['calibration'], 'brightness_temperature')
-        self.assertEqual(res['C09'].attrs['platform_name'], 'Arctica-M N1')
-        self.assertEqual(res['C09'].attrs['sat_latitude'], 71.25)
-        self.assertEqual(res['C09'].attrs['sat_longitude'], 21.44)
-        self.assertEqual(res['C09'].attrs['sat_altitude'], 38500.)
-        self.assertEqual(res['C09'].attrs['resolution'], 4000)
+        res = self.reader.load(ds_ids)
+        assert 'C09' in res
+        assert res['C09'].attrs['calibration'] == 'brightness_temperature'
+        assert res['C09'].attrs['platform_name'] == 'Arctica-M N1'
+        assert res['C09'].attrs['sat_latitude'] == 71.25
+        assert res['C09'].attrs['sat_longitude'] == 21.44
+        assert res['C09'].attrs['sat_altitude'] == 38500.
+        assert res['C09'].attrs['resolution'] == 4000
 
-        # Test we can't get IR or VIS data as counts
+    def test_nocounts(self):
+        """Test we can't get IR or VIS data as counts."""
         ds_ids = [make_dataid(name='C01', calibration='counts')]
-        with self.assertRaises(KeyError):
-            reader.load(ds_ids)
+        try:
+            self.reader.load(ds_ids)
+        except KeyError:
+            pass
         ds_ids = [make_dataid(name='C09', calibration='counts')]
-        with self.assertRaises(KeyError):
-            reader.load(ds_ids)
+        try:
+            self.reader.load(ds_ids)
+        except KeyError:
+            pass
 
-        # Test that we can retrieve VIS data as both radiance and reflectance
+    def test_vis_cal(self):
+        """Test that we can retrieve VIS data as both radiance and reflectance."""
         ds_ids = [make_dataid(name='C01', calibration='radiance')]
-        res = reader.load(ds_ids)
+        res = self.reader.load(ds_ids)
         rad = res['C01'].data
         ds_ids = [make_dataid(name='C01', calibration='reflectance')]
-        res = reader.load(ds_ids)
+        res = self.reader.load(ds_ids)
         refl = res['C01'].data
 
         # Check the RAD->REFL conversion

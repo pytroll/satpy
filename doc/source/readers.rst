@@ -263,6 +263,12 @@ Electro-L HRIT format reader
 .. automodule:: satpy.readers.electrol_hrit
     :noindex:
 
+Arctica-M N1 HDF5 format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.msu_gsa_l1b
+    :noindex:
+
 hdf-eos based readers
 ---------------------
 
