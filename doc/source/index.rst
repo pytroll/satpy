@@ -292,6 +292,7 @@ the base Satpy installation.
     * - Arctica-M (N1) MSU-GS/A data in HDF5 format
       - `msu_gsa_l1b`
       - Beta
+
 Indices and tables
 ==================
 
