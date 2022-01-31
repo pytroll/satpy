@@ -154,7 +154,7 @@ class TestMSUGSABReader(unittest.TestCase):
         res = reader.load(ds_ids)
         self.assertIn('C09', res)
         self.assertEqual(res['C09'].attrs['calibration'], 'brightness_temperature')
-        self.assertEqual(res['C09'].attrs['platform_name'], 'Arctica-M1')
+        self.assertEqual(res['C09'].attrs['platform_name'], 'Arctica-M N1')
         self.assertEqual(res['C09'].attrs['sat_latitude'], 71.25)
         self.assertEqual(res['C09'].attrs['sat_longitude'], 21.44)
         self.assertEqual(res['C09'].attrs['sat_altitude'], 38500.)
