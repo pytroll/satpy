@@ -180,6 +180,7 @@ datasets:
       1000:
         file_type: msugs_l1b
         file_key: Data/resolution_1km/Solar_Zenith_Angle
+    coordinates: [longitude, latitude]
   solar_azimuth_angle:
     name: solar_azimuth_angle
     units: degrees
@@ -191,6 +192,7 @@ datasets:
       1000:
         file_type: msugs_l1b
         file_key: Data/resolution_1km/Solar_Azimuth_Angle
+    coordinates: [longitude, latitude]
   satellite_zenith_angle:
     name: satellite_zenith_angle
     units: degrees
@@ -202,6 +204,7 @@ datasets:
       1000:
         file_type: msugs_l1b
         file_key: Data/resolution_1km/Satellite_Zenith_Angle
+    coordinates: [longitude, latitude]
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     units: degrees
@@ -213,3 +216,4 @@ datasets:
       1000:
         file_type: msugs_l1b
         file_key: Data/resolution_1km/Satellite_Azimuth_Angle
+    coordinates: [longitude, latitude]
