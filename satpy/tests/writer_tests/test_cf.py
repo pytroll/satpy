@@ -300,16 +300,16 @@ class TestCFWriter(unittest.TestCase):
         from satpy import Scene
         scn = Scene()
         test_array = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
+        times = np.array(['2018-05-30T10:05:00', '2018-05-30T10:05:01',
+                          '2018-05-30T10:05:02', '2018-05-30T10:05:03'], dtype=np.datetime64)
         scn['test-array'] = xr.DataArray(test_array,
                                          dims=['y', 'x'],
-                                         coords={'time': ('y', np.array(['2018-05-30T10:05:00',
-                                                                         '2018-05-30T10:05:01',
-                                                                         '2018-05-30T10:05:02',
-                                                                         '2018-05-30T10:05:03'], dtype=np.datetime64))})
+                                         coords={'time': ('y', times)},
+                                         attrs=dict(start_time=times[0], end_time=times[-1]))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf')
+            scn.save_datasets(filename=filename, writer='cf', pretty=True)
             with xr.open_dataset(filename, decode_cf=True) as f:
-                np.testing.assert_array_equal(f['test-array_time'], scn['test-array']['time'])
+                np.testing.assert_array_equal(f['time'], scn['test-array']['time'])
 
     def test_bounds(self):
         """Test setting time bounds."""
