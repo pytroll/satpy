@@ -141,8 +141,8 @@ class TestMSUGSABReader(unittest.TestCase):
 
     def test_msugsa_get_ds(self):
         """Test loading data when all resolutions are available."""
-        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
+        from satpy.tests.utils import make_dataid
         filenames = ['ArcticaM1_202201131245.h5']
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
