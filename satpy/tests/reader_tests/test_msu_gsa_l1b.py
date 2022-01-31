@@ -17,10 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'msu_gsa_l1b' reader."""
 import os
-import unittest
-
 from satpy.tests.utils import make_dataid
 from unittest import mock
+import pytest
 
 import dask.array as da
 import numpy as np
@@ -162,15 +161,12 @@ class TestMSUGSABReader:
     def test_nocounts(self):
         """Test we can't get IR or VIS data as counts."""
         ds_ids = [make_dataid(name='C01', calibration='counts')]
-        try:
+        with pytest.raises(KeyError):
             self.reader.load(ds_ids)
-        except KeyError:
-            pass
+
         ds_ids = [make_dataid(name='C09', calibration='counts')]
-        try:
+        with pytest.raises(KeyError):
             self.reader.load(ds_ids)
-        except KeyError:
-            pass
 
     def test_vis_cal(self):
         """Test that we can retrieve VIS data as both radiance and reflectance."""
