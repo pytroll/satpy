@@ -68,7 +68,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
     @property
     def platform_name(self):
         """Platform name is also hardcoded."""
-        platform = 'Arctica-M1'
+        platform = 'Arctica-M N1'
         return platform
 
     @staticmethod
