@@ -15,7 +15,7 @@ repos:
       - id: check-yaml
         args: [--unsafe]
   - repo: https://github.com/PyCQA/bandit
-    rev: '1.7.1' # Update me!
+    rev: '1.7.2' # Update me!
     hooks:
       - id: bandit
         args: [--ini, .bandit]
