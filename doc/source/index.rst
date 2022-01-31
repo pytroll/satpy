@@ -289,6 +289,9 @@ the base Satpy installation.
     * - AAPP L1C AMSU-B format
       - `aapp_amsub_l1c`
       - Beta
+    * - Arctica-M (N1) MSU-GS/A data in HDF5 format
+      - `msu_gsa_l1b`
+      - Beta
 
 Indices and tables
 ==================
