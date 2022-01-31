@@ -7,7 +7,7 @@ reader:
 
 
 file_types:
-    msugs_l1b:
+    msu_gsa_l1b:
         file_reader: !!python/name:satpy.readers.msu_gsa_l1b.MSUGSAFileHandler
         file_patterns: ['ArcticaM{mission_id:1s}_{start_time:%Y%m%d%H%M}.h5']
 
@@ -18,10 +18,10 @@ datasets:
     standard_name: longitude
     resolution:
       4000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Geolocation/resolution_4km/Longitude
       1000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Geolocation/resolution_1km/Longitude
   latitude:
     name: latitude
@@ -29,10 +29,10 @@ datasets:
     standard_name: latitude
     resolution:
       4000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Geolocation/resolution_4km/Latitude
       1000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Geolocation/resolution_1km/Latitude
 
   # The channels C01-C03 (VIS) are available at 1km resolution
@@ -49,7 +49,7 @@ datasets:
         standard_name: toa_outgoing_radiance
         units: W m-2 sr-1
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_1km/Radiance_01
   C02:
     name: C02
@@ -64,7 +64,7 @@ datasets:
         standard_name: toa_outgoing_radiance
         units: W m-2 sr-1
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_1km/Radiance_02
   C03:
     name: C03
@@ -79,7 +79,7 @@ datasets:
         standard_name: toa_outgoing_radiance
         units: W m-2 sr-1
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_1km/Radiance_03
 
   # The channels C04-C10 (IR) are available at 4km resolution
@@ -93,7 +93,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_4km/Brightness_Temperature_04
   C05:
     name: C05
@@ -105,7 +105,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_4km/Brightness_Temperature_05
   C06:
     name: C06
@@ -117,7 +117,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_4km/Brightness_Temperature_06
   C07:
     name: C07
@@ -129,7 +129,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_4km/Brightness_Temperature_07
   C08:
     name: C08
@@ -141,7 +141,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_4km/Brightness_Temperature_08
   C09:
     name: C09
@@ -153,7 +153,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_4km/Brightness_Temperature_09
   C10:
     name: C10
@@ -165,7 +165,7 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
     coordinates: [longitude, latitude]
-    file_type: msugs_l1b
+    file_type: msu_gsa_l1b
     file_key: Data/resolution_4km/Brightness_Temperature_10
 
   # The solar and viewing geometry is available at both resolutions
@@ -175,10 +175,10 @@ datasets:
     standard_name: solar_zenith_angle
     resolution:
       4000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_4km/Solar_Zenith_Angle
       1000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_1km/Solar_Zenith_Angle
     coordinates: [longitude, latitude]
   solar_azimuth_angle:
@@ -187,10 +187,10 @@ datasets:
     standard_name: solar_azimuth_angle
     resolution:
       4000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_4km/Solar_Azimuth_Angle
       1000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_1km/Solar_Azimuth_Angle
     coordinates: [longitude, latitude]
   satellite_zenith_angle:
@@ -199,10 +199,10 @@ datasets:
     standard_name: satellite_zenith_angle
     resolution:
       4000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_4km/Satellite_Zenith_Angle
       1000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_1km/Satellite_Zenith_Angle
     coordinates: [longitude, latitude]
   satellite_azimuth_angle:
@@ -211,9 +211,9 @@ datasets:
     standard_name: satellite_azimuth_angle
     resolution:
       4000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_4km/Satellite_Azimuth_Angle
       1000:
-        file_type: msugs_l1b
+        file_type: msu_gsa_l1b
         file_key: Data/resolution_1km/Satellite_Azimuth_Angle
     coordinates: [longitude, latitude]
