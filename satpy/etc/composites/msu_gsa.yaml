@@ -4,14 +4,14 @@ composites:
   overview_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - name: C03
+    - name: C01
     - name: C03
     - name: C09
     standard_name: overview
   overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
-    - name: C03
+    - name: C01
       modifiers: [sunz_corrected]
     - name: C03
       modifiers: [sunz_corrected]
