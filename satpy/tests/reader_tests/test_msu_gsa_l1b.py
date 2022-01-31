@@ -17,15 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'msu_gsa_l1b' reader."""
 import os
-from satpy.tests.utils import make_dataid
 from unittest import mock
-import pytest
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+from satpy.tests.utils import make_dataid
 
 SOLCONST = '273.59'
 
@@ -129,8 +129,8 @@ class TestMSUGSABReader:
     def setup(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.msu_gsa_l1b import MSUGSAFileHandler
         from satpy.readers import load_reader
+        from satpy.readers.msu_gsa_l1b import MSUGSAFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(MSUGSAFileHandler, '__bases__', (FakeHDF5FileHandler2,))
