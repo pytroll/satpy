@@ -71,7 +71,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         if calibration_name == 'brightness_temperature':
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_thermal_index']
-            cw = self._channel_cw_thermal[chan_index]  # wavelengths now in µm
+            cw = self._channel_cw_thermal[chan_index]
             a = self._bt_conversion_a[chan_index]
             b = self._bt_conversion_b[chan_index]
             # Perform the calibration
@@ -80,9 +80,9 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         elif calibration_name == 'reflectance':
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_solar_index']
-            isi = self._integrated_solar_irradiance[chan_index]  # Band averaged solar irradiance in (W/m2/µm)
+            isi = self._integrated_solar_irradiance[chan_index]
             # Perform the calibration
-            calibrated_variable = self._calibrate_refl(variable, self.angle_factor.values, isi)
+            calibrated_variable = self._calibrate_refl(variable, self.angle_factor, isi)
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == 'radiance':
             calibrated_variable = variable
@@ -142,5 +142,6 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             numpy ndarray: array containing the calibrated reflectance values.
 
         """
-        refl_values = (np.pi / isi) * angle_factor * radiance * 100.0  # should be in %?
+        print(type(isi), type(angle_factor), type(radiance))
+        refl_values = (np.pi / isi) * angle_factor.values * radiance * 100.0
         return refl_values

@@ -18,12 +18,6 @@
 
 """EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
 
-#     P.Phillips 14/01/22  Removed the following as resulted in no data on one side of the
-#     Greenwich meridian being lost and not needed for test data V2:
-#         If the dataset contains a longitude, change it to the interval [0., 360.) as natively in the product
-#          since the unwrapping performed during the interpolation might have created values outside this range
-#         if dataset_info.get('standard_name', None) == 'longitude':
-#             variable %= 360.
 
 import logging
 from datetime import datetime
