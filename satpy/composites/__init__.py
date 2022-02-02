@@ -1338,7 +1338,8 @@ class BackgroundCompositor(GenericCompositor):
 class MaskingCompositor(GenericCompositor):
     """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
 
-    def __init__(self, name, transparency=None, conditions=None, **kwargs):
+    def __init__(self, name, transparency=None, conditions=None, mode="LA",
+                 **kwargs):
         """Collect custom configuration values.
 
         Kwargs:
@@ -1348,6 +1349,10 @@ class MaskingCompositor(GenericCompositor):
                                  DEPRECATED.
             conditions (list): list of three items determining the masking
                                settings.
+            mode (str, optional): Image mode to return.  For single-band input,
+                                  this shall be "LA" (default) or "RGBA".  For
+                                  multi-band input, this argument is ignored
+                                  as the result is always RGBA.
 
         Each condition in *conditions* consists of three items:
 
@@ -1406,6 +1411,7 @@ class MaskingCompositor(GenericCompositor):
             self.conditions = conditions
         if self.conditions is None:
             raise ValueError("Masking conditions not defined.")
+        self.mode = mode
 
         super(MaskingCompositor, self).__init__(name, **kwargs)
 
@@ -1421,6 +1427,8 @@ class MaskingCompositor(GenericCompositor):
         alpha_attrs = data_in.attrs.copy()
         if 'bands' in data_in.dims:
             data = [data_in.sel(bands=b) for b in data_in['bands'] if b != 'A']
+        elif self.mode == "RGBA":
+            data = [data_in, data_in, data_in]
         else:
             data = [data_in]
 

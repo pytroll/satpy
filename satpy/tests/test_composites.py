@@ -1283,7 +1283,8 @@ class TestMaskingCompositor:
                                      mode=mode)
             res = comp([test_data, test_ct_data])
         assert res.mode == mode
-        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
+        for m in mode.rstrip("A"):
+            np.testing.assert_allclose(res.sel(bands=m), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
     def test_call_named_fields(self, conditions_v2, test_data, test_ct_data,
