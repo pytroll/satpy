@@ -1422,36 +1422,11 @@ class MaskingCompositor(GenericCompositor):
         projectables = self.match_data_arrays(projectables)
         data_in = projectables[0]
         mask_in = projectables[1]
-        mask_data = mask_in.data
 
         alpha_attrs = data_in.attrs.copy()
-        if 'bands' in data_in.dims:
-            data = [data_in.sel(bands=b) for b in data_in['bands'] if b != 'A']
-        elif self.mode == "RGBA":
-            data = [data_in, data_in, data_in]
-        else:
-            data = [data_in]
+        data = self._select_data_bands(data_in)
 
-        # Create alpha band
-        alpha = da.ones((data[0].sizes['y'],
-                         data[0].sizes['x']),
-                        chunks=data[0].chunks)
-
-        for condition in self.conditions:
-            method = condition['method']
-            value = condition.get('value', None)
-            if isinstance(value, str):
-                value = _get_flag_value(mask_in, value)
-            transparency = condition['transparency']
-            mask = self._get_mask(method, value, mask_data)
-
-            if transparency == 100.0:
-                data = self._set_data_nans(data, mask, alpha_attrs)
-            alpha_val = 1. - transparency / 100.
-            alpha = da.where(mask, alpha_val, alpha)
-
-        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
-                             dims=data[0].dims, coords=data[0].coords)
+        alpha = self._get_alpha_bands(data, mask_in, alpha_attrs)
         data.append(alpha)
 
         res = super(MaskingCompositor, self).__call__(data, **kwargs)
@@ -1484,6 +1459,44 @@ class MaskingCompositor(GenericCompositor):
             data[i].attrs = attrs
 
         return data
+
+    def _select_data_bands(self, data_in):
+        """Select data to be composited from input data.
+
+        From input data, select the bands that need to have masking applied.
+        """
+        if 'bands' in data_in.dims:
+            return [data_in.sel(bands=b) for b in data_in['bands'] if b != 'A']
+        if self.mode == "RGBA":
+            return [data_in, data_in, data_in]
+        return [data_in]
+
+    def _get_alpha_bands(self, data, mask_in, alpha_attrs):
+        """Get alpha bands.
+
+        From input data, masks, and attributes, get alpha band.
+        """
+        # Create alpha band
+        mask_data = mask_in.data
+        alpha = da.ones((data[0].sizes['y'],
+                         data[0].sizes['x']),
+                        chunks=data[0].chunks)
+
+        for condition in self.conditions:
+            method = condition['method']
+            value = condition.get('value', None)
+            if isinstance(value, str):
+                value = _get_flag_value(mask_in, value)
+            transparency = condition['transparency']
+            mask = self._get_mask(method, value, mask_data)
+
+            if transparency == 100.0:
+                data = self._set_data_nans(data, mask, alpha_attrs)
+            alpha_val = 1. - transparency / 100.
+            alpha = da.where(mask, alpha_val, alpha)
+
+        return xr.DataArray(data=alpha, attrs=alpha_attrs,
+                            dims=data[0].dims, coords=data[0].coords)
 
 
 def _get_flag_value(mask, val):
