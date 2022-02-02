@@ -91,7 +91,7 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
         lat (array or number): Latitudes of pixel/pixels to be corrected, in
             geodetic coordinates [°]
         height (array or number): Heights of pixels on which the correction
-            will be based.  Typically this is the cloud based height. [m]
+            will be based.  Typically this is the cloud top height. [m]
 
     Returns:
         tuple[float, float]: New geolocation
