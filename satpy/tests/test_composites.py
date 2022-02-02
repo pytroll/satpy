@@ -1266,18 +1266,23 @@ class TestMaskingCompositor:
         assert _get_flag_value(mask, 'Cloud-free_land') == 1
         assert _get_flag_value(mask, 'Cloud-free_sea') == 2
 
+    @pytest.mark.parametrize("mode", ["LA", "RGBA"])
     def test_call_numerical_transparency_data(
             self, conditions_v1, test_data, test_ct_data, reference_data,
-            reference_alpha):
-        """Test call the compositor."""
+            reference_alpha, mode):
+        """Test call the compositor with numerical transparency data.
+
+        Use parameterisation to test different image modes.
+        """
         from satpy.composites import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         # Test with numerical transparency data
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", conditions=conditions_v1)
+            comp = MaskingCompositor("name", conditions=conditions_v1,
+                                     mode=mode)
             res = comp([test_data, test_ct_data])
-        assert res.mode == "LA"
+        assert res.mode == mode
         np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
