@@ -255,6 +255,21 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
         self.reader.create_filehandlers(filelist)
         self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
 
+    def test_serializable(self):
+        """Check that a reader is serializable by dask.
+
+        This ensures users are able to serialize a Scene object that contains
+        readers.
+        """
+        from distributed.protocol import deserialize, serialize
+        filelist = ['a001.bla', 'a002.bla', 'a001.bla', 'a002.bla',
+                    'abcd.bla', 'k001.bla', 'a003.bli']
+
+        self.reader.create_filehandlers(filelist)
+        cloned_reader = deserialize(*serialize(self.reader))
+        assert self.reader.file_handlers.keys() == cloned_reader.file_handlers.keys()
+        assert self.reader.all_ids == cloned_reader.all_ids
+
 
 class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
     """Test units from FileYAMLReader with custom id_keys."""
