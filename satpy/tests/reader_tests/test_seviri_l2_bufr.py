@@ -23,6 +23,7 @@ from datetime import datetime
 from unittest import mock
 
 import numpy as np
+import pytest
 from pyresample import geometry
 
 from satpy.tests.utils import make_dataid
@@ -74,9 +75,8 @@ AREA_DEF = geometry.AreaDefinition(
      'h': 35785831., 'proj': 'geos', 'units': 'm'},
     232,
     232,
-    (-5567248.0742, -5567248.0742, 5567248.0742, 5567248.0742)
+    (-5570248.6866, -5567248.2834, 5567248.2834, 5570248.6866)
 )
-
 
 AREA_DEF_EXT = geometry.AreaDefinition(
     'msg_seviri_iodc_9km_ext',
@@ -87,11 +87,11 @@ AREA_DEF_EXT = geometry.AreaDefinition(
      'h': 35785831., 'proj': 'geos', 'units': 'm'},
     1238,
     1238,
-    (-5576249.283671378, -5567248.074173927, 5567248.074173927, 5576249.283671378)
+    (-5571748.888268564, -5571748.888155806, 5571748.888155806, 5571748.888268564)
 )
 
 
-class TestSeviriL2Bufr(unittest.TestCase):
+class TestSeviriL2Bufr:
     """Test NativeMSGBufrHandler."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
@@ -148,12 +148,9 @@ class TestSeviriL2Bufr(unittest.TestCase):
         z = self.read_data(buf1, m, fh, DATASET_INFO)
 
         # Test dataset attributes
-        self.assertEqual(z.attrs['platform_name'],
-                         DATASET_ATTRS['platform_name'])
-        self.assertEqual(z.attrs['ssp_lon'],
-                         DATASET_ATTRS['ssp_lon'])
-        self.assertEqual(z.attrs['seg_size'],
-                         DATASET_ATTRS['seg_size'])
+        assert z.attrs['platform_name'] == DATASET_ATTRS['platform_name']
+        assert z.attrs['ssp_lon'] == DATASET_ATTRS['ssp_lon']
+        assert z.attrs['seg_size'] == DATASET_ATTRS['seg_size']
 
         # Test dataset with SwathDefintion and AreaDefinition, respectively
         if not fh.as_area_def:
@@ -179,7 +176,9 @@ class TestSeviriL2Bufr(unittest.TestCase):
     def as_swath_definition(self, fh, z, samp1):
         """Perform checks if data loaded as swath definition."""
         # With swath definition there will be no AreaDefinition implemented
-        self.assertRaises(NotImplementedError, fh.get_area_def, None)
+        with pytest.raises(NotImplementedError):
+            fh.get_area_def(None)
+
         # concatenate original test arrays as get_dataset will have read and concatented the data
         x1 = np.concatenate((samp1, samp1), axis=0)
         np.testing.assert_array_equal(z.values, x1)
@@ -187,37 +186,30 @@ class TestSeviriL2Bufr(unittest.TestCase):
     def as_area_definition(self, fh, z, samp1):
         """Perform checks if data loaded as AreaDefinition."""
         ad = fh.get_area_def(None)
-        self.assertEqual(ad, AREA_DEF)
+        assert ad == AREA_DEF
         data = np.concatenate((samp1, samp1), axis=0)
 
         # Put BUFR data on 2D grid that the 2D array returned by get_dataset should correspond to
-        icol, irow = ad.get_array_coordinates_from_lonlat(fh.longitude.compute(),
-                                                          fh.latitude.compute())
-        ivalid = np.isfinite(icol)
-        icol = icol[ivalid]
-        irow = irow[ivalid]
-        data = data[ivalid]
-
-        icol, irow = np.ceil(icol).astype(int), np.ceil(irow).astype(int)
+        icol, irow = ad.get_array_indices_from_lonlat(fh.longitude.compute(),
+                                                      fh.latitude.compute())
 
         arr_2d = np.empty(ad.shape)
         arr_2d[:] = np.nan
-        arr_2d[irow, icol] = data
+        arr_2d[irow.compressed(), icol.compressed()] = data[~irow.mask]
         np.testing.assert_array_equal(z.values, arr_2d)
 
         # Test that the correct AreaDefinition is identified for products with 3 pixel segements
         fh.seg_size = 3
         ad_ext = fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
-        self.assertEqual(ad_ext, AREA_DEF_EXT)
+        assert ad_ext == AREA_DEF_EXT
 
-    def test_seviri_l2_bufr(self):
-        """Call the test function."""
-        self.seviri_l2_bufr_test('ASRBUFRProd_20191106130000Z_00_OMPEFS01_MET08_FES_E0000')
-        self.seviri_l2_bufr_test('MSG1-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr')
-        self.seviri_l2_bufr_test('MSG1-SEVI-MSGASRE-0101-0101-20191106101500.000000000Z-20191106103218-1362148')
-        self.seviri_l2_bufr_test('ASRBUFRProd_20191106130000Z_00_OMPEFS01_MET08_FES_E0000',
-                                 as_area_def=True)
-        self.seviri_l2_bufr_test('MSG1-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr',
-                                 as_area_def=True)
-        self.seviri_l2_bufr_test('MSG1-SEVI-MSGASRE-0101-0101-20191106101500.000000000Z-20191106103218-1362148',
-                                 as_area_def=True)
+    @pytest.mark.parametrize("input_file",
+                             [
+                                 'ASRBUFRProd_20191106130000Z_00_OMPEFS01_MET08_FES_E0000',
+                                 'MSG1-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr',
+                                 'MSG1-SEVI-MSGASRE-0101-0101-20191106101500.000000000Z-20191106103218-1362148'
+                             ])
+    def test_seviri_l2_bufr(self, input_file):
+        """Test SEVIRI L2 BUFR reader with data being returned as SwathDefinition as well as AreaDefinition."""
+        self.seviri_l2_bufr_test(input_file)
+        self.seviri_l2_bufr_test(input_file, as_area_def=True)
