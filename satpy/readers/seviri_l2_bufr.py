@@ -198,32 +198,23 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
         else:
             self._area_def = self._construct_area_def(dataset_id)
-            data = arr.compute()
-            icol, irow = self._area_def.get_array_coordinates_from_lonlat(self.longitude.compute(),
-                                                                          self.latitude.compute())
-            # Only extract data with lat/lon pairs inside the pre-defined grid/AreaDefinition
-            ivalid = np.isfinite(icol)
-            icol = icol[ivalid]
-            irow = irow[ivalid]
-            data = data[ivalid]
-
-            icol, irow = np.ceil(icol).astype(int), np.ceil(irow).astype(int)
+            icol, irow = self._area_def.get_array_indices_from_lonlat(self.longitude.compute(), self.latitude.compute())
 
             # TODO Is there a way to broadcast the data in arr using icol and irow to a 2d dask array without the
             #  intermeidate step of creating a numpy array?
             arr_2d = np.empty(self._area_def.shape)
             arr_2d[:] = np.nan
-            arr_2d[irow, icol] = data
+            arr_2d[irow.compressed(), icol.compressed()] = arr.compute()[~irow.mask]
 
             xarr = xr.DataArray(da.from_array(arr_2d, CHUNK_SIZE), dims=('y', 'x'))
 
-            ntotal = len(ivalid)
-            nvalid = np.count_nonzero(ivalid)
+            ntotal = len(icol)
+            nvalid = len(icol.compressed())
             if nvalid < ntotal:
                 logging.warning(f'{ntotal-nvalid} out of {ntotal} data points could not be put on '
                                 f'the grid {self._area_def.area_id}.')
 
-            # coordinates not relevant when using AreaDefinition
+            # coordinates are not relevant when using AreaDefinition
             if 'coordinates' in dataset_info.keys():
                 del dataset_info['coordinates']
             self._add_attributes(xarr, dataset_info)
