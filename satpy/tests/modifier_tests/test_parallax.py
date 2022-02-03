@@ -632,7 +632,7 @@ def test_parallax_modifier_interface_with_cloud():
 
 
 @pytest.mark.parametrize("cth", [7500, 15000])
-@pytest.mark.parametrize("radius_of_influence", [10000, 25000])
+@pytest.mark.parametrize("radius_of_influence", [200, 10000, 25000])
 def test_modifier_interface_cloud_moves_to_observer(cth, radius_of_influence):
     """Test that a cloud moves to the observer.
 
@@ -691,7 +691,8 @@ def test_modifier_interface_cloud_moves_to_observer(cth, radius_of_influence):
     assert fake_bt.attrs["area"] == area_føroyar  # should not be changed
     assert res.attrs["area"] == fake_bt.attrs["area"]
     # confirm old cloud area now fill value
-    assert np.isnan(res[lat_min_i:lat_max_i, lon_min_i:lon_max_i]).all()
+    # that only happens for small fill values...
+    assert np.isnan(res[lon_min_i:lon_max_i, lat_min_i:lat_max_i]).all()
     # confirm rest of the area does not have fill values
     idx = np.ones_like(fake_bt.data, dtype="?")
     idx[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = False

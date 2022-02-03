@@ -233,25 +233,33 @@ class ParallaxCorrection:
         self._check_overlap(cth_dataset)
         (pixel_lon, pixel_lat) = area.get_lonlats()
 
-        # Pixel coordinates according to parallax correction
-        (corr_lon, corr_lat) = forward_parallax(
-            sat_lon, sat_lat, sat_alt_m,
-            np.array(pixel_lon), np.array(pixel_lat), np.array(cth_dataset)
-        )
+        # for calculating the parallax effect, set cth to 0 where it is
+        # undefined, unless pixels have no valid lat/lon
+        # NB: 0 may be below the surface... could be a problem for high
+        # resolution imagery in mountainous or high elevation terrain
+        # NB: how tolerant of xarray & dask is this?
+        cth_dataset = np.where(
+                np.isfinite(pixel_lon) & np.isfinite(pixel_lat),
+                np.where(np.isfinite(cth_dataset), cth_dataset, 0),
+                np.nan)
+        # calculate the shift/error due to the parallax effect
+        (shifted_lon, shifted_lat) = forward_parallax(
+                sat_lon, sat_lat, sat_alt_m,
+                pixel_lon, pixel_lat, cth_dataset)
 
-        # lons and lats must be data-arrays with dimensions,  see
-        # https://github.com/pytroll/satpy/issues/1434
+        # lons and lats passed to SwathDefinition must be data-arrays with
+        # dimensions,  see https://github.com/pytroll/satpy/issues/1434
         # and https://github.com/pytroll/satpy/issues/1997
-        corr_lon = xr.DataArray(corr_lon, dims=("y", "x"))
-        corr_lat = xr.DataArray(corr_lat, dims=("y", "x"))
-        corr_area = SwathDefinition(corr_lon, corr_lat)
+        shifted_lon = xr.DataArray(shifted_lon, dims=("y", "x"))
+        shifted_lat = xr.DataArray(shifted_lat, dims=("y", "x"))
+        shifted_area = SwathDefinition(shifted_lon, shifted_lat)
 
         # But we are not actually moving pixels, rather we want a
         # coordinate transformation. With this transformation we approximately
         # invert the pixel coordinate transformation, giving the lon and lat
         # where we should retrieve a value for a given pixel.
         (proj_lon, proj_lat) = self._invert_lonlat(
-                pixel_lon, pixel_lat, corr_area)
+                pixel_lon, pixel_lat, shifted_area)
         proj_lon = xr.DataArray(proj_lon, dims=("y", "x"))
         proj_lat = xr.DataArray(proj_lat, dims=("y", "x"))
 
@@ -281,9 +289,11 @@ class ParallaxCorrection:
         lat_diff = source_lat - pixel_lat
         inv_lon_diff = self.resampler(
                 source_area, lon_diff, self.base_area,
+                fill_value=np.nan,
                 **self.resampler_args)
         inv_lat_diff = self.resampler(
                 source_area, lat_diff, self.base_area,
+                fill_value=np.nan,
                 **self.resampler_args)
 
         (base_lon, base_lat) = self.base_area.get_lonlats()
@@ -376,7 +386,8 @@ class ParallaxCorrectionModifier(ModifierBase):
         to_be_corrected_orig_area = to_be_corrected.attrs["area"]
         to_be_corrected.attrs["area"] = plax_corr_area
         corrected = resample.resample_dataset(
-                to_be_corrected, base_area)
+                to_be_corrected, base_area, radius_of_influence=50,
+                fill_value=np.nan)
         to_be_corrected.attrs["area"] = to_be_corrected_orig_area
         return corrected
 
