@@ -759,6 +759,29 @@ class TestSceneAvailableDatasets:
             assert not_avail_comp not in avail_comps
 
 
+class TestSceneSerialization:
+    """Test the Scene serialization."""
+
+    def setup_method(self):
+        """Set config_path to point to test 'etc' directory."""
+        self.old_config_path = satpy.config.get('config_path')
+        satpy.config.set(config_path=[TEST_ETC_DIR])
+
+    def teardown_method(self):
+        """Restore previous 'config_path' setting."""
+        satpy.config.set(config_path=self.old_config_path)
+
+    def test_serialization_with_readers_and_data_arr(self):
+        """Test that dask can serialize a Scene with readers."""
+        from distributed.protocol import deserialize, serialize
+
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'])
+        cloned_scene = deserialize(*serialize(scene))
+        assert scene._readers.keys() == cloned_scene._readers.keys()
+        assert scene.all_dataset_ids == scene.all_dataset_ids
+
+
 class TestSceneLoading:
     """Test the Scene objects `.load` method."""
 
