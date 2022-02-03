@@ -129,8 +129,8 @@ msg_seviri_fes_9km:
     height: 1237
     width: 1237
   area_extent:
-    lower_left_xy: [-5567248.074173927, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5567248.074173927]
+    lower_left_xy: [-5567248.28351984, -5567248.28340708]
+    upper_right_xy: [5567248.28340708 , 5567248.28351984]
 
 msg_seviri_rss_9km:
   description:
@@ -146,8 +146,8 @@ msg_seviri_rss_9km:
     height: 1237
     width: 1237
   area_extent:
-    lower_left_xy: [-5567248.074173927, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5567248.074173927]
+    lower_left_xy: [-5567248.28351984, -5567248.28340708]
+    upper_right_xy: [5567248.28340708 , 5567248.28351984]
 
 msg_seviri_iodc_9km:
   description:
@@ -163,8 +163,8 @@ msg_seviri_iodc_9km:
     height: 1237
     width: 1237
   area_extent:
-    lower_left_xy: [-5567248.074173927, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5567248.074173927]
+    lower_left_xy: [-5567248.28351984, -5567248.28340708]
+    upper_right_xy: [5567248.28340708 , 5567248.28351984]
 
 msg_seviri_fes_9km_ext:
   description:
@@ -180,8 +180,8 @@ msg_seviri_fes_9km_ext:
     height: 1238
     width: 1238
   area_extent:
-    lower_left_xy: [-5576249.283671378, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5576249.283671378]
+    lower_left_xy: [-5571748.888268564, -5571748.888155806]
+    upper_right_xy: [5571748.888155806,  5571748.888268564]
 
 msg_seviri_rss_9km_ext:
   description:
@@ -197,8 +197,8 @@ msg_seviri_rss_9km_ext:
     height: 1238
     width: 1238
   area_extent:
-    lower_left_xy: [-5576249.283671378, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5576249.283671378]
+    lower_left_xy: [-5571748.888268564, -5571748.888155806]
+    upper_right_xy: [5571748.888155806,  5571748.888268564]
 
 msg_seviri_iodc_9km_ext:
   description:
@@ -214,8 +214,8 @@ msg_seviri_iodc_9km_ext:
     height: 1238
     width: 1238
   area_extent:
-    lower_left_xy: [-5576249.283671378, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5576249.283671378]
+    lower_left_xy: [-5571748.888268564, -5571748.888155806]
+    upper_right_xy: [5571748.888155806,  5571748.888268564]
 
 msg_seviri_fes_48km:
   description:
@@ -231,8 +231,8 @@ msg_seviri_fes_48km:
     height: 232
     width: 232
   area_extent:
-    lower_left_xy: [-5567248.074173927, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5567248.074173927]
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708,   5570248.686685662]
 
 msg_seviri_rss_48km:
   description:
@@ -248,8 +248,8 @@ msg_seviri_rss_48km:
     height: 232
     width: 232
   area_extent:
-    lower_left_xy: [-5567248.074173927, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5567248.074173927]
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708,   5570248.686685662]
 
 msg_seviri_iodc_48km:
   description:
@@ -265,8 +265,8 @@ msg_seviri_iodc_48km:
     height: 232
     width: 232
   area_extent:
-    lower_left_xy: [-5567248.074173927, -5567248.074173927]
-    upper_right_xy: [5567248.074173927, 5567248.074173927]
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708,   5570248.686685662]
 
 
 # Regional
