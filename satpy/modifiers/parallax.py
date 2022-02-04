@@ -296,12 +296,8 @@ class ParallaxCorrection:
         # should retain the 10 km.
         br = BucketResampler(self.base_area,
                              da.array(source_lon), da.array(source_lat))
-        inv_abs_lat_diff = br.get_max(abs(lat_diff))
-        inv_lat_diff_sign = np.sign(br.get_sum(np.sign(lat_diff)))
-        inv_lat_diff = inv_lat_diff_sign * inv_abs_lat_diff
-        inv_abs_lon_diff = br.get_max(abs(lon_diff))
-        inv_lon_diff_sign = np.sign(br.get_sum(np.sign(lon_diff)))
-        inv_lon_diff = inv_lon_diff_sign * inv_abs_lon_diff
+        inv_lat_diff = br.get_abs_max(lat_diff)
+        inv_lon_diff = br.get_abs_max(lon_diff)
 
         (base_lon, base_lat) = self.base_area.get_lonlats()
         inv_lon = base_lon - inv_lon_diff
