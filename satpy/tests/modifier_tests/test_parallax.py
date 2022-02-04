@@ -632,8 +632,7 @@ def test_parallax_modifier_interface_with_cloud():
 
 
 @pytest.mark.parametrize("cth", [7500, 15000])
-@pytest.mark.parametrize("radius_of_influence", [200, 10000, 25000])
-def test_modifier_interface_cloud_moves_to_observer(cth, radius_of_influence):
+def test_modifier_interface_cloud_moves_to_observer(cth):
     """Test that a cloud moves to the observer.
 
     With the modifier interface, use a high resolution area and test that
@@ -654,10 +653,17 @@ def test_modifier_interface_cloud_moves_to_observer(cth, radius_of_influence):
     w_cloud = 20
     h_cloud = 3
 
+    # location of cloud in uncorrected data
     lat_min_i = 155
     lat_max_i = lat_min_i + h_cloud
     lon_min_i = 140
     lon_max_i = lon_min_i + w_cloud
+
+    # location of cloud in corrected data
+    dest_lat_min_i = 167
+    dest_lat_max_i = 170
+    dest_lon_min_i = 182
+    dest_lon_max_i = 202
 
     fake_bt_data = np.linspace(
             270, 330, math.prod(area_føroyar.shape), dtype="f8").reshape(
@@ -683,7 +689,6 @@ def test_modifier_interface_cloud_moves_to_observer(cth, radius_of_influence):
             name="parallax_corrected_dataset",
             prerequisites=[fake_bt, fake_cth],
             optional_prerequisites=[],
-            resampler_args={"radius_of_influence": radius_of_influence},
             debug_mode=True)
 
     res = modif([fake_bt, fake_cth], optional_datasets=[])
@@ -698,13 +703,13 @@ def test_modifier_interface_cloud_moves_to_observer(cth, radius_of_influence):
     idx[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = False
     assert np.isfinite(res.data[idx]).all()
     # confirm that rest of area pixel values did not change, except where
-    # cloud arrived
-    landing_zone = res < 250
-    idx[landing_zone.data] = False
-    np.testing.assert_allclose(res.data[idx], fake_bt.data[idx])
+    # cloud arrived or originated
+    delta = res - fake_bt
+    delta[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = 0
+    delta[dest_lon_min_i:dest_lon_max_i, dest_lat_min_i:dest_lat_max_i] = 0
+    assert (delta == 0).all()
     # verify that cloud moved south
-    # the origin is in the north west, so south means a higher y-index
-    # to be sure, check the latitudes directly
-    old_cloud_lats = fake_bt.attrs["area"].get_lonlats()[1][(fake_bt < 250).data]
-    new_cloud_lats = res.attrs["area"].get_lonlats()[1][(res < 250).data]
-    assert new_cloud_lats.mean() < old_cloud_lats.mean()
+    assert (res.attrs["area"].get_lonlats()[1][dest_lon_min_i:dest_lon_max_i,
+                                               dest_lat_min_i:dest_lat_max_i] <
+            fake_bt.attrs["area"].get_lonlats()[1][lon_min_i:lon_max_i,
+                                                   lat_min_i:lat_max_i]).all()

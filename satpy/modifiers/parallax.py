@@ -47,8 +47,6 @@ from pyresample.kd_tree import resample_nearest
 from satpy.modifiers import ModifierBase
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 
-from .. import resample
-
 logger = logging.getLogger(__name__)
 
 
@@ -262,8 +260,9 @@ class ParallaxCorrection:
         # where we should retrieve a value for a given pixel.
         (proj_lon, proj_lat) = self._invert_lonlat(
                 pixel_lon, pixel_lat, shifted_area)
-        proj_lon = xr.DataArray(proj_lon, dims=("y", "x"))
-        proj_lat = xr.DataArray(proj_lat, dims=("y", "x"))
+        # compute here, or I can't use it for resampling later
+        proj_lon = xr.DataArray(proj_lon.compute(), dims=("y", "x"))
+        proj_lat = xr.DataArray(proj_lat.compute(), dims=("y", "x"))
 
         return SwathDefinition(proj_lon, proj_lat)
 
@@ -289,16 +288,24 @@ class ParallaxCorrection:
         (source_lon, source_lat) = source_area.get_lonlats()
         lon_diff = source_lon - pixel_lon
         lat_diff = source_lat - pixel_lat
+        # We use the bucket resampler here, because parallax correction
+        # inevitably means there will be 2 source pixels ending up in the same
+        # destination pixel.  We want to choose the biggest shift (max abs in
+        # lat_diff and lon_diff), because the biggest shift corresponds to the
+        # highest clouds, and if we move a 10 km cloud over a 2 km one, we
+        # should retain the 10 km.
         br = BucketResampler(self.base_area,
                              da.array(source_lon), da.array(source_lat))
-        # FIXME: rather than .get_min, this needs to do something smarter, but
-        # I don't think I can pass an arbitrary function?
-        inv_lat_diff = br.get_min(lat_diff)
-        inv_lon_diff = br.get_min(lon_diff)
+        inv_abs_lat_diff = br.get_max(abs(lat_diff))
+        inv_lat_diff_sign = np.sign(br.get_sum(np.sign(lat_diff)))
+        inv_lat_diff = inv_lat_diff_sign * inv_abs_lat_diff
+        inv_abs_lon_diff = br.get_max(abs(lon_diff))
+        inv_lon_diff_sign = np.sign(br.get_sum(np.sign(lon_diff)))
+        inv_lon_diff = inv_lon_diff_sign * inv_abs_lon_diff
 
         (base_lon, base_lat) = self.base_area.get_lonlats()
-        inv_lon = base_lon + inv_lon_diff
-        inv_lat = base_lat + inv_lat_diff
+        inv_lon = base_lon - inv_lon_diff
+        inv_lat = base_lat - inv_lat_diff
         if self.debug_mode:
             self.diagnostics["source_lon"] = source_lon
             self.diagnostics["source_lat"] = source_lat
@@ -313,6 +320,7 @@ class ParallaxCorrection:
             self.diagnostics["lon_diff"] = lon_diff
             self.diagnostics["lat_diff"] = lat_diff
             self.diagnostics["source_area"] = source_area
+            self.diagnostics["count"] = br.get_count()
         return (inv_lon, inv_lat)
 
 
@@ -369,7 +377,16 @@ class ParallaxCorrectionModifier(ModifierBase):
         base_area = to_be_corrected.attrs["area"]
         corrector = self._get_corrector(base_area)
         plax_corr_area = corrector(cth)
-        res = self._correct_with_area(to_be_corrected, base_area, plax_corr_area)
+        res = resample_nearest(
+                to_be_corrected.area,
+                to_be_corrected.data,
+                plax_corr_area,
+                radius_of_influence=2500,
+                fill_value=np.nan)
+        res = xr.DataArray(
+                res,
+                dims=to_be_corrected.dims,
+                attrs=to_be_corrected.attrs)
         return res
 
     def _get_corrector(self, base_area):
@@ -381,15 +398,6 @@ class ParallaxCorrectionModifier(ModifierBase):
             kwargs[k] = self.attrs[k]
         corrector = ParallaxCorrection(base_area, **kwargs)
         return corrector
-
-    def _correct_with_area(self, to_be_corrected, base_area, plax_corr_area):
-        to_be_corrected_orig_area = to_be_corrected.attrs["area"]
-        to_be_corrected.attrs["area"] = plax_corr_area
-        corrected = resample.resample_dataset(
-                to_be_corrected, base_area, radius_of_influence=50,
-                fill_value=np.nan)
-        to_be_corrected.attrs["area"] = to_be_corrected_orig_area
-        return corrected
 
 
 def _get_satpos_alt(cth_dataset):
