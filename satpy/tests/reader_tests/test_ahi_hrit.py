@@ -339,7 +339,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             assert reader._start_time == start_time
 
     def test_start_time_from_aqc_time(self):
-        """Test that by the datetime from the metadata returned when `use_exact_start_time=True`."""
+        """Test that by the datetime from the metadata returned when `use_acquisition_time_as_start_time=True`."""
         import datetime as dt
         start_time = dt.datetime(2022, 1, 20, 12, 10)
         for platform in ['Himawari-8', 'MTSAT-2']:
@@ -347,5 +347,5 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             reader = self._get_reader(
                 mda=mda,
                 filename_info={'start_time': start_time},
-                reader_kwargs={'use_exact_start_time': True})
+                reader_kwargs={'use_acquisition_time_as_start_time': True})
             assert reader.start_time == reader.acq_time[0].astype(dt.datetime)
