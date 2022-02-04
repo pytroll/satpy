@@ -713,3 +713,6 @@ def test_modifier_interface_cloud_moves_to_observer(cth):
                                                dest_lat_min_i:dest_lat_max_i] <
             fake_bt.attrs["area"].get_lonlats()[1][lon_min_i:lon_max_i,
                                                    lat_min_i:lat_max_i]).all()
+    # verify that all pixels at the new cloud location are indeed cloud
+    assert (res[dest_lon_min_i:dest_lon_max_i, dest_lat_min_i:dest_lat_max_i]
+            < 250).all()
