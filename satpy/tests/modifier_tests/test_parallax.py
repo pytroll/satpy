@@ -263,7 +263,7 @@ def test_correct_area_ssp(lat, lon, resolution):
     codes = {
             (0, 0): 4326,
             (0, 40): 4326,
-            (0, 180): 4326,
+            (0, 180): 3575,
             (90, 0): 3575}
     small = 5
     large = 9
