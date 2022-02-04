@@ -28,7 +28,7 @@ from pyproj import Geod
 from pyresample import create_area_def
 
 
-def _get_fake_areas(center, sizes, resolution):
+def _get_fake_areas(center, sizes, resolution, code=4326):
     """Get multiple square areas with the same center.
 
     Returns multiple square areas centered at the same location
@@ -43,7 +43,7 @@ def _get_fake_areas(center, sizes, resolution):
     """
     return [create_area_def(
         "fribullus_xax",
-        "epsg:4326",
+        code,
         units="degrees",
         resolution=resolution,
         center=center,
@@ -260,10 +260,16 @@ def test_correct_area_ssp(lat, lon, resolution):
     """Test that ParallaxCorrection doesn't touch SSP."""
     from ...modifiers.parallax import ParallaxCorrection
     from ..utils import make_fake_scene
+    codes = {
+            (0, 0): 4326,
+            (0, 40): 4326,
+            (0, 180): 4326,
+            (90, 0): 3575}
     small = 5
     large = 9
     (fake_area_small, fake_area_large) = _get_fake_areas(
-            (lon, lat), [small, large], resolution)
+            (lon, lat), [small, large], resolution,
+            code=codes[(lat, lon)])
     corrector = ParallaxCorrection(fake_area_small)
 
     sc = make_fake_scene(
@@ -275,14 +281,15 @@ def test_correct_area_ssp(lat, lon, resolution):
     assert new_area.shape == fake_area_small.shape
     old_lonlats = fake_area_small.get_lonlats()
     new_lonlats = new_area.get_lonlats()
-    np.testing.assert_allclose(
-            old_lonlats[0][2, 2],
-            new_lonlats[0][2, 2],
-            atol=1e-9)
-    np.testing.assert_allclose(
-            old_lonlats[0][2, 2],
-            lon,
-            atol=1e-9)
+    if lat != 90:  # don't check SSP longitude if lat=90
+        np.testing.assert_allclose(
+                old_lonlats[0][2, 2],
+                new_lonlats[0][2, 2],
+                atol=1e-9)
+        np.testing.assert_allclose(
+                old_lonlats[0][2, 2],
+                lon,
+                atol=1e-9)
     np.testing.assert_allclose(
             old_lonlats[1][2, 2],
             new_lonlats[1][2, 2],
