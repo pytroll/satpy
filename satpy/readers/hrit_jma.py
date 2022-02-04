@@ -188,9 +188,36 @@ def mjd2datetime64(mjd):
 
 
 class HRITJMAFileHandler(HRITFileHandler):
-    """JMA HRIT format reader."""
+    """JMA HRIT format reader.
 
-    def __init__(self, filename, filename_info, filetype_info):
+    By default, the reader uses the start time parsed from the filename. To use exact time, computed
+    from the metadata, the user can define a keyword argument::
+
+        scene = Scene(filenames=filenames,
+                      reader='ahi_hrit',
+                      reader_kwargs={'use_acquisition_time_as_start_time': True})
+
+    As this time is different for every channel, time-dependent calculations like SZA correction
+    can be pretty slow when multiple channels are used.
+
+    The exact scanline times are always available as coordinates of an individual channels::
+
+        scene.load(["B03"])
+        print(scene["B03].coords["acq_time"].data)
+
+    would print something similar to::
+
+        array(['2021-12-08T06:00:20.131200000', '2021-12-08T06:00:20.191948000',
+               '2021-12-08T06:00:20.252695000', ...,
+               '2021-12-08T06:09:39.449390000', '2021-12-08T06:09:39.510295000',
+               '2021-12-08T06:09:39.571200000'], dtype='datetime64[ns]')
+
+    The first value represents the exact start time, and the last one the exact end time of the data
+    acquisition.
+
+    """
+
+    def __init__(self, filename, filename_info, filetype_info, use_acquisition_time_as_start_time=False):
         """Initialize the reader."""
         super(HRITJMAFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -198,6 +225,7 @@ class HRITJMAFileHandler(HRITFileHandler):
                                                   jma_variable_length_headers,
                                                   jma_text_headers))
 
+        self._use_acquisition_time_as_start_time = use_acquisition_time_as_start_time
         self.mda['segment_sequence_number'] = self.mda['image_segm_seq_no']
         self.mda['planned_end_segment_number'] = self.mda['total_no_image_segm']
         self.mda['planned_start_segment_number'] = 1
@@ -430,7 +458,9 @@ class HRITJMAFileHandler(HRITFileHandler):
     @property
     def start_time(self):
         """Get start time of the scan."""
-        return self.acq_time[0].astype(datetime)
+        if self._use_acquisition_time_as_start_time:
+            return self.acq_time[0].astype(datetime)
+        return self._start_time
 
     @property
     def end_time(self):
