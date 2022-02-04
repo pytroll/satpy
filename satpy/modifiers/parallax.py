@@ -45,6 +45,7 @@ from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import resample_nearest
 
 from satpy.modifiers import ModifierBase
+from satpy.resample import resample_dataset
 from satpy.utils import get_satpos, lonlat2xyz, xyz2lonlat
 
 logger = logging.getLogger(__name__)
@@ -141,57 +142,31 @@ class ParallaxCorrection:
     geolocation will be calculated.  The resulting object is a callable.
     Calling the object with an array of (cloud top) heights returns a
     :class:`~pyresample.geometry.SwathDefinition` describing the new ,
-    corrected geolocation.  This ``SwathDefinition`` can then be used for
-    resampling a satpy Scene, yielding a corrected geolocation for all datasets
-    in the Scene.  For example::
+    corrected geolocation.  The cloud top height should cover at least the
+    area for which the corrected geolocation will be calculated.
 
-      >>> global_scene = satpy.Scene(reader="seviri_l1b_hrit", filenames=files_sat)
-      >>> global_scene.load(['IR_087','IR_120'])
-      >>> global_nwc = satpy.Scene(filenames=files_nwc)
-      >>> global_nwc.load(['ctth'])
-      >>> area_def = satpy.resample.get_area_def(area)
-      >>> parallax_correction = ParallaxCorrection(area_def)
-      >>> plax_corr_area = parallax_correction(global_nwc["ctth"])
-      >>> local_scene = global_scene.resample(plax_corr_area)
-      >>> local_nwc = global_nwc.resample(plax_corr_area)
-      >>> local_scene[...].attrs["area"] = area_def
-      >>> local_nwc[...].attrs["area"] = area_def
+    Note that the ``ctth`` dataset must contain satellite location
+    metadata, such as set in the ``orbital_parameters`` dataset attribute
+    that is set by many Satpy readers.
 
-    Note that the ``ctth`` dataset must contain geolocation metadata, such as
-    set in the ``orbital_parameters`` dataset attribute by many readers.
-
-    This produce can be configured as a modifier using the
+    This procedure can be configured as a modifier using the
     :class:`ParallaxCorrectionModifier` class.  However, the modifier can only
     be applied to one dataset at the time, which may not provide optimal
     performance.
     """
 
     def __init__(self, base_area,
-                 resampler=resample_nearest,
-                 resampler_args={"radius_of_influence": 50_000},  # noqa: B006
                  debug_mode=False):
         """Initialise parallax correction class.
 
         Args:
             base_area (:class:`~pyresample.AreaDefinition`): Area for which calculated
                 geolocation will be calculated.
-            resampler (function): Function to use for resampling.  Must
-                have same interface as
-                :func:`~pyresample.kd_tree.resample_nearest`.  Note that using
-                the bilinear resampler included with Satpy yields incorrect results
-                near the poles and the antimeridian for the purposes of
-                parallax correction.  The default, the nearest neighbour
-                resampling, yiedls correct results.
-            resampler_args (mapping): Arguments to pass on to resampler.
-                For example, radius_of_influence (number), search radius in metre to
-                use with the resampler.
             debug_mode (bool): Store diagnostic information in
                 self.diagnostics.  This attribute always apply to the most
                 recently applied operation only.
         """
         self.base_area = base_area
-        self.resampler = resampler
-        self.resampler_args = resampler_args.copy()
         self.debug_mode = debug_mode
         self.diagnostics = {}
 
@@ -218,10 +193,7 @@ class ParallaxCorrection:
         """
         logger.debug("Calculating parallax correction using heights from "
                      f"{cth_dataset.attrs.get('name', cth_dataset.name)!s}, "
-                     f"with base area {self.base_area.name!s}, resampler "
-                     f"{self.resampler.__name__}, and arguments "
-                     f"{self.resampler_args!s}")
-        area = cth_dataset.area
+                     f"with base area {self.base_area.name!s}.")
         try:
             (sat_lon, sat_lat, sat_alt_km) = get_satpos(cth_dataset)
         except KeyError:
@@ -231,21 +203,14 @@ class ParallaxCorrection:
             (sat_lon, sat_lat, sat_alt_km) = _get_satpos_alt(cth_dataset)
         sat_alt_m = sat_alt_km * 1000
         self._check_overlap(cth_dataset)
-        (pixel_lon, pixel_lat) = area.get_lonlats()
 
-        # for calculating the parallax effect, set cth to 0 where it is
-        # undefined, unless pixels have no valid lat/lon
-        # NB: 0 may be below the surface... could be a problem for high
-        # resolution imagery in mountainous or high elevation terrain
-        # NB: how tolerant of xarray & dask is this?
-        cth_dataset = np.where(
-                np.isfinite(pixel_lon) & np.isfinite(pixel_lat),
-                np.where(np.isfinite(cth_dataset), cth_dataset, 0),
-                np.nan)
+        cth_dataset = self._prepare_cth_dataset(cth_dataset)
+
+        (pixel_lon, pixel_lat) = self.base_area.get_lonlats()
         # calculate the shift/error due to the parallax effect
         (shifted_lon, shifted_lat) = forward_parallax(
                 sat_lon, sat_lat, sat_alt_m,
-                pixel_lon, pixel_lat, cth_dataset)
+                pixel_lon, pixel_lat, cth_dataset.data)
 
         # lons and lats passed to SwathDefinition must be data-arrays with
         # dimensions,  see https://github.com/pytroll/satpy/issues/1434
@@ -265,6 +230,25 @@ class ParallaxCorrection:
         proj_lat = xr.DataArray(proj_lat.compute(), dims=("y", "x"))
 
         return SwathDefinition(proj_lon, proj_lat)
+
+    def _prepare_cth_dataset(self, cth_dataset):
+        """Prepare CTH dataset.
+
+        Set cloud top height to zero wherever lat/lon are valid but CTH is
+        undefined.  Then resample onto the base area.
+        """
+        # for calculating the parallax effect, set cth to 0 where it is
+        # undefined, unless pixels have no valid lat/lon
+        # NB: 0 may be below the surface... could be a problem for high
+        # resolution imagery in mountainous or high elevation terrain
+        # NB: how tolerant of xarray & dask is this?
+        cth_dataset = resample_dataset(
+                cth_dataset, self.base_area, resampler="nearest",
+                radius_of_influence=50000)
+        (pixel_lon, pixel_lat) = cth_dataset.attrs["area"].get_lonlats(chunks=1024)
+        cth_dataset = cth_dataset.where(np.isfinite(pixel_lon) & np.isfinite(pixel_lat))
+        cth_dataset = cth_dataset.where(cth_dataset.notnull(), 0)
+        return cth_dataset
 
     def _check_overlap(self, cth_dataset):
         """Ensure cth_dataset is usable for parallax correction.
