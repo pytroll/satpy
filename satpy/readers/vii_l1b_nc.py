@@ -82,7 +82,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             chan_index = dataset_info['chan_solar_index']
             isi = self._integrated_solar_irradiance[chan_index]
             # Perform the calibration
-            calibrated_variable = self._calibrate_refl(variable, self.angle_factor, isi)
+            calibrated_variable = self._calibrate_refl(variable, self.angle_factor.data, isi)
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == 'radiance':
             calibrated_variable = variable
@@ -142,6 +142,5 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             numpy ndarray: array containing the calibrated reflectance values.
 
         """
-        print(type(isi), type(angle_factor), type(radiance))
-        refl_values = (np.pi / isi) * angle_factor.values * radiance * 100.0
+        refl_values = (np.pi / isi) * angle_factor * radiance * 100.0
         return refl_values
