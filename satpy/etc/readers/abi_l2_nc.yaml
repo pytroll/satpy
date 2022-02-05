@@ -449,11 +449,7 @@ file_types:
 
   abi_l2_cod:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-    file_patterns:
-    # F (Full Disk) or C (CONUS)
-    - '{system_environment:2s}_{mission_id:3s}-L2-COD{scene_abbr:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
-    # M1 or M2 for mesoscale
-    - '{system_environment:2s}_{mission_id:3s}-L2-COD{scene_abbr:2s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-COD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
     observation_type: "COD"
 
   # CSPP Geo keeps Day and Night algorithm outputs separate
@@ -471,11 +467,7 @@ file_types:
 
   abi_l2_cps:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-    file_patterns:
-      # F (Full Disk) or C (CONUS)
-    - '{system_environment:2s}_{mission_id:3s}-L2-CPS{scene_abbr:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
-      # M1 or M2 for mesoscale
-    - '{system_environment:2s}_{mission_id:3s}-L2-CPS{scene_abbr:2s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CPS{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
     observation_type: "CPS"
 
   # CSPP Geo keeps Day and Night algorithm outputs separate
