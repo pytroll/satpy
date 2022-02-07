@@ -448,13 +448,13 @@ def _angle_cache_stacked_area_def():
         "test", "", "",
         {"proj": "merc"},
         5, 2,
-        (-2500, 500, 2500, 2500),
+        (2500, 500, 7500, 2500),
     )
     area2 = AreaDefinition(
         "test", "", "",
         {"proj": "merc"},
         5, 3,
-        (-2500, -2500, 2500, 500),
+        (2500, -2500, 7500, 500),
     )
     return StackedAreaDefinition(area1, area2)
 
@@ -470,7 +470,6 @@ def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDef
     }
     stime = datetime(2020, 1, 1, 12, 0, 0)
     data = da.zeros((5, 5), chunks=chunks)
-    print(data.chunks)
     vis = xr.DataArray(data,
                        attrs={
                            'area': area_def,
@@ -498,6 +497,11 @@ def _diff_sat_pos_datetime(orig_data):
     return _similar_sat_pos_datetime(orig_data, lon_offset=0.05)
 
 
+def _glob_reversed(pat):
+    """Behave like glob but force results to be in the wrong order."""
+    return sorted(glob(pat), reverse=True)
+
+
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
@@ -520,6 +524,7 @@ class TestAngleGeneration:
         args = gol.call_args[0]
         assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
 
+    @pytest.mark.parametrize("force_bad_glob", [False, True])
     @pytest.mark.parametrize(
         ("input2_func", "exp_equal_sun", "exp_num_zarr"),
         [
@@ -529,7 +534,7 @@ class TestAngleGeneration:
         ]
     )
     @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
-    def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, tmpdir):
+    def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, force_bad_glob, tmpdir):
         """Test get_angles when caching is enabled."""
         from satpy.modifiers.angles import (
             STATIC_EARTH_INERTIAL_DATETIME,
@@ -551,7 +556,11 @@ class TestAngleGeneration:
 
             # call again, should be cached
             new_data = input2_func(data)
-            res2 = get_angles(new_data)
+            if force_bad_glob:
+                with mock.patch("satpy.modifiers.angles.glob", _glob_reversed):
+                    res2 = get_angles(new_data)
+            else:
+                res2 = get_angles(new_data)
             assert all(isinstance(x, xr.DataArray) for x in res2)
             res, res2 = da.compute(res, res2)
             for r1, r2 in zip(res[:2], res2[:2]):

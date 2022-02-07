@@ -151,7 +151,7 @@ class ZarrCacheHelper:
         # if we did any caching, let's load from the zarr files
         if should_cache:
             # re-calculate the cached paths
-            zarr_paths = glob(zarr_format.format("*"))
+            zarr_paths = sorted(glob(zarr_format.format("*")))
             if not zarr_paths:
                 raise RuntimeError("Data was cached to disk but no files were found")
             res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
