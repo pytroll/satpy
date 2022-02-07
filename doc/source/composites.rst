@@ -348,7 +348,7 @@ The modifier above is a built-in that normalizes the Solar zenith
 angle to Sun being directly at the zenith.
 
 More examples can be found in Satpy source code directory
-``satpy/etc/composite.yaml``.
+`satpy/etc/composites <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_.
 
 See the :doc:`modifiers` documentation for more information on
 available built-in modifiers.
@@ -541,3 +541,5 @@ More examples can be found in SatPy source code directory
 
 See the :doc:`enhancements` documentation for more information on
 available built-in enhancements.
+
+.. include:: modifiers.rst
