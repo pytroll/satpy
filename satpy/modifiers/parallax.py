@@ -225,8 +225,8 @@ class ParallaxCorrection:
         (proj_lon, proj_lat) = self._invert_lonlat(
                 pixel_lon, pixel_lat, shifted_area)
         # compute here, or I can't use it for resampling later
-        proj_lon = xr.DataArray(proj_lon.compute(), dims=("y", "x"))
-        proj_lat = xr.DataArray(proj_lat.compute(), dims=("y", "x"))
+        proj_lon = xr.DataArray(proj_lon, dims=("y", "x"))
+        proj_lat = xr.DataArray(proj_lat, dims=("y", "x"))
 
         return SwathDefinition(proj_lon, proj_lat)
 

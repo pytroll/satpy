@@ -75,9 +75,9 @@ def fake_area_5x5_wide():
 
 @pytest.fixture
 def cloud(request):
-    """Return an array representing a square cloud.
+    """Return an array representing a rectangular cloud.
 
-    Return an array representing a square cloud with a larger lower and a
+    Return an array representing a rectangular cloud with a larger lower and a
     smaller higher part.
 
     Args (via request fixture):
@@ -577,29 +577,26 @@ def test_parallax_modifier_interface_with_cloud():
     assert not (res.diff("x") < 0).any()
 
 
-# FIXME: add dask test
-@pytest.mark.parametrize("cth", [7500, 15000])
-@pytest.mark.parametrize("use_dask", [True, False])
-def test_modifier_interface_cloud_moves_to_observer(cth, use_dask):
-    """Test that a cloud moves to the observer.
+@pytest.fixture
+def test_area(request):
+    """Produce test area for parallax correction unit tests.
 
-    With the modifier interface, use a high resolution area and test that
-    pixels are moved in the direction of the observer and not away from it.
+    Produce test area for the modifier-interface parallax correction unit
+    tests.
     """
-    from ...modifiers.parallax import ParallaxCorrectionModifier
+    extents = {
+        "foroyar": [-861785.8867075047, 6820719.391005835, -686309.8124887547, 6954386.383193335],
+        "ouagadougou": [-232482.90622750926, 1328206.360136668,
+                        -114074.70310250926, 1422810.852324168],
+        }
+    where = request.param
+    return pyresample.create_area_def(where, 4087, area_extent=extents[where], resolution=500)
 
-    # make a fake area rather far north with a rather high resolution,
-    # with a cloud in the middle and somewhat consistent brightness
-    # temperatures
 
-    area_føroyar = pyresample.create_area_def(
-            "føroyar", 4087,
-            area_extent=[-861785.8867075047, 6820719.391005835,
-                         -686309.8124887547, 6954386.383193335],
-            resolution=500)
-
+def _get_fake_cloud_datasets(test_area, cth, use_dask):
+    """Return datasets for BT and CTH for fake cloud."""
     w_cloud = 20
-    h_cloud = 3
+    h_cloud = 5
 
     # location of cloud in uncorrected data
     lat_min_i = 155
@@ -607,23 +604,13 @@ def test_modifier_interface_cloud_moves_to_observer(cth, use_dask):
     lon_min_i = 140
     lon_max_i = lon_min_i + w_cloud
 
-    # location of cloud in corrected data
-    # this may no longer be rectangular!
-    dest_mask = np.zeros(shape=area_føroyar.shape, dtype="?")
-    if cth == 7500:
-        dest_mask[182:202, 167:170] = True
-    elif cth == 15000:
-        dest_mask[224:239, 180:183] = True
-        dest_mask[239:244, 180:182] = True
-        dest_mask[243, 179] = True
-
     fake_bt_data = np.linspace(
-            270, 330, math.prod(area_føroyar.shape), dtype="f8").reshape(
-                    area_føroyar.shape).round(2)
-    fake_cth_data = np.full(area_føroyar.shape, np.nan, dtype="f8")
-    fake_bt_data[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = np.linspace(
-            180, 220, w_cloud*h_cloud).reshape(w_cloud, h_cloud).round(2)
-    fake_cth_data[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = cth
+            270, 330, math.prod(test_area.shape), dtype="f8").reshape(
+                    test_area.shape).round(2)
+    fake_cth_data = np.full(test_area.shape, np.nan, dtype="f8")
+    fake_bt_data[lat_min_i:lat_max_i, lon_min_i:lon_max_i] = np.linspace(
+            180, 220, w_cloud*h_cloud).reshape(h_cloud, w_cloud).round(2)
+    fake_cth_data[lat_min_i:lat_max_i, lon_min_i:lon_max_i] = cth
 
     if use_dask:
         fake_bt_data = da.array(fake_bt_data)
@@ -634,12 +621,25 @@ def test_modifier_interface_cloud_moves_to_observer(cth, use_dask):
     fake_bt = xr.DataArray(
             fake_bt_data,
             dims=("y", "x"),
-            attrs={**attrs, "area": area_føroyar})
+            attrs={**attrs, "area": test_area})
 
     fake_cth = xr.DataArray(
             fake_cth_data,
             dims=("y", "x"),
-            attrs={**attrs, "area": area_føroyar})
+            attrs={**attrs, "area": test_area})
+
+    cma = np.zeros(shape=fake_bt.shape, dtype="?")
+    cma[lat_min_i:lat_max_i, lon_min_i:lon_max_i] = True
+
+    return (fake_bt, fake_cth, cma)
+
+
+@pytest.mark.parametrize("test_area", ["foroyar", "ouagadougou"], indirect=["test_area"])
+def test_modifier_interface_fog_no_shift(test_area):
+    """Test that fog isn't masked or shifted."""
+    from ...modifiers.parallax import ParallaxCorrectionModifier
+
+    (fake_bt, fake_cth, _) = _get_fake_cloud_datasets(test_area, 50, use_dask=False)
 
     modif = ParallaxCorrectionModifier(
             name="parallax_corrected_dataset",
@@ -649,24 +649,59 @@ def test_modifier_interface_cloud_moves_to_observer(cth, use_dask):
 
     res = modif([fake_bt, fake_cth], optional_datasets=[])
 
-    assert fake_bt.attrs["area"] == area_føroyar  # should not be changed
+    assert np.isfinite(res).all()
+    np.testing.assert_allclose(res, fake_bt)
+
+
+@pytest.mark.parametrize("cth", [7500, 15000])
+@pytest.mark.parametrize("use_dask", [True, False])
+@pytest.mark.parametrize("test_area", ["foroyar", "ouagadougou"], indirect=["test_area"])
+def test_modifier_interface_cloud_moves_to_observer(cth, use_dask, test_area):
+    """Test that a cloud moves to the observer.
+
+    With the modifier interface, use a high resolution area and test that
+    pixels are moved in the direction of the observer and not away from it.
+    """
+    from ...modifiers.parallax import ParallaxCorrectionModifier
+
+    (fake_bt, fake_cth, cma) = _get_fake_cloud_datasets(test_area, cth, use_dask=use_dask)
+
+    # location of cloud in corrected data
+    # this may no longer be rectangular!
+    dest_mask = np.zeros(shape=test_area.shape, dtype="?")
+    if test_area.name == "foroyar":
+        if cth == 7500:
+            dest_mask[197:202, 152:172] = True
+        elif cth == 15000:
+            dest_mask[239:244, 165:184] = True
+    elif test_area.name == "ouagadougou":
+        if cth == 7500:
+            dest_mask[159:164, 140:160] = True
+        elif cth == 15000:
+            dest_mask[163:168, 141:161] = True
+
+    modif = ParallaxCorrectionModifier(
+            name="parallax_corrected_dataset",
+            prerequisites=[fake_bt, fake_cth],
+            optional_prerequisites=[],
+            debug_mode=True)
+
+    res = modif([fake_bt, fake_cth], optional_datasets=[])
+
+    assert fake_bt.attrs["area"] == test_area  # should not be changed
     assert res.attrs["area"] == fake_bt.attrs["area"]
     # confirm old cloud area now fill value
-    # that only happens for small fill values...
-    assert np.isnan(res[lon_min_i:lon_max_i, lat_min_i:lat_max_i]).all()
+    # except where it overlaps with new cloud
+    assert np.isnan(res.data[cma & (~dest_mask)]).all()
     # confirm rest of the area does not have fill values
-    idx = np.ones_like(fake_bt.data, dtype="?")
-    idx[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = False
-    assert np.isfinite(res.data[idx]).all()
+    assert np.isfinite(res.data[~cma]).all()
     # confirm that rest of area pixel values did not change, except where
     # cloud arrived or originated
     delta = res - fake_bt
-    delta[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = 0
-    assert (delta.data[~dest_mask] == 0).all()
-    # verify that cloud moved south.  Pointwise comparison doesn't work because
+    assert (delta.data[~(cma | dest_mask)] == 0).all()
+    # verify that cloud moved south.  Pointwise comparison might not work because
     # cloud may shrink.
     assert ((res.attrs["area"].get_lonlats()[1][dest_mask]).mean() <
-            fake_bt.attrs["area"].get_lonlats()[1][lon_min_i:lon_max_i,
-                                                   lat_min_i:lat_max_i].mean())
+            fake_bt.attrs["area"].get_lonlats()[1][cma].mean())
     # verify that all pixels at the new cloud location are indeed cloudy
     assert (res.data[dest_mask] < 250).all()
