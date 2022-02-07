@@ -511,6 +511,13 @@ def _mock_glob_if(mock_glob):
         yield
 
 
+def _assert_allclose_if(expect_equal, arr1, arr2):
+    if not expect_equal:
+        pytest.raises(AssertionError, np.testing.assert_allclose, arr1, arr2)
+    else:
+        np.testing.assert_allclose(arr1, arr2)
+
+
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
@@ -570,16 +577,10 @@ class TestAngleGeneration:
             assert all(isinstance(x, xr.DataArray) for x in res2)
             res, res2 = da.compute(res, res2)
             for r1, r2 in zip(res[:2], res2[:2]):
-                if additional_cache:
-                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
-                else:
-                    np.testing.assert_allclose(r1, r2)
+                _assert_allclose_if(not additional_cache, r1, r2)
 
             for r1, r2 in zip(res[2:], res2[2:]):
-                if exp_equal_sun:
-                    np.testing.assert_allclose(r1, r2)
-                else:
-                    pytest.raises(AssertionError, np.testing.assert_allclose, r1, r2)
+                _assert_allclose_if(exp_equal_sun, r1, r2)
 
             zarr_dirs = glob(str(tmpdir / "*.zarr"))
             assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
