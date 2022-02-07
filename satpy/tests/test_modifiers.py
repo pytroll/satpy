@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for modifiers in modifiers/__init__.py."""
-
+import contextlib
 import unittest
 from datetime import datetime, timedelta
 from glob import glob
@@ -502,6 +502,15 @@ def _glob_reversed(pat):
     return sorted(glob(pat), reverse=True)
 
 
+@contextlib.contextmanager
+def _mock_glob_if(mock_glob):
+    if mock_glob:
+        with mock.patch("satpy.modifiers.angles.glob", _glob_reversed):
+            yield
+    else:
+        yield
+
+
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
@@ -556,10 +565,7 @@ class TestAngleGeneration:
 
             # call again, should be cached
             new_data = input2_func(data)
-            if force_bad_glob:
-                with mock.patch("satpy.modifiers.angles.glob", _glob_reversed):
-                    res2 = get_angles(new_data)
-            else:
+            with _mock_glob_if(force_bad_glob):
                 res2 = get_angles(new_data)
             assert all(isinstance(x, xr.DataArray) for x in res2)
             res, res2 = da.compute(res, res2)
