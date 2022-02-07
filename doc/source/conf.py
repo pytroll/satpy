@@ -264,7 +264,7 @@ intersphinx_mapping = {
     'dask': ('https://docs.dask.org/en/latest', None),
     'geoviews': ('http://geoviews.org', None),
     'jobqueue': ('https://jobqueue.dask.org/en/latest', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
     'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
     'pyorbital': ('https://pyorbital.readthedocs.io/en/stable', None),
     'pyproj': ('https://pyproj4.github.io/pyproj/dev', None),
