@@ -662,8 +662,7 @@ def test_modifier_interface_cloud_moves_to_observer(cth, use_dask):
     # cloud arrived or originated
     delta = res - fake_bt
     delta[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = 0
-    delta.data[dest_mask] = 0
-    assert (delta == 0).all()
+    assert (delta.data[~dest_mask] == 0).all()
     # verify that cloud moved south.  Pointwise comparison doesn't work because
     # cloud may shrink.
     assert ((res.attrs["area"].get_lonlats()[1][dest_mask]).mean() <

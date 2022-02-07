@@ -42,7 +42,6 @@ from pyorbital.orbital import A as EARTH_RADIUS
 from pyorbital.orbital import get_observer_look
 from pyresample.bucket import BucketResampler
 from pyresample.geometry import SwathDefinition
-from pyresample.kd_tree import resample_nearest
 
 from satpy.modifiers import ModifierBase
 from satpy.resample import resample_dataset
@@ -366,17 +365,12 @@ class ParallaxCorrectionModifier(ModifierBase):
         base_area = to_be_corrected.attrs["area"]
         corrector = self._get_corrector(base_area)
         plax_corr_area = corrector(cth)
-        res = resample_nearest(
-                to_be_corrected.area,
-                to_be_corrected.data,
-                plax_corr_area,
-                radius_of_influence=2500,
-                fill_value=np.nan)
-        res = xr.DataArray(
-                res,
-                dims=to_be_corrected.dims,
-                attrs=to_be_corrected.attrs)
-        return res
+        res1 = resample_dataset(
+                to_be_corrected, plax_corr_area,
+                radius_of_influence=2500, fill_value=np.nan)
+        res1.attrs["area"] = to_be_corrected.attrs["area"]
+
+        return res1
 
     def _get_corrector(self, base_area):
         # only pass on those attributes that are arguments by
