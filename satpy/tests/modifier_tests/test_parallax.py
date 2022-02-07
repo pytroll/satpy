@@ -335,20 +335,20 @@ def test_correct_area_partlycloudy(daskify):
     np.testing.assert_allclose(
         new_lons,
         np.array([
-            [-0.19999939, -0.09999966, 0.0, 0.1, 0.2],
-            [-0.19999947, -0.09999973, 0.0, 0.1, 0.2],
-            [-0.19999977, -0.1, 0.0, 0.1, 0.2],
-            [-0.19999962, -0.0999997, 0.0, 0.0999997, 0.19999955],
-            [-0.19999932, -0.09999966, 0.0, 0.09999966, 0.19999932]]),
+            [np.nan, np.nan, 0.0, 0.1, 0.2],
+            [-0.20078652, -0.10044222, 0.0, 0.1, 0.2],
+            [-0.20068529, -0.10034264, 0.0, 0.1, 0.2],
+            [np.nan, np.nan, np.nan, np.nan, np.nan],
+            [-0.20048537, -0.10038778, 0., 0.10038778, 0.20058219]]),
         rtol=1e-5)
     np.testing.assert_allclose(
         new_lats,
         np.array([
-            [50.19991371, 50.19990292, 50.2, 50.2, 50.2],
-            [50.09992476, 50.09992476, 50.1, 50.1, 50.1],
-            [49.99996787, 50.0, 50.0, 50.0, 50.0],
-            [49.89994664, 49.89991462, 49.89991462, 49.89991462, 49.89993597],
-            [49.79990429, 49.79990429, 49.79990429, 49.79990429, 49.79990429]]),
+            [np.nan, np.nan, 50.2, 50.2, 50.2],
+            [50.2110675, 50.22493181, 50.1, 50.1, 50.1],
+            [50.09680357, 50.09680346, 50.0, 50.0, 50.0],
+            [np.nan, np.nan, np.nan, np.nan, np.nan],
+            [49.86860622, 49.9097198, 49.90971976, 49.9097198, 49.88231496]]),
         rtol=1e-6)
 
 
@@ -606,10 +606,16 @@ def test_modifier_interface_cloud_moves_to_observer(cth):
     lon_max_i = lon_min_i + w_cloud
 
     # location of cloud in corrected data
-    dest_lat_min_i = 167
-    dest_lat_max_i = 170
-    dest_lon_min_i = 182
-    dest_lon_max_i = 202
+    # this may no longer be rectangular!
+    dest_mask = np.zeros(shape=area_føroyar.shape, dtype="?")
+    if cth == 7500:
+        dest_mask[182:202, 167:170] = True
+    elif cth == 15000:
+        dest_mask[224:239, 180:183] = True
+        dest_mask[239:244, 180:182] = True
+        dest_mask[243, 179] = True
+    else:
+        raise RuntimeError("Unexpected cth")
 
     fake_bt_data = np.linspace(
             270, 330, math.prod(area_føroyar.shape), dtype="f8").reshape(
@@ -652,13 +658,12 @@ def test_modifier_interface_cloud_moves_to_observer(cth):
     # cloud arrived or originated
     delta = res - fake_bt
     delta[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = 0
-    delta[dest_lon_min_i:dest_lon_max_i, dest_lat_min_i:dest_lat_max_i] = 0
+    delta.data[dest_mask] = 0
     assert (delta == 0).all()
-    # verify that cloud moved south
-    assert (res.attrs["area"].get_lonlats()[1][dest_lon_min_i:dest_lon_max_i,
-                                               dest_lat_min_i:dest_lat_max_i] <
+    # verify that cloud moved south.  Pointwise comparison doesn't work because
+    # cloud may shrink.
+    assert ((res.attrs["area"].get_lonlats()[1][dest_mask]).mean() <
             fake_bt.attrs["area"].get_lonlats()[1][lon_min_i:lon_max_i,
-                                                   lat_min_i:lat_max_i]).all()
+                                                   lat_min_i:lat_max_i].mean())
     # verify that all pixels at the new cloud location are indeed cloudy
-    assert (res[dest_lon_min_i:dest_lon_max_i, dest_lat_min_i:dest_lat_max_i]
-            < 250).all()
+    assert (res.data[dest_mask] < 250).all()

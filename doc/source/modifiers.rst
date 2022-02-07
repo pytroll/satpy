@@ -85,6 +85,13 @@ fail.  Because the cloud top height metadata are used, it is essential
 that the cloud top height data are derived from the same platform as
 the measurements to be corrected are taken by.
 
+The parallax error moves clouds away from the observer.  Therefore, the
+parallax correction shifts clouds in the direction of the observer.  The
+space left behind by the cloud will be filled with fill values.  As the
+cloud is shifted toward the observer, it may occupy less pixels than before,
+because pixels closer to the observer have a smaller surface area.  It can
+also be deformed (a "rectangular" cloud may get the shape of a parallelogram).
+
 The parallax correction is currently experimental and subject to change.
 Although it is covered by tests, there may be cases that yield unexpected
 or incorrect results.  It does not yet perform any checks that the

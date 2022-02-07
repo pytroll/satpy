@@ -278,6 +278,15 @@ class ParallaxCorrection:
         # lat_diff and lon_diff), because the biggest shift corresponds to the
         # highest clouds, and if we move a 10 km cloud over a 2 km one, we
         # should retain the 10 km.
+        #
+        # some things to keep in mind:
+        # - even with a constant cloud height, 3 source pixels may end up in
+        #   the same destination pixel, because pixels get larger in the
+        #   direction of the satellite.  This means clouds may shrink as they
+        #   approach the satellite.
+        # - the x-shift is a function of y and the y-shift is a function of x,
+        #   so a cloud that was rectangular at the start may no longer be
+        #   rectangular at the end
         br = BucketResampler(self.base_area,
                              da.array(source_lon), da.array(source_lat))
         inv_lat_diff = br.get_abs_max(lat_diff)
