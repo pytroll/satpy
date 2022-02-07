@@ -577,8 +577,10 @@ def test_parallax_modifier_interface_with_cloud():
     assert not (res.diff("x") < 0).any()
 
 
+# FIXME: add dask test
 @pytest.mark.parametrize("cth", [7500, 15000])
-def test_modifier_interface_cloud_moves_to_observer(cth):
+@pytest.mark.parametrize("use_dask", [True, False])
+def test_modifier_interface_cloud_moves_to_observer(cth, use_dask):
     """Test that a cloud moves to the observer.
 
     With the modifier interface, use a high resolution area and test that
@@ -614,8 +616,6 @@ def test_modifier_interface_cloud_moves_to_observer(cth):
         dest_mask[224:239, 180:183] = True
         dest_mask[239:244, 180:182] = True
         dest_mask[243, 179] = True
-    else:
-        raise RuntimeError("Unexpected cth")
 
     fake_bt_data = np.linspace(
             270, 330, math.prod(area_føroyar.shape), dtype="f8").reshape(
@@ -624,6 +624,10 @@ def test_modifier_interface_cloud_moves_to_observer(cth):
     fake_bt_data[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = np.linspace(
             180, 220, w_cloud*h_cloud).reshape(w_cloud, h_cloud).round(2)
     fake_cth_data[lon_min_i:lon_max_i, lat_min_i:lat_max_i] = cth
+
+    if use_dask:
+        fake_bt_data = da.array(fake_bt_data)
+        fake_cth_data = da.array(fake_cth_data)
 
     attrs = _get_attrs(0, 0)
 
