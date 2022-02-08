@@ -308,7 +308,8 @@ class ParallaxCorrection:
             self.diagnostics["lon_diff"] = lon_diff
             self.diagnostics["lat_diff"] = lat_diff
             self.diagnostics["source_area"] = source_area
-            self.diagnostics["count"] = br.get_count()
+            self.diagnostics["count"] = xr.DataArray(
+                br.get_count(), dims=("y", "x"), attrs={"area": self.base_area})
         return (inv_lon, inv_lat)
 
 
