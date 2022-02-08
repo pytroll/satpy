@@ -1411,7 +1411,7 @@ class TestMaskingCompositor:
         """Test initiating with unsupported mode."""
         from satpy.composites import MaskingCompositor
 
-        # No transparency or conditions given raises ValueError
+        # Incorrect mode raises ValueError
         with pytest.raises(ValueError):
             MaskingCompositor("name", conditions=conditions_v1,
                               mode="YCbCrA")
