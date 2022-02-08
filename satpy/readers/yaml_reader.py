@@ -349,6 +349,10 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
     """
 
+    # WeakValueDictionary objects must be created at the class level or else
+    # dask will not be able to serialize them on a distributed environment
+    _coords_cache: WeakValueDictionary = WeakValueDictionary()
+
     def __init__(self,
                  config_dict,
                  filter_parameters=None,
@@ -361,7 +365,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         self.available_ids = {}
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
-        self.coords_cache = WeakValueDictionary()
         self.register_data_files()
 
     @property
@@ -809,7 +812,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         key = None
         try:
             key = (lons.data.name, lats.data.name)
-            sdef = self.coords_cache.get(key)
+            sdef = FileYAMLReader._coords_cache.get(key)
         except AttributeError:
             sdef = None
         if sdef is None:
@@ -820,7 +823,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                                              lons.attrs.get('name', lons.name),
                                              lats.attrs.get('name', lats.name))
             if key is not None:
-                self.coords_cache[key] = sdef
+                FileYAMLReader._coords_cache[key] = sdef
         return sdef
 
     def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
