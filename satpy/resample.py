@@ -950,6 +950,17 @@ def _mean(data, y_size, x_size):
     return data_mean
 
 
+def _repeat_by_factor(data, block_info=None):
+    if block_info is None:
+        return data
+    out_shape = block_info[None]['chunk-shape']
+    out_data = data
+    for axis, axis_size in enumerate(out_shape):
+        in_size = data.shape[axis]
+        out_data = np.repeat(out_data, int(axis_size / in_size), axis=axis)
+    return out_data
+
+
 class NativeResampler(BaseResampler):
     """Expand or reduce input datasets to be the same shape.
 
@@ -973,7 +984,7 @@ class NativeResampler(BaseResampler):
                                                      **kwargs)
 
     @staticmethod
-    def aggregate(d, y_size, x_size):
+    def _aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array."""
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
@@ -995,37 +1006,49 @@ class NativeResampler(BaseResampler):
                                   meta=np.array((), dtype=d.dtype),
                                   dtype=d.dtype, chunks=new_chunks)
 
+    @staticmethod
+    def _replicate(d_arr, repeats):
+        """Repeat data pixels by the per-axis factors specified."""
+        # rechunk so new chunks are the same size as old chunks
+        c_size = max(x[0] for x in d_arr.chunks)
+
+        def _calc_chunks(c, c_size):
+            whole_chunks = [c_size] * int(sum(c) // c_size)
+            remaining = sum(c) - sum(whole_chunks)
+            if remaining:
+                whole_chunks += [remaining]
+            return tuple(whole_chunks)
+        new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
+                      for axis, x in enumerate(d_arr.chunks)]
+        d_arr = d_arr.rechunk(new_chunks)
+
+        repeated_chunks = []
+        for axis, axis_chunks in enumerate(d_arr.chunks):
+            factor = repeats[axis]
+            if not factor.is_integer():
+                raise ValueError("Expand factor must be a whole number")
+            repeated_chunks.append(tuple(x * int(factor) for x in axis_chunks))
+        repeated_chunks = tuple(repeated_chunks)
+        d_arr = d_arr.map_blocks(_repeat_by_factor,
+                                 meta=np.array((), dtype=d_arr.dtype),
+                                 dtype=d_arr.dtype,
+                                 chunks=repeated_chunks)
+        return d_arr
+
     @classmethod
-    def expand_reduce(cls, d_arr, repeats):
+    def _expand_reduce(cls, d_arr, repeats):
         """Expand reduce."""
         if not isinstance(d_arr, da.Array):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
         if all(x == 1 for x in repeats.values()):
             return d_arr
         if all(x >= 1 for x in repeats.values()):
-            # rechunk so new chunks are the same size as old chunks
-            c_size = max(x[0] for x in d_arr.chunks)
-
-            def _calc_chunks(c, c_size):
-                whole_chunks = [c_size] * int(sum(c) // c_size)
-                remaining = sum(c) - sum(whole_chunks)
-                if remaining:
-                    whole_chunks += [remaining]
-                return tuple(whole_chunks)
-            new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
-                          for axis, x in enumerate(d_arr.chunks)]
-            d_arr = d_arr.rechunk(new_chunks)
-
-            for axis, factor in repeats.items():
-                if not factor.is_integer():
-                    raise ValueError("Expand factor must be a whole number")
-                d_arr = da.repeat(d_arr, int(factor), axis=axis)
-            return d_arr
+            return cls._replicate(d_arr, repeats)
         if all(x <= 1 for x in repeats.values()):
             # reduce
             y_size = 1. / repeats[0]
             x_size = 1. / repeats[1]
-            return cls.aggregate(d_arr, y_size, x_size)
+            return cls._aggregate(d_arr, y_size, x_size)
         raise ValueError("Must either expand or reduce in both "
                          "directions")
 
@@ -1058,7 +1081,7 @@ class NativeResampler(BaseResampler):
         repeats[y_axis] = y_repeats
         repeats[x_axis] = x_repeats
 
-        d_arr = self.expand_reduce(data.data, repeats)
+        d_arr = self._expand_reduce(data.data, repeats)
         new_data = xr.DataArray(d_arr, dims=data.dims)
         return update_resampled_coords(data, new_data, target_geo_def)
 
