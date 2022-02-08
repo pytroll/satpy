@@ -1338,6 +1338,8 @@ class BackgroundCompositor(GenericCompositor):
 class MaskingCompositor(GenericCompositor):
     """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
 
+    _supported_modes = {"LA", "RGBA"}
+
     def __init__(self, name, transparency=None, conditions=None, mode="LA",
                  **kwargs):
         """Collect custom configuration values.
@@ -1411,6 +1413,9 @@ class MaskingCompositor(GenericCompositor):
             self.conditions = conditions
         if self.conditions is None:
             raise ValueError("Masking conditions not defined.")
+        if mode not in self._supported_modes:
+            raise ValueError(f"Invalid mode {mode!s}.  Supported modes: " +
+                             ", ".join(self._supported_modes))
         self.mode = mode
 
         super(MaskingCompositor, self).__init__(name, **kwargs)

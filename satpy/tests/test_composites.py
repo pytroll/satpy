@@ -1407,6 +1407,15 @@ class TestMaskingCompositor:
         with pytest.raises(ValueError):
             comp([test_data])
 
+    def test_incorrect_mode(self, conditions_v1):
+        """Test initiating with unsupported mode."""
+        from satpy.composites import MaskingCompositor
+
+        # No transparency or conditions given raises ValueError
+        with pytest.raises(ValueError):
+            MaskingCompositor("name", conditions=conditions_v1,
+                              mode="YCbCrA")
+
 
 class TestNaturalEnhCompositor(unittest.TestCase):
     """Test NaturalEnh compositor."""
