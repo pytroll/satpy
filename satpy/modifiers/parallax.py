@@ -368,7 +368,7 @@ class ParallaxCorrectionModifier(ModifierBase):
         plax_corr_area = corrector(cth)
         res = resample_dataset(
                 to_be_corrected, plax_corr_area,
-                radius_of_influence=2500, fill_value=np.nan)
+                radius_of_influence=50000, fill_value=np.nan)
         res.attrs["area"] = to_be_corrected.attrs["area"]
 
         return res
