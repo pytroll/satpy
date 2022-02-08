@@ -365,12 +365,12 @@ class ParallaxCorrectionModifier(ModifierBase):
         base_area = to_be_corrected.attrs["area"]
         corrector = self._get_corrector(base_area)
         plax_corr_area = corrector(cth)
-        res1 = resample_dataset(
+        res = resample_dataset(
                 to_be_corrected, plax_corr_area,
                 radius_of_influence=2500, fill_value=np.nan)
-        res1.attrs["area"] = to_be_corrected.attrs["area"]
+        res.attrs["area"] = to_be_corrected.attrs["area"]
 
-        return res1
+        return res
 
     def _get_corrector(self, base_area):
         # only pass on those attributes that are arguments by
