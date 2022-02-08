@@ -109,15 +109,15 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         sc = make_fake_scene(
                 {"IR108": np.arange(25, dtype="f4").reshape(5, 5)},
                 common_attrs={"units": "K"})
-        ds_in = sc["IR108"]
+        ds_in_k = sc["IR108"]
         for out_unit in ("C", "CELSIUS"):
-            ds_out = convert_units(ds_in, "K", out_unit)
-            np.testing.assert_array_almost_equal(ds_in + 273.15, ds_out)
-            assert ds_in.attrs != ds_out.attrs
-            assert ds_out.attrs["units"] == out_unit
+            ds_out_c = convert_units(ds_in_k, "K", out_unit)
+            np.testing.assert_array_almost_equal(ds_in_k - 273.15, ds_out_c)
+            assert ds_in_k.attrs != ds_out_c.attrs
+            assert ds_out_c.attrs["units"] == out_unit
         # test that keys aren't lost
-        assert ds_out.attrs.keys() - ds_in.attrs.keys() <= {"units"}
-        assert ds_in.attrs.keys() <= ds_out.attrs.keys()
+        assert ds_out_c.attrs.keys() - ds_in_k.attrs.keys() <= {"units"}
+        assert ds_in_k.attrs.keys() <= ds_out_c.attrs.keys()
 
     def test_convert_units_other(self):
         """Test that other unit conversions are not implemented."""

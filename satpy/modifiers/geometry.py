@@ -103,7 +103,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
     .. code-block:: yaml
 
       sunz_corrected:
-        compositor: !!python/name:satpy.composites.SunZenithCorrector
+        modifier: !!python/name:satpy.modifiers.SunZenithCorrector
         max_sza: !!null
         optional_prerequisites:
         - solar_zenith_angle
@@ -149,7 +149,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
     .. code-block:: yaml
 
       effective_solar_pathlength_corrected:
-        compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+        modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
         max_sza: !!null
         optional_prerequisites:
         - solar_zenith_angle
