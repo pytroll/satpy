@@ -91,10 +91,18 @@ class Test_NC_ABI_L2_base(unittest.TestCase):
         fake_cmip_dataset = _create_cmip_dataset()
         with mock.patch('satpy.readers.abi_base.xr') as xr_:
             xr_.open_dataset.return_value = fake_cmip_dataset
-            self.reader = NC_ABI_L2('filename',
-                                    {'platform_shortname': 'G16',
-                                     'scan_mode': 'M3'},
-                                    {'file_type': 'info'})
+            self.reader = NC_ABI_L2(
+                'filename',
+                {
+                    'platform_shortname': 'G16',
+                    'scan_mode': 'M3',
+                    'scene_abbr': 'M1',
+                },
+                {
+                    'file_type': 'info',
+                    'observation_type': 'ACHA',
+                },
+            )
 
 
 class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
@@ -112,6 +120,7 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
         exp_attrs = {'instrument_ID': None,
                      'modifiers': (),
                      'name': 'HT',
+                     'observation_type': 'ACHA',
                      'orbital_slot': None,
                      'platform_name': 'GOES-16',
                      'platform_shortname': 'G16',
@@ -120,6 +129,7 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
                      'satellite_latitude': 0.0,
                      'satellite_longitude': -89.5,
                      'scan_mode': 'M3',
+                     'scene_abbr': 'M1',
                      'scene_id': None,
                      'sensor': 'abi',
                      'timeline_ID': None,
@@ -153,6 +163,7 @@ class TestMCMIPReading:
         exp_attrs = {'instrument_ID': None,
                      'modifiers': (),
                      'name': 'C14',
+                     'observation_type': 'MCMIP',
                      'orbital_slot': None,
                      'reader': 'abi_l2_nc',
                      'platform_name': 'GOES-16',
@@ -162,6 +173,7 @@ class TestMCMIPReading:
                      'satellite_latitude': 0.0,
                      'satellite_longitude': -89.5,
                      'scan_mode': 'M6',
+                     'scene_abbr': 'F',
                      'scene_id': None,
                      'sensor': 'abi',
                      'timeline_ID': None,

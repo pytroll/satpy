@@ -41,9 +41,13 @@ class NC_ABI_L2(NC_ABI_BASE):
             var += "_" + key.name
         LOG.debug('Reading in get_dataset %s.', var)
         variable = self[var]
+        variable.attrs.update(key.to_dict())
+        self._update_data_arr_with_filename_attrs(variable)
+        self._remove_problem_attrs(variable)
+        return variable
 
+    def _update_data_arr_with_filename_attrs(self, variable):
         _units = variable.attrs['units'] if 'units' in variable.attrs else None
-
         variable.attrs.update({'platform_name': self.platform_name,
                                'sensor': self.sensor,
                                'units': _units,
@@ -51,8 +55,24 @@ class NC_ABI_L2(NC_ABI_BASE):
                                'satellite_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
                                'satellite_altitude': float(self.nc['nominal_satellite_height']) * 1000.})
 
-        variable.attrs.update(key.to_dict())
+        if 'flag_meanings' in variable.attrs:
+            variable.attrs['flag_meanings'] = variable.attrs['flag_meanings'].split(' ')
 
+        # add in information from the filename that may be useful to the user
+        for attr in ('scene_abbr', 'scan_mode', 'platform_shortname'):
+            variable.attrs[attr] = self.filename_info[attr]
+
+        # add in information hardcoded in the filetype YAML
+        for attr in ('observation_type',):
+            if attr in self.filetype_info:
+                variable.attrs[attr] = self.filetype_info[attr]
+
+        # copy global attributes to metadata
+        for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+            variable.attrs[attr] = self.nc.attrs.get(attr)
+
+    @staticmethod
+    def _remove_problem_attrs(variable):
         # remove attributes that could be confusing later
         if not np.issubdtype(variable.dtype, np.integer):
             # integer fields keep the _FillValue
@@ -63,19 +83,6 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable.attrs.pop('_Unsigned', None)
         variable.attrs.pop('valid_range', None)
         variable.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
-
-        if 'flag_meanings' in variable.attrs:
-            variable.attrs['flag_meanings'] = variable.attrs['flag_meanings'].split(' ')
-
-        # add in information from the filename that may be useful to the user
-        for attr in ('scan_mode', 'platform_shortname'):
-            variable.attrs[attr] = self.filename_info[attr]
-
-        # copy global attributes to metadata
-        for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
-            variable.attrs[attr] = self.nc.attrs.get(attr)
-
-        return variable
 
     def available_datasets(self, configured_datasets=None):
         """Add resolution to configured datasets."""
