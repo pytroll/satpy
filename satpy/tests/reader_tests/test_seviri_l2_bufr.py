@@ -95,7 +95,7 @@ class TestSeviriL2Bufr:
     """Test NativeMSGBufrHandler."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
-    def seviri_l2_bufr_test(self, filename, as_area_def=False):
+    def seviri_l2_bufr_test(self, filename, with_adef=False):
         """Test the SEVIRI BUFR handler."""
         import eccodes as ec
 
@@ -122,7 +122,8 @@ class TestSeviriL2Bufr:
                 fromfile.return_value = MPEF_PRODUCT_HEADER
                 with mock.patch('satpy.readers.seviri_l2_bufr.recarray2dict') as recarray2dict:
                     recarray2dict.side_effect = (lambda x: x)
-                    fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO, as_area_def=as_area_def)
+                    fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO,
+                                                 with_area_definition=with_adef)
                     fh.mpef_header = MPEF_PRODUCT_HEADER
 
         else:
@@ -136,7 +137,7 @@ class TestSeviriL2Bufr:
                         with mock.patch('eccodes.codes_release') as ec5:
                             ec5.return_value = 1
                             fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
-                                                         as_area_def=as_area_def)
+                                                         with_area_definition=with_adef)
 
         # Test reading latitude/longitude (needed to test AreaDefintiion implementation)
         zlat = self.read_data(buf1, m, fh, DATASET_INFO_LAT)
@@ -153,7 +154,7 @@ class TestSeviriL2Bufr:
         assert z.attrs['seg_size'] == DATASET_ATTRS['seg_size']
 
         # Test dataset with SwathDefintion and AreaDefinition, respectively
-        if not fh.as_area_def:
+        if not fh.with_adef:
             self.as_swath_definition(fh, z, samp1)
         else:
             self.as_area_definition(fh, z, samp1)
@@ -212,4 +213,4 @@ class TestSeviriL2Bufr:
     def test_seviri_l2_bufr(self, input_file):
         """Test SEVIRI L2 BUFR reader with data being returned as SwathDefinition as well as AreaDefinition."""
         self.seviri_l2_bufr_test(input_file)
-        self.seviri_l2_bufr_test(input_file, as_area_def=True)
+        self.seviri_l2_bufr_test(input_file, with_adef=True)

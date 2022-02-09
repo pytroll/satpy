@@ -56,20 +56,19 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
 class SeviriL2BufrFileHandler(BaseFileHandler):
     """File handler for SEVIRI L2 BUFR products.
 
-    **Loading data as AreaDefinition**
+    **Loading data with AreaDefinition**
 
-    By providing the `as_area_def` as True in the `reader_kwargs`, the dataset is loaded as
-    an AreaDefinition using a standardized AreaDefinition in areas.yaml. By default, the
-    dataset will be loaded as a SwathDefinition, i.e. similar to how the data are stored in
-    in the BUFR file:
+    By providing the `with_area_definition` as True in the `reader_kwargs`, the dataset is loaded with
+    an AreaDefinition using a standardized AreaDefinition in areas.yaml. By default, the dataset will
+    be loaded with a SwathDefinition, i.e. similar to how the data are stored in the BUFR file:
 
         scene = satpy.Scene(filenames,
                             reader='seviri_l2_bufr',
-                            reader_kwargs={'as_area_def': False})
+                            reader_kwargs={'with_area_definition': False})
 
     """
 
-    def __init__(self, filename, filename_info, filetype_info, as_area_def=False, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info, with_area_definition=False, **kwargs):
         """Initialise the file handler for SEVIRI L2 BUFR data."""
         super(SeviriL2BufrFileHandler, self).__init__(filename,
                                                       filename_info,
@@ -88,7 +87,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
             self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
 
-        self.as_area_def = as_area_def
+        self.with_adef = with_area_definition
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
@@ -176,7 +175,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         arr = self.get_array(dataset_info['key'])
         arr[arr == dataset_info['fill_value']] = np.nan
 
-        if not self.as_area_def:
+        if not self.with_adef:
             xarr = self.get_dataset_with_swath_def(arr, dataset_info)
         else:
             xarr = self.get_dataset_with_area_def(arr, dataset_id, dataset_info)
