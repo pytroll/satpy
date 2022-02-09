@@ -196,16 +196,16 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             return self.get_dataset_with_swath_def(arr, dataset_info)
 
         else:
+            lons_1d, lats_1d, data_1d = da.compute(self.longitude, self.latitude, arr)
+
             self._area_def = self._construct_area_def(dataset_id)
-            icol, irow = self._area_def.get_array_indices_from_lonlat(self.longitude.compute(), self.latitude.compute())
+            icol, irow = self._area_def.get_array_indices_from_lonlat(lons_1d, lats_1d)
 
-            # TODO Is there a way to broadcast the data in arr using icol and irow to a 2d dask array without the
-            #  intermeidate step of creating a numpy array?
-            arr_2d = np.empty(self._area_def.shape)
-            arr_2d[:] = np.nan
-            arr_2d[irow.compressed(), icol.compressed()] = arr.compute()[~irow.mask]
+            data_2d = np.empty(self._area_def.shape)
+            data_2d[:] = np.nan
+            data_2d[irow.compressed(), icol.compressed()] = data_1d[~irow.mask]
 
-            xarr = xr.DataArray(da.from_array(arr_2d, CHUNK_SIZE), dims=('y', 'x'))
+            xarr = xr.DataArray(da.from_array(data_2d, CHUNK_SIZE), dims=('y', 'x'))
 
             ntotal = len(icol)
             nvalid = len(icol.compressed())

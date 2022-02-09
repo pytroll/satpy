@@ -22,6 +22,7 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
+import dask.array as da
 import numpy as np
 import pytest
 from pyresample import geometry
@@ -188,16 +189,16 @@ class TestSeviriL2Bufr:
         """Perform checks if data loaded as AreaDefinition."""
         ad = fh.get_area_def(None)
         assert ad == AREA_DEF
-        data = np.concatenate((samp1, samp1), axis=0)
+        data_1d = np.concatenate((samp1, samp1), axis=0)
 
         # Put BUFR data on 2D grid that the 2D array returned by get_dataset should correspond to
-        icol, irow = ad.get_array_indices_from_lonlat(fh.longitude.compute(),
-                                                      fh.latitude.compute())
+        lons_1d, lats_1d = da.compute(fh.longitude, fh.latitude)
+        icol, irow = ad.get_array_indices_from_lonlat(lons_1d, lats_1d)
 
-        arr_2d = np.empty(ad.shape)
-        arr_2d[:] = np.nan
-        arr_2d[irow.compressed(), icol.compressed()] = data[~irow.mask]
-        np.testing.assert_array_equal(z.values, arr_2d)
+        data_2d = np.empty(ad.shape)
+        data_2d[:] = np.nan
+        data_2d[irow.compressed(), icol.compressed()] = data_1d[~irow.mask]
+        np.testing.assert_array_equal(z.values, data_2d)
 
         # Test that the correct AreaDefinition is identified for products with 3 pixel segements
         fh.seg_size = 3
