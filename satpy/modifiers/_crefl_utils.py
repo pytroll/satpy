@@ -420,7 +420,7 @@ def run_crefl(refl, coeffs,
     if use_abi:
         LOG.debug("Using ABI CREFL algorithm")
         corr_refl = da.map_blocks(_run_crefl_abi, refl.data, mus.data, muv.data, phi.data,
-                                  solar_zenith, sensor_zenith, height, *coeffs,
+                                  solar_zenith.data, sensor_zenith.data, height, *coeffs,
                                   meta=np.ndarray((), dtype=refl.dtype),
                                   chunks=refl.chunks, dtype=refl.dtype,
                                   percent=percent)

@@ -102,7 +102,7 @@ class TestReflectanceCorrectorModifier:
         data = np.zeros((rows, cols)) + 25
         data[3, :] += 25
         data[4:, :] += 50
-        data = da.from_array(data, chunks=100)
+        data = da.from_array(data, chunks=2)
         return area, data
 
     def test_reflectance_corrector_abi(self):
