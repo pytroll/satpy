@@ -23,6 +23,8 @@ import xarray as xr
 from dask import array as da
 from pyresample.geometry import AreaDefinition
 
+from ..utils import assert_maximum_dask_computes
+
 
 @contextmanager
 def mock_cmgdem(tmpdir, url):
@@ -139,7 +141,8 @@ class TestReflectanceCorrectorModifier:
                                'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
                                'area': area, 'ancillary_variables': []
                            })
-        res = ref_cor([c01], [])
+        with assert_maximum_dask_computes(0):
+            res = ref_cor([c01], [])
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
@@ -227,7 +230,7 @@ class TestReflectanceCorrectorModifier:
         c04 = _make_viirs_xarray(data, area, 'solar_azimuth_angle', 'solar_azimuth_angle')
         c05 = _make_viirs_xarray(data, area, 'solar_zenith_angle', 'solar_zenith_angle')
 
-        with dem_mock_cm(tmpdir, url):
+        with dem_mock_cm(tmpdir, url), assert_maximum_dask_computes(0):
             res = ref_cor([c01], [c02, c03, c04, c05])
 
         assert isinstance(res, xr.DataArray)
