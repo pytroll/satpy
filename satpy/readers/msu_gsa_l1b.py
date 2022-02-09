@@ -62,7 +62,7 @@ class MSUGSAFileHandler(HDF5FileHandler):
     @property
     def sensor_name(self):
         """Sensor name is hardcoded."""
-        sensor = 'MSU-GS/A'
+        sensor = 'msu_gsa'
         return sensor
 
     @property
