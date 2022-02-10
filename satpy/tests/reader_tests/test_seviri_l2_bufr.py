@@ -91,108 +91,136 @@ AREA_DEF_EXT = geometry.AreaDefinition(
     (-5571748.888268564, -5571748.888155806, 5571748.888155806, 5571748.888268564)
 )
 
+TEST_FILES = [
+    'ASRBUFRProd_20191106130000Z_00_OMPEFS01_MET08_FES_E0000',
+    'MSG1-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr',
+    'MSG1-SEVI-MSGASRE-0101-0101-20191106101500.000000000Z-20191106103218-1362148'
+]
 
-class TestSeviriL2Bufr:
-    """Test NativeMSGBufrHandler."""
+# Test data
+DATA = np.random.uniform(low=250, high=350, size=(128,))
+LAT = np.random.uniform(low=-80, high=80, size=(128,))
+LON = np.random.uniform(low=-38.5, high=121.5, size=(128,))
+
+
+class SeviriL2BufrData:
+    """Mock SEVIRI L2 BUFR data."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
-    def seviri_l2_bufr_test(self, filename, with_adef=False):
-        """Test the SEVIRI BUFR handler."""
+    def __init__(self, filename, with_adef=False):
+        """Initialize by mocking test data for testing the SEVIRI L2 BUFR reader."""
         import eccodes as ec
 
         from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
-        buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
-        ec.codes_set(buf1, 'unpack', 1)
-        samp1 = np.random.uniform(low=250, high=350, size=(128,))
-        lat = np.random.uniform(low=-80, high=80, size=(128,))
-        lon = np.random.uniform(low=-38.5, high=121.5, size=(128,))
+        self.buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
+        ec.codes_set(self.buf1, 'unpack', 1)
         # write the bufr test data twice as we want to read in and the concatenate the data in the reader
-        # 55 id corresponds to METEOSAT 8
-        ec.codes_set(buf1, 'satelliteIdentifier', 55)
-        ec.codes_set_array(buf1, 'latitude', lat)
-        ec.codes_set_array(buf1, 'latitude', lat)
-        ec.codes_set_array(buf1, 'longitude', lon)
-        ec.codes_set_array(buf1, 'longitude', lon)
-        ec.codes_set_array(buf1, '#1#brightnessTemperature', samp1)
-        ec.codes_set_array(buf1, '#1#brightnessTemperature', samp1)
+        # 55 id corresponds to METEOSAT 8`
+        ec.codes_set(self.buf1, 'satelliteIdentifier', 55)
+        ec.codes_set_array(self.buf1, 'latitude', LAT)
+        ec.codes_set_array(self.buf1, 'latitude', LAT)
+        ec.codes_set_array(self.buf1, 'longitude', LON)
+        ec.codes_set_array(self.buf1, 'longitude', LON)
+        ec.codes_set_array(self.buf1, '#1#brightnessTemperature', DATA)
+        ec.codes_set_array(self.buf1, '#1#brightnessTemperature', DATA)
 
-        m = mock.mock_open()
+        self.m = mock.mock_open()
         # only our offline product contain MPEF product headers so we get the metadata from there
         if ('BUFRProd' in filename):
             with mock.patch('satpy.readers.seviri_l2_bufr.np.fromfile') as fromfile:
                 fromfile.return_value = MPEF_PRODUCT_HEADER
                 with mock.patch('satpy.readers.seviri_l2_bufr.recarray2dict') as recarray2dict:
                     recarray2dict.side_effect = (lambda x: x)
-                    fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO,
-                                                 with_area_definition=with_adef)
-                    fh.mpef_header = MPEF_PRODUCT_HEADER
+                    self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO,
+                                                      with_area_definition=with_adef)
+                    self.fh.mpef_header = MPEF_PRODUCT_HEADER
 
         else:
             # No Mpef Header  so we get the metadata from the BUFR messages
-            with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
+            with mock.patch('satpy.readers.seviri_l2_bufr.open', self.m, create=True):
                 with mock.patch('eccodes.codes_bufr_new_from_file',
-                                side_effect=[buf1, None, buf1, None, buf1, None]) as ec1:
+                                side_effect=[self.buf1, None, self.buf1, None, self.buf1, None]) as ec1:
                     ec1.return_value = ec1.side_effect
                     with mock.patch('eccodes.codes_set') as ec2:
                         ec2.return_value = 1
                         with mock.patch('eccodes.codes_release') as ec5:
                             ec5.return_value = 1
-                            fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
-                                                         with_area_definition=with_adef)
+                            self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
+                                                              with_area_definition=with_adef)
 
-        # Test reading latitude/longitude (needed to test AreaDefintiion implementation)
-        zlat = self.read_data(buf1, m, fh, DATASET_INFO_LAT)
-        zlon = self.read_data(buf1, m, fh, DATASET_INFO_LON)
-        np.testing.assert_array_equal(zlat.values, np.concatenate((lat, lat), axis=0))
-        np.testing.assert_array_equal(zlon.values, np.concatenate((lon, lon), axis=0))
-
-        # Test reading dataset
-        z = self.read_data(buf1, m, fh, DATASET_INFO)
-
-        # Test dataset attributes
-        assert z.attrs['platform_name'] == DATASET_ATTRS['platform_name']
-        assert z.attrs['ssp_lon'] == DATASET_ATTRS['ssp_lon']
-        assert z.attrs['seg_size'] == DATASET_ATTRS['seg_size']
-
-        # Test dataset with SwathDefintion and AreaDefinition, respectively
-        if not fh.with_adef:
-            self.as_swath_definition(fh, z, samp1)
-        else:
-            self.as_area_definition(fh, z, samp1)
-
-    @staticmethod
-    def read_data(buf1, m, fh, dataset_info):
+    def get_data(self, dataset_info):
         """Read data from mock file."""
-        with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
+        with mock.patch('satpy.readers.seviri_l2_bufr.open', self.m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
-                            side_effect=[buf1, buf1, None]) as ec1:
+                            side_effect=[self.buf1, self.buf1, None]) as ec1:
                 ec1.return_value = ec1.side_effect
                 with mock.patch('eccodes.codes_set') as ec2:
                     ec2.return_value = 1
                     with mock.patch('eccodes.codes_release') as ec5:
                         ec5.return_value = 1
-                        z = fh.get_dataset(make_dataid(name='dummmy', resolution=48000), dataset_info)
+                        z = self.fh.get_dataset(make_dataid(name='dummmy', resolution=48000), dataset_info)
 
         return z
 
-    def as_swath_definition(self, fh, z, samp1):
-        """Perform checks if data loaded as swath definition."""
-        # With swath definition there will be no AreaDefinition implemented
+
+@pytest.mark.parametrize("input_file", TEST_FILES)
+class TestSeviriL2BufrReader:
+    """Test SEVIRI L2 BUFR Reader."""
+
+    @staticmethod
+    def test_lonslats(input_file):
+        """Test reading of longitude and latitude data with SEVIRI L2 BUFR reader."""
+        bufr_obj = SeviriL2BufrData(input_file)
+        zlat = bufr_obj.get_data(DATASET_INFO_LAT)
+        zlon = bufr_obj.get_data(DATASET_INFO_LON)
+        np.testing.assert_array_equal(zlat.values, np.concatenate((LAT, LAT), axis=0))
+        np.testing.assert_array_equal(zlon.values, np.concatenate((LON, LON), axis=0))
+
+    @staticmethod
+    def test_attributes_with_swath_definition(input_file):
+        """Test correctness of dataset attributes with data loaded with a SwathDefinition (default behaviour)."""
+        bufr_obj = SeviriL2BufrData(input_file)
+        z = bufr_obj.get_data(DATASET_INFO)
+        assert z.attrs['platform_name'] == DATASET_ATTRS['platform_name']
+        assert z.attrs['ssp_lon'] == DATASET_ATTRS['ssp_lon']
+        assert z.attrs['seg_size'] == DATASET_ATTRS['seg_size']
+
+    @staticmethod
+    def test_attributes_with_area_definition(input_file):
+        """Test correctness of dataset attributes with data loaded with a AreaDefinition."""
+        bufr_obj = SeviriL2BufrData(input_file, with_adef=True)
+        _ = bufr_obj.get_data(DATASET_INFO_LAT)  # We need to load the lat/lon data in order to
+        _ = bufr_obj.get_data(DATASET_INFO_LON)  # populate the file handler with these data
+        z = bufr_obj.get_data(DATASET_INFO)
+        assert z.attrs['platform_name'] == DATASET_ATTRS['platform_name']
+        assert z.attrs['ssp_lon'] == DATASET_ATTRS['ssp_lon']
+        assert z.attrs['seg_size'] == DATASET_ATTRS['seg_size']
+
+    @staticmethod
+    def test_data_with_swath_definition(input_file):
+        """Test data loaded with SwathDefinition (default behaviour)."""
+        bufr_obj = SeviriL2BufrData(input_file)
         with pytest.raises(NotImplementedError):
-            fh.get_area_def(None)
+            bufr_obj.fh.get_area_def(None)
 
         # concatenate original test arrays as get_dataset will have read and concatented the data
-        x1 = np.concatenate((samp1, samp1), axis=0)
+        x1 = np.concatenate((DATA, DATA), axis=0)
+        z = bufr_obj.get_data(DATASET_INFO)
         np.testing.assert_array_equal(z.values, x1)
 
-    def as_area_definition(self, fh, z, samp1):
-        """Perform checks if data loaded as AreaDefinition."""
-        ad = fh.get_area_def(None)
+    def test_data_with_area_definition(self, input_file):
+        """Test data loaded with AreaDefinition."""
+        bufr_obj = SeviriL2BufrData(input_file, with_adef=True)
+        _ = bufr_obj.get_data(DATASET_INFO_LAT)  # We need to load the lat/lon data in order to
+        _ = bufr_obj.get_data(DATASET_INFO_LON)  # populate the file handler with these data
+        z = bufr_obj.get_data(DATASET_INFO)
+
+        ad = bufr_obj.fh.get_area_def(None)
         assert ad == AREA_DEF
-        data_1d = np.concatenate((samp1, samp1), axis=0)
+        data_1d = np.concatenate((DATA, DATA), axis=0)
 
         # Put BUFR data on 2D grid that the 2D array returned by get_dataset should correspond to
-        lons_1d, lats_1d = da.compute(fh.longitude, fh.latitude)
+        lons_1d, lats_1d = da.compute(bufr_obj.fh.longitude, bufr_obj.fh.latitude)
         icol, irow = ad.get_array_indices_from_lonlat(lons_1d, lats_1d)
 
         data_2d = np.empty(ad.shape)
@@ -201,17 +229,6 @@ class TestSeviriL2Bufr:
         np.testing.assert_array_equal(z.values, data_2d)
 
         # Test that the correct AreaDefinition is identified for products with 3 pixel segements
-        fh.seg_size = 3
-        ad_ext = fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
+        bufr_obj.fh.seg_size = 3
+        ad_ext = bufr_obj.fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
         assert ad_ext == AREA_DEF_EXT
-
-    @pytest.mark.parametrize("input_file",
-                             [
-                                 'ASRBUFRProd_20191106130000Z_00_OMPEFS01_MET08_FES_E0000',
-                                 'MSG1-SEVI-MSGASRE-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr',
-                                 'MSG1-SEVI-MSGASRE-0101-0101-20191106101500.000000000Z-20191106103218-1362148'
-                             ])
-    def test_seviri_l2_bufr(self, input_file):
-        """Test SEVIRI L2 BUFR reader with data being returned as SwathDefinition as well as AreaDefinition."""
-        self.seviri_l2_bufr_test(input_file)
-        self.seviri_l2_bufr_test(input_file, with_adef=True)
