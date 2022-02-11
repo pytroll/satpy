@@ -20,7 +20,7 @@
 
 import logging
 from contextlib import suppress
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -34,8 +34,6 @@ from satpy.resample import get_area_def
 
 logger = logging.getLogger(__name__)
 
-PRODUCT_DATA_DURATION_MINUTES = 20
-
 SSP_DEFAULT = 0.0
 
 
@@ -44,43 +42,33 @@ class FciL2CommonFunctions(object):
 
     @property
     def _start_time(self):
-        try:
-            start_time = datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
-        except (ValueError, KeyError):
-            # TODO if the sensing_start_time_utc attribute is not valid, uses a hardcoded value
-            logger.warning("Start time cannot be obtained from file content, using default value instead")
-            start_time = datetime.strptime('20200101120000', '%Y%m%d%H%M%S')
-        return start_time
+        """Get observation start time."""
+        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
 
     @property
     def _end_time(self):
         """Get observation end time."""
-        try:
-            end_time = datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%d%H%M%S')
-        except (ValueError, KeyError):
-            # TODO if the sensing_end_time_utc attribute is not valid, adds 20 minutes to the start time
-            end_time = self._start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
-        return end_time
+        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%d%H%M%S')
 
     @property
     def _spacecraft_name(self):
         """Return spacecraft name."""
-        try:
-            return self.nc.attrs['platform']
-        except KeyError:
-            # TODO if the platform attribute is not valid, return a default value
-            logger.warning("Spacecraft name cannot be obtained from file content, using default value instead")
-            return 'DEFAULT_MTG'
+        return self.nc.attrs['platform']
 
     @property
     def _sensor_name(self):
-        """Return instrument."""
+        """Return instrument name."""
+        return self.nc.attrs['data_source']
+
+    @property
+    def ssp_lon(self):
+        """Return longitude at subsatellite point."""
         try:
-            return self.nc.attrs['data_source']
-        except KeyError:
-            # TODO if the data_source attribute is not valid, return a default value
-            logger.warning("Sensor cannot be obtained from file content, using default value instead")
-            return 'fci'
+            return float(self.nc['mtg_geos_projection'].attrs['longitude_of_projection_origin'])
+        except (KeyError, AttributeError):
+            logger.warning(f"ssp_lon could not be obtained from file content, using default value "
+                           f"of {SSP_DEFAULT} degrees east instead")
+            return SSP_DEFAULT
 
     def _get_global_attributes(self):
         """Create a dictionary of global attributes to be added to all datasets.
@@ -137,15 +125,6 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         self.nlines = self.nc['y'].size
         self.ncols = self.nc['x'].size
         self._projection = self.nc['mtg_geos_projection']
-
-    @property
-    def ssp_lon(self):
-        """Return subsatellite point longitude."""
-        try:
-            return float(self._projection.attrs['longitude_of_projection_origin'])
-        except KeyError:
-            logger.warning("ssp_lon cannot be obtained from file content, using default value instead")
-            return SSP_DEFAULT
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
@@ -319,7 +298,6 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         # Read metadata which are common to all datasets
         self.nlines = self.nc['number_of_FoR_rows'].size
         self.ncols = self.nc['number_of_FoR_cols'].size
-        self.ssp_lon = SSP_DEFAULT
 
     def get_area_def(self, key):
         """Return the area definition (common to all data in product)."""
