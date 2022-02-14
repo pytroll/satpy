@@ -251,9 +251,8 @@ def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.D
     Args:
         data_arr: DataArray to get angles for. Information extracted from this
             object are ``.attrs["area"]``,``.attrs["start_time"]``, and
-            ``.attrs["orbital_parameters"]`` or the available
-             ``.attrs["satellite_longitude"]``, ``.attrs["satellite_latitude"]``,
-             and ``.attrs["satellite_altitude"]``.
+            ``.attrs["orbital_parameters"]``. See :func:`satpy.utils.get_satpos`
+            and :ref:`dataset_metadata` for more information.
             Additionally, the dask array chunk size is used when generating
             new arrays. The actual data of the object is not used.
 
