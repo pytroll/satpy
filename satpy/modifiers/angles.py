@@ -251,7 +251,7 @@ def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.D
     Args:
         data_arr: DataArray to get angles for. Information extracted from this
             object are ``.attrs["area"]``,``.attrs["start_time"]``, and
-            ``.attrs["orbital_parameters"]`` or the available 
+            ``.attrs["orbital_parameters"]`` or the available
              ``.attrs["satellite_longitude"]``, ``.attrs["satellite_latitude"]``,
              and ``.attrs["satellite_altitude"]``.
             satellite_<longitude>/<latitude>/<altitude>
