@@ -254,7 +254,6 @@ def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.D
             ``.attrs["orbital_parameters"]`` or the available
              ``.attrs["satellite_longitude"]``, ``.attrs["satellite_latitude"]``,
              and ``.attrs["satellite_altitude"]``.
-            satellite_<longitude>/<latitude>/<altitude>
             Additionally, the dask array chunk size is used when generating
             new arrays. The actual data of the object is not used.
 
