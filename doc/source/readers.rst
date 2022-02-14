@@ -131,10 +131,10 @@ the :class:`~satpy.scene.Scene` initialization.
 See the :func:`~satpy.readers.find_files_and_readers` documentation for
 more information on the possible parameters.
 
+.. _dataset_metadata:
+
 Metadata
 ========
-
-.. _dataset_metadata:
 
 The datasets held by a scene also provide vital metadata such as dataset name, units, observation
 time etc. The following attributes are standardized across all readers:
