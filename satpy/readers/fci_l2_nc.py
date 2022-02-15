@@ -36,6 +36,9 @@ logger = logging.getLogger(__name__)
 
 SSP_DEFAULT = 0.0
 
+XY_SCALE_FACTOR_L1C = -5.58871526031607e-5
+XY_OFFSET_L1C = 0.155617776423501
+
 
 class FciL2CommonFunctions(object):
     """Shared operations for file handlers."""
@@ -207,38 +210,47 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
 
     def _get_area_extent(self):
         """Calculate area extent of dataset."""
-        # TODO Sweep_angle_axis value not handled at the moment, therefore commented out
-        # sweep_axis = self._projection.attrs['sweep_angle_axis']
-
-        # Coordinates of the pixel in radians
-        x = self.nc['x']
-        y = self.nc['y']
-        # TODO Conversion to radians: offset and scale factor are missing from some test NetCDF file
-        # TODO The next three lines should be removed when the offset and scale factor are correctly configured
-        if not hasattr(x, 'standard_name'):
-            x = np.radians(x * 0.003202134 - 8.914740401)
-            y = np.radians(y * 0.003202134 - 8.914740401)
-
-        # Convert to degrees as required by the make_ext function
+        # Load and convert x/y coordinates to degrees as required by the make_ext function
+        x = self._get_xy('x')
+        y = self._get_xy('y')
         x_deg = np.degrees(x)
         y_deg = np.degrees(y)
 
-        # Select the extreme points of the extension area
-        # TODO The area extent currently refers to pixel centers, fix such that it refers to pixel corners
-        x_l, x_r = -x_deg.values[0], -x_deg.values[-1]
-        y_l, y_u = y_deg.values[-1], y_deg.values[0]
-
-        # Compute the extension area in meters
+        # Select the extreme points and calcualte area extent (not: these refer to pixel center)
+        ll_x, ur_x = -x_deg.values[0], -x_deg.values[-1]
+        ll_y, ur_y = y_deg.values[-1], y_deg.values[0]
         h = float(self._projection.attrs['perspective_point_height'])
-        area_extent = make_ext(x_l, x_r, y_l, y_u, h)
+        area_extent_pixel_center = make_ext(ll_x, ur_x, ll_y, ur_y, h)
+
+        # Shift area extent by half a pixel to get the area extent w.r.t. the dataset/pixel corners
+        scale_factor = (x[1:]-x[0:-1]).values.mean()
+        res = scale_factor * h
+        area_extent = tuple(i + res/2 if i > 0 else i - res/2 for i in area_extent_pixel_center)
 
         return area_extent
+
+    def _get_xy(self, dim):
+        """Return xy coordinates of dataset.
+
+        Because of a small error in the scale_factor and add_offset values in the L2 datafile attributes compared to the
+        L1C files, an extra check is implemented that recomputes x and y using the correct scale_factor and add_offset.
+        """
+        coord = self.nc[dim]
+        nc_xy = xr.open_dataset(self.filename, mask_and_scale=False)
+        scale_factor = nc_xy[dim].attrs['scale_factor']
+        offset = nc_xy[dim].attrs['add_offset']
+
+        if (scale_factor != np.float32(XY_SCALE_FACTOR_L1C)) or (offset != np.float32(XY_OFFSET_L1C)):
+            coord = (coord - offset) / scale_factor
+            coord = coord * np.float32(XY_SCALE_FACTOR_L1C) + np.float32(XY_OFFSET_L1C)
+
+        return coord
 
     def _get_proj_area(self, dataset_id):
         """Extract projection and area information."""
         # Read the projection data from the mtg_geos_projection variable
         a = float(self._projection.attrs['semi_major_axis'])
-        b = float(self._projection.attrs['semi_minor_axis'])
+        rf = float(self._projection.attrs['inverse_flattering'])
         h = float(self._projection.attrs['perspective_point_height'])
 
         res = dataset_id.resolution
@@ -252,11 +264,12 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
                                             **get_service_mode('fci', self.ssp_lon)})
 
         proj_dict = {'a': a,
-                     'b': b,
                      'lon_0': self.ssp_lon,
                      'h': h,
+                     "rf": rf,
                      'proj': 'geos',
-                     'units': 'm'}
+                     'units': 'm',
+                     "sweep": 'y'}
 
         return area_naming, proj_dict
 
