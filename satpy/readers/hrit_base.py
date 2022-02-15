@@ -40,6 +40,7 @@ import numpy as np
 import xarray as xr
 from pyresample import geometry
 
+import satpy.readers.utils as utils
 from satpy.readers.eum_base import time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216
@@ -156,17 +157,22 @@ class HRITFileHandler(BaseFileHandler):
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
 
-        self.mda = {}
-        self._get_hd(hdr_info)
+        with utils.unzip_context(filename) as fn:
+            self.filename = fn
 
-        if self.mda.get('compression_flag_for_data'):
-            logger.debug('Unpacking %s', filename)
-            try:
-                self.filename = decompress(filename, gettempdir())
-            except IOError as err:
-                logger.warning("Unpacking failed: %s", str(err))
             self.mda = {}
             self._get_hd(hdr_info)
+
+            if self.mda.get('compression_flag_for_data'):
+                logger.debug('Unpacking %s', filename)
+                try:
+                    self.filename = decompress(filename, gettempdir())
+                except IOError as err:
+                    logger.warning("Unpacking failed: %s", str(err))
+                self.mda = {}
+                self._get_hd(hdr_info)
+
+        self.filename = filename
 
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
@@ -320,11 +326,12 @@ class HRITFileHandler(BaseFileHandler):
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
-        data = np.memmap(self.filename, mode='r',
-                         offset=self.mda['total_header_length'],
-                         dtype=dtype,
-                         shape=shape)
-        data = da.from_array(data, chunks=shape[0])
+        with utils.unzip_context(self.filename) as fn:
+            data = np.memmap(fn, mode='r',
+                             offset=self.mda['total_header_length'],
+                             dtype=dtype,
+                             shape=shape)
+            data = da.from_array(data, chunks=shape[0])
         if self.mda['number_of_bits_per_pixel'] == 10:
             data = dec10216(data)
         data = data.reshape((self.mda['number_of_lines'],
