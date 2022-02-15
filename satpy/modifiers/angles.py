@@ -250,13 +250,17 @@ def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.D
 
     Args:
         data_arr: DataArray to get angles for. Information extracted from this
-            object are ``.attrs["area"]`` and ``.attrs["start_time"]``.
+            object are ``.attrs["area"]``,``.attrs["start_time"]``, and
+            ``.attrs["orbital_parameters"]``. See :func:`satpy.utils.get_satpos`
+            and :ref:`dataset_metadata` for more information.
             Additionally, the dask array chunk size is used when generating
             new arrays. The actual data of the object is not used.
 
     Returns:
         Four DataArrays representing sensor azimuth angle, sensor zenith angle,
         solar azimuth angle, and solar zenith angle. All values are in degrees.
+        Sensor angles are provided in the [0, 360] degree range.
+        Solar angles are provided in the [-180, 180] degree range.
 
     """
     sata, satz = _get_sensor_angles(data_arr)
