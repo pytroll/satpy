@@ -72,6 +72,7 @@ Instead, pass those values in source units to the
 and ``max_stretch`` arguments.
 """
 
+import copy
 import datetime
 import logging
 
@@ -174,6 +175,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             SatelliteNameID=SatelliteNameID,
             **ntg_opts)
         ninjo_tags = {f"ninjo_{k:s}": v for (k, v) in ntg.get_all_tags().items()}
+        image = self._fix_units(image, PhysicValue, PhysicUnit)
 
         return super().save_image(
             image,
@@ -188,6 +190,31 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             tags={**(tags or {}), **ninjo_tags},
             scale_offset_tags=None if image.mode.startswith("RGB") else ("ninjo_Gradient", "ninjo_AxisIntercept"),
             **gdal_opts)
+
+    def _fix_units(self, image, quantity, unit):
+        """Adapt units between °C and K.
+
+        This will return a new XRImage, to make sure the old data and
+        enhancement history aren't touched.
+        """
+        data_units = image.data.attrs.get("units")
+        if (quantity == "Temperature" and
+                unit == "C" and
+                image.data.attrs.get("units")) == "K":
+            logger.debug("Adding offset for K → °C conversion")
+            new_attrs = copy.deepcopy(image.data.attrs)
+            im2 = type(image)(image.data.copy())
+            im2.data.attrs = new_attrs
+            # this scale/offset has to be applied before anything else
+            im2.data.attrs["enhancement_history"].insert(0, {"scale": 1, "offset": 273.15})
+            return im2
+        if unit != data_units and unit.lower() != "n/a":
+            logger.warning(
+                    f"Writing {unit!s} to ninjogeotiff headers, but "
+                    f"data attributes have unit {data_units!s}. "
+                    "No conversion applied.")
+
+        return image
 
 
 class NinJoTagGenerator:

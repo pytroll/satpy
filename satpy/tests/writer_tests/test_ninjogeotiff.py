@@ -570,27 +570,34 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     assert tgs["ninjo_DataSource"] == "dowsing rod"
 
 
-def test_write_and_read_file_units(test_image_small_mid_atlantic_K_L, tmp_path):
+def test_write_and_read_file_units(
+        test_image_small_mid_atlantic_K_L, tmp_path, caplog):
     """Test that it writes a GeoTIFF with the appropriate NinJo-tags and units."""
     import rasterio
 
     from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
     fn = os.fspath(tmp_path / "test.tif")
     ngtw = NinJoGeoTIFFWriter()
-    ngtw.save_dataset(
-        test_image_small_mid_atlantic_K_L.data,
-        filename=fn,
-        fill_value=0,
-        blockxsize=128,
-        blockysize=128,
-        compress="lzw",
-        predictor=2,
-        PhysicUnit="C",
-        PhysicValue="Temperature",
-        SatelliteNameID=6400014,
-        ChannelID=900015,
-        DataType="GORN",
-        DataSource="dowsing rod")
+    with caplog.at_level(logging.DEBUG):
+        ngtw.save_dataset(
+            test_image_small_mid_atlantic_K_L.data,
+            filename=fn,
+            fill_value=0,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            PhysicUnit="C",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            ChannelID=900015,
+            DataType="GORN",
+            DataSource="dowsing rod")
+    assert "Adding offset for K → °C conversion" in caplog.text
+    # a better test would be to check that the attributes haven't changed at
+    # all, but that currently fails due to
+    # https://github.com/pytroll/satpy/issues/2022
+    assert test_image_small_mid_atlantic_K_L.data.attrs["enhancement_history"][0] != {"scale": 1, "offset": 273.15}
     src = rasterio.open(fn)
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
@@ -599,6 +606,24 @@ def test_write_and_read_file_units(test_image_small_mid_atlantic_K_L, tmp_path):
                                0.465379, rtol=1e-5)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
                                -79.86838)
+    with caplog.at_level(logging.WARNING):
+        ngtw.save_dataset(
+            test_image_small_mid_atlantic_K_L.data,
+            filename=fn,
+            fill_value=0,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            PhysicUnit="F",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            ChannelID=900015,
+            DataType="GORN",
+            DataSource="dowsing rod")
+    assert ("Writing F to ninjogeotiff headers, but "
+            "data attributes have unit K. "
+            "No conversion applied.") in caplog.text
 
 
 def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):
