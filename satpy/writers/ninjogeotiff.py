@@ -204,7 +204,7 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         data_units = image.data.attrs.get("units")
         if (quantity.lower() == "temperature" and
                 unit == "C" and
-                image.data.attrs.get("units") == "K"):
+                data_units == "K"):
             logger.debug("Adding offset for K → °C conversion")
             new_attrs = copy.deepcopy(image.data.attrs)
             im2 = type(image)(image.data.copy())

@@ -606,10 +606,11 @@ def test_write_and_read_file_units(
                                0.465379, rtol=1e-5)
     np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
                                -79.86838)
+    fn2 = os.fspath(tmp_path / "test2.tif")
     with caplog.at_level(logging.WARNING):
         ngtw.save_dataset(
             test_image_small_mid_atlantic_K_L.data,
-            filename=fn,
+            filename=fn2,
             fill_value=0,
             blockxsize=128,
             blockysize=128,
