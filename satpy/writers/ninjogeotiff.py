@@ -145,7 +145,11 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
             SatelliteNameID (int)
                 NinJo Satellite ID
             PhysicUnit (str)
-                NinJo label for unit (example: "C")
+                NinJo label for unit (example: "C").  If PhysicValue is set to
+                "Temperature", PhysicUnit is set to "C", but data attributes
+                incidate the data have unit "K", then the writer will adapt the
+                header ``ninjo_AxisIntercept`` such that data are interpreted
+                in units of "C".
             PhysicValue (str)
                 NinJo label for quantity (example: "temperature")
 
@@ -198,9 +202,9 @@ class NinJoGeoTIFFWriter(GeoTIFFWriter):
         enhancement history aren't touched.
         """
         data_units = image.data.attrs.get("units")
-        if (quantity == "Temperature" and
+        if (quantity.lower() == "temperature" and
                 unit == "C" and
-                image.data.attrs.get("units")) == "K":
+                image.data.attrs.get("units") == "K"):
             logger.debug("Adding offset for K → °C conversion")
             new_attrs = copy.deepcopy(image.data.attrs)
             im2 = type(image)(image.data.copy())
