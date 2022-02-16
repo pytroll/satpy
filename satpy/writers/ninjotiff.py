@@ -177,12 +177,14 @@ class NinjoTIFFWriter(ImageWriter):
         return nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)
 
     def save_dataset(
-        self, dataset, filename=None, fill_value=None, compute=True, **kwargs
+        self, dataset, filename=None, fill_value=None, compute=True,
+        convert_temperature_units=True, **kwargs
     ):
         """Save a dataset to ninjotiff format.
 
         This calls `save_image` in turn, but first preforms some unit conversion
-        if necessary.
+        if necessary and desired.  Unit conversion can be suppressed by passing
+        ``convert_temperature_units=False``.
         """
         nunits = kwargs.get("physic_unit", None)
         if nunits is None:
@@ -201,7 +203,8 @@ class NinjoTIFFWriter(ImageWriter):
                     "Saving to physical ninjo file without units defined in dataset!"
                 )
             else:
-                dataset = convert_units(dataset, units, nunits)
+                if convert_temperature_units:
+                    dataset = convert_units(dataset, units, nunits)
         return super(NinjoTIFFWriter, self).save_dataset(
             dataset, filename=filename, compute=compute, fill_value=fill_value, **kwargs
         )

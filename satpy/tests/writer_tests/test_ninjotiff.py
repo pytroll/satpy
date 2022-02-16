@@ -67,6 +67,19 @@ class TestNinjoTIFFWriter(unittest.TestCase):
             uconv.assert_called_once_with(dataset, 'K', 'CELSIUS')
         self.assertEqual(iwsd.call_count, 1)
 
+    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    def test_dataset_skip_unit_conversion(self, iwsd):
+        """Test saving a dataset without unit conversion."""
+        from satpy.writers.ninjotiff import NinjoTIFFWriter
+        ntw = NinjoTIFFWriter()
+        dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
+        with mock.patch('satpy.writers.ninjotiff.convert_units') as uconv:
+            ntw.save_dataset(dataset, physic_unit='CELSIUS',
+                             convert_temperature_units=False)
+            uconv.assert_not_called()
+        self.assertEqual(iwsd.call_count, 1)
+
     @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
     @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
