@@ -171,30 +171,29 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         return arr
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the BUFR key in dataset_info."""
+        """Get dataset using the BUFR key in dataset_info. The create dataset with or without an AreaDefinition."""
         arr = self.get_array(dataset_info['key'])
-        arr[arr == dataset_info['fill_value']] = np.nan
 
-        if not self.with_adef:
-            xarr = self.get_dataset_with_swath_def(arr, dataset_info)
+        if self.with_adef:
+            xarr = self.get_dataset_with_area_def(arr, dataset_id)
+            # coordinates are not relevant when returning data with an AreaDefinition
+            if 'coordinates' in dataset_info.keys():
+                del dataset_info['coordinates']
         else:
-            xarr = self.get_dataset_with_area_def(arr, dataset_id, dataset_info)
+            xarr = xr.DataArray(arr, dims=["y"])
 
-        return xarr
+        if 'fill_value' in dataset_info:
+            xarr = xarr.where(xarr != dataset_info['fill_value'], np.nan)
 
-    def get_dataset_with_swath_def(self, arr, dataset_info):
-        """Get dataset with a swath definition."""
-        xarr = xr.DataArray(arr, dims=["y"])
         self._add_attributes(xarr, dataset_info)
 
         return xarr
 
-    def get_dataset_with_area_def(self, arr, dataset_id, dataset_info):
+    def get_dataset_with_area_def(self, arr, dataset_id):
         """Get dataset with an AreaDefinition."""
-        if dataset_info['name'] in ['latitude', 'longitude']:
-            self.__setattr__(dataset_info['name'], arr)
-            return self.get_dataset_with_swath_def(arr, dataset_info)
-
+        if dataset_id['name'] in ['latitude', 'longitude']:
+            self.__setattr__(dataset_id['name'], arr)
+            xarr = xr.DataArray(arr, dims=["y"])
         else:
             lons_1d, lats_1d, data_1d = da.compute(self.longitude, self.latitude, arr)
 
@@ -213,12 +212,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
                 logging.warning(f'{ntotal-nvalid} out of {ntotal} data points could not be put on '
                                 f'the grid {self._area_def.area_id}.')
 
-            # coordinates are not relevant when using AreaDefinition
-            if 'coordinates' in dataset_info.keys():
-                del dataset_info['coordinates']
-            self._add_attributes(xarr, dataset_info)
-
-            return xarr
+        return xarr
 
     def _construct_area_def(self, dataset_id):
         """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
@@ -227,7 +221,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             AreaDefinition: A pyresample AreaDefinition object containing the area definition.
 
         """
-        res = dataset_id.resolution
+        res = dataset_id['resolution']
 
         area_naming_input_dict = {'platform_name': 'msg',
                                   'instrument_name': 'seviri',

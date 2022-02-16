@@ -158,7 +158,7 @@ class SeviriL2BufrData:
                     ec2.return_value = 1
                     with mock.patch('eccodes.codes_release') as ec5:
                         ec5.return_value = 1
-                        z = self.fh.get_dataset(make_dataid(name='dummmy', resolution=48000), dataset_info)
+                        z = self.fh.get_dataset(make_dataid(name=dataset_info['name'], resolution=48000), dataset_info)
 
         return z
 
