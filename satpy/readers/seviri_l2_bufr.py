@@ -171,7 +171,12 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         return arr
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the BUFR key in dataset_info. The create dataset with or without an AreaDefinition."""
+        """Create dataset.
+
+        Load data from BUFR file using the BUFR key in dataset_info
+        and create the dataset with or without an AreaDefinition.
+
+        """
         arr = self.get_array(dataset_info['key'])
 
         if self.with_adef:
@@ -183,7 +188,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             xarr = xr.DataArray(arr, dims=["y"])
 
         if 'fill_value' in dataset_info:
-            xarr = xarr.where(xarr != dataset_info['fill_value'], np.nan)
+            xarr = xarr.where(xarr != dataset_info['fill_value'])
 
         self._add_attributes(xarr, dataset_info)
 
