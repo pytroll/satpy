@@ -30,17 +30,18 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.eum_base import recarray2dict
+from satpy import CHUNK_SIZE
+from satpy.readers._geos_area import get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode, recarray2dict
+from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import mpef_product_header
+from satpy.resample import get_area_def
 
 try:
     import eccodes as ec
 except ImportError:
     raise ImportError(
         "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
-
-from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('SeviriL2Bufr')
 
@@ -53,9 +54,21 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
 
 
 class SeviriL2BufrFileHandler(BaseFileHandler):
-    """File handler for SEVIRI L2 BUFR products."""
+    """File handler for SEVIRI L2 BUFR products.
 
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+    **Loading data with AreaDefinition**
+
+    By providing the `with_area_definition` as True in the `reader_kwargs`, the dataset is loaded with
+    an AreaDefinition using a standardized AreaDefinition in areas.yaml. By default, the dataset will
+    be loaded with a SwathDefinition, i.e. similar to how the data are stored in the BUFR file:
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l2_bufr',
+                            reader_kwargs={'with_area_definition': False})
+
+    """
+
+    def __init__(self, filename, filename_info, filetype_info, with_area_definition=False, **kwargs):
         """Initialise the file handler for SEVIRI L2 BUFR data."""
         super(SeviriL2BufrFileHandler, self).__init__(filename,
                                                       filename_info,
@@ -74,6 +87,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
             self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
 
+        self.with_adef = with_area_definition
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
@@ -97,6 +111,13 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         # e.g. E0415
         ssp_lon = self.mpef_header['RectificationLongitude']
         return float(ssp_lon[1:])/10.
+
+    def get_area_def(self, key):
+        """Return the area definition."""
+        try:
+            return self._area_def
+        except AttributeError:
+            raise NotImplementedError
 
     def _read_mpef_header(self):
         """Read MPEF header."""
@@ -150,15 +171,86 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         return arr
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the BUFR key in dataset_info."""
-        arr = self.get_array(dataset_info['key'])
-        arr[arr == dataset_info['fill_value']] = np.nan
+        """Create dataset.
 
-        xarr = xr.DataArray(arr, dims=["y"])
+        Load data from BUFR file using the BUFR key in dataset_info
+        and create the dataset with or without an AreaDefinition.
+
+        """
+        arr = self.get_array(dataset_info['key'])
+
+        if self.with_adef:
+            xarr = self.get_dataset_with_area_def(arr, dataset_id)
+            # coordinates are not relevant when returning data with an AreaDefinition
+            if 'coordinates' in dataset_info.keys():
+                del dataset_info['coordinates']
+        else:
+            xarr = xr.DataArray(arr, dims=["y"])
+
+        if 'fill_value' in dataset_info:
+            xarr = xarr.where(xarr != dataset_info['fill_value'])
+
+        self._add_attributes(xarr, dataset_info)
+
+        return xarr
+
+    def get_dataset_with_area_def(self, arr, dataset_id):
+        """Get dataset with an AreaDefinition."""
+        if dataset_id['name'] in ['latitude', 'longitude']:
+            self.__setattr__(dataset_id['name'], arr)
+            xarr = xr.DataArray(arr, dims=["y"])
+        else:
+            lons_1d, lats_1d, data_1d = da.compute(self.longitude, self.latitude, arr)
+
+            self._area_def = self._construct_area_def(dataset_id)
+            icol, irow = self._area_def.get_array_indices_from_lonlat(lons_1d, lats_1d)
+
+            data_2d = np.empty(self._area_def.shape)
+            data_2d[:] = np.nan
+            data_2d[irow.compressed(), icol.compressed()] = data_1d[~irow.mask]
+
+            xarr = xr.DataArray(da.from_array(data_2d, CHUNK_SIZE), dims=('y', 'x'))
+
+            ntotal = len(icol)
+            nvalid = len(icol.compressed())
+            if nvalid < ntotal:
+                logging.warning(f'{ntotal-nvalid} out of {ntotal} data points could not be put on '
+                                f'the grid {self._area_def.area_id}.')
+
+        return xarr
+
+    def _construct_area_def(self, dataset_id):
+        """Construct a standardized AreaDefinition based on satellite, instrument, resolution and sub-satellite point.
+
+        Returns:
+            AreaDefinition: A pyresample AreaDefinition object containing the area definition.
+
+        """
+        res = dataset_id['resolution']
+
+        area_naming_input_dict = {'platform_name': 'msg',
+                                  'instrument_name': 'seviri',
+                                  'resolution': res,
+                                  }
+
+        area_naming = get_geos_area_naming({**area_naming_input_dict,
+                                            **get_service_mode('seviri', self.ssp_lon)})
+
+        # Datasets with a segment size of 3 pixels extend outside the original SEVIRI 3km grid (with 1238 x 1238
+        # segments a 3 pixels). Hence, we need to use corresponding area defintions in areas.yaml
+        if self.seg_size == 3:
+            area_naming['area_id'] += '_ext'
+            area_naming['description'] += ' (extended outside original 3km grid)'
+
+        # Construct AreaDefinition from standardized area definition in areas.yaml.
+        stand_area_def = get_area_def(area_naming['area_id'])
+
+        return stand_area_def
+
+    def _add_attributes(self, xarr, dataset_info):
+        """Add dataset attributes to xarray."""
         xarr.attrs['sensor'] = 'SEVIRI'
         xarr.attrs['platform_name'] = self.platform_name
         xarr.attrs['ssp_lon'] = self.ssp_lon
         xarr.attrs['seg_size'] = self.seg_size
         xarr.attrs.update(dataset_info)
-
-        return xarr
