@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019, 2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -119,6 +119,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert(res.attrs['sensor'] == 'avhrr-3')
         assert(res.attrs['name'] == '1')
         assert(res.attrs['calibration'] == 'reflectance')
+        assert(res.attrs['units'] == '%')
 
         did = make_dataid(name='4', calibration='brightness_temperature')
         res = self.fh.get_dataset(did, {})
@@ -127,6 +128,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert(res.attrs['sensor'] == 'avhrr-3')
         assert(res.attrs['name'] == '4')
         assert(res.attrs['calibration'] == 'brightness_temperature')
+        assert(res.attrs['units'] == 'K')
 
     def test_navigation(self):
         """Test the navigation."""
