@@ -117,7 +117,7 @@ def convert_units(dataset, in_unit, out_unit):
 
     if in_unit.lower() in {"k", "kelvin"} and out_unit.lower() in {"c", "celsius"}:
         with xr.set_options(keep_attrs=True):
-            new_dataset = dataset + 273.15
+            new_dataset = dataset - 273.15
         new_dataset.attrs["units"] = out_unit
         return new_dataset
 

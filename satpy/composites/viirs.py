@@ -340,7 +340,7 @@ class ERFDNB(CompositeBase):
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
-            inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
+            inner_sqrt.data = np.clip(inner_sqrt.data, 0, None)
             output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()
@@ -748,10 +748,8 @@ def _calculate_weights(tile_size):
     # that has all 8 surrounding tiles available
     # create our empty template tiles
     template_tile = np.zeros((3, 3, tile_size, tile_size), dtype=np.float32)
-    """
     # TEMP FOR TESTING, create a weight tile that does no interpolation
-    template_tile[1,1] = template_tile[1,1] + 1.0
-    """
+    # template_tile[1,1] = template_tile[1,1] + 1.0
 
     # for ease of calculation, figure out the index of the center pixel in a tile
     # and how far that pixel is from the edge of the tile (in pixel units)

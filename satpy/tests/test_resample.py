@@ -371,22 +371,22 @@ class TestNativeResampler(unittest.TestCase):
 
         from satpy.resample import NativeResampler
         d_arr = da.zeros((6, 20), chunks=4)
-        new_data = NativeResampler.expand_reduce(d_arr, {0: 2., 1: 2.})
+        new_data = NativeResampler._expand_reduce(d_arr, {0: 2., 1: 2.})
         self.assertEqual(new_data.shape, (12, 40))
-        new_data = NativeResampler.expand_reduce(d_arr, {0: .5, 1: .5})
+        new_data = NativeResampler._expand_reduce(d_arr, {0: .5, 1: .5})
         self.assertEqual(new_data.shape, (3, 10))
-        self.assertRaises(ValueError, NativeResampler.expand_reduce,
+        self.assertRaises(ValueError, NativeResampler._expand_reduce,
                           d_arr, {0: 1. / 3, 1: 1.})
-        new_data = NativeResampler.expand_reduce(d_arr, {0: 1., 1: 1.})
+        new_data = NativeResampler._expand_reduce(d_arr, {0: 1., 1: 1.})
         self.assertEqual(new_data.shape, (6, 20))
         self.assertIs(new_data, d_arr)
-        self.assertRaises(ValueError, NativeResampler.expand_reduce,
+        self.assertRaises(ValueError, NativeResampler._expand_reduce,
                           d_arr, {0: 0.333323423, 1: 1.})
-        self.assertRaises(ValueError, NativeResampler.expand_reduce,
+        self.assertRaises(ValueError, NativeResampler._expand_reduce,
                           d_arr, {0: 1.333323423, 1: 1.})
 
         n_arr = np.zeros((6, 20))
-        new_data = NativeResampler.expand_reduce(n_arr, {0: 2., 1: 1.0})
+        new_data = NativeResampler._expand_reduce(n_arr, {0: 2., 1: 1.0})
         self.assertTrue(np.all(new_data.compute()[::2, :] == n_arr))
 
     def test_expand_dims(self):

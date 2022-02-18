@@ -16,7 +16,7 @@ Available Readers
 =================
 
 To get a list of available readers use the `available_readers` function. By default,
-it returns the names of available readers. To return additional reader information 
+it returns the names of available readers. To return additional reader information
 use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers
@@ -131,10 +131,10 @@ the :class:`~satpy.scene.Scene` initialization.
 See the :func:`~satpy.readers.find_files_and_readers` documentation for
 more information on the possible parameters.
 
+.. _dataset_metadata:
+
 Metadata
 ========
-
-.. _dataset_metadata:
 
 The datasets held by a scene also provide vital metadata such as dataset name, units, observation
 time etc. The following attributes are standardized across all readers:
@@ -276,4 +276,13 @@ satpy cf nc readers
 ---------------------
 
 .. automodule:: satpy.readers.satpy_cf_nc
+    :noindex:
+
+hdf5 based readers
+------------------
+
+Arctica-M N1 HDF5 format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.msu_gsa_l1b
     :noindex:

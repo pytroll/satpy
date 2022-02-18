@@ -53,6 +53,10 @@ class GeoTIFFWriter(ImageWriter):
         >>> scn.save_dataset(dataset_name, writer='geotiff',
         ...                  tags={'offset': 291.8, 'scale': -0.35})
 
+    Images are tiled by default. To create striped TIFF files ``tiled=False`` can be specified:
+
+        >>> scn.save_datasets(writer='geotiff', tiled=False)
+
     For performance tips on creating geotiffs quickly and making them smaller
     see the :ref:`faq`.
 
@@ -79,7 +83,25 @@ class GeoTIFFWriter(ImageWriter):
                     "profile",
                     "bigtiff",
                     "pixeltype",
-                    "copy_src_overviews",)
+                    "copy_src_overviews",
+                    # COG driver options (different from GTiff above)
+                    "blocksize",
+                    "resampling",
+                    "quality",
+                    "level",
+                    "overview_resampling",
+                    "warp_resampling",
+                    "overview_compress",
+                    "overview_quality",
+                    "overview_predictor",
+                    "tiling_scheme",
+                    "zoom_level_strategy",
+                    "target_srs",
+                    "res",
+                    "extent",
+                    "aligned_levels",
+                    "add_alpha",
+                    )
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         """Init the writer."""
@@ -114,7 +136,7 @@ class GeoTIFFWriter(ImageWriter):
                    compute=True, keep_palette=False, cmap=None, tags=None,
                    overviews=None, overviews_minsize=256,
                    overviews_resampling=None, include_scale_offset=False,
-                   scale_offset_tags=None, **kwargs):
+                   scale_offset_tags=None, driver=None, tiled=True, **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -186,6 +208,8 @@ class GeoTIFFWriter(ImageWriter):
             include_scale_offset (deprecated, bool): Deprecated.
                 Use ``scale_offset_tags=("scale", "offset")`` to include scale
                 and offset tags.
+            tiled (bool): For performance this defaults to ``True``.
+                Pass ``False`` to created striped TIFF files.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
@@ -224,7 +248,8 @@ class GeoTIFFWriter(ImageWriter):
             tags = {}
         tags.update(self.tags)
 
-        return img.save(filename, fformat='tif', fill_value=fill_value,
+        return img.save(filename, fformat='tif', driver=driver,
+                        fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
                         tags=tags, include_scale_offset_tags=include_scale_offset,
@@ -232,6 +257,7 @@ class GeoTIFFWriter(ImageWriter):
                         overviews=overviews,
                         overviews_resampling=overviews_resampling,
                         overviews_minsize=overviews_minsize,
+                        tiled=tiled,
                         **gdal_options)
 
     def _get_gdal_options(self, kwargs):

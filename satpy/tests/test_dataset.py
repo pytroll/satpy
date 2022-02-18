@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -142,9 +142,9 @@ class TestCombineMetadata(unittest.TestCase):
 
         from satpy.dataset.metadata import combine_metadata
         dts = [
-                {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
-                {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
-                {"quality": ones((5, 5,), "?")},
+            {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
+            {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
+            {"quality": ones((5, 5,), "?")},
         ]
         assert "quality" not in combine_metadata(*dts)
         dts2 = [{"quality": DataArray(d["quality"])} for d in dts]
@@ -154,22 +154,22 @@ class TestCombineMetadata(unittest.TestCase):
         assert "quality" not in combine_metadata(*dts3)
         # check cases with repeated arrays
         dts4 = [
-                {"quality": dts[0]["quality"]},
-                {"quality": dts[0]["quality"]},
-                ]
+            {"quality": dts[0]["quality"]},
+            {"quality": dts[0]["quality"]},
+        ]
         assert "quality" in combine_metadata(*dts4)
         dts5 = [
-                {"quality": dts3[0]["quality"]},
-                {"quality": dts3[0]["quality"]},
-                ]
+            {"quality": dts3[0]["quality"]},
+            {"quality": dts3[0]["quality"]},
+        ]
         assert "quality" in combine_metadata(*dts5)
         # check with other types
         dts6 = [
-                DataArray(arange(5), attrs=dts[0]),
-                DataArray(arange(5), attrs=dts[0]),
-                DataArray(arange(5), attrs=dts[1]),
-                object()
-              ]
+            DataArray(arange(5), attrs=dts[0]),
+            DataArray(arange(5), attrs=dts[0]),
+            DataArray(arange(5), attrs=dts[1]),
+            object()
+        ]
         assert "quality" not in combine_metadata(*dts6)
 
     def test_combine_lists_identical(self):
@@ -418,20 +418,20 @@ def test_dataid():
     # Check inequality
     default_id_keys_config = {'name': None,
                               'wavelength': {
-                                'type': WavelengthRange,
+                                  'type': WavelengthRange,
                               },
                               'resolution': None,
                               'calibration': {
-                                'enum': [
-                                    'reflectance',
-                                    'brightness_temperature',
-                                    'radiance',
-                                    'counts'
-                                    ]
+                                  'enum': [
+                                      'reflectance',
+                                      'brightness_temperature',
+                                      'radiance',
+                                      'counts'
+                                  ]
                               },
                               'modifiers': {
-                                'default': ModifierTuple(),
-                                'type': ModifierTuple,
+                                  'default': ModifierTuple(),
+                                  'type': ModifierTuple,
                               },
                               }
     assert DataID(default_id_keys_config, wavelength=10) != DataID(default_id_keys_config, name="VIS006")
@@ -500,6 +500,23 @@ def test_dataid_pickle():
     from satpy.tests.utils import make_dataid
     did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
     assert did == pickle.loads(pickle.dumps(did))
+
+
+def test_dataid_elements_picklable():
+    """Test individual elements of DataID can be pickled.
+
+    In some cases, like in the base reader classes, the elements of a DataID
+    are extracted and stored in a separate dictionary. This means that the
+    internal/fancy pickle handling of DataID does not play a part.
+
+    """
+    import pickle
+
+    from satpy.tests.utils import make_dataid
+    did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
+    for value in did.values():
+        pickled_value = pickle.loads(pickle.dumps(value))
+        assert value == pickled_value
 
 
 class TestDataQuery:
@@ -671,6 +688,156 @@ class TestIDQueryInteractions(unittest.TestCase):
         assert res[0].name == "HRV"
 
 
+def test_frequency_double_side_band_class_method_convert():
+    """Test the frequency double side band object: test the class method convert."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
+
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+
+    res = frq_dsb.convert(185)
+    assert res == 185
+
+    res = frq_dsb.convert({'central': 185, 'side': 7, 'bandwidth': 2})
+    assert res == FrequencyDoubleSideBand(185, 7, 2)
+
+
+def test_frequency_double_side_band_channel_str():
+    """Test the frequency double side band object: test the band description."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
+
+    frq_dsb1 = FrequencyDoubleSideBand(183, 7, 2)
+    frq_dsb2 = FrequencyDoubleSideBand(183000, 7000, 2000, 'MHz')
+
+    assert str(frq_dsb1) == "183 GHz (7_2 GHz)"
+    assert str(frq_dsb2) == "183000 MHz (7000_2000 MHz)"
+
+
+def test_frequency_double_side_band_channel_equality():
+    """Test the frequency double side band object: check if two bands are 'equal'."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
+
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+    assert frq_dsb is not None
+    assert 183 != frq_dsb
+    assert 190 == frq_dsb
+    assert 176 == frq_dsb
+    assert 175.5 == frq_dsb
+
+    assert frq_dsb != FrequencyDoubleSideBand(183, 6.5, 3)
+
+    frq_dsb = None
+    assert FrequencyDoubleSideBand(183, 7, 2) != frq_dsb
+
+    assert frq_dsb < FrequencyDoubleSideBand(183, 7, 2)
+    assert FrequencyDoubleSideBand(182, 7, 2) < FrequencyDoubleSideBand(183, 7, 2)
+    assert FrequencyDoubleSideBand(184, 7, 2) > FrequencyDoubleSideBand(183, 7, 2)
+
+
+def test_frequency_double_side_band_channel_distances():
+    """Test the frequency double side band object: get the distance between two bands."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
+
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+    mydist = frq_dsb.distance(175.5)
+    assert mydist == 0.5
+
+    mydist = frq_dsb.distance(190.5)
+    assert mydist == 0.5
+
+    np.testing.assert_almost_equal(frq_dsb.distance(175.6), 0.4)
+    np.testing.assert_almost_equal(frq_dsb.distance(190.1), 0.1)
+
+    mydist = frq_dsb.distance(185)
+    assert mydist == np.inf
+
+    mydist = frq_dsb.distance((183, 7.0, 2))
+    assert mydist == 0
+
+    mydist = frq_dsb.distance((183, 7.0, 1))
+    assert mydist == 0
+
+    mydist = frq_dsb.distance(FrequencyDoubleSideBand(183, 7.0, 2))
+    assert mydist == 0
+
+
+def test_frequency_double_side_band_channel_containment():
+    """Test the frequency double side band object: check if one band contains another."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
+
+    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+
+    assert 175.5 in frq_dsb
+    assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frq_dsb not in FrequencyDoubleSideBand(183, 4, 2)
+
+    with pytest.raises(NotImplementedError):
+        assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3, 'MHz')
+
+    frq_dsb = None
+    assert (frq_dsb in FrequencyDoubleSideBand(183, 3, 2)) is False
+
+    assert '183' not in FrequencyDoubleSideBand(183, 3, 2)
+
+
+def test_frequency_range_class_method_convert():
+    """Test the frequency range object: test the class method convert."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
+
+    frq_dsb = FrequencyRange(89, 2)
+
+    res = frq_dsb.convert(89)
+    assert res == 89
+
+    res = frq_dsb.convert({'central': 89, 'bandwidth': 2})
+    assert res == FrequencyRange(89, 2)
+
+
+def test_frequency_range_channel_equality():
+    """Test the frequency range object: check if two bands are 'equal'."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
+
+    frqr = FrequencyRange(2, 1)
+    assert frqr is not None
+    assert 1.7 == frqr
+    assert 1.2 != frqr
+    assert frqr == (2, 1)
+
+    assert frqr == (2, 1, 'GHz')
+
+
+def test_frequency_range_channel_containment():
+    """Test the frequency range object: channel containment."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
+
+    frqr = FrequencyRange(2, 1)
+    assert 1.7 in frqr
+    assert 2.8 not in frqr
+
+    with pytest.raises(NotImplementedError):
+        assert frqr in FrequencyRange(89, 2, 'MHz')
+
+    frqr = None
+    assert (frqr in FrequencyRange(89, 2)) is False
+
+    assert '89' not in FrequencyRange(89, 2)
+
+
+def test_frequency_range_channel_distances():
+    """Test the frequency range object: derive distances between bands."""
+    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
+
+    frqr = FrequencyRange(190.0, 2)
+
+    mydist = frqr.distance(FrequencyRange(190, 2))
+    assert mydist == 0
+    mydist = frqr.distance(FrequencyRange(189.5, 2))
+    assert mydist == np.inf
+    mydist = frqr.distance(189.5)
+    assert mydist == 0.5
+    mydist = frqr.distance(188.0)
+    assert mydist == np.inf
+
+
 def test_wavelength_range():
     """Test the wavelength range object."""
     from satpy.dataset.dataid import WavelengthRange
@@ -699,6 +866,9 @@ def test_wavelength_range():
     # Check __str__
     assert str(wr) == "2 µm (1-3 µm)"
     assert str(wr2) == "2 nm (1-3 nm)"
+
+    wr = WavelengthRange(10.5, 11.5, 12.5)
+    np.testing.assert_almost_equal(wr.distance(11.1), 0.4)
 
 
 def test_wavelength_range_cf_roundtrip():

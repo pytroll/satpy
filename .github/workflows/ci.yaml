@@ -148,7 +148,7 @@ jobs:
           coverage xml
 
       - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
         with:
           flags: behaviourtests
           file: ./coverage.xml
@@ -162,4 +162,3 @@ jobs:
         uses: AndreMiras/coveralls-python-action@develop
         with:
           parallel-finished: true
-
