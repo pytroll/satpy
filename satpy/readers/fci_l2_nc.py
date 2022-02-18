@@ -95,10 +95,25 @@ class FciL2CommonFunctions(object):
             'spacecraft_name': self._spacecraft_name,
             'ssp_lon': self.ssp_lon,
             'sensor': self._sensor_name,
-            'creation_time': self.filename_info['creation_time'],
+            'creation_time': datetime.strptime(self.nc.attrs['date_created'], '%Y%m%d%H%M%S'),
             'platform_name': self._spacecraft_name,
         }
         return attributes
+
+    @staticmethod
+    def _mask_data(variable, fill_value):
+        """Set fill_values, as defined in yaml-file, to NaN.
+
+        Set data points in variable to NaN if they are equal to fill_value
+        or any of the values in fill_value if fill_value is a list.
+        """
+        if not isinstance(fill_value, list):
+            fill_value = [fill_value]
+
+        for val in fill_value:
+            variable = variable.where(variable != val).astype('float32')
+
+        return variable
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
@@ -129,6 +144,10 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         self.ncols = self.nc['x'].size
         self._projection = self.nc['mtg_geos_projection']
 
+    def get_area_def(self, key):
+        """Return the area definition (common to all data in product)."""
+        return self._area_def
+
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
         var_key = dataset_info['file_key']
@@ -144,20 +163,8 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         # Compute the area definition
         self._area_def = self._compute_area_def(dataset_id)
 
-        # In some of the test files, invalid pixels may be represented by different values. These are currentlyI
-        # identified using "fill_value" and "mask_value" in the YAML file. Any pixel with a value that equals either
-        # "fill_value" or "mask_value" will be set to NaN.
-        # TODO clean up when test files contain clean data.
-        mask_value = dataset_info.get('mask_value', np.NaN)
-        fill_value = dataset_info.get('fill_value', np.NaN)
-
-        if dataset_info['file_type'] == 'nc_fci_test_clm':
-            data_values = variable.where(variable != fill_value, mask_value).astype('uint32', copy=False)
-        else:
-            data_values = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
-
-        data_values.attrs = variable.attrs
-        variable = data_values
+        if 'fill_value' in dataset_info:
+            variable = self._mask_data(variable, dataset_info['fill_value'])
 
         # If the variable has 3 dimensions, select the required layer
         if variable.ndim == 3:
@@ -173,20 +180,13 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         if dataset_info['file_type'] == 'nc_fci_test_clm' and var_key != 'cloud_mask_cmrt6_test_result':
             variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
 
-        # Rename the dimensions as required by Satpy
-        variable = variable.rename({"number_of_rows": 'y', "number_of_columns": 'x'})
-
         # Manage the attributes of the dataset
+        variable = variable.rename({"number_of_rows": 'y', "number_of_columns": 'x'})
         variable.attrs.setdefault('units', None)
-
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
 
         return variable
-
-    def get_area_def(self, key):
-        """Return the area definition (common to all data in product)."""
-        return self._area_def
 
     def _compute_area_def(self, dataset_id):
         """Compute the area definition.
@@ -224,7 +224,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
 
         # Shift area extent by half a pixel to get the area extent w.r.t. the dataset/pixel corners
         scale_factor = (x[1:]-x[0:-1]).values.mean()
-        res = scale_factor * h
+        res = abs(scale_factor) * h
         area_extent = tuple(i + res/2 if i > 0 else i - res/2 for i in area_extent_pixel_center)
 
         return area_extent
@@ -316,6 +316,34 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         """Return the area definition (common to all data in product)."""
         return self._area_def
 
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset using the file_key in dataset_info."""
+        var_key = dataset_info['file_key']
+        logger.debug('Reading in file to get dataset with key %s.', var_key)
+
+        try:
+            variable = self.nc[var_key]
+        except KeyError:
+            logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
+            return None
+
+        # Compute the area definition
+        self._area_def = self._construct_area_def(dataset_id)
+
+        if 'fill_value' in dataset_info:
+            variable = self._mask_data(variable, dataset_info['fill_value'])
+
+        if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
+            variable = self._slice_dataset(variable, dataset_info)
+
+        # Manage the attributes of the dataset
+        variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
+        variable.attrs.setdefault('units', None)
+        variable.attrs.update(dataset_info)
+        variable.attrs.update(self._get_global_attributes())
+
+        return variable
+
     def _construct_area_def(self, dataset_id):
         """Construct the area definition.
 
@@ -367,43 +395,6 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         area_extent = tuple([ll_x, ll_y, ur_x, ur_y])
 
         return area_extent
-
-    def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using the file_key in dataset_info."""
-        var_key = dataset_info['file_key']
-        logger.debug('Reading in file to get dataset with key %s.', var_key)
-
-        try:
-            variable = self.nc[var_key]
-        except KeyError:
-            logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
-            return None
-
-        # Compute the area definition
-        self._area_def = self._construct_area_def(dataset_id)
-
-        # In some of the test files, invalid pixels may be represented by different values. These are currentlyI
-        # identified using "fill_value" and "mask_value" in the YAML file. Any pixel with a value that equals either
-        # "fill_value" or "mask_value" will be set to NaN.
-        # TODO clean up when test files contain clean data.
-        mask_value = dataset_info.get('mask_value', np.NaN)
-        fill_value = dataset_info.get('fill_value', np.NaN)
-
-        float_variable = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
-        float_variable.attrs = variable.attrs
-        variable = float_variable
-
-        if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
-            variable = self._slice_dataset(variable, dataset_info)
-
-        # Rename the dimensions as required by Satpy
-        variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
-        variable.attrs.setdefault('units', None)
-
-        variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
-
-        return variable
 
     @staticmethod
     def _slice_dataset(variable, dataset_info):
