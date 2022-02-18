@@ -141,6 +141,9 @@ class EPSAVHRRFile(BaseFileHandler):
 
     sensors = {"AVHR": "avhrr-3"}
 
+    units = {"reflectance": "%",
+             "brightness_temperature": "K"}
+
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
         super(EPSAVHRRFile, self).__init__(
@@ -296,6 +299,8 @@ class EPSAVHRRFile(BaseFileHandler):
 
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor_name
+        if "calibration" in key:
+            dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
         return dataset
