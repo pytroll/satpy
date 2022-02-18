@@ -191,7 +191,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         if dataset_info['file_type'] == 'nc_fci_test_clm' and var_key != 'cloud_mask_cmrt6_test_result':
             variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
 
-        variable = self._set_attributes(self, variable, dataset_info)
+        variable = self._set_attributes(variable, dataset_info)
 
         return variable
 
@@ -326,7 +326,7 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
             variable = self._slice_dataset(variable, dataset_info)
 
-        variable = self._set_attributes(self, variable, dataset_info, segmented=True)
+        variable = self._set_attributes(variable, dataset_info, segmented=True)
 
         return variable
 
