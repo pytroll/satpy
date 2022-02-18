@@ -100,6 +100,20 @@ class FciL2CommonFunctions(object):
         }
         return attributes
 
+    def _set_attributes(self, variable, dataset_info, segmented=False):
+        """Set dataset attributes."""
+        if segmented:
+            xdim, ydim = "number_of_FoR_cols", "number_of_FoR_rows"
+        else:
+            xdim, ydim = "number_of_columns", "number_of_rows"
+
+        variable = variable.rename({ydim: 'y', xdim: 'x'})
+        variable.attrs.setdefault('units', None)
+        variable.attrs.update(dataset_info)
+        variable.attrs.update(self._get_global_attributes())
+
+        return variable
+
     @staticmethod
     def _mask_data(variable, fill_value):
         """Set fill_values, as defined in yaml-file, to NaN.
@@ -180,11 +194,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         if dataset_info['file_type'] == 'nc_fci_test_clm' and var_key != 'cloud_mask_cmrt6_test_result':
             variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
 
-        # Manage the attributes of the dataset
-        variable = variable.rename({"number_of_rows": 'y', "number_of_columns": 'x'})
-        variable.attrs.setdefault('units', None)
-        variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
+        variable = self._set_attributes(self, variable, dataset_info)
 
         return variable
 
@@ -336,11 +346,7 @@ class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
         if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
             variable = self._slice_dataset(variable, dataset_info)
 
-        # Manage the attributes of the dataset
-        variable = variable.rename({"number_of_FoR_rows": 'y', "number_of_FoR_cols": 'x'})
-        variable.attrs.setdefault('units', None)
-        variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
+        variable = self._set_attributes(self, variable, dataset_info, segmented=True)
 
         return variable
 
