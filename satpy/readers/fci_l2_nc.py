@@ -36,9 +36,6 @@ logger = logging.getLogger(__name__)
 
 SSP_DEFAULT = 0.0
 
-XY_SCALE_FACTOR_L1C = -5.58871526031607e-5
-XY_OFFSET_L1C = 0.155617776423501
-
 
 class FciL2CommonFunctions(object):
     """Shared operations for file handlers."""
@@ -221,8 +218,8 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
     def _get_area_extent(self):
         """Calculate area extent of dataset."""
         # Load and convert x/y coordinates to degrees as required by the make_ext function
-        x = self._get_xy('x')
-        y = self._get_xy('y')
+        x = self.nc['x']
+        y = self.nc['y']
         x_deg = np.degrees(x)
         y_deg = np.degrees(y)
 
@@ -238,23 +235,6 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         area_extent = tuple(i + res/2 if i > 0 else i - res/2 for i in area_extent_pixel_center)
 
         return area_extent
-
-    def _get_xy(self, dim):
-        """Return xy coordinates of dataset.
-
-        Because of a small error in the scale_factor and add_offset values in the L2 datafile attributes compared to the
-        L1C files, an extra check is implemented that recomputes x and y using the correct scale_factor and add_offset.
-        """
-        coord = self.nc[dim]
-        nc_xy = xr.open_dataset(self.filename, mask_and_scale=False)
-        scale_factor = nc_xy[dim].attrs['scale_factor']
-        offset = nc_xy[dim].attrs['add_offset']
-
-        if (scale_factor != np.float32(XY_SCALE_FACTOR_L1C)) or (offset != np.float32(XY_OFFSET_L1C)):
-            coord = (coord - offset) / scale_factor
-            coord = coord * np.float32(XY_SCALE_FACTOR_L1C) + np.float32(XY_OFFSET_L1C)
-
-        return coord
 
     def _get_proj_area(self, dataset_id):
         """Extract projection and area information."""
