@@ -209,6 +209,10 @@ class TestUtils(unittest.TestCase):
         res = proj_units_to_meters(prj)
         self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
 
+
+class TestGetSatPos:
+    """Tests for 'get_satpos'."""
+
     def test_get_satpos(self):
         """Test getting the satellite position."""
         orb_params = {'nadir_longitude': 1,
@@ -226,20 +230,20 @@ class TestUtils(unittest.TestCase):
 
         # Nadir
         lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1, 2, 3))
+        assert (lon, lat, alt) == (1, 2, 3)
 
         # Actual
         orb_params.pop('nadir_longitude')
         orb_params.pop('nadir_latitude')
         lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.1, 2.1, 3))
+        assert (lon, lat, alt) == (1.1, 2.1, 3)
 
         # Nominal
         orb_params.pop('satellite_actual_longitude')
         orb_params.pop('satellite_actual_latitude')
         orb_params.pop('satellite_actual_altitude')
         lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3.1))
+        assert (lon, lat, alt) == (1.2, 2.2, 3.1)
 
         # Projection
         orb_params.pop('satellite_nominal_longitude')
@@ -247,7 +251,7 @@ class TestUtils(unittest.TestCase):
         orb_params.pop('satellite_nominal_altitude')
         with warnings.catch_warnings(record=True) as caught_warnings:
             lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
+        assert (lon, lat, alt) == (1.3, 2.3, 3.2)
         assert any("using projection" in str(msg.message) for msg in caught_warnings)
 
 
