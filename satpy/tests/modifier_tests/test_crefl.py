@@ -134,21 +134,22 @@ class TestReflectanceCorrectorModifier:
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={
-                               'satellite_longitude': -89.5, 'satellite_latitude': 0.0,
-                               'satellite_altitude': 35786023.4375, 'platform_name': 'GOES-16',
+                               'platform_name': 'GOES-16',
                                'calibration': 'reflectance', 'units': '%', 'wavelength': (0.45, 0.47, 0.49),
                                'name': 'C01', 'resolution': 1000, 'sensor': 'abi',
                                'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
-                               'area': area, 'ancillary_variables': []
+                               'area': area, 'ancillary_variables': [],
+                               'orbital_parameters': {
+                                   'satellite_nominal_longitude': -89.5,
+                                   'satellite_nominal_latitude': 0.0,
+                                   'satellite_nominal_altitude': 35786023.4375,
+                               },
                            })
         with assert_maximum_dask_computes(0):
             res = ref_cor([c01], [])
 
         assert isinstance(res, xr.DataArray)
         assert isinstance(res.data, da.Array)
-        assert res.attrs['satellite_longitude'] == -89.5
-        assert res.attrs['satellite_latitude'] == 0.0
-        assert res.attrs['satellite_altitude'] == 35786023.4375
         assert res.attrs['modifiers'] == ('sunz_corrected', 'rayleigh_corrected_crefl')
         assert res.attrs['platform_name'] == 'GOES-16'
         assert res.attrs['calibration'] == 'reflectance'

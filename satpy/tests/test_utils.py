@@ -223,10 +223,7 @@ class TestUtils(unittest.TestCase):
                       'satellite_actual_altitude': 3,
                       'satellite_nominal_altitude': 3.1,
                       'projection_altitude': 3.2}
-        dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params,
-                                        'satellite_longitude': -1,
-                                        'satellite_latitude': -2,
-                                        'satellite_altitude': -3})
+        dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params})
 
         # Nadir
         lon, lat, alt = get_satpos(dataset)
@@ -252,11 +249,6 @@ class TestUtils(unittest.TestCase):
         lon, lat, alt = get_satpos(dataset)
         self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
         warn_mock.assert_called()
-
-        # Legacy
-        dataset.attrs.pop('orbital_parameters')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
 
 
 def test_make_fake_scene():
