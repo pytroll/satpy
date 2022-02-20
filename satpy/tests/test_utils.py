@@ -209,8 +209,7 @@ class TestUtils(unittest.TestCase):
         res = proj_units_to_meters(prj)
         self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
 
-    @mock.patch('satpy.utils.warnings.warn')
-    def test_get_satpos(self, warn_mock):
+    def test_get_satpos(self):
         """Test getting the satellite position."""
         orb_params = {'nadir_longitude': 1,
                       'satellite_actual_longitude': 1.1,
@@ -246,9 +245,10 @@ class TestUtils(unittest.TestCase):
         orb_params.pop('satellite_nominal_longitude')
         orb_params.pop('satellite_nominal_latitude')
         orb_params.pop('satellite_nominal_altitude')
-        lon, lat, alt = get_satpos(dataset)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            lon, lat, alt = get_satpos(dataset)
         self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
-        warn_mock.assert_called()
+        assert any("using projection" in str(msg.message) for msg in caught_warnings)
 
 
 def test_make_fake_scene():
