@@ -266,10 +266,13 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                               'projection_altitude': 35785863.0,
                               'satellite_actual_longitude': 140.66,
                               'satellite_actual_latitude': 0.03,
+                              'satellite_nominal_longitude': 140.66,
+                              'satellite_nominal_latitude': 0.03,
                               'nadir_longitude': 140.67,
                               'nadir_latitude': 0.04}
             self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
-            self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
+            np.testing.assert_allclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372)
+            np.testing.assert_allclose(im.attrs['orbital_parameters']['satellite_nominal_altitude'], 35786850.0)
 
             # Test if masking space pixels disables with appropriate flag
             self.fh.mask_space = False
