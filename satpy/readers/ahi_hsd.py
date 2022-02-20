@@ -28,7 +28,7 @@ AHI observations use the idea of a "scheduled" time and an "observation time.
 The "scheduled" time is when the instrument was told to record the data,
 usually at a specific and consistent interval. The "observation" time is when
 the data was actually observed. Scheduled time can be accessed from the
-`scheduled_time` metadata key and observation time from the `start_time` key.
+`scheduled_start_time` metadata key and observation time from the `start_time` key.
 
 """
 
@@ -364,25 +364,44 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
-        """Get the start time."""
-        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
+        """Get the scheduled start time."""
+        return self.scheduled_start_time
 
     @property
     def end_time(self):
-        """Get the end time."""
+        """Get the scheduled end time."""
+        return self.scheduled_start_time
+
+    @property
+    def observation_start_time(self):
+        """Get the observation start time."""
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
+
+    @property
+    def observation_end_time(self):
+        """Get the observation end time."""
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_end_time']))
 
     @property
-    def scheduled_time(self):
+    def scheduled_start_time(self):
         """Time this band was scheduled to be recorded."""
+        return self._modify_obs_time_for_schedule(self.observation_start_time)
+
+    @property
+    def scheduled_end_time(self):
+        """Get the scheduled end time."""
+        return self._modify_obs_time_for_schedule(self.observation_end_time)
+
+    def _modify_obs_time_for_schedule(self, obs_time):
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
         if self.observation_area == 'FLDK':
             dt = 0
         else:
             observation_freq = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
             dt = observation_freq * (int(self.observation_area[2:]) - 1)
-        return self.start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
-                                       second=dt % 60, microsecond=0)
+        return obs_time.replace(
+            hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
+            second=dt % 60, microsecond=0)
 
     def get_dataset(self, key, info):
         """Get the dataset."""
@@ -580,23 +599,26 @@ class AHIHSDFileHandler(BaseFileHandler):
             resolution='resolution',
             id=key,
             name=key['name'],
-            scheduled_time=self.scheduled_time,
+            scheduled_start_time=self.scheduled_start_time,
+            scheduled_end_time=self.scheduled_end_time,
+            observation_start_time=self.observation_start_time,
+            observation_end_time=self.observation_end_time,
             platform_name=self.platform_name,
             sensor=self.sensor,
-            satellite_longitude=float(self.nav_info['SSP_longitude']),
-            satellite_latitude=float(self.nav_info['SSP_latitude']),
-            satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
-                                     self.proj_info['earth_equatorial_radius']) * 1000,
             orbital_parameters={
                 'projection_longitude': float(self.proj_info['sub_lon']),
                 'projection_latitude': 0.,
                 'projection_altitude': float(self.proj_info['distance_from_earth_center'] -
                                              self.proj_info['earth_equatorial_radius']) * 1000,
+                'satellite_nominal_longitude': round(actual_lon, 3),
+                'satellite_nominal_latitude': round(actual_lat, 3),
+                'satellite_nominal_altitude': round(actual_alt / 150) * 150,  # round to nearest 150 meters
                 'satellite_actual_longitude': actual_lon,
                 'satellite_actual_latitude': actual_lat,
                 'satellite_actual_altitude': actual_alt,
                 'nadir_longitude': float(self.nav_info['nadir_longitude']),
-                'nadir_latitude': float(self.nav_info['nadir_latitude'])}
+                'nadir_latitude': float(self.nav_info['nadir_latitude']),
+            },
         )
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 
