@@ -213,46 +213,49 @@ class TestUtils(unittest.TestCase):
 class TestGetSatPos:
     """Tests for 'get_satpos'."""
 
-    def test_get_satpos(self):
+    @pytest.mark.parametrize(
+        ("included_prefixes", "preference", "expected_result"),
+        [
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), None, (1, 2, 3)),
+            (("satellite_actual_", "satellite_nominal_", "projection_"), None, (1.1, 2.1, 3)),
+            (("satellite_nominal_", "projection_"), None, (1.2, 2.2, 3.1)),
+            (("projection_",), None, (1.3, 2.3, 3.2)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nadir", (1, 2, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "actual", (1.1, 2.1, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nominal", (1.2, 2.2, 3.1)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "projection", (1.3, 2.3, 3.2)),
+            (("satellite_nominal_", "projection_"), "actual", (1.2, 2.2, 3.1)),
+            (("projection_",), "projection", (1.3, 2.3, 3.2)),
+        ]
+    )
+    def test_get_satpos(self, included_prefixes, preference, expected_result):
         """Test getting the satellite position."""
-        orb_params = {'nadir_longitude': 1,
-                      'satellite_actual_longitude': 1.1,
-                      'satellite_nominal_longitude': 1.2,
-                      'projection_longitude': 1.3,
-                      'nadir_latitude': 2,
-                      'satellite_actual_latitude': 2.1,
-                      'satellite_nominal_latitude': 2.2,
-                      'projection_latitude': 2.3,
-                      'satellite_actual_altitude': 3,
-                      'satellite_nominal_altitude': 3.1,
-                      'projection_altitude': 3.2}
-        dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params})
+        all_orb_params = {
+            'nadir_longitude': 1,
+            'satellite_actual_longitude': 1.1,
+            'satellite_nominal_longitude': 1.2,
+            'projection_longitude': 1.3,
+            'nadir_latitude': 2,
+            'satellite_actual_latitude': 2.1,
+            'satellite_nominal_latitude': 2.2,
+            'projection_latitude': 2.3,
+            'satellite_actual_altitude': 3,
+            'satellite_nominal_altitude': 3.1,
+            'projection_altitude': 3.2
+        }
+        orb_params = {key: value for key, value in all_orb_params.items() if
+                      any(in_prefix in key for in_prefix in included_prefixes)}
+        dataset = xr.DataArray((), attrs={'orbital_parameters': orb_params})
 
-        # Nadir
-        lon, lat, alt = get_satpos(dataset)
-        assert (lon, lat, alt) == (1, 2, 3)
-
-        # Actual
-        orb_params.pop('nadir_longitude')
-        orb_params.pop('nadir_latitude')
-        lon, lat, alt = get_satpos(dataset)
-        assert (lon, lat, alt) == (1.1, 2.1, 3)
-
-        # Nominal
-        orb_params.pop('satellite_actual_longitude')
-        orb_params.pop('satellite_actual_latitude')
-        orb_params.pop('satellite_actual_altitude')
-        lon, lat, alt = get_satpos(dataset)
-        assert (lon, lat, alt) == (1.2, 2.2, 3.1)
-
-        # Projection
-        orb_params.pop('satellite_nominal_longitude')
-        orb_params.pop('satellite_nominal_latitude')
-        orb_params.pop('satellite_nominal_altitude')
         with warnings.catch_warnings(record=True) as caught_warnings:
-            lon, lat, alt = get_satpos(dataset)
-        assert (lon, lat, alt) == (1.3, 2.3, 3.2)
-        assert any("using projection" in str(msg.message) for msg in caught_warnings)
+            lon, lat, alt = get_satpos(dataset, preference=preference)
+        has_satpos_warnings = any("using projection" in str(msg.message) for msg in caught_warnings)
+        expect_warning = included_prefixes == ("projection_",) and preference != "projection"
+        if expect_warning:
+            assert has_satpos_warnings
+        else:
+            assert not has_satpos_warnings
+        assert (lon, lat, alt) == expected_result
 
 
 def test_make_fake_scene():

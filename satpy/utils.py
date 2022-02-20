@@ -24,7 +24,7 @@ import contextlib
 import logging
 import os
 import warnings
-from typing import Mapping
+from typing import Mapping, Optional
 
 import numpy as np
 import xarray as xr
@@ -283,26 +283,52 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
 
 def get_satpos(
         data_arr: xr.DataArray,
+        preference: Optional[str] = None,
 ) -> tuple[float, float, float]:
     """Get satellite position from dataset attributes.
 
     Args:
         data_arr: DataArray object to access ``.attrs`` metadata
             from.
+        preference: Optional preference for one of the available types of
+            position information. If not provided or ``None`` then the default
+            preference is:
+
+            * Longitude & Latitude: nadir, actual, nominal, projection
+            * Altitude: actual, nominal, projection
+
+            The provided ``preference`` can be any one of these individual
+            strings (nadir, actual, nominal, projection). If the
+            preference is not available then the original preference list is
+            used. A warning is issued when projection values have to be used because
+            nothing else is available and it wasn't provided as the ``preference``.
 
     Returns:
         Geodetic longitude, latitude, altitude
 
     """
     orb_params = data_arr.attrs['orbital_parameters']
-    lon, lat = _get_sat_lonlat(orb_params)
-    alt = _get_sat_altitude(orb_params)
+    if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
+        raise ValueError(f"Unrecognized satellite coordinate preference: {preference}")
+    lonlat_prefixes = ("nadir_", "satellite_actual_", "satellite_nominal_", "projection_")
+    alt_prefixes = _get_prefix_order_by_preference(lonlat_prefixes[1:], preference)
+    lonlat_prefixes = _get_prefix_order_by_preference(lonlat_prefixes, preference)
+    lon, lat = _get_sat_lonlat(orb_params, lonlat_prefixes)
+    alt = _get_sat_altitude(orb_params, alt_prefixes)
     return lon, lat, alt
 
 
-def _get_sat_altitude(orb_params):
-    prefixes = ("satellite_actual_", "satellite_nominal_")
-    alt_keys = [prefix + "altitude" for prefix in prefixes]
+def _get_prefix_order_by_preference(prefixes, preference):
+    preferred_prefixes = [prefix for prefix in prefixes if preference and preference in prefix]
+    nonpreferred_prefixes = [prefix for prefix in prefixes if not preference or preference not in prefix]
+    if nonpreferred_prefixes[-1] == "projection_":
+        # remove projection as a prefix as it is our fallback
+        nonpreferred_prefixes = nonpreferred_prefixes[:-1]
+    return preferred_prefixes + nonpreferred_prefixes
+
+
+def _get_sat_altitude(orb_params, key_prefixes):
+    alt_keys = [prefix + "altitude" for prefix in key_prefixes]
     try:
         alt = _get_first_available_item(orb_params, alt_keys)
     except KeyError:
@@ -311,10 +337,9 @@ def _get_sat_altitude(orb_params):
     return alt
 
 
-def _get_sat_lonlat(orb_params):
-    prefixes = ("nadir_", "satellite_actual_", "satellite_nominal_")
-    lon_keys = [prefix + "longitude" for prefix in prefixes]
-    lat_keys = [prefix + "latitude" for prefix in prefixes]
+def _get_sat_lonlat(orb_params, key_prefixes):
+    lon_keys = [prefix + "longitude" for prefix in key_prefixes]
+    lat_keys = [prefix + "latitude" for prefix in key_prefixes]
     try:
         lon = _get_first_available_item(orb_params, lon_keys)
         lat = _get_first_available_item(orb_params, lat_keys)
