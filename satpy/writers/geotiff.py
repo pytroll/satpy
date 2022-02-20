@@ -136,7 +136,8 @@ class GeoTIFFWriter(ImageWriter):
                    compute=True, keep_palette=False, cmap=None, tags=None,
                    overviews=None, overviews_minsize=256,
                    overviews_resampling=None, include_scale_offset=False,
-                   scale_offset_tags=None, driver=None, tiled=True, **kwargs):
+                   scale_offset_tags=None, colormap_tag=None,
+                   driver=None, tiled=True, **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -205,6 +206,11 @@ class GeoTIFFWriter(ImageWriter):
                 tag.  The value of this argument should be a keyword argument
                 ``(scale_label, offset_label)``, for example, ``("scale",
                 "offset")``, indicating the labels to be used.
+            colormap_tag (Optional[str]): If set and the image being saved was
+                colorized or palettized then a comma-separated version of the
+                colormap is saved to a custom geotiff tag with the provided
+                name. See :meth:`trollimage.colormap.Colormap.to_csv` for more
+                information.
             include_scale_offset (deprecated, bool): Deprecated.
                 Use ``scale_offset_tags=("scale", "offset")`` to include scale
                 and offset tags.
@@ -254,6 +260,7 @@ class GeoTIFFWriter(ImageWriter):
                         keep_palette=keep_palette, cmap=cmap,
                         tags=tags, include_scale_offset_tags=include_scale_offset,
                         scale_offset_tags=scale_offset_tags,
+                        colormap_tag=colormap_tag,
                         overviews=overviews,
                         overviews_resampling=overviews_resampling,
                         overviews_minsize=overviews_minsize,
