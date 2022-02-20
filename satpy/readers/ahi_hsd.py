@@ -24,11 +24,14 @@ References:
 Time Information
 ****************
 
-AHI observations use the idea of a "scheduled" time and an "observation time.
+AHI observations use the idea of a "scheduled" time and an "observation" time.
 The "scheduled" time is when the instrument was told to record the data,
 usually at a specific and consistent interval. The "observation" time is when
 the data was actually observed. Scheduled time can be accessed from the
-`scheduled_start_time` metadata key and observation time from the `start_time` key.
+``scheduled_start_time`` and ``scheduled_end_time`` metadata keys and
+observation time from the ``observation_start_time`` and
+``observation_end_time`` keys as well as the ``start_time`` and ``end_time``
+keys.
 
 """
 
