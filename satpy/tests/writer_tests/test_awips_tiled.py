@@ -128,7 +128,7 @@ def _get_test_data(shape=(200, 100), chunks=50):
     return da.from_array(data, chunks=chunks)
 
 
-def _get_test_lcc_data(dask_arr, area_def, extra_attrs):
+def _get_test_lcc_data(dask_arr, area_def, extra_attrs=None):
     attrs = dict(
         name='test_ds',
         platform_name='PLAT',
@@ -139,7 +139,8 @@ def _get_test_lcc_data(dask_arr, area_def, extra_attrs):
         start_time=START_TIME,
         end_time=END_TIME
     )
-    attrs.update(extra_attrs)
+    if extra_attrs:
+        attrs.update(extra_attrs)
     ds = xr.DataArray(
         dask_arr,
         dims=('y', 'x') if dask_arr.ndim == 2 else ('bands', 'y', 'x'),
