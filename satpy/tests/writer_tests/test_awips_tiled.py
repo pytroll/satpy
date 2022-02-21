@@ -128,19 +128,22 @@ def _get_test_data(shape=(200, 100), chunks=50):
     return da.from_array(data, chunks=chunks)
 
 
-def _get_test_lcc_data(dask_arr, area_def):
+def _get_test_lcc_data(dask_arr, area_def, extra_attrs):
+    attrs = dict(
+        name='test_ds',
+        platform_name='PLAT',
+        sensor='SENSOR',
+        units='1',
+        standard_name='toa_bidirectional_reflectance',
+        area=area_def,
+        start_time=START_TIME,
+        end_time=END_TIME
+    )
+    attrs.update(extra_attrs)
     ds = xr.DataArray(
         dask_arr,
         dims=('y', 'x') if dask_arr.ndim == 2 else ('bands', 'y', 'x'),
-        attrs=dict(
-            name='test_ds',
-            platform_name='PLAT',
-            sensor='SENSOR',
-            units='1',
-            standard_name='toa_bidirectional_reflectance',
-            area=area_def,
-            start_time=START_TIME,
-            end_time=END_TIME)
+        attrs=attrs,
     )
     return update_resampled_coords(ds, ds, area_def)
 
@@ -155,12 +158,19 @@ class TestAWIPSTiledWriter:
 
     @pytest.mark.parametrize('use_save_dataset',
                              [(False,), (True,)])
-    def test_basic_numbered_1_tile(self, use_save_dataset, caplog, tmp_path):
+    @pytest.mark.parametrize(
+        ('extra_attrs', 'expected_filename'),
+        [
+            ({}, 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc'),
+            ({'sensor': 'viirs', 'name': 'I01'}, 'TESTS_AII_PLAT_viirs_I01_TEST_T001_20180101_1200.nc'),
+        ]
+    )
+    def test_basic_numbered_1_tile(self, extra_attrs, expected_filename, use_save_dataset, caplog, tmp_path):
         """Test creating a single numbered tile."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = _get_test_data()
         area_def = _get_test_area()
-        input_data_arr = _get_test_lcc_data(data, area_def)
+        input_data_arr = _get_test_lcc_data(data, area_def, extra_attrs)
         with caplog.at_level(logging.DEBUG):
             w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
             if use_save_dataset:
@@ -172,7 +182,7 @@ class TestAWIPSTiledWriter:
         assert "Can't format string" not in caplog.text
         all_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc'))
         assert len(all_files) == 1
-        assert os.path.basename(all_files[0]) == 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc'
+        assert os.path.basename(all_files[0]) == expected_filename
         for fn in all_files:
             unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
             output_ds = xr.open_dataset(fn, mask_and_scale=True)
