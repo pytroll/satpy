@@ -20,7 +20,6 @@
 
 import logging
 from contextlib import suppress
-from datetime import datetime
 
 import numpy as np
 import xarray as xr
@@ -41,22 +40,12 @@ class FciL2CommonFunctions(object):
     """Shared operations for file handlers."""
 
     @property
-    def _start_time(self):
-        """Get observation start time."""
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y%m%d%H%M%S')
-
-    @property
-    def _end_time(self):
-        """Get observation end time."""
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y%m%d%H%M%S')
-
-    @property
-    def _spacecraft_name(self):
+    def spacecraft_name(self):
         """Return spacecraft name."""
         return self.nc.attrs['platform']
 
     @property
-    def _sensor_name(self):
+    def sensor_name(self):
         """Return instrument name."""
         return self.nc.attrs['data_source']
 
@@ -76,24 +65,18 @@ class FciL2CommonFunctions(object):
         Returns:
             dict: A dictionary of global attributes.
                 filename: name of the product file
-                start_time: sensing start time from best available source
-                end_time: sensing end time from best available source
                 spacecraft_name: name of the spacecraft
                 ssp_lon: longitude of subsatellite point
                 sensor: name of sensor
-                creation_time: creation time of the product
                 platform_name: name of the platform
 
         """
         attributes = {
             'filename': self.filename,
-            'start_time': self._start_time,
-            'end_time': self._end_time,
-            'spacecraft_name': self._spacecraft_name,
+            'spacecraft_name': self.spacecraft_name,
             'ssp_lon': self.ssp_lon,
-            'sensor': self._sensor_name,
-            'creation_time': datetime.strptime(self.nc.attrs['date_created'], '%Y%m%d%H%M%S'),
-            'platform_name': self._spacecraft_name,
+            'sensor': self.sensor_name,
+            'platform_name': self.spacecraft_name,
         }
         return attributes
 
@@ -132,14 +115,14 @@ class FciL2CommonFunctions(object):
             self.nc.close()
 
 
-class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
+class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
     """Reader class for FCI L2 products in NetCDF4 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
 
-        # Use xarray's default netcdf4 engine to open the file
+        # Use xarray's default netcdf4 engine to open the fileq
         self.nc = xr.open_dataset(
             self.filename,
             decode_cf=True,
@@ -281,7 +264,7 @@ class FciL2NCFileHandler(BaseFileHandler, FciL2CommonFunctions):
         return variable
 
 
-class FciL2NCSegmentFileHandler(BaseFileHandler, FciL2CommonFunctions):
+class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
     """Reader class for FCI L2 Segmented products in NetCDF4 format."""
 
     def __init__(self, filename, filename_info, filetype_info):
