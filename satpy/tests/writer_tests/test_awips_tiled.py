@@ -148,33 +148,21 @@ def _get_test_lcc_data(dask_arr, area_def):
 class TestAWIPSTiledWriter:
     """Test basic functionality of AWIPS Tiled writer."""
 
-    def setup_method(self):
-        """Create temporary directory to save files to."""
-        import tempfile
-        self.base_dir = tempfile.mkdtemp()
-
-    def teardown_method(self):
-        """Remove the temporary directory created for a test."""
-        try:
-            shutil.rmtree(self.base_dir, ignore_errors=True)
-        except OSError:
-            pass
-
-    def test_init(self):
+    def test_init(self, tmp_path):
         """Test basic init method of writer."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        AWIPSTiledWriter(base_dir=self.base_dir)
+        AWIPSTiledWriter(base_dir=str(tmp_path))
 
     @pytest.mark.parametrize('use_save_dataset',
                              [(False,), (True,)])
-    def test_basic_numbered_1_tile(self, use_save_dataset, caplog):
+    def test_basic_numbered_1_tile(self, use_save_dataset, caplog, tmp_path):
         """Test creating a single numbered tile."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = _get_test_data()
         area_def = _get_test_area()
         input_data_arr = _get_test_lcc_data(data, area_def)
         with caplog.at_level(logging.DEBUG):
-            w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+            w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
             if use_save_dataset:
                 w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
             else:
@@ -182,7 +170,7 @@ class TestAWIPSTiledWriter:
 
         assert "no routine matching" not in caplog.text
         assert "Can't format string" not in caplog.text
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        all_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc'))
         assert len(all_files) == 1
         assert os.path.basename(all_files[0]) == 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc'
         for fn in all_files:
@@ -193,14 +181,14 @@ class TestAWIPSTiledWriter:
             np.testing.assert_allclose(input_data_arr.values, output_ds['data'].data,
                                        atol=scale_factor / 2)
 
-    def test_units_length_warning(self):
+    def test_units_length_warning(self, tmp_path):
         """Test long 'units' warnings are raised."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = _get_test_data()
         area_def = _get_test_area()
         input_data_arr = _get_test_lcc_data(data, area_def)
         input_data_arr.attrs["units"] = "this is a really long units string"
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         with pytest.warns(UserWarning, match=r'.*this is a really long units string.*too long.*'):
             w.save_dataset(input_data_arr, sector_id='TEST', source_name='TESTS')
 
@@ -212,14 +200,14 @@ class TestAWIPSTiledWriter:
             (None, None),
         ]
     )
-    def test_basic_numbered_tiles(self, tile_count, tile_size):
+    def test_basic_numbered_tiles(self, tile_count, tile_size, tmp_path):
         """Test creating a multiple numbered tiles."""
         from satpy.tests.utils import CustomScheduler
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         data = _get_test_data()
         area_def = _get_test_area()
         input_data_arr = _get_test_lcc_data(data, area_def)
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         save_kwargs = dict(
             sector_id='TEST',
             source_name="TESTS",
@@ -236,7 +224,7 @@ class TestAWIPSTiledWriter:
             with dask.config.set(scheduler=CustomScheduler(1 * 2)):  # precompute=*2
                 w.save_datasets([input_data_arr], **save_kwargs)
 
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        all_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc'))
         expected_num_files = 0 if should_error else 9
         assert len(all_files) == expected_num_files
         for fn in all_files:
@@ -249,17 +237,17 @@ class TestAWIPSTiledWriter:
             stime = input_data_arr.attrs['start_time']
             assert unmasked_ds.attrs['start_date_time'] == stime.strftime('%Y-%m-%dT%H:%M:%S')
 
-    def test_basic_lettered_tiles(self):
+    def test_basic_lettered_tiles(self, tmp_path):
         """Test creating a lettered grid."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         data = _get_test_data(shape=(2000, 1000), chunks=500)
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
         # tile_count should be ignored since we specified lettered_grid
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        all_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc'))
         assert len(all_files) == 16
         for fn in all_files:
             unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
@@ -267,10 +255,10 @@ class TestAWIPSTiledWriter:
             check_required_properties(unmasked_ds, masked_ds)
             assert masked_ds.attrs['start_date_time'] == START_TIME.strftime('%Y-%m-%dT%H:%M:%S')
 
-    def test_basic_lettered_tiles_diff_projection(self):
+    def test_basic_lettered_tiles_diff_projection(self, tmp_path):
         """Test creating a lettered grid from data with differing projection.."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         crs = CRS("+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=45 +lat_1=45 +units=m +no_defs")
         data = _get_test_data(shape=(2000, 1000), chunks=500)
         area_def = _get_test_area(shape=(2000, 1000), crs=crs,
@@ -278,7 +266,7 @@ class TestAWIPSTiledWriter:
         ds = _get_test_lcc_data(data, area_def)
         # tile_count should be ignored since we specified lettered_grid
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
-        all_files = sorted(glob(os.path.join(self.base_dir, 'TESTS_AII*.nc')))
+        all_files = sorted(glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc')))
         assert len(all_files) == 24
         assert "TC02" in all_files[0]  # the first tile should be TC02
         for fn in all_files:
@@ -287,10 +275,10 @@ class TestAWIPSTiledWriter:
             check_required_properties(unmasked_ds, masked_ds)
             assert masked_ds.attrs['start_date_time'] == START_TIME.strftime('%Y-%m-%dT%H:%M:%S')
 
-    def test_lettered_tiles_update_existing(self):
+    def test_lettered_tiles_update_existing(self, tmp_path):
         """Test updating lettered tiles with additional data."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        first_base_dir = os.path.join(self.base_dir, 'first')
+        first_base_dir = os.path.join(str(tmp_path), 'first')
         w = AWIPSTiledWriter(base_dir=first_base_dir, compress=True)
         shape = (2000, 1000)
         data = np.linspace(0., 1., shape[0] * shape[1], dtype=np.float32).reshape(shape)
@@ -305,7 +293,7 @@ class TestAWIPSTiledWriter:
         all_files = sorted(glob(os.path.join(first_base_dir, 'TESTS_AII*.nc')))
         assert len(all_files) == 16
         first_files = []
-        second_base_dir = os.path.join(self.base_dir, 'second')
+        second_base_dir = os.path.join(str(tmp_path), 'second')
         os.makedirs(second_base_dir)
         for fn in all_files:
             new_fn = fn.replace(first_base_dir, second_base_dir)
@@ -354,10 +342,10 @@ class TestAWIPSTiledWriter:
             assert np.isnan(orig_data[:, 200:]).all()
             assert not np.isnan(new_data[:, 200:]).all()
 
-    def test_lettered_tiles_sector_ref(self):
+    def test_lettered_tiles_sector_ref(self, tmp_path):
         """Test creating a lettered grid using the sector as reference."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         data = _get_test_data(shape=(2000, 1000), chunks=500)
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
@@ -365,7 +353,7 @@ class TestAWIPSTiledWriter:
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS",
                         lettered_grid=True, use_sector_reference=True,
                         use_end_time=True)
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        all_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc'))
         assert len(all_files) == 16
         for fn in all_files:
             unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
@@ -374,36 +362,36 @@ class TestAWIPSTiledWriter:
             expected_start = (START_TIME + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
             assert masked_ds.attrs['start_date_time'] == expected_start
 
-    def test_lettered_tiles_no_fit(self):
+    def test_lettered_tiles_no_fit(self, tmp_path):
         """Test creating a lettered grid with no data overlapping the grid."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         data = _get_test_data(shape=(2000, 1000), chunks=500)
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(4000000., 5000000., 5000000., 6000000.))
         ds = _get_test_lcc_data(data, area_def)
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        all_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc'))
         assert not all_files
 
-    def test_lettered_tiles_no_valid_data(self):
+    def test_lettered_tiles_no_valid_data(self, tmp_path):
         """Test creating a lettered grid with no valid data."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         data = da.full((2000, 1000), np.nan, chunks=500, dtype=np.float32)
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
         ds = _get_test_lcc_data(data, area_def)
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         # No files created - all NaNs should result in no tiles being created
-        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        all_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*.nc'))
         assert not all_files
 
-    def test_lettered_tiles_bad_filename(self):
+    def test_lettered_tiles_bad_filename(self, tmp_path):
         """Test creating a lettered grid with a bad filename."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True, filename="{Bad Key}.nc")
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True, filename="{Bad Key}.nc")
         data = _get_test_data(shape=(2000, 1000), chunks=500)
         area_def = _get_test_area(shape=(2000, 1000),
                                   extents=(-1000000., -1500000., 1000000., 1500000.))
@@ -415,10 +403,10 @@ class TestAWIPSTiledWriter:
                             tile_count=(3, 3),
                             lettered_grid=True)
 
-    def test_basic_numbered_tiles_rgb(self):
+    def test_basic_numbered_tiles_rgb(self, tmp_path):
         """Test creating a multiple numbered tiles with RGB."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=str(tmp_path), compress=True)
         data = da.from_array(np.linspace(0., 1., 60000, dtype=np.float32).reshape((3, 200, 100)), chunks=50)
         area_def = _get_test_area()
         ds = _get_test_lcc_data(data, area_def)
@@ -426,13 +414,13 @@ class TestAWIPSTiledWriter:
         ds.coords['bands'] = ['R', 'G', 'B']
 
         w.save_datasets([ds], sector_id='TEST', source_name="TESTS", tile_count=(3, 3))
-        chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_R*.nc'))
+        chan_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*test_ds_R*.nc'))
         all_files = chan_files[:]
         assert len(chan_files) == 9
-        chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_G*.nc'))
+        chan_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*test_ds_G*.nc'))
         all_files.extend(chan_files)
         assert len(chan_files) == 9
-        chan_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_B*.nc'))
+        chan_files = glob(os.path.join(str(tmp_path), 'TESTS_AII*test_ds_B*.nc'))
         assert len(chan_files) == 9
         all_files.extend(chan_files)
         for fn in all_files:
@@ -453,11 +441,11 @@ class TestAWIPSTiledWriter:
             {'environment_prefix': 'BB', 'filename': '{environment_prefix}_{name}_GLM_T{tile_number:04d}.nc'},
         ]
     )
-    def test_multivar_numbered_tiles_glm(self, sector, extra_kwargs):
+    def test_multivar_numbered_tiles_glm(self, sector, extra_kwargs, tmp_path):
         """Test creating a tiles with multiple variables."""
         from satpy.writers.awips_tiled import AWIPSTiledWriter
         os.environ['ORGANIZATION'] = '1' * 50
-        w = AWIPSTiledWriter(base_dir=self.base_dir, compress=True)
+        w = AWIPSTiledWriter(base_dir=tmp_path, compress=True)
         data = _get_test_data()
         area_def = _get_test_area()
         ds1 = _get_test_lcc_data(data, area_def)
@@ -492,7 +480,7 @@ class TestAWIPSTiledWriter:
                         tile_count=(3, 3), template='glm_l2_rad{}'.format(sector.lower()),
                         **extra_kwargs)
         fn_glob = self._get_glm_glob_filename(extra_kwargs)
-        all_files = glob(os.path.join(self.base_dir, fn_glob))
+        all_files = glob(os.path.join(str(tmp_path), fn_glob))
         assert len(all_files) == 9
         for fn in all_files:
             unmasked_ds = xr.open_dataset(fn, mask_and_scale=False)
