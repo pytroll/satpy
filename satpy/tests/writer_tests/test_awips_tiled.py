@@ -77,7 +77,7 @@ def _check_scaled_x_coordinate_variable(ds, masked_ds):
     np.testing.assert_equal(np.diff(x_coord), 1)
     x_attrs = x_coord.attrs
     assert x_attrs.get('standard_name') == 'projection_x_coordinate'
-    assert x_attrs.get('units') == 'meter'
+    assert x_attrs.get('units') == 'meters'
     assert 'scale_factor' in x_attrs
     assert x_attrs['scale_factor'] > 0
     assert 'add_offset' in x_attrs
@@ -92,7 +92,7 @@ def _check_scaled_y_coordinate_variable(ds, masked_ds):
     np.testing.assert_equal(np.diff(y_coord), 1)
     y_attrs = y_coord.attrs
     assert y_attrs.get('standard_name') == 'projection_y_coordinate'
-    assert y_attrs.get('units') == 'meter'
+    assert y_attrs.get('units') == 'meters'
     assert 'scale_factor' in y_attrs
     assert y_attrs['scale_factor'] < 0
     assert 'add_offset' in y_attrs
