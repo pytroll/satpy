@@ -851,6 +851,10 @@ templates:
         attributes:
 #          physical_element:
 #            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -864,6 +868,10 @@ templates:
         attributes:
 #          physical_element:
 #            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -1024,6 +1032,10 @@ templates:
         attributes:
           #          physical_element:
           #            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -1040,6 +1052,10 @@ templates:
         attributes:
           #          physical_element:
           #            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:

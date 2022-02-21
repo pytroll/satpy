@@ -68,6 +68,7 @@ def _check_required_common_attributes(ds):
         assert data_arr.encoding.get('zlib', False)
         assert 'grid_mapping' in data_arr.attrs
         assert data_arr.attrs['grid_mapping'] in ds
+        assert 'units' in data_arr.attrs
 
 
 def _check_scaled_x_coordinate_variable(ds, masked_ds):
