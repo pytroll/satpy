@@ -157,9 +157,6 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         # Compute the area definition
         self._area_def = self._compute_area_def(dataset_id)
 
-        if 'fill_value' in dataset_info:
-            variable = self._mask_data(variable, dataset_info['fill_value'])
-
         # If the variable has 3 dimensions, select the required layer
         if variable.ndim == 3:
             if par_name == 'retrieved_cloud_optical_thickness':
@@ -171,10 +168,20 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
                 logger.debug('Selecting the layer %d.', layer)
                 variable = variable.sel(maximum_number_of_layers=layer)
 
-        if dataset_info['file_type'] == 'nc_fci_test_clm' and var_key != 'cloud_mask_cmrt6_test_result':
-            variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
+        if dataset_info['file_type'] == 'nc_fci_test_clm':
+            variable = self._decode_clm_test_data(variable, dataset_info)
+
+        if 'fill_value' in dataset_info:
+            variable = self._mask_data(variable, dataset_info['fill_value'])
 
         variable = self._set_attributes(variable, dataset_info)
+
+        return variable
+
+    @staticmethod
+    def _decode_clm_test_data(variable, dataset_info):
+        if dataset_info['file_key'] != 'cloud_mask_cmrt6_test_result':
+            variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
 
         return variable
 
@@ -303,11 +310,11 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         # Compute the area definition
         self._area_def = self._construct_area_def(dataset_id)
 
-        if 'fill_value' in dataset_info:
-            variable = self._mask_data(variable, dataset_info['fill_value'])
-
         if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
             variable = self._slice_dataset(variable, dataset_info)
+
+        if 'fill_value' in dataset_info:
+            variable = self._mask_data(variable, dataset_info['fill_value'])
 
         variable = self._set_attributes(variable, dataset_info, segmented=True)
 
