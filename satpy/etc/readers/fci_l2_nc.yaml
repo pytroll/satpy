@@ -82,6 +82,24 @@ datasets:
     long_name: quality_index
     fill_value: 0
 
+  product_quality_clm:
+    name: product_quality_clm
+    file_type: nc_fci_clm
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_clm:
+    name: product_completeness_clm
+    file_type: nc_fci_clm
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_clm:
+    name: product_timeliness_clm
+    file_type: nc_fci_clm
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
 # FCI CT L2
   cloud_phase:
     name: cloud_phase
@@ -130,6 +148,24 @@ datasets:
     file_key: quality_overall_processing
     long_name: quality_index
     fill_value: 0
+
+  product_quality_ct:
+    name: product_quality_ct
+    file_type: nc_fci_ct
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_ct:
+    name: product_completeness_ct
+    file_type: nc_fci_ct
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_ct:
+    name: product_timeliness_ct
+    file_type: nc_fci_ct
+    file_key: product_timeliness
+    long_name: product_timeliness_index
 
   # FCI CTTH Product
   cloud_top_aviation_height:
@@ -213,6 +249,24 @@ datasets:
     file_type: nc_fci_ctth
     file_key: quality_overall_processing_aviation
     fill_value: 0
+
+  product_quality_ctth:
+    name: product_quality_ctth
+    file_type: nc_fci_ctth
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_ctth:
+    name: product_completeness_ctth
+    file_type: nc_fci_ctth
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_ctth:
+    name: product_timeliness_ctth
+    file_type: nc_fci_ctth
+    file_key: product_timeliness
+    long_name: product_timeliness_index
 
   # OCA
   retrieved_cloud_phase:
@@ -329,6 +383,24 @@ datasets:
     file_key: quality_jmeas
     long_name: cost_function
 
+  product_quality_oca:
+    name: product_quality_oca
+    file_type: nc_fci_oca
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_oca:
+    name: product_completeness_oca
+    file_type: nc_fci_oca
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_oca:
+    name: product_timeliness_oca
+    file_type: nc_fci_oca
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
 
   # LAT/LON FOR SEGMENTED PRODUCTS
   latitude:
@@ -429,6 +501,24 @@ datasets:
     - longitude
     - latitude
 
+  product_quality_gii:
+    name: product_quality_gii
+    file_type: nc_fci_gii
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_gii:
+    name: product_completeness_gii
+    file_type: nc_fci_gii
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_gii:
+    name: product_timeliness_gii
+    file_type: nc_fci_gii
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
 
 # TOZ
   total_ozone:
@@ -471,8 +561,27 @@ datasets:
     - longitude
     - latitude
 
+  product_quality_toz:
+    name: product_quality_toz
+    file_type: nc_fci_toz
+    file_key: product_quality
+    long_name: product_quality_index
 
-# CLM Test
+  product_completeness_toz:
+    name: product_completeness_toz
+    file_type: nc_fci_toz
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_toz:
+    name: product_timeliness_toz
+    file_type: nc_fci_toz
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+
+
+  # CLM Test
   cloud_test_sit1_flag:
     name: cloud_test_sit1_flag
     resolution: 2000
@@ -871,6 +980,24 @@ datasets:
     file_key: cloud_mask_cmrt6_test_result
     long_name: cloud_mask_cmrt6_result
     extract_byte: 0
+
+  product_quality_clmtest:
+    name: product_quality_clmtest
+    file_type: nc_fci_test_clm
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_clmtest:
+    name: product_completeness_clmtest
+    file_type: nc_fci_test_clm
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_clmtest:
+    name: product_timeliness_clmtest
+    file_type: nc_fci_test_clm
+    file_key: product_timeliness
+    long_name: product_timeliness_index
 
 
   # ASR
@@ -2385,3 +2512,21 @@ datasets:
     coordinates:
     - longitude
     - latitude
+
+  product_quality_asr:
+    name: product_quality_asr
+    file_type: nc_fci_asr
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_asr:
+    name: product_completeness_asr
+    file_type: nc_fci_asr
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_asr:
+    name: product_timeliness_asr
+    file_type: nc_fci_asr
+    file_key: product_timeliness
+    long_name: product_timeliness_index

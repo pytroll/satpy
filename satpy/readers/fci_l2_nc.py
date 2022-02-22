@@ -87,7 +87,9 @@ class FciL2CommonFunctions(object):
         else:
             xdim, ydim = "number_of_columns", "number_of_rows"
 
-        variable = variable.rename({ydim: 'y', xdim: 'x'})
+        if dataset_info['file_key'] not in ['product_quality', 'product_completeness', 'product_timeliness']:
+            variable = variable.rename({ydim: 'y', xdim: 'x'})
+
         variable.attrs.setdefault('units', None)
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
@@ -142,8 +144,11 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self._projection = self.nc['mtg_geos_projection']
 
     def get_area_def(self, key):
-        """Return the area definition (common to all data in product)."""
-        return self._area_def
+        """Return the area definition."""
+        try:
+            return self._area_def
+        except AttributeError:
+            raise NotImplementedError
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
@@ -158,7 +163,8 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
             return None
 
         # Compute the area definition
-        self._area_def = self._compute_area_def(dataset_id)
+        if var_key not in ['product_quality', 'product_completeness', 'product_timeliness']:
+            self._area_def = self._compute_area_def(dataset_id)
 
         # If the variable has 3 dimensions, select the required layer
         if variable.ndim == 3:
@@ -317,7 +323,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
             variable = self._slice_dataset(variable, dataset_info)
 
-        if self.with_adef and var_key not in ['longitude', 'latitude']:
+        if self.with_adef and var_key not in ['longitude', 'latitude',
+                                              'product_quality', 'product_completeness', 'product_timeliness']:
             self._area_def = self._construct_area_def(dataset_id)
 
             # coordinates are not relevant when returning data with an AreaDefinition
