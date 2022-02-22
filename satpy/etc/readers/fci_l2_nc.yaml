@@ -48,8 +48,7 @@ datasets:
     file_type: nc_fci_clm
     file_key: cloud_state
     long_name: cloud_mask_classification
-    fill_value: -999
-    mask_value: 0
+    fill_value: 0
 
   quality_illumination_clm:
     name: quality_illumination_clm
@@ -57,8 +56,7 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_illumination
     long_name: illumination_classification
-    fill_value: -999
-    mask_value: 0
+    fill_value: 0
 
   quality_nwp_parameters_clm:
     name: quality_nwp_parameters_clm
@@ -66,8 +64,7 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_nwp_parameters
     long_name: quality_index
-    fill_value: -999
-    mask_value: 0
+    fill_value: 0
 
   quality_MTG_parameters_clm:
     name: quality_MTG_parameters_clm
@@ -75,8 +72,7 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_MTG_parameters
     long_name: quality_index
-    fill_value: -999
-    mask_value: 0
+    fill_value: [-127, 0]
 
   quality_overall_processing_clm:
     name: quality_overall_processing_clm
@@ -84,9 +80,7 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_overall_processing
     long_name: quality_index
-    fill_value: -999
-    mask_value: 0
-
+    fill_value: 0
 
 # FCI CT L2
   cloud_phase:
@@ -96,7 +90,6 @@ datasets:
     file_key: cloud_phase
     long_name: cloud_phase
     fill_value: 0
-    mask_value: 0
 
   cloud_type:
     name: cloud_type
@@ -105,7 +98,6 @@ datasets:
     file_key: cloud_type
     long_name: cloud_type
     fill_value: 0
-    mask_value: 0
 
   quality_illumination_ct:
     name: quality_illumination_ct
@@ -113,8 +105,7 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_illumination
     long_name: illumination_classification
-    fill_value: -999
-    mask_value: 0
+    fill_value: 0
 
   quality_nwp_parameters_ct:
     name: quality_nwp_parameters_ct
@@ -122,8 +113,7 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_nwp_parameters
     long_name: quality_index
-    fill_value: -999
-    mask_value: 0
+    fill_value: 0
 
   quality_MTG_parameters_ct:
     name: quality_MTG_parameters_ct
@@ -131,8 +121,7 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_MTG_parameters
     long_name: quality_index
-    fill_value: -999
-    mask_value: 0
+    fill_value: 0
 
   quality_overall_processing_ct:
     name: quality_overall_processing_ct
@@ -140,9 +129,7 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_overall_processing
     long_name: quality_index
-    fill_value: -999
-    mask_value: 0
-
+    fill_value: 0
 
   # FCI CTTH Product
   cloud_top_aviation_height:
@@ -151,93 +138,81 @@ datasets:
     file_type: nc_fci_ctth
     file_key: cloud_top_aviation_height
     fill_value: 0
-    mask_value: .nan
 
   cloud_top_height:
     name: cloud_top_height
+    resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_height
     fill_value: 32769
-    mask_value: .nan
 
   cloud_top_pressure:
     name: cloud_top_pressure
+    resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_pressure
     fill_value: 3276.9001
-    mask_value: .nan
 
   cloud_top_temperature:
     name: cloud_top_temperature
+    resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_temperature
     fill_value: 327.69
-    mask_value: .nan
 
   effective_cloudiness:
     name: effective_cloudiness
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: effective_cloudiness
-    fill_value: 65535
-    mask_value: 65535
 
   quality_status_ctth:
     name: quality_status_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_status
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: 0
 
   quality_rtm_ctth:
     name: quality_rtm_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_rtm
-    fill_value: 65535
-    mask_value: 65535
 
   quality_method_ctth:
     name: quality_method_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_method
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: 0
 
   quality_nwp_parameters_ctth:
     name: quality_nwp_parameters_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_nwp_parameters
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: 0
 
   quality_MTG_parameters_ctth:
     name: quality_MTG_parameters_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_MTG_parameters
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: [-127, 0]
 
   quality_overall_processing_ctth:
     name: quality_overall_processing_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_overall_processing
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: 0
 
   quality_overall_processing_aviation_ctth:
     name: quality_overall_processing_aviation_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_overall_processing_aviation
-    fill_value: 65535
-    mask_value: 65535
-
+    fill_value: 0
 
   # OCA
   retrieved_cloud_phase:
@@ -246,7 +221,7 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_phase
     standard_name: thermodynamic_phase_of_cloud_water_particles_at_cloud_top
-    fill_value: -999.
+    fill_value: 0
 
   retrieved_cloud_optical_thickness:
     name: retrieved_cloud_optical_thickness
@@ -254,7 +229,6 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_optical_thickness
     long_name: cloud_optical_depth
-    fill_value: -999.
 
   retrieved_cloud_optical_thickness_upper_layer:
     name: retrieved_cloud_optical_thickness_upper_layer
@@ -263,7 +237,6 @@ datasets:
     file_key: retrieved_cloud_optical_thickness
     layer: 0
     long_name: cloud_optical_depth
-    fill_value: -999.
 
   retrieved_cloud_optical_thickness_lower_layer:
     name: retrieved_cloud_optical_thickness_lower_layer
@@ -272,7 +245,6 @@ datasets:
     file_key: retrieved_cloud_optical_thickness
     layer: 1
     long_name: cloud_optical_depth
-    fill_value: -999.
 
   retrieved_cloud_particle_effective_radius:
     name: retrieved_cloud_particle_effective_radius
@@ -280,7 +252,6 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_particle_effective_radius
     standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
-    fill_value: -999.
 
   retrieved_cloud_top_temperature:
     name: retrieved_cloud_top_temperature
@@ -288,7 +259,6 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_top_temperature
     standard_name: air_temperature_at_cloud_top
-    fill_value: -999.
 
   retrieved_cloud_top_pressure_upper_layer:
     name: retrieved_cloud_top_pressure_upper_layer
@@ -297,7 +267,6 @@ datasets:
     file_key: retrieved_cloud_top_pressure
     layer: 0
     standard_name: air_pressure_at_cloud_top
-    fill_value: -999.
 
   retrieved_cloud_top_pressure_lower_layer:
     name: retrieved_cloud_top_pressure_lower_layer
@@ -306,7 +275,6 @@ datasets:
     file_key: retrieved_cloud_top_pressure
     layer: 1
     standard_name: air_pressure_at_cloud_top
-    fill_value: -999.
 
   retrieved_cloud_top_height:
     name: retrieved_cloud_top_height
@@ -314,7 +282,6 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_top_height
     standard_name: height_at_cloud_top
-    fill_value: -999.
 
   retrieval_error_cloud_optical_thickness_upper_layer:
     name: retrieval_error_cloud_optical_thickness_upper_layer
@@ -323,7 +290,6 @@ datasets:
     file_key: retrieval_error_cloud_optical_thickness
     layer: 0
     long_name: cloud_optical_depth
-    fill_value: -999.
 
   retrieval_error_cloud_optical_thickness_lower_layer:
     name: retrieval_error_cloud_optical_thickness_lower_layer
@@ -332,7 +298,6 @@ datasets:
     file_key: retrieval_error_cloud_optical_thickness
     layer: 1
     long_name: cloud_optical_depth
-    fill_value: -999.
 
   retrieval_error_cloud_particle_effective_radius:
     name: retrieval_error_cloud_particle_effective_radius
@@ -340,7 +305,6 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieval_error_cloud_particle_effective_radius
     standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top_standard_error
-    fill_value: -999.
 
   retrieval_error_cloud_top_pressure_upper_layer:
     name: retrieval_error_cloud_top_pressure_upper_layer
@@ -349,7 +313,6 @@ datasets:
     file_key: retrieval_error_cloud_top_pressure
     layer: 0
     standard_name: air_pressure_at_cloud_top_standard_error
-    fill_value: -999.
 
   retrieval_error_cloud_top_pressure_lower_layer:
     name: retrieval_error_cloud_top_pressure_lower_layer
@@ -358,7 +321,6 @@ datasets:
     file_key: retrieval_error_cloud_top_pressure
     layer: 1
     standard_name: air_pressure_at_cloud_top_standard_error
-    fill_value: -999.
 
   quality_jmeas:
     name: quality_jmeas
@@ -366,7 +328,24 @@ datasets:
     file_type: nc_fci_oca
     file_key: quality_jmeas
     long_name: cost_function
-    fill_value: -999.
+
+
+  # LAT/LON FOR SEGMENTED PRODUCTS
+  latitude:
+    name: latitude
+    file_key: latitude
+    resolution: [6000, 6000, 32000]
+    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
+    standard_name: latitude
+    units: degree_north
+
+  longitude:
+    name: longitude
+    file_key: longitude
+    resolution: [6000, 6000, 32000]
+    file_type: [ nc_fci_gii, nc_fci_toz, nc_fci_asr ]
+    standard_name: longitude
+    units: degree_east
 
 
   # GII
@@ -376,8 +355,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: k_index
     long_name: k_index
-    fill_value:  -32767
-    mask_value:  -32767
+    coordinates:
+    - longitude
+    - latitude
 
   lifted_index:
     name: lifted_index
@@ -385,8 +365,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: lifted_index
     long_name: lifted_index
-    fill_value: -32767
-    mask_value: -32767
+    coordinates:
+    - longitude
+    - latitude
 
   prec_water_high:
     name: prec_water_high
@@ -394,8 +375,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: prec_water_high
     long_name: prec_water_high
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   prec_water_low:
     name: prec_water_low
@@ -403,8 +385,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: prec_water_low
     long_name: prec_water_low
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   prec_water_mid:
     name: prec_water_mid
@@ -412,8 +395,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: prec_water_mid
     long_name: prec_water_mid
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   prec_water_total:
     name: prec_water_total
@@ -421,8 +405,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: prec_water_total
     long_name: prec_water_total
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   percent_cloud_free_gii:
     name: percent_cloud_free_gii
@@ -430,8 +415,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: percent_cloud_free
     long_name: percent_cloud_free
-    fill_value: -127
-    mask_value: -127
+    coordinates:
+    - longitude
+    - latitude
 
   number_of_iterations_gii:
     name: number_of_iterations_gii
@@ -439,26 +425,9 @@ datasets:
     file_type: nc_fci_gii
     file_key: number_of_iterations
     long_name: number_of_iterations
-    fill_value: -127
-    mask_value: -127
-
-  latitude:
-    name: latitude
-    resolution: 6000
-    file_type: nc_fci_gii
-    file_key: latitude
-    long_name: latitude
-    fill_value: -127
-    mask_value: -127
-
-  longitude:
-    name: longitude
-    resolution: 6000
-    file_type: nc_fci_gii
-    file_key: longitude
-    long_name: longitude
-    fill_value: -127
-    mask_value: -127
+    coordinates:
+    - longitude
+    - latitude
 
 
 # TOZ
@@ -468,8 +437,9 @@ datasets:
     file_type: nc_fci_toz
     file_key: total_ozone
     long_name: total_ozone
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   percent_pixels_toz:
     name: percent_pixels_toz
@@ -477,8 +447,9 @@ datasets:
     file_type: nc_fci_toz
     file_key: percent_pixels
     long_name: percent_pixels
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   number_of_iterations_toz:
     name: number_of_iterations_toz
@@ -486,8 +457,9 @@ datasets:
     file_type: nc_fci_toz
     file_key: number_of_iterations
     long_name: number_of_iterations
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   retrieval_type_toz:
     name: retrieval_type_toz
@@ -495,8 +467,9 @@ datasets:
     file_type: nc_fci_toz
     file_key: retrieval_type
     long_name: retrieval_type
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
 
 # CLM Test
@@ -507,8 +480,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_sit1_flag
     extract_byte: 0
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt1_flag:
     name: cloud_test_cmt1_flag
@@ -517,8 +488,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt1_flag
     extract_byte: 1
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt2_flag:
     name: cloud_test_cmt2_flag
@@ -527,8 +496,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt2_flag
     extract_byte: 2
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt3_flag:
     name: cloud_test_cmt3_flag
@@ -537,8 +504,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt3_flag
     extract_byte: 3
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt4_flag:
     name: cloud_test_cmt4_flag
@@ -547,8 +512,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt4_flag
     extract_byte: 4
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt5_flag:
     name: cloud_test_cmt5_flag
@@ -557,8 +520,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt5_flag
     extract_byte: 5
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt6_flag:
     name: cloud_test_cmt6_flag
@@ -567,8 +528,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt6_flag
     extract_byte: 6
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt7_flag:
     name: cloud_test_cmt7_flag
@@ -577,8 +536,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt7_flag
     extract_byte: 7
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt8_flag:
     name: cloud_test_cmt8_flag
@@ -587,8 +544,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt8_flag
     extract_byte: 8
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt9_flag:
     name: cloud_test_cmt9_flag
@@ -597,8 +552,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt9_flag
     extract_byte: 9
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt10_flag:
     name: cloud_test_cmt10_flag
@@ -607,8 +560,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt0_flag
     extract_byte: 10
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt11_flag:
     name: cloud_test_cmt11_flag
@@ -617,8 +568,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt11_flag
     extract_byte: 11
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt12_flag:
     name: cloud_test_cmt12_flag
@@ -627,8 +576,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt12_flag
     extract_byte: 12
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt13_flag:
     name: cloud_test_cmt13_flag
@@ -637,8 +584,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt13_flag
     extract_byte: 13
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt14_flag:
     name: cloud_test_cmt14_flag
@@ -647,8 +592,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmt14_flag
     extract_byte: 14
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_opqt_flag:
     name: cloud_test_opqt_flag
@@ -657,8 +600,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_opqt_flag
     extract_byte: 15
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt1_flag:
     name: cloud_test_cmrt1_flag
@@ -667,8 +608,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmrt1_flag
     extract_byte: 16
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt2_flag:
     name: cloud_test_cmrt2_flag
@@ -677,8 +616,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmrt2_flag
     extract_byte: 17
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt3_flag:
     name: cloud_test_cmrt3_flag
@@ -687,8 +624,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmrt3_flag
     extract_byte: 18
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt4_flag:
     name: cloud_test_cmrt4_flag
@@ -697,8 +632,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmrt4_flag
     extract_byte: 19
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt5_flag:
     name: cloud_test_cmrt5_flag
@@ -707,8 +640,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmrt5_flag
     extract_byte: 20
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt6_flag:
     name: cloud_test_cmrt6_flag
@@ -717,8 +648,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_cmrt6_flag
     extract_byte: 21
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_dust_flag:
     name: cloud_test_dust_flag
@@ -727,8 +656,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_dust_flag
     extract_byte: 22
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_ash_flag:
     name: cloud_test_ash_flag
@@ -737,8 +664,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_ash_flag
     extract_byte: 23
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_dust_ash_flag:
     name: cloud_test_dust_ash_flag
@@ -747,8 +672,6 @@ datasets:
     file_key: cloud_mask_test_flag
     long_name: cloud_mask_test_dust_ash_flag
     extract_byte: 24
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_sit1:
     name: cloud_test_sit1
@@ -757,8 +680,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_sit1
     extract_byte: 0
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt1:
     name: cloud_test_cmt1
@@ -767,8 +688,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt1
     extract_byte: 1
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt2:
     name: cloud_test_cmt2
@@ -777,8 +696,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt2
     extract_byte: 2
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt3:
     name: cloud_test_cmt3
@@ -787,8 +704,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt3
     extract_byte: 3
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt4:
     name: cloud_test_cmt4
@@ -797,8 +712,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt4
     extract_byte: 4
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt5:
     name: cloud_test_cmt5
@@ -807,8 +720,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt5
     extract_byte: 5
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt6:
     name: cloud_test_cmt6
@@ -817,8 +728,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt6
     extract_byte: 6
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt7:
     name: cloud_test_cmt7
@@ -827,9 +736,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt7
     extract_byte: 7
-    fill_value: -999
-    mask_value: 0
-
   cloud_test_cmt8:
     name: cloud_test_cmt8
     resolution: 2000
@@ -837,8 +743,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt8
     extract_byte: 8
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt9:
     name: cloud_test_cmt9
@@ -847,8 +751,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt9
     extract_byte: 9
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt10:
     name: cloud_test_cmt10
@@ -857,8 +759,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt10
     extract_byte: 10
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt11:
     name: cloud_test_cmt11
@@ -867,8 +767,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt11
     extract_byte: 11
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt12:
     name: cloud_test_cmt12
@@ -877,8 +775,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt12
     extract_byte: 12
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt13:
     name: cloud_test_cmt13
@@ -887,8 +783,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt13
     extract_byte: 13
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmt14:
     name: cloud_test_cmt14
@@ -897,8 +791,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmt14
     extract_byte: 14
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_opqt:
     name: cloud_test_opqt
@@ -907,8 +799,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_opqt
     extract_byte: 15
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt1:
     name: cloud_test_cmrt1
@@ -917,8 +807,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmrt1
     extract_byte: 16
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt2:
     name: cloud_test_cmrt2
@@ -927,8 +815,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmrt2
     extract_byte: 17
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt3:
     name: cloud_test_cmrt3
@@ -937,8 +823,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmrt3
     extract_byte: 18
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt4:
     name: cloud_test_cmrt4
@@ -947,8 +831,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmrt4
     extract_byte: 19
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_cmrt5:
     name: cloud_test_cmrt5
@@ -957,18 +839,14 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_cmrt5
     extract_byte: 20
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_dust:
     name: cloud_test_dust
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_test_result
-    long_name: cloud_mask_test_dustq
+    long_name: cloud_mask_test_dust
     extract_byte: 21
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_ash:
     name: cloud_test_ash
@@ -977,8 +855,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_ash
     extract_byte: 22
-    fill_value: -999
-    mask_value: 0
 
   cloud_test_dust_ash:
     name: cloud_test_dust_ash
@@ -987,8 +863,6 @@ datasets:
     file_key: cloud_mask_test_result
     long_name: cloud_mask_test_dust_ash
     extract_byte: 23
-    fill_value: -999
-    mask_value: 0
 
   cloud_mask_cmrt6_result:
     name: cloud_mask_cmrt6_result
@@ -997,8 +871,7 @@ datasets:
     file_key: cloud_mask_cmrt6_test_result
     long_name: cloud_mask_cmrt6_result
     extract_byte: 0
-    fill_value: -999
-    mask_value: 0
+
 
   # ASR
   bt_max:
@@ -1007,8 +880,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: bt_max
     long_name: maximum_brightness_temperature_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean:
     name: bt_mean
@@ -1016,8 +890,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: bt_mean
     long_name: mean_brightness_temperature_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_min:
     name: bt_min
@@ -1025,8 +900,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: bt_min
     long_name: minimum_brightness_temperature_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_std:
     name: bt_std
@@ -1034,8 +910,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: bt_std
     long_name: brightness_temperature_standard_deviation_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   radiance_max:
     name: radiance_max
@@ -1043,8 +920,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: radiance_max
     long_name: maximum_radiance_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   radiance_mean:
     name: radiance_mean
@@ -1052,8 +930,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: radiance_mean
     long_name: mean_radiance_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   radiance_min:
     name: radiance_min
@@ -1061,8 +940,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: radiance_min
     long_name: minimum_radiance_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   radiance_std:
     name: radiance_std
@@ -1070,8 +950,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: radiance_std
     long_name: radiance_standard_deviation_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_max:
     name: reflectance_max
@@ -1079,8 +960,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: reflectance_max
     long_name: maximum_reflectance_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean:
     name: reflectance_mean
@@ -1088,8 +970,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: reflectance_mean
     long_name: mean_reflectance_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_min:
     name: reflectance_min
@@ -1097,8 +980,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: reflectance_min
     long_name: minimum_reflectance_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_std:
     name: reflectance_std
@@ -1106,8 +990,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: reflectance_std
     long_name: reflectance_standard_deviation_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt:
     name: quality_bt
@@ -1115,8 +1000,10 @@ datasets:
     file_type: nc_fci_asr
     file_key: quality_bt
     long_name: brightness_temperature_quality
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance:
     name: quality_reflectance
@@ -1124,8 +1011,10 @@ datasets:
     file_type: nc_fci_asr
     file_key: quality_reflectance
     long_name: reflectance_quality
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_radiance:
     name: quality_radiance
@@ -1133,8 +1022,10 @@ datasets:
     file_type: nc_fci_asr
     file_key: quality_radiance
     long_name: radiance_quality
-    fill_value: 65535
-    mask_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   land_pixel_percent:
     name: land_pixel_percent
@@ -1142,8 +1033,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: land_pixel_percent
     long_name: land_pixel_percentage_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   water_pixel_percent:
     name: water_pixel_percent
@@ -1151,8 +1043,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: water_pixel_percent
     long_name: water_pixel_percentage_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   pixel_percentage:
     name: pixel_percentage
@@ -1160,8 +1053,9 @@ datasets:
     file_type: nc_fci_asr
     file_key: pixel_percentage
     long_name: pixel_percentage_used_in_segment
-    fill_value: 65535
-    mask_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_vis04:
     name: reflectance_mean_all_vis04
@@ -1172,7 +1066,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 0
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_vis04:
     name: reflectance_mean_clear_vis04
@@ -1183,7 +1079,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 0
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_vis04:
     name: reflectance_mean_cloudy_vis04
@@ -1194,7 +1092,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 0
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_vis05:
     name: reflectance_mean_all_vis05
@@ -1205,7 +1105,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 1
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_vis05:
     name: reflectance_mean_clear_vis05
@@ -1216,7 +1118,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 1
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_vis05:
     name: reflectance_mean_cloudy_vis05
@@ -1227,7 +1131,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 1
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_vis06:
     name: reflectance_mean_all_vis06
@@ -1238,7 +1144,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 2
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_vis06:
     name: reflectance_mean_clear_vis06
@@ -1249,7 +1157,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 2
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_vis06:
     name: reflectance_mean_cloudy_vis06
@@ -1260,7 +1170,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 2
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_vis08:
     name: reflectance_mean_all_vis08
@@ -1271,7 +1183,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 3
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_vis08:
     name: reflectance_mean_clear_vis08
@@ -1282,7 +1196,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 3
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_vis08:
     name: reflectance_mean_cloudy_vis08
@@ -1293,7 +1209,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 3
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_vis09:
     name: reflectance_mean_all_vis09
@@ -1304,7 +1222,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 4
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_vis09:
     name: reflectance_mean_clear_vis09
@@ -1315,7 +1235,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 4
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_vis09:
     name: reflectance_mean_cloudy_vis09
@@ -1326,7 +1248,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 4
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_nir13:
     name: reflectance_mean_all_nir13
@@ -1337,7 +1261,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 5
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_nir13:
     name: reflectance_mean_clear_nir13
@@ -1348,7 +1274,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 5
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_nir13:
     name: reflectance_mean_cloudy_nir13
@@ -1359,7 +1287,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 5
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_nir16:
     name: reflectance_mean_all_nir16
@@ -1370,7 +1300,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 6
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_nir16:
     name: reflectance_mean_clear_nir16
@@ -1381,7 +1313,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 6
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_nir16:
     name: reflectance_mean_cloudy_nir16
@@ -1392,7 +1326,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 6
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_all_nir22:
     name: reflectance_mean_all_nir22
@@ -1403,7 +1339,9 @@ datasets:
     long_name: reflectance_mean_all
     vis_channel_id: 7
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_clear_nir22:
     name: reflectance_mean_clear_nir22
@@ -1414,7 +1352,9 @@ datasets:
     long_name: reflectance_mean_clear
     vis_channel_id: 7
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   reflectance_mean_cloudy_nir22:
     name: reflectance_mean_cloudy_nir22
@@ -1425,7 +1365,9 @@ datasets:
     long_name: reflectance_mean_cloudy
     vis_channel_id: 7
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_ir38:
     name: bt_mean_all_ir38
@@ -1436,7 +1378,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 0
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_ir38:
     name: bt_mean_clear_ir38
@@ -1447,7 +1391,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 0
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_ir38:
     name: bt_mean_cloudy_ir38
@@ -1458,7 +1404,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 0
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_wv63:
     name: bt_mean_all_wv63
@@ -1469,7 +1417,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 1
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_wv63:
     name: bt_mean_clear_wv63
@@ -1480,7 +1430,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 1
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_wv63:
     name: bt_mean_cloudy_wv63
@@ -1491,7 +1443,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 1
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_wv73:
     name: bt_mean_all_wv73
@@ -1502,7 +1456,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 2
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_wv73:
     name: bt_mean_clear_wv73
@@ -1513,7 +1469,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 2
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_wv73:
     name: bt_mean_cloudy_wv73
@@ -1524,7 +1482,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 2
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_ir87:
     name: bt_mean_all_ir87
@@ -1535,7 +1495,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 3
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_ir87:
     name: bt_mean_clear_ir87
@@ -1546,7 +1508,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 3
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_ir87:
     name: bt_mean_cloudy_ir87
@@ -1557,7 +1521,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 3
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_ir97:
     name: bt_mean_all_ir97
@@ -1568,7 +1534,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 4
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_ir97:
     name: bt_mean_clear_ir97
@@ -1579,7 +1547,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 4
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_ir97:
     name: bt_mean_cloudy_ir97
@@ -1590,7 +1560,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 4
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_ir105:
     name: bt_mean_all_ir105
@@ -1601,7 +1573,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 5
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_ir105:
     name: bt_mean_clear_ir105
@@ -1612,7 +1586,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 5
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_ir105:
     name: bt_mean_cloudy_ir105
@@ -1623,7 +1599,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 5
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_ir123:
     name: bt_mean_all_ir123
@@ -1634,7 +1612,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 6
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_ir123:
     name: bt_mean_clear_ir123
@@ -1645,7 +1625,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 6
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_ir123:
     name: bt_mean_cloudy_ir123
@@ -1656,7 +1638,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 6
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_all_ir133:
     name: bt_mean_all_ir133
@@ -1667,7 +1651,9 @@ datasets:
     long_name: bt_mean_all
     ir_channel_id: 7
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_clear_ir133:
     name: bt_mean_clear_ir133
@@ -1678,7 +1664,9 @@ datasets:
     long_name: bt_mean_clear
     ir_channel_id: 7
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   bt_mean_cloudy_ir133:
     name: bt_mean_cloudy_ir133
@@ -1689,7 +1677,9 @@ datasets:
     long_name: bt_mean_cloudy
     ir_channel_id: 7
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_vis04:
     name: quality_reflectance_all_vis04
@@ -1700,7 +1690,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 0
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_vis04:
     name: quality_reflectance_clear_vis04
@@ -1711,7 +1704,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 0
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_vis04:
     name: quality_reflectance_cloudy_vis04
@@ -1722,7 +1718,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 0
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_vis05:
     name: quality_reflectance_all_vis05
@@ -1733,7 +1732,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 1
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_vis05:
     name: quality_reflectance_clear_vis05
@@ -1744,7 +1746,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 1
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_vis05:
     name: quality_reflectance_cloudy_vis05
@@ -1755,7 +1760,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 1
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_vis06:
     name: quality_reflectance_all_vis06
@@ -1766,7 +1774,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 2
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_vis06:
     name: quality_reflectance_clear_vis06
@@ -1777,7 +1788,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 2
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_vis06:
     name: quality_reflectance_cloudy_vis06
@@ -1788,7 +1802,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 2
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_vis08:
     name: quality_reflectance_all_vis08
@@ -1799,7 +1816,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 3
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_vis08:
     name: quality_reflectance_clear_vis08
@@ -1810,7 +1830,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 3
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_vis08:
     name: quality_reflectance_cloudy_vis08
@@ -1821,7 +1844,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 3
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_vis09:
     name: quality_reflectance_all_vis09
@@ -1832,7 +1858,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 4
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_vis09:
     name: quality_reflectance_clear_vis09
@@ -1843,7 +1872,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 4
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_vis09:
     name: quality_reflectance_cloudy_vis09
@@ -1854,7 +1886,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 4
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_nir13:
     name: quality_reflectance_all_nir13
@@ -1865,7 +1900,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 5
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_nir13:
     name: quality_reflectance_clear_nir13
@@ -1876,7 +1914,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 5
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_nir13:
     name: quality_reflectance_cloudy_nir13
@@ -1887,7 +1928,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 5
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_nir16:
     name: quality_reflectance_all_nir16
@@ -1898,7 +1942,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 6
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_nir16:
     name: quality_reflectance_clear_nir16
@@ -1909,7 +1956,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 6
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_nir16:
     name: quality_reflectance_cloudy_nir16
@@ -1920,7 +1970,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 6
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_all_nir22:
     name: quality_reflectance_all_nir22
@@ -1931,7 +1984,10 @@ datasets:
     long_name: quality_reflectance_all
     vis_channel_id: 7
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_clear_nir22:
     name: quality_reflectance_clear_nir22
@@ -1942,7 +1998,10 @@ datasets:
     long_name: quality_reflectance_clear
     vis_channel_id: 7
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_reflectance_cloudy_nir22:
     name: quality_reflectance_cloudy_nir22
@@ -1953,7 +2012,10 @@ datasets:
     long_name: quality_reflectance_cloudy
     vis_channel_id: 7
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_ir38:
     name: quality_bt_all_ir38
@@ -1964,7 +2026,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 0
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_ir38:
     name: quality_bt_clear_ir38
@@ -1975,7 +2040,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 0
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_ir38:
     name: quality_bt_cloudy_ir38
@@ -1986,7 +2054,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 0
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_wv63:
     name: quality_bt_all_wv63
@@ -1997,7 +2068,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 1
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_wv63:
     name: quality_bt_clear_wv63
@@ -2008,7 +2082,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 1
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_wv63:
     name: quality_bt_cloudy_wv63
@@ -2019,7 +2096,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 1
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_wv73:
     name: quality_bt_all_wv73
@@ -2030,7 +2110,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 2
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_wv73:
     name: quality_bt_clear_wv73
@@ -2041,7 +2124,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 2
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_wv73:
     name: quality_bt_cloudy_wv73
@@ -2052,7 +2138,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 2
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_ir87:
     name: quality_bt_all_ir87
@@ -2063,7 +2152,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 3
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_ir87:
     name: quality_bt_clear_ir87
@@ -2074,7 +2166,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 3
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_ir87:
     name: quality_bt_cloudy_ir87
@@ -2085,7 +2180,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 3
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_ir97:
     name: quality_bt_all_ir97
@@ -2096,7 +2194,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 4
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_ir97:
     name: quality_bt_clear_ir97
@@ -2107,7 +2208,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 4
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_ir97:
     name: quality_bt_cloudy_ir97
@@ -2118,7 +2222,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 4
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_ir105:
     name: quality_bt_all_ir105
@@ -2129,7 +2236,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 5
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_ir105:
     name: quality_bt_clear_ir105
@@ -2140,7 +2250,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 5
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_ir105:
     name: quality_bt_cloudy_ir105
@@ -2151,7 +2264,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 5
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_ir123:
     name: quality_bt_all_ir123
@@ -2162,7 +2278,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 6
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_ir123:
     name: quality_bt_clear_ir123
@@ -2173,7 +2292,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 6
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_ir123:
     name: quality_bt_cloudy_ir123
@@ -2184,7 +2306,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 6
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_all_ir133:
     name: quality_bt_all_ir133
@@ -2195,7 +2320,10 @@ datasets:
     long_name: quality_bt_all
     ir_channel_id: 7
     category_id: 0
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_clear_ir133:
     name: quality_bt_clear_ir133
@@ -2206,7 +2334,10 @@ datasets:
     long_name: quality_bt_clear
     ir_channel_id: 7
     category_id: 1
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   quality_bt_cloudy_ir133:
     name: quality_bt_cloudy_ir133
@@ -2217,7 +2348,10 @@ datasets:
     long_name: quality_bt_cloudy
     ir_channel_id: 7
     category_id: 2
-    fill_value: 65535
+    fill_value: -1
+    coordinates:
+    - longitude
+    - latitude
 
   pixel_percentage_all:
     name: pixel_percentage_all
@@ -2226,7 +2360,9 @@ datasets:
     file_key: pixel_percentage
     long_name: pixel_percentage_all
     category_id: 0
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   pixel_percentage_clear:
     name: pixel_percentage_clear
@@ -2235,7 +2371,9 @@ datasets:
     file_key: pixel_percentage
     long_name: pixel_percentage_clear
     category_id: 1
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
 
   pixel_percentage_cloudy:
     name: pixel_percentage_cloudy
@@ -2244,4 +2382,6 @@ datasets:
     file_key: pixel_percentage
     long_name: pixel_percentage_cloudy
     category_id: 2
-    fill_value: 65535
+    coordinates:
+    - longitude
+    - latitude
