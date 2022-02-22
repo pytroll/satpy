@@ -18,6 +18,7 @@
 
 """EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
 
+
 import logging
 from datetime import datetime
 
@@ -100,11 +101,6 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             orthorect_data_name = dataset_info.get('orthorect_data', None)
             if orthorect_data_name is not None:
                 variable = self._perform_orthorectification(variable, orthorect_data_name)
-
-        # If the dataset contains a longitude, change it to the interval [0., 360.) as natively in the product
-        # since the unwrapping performed during the interpolation might have created values outside this range
-        if dataset_info.get('standard_name', None) == 'longitude':
-            variable %= 360.
 
         # Manage the attributes of the dataset
         variable.attrs.setdefault('units', None)
