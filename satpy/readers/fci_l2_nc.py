@@ -118,7 +118,7 @@ class FciL2CommonFunctions(object):
 class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
     """Reader class for FCI L2 products in NetCDF4 format."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, with_area_definition=True):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
 
@@ -132,6 +132,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
                 'number_of_rows': CHUNK_SIZE
             }
         )
+
+        if with_area_definition is False:
+            logger.info("Setting `with_area_defintion=False` has no effect on pixel-based products.")
 
         # Read metadata which are common to all datasets
         self.nlines = self.nc['y'].size
@@ -274,7 +277,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
 class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
     """Reader class for FCI L2 Segmented products in NetCDF4 format."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, with_area_definition=False):
         """Open the NetCDF file with xarray and prepare for dataset reading."""
         super().__init__(filename, filename_info, filetype_info)
         # Use xarray's default netcdf4 engine to open the file
@@ -291,10 +294,14 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         # Read metadata which are common to all datasets
         self.nlines = self.nc['number_of_FoR_rows'].size
         self.ncols = self.nc['number_of_FoR_cols'].size
+        self.with_adef = with_area_definition
 
     def get_area_def(self, key):
-        """Return the area definition (common to all data in product)."""
-        return self._area_def
+        """Return the area definition."""
+        try:
+            return self._area_def
+        except AttributeError:
+            raise NotImplementedError
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the file_key in dataset_info."""
@@ -307,11 +314,15 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
             return None
 
-        # Compute the area definition
-        self._area_def = self._construct_area_def(dataset_id)
-
         if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
             variable = self._slice_dataset(variable, dataset_info)
+
+        if self.with_adef and var_key not in ['longitude', 'latitude']:
+            self._area_def = self._construct_area_def(dataset_id)
+
+            # coordinates are not relevant when returning data with an AreaDefinition
+            if 'coordinates' in dataset_info.keys():
+                del dataset_info['coordinates']
 
         if 'fill_value' in dataset_info:
             variable = self._mask_data(variable, dataset_info['fill_value'])
@@ -327,8 +338,6 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             AreaDefinition: A pyresample AreaDefinition object containing the area definition.
 
         """
-        # TODO make sure that the lat/lons from the AreaDefinition match the latitude and longitude arrays stored in
-        #  the segmented product files.
         res = dataset_id.resolution
 
         area_naming_input_dict = {'platform_name': 'mtg',
@@ -343,7 +352,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         stand_area_def = get_area_def(area_naming['area_id'])
 
         if (stand_area_def.x_size != self.ncols) | (stand_area_def.y_size != self.nlines):
-            raise NotImplementedError('Unrecognised area definition.')
+            raise NotImplementedError('Unrecognised AreaDefinition.')
 
         mod_area_extent = self._modify_area_extent(stand_area_def.area_extent)
 
