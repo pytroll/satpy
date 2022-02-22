@@ -22,7 +22,7 @@ in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
 
 This version is applicable for the vii test data V2 to be released in Jan 2022.
 
-.. _EPS-SG VII Level 1B Product Format Specification: https://www.eumetsat.int/media/44393
+.. _EPS-SG VII Level 1B Product Format Specification V4A: https://www.eumetsat.int/media/44393
 
 """
 
