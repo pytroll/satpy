@@ -481,7 +481,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
         if fp_.tell() + offset != fpos:
-            warnings.warn("Actual "+block+" header size does not match expected")
+            warnings.warn(f"Actual {block} header size does not match expected")
         return
 
     def _read_header(self, fp_):
