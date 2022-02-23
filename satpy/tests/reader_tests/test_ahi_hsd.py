@@ -221,7 +221,7 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
         calibrate.return_value = np.ones((nrows, ncols))
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            im = self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+            im = self.fh.read_band(mock.MagicMock(), mock.MagicMock())
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask
@@ -234,18 +234,15 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
                               'projection_altitude': 35785863.0,
                               'satellite_actual_longitude': 140.66,
                               'satellite_actual_latitude': 0.03,
-                              'satellite_nominal_longitude': 140.66,
-                              'satellite_nominal_latitude': 0.03,
                               'nadir_longitude': 140.67,
                               'nadir_latitude': 0.04}
             self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
-            np.testing.assert_allclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372)
-            np.testing.assert_allclose(im.attrs['orbital_parameters']['satellite_nominal_altitude'], 35786850.0)
+            np.testing.assert_allclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786850)
 
             # Test if masking space pixels disables with appropriate flag
             self.fh.mask_space = False
             with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
-                self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+                self.fh.read_band(mock.MagicMock(), mock.MagicMock())
                 mask_space.assert_not_called()
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
