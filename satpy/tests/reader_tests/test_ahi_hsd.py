@@ -238,42 +238,6 @@ class TestAHIHSDFileHandler:
         with _fake_hsd_handler() as fh:
             fh._read_header(mock.MagicMock())
 
-
-class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
-    """Test case for the file reading using unittest."""
-
-    def setUp(self):
-        """Create a test file handler."""
-        with _fake_hsd_handler() as fh:
-            self.fh = fh
-
-    def test_time_properties(self):
-        """Test start/end/scheduled time properties."""
-        self.assertEqual(self.fh.start_time, datetime(2018, 10, 22, 3, 0))
-        self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0))
-        self.assertEqual(self.fh.observation_start_time, datetime(2018, 10, 22, 3, 0, 20, 596896))
-        self.assertEqual(self.fh.observation_end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
-        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 0, 0, 0))
-        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 0, 0, 0))
-
-    def test_scanning_frequencies(self):
-        """Test scanning frequencies."""
-        self.fh.observation_area = 'JP04'
-        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 7, 30, 0))
-        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 7, 30, 0))
-        self.fh.observation_area = 'R304'
-        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 7, 30, 0))
-        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 7, 30, 0))
-        self.fh.observation_area = 'R420'
-        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 9, 30, 0))
-        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 9, 30, 0))
-        self.fh.observation_area = 'R520'
-        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 9, 30, 0))
-        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 9, 30, 0))
-        self.fh.observation_area = 'FLDK'
-        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 0, 0, 0))
-        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 0, 0, 0))
-
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
@@ -333,6 +297,42 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
                 mask = im.to_masked_array().mask
                 ref_mask = np.logical_not(get_geostationary_mask(fh.area).compute())
                 np.testing.assert_equal(mask, ref_mask)
+
+
+class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
+    """Test case for the file reading using unittest."""
+
+    def setUp(self):
+        """Create a test file handler."""
+        with _fake_hsd_handler() as fh:
+            self.fh = fh
+
+    def test_time_properties(self):
+        """Test start/end/scheduled time properties."""
+        self.assertEqual(self.fh.start_time, datetime(2018, 10, 22, 3, 0))
+        self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0))
+        self.assertEqual(self.fh.observation_start_time, datetime(2018, 10, 22, 3, 0, 20, 596896))
+        self.assertEqual(self.fh.observation_end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
+        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 0, 0, 0))
+        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 0, 0, 0))
+
+    def test_scanning_frequencies(self):
+        """Test scanning frequencies."""
+        self.fh.observation_area = 'JP04'
+        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R304'
+        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R420'
+        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'R520'
+        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'FLDK'
+        self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 0, 0, 0))
+        self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
