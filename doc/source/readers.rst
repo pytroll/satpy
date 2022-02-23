@@ -178,6 +178,11 @@ These items include:
 * ``scheduled_end_time``: Same as ``scheduled_start_time``, but the end of the
   interval.
 
+In general, ``start_time`` and ``end_time`` will be set to the "scheduled"
+time by the reader. This ensures that other Satpy components get a
+consistent time for calculations (ex. generation of solar zenith angles)
+and can be reused between bands.
+
 .. _orbital_parameters:
 
 Orbital Parameters
@@ -195,9 +200,6 @@ For *geostationary* satellites it is described using the following scalar attrib
   * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
     confined area in which the satellite is actively maintained in using maneuvers). Inbetween
     major maneuvers, when the satellite is permanently moved, the nominal position is constant.
-    This position data is typically depended on by other parts of Satpy to provide a consistent
-    position for the satellite during an observation in order to reuse calculations for ancillary
-    computations like those for sensor zenith angle.
   * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
     earth. May differ from the actual satellite position, if the instrument is pointing slightly
     off the axis (satellite, earth-center). If available, this should be used to compute viewing
