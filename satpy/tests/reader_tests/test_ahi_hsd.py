@@ -28,6 +28,7 @@ import pytest
 
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
+from satpy.tests.utils import make_dataid
 
 
 def _new_unzip(fname):
@@ -147,6 +148,29 @@ class TestAHIHSDFileHandler:
         with pytest.raises(ValueError):
             with _fake_hsd_handler(fh_kwargs={"calib_mode": "BAD_MODE"}):
                 pass
+
+    @pytest.mark.parametrize(
+        ("round_actual_position", "expected_result"),
+        [
+            (False, (140.66, 0.03, 35786903.005813725)),
+            (True, (140.66, 0.03, 35786850.0))
+        ]
+    )
+    def test_actual_satellite_position(self, round_actual_position, expected_result):
+        """Test that rounding of the actual satellite position can be controlled."""
+        with _fake_hsd_handler(fh_kwargs={"round_actual_position": round_actual_position}) as fh:
+            ds_id = make_dataid(name="B01")
+            ds_info = {
+                "units": "%",
+                "standard_name": "some_name",
+                "wavelength": (0.1, 0.2, 0.3),
+            }
+            metadata = fh._get_metadata(ds_id, ds_info)
+            orb_params = metadata["orbital_parameters"]
+            print(orb_params)
+            assert orb_params["satellite_actual_longitude"] == expected_result[0]
+            assert orb_params["satellite_actual_latitude"] == expected_result[1]
+            assert orb_params["satellite_actual_altitude"] == expected_result[2]
 
 
 class TestAHIHSDFileHandlerUnittest(unittest.TestCase):

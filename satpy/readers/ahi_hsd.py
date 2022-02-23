@@ -33,6 +33,27 @@ observation time from the ``observation_start_time`` and
 ``observation_end_time`` keys as well as the ``start_time`` and ``end_time``
 keys.
 
+Satellite Position
+******************
+
+As discussed in the :ref:`orbital_parameters` documentation, a satellite
+position can be described by a specific "actual" position, a "nominal"
+position, a "projection" position, or sometimes a "nadir" position. Not all
+readers are able to produce all of these times. In the case of AHI HSD data
+we have an "actual" and "projection" position. For a lot of sensors/readers
+though, the "actual" position values do not change between bands or segments
+of the same time step (repeat cycle). AHI HSD files contain varying values for
+the actual position.
+
+Other components in Satpy use this actual satellite
+position to generate other values (ex. sensor zenith angles). If these values
+are not consistent between bands then Satpy (dask) will not be able to share
+these calculations (generate one sensor zenith angle for band 1, another for
+band 2, etc) even though there is rarely a noticeable difference. To deal with
+this this reader has an option ``round_actual_position`` that defaults to
+``True`` and will round the "actual" position (longitude, latitude, altitude)
+in a way to produce as consistent a position between bands as possible.
+
 """
 
 import logging
@@ -311,7 +332,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  mask_space=True, calib_mode='update',
-                 user_calibration=None):
+                 user_calibration=None, round_actual_position=True):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -359,6 +380,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         self.calib_mode = calib_mode.upper()
         self.user_calibration = user_calibration
+        self._round_actual_position = round_actual_position
 
     def __del__(self):
         """Delete the object."""
@@ -587,17 +609,21 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Mask space pixels."""
         return data.where(get_geostationary_mask(self.area, chunks=data.chunks))
 
-    def read_band(self, key, info):
+    def read_band(self, key, ds_info):
         """Read the data."""
         with open(self.filename, "rb") as fp_:
-            header = self._read_header(fp_)
-            res = self._read_data(fp_, header)
-        res = self._mask_invalid(data=res, header=header)
-        self._header = header
-
-        # Calibrate
+            self._header = self._read_header(fp_)
+            res = self._read_data(fp_, self._header)
+        res = self._mask_invalid(data=res, header=self._header)
         res = self.calibrate(res, key['calibration'])
 
+        new_info = self._get_metadata(key, ds_info)
+        res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
+        if self.mask_space:
+            res = self._mask_space(res)
+        return res
+
+    def _get_metadata(self, key, ds_info):
         # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
         actual_lon = float(self.nav_info['SSP_longitude'])
         actual_lat = float(self.nav_info['SSP_latitude'])
@@ -606,11 +632,16 @@ class AHIHSDFileHandler(BaseFileHandler):
                               b=float(self.proj_info['earth_polar_radius'] * 1000))
         actual_alt = float(self.nav_info['distance_earth_center_to_satellite']) * 1000 - re
 
+        if self._round_actual_position:
+            actual_lon = round(actual_lon, 3)
+            actual_lat = round(actual_lat, 3)
+            actual_alt = round(actual_alt / 150) * 150  # to the nearest 150m
+
         # Update metadata
         new_info = dict(
-            units=info['units'],
-            standard_name=info['standard_name'],
-            wavelength=info['wavelength'],
+            units=ds_info['units'],
+            standard_name=ds_info['standard_name'],
+            wavelength=ds_info['wavelength'],
             resolution='resolution',
             id=key,
             name=key['name'],
@@ -625,9 +656,6 @@ class AHIHSDFileHandler(BaseFileHandler):
                 'projection_latitude': 0.,
                 'projection_altitude': float(self.proj_info['distance_from_earth_center'] -
                                              self.proj_info['earth_equatorial_radius']) * 1000,
-                'satellite_nominal_longitude': round(actual_lon, 3),
-                'satellite_nominal_latitude': round(actual_lat, 3),
-                'satellite_nominal_altitude': round(actual_alt / 150) * 150,  # round to nearest 150 meters
                 'satellite_actual_longitude': actual_lon,
                 'satellite_actual_latitude': actual_lat,
                 'satellite_actual_altitude': actual_alt,
@@ -635,13 +663,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                 'nadir_latitude': float(self.nav_info['nadir_latitude']),
             },
         )
-        res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
-
-        # Mask space pixels
-        if self.mask_space:
-            res = self._mask_space(res)
-
-        return res
+        return new_info
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
