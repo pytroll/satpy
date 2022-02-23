@@ -228,6 +228,13 @@ _NAVIGATION_CORRECTION_INFO_TYPE = np.dtype([
     ("numof_correction_info_data", "<u2"),
 ])
 
+# Navigation correction sub-info
+_NAVCORR_SUBINFO_TYPE = np.dtype([
+    ("line_number_after_rotation", "<u2"),
+    ("shift_amount_for_column_direction", "f4"),
+    ("shift_amount_for_line_direction", "f4"),
+])
+
 # 9 Observation time information block
 _OBS_TIME_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
@@ -235,11 +242,21 @@ _OBS_TIME_INFO_TYPE = np.dtype([
     ("number_of_observation_times", "<u2"),
 ])
 
+_OBS_LINE_TIME_INFO_TYPE = np.dtype([
+    ("line_number", "<u2"),
+    ("observation_time", "f8"),
+])
+
 # 10 Error information block
 _ERROR_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
     ("blocklength", "<u4"),
     ("number_of_error_info_data", "<u2"),
+])
+
+_ERROR_LINE_INFO_TYPE = np.dtype([
+    ("line_number", "<u2"),
+    ("numof_error_pixels_per_line", "<u2"),
 ])
 
 # 11 Spare block
@@ -536,14 +553,9 @@ class AHIHSDFileHandler(BaseFileHandler):
             fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
         # 8 The navigation corrections:
         ncorrs = header["block8"]['numof_correction_info_data'][0]
-        dtype = np.dtype([
-            ("line_number_after_rotation", "<u2"),
-            ("shift_amount_for_column_direction", "f4"),
-            ("shift_amount_for_line_direction", "f4"),
-        ])
         corrections = []
         for _i in range(ncorrs):
-            corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
+            corrections.append(np.fromfile(fp_, dtype=_NAVCORR_SUBINFO_TYPE, count=1))
         fpos = fpos + int(header['block8']['blocklength'])
         self._check_fpos(fp_, fpos, 40, 'block8')
         fp_.seek(fpos, 0)
@@ -553,14 +565,10 @@ class AHIHSDFileHandler(BaseFileHandler):
                                        count=1)
         numobstimes = header["block9"]['number_of_observation_times'][0]
 
-        dtype = np.dtype([
-            ("line_number", "<u2"),
-            ("observation_time", "f8"),
-        ])
         lines_and_times = []
         for _i in range(numobstimes):
             lines_and_times.append(np.fromfile(fp_,
-                                               dtype=dtype,
+                                               dtype=_OBS_LINE_TIME_INFO_TYPE,
                                                count=1))
         header['observation_time_information'] = lines_and_times
         fpos = fpos + int(header['block9']['blocklength'])
@@ -570,15 +578,11 @@ class AHIHSDFileHandler(BaseFileHandler):
         header["block10"] = np.fromfile(fp_,
                                         dtype=_ERROR_INFO_TYPE,
                                         count=1)
-        dtype = np.dtype([
-            ("line_number", "<u2"),
-            ("numof_error_pixels_per_line", "<u2"),
-        ])
         num_err_info_data = header["block10"][
             'number_of_error_info_data'][0]
         err_info_data = []
         for _i in range(num_err_info_data):
-            err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
+            err_info_data.append(np.fromfile(fp_, dtype=_ERROR_LINE_INFO_TYPE, count=1))
         header['error_information_data'] = err_info_data
         fpos = fpos + int(header['block10']['blocklength'])
         self._check_fpos(fp_, fpos, 40, 'block10')

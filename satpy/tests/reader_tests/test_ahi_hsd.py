@@ -16,10 +16,13 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ahi_hsd reader tests package."""
+from __future__ import annotations
+
 import contextlib
 import unittest
 import warnings
 from datetime import datetime
+from typing import Any, Dict
 from unittest import mock
 
 import dask.array as da
@@ -30,14 +33,17 @@ from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
 from satpy.tests.utils import make_dataid
 
-FAKE_BASIC_INFO = {
+InfoDict = Dict[str, Any]
+
+FAKE_BASIC_INFO: InfoDict = {
+    'blocklength': 0,
     'satellite': np.array(['Himawari-8']),
     'observation_area': np.array(['FLDK']),
     'observation_start_time': np.array([58413.12523839]),
     'observation_end_time': np.array([58413.12562439]),
     'observation_timeline': np.array([300]),
 }
-FAKE_DATA_INFO = {
+FAKE_DATA_INFO: InfoDict = {
     'blocklength': 50,
     'compression_flag_for_data': 0,
     'hblock_number': 2,
@@ -46,7 +52,7 @@ FAKE_DATA_INFO = {
     'number_of_lines': 1100,
     'spare': '',
 }
-FAKE_PROJ_INFO = {
+FAKE_PROJ_INFO: InfoDict = {
     'CFAC': 40932549,
     'COFF': 5500.5,
     'LFAC': 40932549,
@@ -65,13 +71,24 @@ FAKE_PROJ_INFO = {
     'spare': '',
     'sub_lon': 140.7,
 }
-FAKE_NAV_INFO = {
+FAKE_NAV_INFO: InfoDict = {
     'SSP_longitude': 140.66,
     'SSP_latitude': 0.03,
     'distance_earth_center_to_satellite': 42165.04,
     'nadir_longitude': 140.67,
     'nadir_latitude': 0.04,
 }
+FAKE_CAL_INFO: InfoDict = {'blocklength': 0, 'band_number': [4]}
+FAKE_IRVISCAL_INFO: InfoDict = {}
+FAKE_INTERCAL_INFO: InfoDict = {'blocklength': 0}
+FAKE_SEGMENT_INFO: InfoDict = {'blocklength': 0}
+FAKE_NAVCORR_INFO: InfoDict = {'blocklength': 0, 'numof_correction_info_data': [1]}
+FAKE_NAVCORR_SUBINFO: InfoDict = {}
+FAKE_OBS_TIME_INFO: InfoDict = {'blocklength': 0, 'number_of_observation_times': [1]}
+FAKE_OBS_LINETIME_INFO: InfoDict = {}
+FAKE_ERROR_INFO: InfoDict = {'blocklength': 0, 'number_of_error_info_data': [1]}
+FAKE_ERROR_LINE_INFO: InfoDict = {}
+FAKE_SPARE_INFO: InfoDict = {'blocklength': 0}
 
 
 def _new_unzip(fname):
@@ -215,6 +232,12 @@ class TestAHIHSDFileHandler:
             assert orb_params["satellite_actual_latitude"] == expected_result[1]
             assert orb_params["satellite_actual_altitude"] == expected_result[2]
 
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
+    def test_read_header(self, *mocks):
+        """Test header reading."""
+        with _fake_hsd_handler() as fh:
+            fh._read_header(mock.MagicMock())
+
 
 class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
     """Test case for the file reading using unittest."""
@@ -332,28 +355,6 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
                 with warnings.catch_warnings(record=True) as w:
                     self.fh._check_fpos(fp_, fpos, 0, 'header 1')
                     self.assertTrue(len(w) > 0)
-
-    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
-    def test_read_header(self, *mocks):
-        """Test header reading."""
-        nhdr = [
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0, 'band_number': [4]},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0, 'numof_correction_info_data': [1]},
-            {'blocklength': 0},
-            {'blocklength': 0, 'number_of_observation_times': [1]},
-            {'blocklength': 0},
-            {'blocklength': 0, 'number_of_error_info_data': [1]},
-            {'blocklength': 0},
-            {'blocklength': 0}]
-        with mock.patch('numpy.fromfile', side_effect=nhdr):
-            self.fh._read_header(mock.MagicMock())
 
 
 class TestAHICalibration(unittest.TestCase):
@@ -484,15 +485,48 @@ def _fake_hsd_handler(fh_kwargs=None):
 
 
 def _custom_fromfile(*args, **kwargs):
-    from satpy.readers.ahi_hsd import _BASIC_INFO_TYPE, _DATA_INFO_TYPE, _NAV_INFO_TYPE, _PROJ_INFO_TYPE
+    from satpy.readers.ahi_hsd import (
+        _BASIC_INFO_TYPE,
+        _CAL_INFO_TYPE,
+        _DATA_INFO_TYPE,
+        _ERROR_INFO_TYPE,
+        _ERROR_LINE_INFO_TYPE,
+        _INTER_CALIBRATION_INFO_TYPE,
+        _IRCAL_INFO_TYPE,
+        _NAV_INFO_TYPE,
+        _NAVCORR_SUBINFO_TYPE,
+        _NAVIGATION_CORRECTION_INFO_TYPE,
+        _OBS_LINE_TIME_INFO_TYPE,
+        _OBS_TIME_INFO_TYPE,
+        _PROJ_INFO_TYPE,
+        _SEGMENT_INFO_TYPE,
+        _SPARE_TYPE,
+        _VISCAL_INFO_TYPE,
+    )
     dtype = kwargs.get("dtype")
-    fake_infos = {
+    fake_info_map = {
         _BASIC_INFO_TYPE: FAKE_BASIC_INFO,
         _DATA_INFO_TYPE: FAKE_DATA_INFO,
-        _NAV_INFO_TYPE: [FAKE_NAV_INFO],
-        _PROJ_INFO_TYPE: [FAKE_PROJ_INFO],
+        _NAV_INFO_TYPE: FAKE_NAV_INFO,
+        _PROJ_INFO_TYPE: FAKE_PROJ_INFO,
+        _CAL_INFO_TYPE: FAKE_CAL_INFO,
+        _VISCAL_INFO_TYPE: FAKE_IRVISCAL_INFO,
+        _IRCAL_INFO_TYPE: FAKE_IRVISCAL_INFO,
+        _INTER_CALIBRATION_INFO_TYPE: FAKE_INTERCAL_INFO,
+        _SEGMENT_INFO_TYPE: FAKE_SEGMENT_INFO,
+        _NAVIGATION_CORRECTION_INFO_TYPE: FAKE_NAVCORR_INFO,
+        _NAVCORR_SUBINFO_TYPE: FAKE_NAVCORR_SUBINFO,
+        _OBS_TIME_INFO_TYPE: FAKE_OBS_TIME_INFO,
+        _OBS_LINE_TIME_INFO_TYPE: FAKE_OBS_LINETIME_INFO,
+        _ERROR_INFO_TYPE: FAKE_ERROR_INFO,
+        _ERROR_LINE_INFO_TYPE: FAKE_ERROR_LINE_INFO,
+        _SPARE_TYPE: FAKE_SPARE_INFO,
     }
-    return fake_infos.get(dtype, mock.MagicMock())
+    info_dict = fake_info_map[dtype]
+    fake_arr = np.zeros((1,), dtype=dtype)
+    for key, value in info_dict.items():
+        fake_arr[key] = value
+    return fake_arr
 
 
 def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None, fh_kwargs=None):
