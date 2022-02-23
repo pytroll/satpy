@@ -31,6 +31,16 @@ from pyresample import geometry
 from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandler
 from satpy.tests.utils import make_dataid
 
+AREA_DEF = geometry.AreaDefinition(
+    'mtg_fci_fdss_2km',
+    'MTG FCI Full Disk Scanning Service area definition with 2 km resolution',
+    "",
+    {'h': 35786400., 'lon_0': 0.0, 'ellps': 'WGS84', 'proj': 'geos', 'units': 'm'},
+    5568,
+    5568,
+    (-5567999.9942, 5567999.9942, 5567999.9942, -5567999.9942)
+)
+
 SEG_AREA_DEF = geometry.AreaDefinition(
     'mtg_fci_fdss_32km',
     'MTG FCI Full Disk Scanning Service area definition with 32 km resolution',
@@ -66,8 +76,11 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             x[:] = np.arange(10)
 
             y = nc.createVariable('y', np.float32, dimensions=('number_of_rows',))
-            x.standard_name = 'projection_y_coordinate'
+            y.standard_name = 'projection_y_coordinate'
             y[:] = np.arange(100)
+
+            s = nc.createVariable('product_quality', np.int8)
+            s[:] = 99.
 
             one_layer_dataset = nc.createVariable('test_one_layer', np.float32,
                                                   dimensions=('number_of_rows', 'number_of_columns'))
@@ -189,6 +202,18 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         expected_sum[:] = np.log10(10**2 + 10**1)
         self.assertTrue(np.allclose(dataset.values, expected_sum))
 
+    def test_dataset_scalar(self):
+        """Test the execution of the get_dataset function for scalar values."""
+        # Checks returned scalar value
+        dataset = self.fh.get_dataset(make_dataid(name='test_scalar'),
+                                      {'name': 'product_quality',
+                                       'file_key': 'product_quality',
+                                       'file_type': 'test_file_type'})
+        self.assertEqual(dataset.values, 99.)
+
+        # Checks that no AreaDefintion is implemented for scalar values
+        self.assertRaises(NotImplementedError, self.fh.get_area_def, None)
+
 
 class TestFciL2NCSegmentFileHandler(unittest.TestCase):
     """Test the FciL2NCSegmentFileHandler reader."""
@@ -214,8 +239,11 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             x[:] = np.arange(348)
 
             y = nc.createVariable('y', np.float32, dimensions=('number_of_FoR_rows',))
-            x.standard_name = 'projection_y_coordinate'
+            y.standard_name = 'projection_y_coordinate'
             y[:] = np.arange(348)
+
+            s = nc.createVariable('product_quality', np.int8)
+            s[:] = 99.
 
             chans = nc.createVariable('channels', np.float32, dimensions=('number_of_channels',))
             chans.standard_name = 'fci_channels'
@@ -295,7 +323,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
                                       {'name': 'test_values',
                                        'file_key': 'test_values',
-                                       'fill_value': -999, })
+                                       'fill_value': -999,
+                                       'coordinates': ('test_lon', 'test_lat'), })
         expected_dataset = self._get_unique_array(range(8), range(6))
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
@@ -312,6 +341,19 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                           make_dataid(name='test_wrong_dims', resolution=6000),
                           {'name': 'test_wrong_dims', 'file_key': 'test_values', 'fill_value': -999}
                           )
+
+    def test_dataset_scalar(self):
+        """Test the execution of the get_dataset function for scalar values."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+        # Checks returned scalar value
+        dataset = self.fh.get_dataset(make_dataid(name='test_scalar'),
+                                      {'name': 'product_quality',
+                                       'file_key': 'product_quality',
+                                       'file_type': 'test_file_type'})
+        self.assertEqual(dataset.values, 99.)
+
+        # Checks that no AreaDefintion is implemented for scalar values
+        self.assertRaises(NotImplementedError, self.fh.get_area_def, None)
 
     def test_dataset_slicing(self):
         """Test the execution of the _slice_dataset function."""
