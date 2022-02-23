@@ -638,7 +638,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         if self._round_actual_position:
             actual_lon = round(actual_lon, 3)
-            actual_lat = round(actual_lat, 3)
+            actual_lat = round(actual_lat, 2)
             actual_alt = round(actual_alt / 150) * 150  # to the nearest 150m
 
         # Update metadata

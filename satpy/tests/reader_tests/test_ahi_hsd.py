@@ -72,11 +72,11 @@ FAKE_PROJ_INFO: InfoDict = {
     'sub_lon': 140.7,
 }
 FAKE_NAV_INFO: InfoDict = {
-    'SSP_longitude': 140.66,
-    'SSP_latitude': 0.03,
+    'SSP_longitude': 140.65699999999998,
+    'SSP_latitude': 0.0042985719753897015,
     'distance_earth_center_to_satellite': 42165.04,
-    'nadir_longitude': 140.67,
-    'nadir_latitude': 0.04,
+    'nadir_longitude': 140.25253875463318,
+    'nadir_latitude': 0.01674775121155575,
 }
 FAKE_CAL_INFO: InfoDict = {'blocklength': 0, 'band_number': [4]}
 FAKE_IRVISCAL_INFO: InfoDict = {}
@@ -212,8 +212,8 @@ class TestAHIHSDFileHandler:
     @pytest.mark.parametrize(
         ("round_actual_position", "expected_result"),
         [
-            (False, (140.66, 0.03, 35786903.005813725)),
-            (True, (140.66, 0.03, 35786850.0))
+            (False, (140.65699999999998, 0.0042985719753897015, 35786903.00011936)),
+            (True, (140.657, 0.0, 35786850.0))
         ]
     )
     def test_actual_satellite_position(self, round_actual_position, expected_result):
@@ -227,7 +227,6 @@ class TestAHIHSDFileHandler:
             }
             metadata = fh._get_metadata(ds_id, ds_info)
             orb_params = metadata["orbital_parameters"]
-            print(orb_params)
             assert orb_params["satellite_actual_longitude"] == expected_result[0]
             assert orb_params["satellite_actual_latitude"] == expected_result[1]
             assert orb_params["satellite_actual_altitude"] == expected_result[2]
@@ -260,12 +259,15 @@ class TestAHIHSDFileHandler:
             orb_params_exp = {'projection_longitude': 140.7,
                               'projection_latitude': 0.,
                               'projection_altitude': 35785863.0,
-                              'satellite_actual_longitude': 140.66,
-                              'satellite_actual_latitude': 0.03,
-                              'nadir_longitude': 140.67,
-                              'nadir_latitude': 0.04}
-            assert set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items()))
-            np.testing.assert_allclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786850)
+                              'satellite_actual_longitude': 140.657,
+                              'satellite_actual_latitude': 0.0,
+                              'satellite_actual_altitude': 35786850,
+                              'nadir_longitude': 140.252539,
+                              'nadir_latitude': 0.01674775}
+            actual_obs_params = im.attrs['orbital_parameters']
+            for key, value in orb_params_exp.items():
+                assert key in actual_obs_params
+                np.testing.assert_allclose(value, actual_obs_params[key])
 
             # Test if masking space pixels disables with appropriate flag
             fh.mask_space = False
