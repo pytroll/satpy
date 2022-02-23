@@ -973,13 +973,12 @@ datasets:
     long_name: cloud_mask_test_dust_ash
     extract_byte: 23
 
-  cloud_mask_cmrt6_result:
-    name: cloud_mask_cmrt6_result
+  cloud_test_cmrt6:
+    name: cloud_test_cmrt6
     resolution: 2000
     file_type: nc_fci_test_clm
     file_key: cloud_mask_cmrt6_test_result
     long_name: cloud_mask_cmrt6_result
-    extract_byte: 0
 
   product_quality_clmtest:
     name: product_quality_clmtest

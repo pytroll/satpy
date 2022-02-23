@@ -18,7 +18,6 @@
 
 """The fci_cld_l2_nc reader tests package."""
 
-import datetime
 import os
 import unittest
 import uuid
@@ -387,6 +386,10 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             nc_byte.createDimension('number_of_columns', 1)
             nc_byte.createDimension('number_of_rows', 1)
 
+            # add global attributes
+            nc_byte.data_source = 'test_data_source'
+            nc_byte.platform = 'test_platform'
+
             # Add datasets
             x = nc_byte.createVariable('x', np.float32, dimensions=('number_of_columns',))
             x.standard_name = 'projection_x_coordinate'
@@ -399,7 +402,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
             mtg_geos_projection = nc_byte.createVariable('mtg_geos_projection', int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 0.0
             mtg_geos_projection.semi_major_axis = 6378137.
-            mtg_geos_projection.semi_minor_axis = 6356752.
+            mtg_geos_projection.inverse_flattering = 298.257223563
             mtg_geos_projection.perspective_point_height = 35786400.
 
             test_dataset = nc_byte.createVariable('cloud_mask_test_flag', np.float32,
@@ -410,10 +413,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
 
         self.byte_reader = FciL2NCFileHandler(
             filename=self.test_byte_file,
-            filename_info={
-                'creation_time': datetime.datetime(year=2017, month=9, day=20,
-                                                   hour=12, minute=30, second=30),
-            },
+            filename_info={},
             filetype_info={}
         )
 
@@ -431,7 +431,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
         dataset = self.byte_reader.get_dataset(make_dataid(name='cloud_mask_test_flag', resolution=2000),
                                                {'name': 'cloud_mask_test_flag',
                                                 'file_key': 'cloud_mask_test_flag',
-                                                'fill_value': -999, 'mask_value': 0.,
+                                                'fill_value': -999,
                                                 'file_type': 'nc_fci_test_clm',
                                                 'extract_byte': 1,
                                                 })

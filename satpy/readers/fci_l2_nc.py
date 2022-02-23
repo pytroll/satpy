@@ -190,7 +190,8 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
     @staticmethod
     def _decode_clm_test_data(variable, dataset_info):
         if dataset_info['file_key'] != 'cloud_mask_cmrt6_test_result':
-            variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31)
+            variable = variable.astype('uint32')
+            variable.values = (variable.values >> dataset_info['extract_byte'] << 31 >> 31).astype('int8')
 
         return variable
 
