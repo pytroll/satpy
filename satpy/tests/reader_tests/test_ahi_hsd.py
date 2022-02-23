@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ahi_hsd reader tests package."""
-
+import contextlib
 import unittest
 import warnings
 from datetime import datetime
@@ -24,9 +24,17 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
+
+
+def _new_unzip(fname):
+    """Fake unzipping."""
+    if fname[-3:] == 'bz2':
+        return fname[:-4]
+    return fname
 
 
 class TestAHIHSDNavigation(unittest.TestCase):
@@ -131,87 +139,23 @@ class TestAHIHSDNavigation(unittest.TestCase):
                                                               5500000.035542117, -2200000.0142168473))
 
 
-class TestAHIHSDFileHandler(unittest.TestCase):
-    """Test case for the file reading."""
+class TestAHIHSDFileHandler:
+    """Tests for the AHI HSD file handler."""
 
-    def new_unzip(fname):
-        """Fake unzipping."""
-        if fname[-3:] == 'bz2':
-            return fname[:-4]
-        return fname
+    def test_bad_calibration(self):
+        """Test that a bad calibration mode causes an exception."""
+        with pytest.raises(ValueError):
+            with _fake_hsd_handler(fh_kwargs={"calib_mode": "BAD_MODE"}):
+                pass
 
-    @staticmethod
-    def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None):
-        if filename_info is None:
-            filename_info = {'segment': 8, 'total_segments': 10}
-        if filetype_info is None:
-            filetype_info = {'file_type': 'hsd_b01'}
-        fh = AHIHSDFileHandler(in_fname, filename_info, filetype_info)
 
-        # Check that the filename is altered for bz2 format files
-        assert in_fname != fh.filename
+class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
+    """Test case for the file reading using unittest."""
 
-        fh.proj_info = {
-            'CFAC': 40932549,
-            'COFF': 5500.5,
-            'LFAC': 40932549,
-            'LOFF': 5500.5,
-            'blocklength': 127,
-            'coeff_for_sd': 1737122264.0,
-            'distance_from_earth_center': 42164.0,
-            'earth_equatorial_radius': 6378.137,
-            'earth_polar_radius': 6356.7523,
-            'hblock_number': 3,
-            'req2_rpol2': 1.006739501,
-            'req2_rpol2_req2': 0.0066943844,
-            'resampling_size': 4,
-            'resampling_types': 0,
-            'rpol2_req2': 0.993305616,
-            'spare': '',
-            'sub_lon': 140.7
-        }
-        fh.nav_info = {
-            'SSP_longitude': 140.66,
-            'SSP_latitude': 0.03,
-            'distance_earth_center_to_satellite': 42165.04,
-            'nadir_longitude': 140.67,
-            'nadir_latitude': 0.04
-        }
-        fh.data_info = {
-            'blocklength': 50,
-            'compression_flag_for_data': 0,
-            'hblock_number': 2,
-            'number_of_bits_per_pixel': 16,
-            'number_of_columns': 11000,
-            'number_of_lines': 1100,
-            'spare': ''
-        }
-        fh.basic_info = {
-            'observation_area': np.array(['FLDK']),
-            'observation_start_time': np.array([58413.12523839]),
-            'observation_end_time': np.array([58413.12562439]),
-            'observation_timeline': np.array([300]),
-        }
-        fh.observation_area = fh.basic_info['observation_area']
-        return fh
-
-    @mock.patch('satpy.readers.ahi_hsd.np2str')
-    @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
-    @mock.patch('satpy.readers.ahi_hsd.unzip_file',
-                mock.MagicMock(side_effect=new_unzip))
-    def setUp(self, fromfile, np2str):
+    def setUp(self):
         """Create a test file handler."""
-        np2str.side_effect = lambda x: x
-        m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            # Check if file handler raises exception for invalid calibration mode
-            with self.assertRaises(ValueError):
-                AHIHSDFileHandler('somefile',
-                                  {'segment': 8, 'total_segments': 10},
-                                  filetype_info={'file_type': 'hsd_b01'},
-                                  calib_mode='BAD_MODE')
-            in_fname = 'test_file.bz2'
-            self.fh = self._create_fake_file_handler(in_fname)
+        with _fake_hsd_handler() as fh:
+            self.fh = fh
 
     def test_time_properties(self):
         """Test start/end/scheduled time properties."""
@@ -461,3 +405,81 @@ class TestAHICalibration(unittest.TestCase):
         rad_exp = np.array([[15.2, 12.],
                             [8.8, -0.8]])
         self.assertTrue(np.allclose(rad, rad_exp))
+
+
+@contextlib.contextmanager
+def _fake_hsd_handler(fh_kwargs=None):
+    """Create a test file handler."""
+    m = mock.mock_open()
+    with mock.patch('satpy.readers.ahi_hsd.np.fromfile', _custom_fromfile), \
+            mock.patch('satpy.readers.ahi_hsd.unzip_file', mock.MagicMock(side_effect=_new_unzip)), \
+            mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
+        in_fname = 'test_file.bz2'
+        fh = _create_fake_file_handler(in_fname, fh_kwargs=fh_kwargs)
+        yield fh
+
+
+def _custom_fromfile(*args, **kwargs):
+    from satpy.readers.ahi_hsd import _BASIC_INFO_TYPE, _DATA_INFO_TYPE, _NAV_INFO_TYPE, _PROJ_INFO_TYPE
+    dtype = kwargs.get("dtype")
+    if dtype is _BASIC_INFO_TYPE:
+        return {
+            'satellite': np.array(['Himawari-8']),
+            'observation_area': np.array(['FLDK']),
+            'observation_start_time': np.array([58413.12523839]),
+            'observation_end_time': np.array([58413.12562439]),
+            'observation_timeline': np.array([300]),
+        }
+    if dtype is _DATA_INFO_TYPE:
+        return {
+            'blocklength': 50,
+            'compression_flag_for_data': 0,
+            'hblock_number': 2,
+            'number_of_bits_per_pixel': 16,
+            'number_of_columns': 11000,
+            'number_of_lines': 1100,
+            'spare': '',
+        }
+    if dtype is _PROJ_INFO_TYPE:
+        return [{
+            'CFAC': 40932549,
+            'COFF': 5500.5,
+            'LFAC': 40932549,
+            'LOFF': 5500.5,
+            'blocklength': 127,
+            'coeff_for_sd': 1737122264.0,
+            'distance_from_earth_center': 42164.0,
+            'earth_equatorial_radius': 6378.137,
+            'earth_polar_radius': 6356.7523,
+            'hblock_number': 3,
+            'req2_rpol2': 1.006739501,
+            'req2_rpol2_req2': 0.0066943844,
+            'resampling_size': 4,
+            'resampling_types': 0,
+            'rpol2_req2': 0.993305616,
+            'spare': '',
+            'sub_lon': 140.7,
+        }]
+    if dtype is _NAV_INFO_TYPE:
+        return [{
+            'SSP_longitude': 140.66,
+            'SSP_latitude': 0.03,
+            'distance_earth_center_to_satellite': 42165.04,
+            'nadir_longitude': 140.67,
+            'nadir_latitude': 0.04,
+        }]
+    return mock.MagicMock()
+
+
+def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None, fh_kwargs=None):
+    if filename_info is None:
+        filename_info = {'segment': 8, 'total_segments': 10}
+    if filetype_info is None:
+        filetype_info = {'file_type': 'hsd_b01'}
+    if fh_kwargs is None:
+        fh_kwargs = {}
+    fh = AHIHSDFileHandler(in_fname, filename_info, filetype_info, **fh_kwargs)
+
+    # Check that the filename is altered for bz2 format files
+    assert in_fname != fh.filename
+    return fh
