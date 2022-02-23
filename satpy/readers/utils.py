@@ -262,9 +262,10 @@ class unzip_context():
 
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, streaming=False):
         """Keep original filename."""
         self.input_filename = filename
+        self.streaming = bool(streaming)
 
     def __enter__(self):
         """Uncompress file if necessary and return the relevant filename for the file handler."""
@@ -280,6 +281,27 @@ class unzip_context():
         """Remove temporary file."""
         if self.unzipped_filename is not None:
             os.remove(self.unzipped_filename)
+
+
+class generic_open():
+    """Context manager for opening either a regular file or a bzip2 file."""
+
+    def __init__(self, filename, mode="rb"):
+        self.filename = filename
+        self.mode = mode
+
+    def __enter__(self):
+        """Return a file-like object."""
+        if self.filename.endswith('.bz2'):
+            self.fp = bz2.open(self.filename, mode=self.mode)
+        else:
+            self.fp = open(self.filename, mode=self.mode)
+
+        return self.fp
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.fp.close()
+
 
 
 def bbox(img):

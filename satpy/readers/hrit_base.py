@@ -31,7 +31,7 @@ temporary directory for reading.
 import logging
 import os
 from datetime import timedelta
-from io import BytesIO
+from io import BytesIO, BufferedReader
 from subprocess import PIPE, Popen
 from tempfile import gettempdir
 
@@ -157,22 +157,18 @@ class HRITFileHandler(BaseFileHandler):
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
 
-        with utils.unzip_context(filename) as fn:
-            self.filename = fn
+        self.mda = {}
+        self._get_hd(hdr_info)
 
+        if self.mda.get('compression_flag_for_data'):
+            logger.debug('Unpacking %s', filename)
+            try:
+                self.filename = decompress(filename, gettempdir())
+            except IOError as err:
+                logger.warning("Unpacking failed: %s", str(err))
             self.mda = {}
             self._get_hd(hdr_info)
 
-            if self.mda.get('compression_flag_for_data'):
-                logger.debug('Unpacking %s', filename)
-                try:
-                    self.filename = decompress(filename, gettempdir())
-                except IOError as err:
-                    logger.warning("Unpacking failed: %s", str(err))
-                self.mda = {}
-                self._get_hd(hdr_info)
-
-        self.filename = filename
 
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
@@ -181,15 +177,16 @@ class HRITFileHandler(BaseFileHandler):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
 
-        with open(self.filename) as fp:
+        with utils.generic_open(self.filename) as fp:
             total_header_length = 16
-            while fp.tell() < total_header_length:
-                hdr_id = np.fromfile(fp, dtype=common_hdr, count=1)[0]
+            fp_buffer = BufferedReader(fp)
+            while fp_buffer.tell() < total_header_length:
+                hdr_id = np.frombuffer(fp_buffer.read(common_hdr.itemsize), dtype=common_hdr, count=1)[0]
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
-                    current_hdr = np.fromfile(fp,
+                    current_hdr = np.frombuffer(fp_buffer.read(the_type.itemsize*field_length),
                                               dtype=the_type,
                                               count=field_length)
                     key = variable_length_headers[the_type]
@@ -204,12 +201,12 @@ class HRITFileHandler(BaseFileHandler):
                                        the_type.itemsize)
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
-                    current_hdr = np.fromfile(fp,
+                    current_hdr = np.frombuffer(fp_buffer.read(new_type.itemsize),
                                               dtype=new_type,
                                               count=1)[0]
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
-                    current_hdr = np.fromfile(fp,
+                    current_hdr = np.frombuffer(fp_buffer.read(the_type.itemsize),
                                               dtype=the_type,
                                               count=1)[0]
                     self.mda.update(
