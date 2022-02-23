@@ -396,12 +396,24 @@ class AHIHSDFileHandler(BaseFileHandler):
         return self._modify_obs_time_for_schedule(self.observation_end_time)
 
     def _modify_obs_time_for_schedule(self, obs_time):
+        """Round observation time to a nominal scheduled time based on known observation frequency.
+
+        AHI observations are split into different sectors including Full Disk
+        (FLDK), Japan (JP) sectors, and smaller regional (R) sectors. Each
+        sector is observed at different frequencies (ex. every 10 minutes,
+        every 2.5 minutes, and every 30 seconds). This method will take the
+        actual observation time and round it to the nearest interval for this
+        sector. So if the observation time is 13:32:48 for the "JP02" sector
+        which is the second Japan observation where every Japan observation is
+        2.5 minutes apart, then the result should be 13:32:30.
+
+        """
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
         if self.observation_area == 'FLDK':
             dt = 0
         else:
-            observation_freq = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
-            dt = observation_freq * (int(self.observation_area[2:]) - 1)
+            observation_freq_minutes = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
+            dt = observation_freq_minutes * (int(self.observation_area[2:]) - 1)
         return obs_time.replace(
             hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
             second=dt % 60, microsecond=0)
