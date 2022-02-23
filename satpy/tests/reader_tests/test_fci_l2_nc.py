@@ -27,9 +27,20 @@ from unittest import mock
 
 import numpy as np
 from netCDF4 import Dataset
+from pyresample import geometry
 
-from satpy.readers.fci_l2_nc import PRODUCT_DATA_DURATION_MINUTES, FciL2NCFileHandler, FciL2NCSegmentFileHandler
+from satpy.readers.fci_l2_nc import FciL2NCFileHandler, FciL2NCSegmentFileHandler
 from satpy.tests.utils import make_dataid
+
+SEG_AREA_DEF = geometry.AreaDefinition(
+    'mtg_fci_fdss_32km',
+    'MTG FCI Full Disk Scanning Service area definition with 32 km resolution',
+    "",
+    {'h': 35786400., 'lon_0': 0.0, 'ellps': 'WGS84', 'proj': 'geos', 'units': 'm'},
+    348,
+    348,
+    (-5567999.9942, 5567999.9942, 5567999.9942, -5567999.9942)
+)
 
 
 class TestFciL2NCFileHandler(unittest.TestCase):
@@ -49,8 +60,6 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             # add global attributes
             nc.data_source = 'test_data_source'
             nc.platform = 'test_platform'
-            nc.time_coverage_start = '20170920173040'
-            nc.time_coverage_end = '20170920174117'
 
             # Add datasets
             x = nc.createVariable('x', np.float32, dimensions=('number_of_columns',))
@@ -77,54 +86,32 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             mtg_geos_projection = nc.createVariable('mtg_geos_projection', int, dimensions=())
             mtg_geos_projection.longitude_of_projection_origin = 0.0
             mtg_geos_projection.semi_major_axis = 6378137.
-            mtg_geos_projection.semi_minor_axis = 6356752.
+            mtg_geos_projection.inverse_flattering = 298.257223563
             mtg_geos_projection.perspective_point_height = 35786400.
 
-        self.reader = FciL2NCFileHandler(
-            filename=self.test_file,
-            filename_info={
-                'creation_time':  datetime.datetime(year=2017, month=9, day=20,
-                                                    hour=12, minute=30, second=30),
-            },
-            filetype_info={}
-        )
+        self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={}
+                                     )
 
     def tearDown(self):
         """Remove the previously created test file."""
-        # First delete the reader, forcing the file to be closed if still open
-        del self.reader
+        # First delete the file handler, forcing the file to be closed if still open
+        del self.fh
         # Then we can safely remove the file from the system
         with suppress(OSError):
             os.remove(self.test_file)
 
     def test_all_basic(self):
         """Test all basic functionalities."""
-        self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 20)
+        self.assertEqual(self.fh.spacecraft_name, 'test_platform')
+        self.assertEqual(self.fh.sensor_name, 'test_data_source')
+        self.assertEqual(self.fh.ssp_lon, 0.0)
 
-        self.assertEqual(self.reader._start_time,
-                         datetime.datetime(year=2017, month=9, day=20,
-                                           hour=17, minute=30, second=40))
-
-        self.assertEqual(self.reader._end_time,
-                         datetime.datetime(year=2017, month=9, day=20,
-                                           hour=17, minute=41, second=17))
-
-        self.assertEqual(self.reader._spacecraft_name, 'test_platform')
-        self.assertEqual(self.reader._sensor_name, 'test_data_source')
-        self.assertEqual(self.reader.ssp_lon, 0.0)
-
-        global_attributes = self.reader._get_global_attributes()
+        global_attributes = self.fh._get_global_attributes()
         expected_global_attributes = {
             'filename': self.test_file,
-            'start_time': datetime.datetime(year=2017, month=9, day=20,
-                                            hour=17, minute=30, second=40),
-            'end_time': datetime.datetime(year=2017, month=9, day=20,
-                                          hour=17, minute=41, second=17),
             'spacecraft_name': 'test_platform',
             'ssp_lon': 0.0,
             'sensor': 'test_data_source',
-            'creation_time': datetime.datetime(year=2017, month=9, day=20,
-                                               hour=12, minute=30, second=30),
             'platform_name': 'test_platform'
         }
         self.assertEqual(global_attributes, expected_global_attributes)
@@ -133,7 +120,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.fci_l2_nc.make_ext')
     def test_area_definition(self, me_, gad_):
         """Test the area definition computation."""
-        self.reader._compute_area_def(make_dataid(name='test_area_def', resolution=2000))
+        self.fh._compute_area_def(make_dataid(name='test_area_def', resolution=2000))
 
         # Asserts that the make_ext function was called with the correct arguments
         me_.assert_called_once()
@@ -141,11 +128,12 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertTrue(np.allclose(args, [-0.0, -515.6620, 5672.28217, 0.0, 35786400.]))
 
         proj_dict = {'a': 6378137.,
-                     'b': 6356752.,
                      'lon_0': 0.0,
                      'h': 35786400,
+                     "rf": 298.257223563,
                      'proj': 'geos',
-                     'units': 'm'}
+                     'units': 'm',
+                     'sweep': 'y'}
 
         # Asserts that the get_area_definition function was called with the correct arguments
         gad_.assert_called_once()
@@ -156,17 +144,15 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(args[3], proj_dict)
         self.assertEqual(args[4], 10)
         self.assertEqual(args[5], 100)
-        # The second argument must be the return result of the make_ext function
-        self.assertEqual(args[6]._extract_mock_name(), 'make_ext()')
 
     def test_dataset(self):
         """Test the execution of the get_dataset function."""
         # Checks the correct execution of the get_dataset function with a valid file_key
-        dataset = self.reader.get_dataset(make_dataid(name='test_one_layer', resolution=2000),
-                                          {'name': 'test_one_layer',
-                                           'file_key': 'test_one_layer',
-                                           'fill_value': -999, 'mask_value': 0.,
-                                           'file_type': 'test_file_type'})
+        dataset = self.fh.get_dataset(make_dataid(name='test_one_layer', resolution=2000),
+                                      {'name': 'test_one_layer',
+                                       'file_key': 'test_one_layer',
+                                       'fill_value': -999,
+                                       'file_type': 'test_file_type'})
 
         self.assertTrue(np.allclose(dataset.values, np.ones((100, 10))))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
@@ -174,31 +160,31 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(dataset.attrs['fill_value'], -999)
 
         # Checks the correct execution of the get_dataset function with a valid file_key & layer
-        dataset = self.reader.get_dataset(make_dataid(name='test_two_layers', resolution=2000),
-                                          {'name': 'test_two_layers',
-                                           'file_key': 'test_two_layers', 'layer': 1,
-                                           'fill_value': -999, 'mask_value': 0,
-                                           'file_type': 'test_file_type'})
+        dataset = self.fh.get_dataset(make_dataid(name='test_two_layers', resolution=2000),
+                                      {'name': 'test_two_layers',
+                                       'file_key': 'test_two_layers', 'layer': 1,
+                                       'fill_value': -999,
+                                       'file_type': 'test_file_type'})
         self.assertTrue(np.allclose(dataset.values, 2 * np.ones((100, 10))))
         self.assertEqual(dataset.attrs['units'], None)
         self.assertEqual(dataset.attrs['spacecraft_name'], 'test_platform')
 
         # Checks the correct execution of the get_dataset function with an invalid file_key
-        invalid_dataset = self.reader.get_dataset(make_dataid(name='test_invalid', resolution=2000),
-                                                  {'name': 'test_invalid',
-                                                   'file_key': 'test_invalid',
-                                                   'fill_value': -999, 'mask_value': 0,
-                                                   'file_type': 'test_file_type'})
+        invalid_dataset = self.fh.get_dataset(make_dataid(name='test_invalid', resolution=2000),
+                                              {'name': 'test_invalid',
+                                               'file_key': 'test_invalid',
+                                               'fill_value': -999,
+                                               'file_type': 'test_file_type'})
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
 
         # Checks the correct execution of the get_dataset function when computing total optical thickness by summing up
         # the contributions from two layers (in log10 space)
-        dataset = self.reader.get_dataset(make_dataid(name='retrieved_cloud_optical_thickness', resolution=2000),
-                                          {'name': 'retrieved_cloud_optical_thickness',
-                                           'file_key': 'test_two_layers',
-                                           'fill_value': -999, 'mask_value': 0,
-                                           'file_type': 'test_file_type'})
+        dataset = self.fh.get_dataset(make_dataid(name='retrieved_cloud_optical_thickness', resolution=2000),
+                                      {'name': 'retrieved_cloud_optical_thickness',
+                                       'file_key': 'test_two_layers',
+                                       'fill_value': -999,
+                                       'file_type': 'test_file_type'})
         # Checks that the function returns None
         expected_sum = np.empty((100, 10))
         expected_sum[:] = np.log10(10**2 + 10**1)
@@ -222,8 +208,6 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             # add global attributes
             nc.data_source = 'test_fci_data_source'
             nc.platform = 'test_fci_platform'
-            nc.time_coverage_start = '20170920173040'
-            nc.time_coverage_end = '20170920174117'
 
             # Add datasets
             x = nc.createVariable('x', np.float32, dimensions=('number_of_FoR_cols',))
@@ -250,63 +234,42 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
             test_dataset.test_attr = 'attr'
             test_dataset.units = 'test_units'
 
-        self.segment_reader = FciL2NCSegmentFileHandler(
-            filename=self.seg_test_file,
-            filename_info={
-                'creation_time':  datetime.datetime(year=2017, month=9, day=20,
-                                                    hour=12, minute=30, second=30),
-            },
-            filetype_info={}
-        )
-
     def tearDown(self):
         """Remove the previously created test file."""
-        # First delete the reader, forcing the file to be closed if still open
-        del self.segment_reader
+        # First delete the fh, forcing the file to be closed if still open
+        del self.fh
         # Then can safely remove it from the system
         with suppress(OSError):
             os.remove(self.seg_test_file)
 
     def test_all_basic(self):
         """Test all basic functionalities."""
-        self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 20)
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
 
-        self.assertEqual(self.segment_reader._start_time,
-                         datetime.datetime(year=2017, month=9, day=20,
-                                           hour=17, minute=30, second=40))
+        self.assertEqual(self.fh.spacecraft_name, 'test_fci_platform')
+        self.assertEqual(self.fh.sensor_name, 'test_fci_data_source')
+        self.assertEqual(self.fh.ssp_lon, 0.0)
 
-        self.assertEqual(self.segment_reader._end_time,
-                         datetime.datetime(year=2017, month=9, day=20,
-                                           hour=17, minute=41, second=17))
-
-        self.assertEqual(self.segment_reader._spacecraft_name, 'test_fci_platform')
-        self.assertEqual(self.segment_reader._sensor_name, 'test_fci_data_source')
-        self.assertEqual(self.segment_reader.ssp_lon, 0.0)
-
-        global_attributes = self.segment_reader._get_global_attributes()
+        global_attributes = self.fh._get_global_attributes()
 
         expected_global_attributes = {
             'filename': self.seg_test_file,
-            'start_time': datetime.datetime(year=2017, month=9, day=20,
-                                            hour=17, minute=30, second=40),
-            'end_time': datetime.datetime(year=2017, month=9, day=20,
-                                          hour=17, minute=41, second=17),
             'spacecraft_name': 'test_fci_platform',
             'ssp_lon': 0.0,
             'sensor': 'test_fci_data_source',
-            'creation_time': datetime.datetime(year=2017, month=9, day=20,
-                                               hour=12, minute=30, second=30),
             'platform_name': 'test_fci_platform'
         }
         self.assertEqual(global_attributes, expected_global_attributes)
 
-    def test_dataset(self):
+    def test_dataset_without_adef(self):
         """Test the execution of the get_dataset function."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+
         # Checks the correct execution of the get_dataset function with a valid file_key
-        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
-                                                  {'name': 'test_values',
-                                                   'file_key': 'test_values',
-                                                   'fill_value': -999, 'mask_value': 0, })
+        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                      {'name': 'test_values',
+                                       'file_key': 'test_values',
+                                       'fill_value': -999, })
         expected_dataset = self._get_unique_array(range(8), range(6))
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
@@ -314,60 +277,82 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         self.assertEqual(dataset.attrs['fill_value'], -999)
 
         # Checks the correct execution of the get_dataset function with an invalid file_key
-        invalid_dataset = self.segment_reader.get_dataset(make_dataid(name='test_invalid', resolution=32000),
-                                                          {'name': 'test_invalid',
-                                                           'file_key': 'test_invalid',
-                                                           'fill_value': -999, 'mask_value': 0})
+        invalid_dataset = self.fh.get_dataset(make_dataid(name='test_invalid', resolution=32000),
+                                              {'name': 'test_invalid',
+                                               'file_key': 'test_invalid',
+                                               'fill_value': -999, })
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
 
-        # Checks the correct execution of the get_dataset function with dimensions that do not match expected area def.
-        self.assertRaises(NotImplementedError,
-                          self.segment_reader.get_dataset,
+        # Checks that no AreaDefintion is implemented
+        self.assertRaises(NotImplementedError, self.fh.get_area_def, None)
+
+    def test_dataset_with_adef(self):
+        """Test the execution of the get_dataset function."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={},
+                                            with_area_definition=True)
+
+        # Checks the correct execution of the get_dataset function with a valid file_key
+        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                      {'name': 'test_values',
+                                       'file_key': 'test_values',
+                                       'fill_value': -999, })
+        expected_dataset = self._get_unique_array(range(8), range(6))
+        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        self.assertEqual(dataset.attrs['test_attr'], 'attr')
+        self.assertEqual(dataset.attrs['units'], 'test_units')
+        self.assertEqual(dataset.attrs['fill_value'], -999)
+
+        # Checks returned AreaDefinition against reference
+        adef = self.fh.get_area_def(None)
+        self.assertEqual(adef, SEG_AREA_DEF)
+
+        # Checks the correct execution of the get_dataset function with
+        # dimensions that do not match the expected AreaDefinition.
+        self.assertRaises(NotImplementedError, self.fh.get_dataset,
                           make_dataid(name='test_wrong_dims', resolution=6000),
-                          {'name': 'test_wrong_dims',
-                           'file_key': 'test_values',
-                           'fill_value': -999, 'mask_value': 0,
-                           }
+                          {'name': 'test_wrong_dims', 'file_key': 'test_values', 'fill_value': -999}
                           )
 
     def test_dataset_slicing(self):
         """Test the execution of the _slice_dataset function."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+
         # Checks the correct execution of the _slice_dataset function with 'channel_id' and 'category_id' set
-        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
-                                                  {'name': 'test_values',
-                                                   'file_key': 'test_values',
-                                                   'fill_value': -999, 'mask_value': 0,
-                                                   'channel_id': 0, 'category_id': 1})
+        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                      {'name': 'test_values',
+                                       'file_key': 'test_values',
+                                       'fill_value': -999,
+                                       'channel_id': 0, 'category_id': 1})
         expected_dataset = self._get_unique_array(0, 1)
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
 
         # Checks the correct execution of the _slice_dataset function with 'category_id' set
-        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
-                                                  {'name': 'test_values',
-                                                   'file_key': 'test_values',
-                                                   'fill_value': -999, 'mask_value': 0,
-                                                   'category_id': 5})
+        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                      {'name': 'test_values',
+                                       'file_key': 'test_values',
+                                       'fill_value': -999,
+                                       'category_id': 5})
         expected_dataset = self._get_unique_array(range(8), 5)
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
 
         # Checks the correct execution of the _slice_dataset function with 'vis_channel_id' and 'category_id' set
-        self.segment_reader.nc = self.segment_reader.nc.rename_dims({'number_of_channels': 'number_of_vis_channels'})
-        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
-                                                  {'name': 'test_values',
-                                                   'file_key': 'test_values',
-                                                   'fill_value': -999, 'mask_value': 0,
-                                                   'vis_channel_id': 3, 'category_id': 3})
+        self.fh.nc = self.fh.nc.rename_dims({'number_of_channels': 'number_of_vis_channels'})
+        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                      {'name': 'test_values',
+                                       'file_key': 'test_values',
+                                       'fill_value': -999,
+                                       'vis_channel_id': 3, 'category_id': 3})
         expected_dataset = self._get_unique_array(3, 3)
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
 
         # Checks the correct execution of the _slice_dataset function with 'ir_channel_id' set
-        self.segment_reader.nc = self.segment_reader.nc.rename_dims({'number_of_vis_channels': 'number_of_ir_channels'})
-        dataset = self.segment_reader.get_dataset(make_dataid(name='test_values', resolution=32000),
-                                                  {'name': 'test_values',
-                                                   'file_key': 'test_values',
-                                                   'fill_value': -999, 'mask_value': 0,
-                                                   'ir_channel_id': 4})
+        self.fh.nc = self.fh.nc.rename_dims({'number_of_vis_channels': 'number_of_ir_channels'})
+        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                      {'name': 'test_values',
+                                       'file_key': 'test_values',
+                                       'fill_value': -999,
+                                       'ir_channel_id': 4})
         expected_dataset = self._get_unique_array(4, range(6))
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
 
@@ -444,7 +429,7 @@ class TestFciL2NCErrorFileHandler(unittest.TestCase):
 
     def tearDown(self):
         """Remove the previously created test file."""
-        # First delete the reader, forcing the file to be closed if still open
+        # First delete the fh, forcing the file to be closed if still open
         del self.error_reader
         # Then can safely remove it from the system
         with suppress(OSError):
@@ -509,7 +494,7 @@ class TestFciL2NCReadingByteData(unittest.TestCase):
 
     def tearDown(self):
         """Remove the previously created test file."""
-        # First delete the reader, forcing the file to be closed if still open
+        # First delete the file handler, forcing the file to be closed if still open
         del self.byte_reader
         # Then can safely remove it from the system
         with suppress(OSError):
