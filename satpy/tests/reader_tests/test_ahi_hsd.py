@@ -30,6 +30,49 @@ from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
 from satpy.tests.utils import make_dataid
 
+FAKE_BASIC_INFO = {
+    'satellite': np.array(['Himawari-8']),
+    'observation_area': np.array(['FLDK']),
+    'observation_start_time': np.array([58413.12523839]),
+    'observation_end_time': np.array([58413.12562439]),
+    'observation_timeline': np.array([300]),
+}
+FAKE_DATA_INFO = {
+    'blocklength': 50,
+    'compression_flag_for_data': 0,
+    'hblock_number': 2,
+    'number_of_bits_per_pixel': 16,
+    'number_of_columns': 11000,
+    'number_of_lines': 1100,
+    'spare': '',
+}
+FAKE_PROJ_INFO = {
+    'CFAC': 40932549,
+    'COFF': 5500.5,
+    'LFAC': 40932549,
+    'LOFF': 5500.5,
+    'blocklength': 127,
+    'coeff_for_sd': 1737122264.0,
+    'distance_from_earth_center': 42164.0,
+    'earth_equatorial_radius': 6378.137,
+    'earth_polar_radius': 6356.7523,
+    'hblock_number': 3,
+    'req2_rpol2': 1.006739501,
+    'req2_rpol2_req2': 0.0066943844,
+    'resampling_size': 4,
+    'resampling_types': 0,
+    'rpol2_req2': 0.993305616,
+    'spare': '',
+    'sub_lon': 140.7,
+}
+FAKE_NAV_INFO = {
+    'SSP_longitude': 140.66,
+    'SSP_latitude': 0.03,
+    'distance_earth_center_to_satellite': 42165.04,
+    'nadir_longitude': 140.67,
+    'nadir_latitude': 0.04,
+}
+
 
 def _new_unzip(fname):
     """Fake unzipping."""
@@ -443,53 +486,13 @@ def _fake_hsd_handler(fh_kwargs=None):
 def _custom_fromfile(*args, **kwargs):
     from satpy.readers.ahi_hsd import _BASIC_INFO_TYPE, _DATA_INFO_TYPE, _NAV_INFO_TYPE, _PROJ_INFO_TYPE
     dtype = kwargs.get("dtype")
-    if dtype is _BASIC_INFO_TYPE:
-        return {
-            'satellite': np.array(['Himawari-8']),
-            'observation_area': np.array(['FLDK']),
-            'observation_start_time': np.array([58413.12523839]),
-            'observation_end_time': np.array([58413.12562439]),
-            'observation_timeline': np.array([300]),
-        }
-    if dtype is _DATA_INFO_TYPE:
-        return {
-            'blocklength': 50,
-            'compression_flag_for_data': 0,
-            'hblock_number': 2,
-            'number_of_bits_per_pixel': 16,
-            'number_of_columns': 11000,
-            'number_of_lines': 1100,
-            'spare': '',
-        }
-    if dtype is _PROJ_INFO_TYPE:
-        return [{
-            'CFAC': 40932549,
-            'COFF': 5500.5,
-            'LFAC': 40932549,
-            'LOFF': 5500.5,
-            'blocklength': 127,
-            'coeff_for_sd': 1737122264.0,
-            'distance_from_earth_center': 42164.0,
-            'earth_equatorial_radius': 6378.137,
-            'earth_polar_radius': 6356.7523,
-            'hblock_number': 3,
-            'req2_rpol2': 1.006739501,
-            'req2_rpol2_req2': 0.0066943844,
-            'resampling_size': 4,
-            'resampling_types': 0,
-            'rpol2_req2': 0.993305616,
-            'spare': '',
-            'sub_lon': 140.7,
-        }]
-    if dtype is _NAV_INFO_TYPE:
-        return [{
-            'SSP_longitude': 140.66,
-            'SSP_latitude': 0.03,
-            'distance_earth_center_to_satellite': 42165.04,
-            'nadir_longitude': 140.67,
-            'nadir_latitude': 0.04,
-        }]
-    return mock.MagicMock()
+    fake_infos = {
+        _BASIC_INFO_TYPE: FAKE_BASIC_INFO,
+        _DATA_INFO_TYPE: FAKE_DATA_INFO,
+        _NAV_INFO_TYPE: [FAKE_NAV_INFO],
+        _PROJ_INFO_TYPE: [FAKE_PROJ_INFO],
+    }
+    return fake_infos.get(dtype, mock.MagicMock())
 
 
 def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None, fh_kwargs=None):
