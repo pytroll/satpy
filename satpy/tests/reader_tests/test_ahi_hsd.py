@@ -274,7 +274,6 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
         self.assertEqual(self.fh.scheduled_start_time, datetime(2018, 10, 22, 3, 0, 0, 0))
         self.assertEqual(self.fh.scheduled_end_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
-    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
@@ -282,17 +281,16 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
         """Test masking of space pixels."""
         nrows = 25
         ncols = 100
-        self.fh.data_info['number_of_columns'] = ncols
-        self.fh.data_info['number_of_lines'] = nrows
         calibrate.return_value = np.ones((nrows, ncols))
-        m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            im = self.fh.read_band(mock.MagicMock(), mock.MagicMock())
+        with _fake_hsd_handler() as fh:
+            fh.data_info['number_of_columns'] = ncols
+            fh.data_info['number_of_lines'] = nrows
+            im = fh.read_band(mock.MagicMock(), mock.MagicMock())
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask
-            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
-            self.assertTrue(np.all(mask == ref_mask))
+            ref_mask = np.logical_not(get_geostationary_mask(fh.area).compute())
+            np.testing.assert_equal(mask, ref_mask)
 
             # Test attributes
             orb_params_exp = {'projection_longitude': 140.7,
@@ -302,16 +300,15 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
                               'satellite_actual_latitude': 0.03,
                               'nadir_longitude': 140.67,
                               'nadir_latitude': 0.04}
-            self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
+            assert set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items()))
             np.testing.assert_allclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786850)
 
             # Test if masking space pixels disables with appropriate flag
-            self.fh.mask_space = False
+            fh.mask_space = False
             with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
-                self.fh.read_band(mock.MagicMock(), mock.MagicMock())
+                fh.read_band(mock.MagicMock(), mock.MagicMock())
                 mask_space.assert_not_called()
 
-    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
@@ -321,22 +318,21 @@ class TestAHIHSDFileHandlerUnittest(unittest.TestCase):
         nrows = 25
         ncols = 100
         calibrate.return_value = np.ones((nrows, ncols))
-        m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True), \
-             mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler') as fh_cls:
-            fh_cls.return_value = self.fh
-            self.fh.filename_info['total_segments'] = 1
-            self.fh.filename_info['segment'] = 1
-            self.fh.data_info['number_of_columns'] = ncols
-            self.fh.data_info['number_of_lines'] = nrows
-            scn = Scene(reader='ahi_hsd', filenames=['HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT'])
-            scn.load(['B07'])
-            im = scn['B07']
+        with _fake_hsd_handler() as fh:
+            with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler') as fh_cls:
+                fh_cls.return_value = fh
+                fh.filename_info['total_segments'] = 1
+                fh.filename_info['segment'] = 1
+                fh.data_info['number_of_columns'] = ncols
+                fh.data_info['number_of_lines'] = nrows
+                scn = Scene(reader='ahi_hsd', filenames=['HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT'])
+                scn.load(['B07'])
+                im = scn['B07']
 
-            # Make sure space masking worked
-            mask = im.to_masked_array().mask
-            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
-            self.assertTrue(np.all(mask == ref_mask))
+                # Make sure space masking worked
+                mask = im.to_masked_array().mask
+                ref_mask = np.logical_not(get_geostationary_mask(fh.area).compute())
+                np.testing.assert_equal(mask, ref_mask)
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
