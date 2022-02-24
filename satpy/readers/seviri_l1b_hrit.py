@@ -115,7 +115,6 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 from pyresample import geometry
-from io import BufferedReader
 
 import satpy.readers.utils as utils
 from satpy import CHUNK_SIZE
@@ -242,12 +241,11 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
     def read_prologue(self):
         """Read the prologue metadata."""
         with utils.generic_open(self.filename) as fp_:
-            buffer_ = BufferedReader(fp_)
-            buffer_.seek(self.mda['total_header_length'])
-            data = np.frombuffer(buffer_.read(hrit_prologue.itemsize), dtype=hrit_prologue, count=1)
+            fp_.seek(self.mda['total_header_length'])
+            data = np.frombuffer(fp_.read(hrit_prologue.itemsize), dtype=hrit_prologue, count=1)
             self.prologue.update(recarray2dict(data))
             try:
-                impf = np.frombuffer(buffer_.read(impf_configuration.itemsize), dtype=impf_configuration, count=1)[0]
+                impf = np.frombuffer(fp_.read(impf_configuration.itemsize), dtype=impf_configuration, count=1)[0]
             except ValueError:
                 logger.info('No IMPF configuration field found in prologue.')
             else:
@@ -316,9 +314,8 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
     def read_epilogue(self):
         """Read the epilogue metadata."""
         with utils.generic_open(self.filename) as fp_:
-            buffer_ = BufferedReader(fp_)
-            buffer_.seek(self.mda['total_header_length'])
-            data = np.frombuffer(buffer_.read(hrit_epilogue.itemsize), dtype=hrit_epilogue, count=1)
+            fp_.seek(self.mda['total_header_length'])
+            data = np.frombuffer(fp_.read(hrit_epilogue.itemsize), dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
 
     def reduce(self, max_size):

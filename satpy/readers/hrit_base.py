@@ -31,7 +31,7 @@ temporary directory for reading.
 import logging
 import os
 from datetime import timedelta
-from io import BytesIO, BufferedReader
+from io import BytesIO
 from subprocess import PIPE, Popen
 from tempfile import gettempdir
 
@@ -179,14 +179,13 @@ class HRITFileHandler(BaseFileHandler):
 
         with utils.generic_open(self.filename) as fp:
             total_header_length = 16
-            fp_buffer = BufferedReader(fp)
-            while fp_buffer.tell() < total_header_length:
-                hdr_id = np.frombuffer(fp_buffer.read(common_hdr.itemsize), dtype=common_hdr, count=1)[0]
+            while fp.tell() < total_header_length:
+                hdr_id = np.frombuffer(fp.read(common_hdr.itemsize), dtype=common_hdr, count=1)[0]
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
-                    current_hdr = np.frombuffer(fp_buffer.read(the_type.itemsize*field_length),
+                    current_hdr = np.frombuffer(fp.read(the_type.itemsize*field_length),
                                               dtype=the_type,
                                               count=field_length)
                     key = variable_length_headers[the_type]
@@ -201,12 +200,12 @@ class HRITFileHandler(BaseFileHandler):
                                        the_type.itemsize)
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
-                    current_hdr = np.frombuffer(fp_buffer.read(new_type.itemsize),
+                    current_hdr = np.frombuffer(fp.read(new_type.itemsize),
                                               dtype=new_type,
                                               count=1)[0]
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
-                    current_hdr = np.frombuffer(fp_buffer.read(the_type.itemsize),
+                    current_hdr = np.frombuffer(fp.read(the_type.itemsize),
                                               dtype=the_type,
                                               count=1)[0]
                     self.mda.update(
