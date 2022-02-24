@@ -287,6 +287,7 @@ class generic_open():
     """Context manager for opening either a regular file or a bzip2 file."""
 
     def __init__(self, filename, mode="rb"):
+        """Keep filename and mode."""
         self.filename = filename
         self.mode = mode
 
@@ -300,6 +301,7 @@ class generic_open():
         return self.fp
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Close the file handler."""
         self.fp.close()
 
 

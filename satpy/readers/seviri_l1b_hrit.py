@@ -223,7 +223,6 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
-
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
                                                          (msg_hdr_map,
