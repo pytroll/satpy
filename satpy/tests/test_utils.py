@@ -245,10 +245,10 @@ class TestGetSatPos:
         }
         orb_params = {key: value for key, value in all_orb_params.items() if
                       any(in_prefix in key for in_prefix in included_prefixes)}
-        dataset = xr.DataArray((), attrs={'orbital_parameters': orb_params})
+        data_arr = xr.DataArray((), attrs={'orbital_parameters': orb_params})
 
         with warnings.catch_warnings(record=True) as caught_warnings:
-            lon, lat, alt = get_satpos(dataset, preference=preference)
+            lon, lat, alt = get_satpos(data_arr, preference=preference)
         has_satpos_warnings = any("using projection" in str(msg.message) for msg in caught_warnings)
         expect_warning = included_prefixes == ("projection_",) and preference != "projection"
         if expect_warning:
@@ -256,6 +256,20 @@ class TestGetSatPos:
         else:
             assert not has_satpos_warnings
         assert (lon, lat, alt) == expected_result
+
+    @pytest.mark.parametrize(
+        "attrs",
+        (
+                {},
+                {'orbital_parameters':  {'projection_longitude': 1}},
+                {'satellite_altitude': 1}
+        )
+    )
+    def test_get_satpos_fails_with_informative_error(self, attrs):
+        """Test that get_satpos raises an informative error message."""
+        data_arr = xr.DataArray((), attrs=attrs)
+        with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
+            get_satpos(data_arr)
 
 
 def test_make_fake_scene():

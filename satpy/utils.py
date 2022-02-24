@@ -307,14 +307,18 @@ def get_satpos(
         Geodetic longitude, latitude, altitude
 
     """
-    orb_params = data_arr.attrs['orbital_parameters']
     if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
         raise ValueError(f"Unrecognized satellite coordinate preference: {preference}")
     lonlat_prefixes = ("nadir_", "satellite_actual_", "satellite_nominal_", "projection_")
     alt_prefixes = _get_prefix_order_by_preference(lonlat_prefixes[1:], preference)
     lonlat_prefixes = _get_prefix_order_by_preference(lonlat_prefixes, preference)
-    lon, lat = _get_sat_lonlat(orb_params, lonlat_prefixes)
-    alt = _get_sat_altitude(orb_params, alt_prefixes)
+    try:
+        lon, lat = _get_sat_lonlat(data_arr, lonlat_prefixes)
+        alt = _get_sat_altitude(data_arr, alt_prefixes)
+    except KeyError:
+        raise KeyError("Unable to determine satellite position. Either the "
+                       "reader doesn't provide that information or "
+                       "geolocation datasets were not available.")
     return lon, lat, alt
 
 
@@ -327,7 +331,8 @@ def _get_prefix_order_by_preference(prefixes, preference):
     return preferred_prefixes + nonpreferred_prefixes
 
 
-def _get_sat_altitude(orb_params, key_prefixes):
+def _get_sat_altitude(data_arr, key_prefixes):
+    orb_params = data_arr.attrs["orbital_parameters"]
     alt_keys = [prefix + "altitude" for prefix in key_prefixes]
     try:
         alt = _get_first_available_item(orb_params, alt_keys)
@@ -337,7 +342,8 @@ def _get_sat_altitude(orb_params, key_prefixes):
     return alt
 
 
-def _get_sat_lonlat(orb_params, key_prefixes):
+def _get_sat_lonlat(data_arr, key_prefixes):
+    orb_params = data_arr.attrs["orbital_parameters"]
     lon_keys = [prefix + "longitude" for prefix in key_prefixes]
     lat_keys = [prefix + "latitude" for prefix in key_prefixes]
     try:
