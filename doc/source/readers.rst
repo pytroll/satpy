@@ -151,6 +151,10 @@ time etc. The following attributes are standardized across all readers:
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
   See the :ref:`orbital_parameters` section below for more information.
+* ``time_parameters``: Dictionary of additional time parameters describing the
+  time ranges related to the requests or schedules for when observations
+  should happen and when they actually do. See :ref:`time_metadata` below for
+  details.
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
 
 Note that the above attributes are not necessarily available for each dataset.
@@ -162,25 +166,26 @@ Time Metadata
 
 In addition to the generic ``start_time`` and ``end_time`` pieces of metadata
 there are other time fields that may be provided if the reader supports them.
-These items include:
+These items are stored in a ``time_parameters`` sub-dictionary and they include
+values like:
 
 * ``observation_start_time``: The point in time when a sensor began recording
   for the current data.
 * ``observation_end_time``: Same as ``observation_start_time``, but when data
   has stopped being recorded.
-* ``scheduled_start_time``: The "human friendly" time describing the start of
+* ``nominal_start_time``: The "human friendly" time describing the start of
   the data observation interval or repeat cycle. This time is often on a round
-  minute (seconds=0). Along with the scheduled end time, these times define the
+  minute (seconds=0). Along with the nominal end time, these times define the
   regular interval of the data collection. For example, GOES-16 ABI full disk
   images are collected every 10 minutes (in the common configuration) so
-  ``scheduled_start_time`` and ``scheduled_end_time`` would be 10 minutes apart
+  ``nominal_start_time`` and ``nominal_end_time`` would be 10 minutes apart
   regardless of when the instrument recorded data inside that interval.
-  This time may also be referred to as the repeat cycle, repeat slot or time
-  slot, or nominal time.
-* ``scheduled_end_time``: Same as ``scheduled_start_time``, but the end of the
+  This time may also be referred to as the repeat cycle, repeat slot, or time
+  slot.
+* ``nominal_end_time``: Same as ``nominal_start_time``, but the end of the
   interval.
 
-In general, ``start_time`` and ``end_time`` will be set to the "scheduled"
+In general, ``start_time`` and ``end_time`` will be set to the "nominal"
 time by the reader. This ensures that other Satpy components get a
 consistent time for calculations (ex. generation of solar zenith angles)
 and can be reused between bands.

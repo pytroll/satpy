@@ -269,6 +269,17 @@ class TestAHIHSDFileHandler:
                 assert key in actual_obs_params
                 np.testing.assert_allclose(value, actual_obs_params[key])
 
+            time_params_exp = {
+                'nominal_start_time': datetime(2018, 10, 22, 3, 0, 0, 0),
+                'nominal_end_time': datetime(2018, 10, 22, 3, 0, 0, 0),
+                'observation_start_time': datetime(2018, 10, 22, 3, 0, 20, 596896),
+                'observation_end_time': datetime(2018, 10, 22, 3, 0, 53, 947296),
+            }
+            actual_time_params = im.attrs['time_parameters']
+            for key, value in time_params_exp.items():
+                assert key in actual_time_params
+                assert value == actual_time_params[key]
+
             # Test if masking space pixels disables with appropriate flag
             fh.mask_space = False
             with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
@@ -307,27 +318,27 @@ class TestAHIHSDFileHandler:
             assert fh.end_time == datetime(2018, 10, 22, 3, 0)
             assert fh.observation_start_time == datetime(2018, 10, 22, 3, 0, 20, 596896)
             assert fh.observation_end_time == datetime(2018, 10, 22, 3, 0, 53, 947296)
-            assert fh.scheduled_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-            assert fh.scheduled_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
 
     def test_scanning_frequencies(self):
         """Test scanning frequencies."""
         with _fake_hsd_handler() as fh:
             fh.observation_area = 'JP04'
-            assert fh.scheduled_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            assert fh.scheduled_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
             fh.observation_area = 'R304'
-            assert fh.scheduled_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
-            assert fh.scheduled_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
             fh.observation_area = 'R420'
-            assert fh.scheduled_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            assert fh.scheduled_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
             fh.observation_area = 'R520'
-            assert fh.scheduled_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
-            assert fh.scheduled_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
             fh.observation_area = 'FLDK'
-            assert fh.scheduled_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
-            assert fh.scheduled_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""

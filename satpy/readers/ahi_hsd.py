@@ -24,14 +24,16 @@ References:
 Time Information
 ****************
 
-AHI observations use the idea of a "scheduled" time and an "observation" time.
-The "scheduled" time is when the instrument was told to record the data,
-usually at a specific and consistent interval. The "observation" time is when
-the data was actually observed. Scheduled time can be accessed from the
-``scheduled_start_time`` and ``scheduled_end_time`` metadata keys and
+AHI observations use the idea of a "nominal" time and an "observation" time.
+The "nominal" time or repeat cycle is the overall window when the instrument
+can record data, usually at a specific and consistent interval. The
+"observation" time is when the data was actually observed inside the nominal
+window. These two times are stored in a sub-dictionary in the metadata calls
+``time_parameters``. Nominal time can be accessed from the
+``nominal_start_time`` and ``nominal_end_time`` metadata keys and
 observation time from the ``observation_start_time`` and
-``observation_end_time`` keys as well as the ``start_time`` and ``end_time``
-keys.
+``observation_end_time`` keys. Observation time can also be accessed from the
+parent (``.attrs``) dictionary as the ``start_time`` and ``end_time`` keys.
 
 Satellite Position
 ******************
@@ -406,13 +408,13 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
-        """Get the scheduled start time."""
-        return self.scheduled_start_time
+        """Get the nominal start time."""
+        return self.nominal_start_time
 
     @property
     def end_time(self):
-        """Get the scheduled end time."""
-        return self.scheduled_start_time
+        """Get the nominal end time."""
+        return self.nominal_start_time
 
     @property
     def observation_start_time(self):
@@ -425,17 +427,17 @@ class AHIHSDFileHandler(BaseFileHandler):
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_end_time']))
 
     @property
-    def scheduled_start_time(self):
-        """Time this band was scheduled to be recorded."""
-        return self._modify_observation_time_for_schedule(self.observation_start_time)
+    def nominal_start_time(self):
+        """Time this band was nominally to be recorded."""
+        return self._modify_observation_time_for_nominal(self.observation_start_time)
 
     @property
-    def scheduled_end_time(self):
-        """Get the scheduled end time."""
-        return self._modify_observation_time_for_schedule(self.observation_end_time)
+    def nominal_end_time(self):
+        """Get the nominal end time."""
+        return self._modify_observation_time_for_nominal(self.observation_end_time)
 
-    def _modify_observation_time_for_schedule(self, observation_time):
-        """Round observation time to a nominal scheduled time based on known observation frequency.
+    def _modify_observation_time_for_nominal(self, observation_time):
+        """Round observation time to a nominal time based on known observation frequency.
 
         AHI observations are split into different sectors including Full Disk
         (FLDK), Japan (JP) sectors, and smaller regional (R) sectors. Each
@@ -649,12 +651,14 @@ class AHIHSDFileHandler(BaseFileHandler):
             resolution='resolution',
             id=key,
             name=key['name'],
-            scheduled_start_time=self.scheduled_start_time,
-            scheduled_end_time=self.scheduled_end_time,
-            observation_start_time=self.observation_start_time,
-            observation_end_time=self.observation_end_time,
             platform_name=self.platform_name,
             sensor=self.sensor,
+            time_parameters=dict(
+                nominal_start_time=self.nominal_start_time,
+                nominal_end_time=self.nominal_end_time,
+                observation_start_time=self.observation_start_time,
+                observation_end_time=self.observation_end_time,
+            ),
             orbital_parameters={
                 'projection_longitude': float(self.proj_info['sub_lon']),
                 'projection_latitude': 0.,
