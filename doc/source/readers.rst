@@ -219,12 +219,6 @@ For *geostationary* satellites it is described using the following scalar attrib
     should be used to compute lat/lon coordinates. Note that the projection center can differ
     considerably from the actual satellite position. For example MSG-1 was at times positioned
     at 3.4 degrees west, while the image data was re-projected to 0 degrees.
-  * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at
-    the time of observation in geodetic coordinates.
-
-  .. note:: Longitudes and latitudes are given in degrees, altitude in meters. For use in
-            pyorbital, the altitude has to be converted to kilometers, see for example
-            :func:`pyorbital.orbital.get_observer_look`.
 
 For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
 the swath as ancillary datasets. Additional metadata related to the satellite position includes:
