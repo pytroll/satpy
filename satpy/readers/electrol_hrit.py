@@ -287,9 +287,6 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res.attrs['wavelength'] = info['wavelength']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'msu-gs'
-        res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = 0
-        res.attrs['satellite_altitude'] = 35785831.00
         res.attrs['orbital_parameters'] = {
             'satellite_nominal_longitude': self.mda['orbital_parameters']['satellite_nominal_longitude'],
             'satellite_nominal_latitude': 0.,
