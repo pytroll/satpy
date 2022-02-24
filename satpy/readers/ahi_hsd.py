@@ -39,7 +39,7 @@ Satellite Position
 As discussed in the :ref:`orbital_parameters` documentation, a satellite
 position can be described by a specific "actual" position, a "nominal"
 position, a "projection" position, or sometimes a "nadir" position. Not all
-readers are able to produce all of these times. In the case of AHI HSD data
+readers are able to produce all of these positions. In the case of AHI HSD data
 we have an "actual" and "projection" position. For a lot of sensors/readers
 though, the "actual" position values do not change between bands or segments
 of the same time step (repeat cycle). AHI HSD files contain varying values for
