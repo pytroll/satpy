@@ -185,6 +185,10 @@ time by the reader. This ensures that other Satpy components get a
 consistent time for calculations (ex. generation of solar zenith angles)
 and can be reused between bands.
 
+See the :ref:`data_array_coordinates` section below for more information on
+time information that may show up as a per-element/row "coordinate" on the
+DataArray (ex. acquisition time) instead of as metadata.
+
 .. _orbital_parameters:
 
 Orbital Parameters
@@ -221,6 +225,8 @@ For *polar orbiting* satellites the readers usually provide coordinates and view
 the swath as ancillary datasets. Additional metadata related to the satellite position includes:
 
   * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+
+.. _data_array_coordinates:
 
 Coordinates
 ===========
