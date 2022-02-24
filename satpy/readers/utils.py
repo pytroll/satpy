@@ -303,7 +303,6 @@ class generic_open():
         self.fp.close()
 
 
-
 def bbox(img):
     """Find the bounding box around nonzero elements in the given array.
 

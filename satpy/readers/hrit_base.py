@@ -169,7 +169,6 @@ class HRITFileHandler(BaseFileHandler):
             self.mda = {}
             self._get_hd(hdr_info)
 
-
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
 
@@ -186,8 +185,8 @@ class HRITFileHandler(BaseFileHandler):
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
                     current_hdr = np.frombuffer(fp.read(the_type.itemsize*field_length),
-                                              dtype=the_type,
-                                              count=field_length)
+                                                dtype=the_type,
+                                                count=field_length)
                     key = variable_length_headers[the_type]
                     if key in self.mda:
                         if not isinstance(self.mda[key], list):
@@ -201,13 +200,13 @@ class HRITFileHandler(BaseFileHandler):
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
                     current_hdr = np.frombuffer(fp.read(new_type.itemsize),
-                                              dtype=new_type,
-                                              count=1)[0]
+                                                dtype=new_type,
+                                                count=1)[0]
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
                     current_hdr = np.frombuffer(fp.read(the_type.itemsize),
-                                              dtype=the_type,
-                                              count=1)[0]
+                                                dtype=the_type,
+                                                count=1)[0]
                     self.mda.update(
                         dict(zip(current_hdr.dtype.names, current_hdr)))
 
