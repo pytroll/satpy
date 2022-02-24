@@ -175,6 +175,8 @@ These items include:
   images are collected every 10 minutes (in the common configuration) so
   ``scheduled_start_time`` and ``scheduled_end_time`` would be 10 minutes apart
   regardless of when the instrument recorded data inside that interval.
+  This time may also be referred to as the repeat cycle, repeat slot or time
+  slot, or nominal time.
 * ``scheduled_end_time``: Same as ``scheduled_start_time``, but the end of the
   interval.
 

@@ -229,20 +229,20 @@ _NAVIGATION_CORRECTION_INFO_TYPE = np.dtype([
 ])
 
 # Navigation correction sub-info
-_NAVCORR_SUBINFO_TYPE = np.dtype([
+_NAVIGATION_CORRECTION_SUBINFO_TYPE = np.dtype([
     ("line_number_after_rotation", "<u2"),
     ("shift_amount_for_column_direction", "f4"),
     ("shift_amount_for_line_direction", "f4"),
 ])
 
 # 9 Observation time information block
-_OBS_TIME_INFO_TYPE = np.dtype([
+_OBSERVATION_TIME_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
     ("blocklength", "<u2"),
     ("number_of_observation_times", "<u2"),
 ])
 
-_OBS_LINE_TIME_INFO_TYPE = np.dtype([
+_OBSERVATION_LINE_TIME_INFO_TYPE = np.dtype([
     ("line_number", "<u2"),
     ("observation_time", "f8"),
 ])
@@ -427,14 +427,14 @@ class AHIHSDFileHandler(BaseFileHandler):
     @property
     def scheduled_start_time(self):
         """Time this band was scheduled to be recorded."""
-        return self._modify_obs_time_for_schedule(self.observation_start_time)
+        return self._modify_observation_time_for_schedule(self.observation_start_time)
 
     @property
     def scheduled_end_time(self):
         """Get the scheduled end time."""
-        return self._modify_obs_time_for_schedule(self.observation_end_time)
+        return self._modify_observation_time_for_schedule(self.observation_end_time)
 
-    def _modify_obs_time_for_schedule(self, obs_time):
+    def _modify_observation_time_for_schedule(self, observation_time):
         """Round observation time to a nominal scheduled time based on known observation frequency.
 
         AHI observations are split into different sectors including Full Disk
@@ -451,9 +451,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         if self.observation_area == 'FLDK':
             dt = 0
         else:
-            observation_freq_minutes = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
-            dt = observation_freq_minutes * (int(self.observation_area[2:]) - 1)
-        return obs_time.replace(
+            observation_frequency_seconds = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
+            dt = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
+        return observation_time.replace(
             hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
             second=dt % 60, microsecond=0)
 
@@ -555,20 +555,20 @@ class AHIHSDFileHandler(BaseFileHandler):
         ncorrs = header["block8"]['numof_correction_info_data'][0]
         corrections = []
         for _i in range(ncorrs):
-            corrections.append(np.fromfile(fp_, dtype=_NAVCORR_SUBINFO_TYPE, count=1))
+            corrections.append(np.fromfile(fp_, dtype=_NAVIGATION_CORRECTION_SUBINFO_TYPE, count=1))
         fpos = fpos + int(header['block8']['blocklength'])
         self._check_fpos(fp_, fpos, 40, 'block8')
         fp_.seek(fpos, 0)
         header['navigation_corrections'] = corrections
         header["block9"] = np.fromfile(fp_,
-                                       dtype=_OBS_TIME_INFO_TYPE,
+                                       dtype=_OBSERVATION_TIME_INFO_TYPE,
                                        count=1)
         numobstimes = header["block9"]['number_of_observation_times'][0]
 
         lines_and_times = []
         for _i in range(numobstimes):
             lines_and_times.append(np.fromfile(fp_,
-                                               dtype=_OBS_LINE_TIME_INFO_TYPE,
+                                               dtype=_OBSERVATION_LINE_TIME_INFO_TYPE,
                                                count=1))
         header['observation_time_information'] = lines_and_times
         fpos = fpos + int(header['block9']['blocklength'])
