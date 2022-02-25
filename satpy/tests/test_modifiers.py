@@ -540,6 +540,40 @@ class TestAngleGeneration:
         args = gol.call_args[0]
         assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
 
+    def test_get_angles_satpos_preference(self):
+        """Test that 'actual' satellite position is used for generating sensor angles."""
+        from satpy.modifiers.angles import get_angles
+
+        input_data1 = _get_angle_test_data()
+        # add additional satellite position metadata
+        input_data1.attrs["orbital_parameters"]["nadir_longitude"] = 9.0
+        input_data1.attrs["orbital_parameters"]["nadir_latitude"] = 0.01
+        input_data1.attrs["orbital_parameters"]["satellite_actual_longitude"] = 9.5
+        input_data1.attrs["orbital_parameters"]["satellite_actual_latitude"] = 0.005
+        input_data1.attrs["orbital_parameters"]["satellite_actual_altitude"] = 12345679
+        input_data2 = input_data1.copy(deep=True)
+        input_data2.attrs["orbital_parameters"]["nadir_longitude"] = 9.1
+        input_data2.attrs["orbital_parameters"]["nadir_latitude"] = 0.02
+        input_data2.attrs["orbital_parameters"]["satellite_actual_longitude"] = 9.5
+        input_data2.attrs["orbital_parameters"]["satellite_actual_latitude"] = 0.005
+        input_data2.attrs["orbital_parameters"]["satellite_actual_altitude"] = 12345679
+
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
+            angles1 = get_angles(input_data1)
+            da.compute(angles1)
+            angles2 = get_angles(input_data2)
+            da.compute(angles2)
+
+        # get_observer_look should have been called once per array chunk
+        assert gol.call_count == input_data1.data.blocks.size * 2
+        exp_call = mock.call(9.5, 0.005, 12345.679, input_data1.attrs["start_time"], mock.ANY, mock.ANY, 0)
+        all_same_calls = [exp_call] * gol.call_count
+        gol.assert_has_calls(all_same_calls)
+        # the dask arrays should have the same name to prove they are the same computation
+        for angle_arr1, angle_arr2 in zip(angles1, angles2):
+            assert angle_arr1.data.name == angle_arr2.data.name
+
     @pytest.mark.parametrize("force_bad_glob", [False, True])
     @pytest.mark.parametrize(
         ("input2_func", "exp_equal_sun", "exp_num_zarr"),

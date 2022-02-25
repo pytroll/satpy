@@ -337,7 +337,7 @@ def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: dat
 
 
 def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
-    sat_lon, sat_lat, sat_alt = get_satpos(data_arr)
+    sat_lon, sat_lat, sat_alt = get_satpos(data_arr, preference="actual")
     area_def = data_arr.attrs["area"]
     sata, satz = _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
                                                  data_arr.attrs["start_time"],
