@@ -141,45 +141,91 @@ time etc. The following attributes are standardized across all readers:
 
 * ``name``, and other identifying metadata keys: See :doc:`dev_guide/satpy_internals`.
 * ``start_time``: Left boundary of the time interval covered by the dataset.
+  For more information see the :ref:`time_metadata` section below.
 * ``end_time``: Right boundary of the time interval covered by the dataset.
+  For more information see the :ref:`time_metadata` section below.
 * ``area``: :class:`~pyresample.geometry.AreaDefinition` or
   :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
   projected data and Swaths when data must be described by individual longitude/latitude
   coordinates. See the Coordinates section below.
 * ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
-
-  * For *geostationary* satellites it is described using the following scalar attributes:
-
-    * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
-      time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
-      surface of the ellipsoid).
-    * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
-      confined area in which the satellite is actively maintained in using maneuvres). Inbetween
-      major maneuvres, when the satellite is permanently moved, the nominal position is constant.
-    * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
-      earth. May differ from the actual satellite position, if the instrument is pointing slightly
-      off the axis (satellite, earth-center). If available, this should be used to compute viewing
-      angles etc. Otherwise, use the actual satellite position.
-    * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
-      should be used to compute lat/lon coordinates. Note that the projection center can differ
-      considerably from the actual satellite position. For example MSG-1 was at times positioned
-      at 3.4 degrees west, while the image data was re-projected to 0 degrees.
-    * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at
-      the time of observation in geodetic coordinates.
-
-    .. note:: Longitudes and latitudes are given in degrees, altitude in meters. For use in
-              pyorbital, the altitude has to be converted to kilometers, see for example
-              :func:`pyorbital.orbital.get_observer_look`.
-
-  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
-    the swath as ancillary datasets. Additional metadata related to the satellite position include:
-
-      * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
-
+  See the :ref:`orbital_parameters` section below for more information.
+* ``time_parameters``: Dictionary of additional time parameters describing the
+  time ranges related to the requests or schedules for when observations
+  should happen and when they actually do. See :ref:`time_metadata` below for
+  details.
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
 
 Note that the above attributes are not necessarily available for each dataset.
+
+.. _time_metadata:
+
+Time Metadata
+-------------
+
+In addition to the generic ``start_time`` and ``end_time`` pieces of metadata
+there are other time fields that may be provided if the reader supports them.
+These items are stored in a ``time_parameters`` sub-dictionary and they include
+values like:
+
+* ``observation_start_time``: The point in time when a sensor began recording
+  for the current data.
+* ``observation_end_time``: Same as ``observation_start_time``, but when data
+  has stopped being recorded.
+* ``nominal_start_time``: The "human friendly" time describing the start of
+  the data observation interval or repeat cycle. This time is often on a round
+  minute (seconds=0). Along with the nominal end time, these times define the
+  regular interval of the data collection. For example, GOES-16 ABI full disk
+  images are collected every 10 minutes (in the common configuration) so
+  ``nominal_start_time`` and ``nominal_end_time`` would be 10 minutes apart
+  regardless of when the instrument recorded data inside that interval.
+  This time may also be referred to as the repeat cycle, repeat slot, or time
+  slot.
+* ``nominal_end_time``: Same as ``nominal_start_time``, but the end of the
+  interval.
+
+In general, ``start_time`` and ``end_time`` will be set to the "nominal"
+time by the reader. This ensures that other Satpy components get a
+consistent time for calculations (ex. generation of solar zenith angles)
+and can be reused between bands.
+
+See the :ref:`data_array_coordinates` section below for more information on
+time information that may show up as a per-element/row "coordinate" on the
+DataArray (ex. acquisition time) instead of as metadata.
+
+.. _orbital_parameters:
+
+Orbital Parameters
+------------------
+
+Orbital parameters describe the position of the satellite. As such they
+typically come in a few "flavors" for the common types of orbits a satellite
+may have.
+
+For *geostationary* satellites it is described using the following scalar attributes:
+
+  * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
+    time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
+    surface of the ellipsoid).
+  * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
+    confined area in which the satellite is actively maintained in using maneuvers). Inbetween
+    major maneuvers, when the satellite is permanently moved, the nominal position is constant.
+  * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
+    earth. May differ from the actual satellite position, if the instrument is pointing slightly
+    off the axis (satellite, earth-center). If available, this should be used to compute viewing
+    angles etc. Otherwise, use the actual satellite position.
+  * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
+    should be used to compute lat/lon coordinates. Note that the projection center can differ
+    considerably from the actual satellite position. For example MSG-1 was at times positioned
+    at 3.4 degrees west, while the image data was re-projected to 0 degrees.
+
+For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
+the swath as ancillary datasets. Additional metadata related to the satellite position includes:
+
+  * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+
+.. _data_array_coordinates:
 
 Coordinates
 ===========

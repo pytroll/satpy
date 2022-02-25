@@ -500,6 +500,11 @@ needs to implement a few methods:
 
 On top of that, two attributes need to be defined: ``start_time`` and
 ``end_time``, that define the start and end times of the sensing.
+See the :ref:`time_metadata` section for a description of the different
+times that Satpy readers typically use and what times should be used
+for the ``start_time`` and ``end_time``. Note that these properties will
+be assigned to the ``start_time`` and ``end_time`` metadata of any DataArrays
+returned by ``get_dataset``, any existing values will be overwritten.
 
 If you are writing a file handler for more common formats like HDF4, HDF5, or
 NetCDF4 you may want to consider using the utility base classes for each:
