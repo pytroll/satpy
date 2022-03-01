@@ -199,8 +199,8 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        'file_type': 'test_file_type'})
         # Checks that the function returns None
         expected_sum = np.empty((100, 10))
-        expected_sum[:] = np.log10(10 ** 2 + 10 ** 1)
-        self.assertTrue(np.allclose(dataset.values, expected_sum))
+        expected_sum[:] = np.log10(10**2 + 10**1)
+        np.testing.assert_allclose(dataset.values, expected_sum)
 
     def test_dataset_with_scalar(self):
         """Test the execution of the get_dataset function for scalar values."""
@@ -274,9 +274,9 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         """Test all basic functionalities."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
 
-        self.assertEqual(self.fh.spacecraft_name, 'test_fci_platform')
-        self.assertEqual(self.fh.sensor_name, 'test_fci_data_source')
-        self.assertEqual(self.fh.ssp_lon, 0.0)
+        assert self.fh.spacecraft_name == 'test_fci_platform'
+        assert self.fh.sensor_name == 'test_fci_data_source'
+        assert self.fh.ssp_lon == 0.0
 
         global_attributes = self.fh._get_global_attributes()
 
@@ -299,7 +299,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        'file_key': 'test_values',
                                        'fill_value': -999, })
         expected_dataset = self._get_unique_array(range(8), range(6))
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        np.testing.assert_allclose(dataset.values, expected_dataset)
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
