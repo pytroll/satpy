@@ -297,7 +297,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        'file_key': 'test_values',
                                        'fill_value': -999, })
         expected_dataset = self._get_unique_array(range(8), range(6))
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        np.testing.assert_allclose(dataset.values, expected_dataset)
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
