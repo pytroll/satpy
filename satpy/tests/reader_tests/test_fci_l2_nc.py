@@ -101,8 +101,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             mtg_geos_projection.inverse_flattering = 298.257223563
             mtg_geos_projection.perspective_point_height = 35786400.
 
-        self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={}
-                                     )
+        self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={})
 
     def tearDown(self):
         """Remove the previously created test file."""
