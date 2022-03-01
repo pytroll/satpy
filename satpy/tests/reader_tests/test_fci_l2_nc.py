@@ -25,6 +25,7 @@ from contextlib import suppress
 from unittest import mock
 
 import numpy as np
+import pytest
 from netCDF4 import Dataset
 from pyresample import geometry
 
@@ -101,8 +102,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             mtg_geos_projection.inverse_flattering = 298.257223563
             mtg_geos_projection.perspective_point_height = 35786400.
 
-        self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={}
-                                     )
+        self.fh = FciL2NCFileHandler(filename=self.test_file, filename_info={}, filetype_info={})
 
     def tearDown(self):
         """Remove the previously created test file."""
@@ -158,8 +158,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(args[5], 100)
 
     def test_dataset(self):
-        """Test the execution of the get_dataset function."""
-        # Checks the correct execution of the get_dataset function with a valid file_key
+        """Test the correct execution of the get_dataset function with a valid file_key."""
         dataset = self.fh.get_dataset(make_dataid(name='test_one_layer', resolution=2000),
                                       {'name': 'test_one_layer',
                                        'file_key': 'test_one_layer',
@@ -171,7 +170,8 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
 
-        # Checks the correct execution of the get_dataset function with a valid file_key & layer
+    def test_dataset_with_layer(self):
+        """Check the correct execution of the get_dataset function with a valid file_key & layer."""
         dataset = self.fh.get_dataset(make_dataid(name='test_two_layers', resolution=2000),
                                       {'name': 'test_two_layers',
                                        'file_key': 'test_two_layers', 'layer': 1,
@@ -181,17 +181,17 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(dataset.attrs['units'], None)
         self.assertEqual(dataset.attrs['spacecraft_name'], 'test_platform')
 
-        # Checks the correct execution of the get_dataset function with an invalid file_key
+    def test_dataset_with_invalid_filekey(self):
+        """Test the correct execution of the get_dataset function with an invalid file_key."""
         invalid_dataset = self.fh.get_dataset(make_dataid(name='test_invalid', resolution=2000),
                                               {'name': 'test_invalid',
                                                'file_key': 'test_invalid',
                                                'fill_value': -999,
                                                'file_type': 'test_file_type'})
-        # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
 
-        # Checks the correct execution of the get_dataset function when computing total optical thickness by summing up
-        # the contributions from two layers (in log10 space)
+    def test_dataset_with_total_cot(self):
+        """Test the correct execution of the get_dataset function for total COT (add contributions from two layers)."""
         dataset = self.fh.get_dataset(make_dataid(name='retrieved_cloud_optical_thickness', resolution=2000),
                                       {'name': 'retrieved_cloud_optical_thickness',
                                        'file_key': 'test_two_layers',
@@ -199,10 +199,10 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        'file_type': 'test_file_type'})
         # Checks that the function returns None
         expected_sum = np.empty((100, 10))
-        expected_sum[:] = np.log10(10**2 + 10**1)
+        expected_sum[:] = np.log10(10 ** 2 + 10 ** 1)
         self.assertTrue(np.allclose(dataset.values, expected_sum))
 
-    def test_dataset_scalar(self):
+    def test_dataset_with_scalar(self):
         """Test the execution of the get_dataset function for scalar values."""
         # Checks returned scalar value
         dataset = self.fh.get_dataset(make_dataid(name='test_scalar'),
@@ -212,7 +212,8 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         self.assertEqual(dataset.values, 99.)
 
         # Checks that no AreaDefintion is implemented for scalar values
-        self.assertRaises(NotImplementedError, self.fh.get_area_def, None)
+        with pytest.raises(NotImplementedError):
+            self.fh.get_area_def(None)
 
 
 class TestFciL2NCSegmentFileHandler(unittest.TestCase):
@@ -288,8 +289,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         }
         self.assertEqual(global_attributes, expected_global_attributes)
 
-    def test_dataset_without_adef(self):
-        """Test the execution of the get_dataset function."""
+    def test_dataset(self):
+        """Test the correct execution of the get_dataset function with valid file_key."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
 
         # Checks the correct execution of the get_dataset function with a valid file_key
@@ -303,6 +304,14 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
 
+        # Checks that no AreaDefintion is implemented
+        with pytest.raises(NotImplementedError):
+            self.fh.get_area_def(None)
+
+    def test_dataset_with_invalid_filekey(self):
+        """Test the correct execution of the get_dataset function with an invalid file_key."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+
         # Checks the correct execution of the get_dataset function with an invalid file_key
         invalid_dataset = self.fh.get_dataset(make_dataid(name='test_invalid', resolution=32000),
                                               {'name': 'test_invalid',
@@ -311,11 +320,8 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         # Checks that the function returns None
         self.assertEqual(invalid_dataset, None)
 
-        # Checks that no AreaDefintion is implemented
-        self.assertRaises(NotImplementedError, self.fh.get_area_def, None)
-
     def test_dataset_with_adef(self):
-        """Test the execution of the get_dataset function."""
+        """Test the correct execution of the get_dataset function with `with_area_definition=True`."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={},
                                             with_area_definition=True)
 
@@ -335,14 +341,16 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         adef = self.fh.get_area_def(None)
         self.assertEqual(adef, SEG_AREA_DEF)
 
-        # Checks the correct execution of the get_dataset function with
-        # dimensions that do not match the expected AreaDefinition.
+    def test_dataset_with_adef_and_wrongs_dims(self):
+        """Test the correct execution of the get_dataset function with dims that don't match expected AreaDefinition."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={},
+                                            with_area_definition=True)
         self.assertRaises(NotImplementedError, self.fh.get_dataset,
                           make_dataid(name='test_wrong_dims', resolution=6000),
                           {'name': 'test_wrong_dims', 'file_key': 'test_values', 'fill_value': -999}
                           )
 
-    def test_dataset_scalar(self):
+    def test_dataset_with_scalar(self):
         """Test the execution of the get_dataset function for scalar values."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
         # Checks returned scalar value
@@ -353,22 +361,13 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         self.assertEqual(dataset.values, 99.)
 
         # Checks that no AreaDefintion is implemented for scalar values
-        self.assertRaises(NotImplementedError, self.fh.get_area_def, None)
+        with pytest.raises(NotImplementedError):
+            self.fh.get_area_def(None)
 
-    def test_dataset_slicing(self):
-        """Test the execution of the _slice_dataset function."""
+    def test_dataset_slicing_catid(self):
+        """Test the correct execution of the _slice_dataset function with 'category_id' set."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
 
-        # Checks the correct execution of the _slice_dataset function with 'channel_id' and 'category_id' set
-        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
-                                      {'name': 'test_values',
-                                       'file_key': 'test_values',
-                                       'fill_value': -999,
-                                       'channel_id': 0, 'category_id': 1})
-        expected_dataset = self._get_unique_array(0, 1)
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
-
-        # Checks the correct execution of the _slice_dataset function with 'category_id' set
         dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
                                       {'name': 'test_values',
                                        'file_key': 'test_values',
@@ -377,7 +376,22 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         expected_dataset = self._get_unique_array(range(8), 5)
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
 
-        # Checks the correct execution of the _slice_dataset function with 'vis_channel_id' and 'category_id' set
+    def test_dataset_slicing_chid_catid(self):
+        """Test the correct execution of the _slice_dataset function with 'channel_id' and 'category_id' set."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+
+        dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
+                                      {'name': 'test_values',
+                                       'file_key': 'test_values',
+                                       'fill_value': -999,
+                                       'channel_id': 0, 'category_id': 1})
+        expected_dataset = self._get_unique_array(0, 1)
+        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+
+    def test_dataset_slicing_visid_catid(self):
+        """Test the correct execution of the _slice_dataset function with 'vis_channel_id' and 'category_id' set."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+
         self.fh.nc = self.fh.nc.rename_dims({'number_of_channels': 'number_of_vis_channels'})
         dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
                                       {'name': 'test_values',
@@ -387,8 +401,11 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         expected_dataset = self._get_unique_array(3, 3)
         self.assertTrue(np.allclose(dataset.values, expected_dataset))
 
-        # Checks the correct execution of the _slice_dataset function with 'ir_channel_id' set
-        self.fh.nc = self.fh.nc.rename_dims({'number_of_vis_channels': 'number_of_ir_channels'})
+    def test_dataset_slicing_irid(self):
+        """Test the correct execution of the _slice_dataset function with 'ir_channel_id' set."""
+        self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
+
+        self.fh.nc = self.fh.nc.rename_dims({'number_of_channels': 'number_of_ir_channels'})
         dataset = self.fh.get_dataset(make_dataid(name='test_values', resolution=32000),
                                       {'name': 'test_values',
                                        'file_key': 'test_values',
