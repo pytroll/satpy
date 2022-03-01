@@ -199,7 +199,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # Checks that the function returns None
         expected_sum = np.empty((100, 10))
         expected_sum[:] = np.log10(10**2 + 10**1)
-        self.assertTrue(np.allclose(dataset.values, expected_sum))
+        np.testing.assert_allclose(dataset.values, expected_sum)
 
     def test_dataset_scalar(self):
         """Test the execution of the get_dataset function for scalar values."""
