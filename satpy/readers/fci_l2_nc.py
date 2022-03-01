@@ -302,6 +302,11 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self.nlines = self.nc['number_of_FoR_rows'].size
         self.ncols = self.nc['number_of_FoR_cols'].size
         self.with_adef = with_area_definition
+        self.asr_dims = {
+            'number_of_categories': 'category_id', 'number_of_channels': 'channel_id',
+            'number_of_vis_channels': 'vis_channel_id', 'number_of_ir_channels': 'ir_channel_id',
+            'number_test': 'test_id',
+        }
 
     def get_area_def(self, key):
         """Return the area definition."""
@@ -321,7 +326,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
             return None
 
-        if any(dim in dataset_info.keys() for dim in ['category_id', 'channel_id', 'vis_channel_id', 'ir_channel_id']):
+        if any(dim_id in dataset_info.keys() for dim_id in self.asr_dims.values()):
             variable = self._slice_dataset(variable, dataset_info)
 
         if self.with_adef and var_key not in ['longitude', 'latitude',
@@ -389,31 +394,12 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
 
         return area_extent
 
-    @staticmethod
-    def _slice_dataset(variable, dataset_info):
+    def _slice_dataset(self, variable, dataset_info):
         """Slice data if dimension layers have been provided in yaml-file."""
-        if 'number_of_categories' in variable.dims:
-            cat_id = dataset_info.get('category_id', None)
-            if cat_id is not None:
-                logger.debug('Selecting category-id %i.' % cat_id)
-                variable = variable.sel(number_of_categories=cat_id)
-
-        if 'number_of_channels' in variable.dims:
-            channel_id = dataset_info.get('channel_id', None)
-            if channel_id is not None:
-                logger.debug('Selecting FCI channel-id %i.' % channel_id)
-                variable = variable.sel(number_of_channels=channel_id)
-
-        if 'number_of_vis_channels' in variable.dims:
-            channel_id = dataset_info.get('vis_channel_id', None)
-            if channel_id is not None:
-                logger.debug('Selecting FCI VIS/NIR channel-id %i.' % channel_id)
-                variable = variable.sel(number_of_vis_channels=channel_id, )
-
-        if 'number_of_ir_channels' in variable.dims:
-            channel_id = dataset_info.get('ir_channel_id', None)
-            if channel_id is not None:
-                logger.debug('Selecting FCI IR channel-id %i.' % channel_id)
-                variable = variable.sel(number_of_ir_channels=channel_id)
+        slice_dict = {dim: dataset_info[dim_id] for (dim, dim_id) in self.asr_dims.items()
+                      if dim_id in dataset_info.keys() and dim in variable.dims}
+        for dim, dim_ind in slice_dict.items():
+            logger.debug(f"Extracting {self.asr_dims[dim]}-layer {dim_ind} from dimension '{dim}'.")
+        variable = variable.sel(slice_dict)
 
         return variable
