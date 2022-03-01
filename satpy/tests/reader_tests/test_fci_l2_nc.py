@@ -272,9 +272,9 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         """Test all basic functionalities."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={})
 
-        self.assertEqual(self.fh.spacecraft_name, 'test_fci_platform')
-        self.assertEqual(self.fh.sensor_name, 'test_fci_data_source')
-        self.assertEqual(self.fh.ssp_lon, 0.0)
+        assert self.fh.spacecraft_name == 'test_fci_platform'
+        assert self.fh.sensor_name == 'test_fci_data_source'
+        assert self.fh.ssp_lon == 0.0
 
         global_attributes = self.fh._get_global_attributes()
 
