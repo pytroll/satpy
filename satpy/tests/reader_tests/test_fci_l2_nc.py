@@ -137,7 +137,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # Asserts that the make_ext function was called with the correct arguments
         me_.assert_called_once()
         args, kwargs = me_.call_args
-        self.assertTrue(np.allclose(args, [-0.0, -515.6620, 5672.28217, 0.0, 35786400.]))
+        np.testing.assert_allclose(args, [-0.0, -515.6620, 5672.28217, 0.0, 35786400.])
 
         proj_dict = {'a': 6378137.,
                      'lon_0': 0.0,
@@ -165,7 +165,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        'fill_value': -999,
                                        'file_type': 'test_file_type'})
 
-        self.assertTrue(np.allclose(dataset.values, np.ones((100, 10))))
+        np.testing.assert_allclose(dataset.values, np.ones((100, 10)))
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
@@ -177,7 +177,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
                                        'file_key': 'test_two_layers', 'layer': 1,
                                        'fill_value': -999,
                                        'file_type': 'test_file_type'})
-        self.assertTrue(np.allclose(dataset.values, 2 * np.ones((100, 10))))
+        np.testing.assert_allclose(dataset.values, 2 * np.ones((100, 10)))
         self.assertEqual(dataset.attrs['units'], None)
         self.assertEqual(dataset.attrs['spacecraft_name'], 'test_platform')
 
@@ -332,7 +332,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        'fill_value': -999,
                                        'coordinates': ('test_lon', 'test_lat'), })
         expected_dataset = self._get_unique_array(range(8), range(6))
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        np.testing.assert_allclose(dataset.values, expected_dataset)
         self.assertEqual(dataset.attrs['test_attr'], 'attr')
         self.assertEqual(dataset.attrs['units'], 'test_units')
         self.assertEqual(dataset.attrs['fill_value'], -999)
@@ -345,10 +345,10 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
         """Test the correct execution of the get_dataset function with dims that don't match expected AreaDefinition."""
         self.fh = FciL2NCSegmentFileHandler(filename=self.seg_test_file, filename_info={}, filetype_info={},
                                             with_area_definition=True)
-        self.assertRaises(NotImplementedError, self.fh.get_dataset,
-                          make_dataid(name='test_wrong_dims', resolution=6000),
-                          {'name': 'test_wrong_dims', 'file_key': 'test_values', 'fill_value': -999}
-                          )
+        with pytest.raises(NotImplementedError):
+            self.fh.get_dataset(make_dataid(name='test_wrong_dims', resolution=6000),
+                                {'name': 'test_wrong_dims', 'file_key': 'test_values', 'fill_value': -999}
+                                )
 
     def test_dataset_with_scalar(self):
         """Test the execution of the get_dataset function for scalar values."""
@@ -374,7 +374,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        'fill_value': -999,
                                        'category_id': 5})
         expected_dataset = self._get_unique_array(range(8), 5)
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        np.testing.assert_allclose(dataset.values, expected_dataset)
 
     def test_dataset_slicing_chid_catid(self):
         """Test the correct execution of the _slice_dataset function with 'channel_id' and 'category_id' set."""
@@ -386,7 +386,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        'fill_value': -999,
                                        'channel_id': 0, 'category_id': 1})
         expected_dataset = self._get_unique_array(0, 1)
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        np.testing.assert_allclose(dataset.values, expected_dataset)
 
     def test_dataset_slicing_visid_catid(self):
         """Test the correct execution of the _slice_dataset function with 'vis_channel_id' and 'category_id' set."""
@@ -399,7 +399,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        'fill_value': -999,
                                        'vis_channel_id': 3, 'category_id': 3})
         expected_dataset = self._get_unique_array(3, 3)
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        np.testing.assert_allclose(dataset.values, expected_dataset)
 
     def test_dataset_slicing_irid(self):
         """Test the correct execution of the _slice_dataset function with 'ir_channel_id' set."""
@@ -412,7 +412,7 @@ class TestFciL2NCSegmentFileHandler(unittest.TestCase):
                                        'fill_value': -999,
                                        'ir_channel_id': 4})
         expected_dataset = self._get_unique_array(4, range(6))
-        self.assertTrue(np.allclose(dataset.values, expected_dataset))
+        np.testing.assert_allclose(dataset.values, expected_dataset)
 
     @staticmethod
     def _get_unique_array(iarr, jarr):
