@@ -147,10 +147,7 @@ class ZarrCacheHelper:
             args_to_use = new_args if should_cache else args
             res = self._func(*args_to_use)
             if should_cache and not zarr_paths:
-                # cached arguments already had chunk tuples sanitized and
-                # made regular (compatible with zarr)
-                regular_chunks = _get_output_chunks_from_func_arguments(args_to_use)
-                self._cache_results(res, zarr_format, regular_chunks)
+                self._cache_results(res, zarr_format)
         # if we did any caching, let's load from the zarr files
         if should_cache:
             # re-calculate the cached paths
@@ -169,14 +166,13 @@ class ZarrCacheHelper:
             cache_dir = satpy.config.get("cache_dir")
         return should_cache, cache_dir
 
-    def _cache_results(self, res, zarr_format, zarr_chunks):
+    def _cache_results(self, res, zarr_format):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
         new_res = []
         for idx, sub_res in enumerate(res):
             if not isinstance(sub_res, da.Array):
                 raise ValueError("Zarr caching currently only supports dask "
                                  f"arrays. Got {type(sub_res)}")
-            sub_res = sub_res.rechunk(zarr_chunks)
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
