@@ -111,6 +111,7 @@ templates:
         attributes:
           physical_element:
             raw_value: ACSPO SST
+          units: {}
 
       # CLAVR-x Products
       default_clavrx:
@@ -216,36 +217,42 @@ templates:
         attributes:
           physical_element:
             raw_value: 0.63 um
+          units: {}
       avhrr_band2_vis:
         name: band2_vis
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.86 um
+          units: {}
       avhrr_band3a_vis:
         name: band3a_vis
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.61 um
+          units: {}
       avhrr_band3b_bt:
         name: band3b_bt
         var_name: data
         attributes:
           physical_element:
             raw_value: 3.74 um
+          units: {}
       avhrr_band4_bt:
         name: band4_bt
         var_name: data
         attributes:
           physical_element:
             raw_value: 10.8 um
+          units: {}
       avhrr_band5_bt:
         name: band5_bt
         var_name: data
         attributes:
           physical_element:
             raw_value: 12.0 um
+          units: {}
 
       # VIIRS SDRs
       viirs_i01:
@@ -254,156 +261,182 @@ templates:
         attributes:
           physical_element:
             raw_value: 0.64 um
+          units: {}
       viirs_i02:
         name: I02
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.86 um
+          units: {}
       viirs_i03:
         name: I03
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.61 um
+          units: {}
       viirs_i04:
         name: I04
         var_name: data
         attributes:
           physical_element:
             raw_value: 3.74 um
+          units: {}
       viirs_i05:
         name: I05
         var_name: data
         attributes:
           physical_element:
             raw_value: 11.5 um
+          units: {}
       viirs_histogram_dnb:
         name: histogram_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: Histogram DNB
+          units: {}
       viirs_adaptive_dnb:
         name: adaptive_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: Adaptive DNB
+          units: {}
       viirs_dynamic_dnb:
         name: dynamic_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: Dynamic DNB
+          units: {}
       viirs_hncc_dnb:
         name: hncc_dnb
         var_name: data
         attributes:
           physical_element:
             raw_value: HNCC DNB
+          units: {}
       viirs_ifog:
         name: ssec_fog
         var_name: data
         attributes:
           physical_element:
             raw_value: Fog
+          units: {}
       viirs_m01:
         name: M01
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.41 um
+          units: {}
       viirs_m02:
         name: M02
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.45 um
+          units: {}
       viirs_m03:
         name: M03
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.49 um
+          units: {}
       viirs_m04:
         name: M04
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.56 um
+          units: {}
       viirs_m05:
         name: M05
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.67 um
+          units: {}
       viirs_m06:
         name: M06
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.75 um
+          units: {}
       viirs_m07:
         name: M07
         var_name: data
         attributes:
           physical_element:
             raw_value: 0.86 um
+          units: {}
       viirs_m08:
         name: M08
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.24 um
+          units: {}
       viirs_m09:
         name: M09
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.38 um
+          units: {}
       viirs_m10:
         name: M10
         var_name: data
         attributes:
           physical_element:
             raw_value: 1.61 um
+          units: {}
       viirs_m11:
         name: M11
         var_name: data
         attributes:
           physical_element:
             raw_value: 2.25 um
+          units: {}
       viirs_m12:
         name: M12
         var_name: data
         attributes:
           physical_element:
             raw_value: 3.70 um
+          units: {}
       viirs_m13:
         name: M13
         var_name: data
         attributes:
           physical_element:
             raw_value: 4.05 um
+          units: {}
       viirs_m14:
         name: M14
         var_name: data
         attributes:
           physical_element:
             raw_value: 8.6 um
+          units: {}
       viirs_m15:
         name: M15
         var_name: data
         attributes:
           physical_element:
             raw_value: 10.8 um
+          units: {}
       viirs_m16:
         name: M16
         var_name: data
         attributes:
           physical_element:
             raw_value: 12.0 um
+          units: {}
 
       # VIIRS Corrected Reflectance
       #    viirs_viirs_crefl01:
@@ -746,36 +779,42 @@ templates:
         attributes:
           physical_element:
             raw_value: 36.5 GHz H
+          units: {}
       amsr2_btemp_36.5v:
         name: btemp_36.5v
         var_name: data
         attributes:
           physical_element:
             raw_value: 36.5 GHz V
+          units: {}
       amsr2_btemp_89.0ah:
         name: btemp_89.0ah
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz AH
+          units: {}
       amsr2_btemp_89.0av:
         name: btemp_89.0av
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz AV
+          units: {}
       amsr2_btemp_89.0bh:
         name: btemp_89.0bh
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz BH
+          units: {}
       amsr2_btemp_89.0bv:
         name: btemp_89.0bv
         var_name: data
         attributes:
           physical_element:
             raw_value: 89.0 GHz BV
+          units: {}
 
       # GEOCAT Level 1 Products
       geocat_surface_type:
@@ -784,6 +823,7 @@ templates:
         attributes:
           physical_element:
             raw_value: Surface Type
+          units: {}
       # GEOCAT Level 2 Products
   glm_l2_radc:
     single_variable: false
@@ -851,6 +891,10 @@ templates:
         attributes:
 #          physical_element:
 #            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -864,6 +908,10 @@ templates:
         attributes:
 #          physical_element:
 #            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -1024,6 +1072,10 @@ templates:
         attributes:
           #          physical_element:
           #            raw_value: "GLM_Flash_Extent_Density"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
@@ -1040,6 +1092,10 @@ templates:
         attributes:
           #          physical_element:
           #            raw_value: "GLM_Flash_Extent_Density_Window"
+          # units are actually "Count per nominal    3136 microradian^2 pixel per 1.0 min"
+          # but this is not understood by AWIPS
+          units:
+            raw_value: "1"
           standard_name:
             value: "{standard_name}"
           long_name:
