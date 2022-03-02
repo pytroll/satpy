@@ -485,6 +485,10 @@ def _get_stacked_angle_test_data():
                                 chunks=(5, (2, 2, 1)))
 
 
+def _get_angle_test_data_odd_chunks():
+    return _get_angle_test_data(chunks=((2, 1, 2), (1, 1, 2, 1)))
+
+
 def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
     # change data slightly
     new_data = orig_data.copy()
@@ -593,7 +597,13 @@ class TestAngleGeneration:
             (_diff_sat_pos_datetime, False, 6),
         ]
     )
-    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
+    @pytest.mark.parametrize(
+        "input_func",
+        [
+            _get_angle_test_data,
+            _get_stacked_angle_test_data,
+            _get_angle_test_data_odd_chunks,
+        ])
     def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, force_bad_glob, tmpdir):
         """Test get_angles when caching is enabled."""
         from satpy.modifiers.angles import (
@@ -613,17 +623,23 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
             res = get_angles(data)
             assert all(isinstance(x, xr.DataArray) for x in res)
+            # output chunks should be consistent
+            for angle_data_arr in res:
+                assert angle_data_arr.chunks == data.chunks
 
             # call again, should be cached
             new_data = input2_func(data)
             with _mock_glob_if(force_bad_glob):
                 res2 = get_angles(new_data)
             assert all(isinstance(x, xr.DataArray) for x in res2)
-            res, res2 = da.compute(res, res2)
-            for r1, r2 in zip(res[:2], res2[:2]):
+            # output chunks should be consistent
+            for angle_data_arr in res2:
+                assert angle_data_arr.chunks == data.chunks
+            res_numpy, res2_numpy = da.compute(res, res2)
+            for r1, r2 in zip(res_numpy[:2], res2_numpy[:2]):
                 _assert_allclose_if(not additional_cache, r1, r2)
 
-            for r1, r2 in zip(res[2:], res2[2:]):
+            for r1, r2 in zip(res_numpy[2:], res2_numpy[2:]):
                 _assert_allclose_if(exp_equal_sun, r1, r2)
 
             zarr_dirs = glob(str(tmpdir / "*.zarr"))

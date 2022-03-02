@@ -144,8 +144,8 @@ class ZarrCacheHelper:
         zarr_paths = glob(zarr_format.format("*"))
         if not should_cache or not zarr_paths:
             # use sanitized arguments if we are caching, otherwise use original arguments
-            args = new_args if should_cache else args
-            res = self._func(*args)
+            args_to_use = new_args if should_cache else args
+            res = self._func(*args_to_use)
             if should_cache and not zarr_paths:
                 self._cache_results(res, zarr_format)
         # if we did any caching, let's load from the zarr files
@@ -154,7 +154,8 @@ class ZarrCacheHelper:
             zarr_paths = sorted(glob(zarr_format.format("*")))
             if not zarr_paths:
                 raise RuntimeError("Data was cached to disk but no files were found")
-            res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
+            new_chunks = _get_output_chunks_from_func_arguments(args)
+            res = tuple(da.from_zarr(zarr_path, chunks=new_chunks) for zarr_path in zarr_paths)
         return res
 
     def _get_should_cache_and_cache_dir(self, args, cache_dir: Optional[str]) -> tuple[bool, str]:
@@ -172,6 +173,8 @@ class ZarrCacheHelper:
             if not isinstance(sub_res, da.Array):
                 raise ValueError("Zarr caching currently only supports dask "
                                  f"arrays. Got {type(sub_res)}")
+            if _chunks_are_irregular(sub_res):
+                sub_res = sub_res.rechunk(tuple(max(dim_chunks) for dim_chunks in sub_res.chunks))
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
@@ -181,6 +184,32 @@ class ZarrCacheHelper:
             new_res.append(new_sub_res)
         # actually compute the storage to zarr
         da.compute(new_res)
+
+
+def _get_output_chunks_from_func_arguments(args):
+    """Determine what the desired output chunks are.
+
+    It is assumed a tuple of tuples of integers is defining chunk sizes. If
+    a tuple like this is not found then arguments are checked for array-like
+    objects with a ``.chunks`` attribute.
+
+    """
+    chunked_args = [arg for arg in args if hasattr(arg, "chunks")]
+    tuple_args = [arg for arg in args if isinstance(arg, tuple) and isinstance(arg[0], tuple)]
+    if not tuple_args and not chunked_args:
+        raise RuntimeError("Cannot determine desired output chunksize for cached function.")
+    new_chunks = tuple_args[-1] if tuple_args else chunked_args[0].chunks
+    return new_chunks
+
+
+def _chunks_are_irregular(chunked_arr: Union[xr.DataArray, da.Array]) -> bool:
+    """Determine if an array is irregularly chunked.
+
+    Zarr does not support saving data in irregular chunks. Regular chunking
+    is when all chunks are the same size (except for the last one).
+
+    """
+    return any(len(set(chunks[:-1])) > 1 for chunks in chunked_arr.chunks)
 
 
 def cache_to_zarr_if(
