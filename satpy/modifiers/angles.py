@@ -62,6 +62,13 @@ class ZarrCacheHelper:
     The cache value to use is purely based on the hash value of all of the
     provided arguments along with the "cache version" (see below).
 
+    Note that the zarr format requires regular chunking of data. That is,
+    chunks must be all the same size per dimension except for the last chunk.
+    To work around this limitation, this class will determine a good regular
+    chunking based on the existing chunking scheme, rechunk the input
+    arguments, and then rechunk the results before returning them to the user.
+    This rechunking is only done if caching is enabled.
+
     Args:
         func: Function that will be called to generate the value to cache.
         cache_config_key: Name of the boolean ``satpy.config`` parameter to
