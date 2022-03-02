@@ -598,13 +598,17 @@ class TestAngleGeneration:
         ]
     )
     @pytest.mark.parametrize(
-        "input_func",
+        ("input_func", "num_normalized_chunks"),
         [
-            _get_angle_test_data,
-            _get_stacked_angle_test_data,
-            _get_angle_test_data_odd_chunks,
+            (_get_angle_test_data, 9),
+            (_get_stacked_angle_test_data, 3),
+            (_get_angle_test_data_odd_chunks, 9),
         ])
-    def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, force_bad_glob, tmpdir):
+    def test_cache_get_angles(
+            self,
+            input_func, num_normalized_chunks,
+            input2_func, exp_equal_sun, exp_num_zarr,
+            force_bad_glob, tmpdir):
         """Test get_angles when caching is enabled."""
         from satpy.modifiers.angles import (
             STATIC_EARTH_INERTIAL_DATETIME,
@@ -650,7 +654,7 @@ class TestAngleGeneration:
             zarr_dirs = glob(str(tmpdir / "*.zarr"))
             assert len(zarr_dirs) == 0
 
-        assert gol.call_count == data.data.blocks.size * (int(additional_cache) + 1)
+        assert gol.call_count == num_normalized_chunks * (int(additional_cache) + 1)
         args = gol.call_args_list[0][0]
         assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
         exp_sat_lon = 10.1 if additional_cache else 10.0

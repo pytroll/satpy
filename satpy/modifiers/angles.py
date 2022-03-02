@@ -147,7 +147,10 @@ class ZarrCacheHelper:
             args_to_use = new_args if should_cache else args
             res = self._func(*args_to_use)
             if should_cache and not zarr_paths:
-                self._cache_results(res, zarr_format)
+                # cached arguments already had chunk tuples sanitized and
+                # made regular (compatible with zarr)
+                regular_chunks = _get_output_chunks_from_func_arguments(args_to_use)
+                self._cache_results(res, zarr_format, regular_chunks)
         # if we did any caching, let's load from the zarr files
         if should_cache:
             # re-calculate the cached paths
@@ -166,15 +169,14 @@ class ZarrCacheHelper:
             cache_dir = satpy.config.get("cache_dir")
         return should_cache, cache_dir
 
-    def _cache_results(self, res, zarr_format):
+    def _cache_results(self, res, zarr_format, zarr_chunks):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
         new_res = []
         for idx, sub_res in enumerate(res):
             if not isinstance(sub_res, da.Array):
                 raise ValueError("Zarr caching currently only supports dask "
                                  f"arrays. Got {type(sub_res)}")
-            if _chunks_are_irregular(sub_res):
-                sub_res = sub_res.rechunk(tuple(max(dim_chunks) for dim_chunks in sub_res.chunks))
+            sub_res = sub_res.rechunk(zarr_chunks)
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
@@ -195,21 +197,11 @@ def _get_output_chunks_from_func_arguments(args):
 
     """
     chunked_args = [arg for arg in args if hasattr(arg, "chunks")]
-    tuple_args = [arg for arg in args if isinstance(arg, tuple) and isinstance(arg[0], tuple)]
+    tuple_args = [arg for arg in args if _is_chunk_tuple(arg)]
     if not tuple_args and not chunked_args:
         raise RuntimeError("Cannot determine desired output chunksize for cached function.")
     new_chunks = tuple_args[-1] if tuple_args else chunked_args[0].chunks
     return new_chunks
-
-
-def _chunks_are_irregular(chunked_arr: Union[xr.DataArray, da.Array]) -> bool:
-    """Determine if an array is irregularly chunked.
-
-    Zarr does not support saving data in irregular chunks. Regular chunking
-    is when all chunks are the same size (except for the last one).
-
-    """
-    return any(len(set(chunks[:-1])) > 1 for chunks in chunked_arr.chunks)
 
 
 def cache_to_zarr_if(
@@ -260,9 +252,50 @@ def _sanitize_observer_look_args(*args):
         elif isinstance(arg, (float, np.float64, np.float32)):
             # round floating point numbers to nearest tenth
             new_args.append(round(arg, 1))
+        elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
+            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+            new_args.append(new_chunks)
         else:
             new_args.append(arg)
     return new_args
+
+
+def _sanitize_args_with_chunks(*args):
+    new_args = []
+    for arg in args:
+        if _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
+            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+            new_args.append(new_chunks)
+        else:
+            new_args.append(arg)
+    return new_args
+
+
+def _is_chunk_tuple(some_obj: Any) -> bool:
+    if not isinstance(some_obj, tuple):
+        return False
+    if not all(isinstance(sub_obj, tuple) for sub_obj in some_obj):
+        return False
+    sub_elements = [sub_obj_elem for sub_obj in some_obj for sub_obj_elem in sub_obj]
+    return all(isinstance(sub_obj_elem, int) for sub_obj_elem in sub_elements)
+
+
+def _regular_chunks_from_irregular_chunks(
+        old_chunks: tuple[tuple[int, ...], ...]
+) -> tuple[tuple[int, ...], ...]:
+    shape = tuple(sum(dim_chunks) for dim_chunks in old_chunks)
+    new_dim_chunks = tuple(max(dim_chunks) for dim_chunks in old_chunks)
+    return da.core.normalize_chunks(new_dim_chunks, shape=shape)
+
+
+def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
+    """Determine if an array is irregularly chunked.
+
+    Zarr does not support saving data in irregular chunks. Regular chunking
+    is when all chunks are the same size (except for the last one).
+
+    """
+    return any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple)
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
@@ -322,7 +355,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
     return _geo_dask_to_data_array(cos_sza)
 
 
-@cache_to_zarr_if("cache_lonlats")
+@cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
 def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         lons, lats = area.get_lonlats(chunks=chunks)
