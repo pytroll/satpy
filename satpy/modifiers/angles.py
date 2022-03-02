@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import warnings
 from datetime import datetime
 from functools import update_wrapper
 from glob import glob
@@ -36,7 +37,7 @@ from pyorbital.orbital import get_observer_look
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 
 import satpy
-from satpy.utils import get_satpos, ignore_invalid_float_warnings
+from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
 
 PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
 
@@ -154,6 +155,7 @@ class ZarrCacheHelper:
             args_to_use = new_args if should_cache else args
             res = self._func(*args_to_use)
             if should_cache and not zarr_paths:
+                self._warn_if_irregular_input_chunks(args, args_to_use)
                 self._cache_results(res, zarr_format)
         # if we did any caching, let's load from the zarr files
         if should_cache:
@@ -172,6 +174,18 @@ class ZarrCacheHelper:
         if cache_dir is None:
             cache_dir = satpy.config.get("cache_dir")
         return should_cache, cache_dir
+
+    @staticmethod
+    def _warn_if_irregular_input_chunks(args, modified_args):
+        arg_chunks = _get_output_chunks_from_func_arguments(args)
+        new_chunks = _get_output_chunks_from_func_arguments(modified_args)
+        if _chunks_are_irregular(arg_chunks):
+            warnings.warn(
+                "Calling cached function with irregular dask chunks. The data "
+                "has been rechunked for caching, but this is not optimal for "
+                "future calculations. "
+                f"Original chunks: {arg_chunks}; New chunks: {new_chunks}",
+                PerformanceWarning)
 
     def _cache_results(self, res, zarr_format):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)

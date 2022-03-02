@@ -18,6 +18,7 @@
 """Tests for modifiers in modifiers/__init__.py."""
 import contextlib
 import unittest
+import warnings
 from copy import deepcopy
 from datetime import datetime, timedelta
 from glob import glob
@@ -32,6 +33,7 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 from pytest_lazyfixture import lazy_fixture
 
 import satpy
+from satpy.utils import PerformanceWarning
 
 
 def _sunz_area_def():
@@ -624,7 +626,8 @@ class TestAngleGeneration:
         # Compute angles
         from pyorbital.orbital import get_observer_look
         with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
-                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)), \
+                warnings.catch_warnings(record=True) as caught_warnings:
             res = get_angles(data)
             assert all(isinstance(x, xr.DataArray) for x in res)
             # output chunks should be consistent
@@ -654,6 +657,10 @@ class TestAngleGeneration:
             zarr_dirs = glob(str(tmpdir / "*.zarr"))
             assert len(zarr_dirs) == 0
 
+        if "odd_chunks" in input_func.__name__:
+            assert any(w.category is PerformanceWarning for w in caught_warnings)
+        else:
+            assert not any(w.category is PerformanceWarning for w in caught_warnings)
         assert gol.call_count == num_normalized_chunks * (int(additional_cache) + 1)
         args = gol.call_args_list[0][0]
         assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
