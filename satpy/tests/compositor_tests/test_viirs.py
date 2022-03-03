@@ -17,13 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for VIIRS compositors."""
 
-import unittest
-
 import pytest
 
 
-class TestVIIRSCompositesUnitTest(unittest.TestCase):
-    """Test VIIRS-specific composites."""
+class TestVIIRSComposites:
+    """Test various VIIRS-specific composites."""
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
@@ -66,11 +64,10 @@ class TestVIIRSCompositesUnitTest(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'solar_zenith_angle', 'area': area})
         res = comp((c01, c02))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs['name'], 'histogram_dnb')
-        self.assertEqual(res.attrs['standard_name'],
-                         'equalized_radiance')
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'histogram_dnb'
+        assert res.attrs['standard_name'] == 'equalized_radiance'
         data = res.compute()
         unique_values = np.unique(data)
         np.testing.assert_allclose(unique_values, [0.5994, 0.7992, 0.999], rtol=1e-3)
@@ -110,11 +107,10 @@ class TestVIIRSCompositesUnitTest(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'solar_zenith_angle', 'area': area})
         res = comp((c01, c02))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs['name'], 'adaptive_dnb')
-        self.assertEqual(res.attrs['standard_name'],
-                         'equalized_radiance')
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'adaptive_dnb'
+        assert res.attrs['standard_name'] == 'equalized_radiance'
         data = res.compute()
         np.testing.assert_allclose(data.data, 0.999, rtol=1e-4)
 
@@ -163,21 +159,16 @@ class TestVIIRSCompositesUnitTest(unittest.TestCase):
                            dims=('y',),
                            attrs={'name': 'moon_illumination_fraction', 'area': area})
         res = comp((c01, c02, c03, mif))
-        self.assertIsInstance(res, xr.DataArray)
-        self.assertIsInstance(res.data, da.Array)
-        self.assertEqual(res.attrs['name'], 'hncc_dnb')
-        self.assertEqual(res.attrs['standard_name'],
-                         'ncc_radiance')
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs['name'] == 'hncc_dnb'
+        assert res.attrs['standard_name'] == 'ncc_radiance'
         data = res.compute()
         unique = np.unique(data)
         np.testing.assert_allclose(
             unique, [3.48479712e-04, 6.96955799e-04, 1.04543189e-03, 4.75394738e-03,
                      9.50784532e-03, 1.42617433e-02, 1.50001560e+03, 3.00001560e+03,
                      4.50001560e+03])
-
-
-class TestVIIRSComposites:
-    """Test various VIIRS-specific composites."""
 
     @pytest.mark.parametrize("dnb_units", ["W m-2 sr-1", "W cm-2 sr-1"])
     @pytest.mark.parametrize("saturation_correction", [False, True])
