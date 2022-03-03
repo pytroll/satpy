@@ -180,7 +180,8 @@ class TestVIIRSComposites:
     """Test various VIIRS-specific composites."""
 
     @pytest.mark.parametrize("dnb_units", ["W m-2 sr-1", "W cm-2 sr-1"])
-    def test_erf_dnb(self, dnb_units):
+    @pytest.mark.parametrize("saturation_correction", [False, True])
+    def test_erf_dnb(self, dnb_units, saturation_correction):
         """Test the 'dynamic_dnb' or ERF DNB compositor."""
         import dask.array as da
         import numpy as np
@@ -198,6 +199,7 @@ class TestVIIRSComposites:
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
 
         comp = ERFDNB('dynamic_dnb', prerequisites=('dnb',),
+                      saturation_correction=saturation_correction,
                       standard_name='toa_outgoing_radiance_per_'
                                     'unit_wavelength')
         dnb = np.zeros((rows, cols)) + 0.25
@@ -236,7 +238,12 @@ class TestVIIRSComposites:
         unique = np.unique(data)
         assert np.isnan(unique).any()
         nonnan_unique = unique[~np.isnan(unique)]
-        np.testing.assert_allclose(
-            nonnan_unique,
-            [0.00000000e+00, 1.00446703e-01, 1.64116082e-01, 2.09233451e-01,
-             1.43916324e+02, 2.03528498e+02, 2.49270516e+02])
+        if saturation_correction:
+            exp_unique = [0.000000e+00, 3.978305e-04, 6.500003e-04,
+                          8.286927e-04, 5.628335e-01, 7.959671e-01,
+                          9.748567e-01]
+        else:
+            exp_unique = [0.00000000e+00, 1.00446703e-01, 1.64116082e-01,
+                          2.09233451e-01, 1.43916324e+02, 2.03528498e+02,
+                          2.49270516e+02]
+            np.testing.assert_allclose(nonnan_unique, exp_unique)
