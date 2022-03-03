@@ -17,7 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for VIIRS compositors."""
 
+import dask.array as da
+import numpy as np
 import pytest
+import xarray as xr
+from pyresample.geometry import AreaDefinition
 
 
 class TestVIIRSComposites:
@@ -30,11 +34,6 @@ class TestVIIRSComposites:
 
     def test_histogram_dnb(self):
         """Test the 'histogram_dnb' compositor."""
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
-        from pyresample.geometry import AreaDefinition
-
         from satpy.composites.viirs import HistogramDNB
         rows = 5
         cols = 10
@@ -74,11 +73,6 @@ class TestVIIRSComposites:
 
     def test_adaptive_dnb(self):
         """Test the 'adaptive_dnb' compositor."""
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
-        from pyresample.geometry import AreaDefinition
-
         from satpy.composites.viirs import AdaptiveDNB
         rows = 5
         cols = 10
@@ -116,11 +110,6 @@ class TestVIIRSComposites:
 
     def test_hncc_dnb(self):
         """Test the 'hncc_dnb' compositor."""
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
-        from pyresample.geometry import AreaDefinition
-
         from satpy.composites.viirs import NCCZinke
         rows = 5
         cols = 10
@@ -174,11 +163,6 @@ class TestVIIRSComposites:
     @pytest.mark.parametrize("saturation_correction", [False, True])
     def test_erf_dnb(self, dnb_units, saturation_correction):
         """Test the 'dynamic_dnb' or ERF DNB compositor."""
-        import dask.array as da
-        import numpy as np
-        import xarray as xr
-        from pyresample.geometry import AreaDefinition
-
         from satpy.composites.viirs import ERFDNB
         rows = 5
         cols = 10
