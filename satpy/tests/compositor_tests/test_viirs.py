@@ -19,6 +19,8 @@
 
 import unittest
 
+import pytest
+
 
 class TestVIIRSCompositesUnitTest(unittest.TestCase):
     """Test VIIRS-specific composites."""
@@ -177,7 +179,8 @@ class TestVIIRSCompositesUnitTest(unittest.TestCase):
 class TestVIIRSComposites:
     """Test various VIIRS-specific composites."""
 
-    def test_erf_dnb(self):
+    @pytest.mark.parametrize("dnb_units", ["W m-2 sr-1", "W cm-2 sr-1"])
+    def test_erf_dnb(self, dnb_units):
         """Test the 'dynamic_dnb' or ERF DNB compositor."""
         import dask.array as da
         import numpy as np
@@ -201,10 +204,12 @@ class TestVIIRSComposites:
         dnb[2, :cols // 2] = np.nan
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
+        if dnb_units == "W cm-2 sr-1":
+            dnb /= 10000.0
         dnb = da.from_array(dnb, chunks=25)
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
-                           attrs={'name': 'DNB', 'area': area})
+                           attrs={'name': 'DNB', 'area': area, 'units': dnb_units})
         sza = np.zeros((rows, cols)) + 70.0
         sza[:, 3] += 20.0
         sza[:, 4:] += 45.0
