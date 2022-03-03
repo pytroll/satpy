@@ -592,3 +592,28 @@ class TestFCIL1cNCReaderBadData(TestFCIL1cNCReader):
                 name="vis_04",
                 calibration="reflectance")], pad_data=False)
             assert "cannot produce reflectance" in caplog.text
+
+
+class MockNetCDF4FileHandler(object):
+    """Mocked base file handler NetCDF4."""
+
+    def __init__(self, filename, filename_info, filetype_info, cache_var_size=10000, cache_handle=True):
+        """Initialize."""
+        pass
+
+
+class TestFCIL1cNCReaderMissingHdf5plugin(object):
+    """Test FCI L1c NetCDF reader initialization when `hdf5plugin` isn't installed."""
+
+    def test_init(self, reader_configs):
+        """Test file pattern matching."""
+        filename = ("W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+                    "CHK-BODY---NC4E_C_EUMT_20130804121330_GTT_DEV_"
+                    "20130804120815_20130804120830_N_JLS_T_0073_0034.nc")
+        filename_info = {'special_compression': 'JLS'}
+        with mock.patch("satpy.readers.netcdf_utils.NetCDF4FileHandler", new=MockNetCDF4FileHandler):
+            with mock.patch("satpy.readers.fci_l1c_nc.hdf5plugin", new=None):
+                from satpy.readers.fci_l1c_nc import FCIL1cNCFileHandler
+                with pytest.raises(ImportError) as err:
+                    FCIL1cNCFileHandler(filename, filename_info, {})
+                assert "'hdf5plugin' is needed" in str(err)
