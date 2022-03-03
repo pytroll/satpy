@@ -599,7 +599,6 @@ class MockNetCDF4FileHandler(object):
 
     def __init__(self, filename, filename_info, filetype_info, cache_var_size=10000, cache_handle=True):
         """Initialize."""
-        pass
 
 
 class TestFCIL1cNCReaderMissingHdf5plugin(object):
