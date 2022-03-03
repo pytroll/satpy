@@ -24,6 +24,7 @@ dependencies:
   - netcdf4
   - h5py
   - h5netcdf
+  - hdf5plugin
   - gdal
   - rasterio
   - bottleneck

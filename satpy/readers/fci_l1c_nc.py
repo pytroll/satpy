@@ -31,6 +31,8 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
     (FDHSI) files. Support for High Spatial Resolution Fast Imagery (HRFI) files
     will be implemented when corresponding test datasets will be available.
 
+    For reading compressed data, the `hdf5plugin` package needs to be installed.
+
 Geolocation is based on information from the data files.  It uses:
 
     * From the shape of the data variable ``data/<channel>/measured/effective_radiance``,
@@ -91,6 +93,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 
+# Importing hdf5plugin makes decompression plugins available and work automatically when reading data
+try:
+    import hdf5plugin  # noqa: F401
+except ImportError:
+    pass
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
