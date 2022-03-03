@@ -31,13 +31,15 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
     (FDHSI) files. Support for High Spatial Resolution Fast Imagery (HRFI) files
     will be implemented when corresponding test datasets will be available.
 
-
 .. note::
-    For reading compressed data, the `hdf5plugin` package needs to be installed:
-        pip install hdf5plugin
-    or:
-        conda install hdf5plugin -c conda-forge
 
+    For reading compressed data, the ``hdf5plugin`` package needs to be installed::
+
+        pip install hdf5plugin
+
+    or::
+
+        conda install hdf5plugin -c conda-forge
 
 Geolocation is based on information from the data files.  It uses:
 
