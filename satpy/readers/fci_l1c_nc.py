@@ -31,7 +31,13 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
     (FDHSI) files. Support for High Spatial Resolution Fast Imagery (HRFI) files
     will be implemented when corresponding test datasets will be available.
 
-    For reading compressed data, the `hdf5plugin` package needs to be installed.
+
+.. note::
+    For reading compressed data, the `hdf5plugin` package needs to be installed:
+        pip install hdf5plugin
+    or:
+        conda install hdf5plugin -c conda-forge
+
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -97,7 +103,7 @@ import logging
 try:
     import hdf5plugin  # noqa: F401
 except ImportError:
-    pass
+    hdf5plugin = None
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
@@ -179,6 +185,11 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
                          filetype_info,
                          cache_var_size=10000,
                          cache_handle=True)
+        if hdf5plugin is None and filename_info['special_compression'] == 'JLS':
+            raise ImportError(
+                "'hdf5plugin' is needed to read compressed FCI Level 1C data. See\n"
+                "https://satpy.readthedocs.io/en/stable/api/satpy.readers.fci_l1c_nc.html\n"
+                "for more information.")
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
