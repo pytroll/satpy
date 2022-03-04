@@ -33,13 +33,20 @@ For the Product User Guide (PUG) of the FCI L1c data, see `PUG`_.
 
 .. note::
 
-    For reading compressed data, the ``hdf5plugin`` package needs to be installed::
+    For reading compressed data, a decompression library is
+    needed. Either install the FCIDECOMP library (see `PUG`_), or the
+    ``hdf5plugin`` package with::
 
         pip install hdf5plugin
 
     or::
 
         conda install hdf5plugin -c conda-forge
+
+    The default is to assume ``hdf5plugin`` is used, and import error
+    is raised if it is not available. If another decompression method
+    is used, set the environment variable ``USE_HDF5PLUGIN`` to
+    ``False``.
 
 Geolocation is based on information from the data files.  It uses:
 
@@ -95,11 +102,13 @@ All auxiliary data can be obtained by prepending the channel name such as
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
 .. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
+
 """
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+import os
 
 # Importing hdf5plugin makes decompression plugins available and work automatically when reading data
 try:
@@ -132,6 +141,13 @@ AUX_DATA = {
     'swath_number': 'data/swath_number',
     'swath_direction': 'data/swath_direction',
 }
+
+
+def _get_boolean_env_variable(variable, default=True):
+    var = os.getenv(variable)
+    if var is None:
+        return default
+    return var.lower() in ('true', '1', 'yes')
 
 
 def _get_aux_data_name_from_dsname(dsname):
@@ -187,9 +203,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
                          filetype_info,
                          cache_var_size=10000,
                          cache_handle=True)
-        if hdf5plugin is None and filename_info['special_compression'] == 'JLS':
+        use_hdf5plugin = _get_boolean_env_variable("USE_HDF5PLUGIN", default=True)
+        if use_hdf5plugin and hdf5plugin is None and filename_info['special_compression'] == 'JLS':
             raise ImportError(
-                "'hdf5plugin' is needed to read compressed FCI Level 1C data. See\n"
+                "Decompression library is needed to read compressed FCI Level 1C data. See\n"
                 "https://satpy.readthedocs.io/en/stable/api/satpy.readers.fci_l1c_nc.html\n"
                 "for more information.")
         logger.debug('Reading: {}'.format(self.filename))
