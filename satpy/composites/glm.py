@@ -79,6 +79,7 @@ class HighlightCompositor(GenericCompositor):
 
     def _get_highlight_factor(self, highlight_data):
         factor = (highlight_data - self.min_highlight) / (self.max_highlight - self.min_highlight)
+        factor = factor.where(factor > 0, 0)
         factor = factor.where(factor.notnull(), 0)
         return factor
 
