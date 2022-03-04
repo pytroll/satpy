@@ -125,6 +125,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import os
 from functools import cached_property
+import os
 
 # Importing hdf5plugin makes decompression plugins available and work automatically when reading data
 try:
