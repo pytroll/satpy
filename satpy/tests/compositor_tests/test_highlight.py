@@ -18,8 +18,8 @@
 """Tests for GLM compositors."""
 
 
-class TestGLMComposites:
-    """Test GLM-specific composites."""
+class TestHighlightComposites:
+    """Test highlight composites."""
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
@@ -33,7 +33,7 @@ class TestGLMComposites:
         import xarray as xr
         from pyresample.geometry import AreaDefinition
 
-        from satpy.composites.glm import HighlightCompositor
+        from satpy.composites.highlight import HighlightCompositor
         rows = 5
         cols = 10
         area = AreaDefinition(

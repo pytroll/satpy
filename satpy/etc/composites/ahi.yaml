@@ -182,15 +182,25 @@ composites:
     standard_name: fire_temperature
     name: fire_temperature_39refl
 
-  truecol_fire_highlight:
-    min_highlight: 310
+  truecol_fire_highlight_with_ir:
+    min_highlight: [310, 285, 80, 110]
     max_highlight: 325
     max_factor: [0.8,0.15,-0.2,0]
-    compositor: !!python/name:satpy.composites.glm.HighlightCompositor
-    standard_name: truecol_fire_highlight
+    compositor: !!python/name:satpy.composites.highlight.HighlightCompositor
+    standard_name: truecol_fire_highlight_with_ir
     prerequisites:
       - B07
       - true_color_with_night_ir_nobg
+      -
+  truecol_fire_highlight:
+    min_highlight: [310, 285, 75, 100]
+    max_highlight: 325
+    max_factor: [0.8,0.15,-0.2,0]
+    compositor: !!python/name:satpy.composites.highlight.HighlightCompositor
+    standard_name: truecol_fire_highlight
+    prerequisites:
+      - B07
+      - true_color_nocorr
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
