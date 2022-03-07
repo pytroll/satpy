@@ -22,14 +22,27 @@ from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
 
 
 def _get_test_datasets_2d():
-    """Create a single test dataset."""
+    """Create a single 2D test dataset."""
     ds1 = xr.DataArray(
         da.zeros((100, 200), chunks=50),
         dims=('y', 'x'),
+        attrs={'name': 'test',
+               'start_time': datetime.utcnow()}
+    )
+    return [ds1]
+
+
+def _get_test_datasets_3d():
+    """Create a single 3D test dataset."""
+    ds1 = xr.DataArray(
+        da.zeros((3, 100, 200), chunks=50),
+        dims=('bands', 'y', 'x'),
+        coords={'bands': ['R', 'G', 'B']},
         attrs={'name': 'test',
                'start_time': datetime.utcnow()}
     )
@@ -44,10 +57,17 @@ class TestGeoTIFFWriter:
         from satpy.writers.geotiff import GeoTIFFWriter
         GeoTIFFWriter()
 
-    def test_simple_write(self, tmp_path):
+    @pytest.mark.parametrize(
+        "input_func",
+        [
+            _get_test_datasets_2d,
+            _get_test_datasets_3d
+        ]
+    )
+    def test_simple_write(self, input_func, tmp_path):
         """Test basic writer operation."""
         from satpy.writers.geotiff import GeoTIFFWriter
-        datasets = _get_test_datasets_2d()
+        datasets = input_func()
         w = GeoTIFFWriter(base_dir=tmp_path)
         w.save_datasets(datasets)
 
@@ -141,16 +161,33 @@ class TestGeoTIFFWriter:
             called_tags = save_method.call_args[1]['tags']
             assert called_tags == {'test1': 1, 'test2': 2}
 
-    def test_scale_offset(self, tmp_path):
+    @pytest.mark.parametrize(
+        "input_func",
+        [
+            _get_test_datasets_2d,
+            _get_test_datasets_3d,
+        ]
+    )
+    @pytest.mark.parametrize(
+        "save_kwargs",
+        [
+            {"include_scale_offset": True},
+            {"scale_offset_tags": ("scale", "offset")},
+        ]
+    )
+    def test_scale_offset(self, input_func, save_kwargs, tmp_path):
         """Test tags being added."""
         from satpy.writers.geotiff import GeoTIFFWriter
-        datasets = _get_test_datasets_2d()
+        datasets = input_func()
         w = GeoTIFFWriter(tags={'test1': 1}, base_dir=tmp_path)
         w.info['fill_value'] = 128
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
-            w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
+            w.save_datasets(datasets, tags={'test2': 2}, compute=False, **save_kwargs)
+        if "include_scale_offset" in save_kwargs:
             assert save_method.call_args[1]['include_scale_offset_tags']
+        else:
+            assert save_method.call_args[1]['scale_offset_tags']
 
     def test_tiled_value_from_config(self, tmp_path):
         """Test tiled value coming from the writer config."""
