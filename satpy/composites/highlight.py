@@ -44,7 +44,8 @@ class HighlightCompositor(GenericCompositor):
     """
 
     def __init__(self, name, min_highlight=0.0, max_highlight=10.0,
-                 max_factor=(0.8, 0.8, -0.8, 0), **kwargs):
+                 max_factor=(0.8, 0.8, -0.8, 0), threshold_t=0.0,
+                 **kwargs):
         """Initialize composite with highlight factor options.
 
         Args:
@@ -69,11 +70,13 @@ class HighlightCompositor(GenericCompositor):
                 will be added to by at most 0.8, the Blue channel will be
                 subtracted from by at most 0.8, and the Alpha channel will
                 not be affected.
+            threshold_t (float): If present, sets the
 
         """
         self.min_highlight = min_highlight
         self.max_highlight = max_highlight
         self.max_factor = max_factor
+        self.threshold_t = threshold_t
         super().__init__(name, **kwargs)
 
     @staticmethod
@@ -83,8 +86,12 @@ class HighlightCompositor(GenericCompositor):
         img = img.convert('RGBA')
         return img.data
 
-    def _get_highlight_factor(self, highlight_data):
+    def _get_highlight_factor(self, highlight_data, skin_t=None):
         import numpy as np
+
+        # If we are processing for wildfires, a list of values is passed.
+        # Here we use the list of values to determine the highlight value for
+        # each pixel in the image, based upon solar zenith angle.
         if type(self.min_highlight) is list:
             from pyorbital.astronomy import sun_zenith_angle as calc_sza
             LOG.debug("Computing sun zenith angles.")
@@ -93,10 +100,20 @@ class HighlightCompositor(GenericCompositor):
                 chunks = highlight_data.sel(bands=highlight_data['bands'][0]).chunks
             except KeyError:
                 chunks = highlight_data.chunks
+
+            # First value is the minimum BT for highlighting
             min_t = self.min_highlight[0]
+            if skin_t is not None:
+                print("IN HERE")
+                min_t = min_t + skin_t
+
+            # This is the difference between min and max highlight BT
             tdiff = self.min_highlight[1] - self.min_highlight[0]
+            # The solar zenith angle range
             max_sza = self.min_highlight[3]
             min_sza = self.min_highlight[2]
+
+            # Now get the SZAs themselves
             lons, lats = highlight_data.attrs["area"].get_lonlats(chunks=chunks)
             sza = xr.DataArray(calc_sza(highlight_data.attrs["start_time"],
                                         lons, lats),
@@ -104,14 +121,31 @@ class HighlightCompositor(GenericCompositor):
                                coords=[highlight_data['y'], highlight_data['x']])
             sza = sza.where(sza > min_sza, min_sza)
             sza = sza.where(sza < max_sza, max_sza)
+            print("Start")
+            print('skt', np.nanmin(skin_t), np.nanmean(skin_t), np.nanmax(skin_t))
+            print('hid', np.nanmin(highlight_data), np.nanmean(highlight_data), np.nanmax(highlight_data))
+            print('mit', np.nanmin(min_t), np.nanmean(min_t), np.nanmax(min_t))
 
+            # Compute the highlight amount
             highlighter = (sza - min_sza) / (max_sza - min_sza)
             min_highlight = min_t + tdiff * highlighter
-            print(np.nanmean(sza), np.nanmean(highlighter), np.nanmean(min_highlight), min_t, tdiff, min_sza, max_sza)
-        factor = (highlight_data - min_highlight) / (self.max_highlight - min_highlight)
+            max_highlight = min_highlight + self.max_highlight
+            print('hig', np.nanmin(highlighter), np.nanmean(highlighter), np.nanmax(highlighter))
+            print('mih', np.nanmin(min_highlight), np.nanmean(min_highlight), np.nanmax(min_highlight))
+            print(self.min_highlight, self.max_highlight)
+        else:
+            min_highlight = self.min_highlight
+            max_highlight = self.max_highlight
+
+        # Return the highlight factor.
+        return self._retr_highlight(highlight_data, min_highlight, max_highlight)
+
+    @staticmethod
+    def _retr_highlight(highlight_data, min_highlight, max_highlight):
+        """Compute the highlight itself"""
+        factor = (highlight_data - min_highlight) / (max_highlight - min_highlight)
         factor = factor.where(factor > 0, 0)
-        factor = factor.where(factor.notnull(), 0)
-        return factor
+        return factor.where(factor.notnull(), 0)
 
     def _apply_highlight_effect(self, background_data, factor):
         new_channels = []
@@ -132,11 +166,18 @@ class HighlightCompositor(GenericCompositor):
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Create RGBA image with highlighted pixels."""
-        highlight_product, background_layer = self.match_data_arrays(projectables)
-        background_data = self._get_enhanced_background_data(background_layer)
 
         # Adjust the colors of background by highlight layer
-        factor = self._get_highlight_factor(highlight_product)
+        if optional_datasets is not None and len(optional_datasets) == 1:
+            LOG.info("Computing highlight with skin temperature thresholds.")
+            highlight_product, background_layer, skin_t = self.match_data_arrays(projectables + optional_datasets)
+            factor = self._get_highlight_factor(highlight_product, skin_t)
+        else:
+            LOG.info("Computing highlight with fixed thresholds.")
+            highlight_product, background_layer = self.match_data_arrays(projectables)
+            factor = self._get_highlight_factor(highlight_product)
+        background_data = self._get_enhanced_background_data(background_layer)
+
         new_channels = self._apply_highlight_effect(background_data, factor)
         new_data = xr.concat(new_channels, dim='bands')
         self._update_attrs(new_data, background_layer,

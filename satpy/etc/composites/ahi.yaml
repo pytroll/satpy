@@ -191,7 +191,7 @@ composites:
     prerequisites:
       - B07
       - true_color_with_night_ir_nobg
-      -
+
   truecol_fire_highlight:
     min_highlight: [310, 285, 75, 100]
     max_highlight: 325
@@ -201,6 +201,19 @@ composites:
     prerequisites:
       - B07
       - true_color_nocorr
+
+  truecol_fire_highlight_skint:
+    max_factor: [0.8,0.15,-0.2,0]
+    min_highlight: [20.0, 5.0, 75.0, 100.0]
+    max_highlight: 20.0
+    threshold_t: 10.0
+    compositor: !!python/name:satpy.composites.highlight.HighlightCompositor
+    standard_name: truecol_fire_highlight
+    prerequisites:
+      - B07
+      - true_color_nocorr
+    optional_prerequisites:
+      - skt
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
