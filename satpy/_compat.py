@@ -83,7 +83,8 @@ except ImportError:
 
 
 try:
-    from numpy.typing import ArrayLike  # noqa
+    from numpy.typing import ArrayLike, DTypeLike  # noqa
 except ImportError:
     # numpy <1.20
+    from numpy import dtype as DTypeLike  # noqa
     from numpy import ndarray as ArrayLike  # noqa

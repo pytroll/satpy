@@ -37,6 +37,16 @@ def _get_test_datasets_2d():
     return [ds1]
 
 
+def _get_test_datasets_2d_nonlinear_enhancement():
+    data_arrays = _get_test_datasets_2d()
+    enh_history = [
+        {"gamma": 2.0},
+    ]
+    for data_arr in data_arrays:
+        data_arr.attrs["enhancement_history"] = enh_history
+    return data_arrays
+
+
 def _get_test_datasets_3d():
     """Create a single 3D test dataset."""
     ds1 = xr.DataArray(
@@ -166,6 +176,7 @@ class TestGeoTIFFWriter:
         [
             _get_test_datasets_2d,
             _get_test_datasets_3d,
+            _get_test_datasets_2d_nonlinear_enhancement,
         ]
     )
     @pytest.mark.parametrize(
@@ -184,10 +195,9 @@ class TestGeoTIFFWriter:
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, tags={'test2': 2}, compute=False, **save_kwargs)
-        if "include_scale_offset" in save_kwargs:
-            assert save_method.call_args[1]['include_scale_offset_tags']
-        else:
-            assert save_method.call_args[1]['scale_offset_tags']
+        kwarg_name = "include_scale_offset_tags" if "include_scale_offset" in save_kwargs else "scale_offset_tags"
+        kwarg_value = save_method.call_args[1].get(kwarg_name)
+        assert kwarg_value is not None
 
     def test_tiled_value_from_config(self, tmp_path):
         """Test tiled value coming from the writer config."""
