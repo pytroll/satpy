@@ -25,19 +25,6 @@ import numpy as np
 class TestGeoTIFFWriter:
     """Test the GeoTIFF Writer class."""
 
-    def setup_method(self):
-        """Create temporary directory to save files to."""
-        import tempfile
-        self.base_dir = tempfile.mkdtemp()
-
-    def teardown_method(self):
-        """Remove the temporary directory created for a test."""
-        try:
-            import shutil
-            shutil.rmtree(self.base_dir, ignore_errors=True)
-        except OSError:
-            pass
-
     def _get_test_datasets(self):
         """Create a single test dataset."""
         from datetime import datetime
@@ -57,20 +44,20 @@ class TestGeoTIFFWriter:
         from satpy.writers.geotiff import GeoTIFFWriter
         GeoTIFFWriter()
 
-    def test_simple_write(self):
+    def test_simple_write(self, tmp_path):
         """Test basic writer operation."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w = GeoTIFFWriter(base_dir=tmp_path)
         w.save_datasets(datasets)
 
-    def test_simple_delayed_write(self):
+    def test_simple_delayed_write(self, tmp_path):
         """Test writing can be delayed."""
         import dask.array as da
 
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w = GeoTIFFWriter(base_dir=tmp_path)
         # when we switch to rio_save on XRImage then this will be sources
         # and targets
         res = w.save_datasets(datasets, compute=False)
@@ -86,21 +73,21 @@ class TestGeoTIFFWriter:
             if hasattr(target, 'close'):
                 target.close()
 
-    def test_colormap_write(self):
+    def test_colormap_write(self, tmp_path):
         """Test writing an image with a colormap."""
         from trollimage.colormap import spectral
         from trollimage.xrimage import XRImage
 
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w = GeoTIFFWriter(base_dir=tmp_path)
         # we'd have to customize enhancements to test this through
         # save_datasets. We'll use `save_image` as a workaround.
         img = XRImage(datasets[0])
         img.palettize(spectral)
         w.save_image(img, keep_palette=True)
 
-    def test_float_write(self):
+    def test_float_write(self, tmp_path):
         """Test that geotiffs can be written as floats.
 
         NOTE: Does not actually check that the output is floats.
@@ -108,47 +95,47 @@ class TestGeoTIFFWriter:
         """
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir,
+        w = GeoTIFFWriter(base_dir=tmp_path,
                           enhance=False,
                           dtype=np.float32)
         w.save_datasets(datasets)
 
-    def test_dtype_for_enhance_false(self):
+    def test_dtype_for_enhance_false(self, tmp_path):
         """Test that dtype of dataset is used if parameters enhance=False and dtype=None."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir, enhance=False)
+        w = GeoTIFFWriter(base_dir=tmp_path, enhance=False)
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]['dtype'] == np.float64
 
-    def test_dtype_for_enhance_false_and_given_dtype(self):
+    def test_dtype_for_enhance_false_and_given_dtype(self, tmp_path):
         """Test that dtype of dataset is used if enhance=False and dtype=uint8."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir, enhance=False, dtype=np.uint8)
+        w = GeoTIFFWriter(base_dir=tmp_path, enhance=False, dtype=np.uint8)
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]['dtype'] == np.uint8
 
-    def test_fill_value_from_config(self):
+    def test_fill_value_from_config(self, tmp_path):
         """Test fill_value coming from the writer config."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w = GeoTIFFWriter(base_dir=tmp_path)
         w.info['fill_value'] = 128
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
             assert save_method.call_args[1]['fill_value'] == 128
 
-    def test_tags(self):
+    def test_tags(self, tmp_path):
         """Test tags being added."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=tmp_path)
         w.info['fill_value'] = 128
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
@@ -156,22 +143,22 @@ class TestGeoTIFFWriter:
             called_tags = save_method.call_args[1]['tags']
             assert called_tags == {'test1': 1, 'test2': 2}
 
-    def test_scale_offset(self):
+    def test_scale_offset(self, tmp_path):
         """Test tags being added."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=tmp_path)
         w.info['fill_value'] = 128
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
             assert save_method.call_args[1]['include_scale_offset_tags']
 
-    def test_tiled_value_from_config(self):
+    def test_tiled_value_from_config(self, tmp_path):
         """Test tiled value coming from the writer config."""
         from satpy.writers.geotiff import GeoTIFFWriter
         datasets = self._get_test_datasets()
-        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w = GeoTIFFWriter(base_dir=tmp_path)
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
