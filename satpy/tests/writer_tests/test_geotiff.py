@@ -17,21 +17,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the geotiff writer."""
 
-import unittest
 from unittest import mock
 
 import numpy as np
 
 
-class TestGeoTIFFWriter(unittest.TestCase):
+class TestGeoTIFFWriter:
     """Test the GeoTIFF Writer class."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create temporary directory to save files to."""
         import tempfile
         self.base_dir = tempfile.mkdtemp()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Remove the temporary directory created for a test."""
         try:
             import shutil
@@ -76,12 +75,12 @@ class TestGeoTIFFWriter(unittest.TestCase):
         # and targets
         res = w.save_datasets(datasets, compute=False)
         # this will fail if rasterio isn't installed
-        self.assertIsInstance(res, tuple)
+        assert isinstance(res, tuple)
         # two lists, sources and destinations
-        self.assertEqual(len(res), 2)
-        self.assertIsInstance(res[0], list)
-        self.assertIsInstance(res[1], list)
-        self.assertIsInstance(res[0][0], da.Array)
+        assert len(res) == 2
+        assert isinstance(res[0], list)
+        assert isinstance(res[1], list)
+        assert isinstance(res[0][0], da.Array)
         da.store(res[0], res[1])
         for target in res[1]:
             if hasattr(target, 'close'):
@@ -122,7 +121,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
-            self.assertEqual(save_method.call_args[1]['dtype'], np.float64)
+            assert save_method.call_args[1]['dtype'] == np.float64
 
     def test_dtype_for_enhance_false_and_given_dtype(self):
         """Test that dtype of dataset is used if enhance=False and dtype=uint8."""
@@ -132,7 +131,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
-            self.assertEqual(save_method.call_args[1]['dtype'], np.uint8)
+            assert save_method.call_args[1]['dtype'] == np.uint8
 
     def test_fill_value_from_config(self):
         """Test fill_value coming from the writer config."""
@@ -143,7 +142,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
-            self.assertEqual(save_method.call_args[1]['fill_value'], 128)
+            assert save_method.call_args[1]['fill_value'] == 128
 
     def test_tags(self):
         """Test tags being added."""
@@ -155,7 +154,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
             save_method.return_value = None
             w.save_datasets(datasets, tags={'test2': 2}, compute=False)
             called_tags = save_method.call_args[1]['tags']
-            self.assertDictEqual(called_tags, {'test1': 1, 'test2': 2})
+            assert called_tags == {'test1': 1, 'test2': 2}
 
     def test_scale_offset(self):
         """Test tags being added."""
@@ -166,8 +165,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
-            called_include = save_method.call_args[1]['include_scale_offset_tags']
-            self.assertTrue(called_include)
+            assert save_method.call_args[1]['include_scale_offset_tags']
 
     def test_tiled_value_from_config(self):
         """Test tiled value coming from the writer config."""
@@ -177,4 +175,4 @@ class TestGeoTIFFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, compute=False)
-            self.assertEqual(save_method.call_args[1]['tiled'], True)
+            assert save_method.call_args[1]['tiled']
