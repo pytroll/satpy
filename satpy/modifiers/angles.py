@@ -178,7 +178,7 @@ class ZarrCacheHelper:
                 new_sub_res = sub_res.to_zarr(zarr_path, compute=False)
             new_res.append(new_sub_res)
         # actually compute the storage to zarr
-        da.compute(new_sub_res)
+        da.compute(new_res)
 
 
 def cache_to_zarr_if(
