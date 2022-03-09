@@ -140,19 +140,25 @@ class NcNWCSAF(BaseFileHandler):
                 return lat
 
         logger.debug('Reading %s.', dsid_name)
-        file_key = self._get_filekey(dsid_name, info)
-        variable = self.nc[file_key]
+        file_keys = self._get_filekeys(dsid_name, info)
+        try:
+            variable = self.nc[file_keys[0]]
+        except KeyError:
+            variable = self.nc[file_keys[1]]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(variable, info)
 
         return variable
 
-    def _get_filekey(self, dsid_name, info):
+    def _get_filekeys(self, dsid_name, info):
         try:
-            file_key = self.file_key_prefix + info["file_key"]
+            if isinstance(info["file_key"], list):
+                file_keys = [self.file_key_prefix + key for key in info["file_key"]]
+            else:
+                file_keys = [self.file_key_prefix + info["file_key"]]
         except KeyError:
-            file_key = dsid_name
-        return file_key
+            file_keys = [dsid_name]
+        return file_keys
 
     def scale_dataset(self, variable, info):
         """Scale the data set, applying the attributes from the netCDF file.
@@ -217,7 +223,13 @@ class NcNWCSAF(BaseFileHandler):
 
     def _prepare_variable_for_palette(self, variable, info):
         try:
-            so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset']]
+            if not isinstance(info['scale_offset_dataset'], list):
+                so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset']]
+            else:
+                try:
+                    so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset'][0]]
+                except KeyError:
+                    so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset'][1]]
         except KeyError:
             scale = 1
             offset = 0
