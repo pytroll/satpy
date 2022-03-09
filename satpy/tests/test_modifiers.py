@@ -612,12 +612,7 @@ class TestAngleGeneration:
             input2_func, exp_equal_sun, exp_num_zarr,
             force_bad_glob, tmp_path):
         """Test get_angles when caching is enabled."""
-        from satpy.modifiers.angles import (
-            STATIC_EARTH_INERTIAL_DATETIME,
-            _get_sensor_angles_from_sat_pos,
-            _get_valid_lonlats,
-            get_angles,
-        )
+        from satpy.modifiers.angles import STATIC_EARTH_INERTIAL_DATETIME, get_angles
 
         # Patch methods
         data = input_func()
@@ -629,33 +624,21 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmp_path)), \
                 warnings.catch_warnings(record=True) as caught_warnings:
             res = get_angles(data)
-            assert all(isinstance(x, xr.DataArray) for x in res)
-            # output chunks should be consistent
-            for angle_data_arr in res:
-                assert angle_data_arr.chunks == data.chunks
+            self._check_cached_result(res, data)
 
             # call again, should be cached
             new_data = input2_func(data)
             with _mock_glob_if(force_bad_glob):
                 res2 = get_angles(new_data)
-            assert all(isinstance(x, xr.DataArray) for x in res2)
-            # output chunks should be consistent
-            for angle_data_arr in res2:
-                assert angle_data_arr.chunks == data.chunks
+            self._check_cached_result(res2, data)
+
             res_numpy, res2_numpy = da.compute(res, res2)
             for r1, r2 in zip(res_numpy[:2], res2_numpy[:2]):
                 _assert_allclose_if(not additional_cache, r1, r2)
-
             for r1, r2 in zip(res_numpy[2:], res2_numpy[2:]):
                 _assert_allclose_if(exp_equal_sun, r1, r2)
 
-            zarr_dirs = glob(str(tmp_path / "*.zarr"))
-            assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
-
-            _get_sensor_angles_from_sat_pos.cache_clear()
-            _get_valid_lonlats.cache_clear()
-            zarr_dirs = glob(str(tmp_path / "*.zarr"))
-            assert len(zarr_dirs) == 0
+            self._check_cache_and_clear(tmp_path, exp_num_zarr)
 
         if "odd_chunks" in input_func.__name__:
             assert any(w.category is PerformanceWarning for w in caught_warnings)
@@ -667,6 +650,24 @@ class TestAngleGeneration:
         exp_sat_lon = 10.1 if additional_cache else 10.0
         args = gol.call_args_list[-1][0]
         assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
+
+    @staticmethod
+    def _check_cached_result(results, input_data):
+        assert all(isinstance(x, xr.DataArray) for x in results)
+        # output chunks should be consistent
+        for angle_data_arr in results:
+            assert angle_data_arr.chunks == input_data.chunks
+
+    @staticmethod
+    def _check_cache_and_clear(tmp_path, exp_num_zarr):
+        from satpy.modifiers.angles import _get_sensor_angles_from_sat_pos, _get_valid_lonlats
+        zarr_dirs = glob(str(tmp_path / "*.zarr"))
+        assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
+
+        _get_valid_lonlats.cache_clear()
+        _get_sensor_angles_from_sat_pos.cache_clear()
+        zarr_dirs = glob(str(tmp_path / "*.zarr"))
+        assert len(zarr_dirs) == 0
 
     def test_cached_no_chunks_fails(self, tmp_path):
         """Test that trying to pass non-dask arrays and no chunks fails."""
