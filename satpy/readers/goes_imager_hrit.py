@@ -30,8 +30,8 @@ from datetime import datetime, timedelta
 import dask.array as da
 import numpy as np
 import xarray as xr
-from pyresample import geometry
 
+from satpy.readers._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
 from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.hrit_base import (
     HRITFileHandler,
@@ -352,6 +352,8 @@ SPACECRAFTS = {
     14: "GOES-14",
     15: "GOES-15"}
 
+SENSOR_NAME = 'goes_imager'
+
 
 class HRITGOESFileHandler(HRITFileHandler):
     """GOES HRIT format reader."""
@@ -385,7 +387,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         new_attrs.update(res.attrs)
         res.attrs = new_attrs
         res.attrs['platform_name'] = self.platform_name
-        res.attrs['sensor'] = 'goes_imager'
+        res.attrs['sensor'] = SENSOR_NAME
         res.attrs['orbital_parameters'] = {'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
                                            'projection_latitude': 0.0,
                                            'projection_altitude': ALTITUDE}
@@ -442,45 +444,41 @@ class HRITGOESFileHandler(HRITFileHandler):
         res.attrs['units'] = units.get(unit, unit)
         return res
 
-    def get_area_def(self, dsid):
+    def get_area_def(self, dataset_id):
         """Get the area definition of the band."""
-        cfac = np.int32(self.mda['cfac'])
-        lfac = np.int32(self.mda['lfac'])
-        coff = np.float32(self.mda['coff'])
-        loff = np.float32(self.mda['loff'])
-
-        a = EQUATOR_RADIUS
-        b = POLE_RADIUS
-        h = ALTITUDE
-
-        lon_0 = self.prologue['SubSatLongitude']
-
-        nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
-
-        loff = nlines - loff
-
-        area_extent = self.get_area_extent((nlines, ncols),
-                                           (loff, coff),
-                                           (lfac, cfac),
-                                           h)
-
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
-
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
-
+        proj_dict = self._get_proj_dict(dataset_id)
+        area_extent = get_area_extent(proj_dict)
+        area = get_area_definition(proj_dict, area_extent)
         self.area = area
-
         return area
+
+    def _get_proj_dict(self, dataset_id):
+        loff = np.float32(self.mda['loff'])
+        nlines = np.int32(self.mda['number_of_lines'])
+        loff = nlines - loff
+        name_dict = get_geos_area_naming({
+            'platform_name': self.platform_name,
+            'instrument_name': SENSOR_NAME,
+            # Partial scans are padded to full disk
+            'service_name': 'FD',
+            'service_desc': 'Full Disk',
+            'resolution': dataset_id['resolution']
+        })
+        return {
+            'a': EQUATOR_RADIUS,
+            'b': POLE_RADIUS,
+            'ssp_lon': float(self.prologue['SubSatLongitude']),
+            'h': ALTITUDE,
+            'proj': 'geos',
+            'units': 'm',
+            'a_name': name_dict['area_id'],
+            'a_desc': name_dict['description'],
+            'p_id': '',
+            'nlines': nlines,
+            'ncols': np.int32(self.mda['number_of_columns']),
+            'cfac': np.int32(self.mda['cfac']),
+            'lfac': np.int32(self.mda['lfac']),
+            'coff': np.float32(self.mda['coff']),
+            'loff': loff,
+            'scandir': 'N2S'
+        }
