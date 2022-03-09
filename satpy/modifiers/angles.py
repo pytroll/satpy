@@ -175,9 +175,7 @@ class ZarrCacheHelper:
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
-                new_sub_res = sub_res.to_zarr(zarr_path,
-                                              return_stored=True,
-                                              compute=False)
+                new_sub_res = sub_res.to_zarr(zarr_path, compute=False)
             new_res.append(new_sub_res)
         # actually compute the storage to zarr
         da.compute(new_res)
