@@ -175,30 +175,10 @@ class ZarrCacheHelper:
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
-                new_sub_res = sub_res.to_zarr(zarr_path,
-                                              return_stored=True,
-                                              compute=False)
+                new_sub_res = sub_res.to_zarr(zarr_path, compute=False)
             new_res.append(new_sub_res)
         # actually compute the storage to zarr
-        da.store(new_res, [_PassThroughStore()] * len(new_res), lock=False)
-
-
-class _PassThroughStore:
-    """Placeholder class to allow computation without unnecessary memory usage.
-
-    When dask computes arrays it creates a final resulting numpy array. So
-    doing ``da.compute(some_dask_arr)`` and not saving the result to a variable
-    will still result in the numpy array being created. To get around this,
-    this class provides the necessary interfaces for dask's
-    :meth:`store function <dask.array.core.store>` to compute the individual
-    chunks of one or more dask arrays and then immediately throw the result
-    away and release the memory.
-
-    """
-
-    def __setitem__(self, key, value):
-        """Throw away the resulting array chunk."""
-        return
+        da.compute(new_sub_res)
 
 
 def cache_to_zarr_if(
