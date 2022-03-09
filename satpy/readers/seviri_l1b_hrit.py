@@ -77,9 +77,6 @@ Output:
       * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
       * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
     Attributes:
-        satellite_longitude:      0.0
-        satellite_latitude:       0.0
-        satellite_altitude:       35785831.0
         orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
         platform_name:            Meteosat-11
         georef_offset_corrected:  True
@@ -635,11 +632,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'seviri'
-        res.attrs['satellite_longitude'] = self.mda[
-            'projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = self.mda[
-            'projection_parameters']['SSP_latitude']
-        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
         res.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
             'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
