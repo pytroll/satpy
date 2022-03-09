@@ -126,16 +126,10 @@ class ZarrCacheHelper:
 
         Intended to mimic the :func:`functools.cache` behavior.
         """
-        if cache_dir is None:
-            cache_dir = satpy.config.get("cache_dir")
-        if cache_dir is None:
-            raise RuntimeError("No 'cache_dir' configured.")
+        cache_dir = self._get_cache_dir_from_config(cache_dir)
         zarr_pattern = self._zarr_pattern("*", cache_version="*").format("*")
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
-            try:
-                shutil.rmtree(zarr_dir)
-            except OSError:
-                continue
+            shutil.rmtree(zarr_dir, ignore_errors=True)
 
     def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = None) -> str:
         if cache_version is None:
@@ -171,9 +165,15 @@ class ZarrCacheHelper:
         should_cache: bool = satpy.config.get(self._cache_config_key, False)
         can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in args)
         should_cache = should_cache and can_cache
-        if cache_dir is None:
-            cache_dir = satpy.config.get("cache_dir")
+        cache_dir = self._get_cache_dir_from_config(cache_dir)
         return should_cache, cache_dir
+
+    @staticmethod
+    def _get_cache_dir_from_config(cache_dir: Optional[str]) -> str:
+        cache_dir = cache_dir or satpy.config.get("cache_dir")
+        if cache_dir is None:
+            raise RuntimeError("Can't use zarr caching. No 'cache_dir' configured.")
+        return cache_dir
 
     @staticmethod
     def _warn_if_irregular_input_chunks(args, modified_args):
