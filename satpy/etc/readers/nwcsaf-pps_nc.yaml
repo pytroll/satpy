@@ -231,18 +231,6 @@ datasets:
     file_key: phase_pal
     file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
 
-  #cpp_reff:
-  #  name: cmic_reff
-  #  file_key: reff
-  #  file_type: [nc_nwcsaf_cmic, nc_nwcsaf_cpp]
-  #  coordinates: [lon, lat]
-
-  #cpp_reff_pal:
-  #  name: cmic_reff_pal
-  #  file_key: reff_pal
-  #  scale_offset_dataset: reff
-  #  file_type: [nc_nwcsaf_cmic]
-
   cmic_reff:
     name: cmic_reff
     file_key: [cre, reff]

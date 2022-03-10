@@ -140,25 +140,27 @@ class NcNWCSAF(BaseFileHandler):
                 return lat
 
         logger.debug('Reading %s.', dsid_name)
-        file_keys = self._get_filekeys(dsid_name, info)
-        try:
-            variable = self.nc[file_keys[0]]
-        except KeyError:
-            variable = self.nc[file_keys[1]]
+        file_key = self._get_filekeys(dsid_name, info)
+        variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(variable, info)
 
         return variable
 
+    def _get_varname_in_file(self, info, info_type="file_key"):
+        if isinstance(info[info_type], list):
+            for key in info[info_type]:
+                file_key = self.file_key_prefix + key
+                if file_key in self.nc:
+                    return file_key
+        return self.file_key_prefix + info[info_type]
+
     def _get_filekeys(self, dsid_name, info):
         try:
-            if isinstance(info["file_key"], list):
-                file_keys = [self.file_key_prefix + key for key in info["file_key"]]
-            else:
-                file_keys = [self.file_key_prefix + info["file_key"]]
+            file_key = self._get_varname_in_file(info, info_type="file_key")
         except KeyError:
-            file_keys = [dsid_name]
-        return file_keys
+            file_key = [dsid_name]
+        return file_key
 
     def scale_dataset(self, variable, info):
         """Scale the data set, applying the attributes from the netCDF file.
@@ -223,13 +225,7 @@ class NcNWCSAF(BaseFileHandler):
 
     def _prepare_variable_for_palette(self, variable, info):
         try:
-            if not isinstance(info['scale_offset_dataset'], list):
-                so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset']]
-            else:
-                try:
-                    so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset'][0]]
-                except KeyError:
-                    so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset'][1]]
+            so_dataset = self.nc[self._get_varname_in_file(info, info_type='scale_offset_dataset')]
         except KeyError:
             scale = 1
             offset = 0
