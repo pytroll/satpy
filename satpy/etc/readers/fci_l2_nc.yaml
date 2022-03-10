@@ -48,7 +48,6 @@ datasets:
     file_type: nc_fci_clm
     file_key: cloud_state
     long_name: cloud_mask_classification
-    fill_value: 0
 
   quality_illumination_clm:
     name: quality_illumination_clm
@@ -56,7 +55,6 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_illumination
     long_name: illumination_classification
-    fill_value: 0
 
   quality_nwp_parameters_clm:
     name: quality_nwp_parameters_clm
@@ -64,7 +62,6 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_nwp_parameters
     long_name: quality_index
-    fill_value: 0
 
   quality_MTG_parameters_clm:
     name: quality_MTG_parameters_clm
@@ -72,7 +69,7 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_MTG_parameters
     long_name: quality_index
-    fill_value: [-127, 0]
+    fill_value: -127
 
   quality_overall_processing_clm:
     name: quality_overall_processing_clm
@@ -80,7 +77,6 @@ datasets:
     file_type: nc_fci_clm
     file_key: quality_overall_processing
     long_name: quality_index
-    fill_value: 0
 
   product_quality_clm:
     name: product_quality_clm
@@ -107,7 +103,6 @@ datasets:
     file_type: nc_fci_ct
     file_key: cloud_phase
     long_name: cloud_phase
-    fill_value: 0
 
   cloud_type:
     name: cloud_type
@@ -115,7 +110,6 @@ datasets:
     file_type: nc_fci_ct
     file_key: cloud_type
     long_name: cloud_type
-    fill_value: 0
 
   quality_illumination_ct:
     name: quality_illumination_ct
@@ -123,7 +117,6 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_illumination
     long_name: illumination_classification
-    fill_value: 0
 
   quality_nwp_parameters_ct:
     name: quality_nwp_parameters_ct
@@ -131,7 +124,6 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_nwp_parameters
     long_name: quality_index
-    fill_value: 0
 
   quality_MTG_parameters_ct:
     name: quality_MTG_parameters_ct
@@ -139,7 +131,6 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_MTG_parameters
     long_name: quality_index
-    fill_value: 0
 
   quality_overall_processing_ct:
     name: quality_overall_processing_ct
@@ -147,7 +138,6 @@ datasets:
     file_type: nc_fci_ct
     file_key: quality_overall_processing
     long_name: quality_index
-    fill_value: 0
 
   product_quality_ct:
     name: product_quality_ct
@@ -173,7 +163,6 @@ datasets:
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: cloud_top_aviation_height
-    fill_value: 0
 
   cloud_top_height:
     name: cloud_top_height
@@ -207,7 +196,6 @@ datasets:
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_status
-    fill_value: 0
 
   quality_rtm_ctth:
     name: quality_rtm_ctth
@@ -220,35 +208,31 @@ datasets:
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_method
-    fill_value: 0
 
   quality_nwp_parameters_ctth:
     name: quality_nwp_parameters_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_nwp_parameters
-    fill_value: 0
 
   quality_MTG_parameters_ctth:
     name: quality_MTG_parameters_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_MTG_parameters
-    fill_value: [-127, 0]
+    fill_value: -127
 
   quality_overall_processing_ctth:
     name: quality_overall_processing_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_overall_processing
-    fill_value: 0
 
   quality_overall_processing_aviation_ctth:
     name: quality_overall_processing_aviation_ctth
     resolution: 2000
     file_type: nc_fci_ctth
     file_key: quality_overall_processing_aviation
-    fill_value: 0
 
   product_quality_ctth:
     name: product_quality_ctth
@@ -275,7 +259,6 @@ datasets:
     file_type: nc_fci_oca
     file_key: retrieved_cloud_phase
     standard_name: thermodynamic_phase_of_cloud_water_particles_at_cloud_top
-    fill_value: 0
 
   retrieved_cloud_optical_thickness:
     name: retrieved_cloud_optical_thickness
