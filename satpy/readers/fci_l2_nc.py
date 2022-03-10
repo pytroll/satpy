@@ -241,8 +241,9 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         # Read the projection data from the mtg_geos_projection variable
         a = float(self._projection.attrs['semi_major_axis'])
         h = float(self._projection.attrs['perspective_point_height'])
-        # FIXME: Some L2PF test data files have a typo in the keyname for the inverse flattening parameter. Use a
-        #        default value as fallback until all L2PF test files are correctly formatted.
+
+        # Some L2PF test data files have a typo in the keyname for the inverse flattening parameter. Use a default value
+        # as fallback until all L2PF test files are correctly formatted.
         rf = float(self._projection.attrs.get('inverse_flattening', 298.257223563))
 
         res = dataset_id.resolution
