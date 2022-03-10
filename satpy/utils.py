@@ -40,6 +40,10 @@ _is_logging_on = False
 TRACE_LEVEL = 5
 
 
+class PerformanceWarning(Warning):
+    """Warning raised when there is a possible performance impact."""
+
+
 def ensure_dir(filename):
     """Check if the dir of f exists, otherwise create it."""
     directory = os.path.dirname(filename)
