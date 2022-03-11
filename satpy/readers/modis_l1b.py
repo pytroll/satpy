@@ -85,59 +85,62 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         """Read data from file and return the corresponding projectables."""
         if self.resolution != key['resolution']:
             return
+        subdata, uncertainty, var_attrs, band_index = self._get_band_data_uncertainty_attrs_index(key["name"])
+        array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[band_index, :, :],
+                             dims=['y', 'x']).astype(np.float32)
+        valid_range = var_attrs['valid_range']
+        array = self._mask_invalid_or_fill_saturated(array, valid_range)
+        array = self._mask_uncertain_pixels(array, uncertainty, band_index)
+        projectable = self._calibrate_data(key, info, array, var_attrs, band_index)
 
+        # if ((platform_name == 'Aqua' and key['name'] in ["6", "27", "36"]) or
+        #         (platform_name == 'Terra' and key['name'] in ["29"])):
+        #     height, width = projectable.shape
+        #     row_indices = projectable.mask.sum(1) == width
+        #     if row_indices.sum() != height:
+        #         projectable.mask[row_indices, :] = True
+
+        # Get the orbit number
+        # if not satscene.orbit:
+        #     mda = self.data.attributes()["CoreMetadata.0"]
+        #     orbit_idx = mda.index("ORBITNUMBER")
+        #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+
+        # Trimming out dead sensor lines (detectors) on terra:
+        # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
+        # if satscene.satname == "terra":
+        #     for band in ["29"]:
+        #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+        #             continue
+        #         width = satscene[band].data.shape[1]
+        #         height = satscene[band].data.shape[0]
+        #         indices = satscene[band].data.mask.sum(1) < width
+        #         if indices.sum() == height:
+        #             continue
+        #         satscene[band] = satscene[band].data[indices, :]
+        #         satscene[band].area = geometry.SwathDefinition(
+        #             lons=satscene[band].area.lons[indices, :],
+        #             lats=satscene[band].area.lats[indices, :])
+        self._add_satpy_metadata(key, projectable)
+        return projectable
+
+    def _get_band_data_uncertainty_attrs_index(self, band_name):
         datasets = self.res_to_possible_variable_names[self.resolution]
         for dataset in datasets:
             subdata = self.sd.select(dataset)
             var_attrs = subdata.attributes()
             try:
-                index = self._get_band_index(var_attrs, key["name"])
+                band_index = self._get_band_index(var_attrs, band_name)
             except ValueError:
-                # no band dimension
+                # can't find band in list of bands
                 continue
             uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-            array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
-                                 dims=['y', 'x']).astype(np.float32)
-            valid_range = var_attrs['valid_range']
-            array = self._mask_invalid_or_fill_saturated(array, valid_range)
-            array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
-            projectable = self._calibrate_data(key, info, array, var_attrs, index)
+            return subdata, uncertainty, var_attrs, band_index
 
-            # if ((platform_name == 'Aqua' and key['name'] in ["6", "27", "36"]) or
-            #         (platform_name == 'Terra' and key['name'] in ["29"])):
-            #     height, width = projectable.shape
-            #     row_indices = projectable.mask.sum(1) == width
-            #     if row_indices.sum() != height:
-            #         projectable.mask[row_indices, :] = True
-
-            # Get the orbit number
-            # if not satscene.orbit:
-            #     mda = self.data.attributes()["CoreMetadata.0"]
-            #     orbit_idx = mda.index("ORBITNUMBER")
-            #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
-
-            # Trimming out dead sensor lines (detectors) on terra:
-            # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
-            # if satscene.satname == "terra":
-            #     for band in ["29"]:
-            #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-            #             continue
-            #         width = satscene[band].data.shape[1]
-            #         height = satscene[band].data.shape[0]
-            #         indices = satscene[band].data.mask.sum(1) < width
-            #         if indices.sum() == height:
-            #             continue
-            #         satscene[band] = satscene[band].data[indices, :]
-            #         satscene[band].area = geometry.SwathDefinition(
-            #             lons=satscene[band].area.lons[indices, :],
-            #             lats=satscene[band].area.lats[indices, :])
-            self._add_satpy_metadata(key, projectable)
-            return projectable
-
-    def _get_band_index(self, var_attrs, name):
+    def _get_band_index(self, var_attrs, band_name):
         """Get the relative indices of the desired channel."""
         band_names = var_attrs["band_names"].split(",")
-        index = band_names.index(name)
+        index = band_names.index(band_name)
         return index
 
     def _mask_invalid_or_fill_saturated(self, array, valid_range):
@@ -169,6 +172,11 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         else:
             array = array.where((array != 65533) & (array != 65528), valid_max)
             array = array.where(array <= valid_max)
+        return array
+
+    def _mask_uncertain_pixels(self, array, uncertainty, band_index):
+        band_uncertainty = from_sds(uncertainty, chunks=CHUNK_SIZE)[band_index, :, :]
+        array = array.where(band_uncertainty < 15)
         return array
 
     def _calibrate_data(self, key, info, array, var_attrs, index):
