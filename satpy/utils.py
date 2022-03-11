@@ -31,6 +31,8 @@ import xarray as xr
 import yaml
 from yaml import BaseLoader
 
+from satpy import CHUNK_SIZE
+
 try:
     from yaml import UnsafeLoader
 except ImportError:
@@ -485,3 +487,17 @@ def ignore_invalid_float_warnings():
     with np.errstate(invalid="ignore"), warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         yield
+
+
+def get_chunk_pixel_size():
+    """Compute the maximum chunk size in bites from CHUNK_SIZE."""
+    if CHUNK_SIZE is None:
+        return None
+    elif isinstance(CHUNK_SIZE, str):
+        raise NotImplementedError
+
+    if isinstance(CHUNK_SIZE, (tuple, list)):
+        array_size = np.product(CHUNK_SIZE)
+    else:
+        array_size = CHUNK_SIZE ** 2
+    return array_size

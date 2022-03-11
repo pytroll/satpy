@@ -414,3 +414,19 @@ def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
                              orig_arrays: list[xr.DataArray]) -> None:
     for data_arr, orig_arr in zip(data_arrays, orig_arrays):
         assert data_arr.chunks == orig_arr.chunks
+
+
+def test_chunk_pixel_size():
+    """Check the chunk pixel size computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_pixel_size
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_pixel_size() is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_pixel_size() == 100
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_pixel_size() == 200
+    with patch("satpy.utils.CHUNK_SIZE", "128MiB"):
+        with pytest.raises(NotImplementedError):
+            get_chunk_pixel_size()

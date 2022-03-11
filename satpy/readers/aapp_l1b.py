@@ -33,24 +33,21 @@ import numpy as np
 import xarray as xr
 from dask import delayed
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_chunk_pixel_size
 
 CHANNEL_DTYPE = float
 
 
-def get_chunks(shape):
-    """Get chunks from a given shape adapted for AAPP data."""
-    if isinstance(CHUNK_SIZE, str):
-        limit = CHUNK_SIZE
-    else:
-        if isinstance(CHUNK_SIZE, (tuple, list)):
-            array_size = np.product(CHUNK_SIZE)
-        else:
-            array_size = CHUNK_SIZE ** 2
-        limit = array_size * np.dtype(CHANNEL_DTYPE).itemsize
+def get_avhrr_lac_chunks(shape, dtype):
+    """Get chunks from a given shape adapted for full-resolution AVHRR data."""
+    limit = get_chunk_pixel_size() * np.dtype(dtype).itemsize
+    return da.core.normalize_chunks(("auto", 2048), shape=shape, limit=limit, dtype=dtype)
 
-    return da.core.normalize_chunks(("auto", 2048), shape=shape, limit=limit, dtype=CHANNEL_DTYPE)
+
+def get_aapp_chunks(shape):
+    """Get chunks from a given shape adapted for AAPP data."""
+    return get_avhrr_lac_chunks(shape, dtype=CHANNEL_DTYPE)
 
 
 logger = logging.getLogger(__name__)
@@ -314,7 +311,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
         if dataset_id['name'] in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
-            line_chunks = get_chunks((self._data.shape[0], 2048))[0]
+            line_chunks = get_aapp_chunks((self._data.shape[0], 2048))[0]
             self._is3a = da.bitwise_and(da.from_array(self._data['scnlinbit'],
                                                       chunks=line_chunks), 3) == 0
             self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
@@ -547,7 +544,7 @@ def _vis_calibrate(data,
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
     channel_data = data["hrpt"][:, :, chn]
-    chunks = get_chunks(channel_data.shape)
+    chunks = get_aapp_chunks(channel_data.shape)
     line_chunks = chunks[0]
     channel = da.from_array(channel_data, chunks=chunks)
     mask &= channel != 0
@@ -617,7 +614,7 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
 
     """
     channel_data = data["hrpt"][:, :, irchn + 2]
-    chunks = get_chunks(channel_data.shape)
+    chunks = get_aapp_chunks(channel_data.shape)
     line_chunks = chunks[0]
 
     count = da.from_array(channel_data, chunks=chunks)
