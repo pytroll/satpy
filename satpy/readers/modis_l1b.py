@@ -62,9 +62,10 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
            "Q": 250,
            "H": 500}
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, **kwargs):
         """Init the file handler."""
-        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
+        self._mask_saturated = mask_saturated
 
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
@@ -121,7 +122,13 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             # 65500 NAD closed upper limit
 
             array = array.where(array >= np.float32(valid_range[0]))
-            array = array.where(array <= np.float32(valid_range[1]))
+            if self._mask_saturated:
+                array = array.where(array <= np.float32(valid_range[1]))
+            else:
+                valid_max = np.float32(valid_range[1])
+                array = array.where((array != 65533) & (array != 65528), valid_max)
+                array = array.where(array <= valid_max)
+
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
             if key['calibration'] == 'brightness_temperature':
@@ -182,10 +189,10 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
 class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
     """A file handler for the files that have both regular bands and geographical information in them."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Init the file handler."""
-        HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
-        HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
+        HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
 
     def get_dataset(self, key, info):
         """Get the dataset."""

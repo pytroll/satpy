@@ -75,6 +75,13 @@ def _generate_angle_data(resolution: int) -> np.ndarray:
 def _generate_visible_data(resolution: int, num_bands: int, dtype=np.uint16) -> np.ndarray:
     shape = _shape_for_resolution(resolution)
     data = np.zeros((num_bands, shape[0], shape[1]), dtype=dtype)
+
+    # add fill value to every band
+    data[:, -1, -1] = 65535
+
+    # add band 2 saturation and can't aggregate fill values
+    data[1, -1, -2] = 65533
+    data[1, -1, -3] = 65528
     return data
 
 
