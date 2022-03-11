@@ -25,11 +25,33 @@ The ``modis_l1b`` reader reads and calibrates Modis L1 image data in hdf-eos for
 a pattern similar to the following one:
 
 .. parsed-literal::
+
     M[O/Y]D02[1/H/Q]KM.A[date].[time].[collection].[processing_time].hdf
 
 Other patterns where "collection" and/or "proccessing_time" are missing might also work
 (see the readers yaml file for details). Geolocation files (MOD03) are also supported.
+The IMAPP direct broadcast naming format is also supported with names like:
+``a1.12226.1846.1000m.hdf``.
 
+Saturation Handling
+-------------------
+
+Band 2 of the MODIS sensor is available in 250m, 500m, and 1km resolutions.
+The band data may include a special fill value to indicate when the detector
+was saturated in the 250m version of the data. When the data is aggregated to
+coarser resolutions this saturation fill value is converted to a
+"can't aggregate" fill value. By default, Satpy will replace these fill values
+with NaN to indicate they are invalid. This is typically undesired when
+generating images for the data as they appear as "holes" in bright clouds.
+To control this the keyword argument ``mask_saturated`` can be passed and set
+to ``False`` to set these two fill values to the maximum valid value.
+
+.. code-block:: python
+
+    scene = satpy.Scene(filenames=filenames,
+                        reader='modis_l1b',
+                        reader_kwargs={'mask_saturated': False})
+    scene.load(['2'])
 
 Geolocation files
 -----------------
