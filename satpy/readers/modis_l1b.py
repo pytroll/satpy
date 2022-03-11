@@ -89,12 +89,10 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         for dataset in datasets:
             subdata = self.sd.select(dataset)
             var_attrs = subdata.attributes()
-            band_names = var_attrs["band_names"].split(",")
-
-            # get the relative indices of the desired channel
             try:
-                index = band_names.index(key['name'])
+                index = self._get_band_index(var_attrs, key["name"])
             except ValueError:
+                # no band dimension
                 continue
             uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
             array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
@@ -102,29 +100,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             valid_range = var_attrs['valid_range']
             array = self._mask_invalid_or_fill_saturated(array, valid_range)
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
-
-            if key['calibration'] == 'brightness_temperature':
-                projectable = calibrate_bt(array, var_attrs, index, key['name'])
-                info.setdefault('units', 'K')
-                info.setdefault('standard_name', 'toa_brightness_temperature')
-            elif key['calibration'] == 'reflectance':
-                projectable = calibrate_refl(array, var_attrs, index)
-                info.setdefault('units', '%')
-                info.setdefault('standard_name',
-                                'toa_bidirectional_reflectance')
-            elif key['calibration'] == 'radiance':
-                projectable = calibrate_radiance(array, var_attrs, index)
-                info.setdefault('units', var_attrs.get('radiance_units'))
-                info.setdefault('standard_name',
-                                'toa_outgoing_radiance_per_unit_wavelength')
-            elif key['calibration'] == 'counts':
-                projectable = calibrate_counts(array, var_attrs, index)
-                info.setdefault('units', 'counts')
-                info.setdefault('standard_name', 'counts')  # made up
-            else:
-                raise ValueError("Unknown calibration for "
-                                 "key: {}".format(key))
-            projectable.attrs = info
+            projectable = self._calibrate_data(key, info, array, var_attrs, index)
 
             # if ((platform_name == 'Aqua' and key['name'] in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key['name'] in ["29"])):
@@ -157,6 +133,12 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             self._add_satpy_metadata(key, projectable)
             return projectable
 
+    def _get_band_index(self, var_attrs, name):
+        """Get the relative indices of the desired channel."""
+        band_names = var_attrs["band_names"].split(",")
+        index = band_names.index(name)
+        return index
+
     def _mask_invalid_or_fill_saturated(self, array, valid_range):
         """Replace fill values with NaN or replace saturation with max reflectance."""
         # Fill values:
@@ -187,6 +169,31 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             array = array.where((array != 65533) & (array != 65528), valid_max)
             array = array.where(array <= valid_max)
         return array
+
+    def _calibrate_data(self, key, info, array, var_attrs, index):
+        if key['calibration'] == 'brightness_temperature':
+            projectable = calibrate_bt(array, var_attrs, index, key['name'])
+            info.setdefault('units', 'K')
+            info.setdefault('standard_name', 'toa_brightness_temperature')
+        elif key['calibration'] == 'reflectance':
+            projectable = calibrate_refl(array, var_attrs, index)
+            info.setdefault('units', '%')
+            info.setdefault('standard_name',
+                            'toa_bidirectional_reflectance')
+        elif key['calibration'] == 'radiance':
+            projectable = calibrate_radiance(array, var_attrs, index)
+            info.setdefault('units', var_attrs.get('radiance_units'))
+            info.setdefault('standard_name',
+                            'toa_outgoing_radiance_per_unit_wavelength')
+        elif key['calibration'] == 'counts':
+            projectable = calibrate_counts(array, var_attrs, index)
+            info.setdefault('units', 'counts')
+            info.setdefault('standard_name', 'counts')  # made up
+        else:
+            raise ValueError("Unknown calibration for "
+                             "key: {}".format(key))
+        projectable.attrs = info
+        return projectable
 
 
 class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
