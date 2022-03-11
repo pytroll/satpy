@@ -269,8 +269,8 @@ class TestDifferenceCompositor(unittest.TestCase):
     def test_basic_diff(self):
         """Test that a basic difference composite works."""
         from satpy.composites import DifferenceCompositor
-        comp = DifferenceCompositor(name='diff')
-        res = comp((self.ds1, self.ds2), standard_name='temperature_difference')
+        comp = DifferenceCompositor(name='diff', standard_name='temperature_difference')
+        res = comp((self.ds1, self.ds2))
         np.testing.assert_allclose(res.values, -2)
         assert res.attrs.get('standard_name') == 'temperature_difference'
 
