@@ -257,7 +257,8 @@ class DifferenceCompositor(CompositeBase):
         projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
-        info.update(attrs)
+        info.update(self.attrs)  # attrs from YAML/__init__
+        info.update(attrs)  # overwriting of DataID properties
 
         proj = projectables[0] - projectables[1]
         proj.attrs = info
