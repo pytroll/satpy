@@ -5,15 +5,6 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [modis]
 
-navigations:
-  hdf_eos_geo:
-      description: MODIS navigation
-      file_type: hdf_eos_geo
-      latitude_key: Latitude
-      longitude_key: Longitude
-      nadir_resolution: [1000]
-      rows_per_scan: 10
-
 datasets:
   '1':
     name: '1'
