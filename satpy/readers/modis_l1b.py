@@ -62,6 +62,16 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
            "Q": 250,
            "H": 500}
 
+    res_to_possible_variable_names = {
+        1000: ['EV_250_Aggr1km_RefSB',
+               'EV_500_Aggr1km_RefSB',
+               'EV_1KM_RefSB',
+               'EV_1KM_Emissive'],
+        500: ['EV_250_Aggr500_RefSB',
+              'EV_500_RefSB'],
+        250: ['EV_250_RefSB'],
+    }
+
     def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, **kwargs):
         """Init the file handler."""
         HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
@@ -73,19 +83,10 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
-        datadict = {
-            1000: ['EV_250_Aggr1km_RefSB',
-                   'EV_500_Aggr1km_RefSB',
-                   'EV_1KM_RefSB',
-                   'EV_1KM_Emissive'],
-            500: ['EV_250_Aggr500_RefSB',
-                  'EV_500_RefSB'],
-            250: ['EV_250_RefSB']}
-
         if self.resolution != key['resolution']:
             return
 
-        datasets = datadict[self.resolution]
+        datasets = self.res_to_possible_variable_names[self.resolution]
         for dataset in datasets:
             subdata = self.sd.select(dataset)
             var_attrs = subdata.attributes()
