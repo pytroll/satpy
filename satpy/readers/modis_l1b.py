@@ -121,14 +121,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             # 65501 - 65523 (reserved for future use)
             # 65500 NAD closed upper limit
 
-            array = array.where(array >= np.float32(valid_range[0]))
-            if self._mask_saturated:
-                array = array.where(array <= np.float32(valid_range[1]))
-            else:
-                valid_max = np.float32(valid_range[1])
-                array = array.where((array != 65533) & (array != 65528), valid_max)
-                array = array.where(array <= valid_max)
-
+            array = self._mask_invalid_or_fill_saturated(array, valid_range)
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
             if key['calibration'] == 'brightness_temperature':
@@ -184,6 +177,17 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             #             lats=satscene[band].area.lats[indices, :])
             self._add_satpy_metadata(key, projectable)
             return projectable
+
+    def _mask_invalid_or_fill_saturated(self, array, valid_range):
+        valid_min = np.float32(valid_range[0])
+        valid_max = np.float32(valid_range[1])
+        array = array.where(array >= valid_min)
+        if self._mask_saturated:
+            array = array.where(array <= valid_max)
+        else:
+            array = array.where((array != 65533) & (array != 65528), valid_max)
+            array = array.where(array <= valid_max)
+        return array
 
 
 class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
