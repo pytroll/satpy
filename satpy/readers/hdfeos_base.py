@@ -25,12 +25,13 @@ from ast import literal_eval
 from contextlib import suppress
 from datetime import datetime
 
+import dask.array.core
 import numpy as np
 import xarray as xr
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-from satpy import CHUNK_SIZE, DataID
+from satpy import DataID
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -216,13 +217,47 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         from satpy.readers.hdf4_utils import from_sds
 
         dataset = self._read_dataset_in_file(dataset_name)
-        dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
+        chunks = self._chunks_for_variable(dataset)
+        dask_arr = from_sds(dataset, chunks=chunks)
         dims = ('y', 'x') if dask_arr.ndim == 2 else None
         data = xr.DataArray(dask_arr, dims=dims,
                             attrs=dataset.attributes())
         data = self._scale_and_mask_data_array(data, is_category=is_category)
 
         return data
+
+    def _chunks_for_variable(self, hdf_dataset):
+        scan_length_250m = 40
+        var_shape = hdf_dataset.info()[2]
+        res_multiplier = self._get_res_multiplier(var_shape)
+        non_yx_chunks = tuple()
+        if len(var_shape) == 3:
+            # assume (band, y, x)
+            non_yx_chunks = ((1,) * var_shape[0],)
+            var_shape = var_shape[-2:]
+        elif len(var_shape) != 2:
+            # don't guess
+            return dask.array.core.normalize_chunks("auto", shape=var_shape, dtype=np.float32)
+        shape_for_250m = tuple(dim_size * res_multiplier for dim_size in var_shape)
+        chunks_for_250m = dask.array.core.normalize_chunks(("auto", -1), shape=shape_for_250m, dtype=np.float32)
+        row_chunks_for_250m = chunks_for_250m[0][0]
+        scanbased_row_chunks_for_250m = np.round(row_chunks_for_250m / scan_length_250m) * scan_length_250m
+        var_row_chunks = scanbased_row_chunks_for_250m / res_multiplier
+        var_row_chunks = max(var_row_chunks, scan_length_250m / res_multiplier)  # avoid getting 0 chunk size
+        return non_yx_chunks + (var_row_chunks, -1)
+
+    @staticmethod
+    def _get_res_multiplier(var_shape):
+        num_columns_to_multiplier = {
+            271: 20,  # 5km
+            1354: 4,  # 1km
+            2708: 2,  # 500m
+            5416: 1,  # 250m
+        }
+        for max_columns, res_multiplier in num_columns_to_multiplier.items():
+            if var_shape[-1] <= max_columns:
+                return res_multiplier
+        return 1
 
     def _scale_and_mask_data_array(self, data, is_category=False):
         good_mask, new_fill = self._get_good_data_mask(data, is_category=is_category)
@@ -356,14 +391,19 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             result2 = self._load_ds_by_name(name2) - offset
             try:
                 sensor_zenith = self._load_ds_by_name('satellite_zenith_angle')
+                print("sensor_zenith: ", sensor_zenith.chunks)
             except KeyError:
                 # no sensor zenith angle, do "simple" interpolation
                 sensor_zenith = None
 
+            print("get_interpolated_dataset: ", name1, resolution, result1.data.chunks)
+            print("get_interpolated_dataset: ", name2, resolution, result2.data.chunks)
             result1, result2 = interpolate(
                 result1, result2, sensor_zenith,
                 self.geo_resolution, resolution
             )
+            print("get_interpolated_dataset after: ", name1, result1.data.chunks)
+            print("get_interpolated_dataset after: ", name2, result2.data.chunks)
             self.cache[(name1, resolution)] = result1
             self.cache[(name2, resolution)] = result2 + offset
 

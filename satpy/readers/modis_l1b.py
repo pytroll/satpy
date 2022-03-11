@@ -48,7 +48,6 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy import CHUNK_SIZE
 from satpy.readers.hdf4_utils import from_sds
 from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
 
@@ -95,8 +94,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
                 index = band_names.index(key['name'])
             except ValueError:
                 continue
-            uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-            array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
+            chunks = self._chunks_for_variable(subdata)
+            array = xr.DataArray(from_sds(subdata, chunks=chunks)[index, :, :],
                                  dims=['y', 'x']).astype(np.float32)
             valid_range = var_attrs['valid_range']
 
@@ -122,7 +121,9 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
 
             array = array.where(array >= np.float32(valid_range[0]))
             array = array.where(array <= np.float32(valid_range[1]))
-            array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
+            uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
+            uncertainty_chunks = self._chunks_for_variable(uncertainty)
+            array = array.where(from_sds(uncertainty, chunks=uncertainty_chunks)[index, :, :] < 15)
 
             if key['calibration'] == 'brightness_temperature':
                 projectable = calibrate_bt(array, var_attrs, index, key['name'])
