@@ -391,19 +391,14 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             result2 = self._load_ds_by_name(name2) - offset
             try:
                 sensor_zenith = self._load_ds_by_name('satellite_zenith_angle')
-                print("sensor_zenith: ", sensor_zenith.chunks)
             except KeyError:
                 # no sensor zenith angle, do "simple" interpolation
                 sensor_zenith = None
 
-            print("get_interpolated_dataset: ", name1, resolution, result1.data.chunks)
-            print("get_interpolated_dataset: ", name2, resolution, result2.data.chunks)
             result1, result2 = interpolate(
                 result1, result2, sensor_zenith,
                 self.geo_resolution, resolution
             )
-            print("get_interpolated_dataset after: ", name1, result1.data.chunks)
-            print("get_interpolated_dataset after: ", name2, result2.data.chunks)
             self.cache[(name1, resolution)] = result1
             self.cache[(name2, resolution)] = result2 + offset
 
