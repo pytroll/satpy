@@ -197,6 +197,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         return array
 
     def _mask_uncertain_pixels(self, array, uncertainty, band_index):
+        if not self._mask_saturated:
+            return array
         band_uncertainty = from_sds(uncertainty, chunks=CHUNK_SIZE)[band_index, :, :]
         array = array.where(band_uncertainty < 15)
         return array
