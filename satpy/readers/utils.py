@@ -285,17 +285,18 @@ class unzip_context():
 class generic_open():
     """Context manager for opening either a regular file or a bzip2 file."""
 
-    def __init__(self, filename, mode="rb"):
+    def __init__(self, filename, *args, **kwargs):
         """Keep filename and mode."""
         self.filename = filename
-        self.mode = mode
+        self.open_args = args
+        self.open_kwargs = kwargs
 
     def __enter__(self):
         """Return a file-like object."""
         if self.filename.endswith('.bz2'):
-            self.fp = bz2.open(self.filename, mode=self.mode)
+            self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
         else:
-            self.fp = open(self.filename, mode=self.mode)
+            self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
 
         return self.fp
 
