@@ -302,7 +302,6 @@ class TestHelpers(unittest.TestCase):
     @mock.patch('bz2.BZ2File')
     def test_generic_open(self, bz2_mock):
         """Test the bz2 file unzipping context manager."""
-
         mock_bz2_open = mock.MagicMock()
         mock_bz2_open.read.return_value = b'TEST'
         bz2_mock.return_value = bz2_mock
