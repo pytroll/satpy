@@ -310,7 +310,7 @@ class TestHelpers(unittest.TestCase):
         with hf.generic_open(filename) as file_object:
             _ = file_object.read()
 
-        self.assertTrue(bz2_mock.read.called)
+        assert bz2_mock.read.called
 
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
