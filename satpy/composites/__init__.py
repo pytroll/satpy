@@ -1555,3 +1555,34 @@ class LongitudeMaskingCompositor(GenericCompositor):
 
         masked_projectable = projectable.where(lon_min_max)
         return super(LongitudeMaskingCompositor, self).__call__([masked_projectable], **info)
+
+class MSGQuicklook(GenericCompositor):
+    """Pseudo true color composite.
+        source: https://www.frontiersin.org/articles/10.3389/frsen.2021.666516/full
+
+    Args:
+        ch16_w (float): weight for red channel (1.6 um).
+        ch08_w (float): weight for green channel (0.8 um).
+        ch06_w (float): weight for blue channel (0.6 um).
+    """
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        ch16 = projectables[0]
+        ch08 = projectables[1]
+        ch06 = projectables[2]
+
+        MIR = 0.001 + 0.888717 * ch16
+        NIR = 0.001 + 0.731068 * ch08
+
+        ch1 = 0.001 + 0.721272 * ch06
+        ch1.attrs = ch16.attrs
+        ch2 = 0.0120477 + 0.993179 * ch1 + 0.209240 * NIR - 0.328016 * MIR
+        ch2.attrs = ch08.attrs
+        ch3 = 0.0331077 + 1.030620 * ch1 + 0.102415 * NIR - 0.446689 * MIR
+        ch3.attrs = ch06.attrs
+
+        res = super(MSGQuicklook, self).__call__((ch1, ch2, ch3),
+                                                    *args, **kwargs)
+        return res

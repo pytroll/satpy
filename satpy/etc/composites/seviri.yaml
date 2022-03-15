@@ -609,3 +609,22 @@ composites:
       - method: equal
         value: High_semitransparent_above_snow_ice
         transparency: 60
+
+  msg_quicklook_nocorr:
+    compositor: !!python/name:satpy.composites.MSGQuicklook
+    prerequisites:
+      - name: IR_016
+      - name: VIS008
+      - name: VIS006
+    standard_name: msg_quicklook
+
+  msg_quicklook:
+    compositor: !!python/name:satpy.composites.MSGQuicklook
+    prerequisites:
+      - name: IR_016
+        modifiers: [sunz_corrected]
+      - name: VIS008
+        modifiers: [sunz_corrected]
+      - name: VIS006
+        modifiers: [sunz_corrected]
+    standard_name: msg_quicklook
