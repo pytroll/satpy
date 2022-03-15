@@ -262,10 +262,9 @@ class unzip_context():
 
     """
 
-    def __init__(self, filename, streaming=False):
+    def __init__(self, filename):
         """Keep original filename."""
         self.input_filename = filename
-        self.streaming = bool(streaming)
 
     def __enter__(self):
         """Uncompress file if necessary and return the relevant filename for the file handler."""
