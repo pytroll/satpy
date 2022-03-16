@@ -36,7 +36,7 @@ from dask import delayed
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import get_chunk_pixel_size
 
-CHANNEL_DTYPE = float
+CHANNEL_DTYPE = np.float64
 
 
 def get_avhrr_lac_chunks(shape, dtype):
