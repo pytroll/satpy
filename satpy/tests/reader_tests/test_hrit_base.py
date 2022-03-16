@@ -103,8 +103,8 @@ class TestHRITFileHandler(unittest.TestCase):
                                                           ('hdr_id', int)])
 
         with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, \
-            mock.patch('satpy.readers.utils.open', m, create=True) as utilopen, \
-            mock.patch.object(HRITFileHandler, '_get_hd', new=new_get_hd):
+             mock.patch('satpy.readers.utils.open', m, create=True) as utilopen, \
+             mock.patch.object(HRITFileHandler, '_get_hd', new=new_get_hd):
 
             newopen.return_value.__enter__.return_value.tell.return_value = 1
             utilopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
