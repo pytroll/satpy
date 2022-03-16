@@ -489,12 +489,23 @@ def ignore_invalid_float_warnings():
         yield
 
 
+def get_chunk_size_limit(dtype):
+    """Compute the chunk size limit in bytes given *dtype*.
+
+    Returns:
+        If PYTROLL_CHUNK_SIZE is not defined, this function returns None,
+        otherwise it returns the computed chunk size in bytes.
+    """
+    pixel_size = get_chunk_pixel_size()
+    if pixel_size is not None:
+        return pixel_size * np.dtype(dtype).itemsize
+    return None
+
+
 def get_chunk_pixel_size():
-    """Compute the maximum chunk size in bites from CHUNK_SIZE."""
+    """Compute the maximum chunk size from CHUNK_SIZE."""
     if CHUNK_SIZE is None:
         return None
-    elif isinstance(CHUNK_SIZE, str):
-        raise NotImplementedError
 
     if isinstance(CHUNK_SIZE, (tuple, list)):
         array_size = np.product(CHUNK_SIZE)

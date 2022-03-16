@@ -34,14 +34,14 @@ import xarray as xr
 from dask import delayed
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.utils import get_chunk_pixel_size
+from satpy.utils import get_chunk_size_limit
 
 CHANNEL_DTYPE = np.float64
 
 
 def get_avhrr_lac_chunks(shape, dtype):
     """Get chunks from a given shape adapted for full-resolution AVHRR data."""
-    limit = get_chunk_pixel_size() * np.dtype(dtype).itemsize
+    limit = get_chunk_size_limit(dtype)
     return da.core.normalize_chunks(("auto", 2048), shape=shape, limit=limit, dtype=dtype)
 
 

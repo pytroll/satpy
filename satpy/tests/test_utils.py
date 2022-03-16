@@ -427,6 +427,16 @@ def test_chunk_pixel_size():
         assert get_chunk_pixel_size() == 100
     with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
         assert get_chunk_pixel_size() == 200
-    with patch("satpy.utils.CHUNK_SIZE", "128MiB"):
-        with pytest.raises(NotImplementedError):
-            get_chunk_pixel_size()
+
+
+def test_chunk_size_limit():
+    """Check the chunk size limit computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_size_limit
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_size_limit(np.uint8) is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_size_limit(np.float64) == 800
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_size_limit(np.int32) == 800
