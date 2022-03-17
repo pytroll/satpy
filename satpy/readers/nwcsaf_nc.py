@@ -159,7 +159,7 @@ class NcNWCSAF(BaseFileHandler):
         try:
             file_key = self._get_varname_in_file(info, info_type="file_key")
         except KeyError:
-            file_key = [dsid_name]
+            file_key = dsid_name
         return file_key
 
     def scale_dataset(self, variable, info):
