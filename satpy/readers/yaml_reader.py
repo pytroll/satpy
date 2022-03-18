@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2019, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -24,6 +24,7 @@ import os
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
+from contextlib import suppress
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
@@ -301,7 +302,10 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 ds_info = dataset.copy()
                 for key in dsid.keys():
                     if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][dsid.get(key)])
+                        with suppress(KeyError):
+                            # KeyError is suppressed in case the key does not represent interesting metadata,
+                            # eg a custom type
+                            ds_info.update(ds_info[key][dsid.get(key)])
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = dsid.get(key)
@@ -345,6 +349,10 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
 
     """
 
+    # WeakValueDictionary objects must be created at the class level or else
+    # dask will not be able to serialize them on a distributed environment
+    _coords_cache: WeakValueDictionary = WeakValueDictionary()
+
     def __init__(self,
                  config_dict,
                  filter_parameters=None,
@@ -357,7 +365,6 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         self.available_ids = {}
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
-        self.coords_cache = WeakValueDictionary()
         self.register_data_files()
 
     @property
@@ -805,7 +812,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         key = None
         try:
             key = (lons.data.name, lats.data.name)
-            sdef = self.coords_cache.get(key)
+            sdef = FileYAMLReader._coords_cache.get(key)
         except AttributeError:
             sdef = None
         if sdef is None:
@@ -816,7 +823,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
                                              lons.attrs.get('name', lons.name),
                                              lats.attrs.get('name', lats.name))
             if key is not None:
-                self.coords_cache[key] = sdef
+                FileYAMLReader._coords_cache[key] = sdef
         return sdef
 
     def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
@@ -1000,6 +1007,11 @@ def _set_orientation(dataset, upper_right_corner):
 
     if 'area' not in dataset.attrs:
         logger.info("Dataset {} is missing the area attribute "
+                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+        return dataset
+
+    if isinstance(dataset.attrs['area'], SwathDefinition):
+        logger.info("Dataset {} is in a SwathDefinition "
                     "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
         return dataset
 

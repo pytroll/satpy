@@ -799,7 +799,7 @@ datasets:
     resolution:
       1000:
         file_key: Cloud_Water_Path_1621_PCL
-        
+
   cloud_water_path_16:
     name: cloud_water_path_16
     long_name: "Column Water Path two-band retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
@@ -819,7 +819,7 @@ datasets:
     resolution:
       1000:
         file_key: Cloud_Water_Path_16_PCL
-        
+
   cloud_water_path_37:
     name: cloud_water_path_37
     long_name: "Column Water Path two-band retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
@@ -839,7 +839,7 @@ datasets:
     resolution:
       1000:
         file_key: Cloud_Water_Path_37_PCL
-        
+
   cloud_effective_radius_uncertainty:
     name: cloud_effective_radius_uncertainty
     long_name: Cloud Effective Particle Radius (from band 7) Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m

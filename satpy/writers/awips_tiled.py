@@ -1006,14 +1006,14 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         if crs.is_geographic:
             self._fill_units_and_standard_name(y_attrs, 'degrees_north', 'latitude')
         else:
-            self._fill_units_and_standard_name(y_attrs, 'meter', 'projection_y_coordinate')
+            self._fill_units_and_standard_name(y_attrs, 'meters', 'projection_y_coordinate')
             y_attrs['axis'] = 'Y'
 
         x_attrs = new_ds.coords['x'].attrs
         if crs.is_geographic:
             self._fill_units_and_standard_name(x_attrs, 'degrees_east', 'longitude')
         else:
-            self._fill_units_and_standard_name(x_attrs, 'meter', 'projection_x_coordinate')
+            self._fill_units_and_standard_name(x_attrs, 'meters', 'projection_x_coordinate')
             x_attrs['axis'] = 'X'
 
     @staticmethod
@@ -1021,6 +1021,9 @@ class AWIPSNetCDFTemplate(NetCDFTemplate):
         """Fill in units and standard_name if not set in `attrs`."""
         if attrs.get('units') is None:
             attrs['units'] = units
+        if attrs['units'] in ('meter', 'metre'):
+            # AWIPS doesn't like 'meter'
+            attrs['units'] = 'meters'
         if attrs.get('standard_name') is None:
             attrs['standard_name'] = standard_name
 

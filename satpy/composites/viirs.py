@@ -268,7 +268,7 @@ class ERFDNB(CompositeBase):
                                                 max_val)) / dnb_data.size
         LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
         while saturation_pct > 0.005:
-            max_val *= 1.1 * unit_factor
+            max_val *= 1.1
             saturation_pct = float(np.count_nonzero(
                 dnb_data > max_val)) / dnb_data.size
             LOG.debug("Dynamic DNB saturation percentage: %f",
@@ -340,7 +340,7 @@ class ERFDNB(CompositeBase):
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
-            inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
+            inner_sqrt.data = np.clip(inner_sqrt.data, 0, None)
             output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()

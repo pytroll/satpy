@@ -44,7 +44,7 @@ jobs:
           miniforge-variant: Mambaforge
           miniforge-version: latest
           use-mamba: true
-          python-version: "3.8"
+          python-version: "3.9"
           environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
 
@@ -68,10 +68,10 @@ jobs:
       fail-fast: true
       matrix:
         os: ["windows-latest", "ubuntu-latest", "macos-latest"]
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.8", "3.9", "3.10"]
         experimental: [false]
         include:
-          - python-version: "3.8"
+          - python-version: "3.9"
             os: "ubuntu-latest"
             experimental: true
 
@@ -148,7 +148,7 @@ jobs:
           coverage xml
 
       - name: Upload behaviour test coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
         with:
           flags: behaviourtests
           file: ./coverage.xml
@@ -162,4 +162,3 @@ jobs:
         uses: AndreMiras/coveralls-python-action@develop
         with:
           parallel-finished: true
-

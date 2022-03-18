@@ -32,7 +32,7 @@ import logging
 import os
 from datetime import timedelta
 from io import BytesIO
-from subprocess import PIPE, Popen
+from subprocess import PIPE, Popen  # nosec B404
 from tempfile import gettempdir
 
 import dask.array as da
@@ -132,7 +132,7 @@ def decompress(infile, outdir='.'):
     cwd = os.getcwd()
     os.chdir(outdir)
 
-    p = Popen([cmd, infile], stdout=PIPE)
+    p = Popen([cmd, infile], stdout=PIPE)  # nosec B603
     stdout = BytesIO(p.communicate()[0])
     status = p.returncode
     os.chdir(cwd)

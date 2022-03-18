@@ -106,7 +106,7 @@ Whether or not generated longitude and latitude coordinates should be cached
 to on-disk zarr arrays. Currently this only works in very specific cases.
 Mainly the lon/lats that are generated when computing sensor and solar zenith
 and azimuth angles used in various modifiers and compositors. This caching is
-only done for ``AreaDefinition``-based geolocation, not ``SwathDefinition``s.
+only done for ``AreaDefinition``-based geolocation, not ``SwathDefinition``.
 Arrays are stored in ``cache_dir`` (see above).
 
 When setting this as an environment variable, this should be set with the
@@ -132,7 +132,7 @@ Cache Sensor Angles
 Whether or not generated sensor azimuth and sensor zenith angles should be
 cached to on-disk zarr arrays. These angles are primarily used in certain
 modifiers and compositors. This caching is only done for
-``AreaDefinition``-based geolocation, not ``SwathDefinition``s.
+``AreaDefinition``-based geolocation, not ``SwathDefinition``.
 Arrays are stored in ``cache_dir`` (see above).
 
 This caching requires producing an estimate of the angles to avoid needing to
@@ -241,6 +241,22 @@ See :doc:`dev_guide/aux_data` for more information. If ``True`` then Satpy
 will download and cache any necessary data files to :ref:`data_dir_setting`
 when needed. If ``False`` then pre-downloaded files will be used, but any
 other files will not be downloaded or checked for validity.
+
+Sensor Angles Position Preference
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* **Environment variable**: ``SATPY_SENSOR_ANGLES_POSITION_PREFERENCE``
+* **YAML/Config Key**: ``sensor_angles_position_preference``
+* **Default**: "actual"
+
+Control which satellite position should be preferred when generating sensor
+azimuth and sensor zenith angles. This value is passed directly to the
+:func:`~satpy.utils.get_satpos` function. See the documentation for that
+function for more information on how the value will be used. This is used
+as part of the :func:`~satpy.modifiers.angles.get_angles` and
+:func:`~satpy.modifiers.angles.get_satellite_zenith_angle` functions which is
+used by multiple modifiers and composites including the default rayleigh
+correction.
 
 .. _component_configuration:
 

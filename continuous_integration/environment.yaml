@@ -28,6 +28,7 @@ dependencies:
   - rasterio
   - bottleneck
   - rioxarray
+  - defusedxml
   - imageio
   - pyhdf
   - mock

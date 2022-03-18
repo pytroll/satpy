@@ -23,6 +23,7 @@ For now, this includes enhancement configuration utilities.
 import logging
 import os
 import warnings
+from typing import Optional
 
 import dask.array as da
 import numpy as np
@@ -812,7 +813,13 @@ class ImageWriter(Writer):
                                  decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
-    def save_image(self, img, filename=None, compute=True, **kwargs):
+    def save_image(
+            self,
+            img: XRImage,
+            filename: Optional[str] = None,
+            compute: bool = True,
+            **kwargs
+    ):
         """Save Image object to a given ``filename``.
 
         Args:

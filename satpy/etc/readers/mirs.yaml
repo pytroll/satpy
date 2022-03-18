@@ -25,7 +25,7 @@ file_types:
     file_patterns:
       - 'IMG_SX.{platform_shortname}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
 
-datasets: 
+datasets:
   longitude:
     name: longitude
     file_type: metop_amsu
