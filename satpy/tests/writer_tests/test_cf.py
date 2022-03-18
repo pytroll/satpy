@@ -440,7 +440,7 @@ class TestCFWriter(unittest.TestCase):
             with xr.open_dataset(filename) as f:
                 self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
 
-    def test_header_attrs(self):
+    def test_header_group_attrs(self):
         """Check global attributes are set."""
         import xarray as xr
 
@@ -461,10 +461,15 @@ class TestCFWriter(unittest.TestCase):
                             'nested': {'outer': {'inner1': 1, 'inner2': 2}},
                             'bool': True,
                             'bool_': np.bool_(True)}
+            group_attrs = {'grp_name': 'test-group'}
+
             scn.save_datasets(filename=filename,
+                              groups={'test-group': ['test-array']},
                               header_attrs=header_attrs,
+                              group_attrs=group_attrs,
                               flatten_attrs=True,
                               writer='cf')
+
             with xr.open_dataset(filename) as f:
                 self.assertIn('history', f.attrs)
                 self.assertEqual(f.attrs['sensor'], 'SEVIRI')
@@ -478,45 +483,8 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f.attrs['bool'], 'true')
                 self.assertEqual(f.attrs['bool_'], 'true')
                 self.assertTrue('none' not in f.attrs.keys())
-
-    def test_group_attrs(self):
-        """Check group attributes are set."""
-        import xarray as xr
-
-        from satpy import Scene
-        scn = Scene()
-        start_time = datetime(2018, 5, 30, 10, 0)
-        end_time = datetime(2018, 5, 30, 10, 15)
-        scn['test-array'] = xr.DataArray([1, 2, 3],
-                                         attrs=dict(start_time=start_time,
-                                                    end_time=end_time))
-        with TempFile() as filename:
-            group_attrs = {'sensor': 'SEVIRI',
-                           'orbit': 99999,
-                           'none': None,
-                           'list': [1, 2, 3],
-                           'set': {1, 2, 3},
-                           'dict': {'a': 1, 'b': 2},
-                           'nested': {'outer': {'inner1': 1, 'inner2': 2}},
-                           'bool': True,
-                           'bool_': np.bool_(True)}
-            scn.save_datasets(filename=filename,
-                              groups={'test-group': ['test-array']},
-                              group_attrs=group_attrs,
-                              flatten_attrs=True,
-                              writer='cf')
             with xr.open_dataset(filename, group='test-group') as f:
-                self.assertEqual(f.attrs['sensor'], 'SEVIRI')
-                self.assertEqual(f.attrs['orbit'], 99999)
-                np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
-                self.assertEqual(f.attrs['set'], '{1, 2, 3}')
-                self.assertEqual(f.attrs['dict_a'], 1)
-                self.assertEqual(f.attrs['dict_b'], 2)
-                self.assertEqual(f.attrs['nested_outer_inner1'], 1)
-                self.assertEqual(f.attrs['nested_outer_inner2'], 2)
-                self.assertEqual(f.attrs['bool'], 'true')
-                self.assertEqual(f.attrs['bool_'], 'true')
-                self.assertTrue('none' not in f.attrs.keys())
+                self.assertEqual(f.attrs['grp_name'], 'test-group')
 
     def get_test_attrs(self):
         """Create some dataset attributes for testing purpose.
