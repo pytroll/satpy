@@ -97,8 +97,8 @@ or incorrect results.  It does not yet perform any checks that the
 provided (cloud top) height covers the area of the dataset for which
 the parallax correction shall be applied.
 
-.. versionadded:: 0.34
-=======
+.. versionadded:: 0.36
+
 A complete list can be found in the `etc/composites
 <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_
 source code and in the :mod:`~satpy.modifiers` module documentation.
