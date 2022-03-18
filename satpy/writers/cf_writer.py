@@ -769,29 +769,29 @@ class CFWriter(Writer):
 
     def combine_info(self, group_name, group_datasets, epoch, group_attrs, flatten_attrs, exclude_attrs,
                      include_lonlats, pretty, compression, include_orig_name, numeric_name_prefix, to_netcdf_kwargs):
-            # XXX: Should we combine the info of all datasets?
-            datas, start_times, end_times = self._collect_datasets(
-                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty, compression=compression,
-                include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
-            dataset = xr.Dataset(datas)
-            if 'time' in dataset:
-                dataset['time_bnds'] = make_time_bounds(start_times,
-                                                        end_times)
-                dataset['time'].attrs['bounds'] = "time_bnds"
-                dataset['time'].attrs['standard_name'] = "time"
-            else:
-                grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
-                logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
+        # XXX: Should we combine the info of all datasets?
+        datas, start_times, end_times = self._collect_datasets(
+            group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
+            include_lonlats=include_lonlats, pretty=pretty, compression=compression,
+            include_orig_name=include_orig_name, numeric_name_prefix=numeric_name_prefix)
+        dataset = xr.Dataset(datas)
+        if 'time' in dataset:
+            dataset['time_bnds'] = make_time_bounds(start_times,
+                                                    end_times)
+            dataset['time'].attrs['bounds'] = "time_bnds"
+            dataset['time'].attrs['standard_name'] = "time"
+        else:
+            grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
+            logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            if group_attrs is not None:
-                if flatten_attrs:
-                    group_attrs = flatten_dict(group_attrs)
-                dataset.attrs = encode_attrs_nc(group_attrs)
+        if group_attrs is not None:
+            if flatten_attrs:
+                group_attrs = flatten_dict(group_attrs)
+            dataset.attrs = encode_attrs_nc(group_attrs)
 
-            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix)
+        encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs, numeric_name_prefix)
 
-            return dataset, encoding, other_to_netcdf_kwargs 
+        return dataset, encoding, other_to_netcdf_kwargs
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, group_attrs=None,
                       engine=None, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
@@ -869,10 +869,11 @@ class CFWriter(Writer):
 
         # Write datasets to groups (appending to the file; group=None means no group)
         for group_name, group_datasets in groups_.items():
-            dataset, encoding, other_to_netcdf_kwargs = self.combine_info(group_name, group_datasets, epoch, group_attrs, 
-                                                            flatten_attrs, exclude_attrs, include_lonlats, pretty, 
-                                                            compression, include_orig_name, numeric_name_prefix, 
-                                                            to_netcdf_kwargs)
+            dataset, encoding, other_to_netcdf_kwargs = self.combine_info(group_name, group_datasets, epoch,
+                                                                          group_attrs, flatten_attrs, exclude_attrs,
+                                                                          include_lonlats, pretty, compression,
+                                                                          include_orig_name, numeric_name_prefix,
+                                                                          to_netcdf_kwargs)
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                     **other_to_netcdf_kwargs)
             written.append(res)
