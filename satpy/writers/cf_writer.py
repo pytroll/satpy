@@ -769,7 +769,7 @@ class CFWriter(Writer):
 
     def combine_info(self, group_name, group_datasets, epoch, group_attrs, flatten_attrs, exclude_attrs,
                      include_lonlats, pretty, compression, include_orig_name, numeric_name_prefix, to_netcdf_kwargs):
-        # XXX: Should we combine the info of all datasets?
+        """Combine the info of all datasets"""
         datas, start_times, end_times = self._collect_datasets(
             group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
             include_lonlats=include_lonlats, pretty=pretty, compression=compression,
