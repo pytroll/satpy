@@ -1,17 +1,16 @@
-=========
 Modifiers
 =========
 
 Modifiers are filters applied to datasets prior to computing composites.
 They take at least one input (a dataset) and have exactly one output
-(the same dataset, modified).  They can take additional input datasets
+(the same dataset, modified). They can take additional input datasets
 or parameters.
 
 Modifiers are defined in composites files in ``etc/composites`` within
 ``$SATPY_CONFIG_PATH``.
 
 The instruction to use a certain modifier can be contained in a composite
-definition or in a reader definition.  If it is defined in a composite
+definition or in a reader definition. If it is defined in a composite
 definition, it is applied upon constructing the composite.
 
 When using built-in composites, Satpy users do not need to understand
@@ -19,12 +18,12 @@ the mechanics of modifiers, as they are applied automatically.
 The :doc:`composites` documentation contains information on how to apply
 modifiers when creating new composites.
 
-Some readers read data where certain modifiers are already applied.  Here,
-the reader definition will refer to the Satpy modifier.  This marking
+Some readers read data where certain modifiers are already applied. Here,
+the reader definition will refer to the Satpy modifier. This marking
 adds the modifier to the metadata to prevent it from being applied again
 upon composite calculation.
 
-Commonly used modifiers are listed in the table below.  Further details
+Commonly used modifiers are listed in the table below. Further details
 on those modifiers can be found in the linked API documentation.
 
 .. list-table:: Commonly used modifiers
@@ -99,3 +98,7 @@ provided (cloud top) height covers the area of the dataset for which
 the parallax correction shall be applied.
 
 .. versionadded:: 0.34
+=======
+A complete list can be found in the `etc/composites
+<https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_
+source code and in the :mod:`~satpy.modifiers` module documentation.

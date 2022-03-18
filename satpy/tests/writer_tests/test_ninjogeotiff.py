@@ -184,6 +184,20 @@ def test_image_small_mid_atlantic_L(test_area_tiny_eqc_sphere):
 
 
 @pytest.fixture(scope="module")
+def test_image_small_mid_atlantic_K_L(test_area_tiny_eqc_sphere):
+    """Get a small test image in units K, mode L, over Atlantic."""
+    arr = xr.DataArray(
+        _get_fake_da(-80+273.15, 40+273.15, test_area_tiny_eqc_sphere.shape + (1,)),
+        dims=("y", "x", "bands"),
+        attrs={
+            "name": "test-small-mid-atlantic",
+            "start_time": datetime.datetime(1985, 8, 13, 13, 0),
+            "area": test_area_tiny_eqc_sphere,
+            "units": "K"})
+    return get_enhanced_image(arr)
+
+
+@pytest.fixture(scope="module")
 def test_image_large_asia_RGB(test_area_small_eqc_wgs84):
     """Get a large-ish test image in mode RGB, over Asia."""
     arr = xr.DataArray(
@@ -554,6 +568,63 @@ def test_write_and_read_file_P(test_image_small_arctic_P, tmp_path):
     tgs = src.tags()
     assert tgs["ninjo_FileName"] == fn
     assert tgs["ninjo_DataSource"] == "dowsing rod"
+
+
+def test_write_and_read_file_units(
+        test_image_small_mid_atlantic_K_L, tmp_path, caplog):
+    """Test that it writes a GeoTIFF with the appropriate NinJo-tags and units."""
+    import rasterio
+
+    from satpy.writers.ninjogeotiff import NinJoGeoTIFFWriter
+    fn = os.fspath(tmp_path / "test.tif")
+    ngtw = NinJoGeoTIFFWriter()
+    with caplog.at_level(logging.DEBUG):
+        ngtw.save_dataset(
+            test_image_small_mid_atlantic_K_L.data,
+            filename=fn,
+            fill_value=0,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            PhysicUnit="C",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            ChannelID=900015,
+            DataType="GORN",
+            DataSource="dowsing rod")
+    assert "Adding offset for K → °C conversion" in caplog.text
+    # a better test would be to check that the attributes haven't changed at
+    # all, but that currently fails due to
+    # https://github.com/pytroll/satpy/issues/2022
+    assert test_image_small_mid_atlantic_K_L.data.attrs["enhancement_history"][0] != {"scale": 1, "offset": 273.15}
+    src = rasterio.open(fn)
+    tgs = src.tags()
+    assert tgs["ninjo_FileName"] == fn
+    assert tgs["ninjo_DataSource"] == "dowsing rod"
+    np.testing.assert_allclose(float(tgs["ninjo_Gradient"]),
+                               0.465379, rtol=1e-5)
+    np.testing.assert_allclose(float(tgs["ninjo_AxisIntercept"]),
+                               -79.86838)
+    fn2 = os.fspath(tmp_path / "test2.tif")
+    with caplog.at_level(logging.WARNING):
+        ngtw.save_dataset(
+            test_image_small_mid_atlantic_K_L.data,
+            filename=fn2,
+            fill_value=0,
+            blockxsize=128,
+            blockysize=128,
+            compress="lzw",
+            predictor=2,
+            PhysicUnit="F",
+            PhysicValue="Temperature",
+            SatelliteNameID=6400014,
+            ChannelID=900015,
+            DataType="GORN",
+            DataSource="dowsing rod")
+    assert ("Writing F to ninjogeotiff headers, but "
+            "data attributes have unit K. "
+            "No conversion applied.") in caplog.text
 
 
 def test_write_and_read_via_scene(test_image_small_mid_atlantic_L, tmp_path):

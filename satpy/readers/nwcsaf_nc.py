@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2020 Satpy developers
+# Copyright (c) 2017-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -25,6 +25,7 @@ References:
 import logging
 import os
 from datetime import datetime
+from functools import lru_cache
 
 import dask.array as da
 import numpy as np
@@ -89,6 +90,7 @@ class NcNWCSAF(BaseFileHandler):
         self.pps = False
         self.platform_name = None
         self.sensor = None
+        self.file_key_prefix = filetype_info.get("file_key_prefix", "")
 
         try:
             # NWCSAF/Geo:
@@ -130,22 +132,29 @@ class NcNWCSAF(BaseFileHandler):
             logger.debug('Get the data set from cache: %s.', dsid_name)
             return self.cache[dsid_name]
         if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc:
-            dsid_name = dsid_name + '_reduced'
+            # Get full resolution lon,lat from the reduced (tie points) grid
+            lon, lat = self.upsample_geolocation()
+            if dsid_name == "lon":
+                return lon
+            else:
+                return lat
 
         logger.debug('Reading %s.', dsid_name)
-        variable = self.nc[dsid_name]
+        file_key = self._get_filekey(dsid_name, info)
+        variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
-        variable = self.scale_dataset(dsid, variable, info)
-
-        if dsid_name.endswith('_reduced'):
-            # Get full resolution lon,lat from the reduced (tie points) grid
-            self.upsample_geolocation(dsid, info)
-
-            return self.cache[dsid['name']]
+        variable = self.scale_dataset(variable, info)
 
         return variable
 
-    def scale_dataset(self, dsid, variable, info):
+    def _get_filekey(self, dsid_name, info):
+        try:
+            file_key = self.file_key_prefix + info["file_key"]
+        except KeyError:
+            file_key = dsid_name
+        return file_key
+
+    def scale_dataset(self, variable, info):
         """Scale the data set, applying the attributes from the netCDF file.
 
         The scale and offset attributes will then be removed from the resulting variable.
@@ -183,7 +192,7 @@ class NcNWCSAF(BaseFileHandler):
 
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
-        variable = self._adjust_variable_for_legacy_software(variable, dsid)
+        variable = self._adjust_variable_for_legacy_software(variable)
 
         return variable
 
@@ -207,13 +216,14 @@ class NcNWCSAF(BaseFileHandler):
         return variable
 
     def _prepare_variable_for_palette(self, variable, info):
-        if 'scale_offset_dataset' in info:
-            so_dataset = self.nc[info['scale_offset_dataset']]
-            scale = so_dataset.attrs['scale_factor']
-            offset = so_dataset.attrs['add_offset']
-        else:
+        try:
+            so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset']]
+        except KeyError:
             scale = 1
             offset = 0
+        else:
+            scale = so_dataset.attrs['scale_factor']
+            offset = so_dataset.attrs['add_offset']
         variable.attrs['palette_meanings'] = [int(val)
                                               for val in variable.attrs['palette_meanings'].split()]
         if variable.attrs['palette_meanings'][0] == 1:
@@ -225,29 +235,26 @@ class NcNWCSAF(BaseFileHandler):
         variable = variable[idx]
         return variable
 
-    def _adjust_variable_for_legacy_software(self, variable, data_id):
-        if self.sw_version == 'NWC/PPS version v2014' and data_id['name'] == 'ctth_alti':
+    def _adjust_variable_for_legacy_software(self, variable):
+        if self.sw_version == 'NWC/PPS version v2014' and variable.attrs.get('standard_name') == 'cloud_top_altitude':
             # pps 2014 valid range and palette don't match
             variable.attrs['valid_range'] = (0., 9000.)
-        if self.sw_version == 'NWC/PPS version v2014' and data_id['name'] == 'ctth_alti_pal':
+        if (self.sw_version == 'NWC/PPS version v2014' and
+                variable.attrs.get('long_name') == 'RGB Palette for ctth_alti'):
             # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
-        if self.sw_version == 'NWC/GEO version v2016' and data_id['name'] == 'ctth_alti':
-            # Geo 2016/18 valid range and palette don't match
-            # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
-            # This now fixed by the scaling of the valid range above.
-            pass
         return variable
 
-    def upsample_geolocation(self, dsid, info):
+    @lru_cache(maxsize=1)
+    def upsample_geolocation(self):
         """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
 
         # Read the fields needed:
         col_indices = self.nc['nx_reduced'].values
         row_indices = self.nc['ny_reduced'].values
-        lat_reduced = self.scale_dataset(dsid, self.nc['lat_reduced'], info)
-        lon_reduced = self.scale_dataset(dsid, self.nc['lon_reduced'], info)
+        lat_reduced = self.scale_dataset(self.nc['lat_reduced'], {})
+        lon_reduced = self.scale_dataset(self.nc['lon_reduced'], {})
 
         shape = (self.nc['y'].shape[0], self.nc['x'].shape[0])
         cols_full = np.arange(shape[1])
@@ -259,10 +266,9 @@ class NcNWCSAF(BaseFileHandler):
                                        (rows_full, cols_full))
 
         lons, lats = satint.interpolate()
-        self.cache['lon'] = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
-        self.cache['lat'] = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
-
-        return
+        lon = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
+        lat = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
+        return lon, lat
 
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file.

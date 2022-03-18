@@ -656,7 +656,6 @@ class CFWriter(Writer):
             new_data.encoding.update(compression)
 
         new_data = CFWriter._encode_time(new_data, epoch)
-
         new_data = CFWriter._encode_coords(new_data)
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
@@ -702,8 +701,13 @@ class CFWriter(Writer):
             new_data['time'].encoding['units'] = epoch
             new_data['time'].attrs['standard_name'] = 'time'
             new_data['time'].attrs.pop('bounds', None)
-            if 'time' not in new_data.dims:
-                new_data = new_data.expand_dims('time')
+            new_data = CFWriter._add_time_dimension(new_data)
+        return new_data
+
+    @staticmethod
+    def _add_time_dimension(new_data):
+        if 'time' not in new_data.dims and new_data["time"].size not in new_data.shape:
+            new_data = new_data.expand_dims('time')
         return new_data
 
     @staticmethod

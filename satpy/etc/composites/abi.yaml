@@ -3,7 +3,8 @@ sensor_name: visir/abi
 modifiers:
   rayleigh_corrected_crefl:
     modifier: !!python/name:satpy.modifiers.atmosphere.ReflectanceCorrector
-    dem_filename: CMGDEM.hdf
+    url: "https://www.ssec.wisc.edu/~davidh/polar2grid/viirs_crefl/CMGDEM.hdf"
+    known_hash: "sha256:f33f1f867d79fff4fafe128f61c154236dd74fcc97bf418ea1437977a38d0604"
     optional_prerequisites:
       - name: satellite_azimuth_angle
       - name: satellite_zenith_angle

@@ -18,6 +18,7 @@
 """test file handler baseclass."""
 
 import unittest
+from datetime import datetime, timedelta
 from unittest import mock
 
 import numpy as np
@@ -142,6 +143,28 @@ class TestBaseFileHandler(unittest.TestCase):
 
         # Empty
         self.fh.combine_info([{}])
+
+    def test_combine_time_parameters(self):
+        """Combine times in 'time_parameters."""
+        time_params1 = {
+            'nominal_start_time': datetime(2020, 1, 1, 12, 0, 0),
+            'nominal_end_time': datetime(2020, 1, 1, 12, 2, 30),
+            'observation_start_time': datetime(2020, 1, 1, 12, 0, 2, 23821),
+            'observation_end_time': datetime(2020, 1, 1, 12, 2, 23, 12348),
+        }
+        time_params2 = {}
+        time_shift = timedelta(seconds=1.5)
+        for key, value in time_params1.items():
+            time_params2[key] = value + time_shift
+        res = self.fh.combine_info([
+            {'time_parameters': time_params1},
+            {'time_parameters': time_params2}
+        ])
+        res_time_params = res['time_parameters']
+        assert res_time_params['nominal_start_time'] == datetime(2020, 1, 1, 12, 0, 0)
+        assert res_time_params['nominal_end_time'] == datetime(2020, 1, 1, 12, 2, 31, 500000)
+        assert res_time_params['observation_start_time'] == datetime(2020, 1, 1, 12, 0, 2, 23821)
+        assert res_time_params['observation_end_time'] == datetime(2020, 1, 1, 12, 2, 24, 512348)
 
     def test_file_is_kept_intact(self):
         """Test that the file object passed (string, path, or other) is kept intact."""

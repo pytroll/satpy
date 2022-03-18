@@ -908,7 +908,8 @@ class Scene:
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        new_scn.generate_possible_composites(generate, unload)
+        if generate:
+            new_scn.generate_possible_composites(unload)
 
         return new_scn
 
@@ -1257,7 +1258,8 @@ class Scene:
         self._wishlist |= needed_datasets
 
         self._read_datasets_from_storage(**kwargs)
-        self.generate_possible_composites(generate, unload)
+        if generate:
+            self.generate_possible_composites(unload)
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
@@ -1313,13 +1315,15 @@ class Scene:
             loaded_datasets.update(new_datasets)
         return loaded_datasets
 
-    def generate_possible_composites(self, generate, unload):
-        """See what we can generate and do it."""
-        if generate:
-            keepables = self._generate_composites_from_loaded_datasets()
-        else:
-            # don't lose datasets we loaded to try to generate composites
-            keepables = set(self._datasets.keys()) | self._wishlist
+    def generate_possible_composites(self, unload):
+        """See which composites can be generated and generate them.
+
+        Args:
+            unload (bool): if the dependencies of the composites
+                           should be unloaded after successful generation.
+        """
+        keepables = self._generate_composites_from_loaded_datasets()
+
         if self.missing_datasets:
             self._remove_failed_datasets(keepables)
         if unload:

@@ -84,7 +84,7 @@ def _create_seadas_chlor_a_file(full_path, mission, sensor):
 
     chlor_a_info = {
         "type": SDC.FLOAT32,
-        "data": np.zeros((5, 5), np.float32),
+        "data": np.ones((5, 5), np.float32),
         "dim_labels": ["Number of Scan Lines", "Number of Pixel Control Points"],
         "attrs": {
             "long_name": "Chlorophyll Concentration, OCI Algorithm\x00",
@@ -94,6 +94,16 @@ def _create_seadas_chlor_a_file(full_path, mission, sensor):
         }
     }
     _add_variable_to_file(h, "chlor_a", chlor_a_info)
+
+    l2_flags = np.zeros((5, 5), dtype=np.int32)
+    l2_flags[2, 2] = -1
+    l2_flags_info = {
+        "type": SDC.INT32,
+        "data": l2_flags,
+        "dim_labels": ["Number of Scan Lines", "Number of Pixel Control Points"],
+        "attrs": {},
+    }
+    _add_variable_to_file(h, "l2_flags", l2_flags_info)
     return [full_path]
 
 
@@ -136,9 +146,11 @@ class TestSEADAS:
             (lazy_fixture("seadas_l2_viirs_npp_chlor_a"), "Suomi-NPP", {"viirs"}, 16),
             (lazy_fixture("seadas_l2_viirs_j01_chlor_a"), "NOAA-20", {"viirs"}, 16),
         ])
-    def test_load_chlor_a(self, input_files, exp_plat, exp_sensor, exp_rps):
+    @pytest.mark.parametrize("apply_quality_flags", [False, True])
+    def test_load_chlor_a(self, input_files, exp_plat, exp_sensor, exp_rps, apply_quality_flags):
         """Test that we can load 'chlor_a'."""
-        scene = Scene(reader='seadas_l2', filenames=input_files)
+        reader_kwargs = {"apply_quality_flags": apply_quality_flags}
+        scene = Scene(reader='seadas_l2', filenames=input_files, reader_kwargs=reader_kwargs)
         scene.load(['chlor_a'])
         data_arr = scene['chlor_a']
         assert data_arr.attrs['platform_name'] == exp_plat
@@ -147,3 +159,9 @@ class TestSEADAS:
         assert data_arr.dtype.type == np.float32
         assert isinstance(data_arr.attrs["area"], SwathDefinition)
         assert data_arr.attrs["rows_per_scan"] == exp_rps
+        data = data_arr.data.compute()
+        if apply_quality_flags:
+            assert np.isnan(data[2, 2])
+            assert np.count_nonzero(np.isnan(data)) == 1
+        else:
+            assert np.count_nonzero(np.isnan(data)) == 0

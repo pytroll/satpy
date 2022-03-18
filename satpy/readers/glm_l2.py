@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 PLATFORM_NAMES = {
     'G16': 'GOES-16',
     'G17': 'GOES-17',
+    'G18': 'GOES-18',
 }
 
 # class NC_GLM_L2_LCFA(BaseFileHandler): — add this with glmtools

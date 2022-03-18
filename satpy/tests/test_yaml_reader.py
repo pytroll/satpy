@@ -255,6 +255,21 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
         self.reader.create_filehandlers(filelist)
         self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
 
+    def test_serializable(self):
+        """Check that a reader is serializable by dask.
+
+        This ensures users are able to serialize a Scene object that contains
+        readers.
+        """
+        from distributed.protocol import deserialize, serialize
+        filelist = ['a001.bla', 'a002.bla', 'a001.bla', 'a002.bla',
+                    'abcd.bla', 'k001.bla', 'a003.bli']
+
+        self.reader.create_filehandlers(filelist)
+        cloned_reader = deserialize(*serialize(self.reader))
+        assert self.reader.file_handlers.keys() == cloned_reader.file_handlers.keys()
+        assert self.reader.all_ids == cloned_reader.all_ids
+
 
 class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
     """Test units from FileYAMLReader with custom id_keys."""
@@ -896,6 +911,65 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.coords['y'], np.flip(np.arange(4)))
         np.testing.assert_equal(res.coords['x'], np.arange(3))
         np.testing.assert_equal(res.coords['time'], np.flip(np.arange(4)))
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    def test_load_dataset_with_area_for_swath_def_data(self, ldwa):
+        """Test _load_dataset_with_area() for swath definition data."""
+        from pyresample.geometry import SwathDefinition
+
+        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+
+        reader = GEOFlippableFileYAMLReader()
+
+        dsid = MagicMock()
+        coords = MagicMock()
+
+        # create a dummy upright xarray
+        original_array = np.ones(3)
+        dim = np.arange(3)
+        lats = np.arange(3)
+        lons = np.arange(3)
+
+        swath_def = SwathDefinition(lons, lats)
+        dummy_ds_xr = xr.DataArray(original_array,
+                                   coords={'y': dim},
+                                   attrs={'area': swath_def},
+                                   dims=('y',))
+
+        # assign the dummy xr as return for the super _load_dataset_with_area method
+        ldwa.return_value = dummy_ds_xr
+
+        # returned dataset should be unchanged since datasets with a swath definition are not flippable
+        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, original_array)
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    def test_load_dataset_with_area_for_data_without_area(self, ldwa):
+        """Test _load_dataset_with_area() for data wihtout area information."""
+        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+
+        reader = GEOFlippableFileYAMLReader()
+
+        dsid = MagicMock()
+        coords = MagicMock()
+
+        # create a dummy upright xarray
+        original_array = np.ones(3)
+        dim = np.arange(3)
+
+        dummy_ds_xr = xr.DataArray(original_array,
+                                   coords={'y': dim},
+                                   attrs={},
+                                   dims=('y',))
+
+        # assign the dummy xr as return for the super _load_dataset_with_area method
+        ldwa.return_value = dummy_ds_xr
+
+        # returned dataset should be unchanged since datasets without area information are not flippable
+        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, original_array)
 
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):

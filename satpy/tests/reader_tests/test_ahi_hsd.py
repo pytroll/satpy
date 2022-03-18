@@ -16,17 +16,86 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The ahi_hsd reader tests package."""
+from __future__ import annotations
 
+import contextlib
 import unittest
 import warnings
 from datetime import datetime
+from typing import Any, Dict
 from unittest import mock
 
 import dask.array as da
 import numpy as np
+import pytest
 
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 from satpy.readers.utils import get_geostationary_mask
+from satpy.tests.utils import make_dataid
+
+InfoDict = Dict[str, Any]
+
+FAKE_BASIC_INFO: InfoDict = {
+    'blocklength': 0,
+    'satellite': np.array(['Himawari-8']),
+    'observation_area': np.array(['FLDK']),
+    'observation_start_time': np.array([58413.12523839]),
+    'observation_end_time': np.array([58413.12562439]),
+    'observation_timeline': np.array([300]),
+}
+FAKE_DATA_INFO: InfoDict = {
+    'blocklength': 50,
+    'compression_flag_for_data': 0,
+    'hblock_number': 2,
+    'number_of_bits_per_pixel': 16,
+    'number_of_columns': 11000,
+    'number_of_lines': 1100,
+    'spare': '',
+}
+FAKE_PROJ_INFO: InfoDict = {
+    'CFAC': 40932549,
+    'COFF': 5500.5,
+    'LFAC': 40932549,
+    'LOFF': 5500.5,
+    'blocklength': 127,
+    'coeff_for_sd': 1737122264.0,
+    'distance_from_earth_center': 42164.0,
+    'earth_equatorial_radius': 6378.137,
+    'earth_polar_radius': 6356.7523,
+    'hblock_number': 3,
+    'req2_rpol2': 1.006739501,
+    'req2_rpol2_req2': 0.0066943844,
+    'resampling_size': 4,
+    'resampling_types': 0,
+    'rpol2_req2': 0.993305616,
+    'spare': '',
+    'sub_lon': 140.7,
+}
+FAKE_NAV_INFO: InfoDict = {
+    'SSP_longitude': 140.65699999999998,
+    'SSP_latitude': 0.0042985719753897015,
+    'distance_earth_center_to_satellite': 42165.04,
+    'nadir_longitude': 140.25253875463318,
+    'nadir_latitude': 0.01674775121155575,
+}
+FAKE_CAL_INFO: InfoDict = {'blocklength': 0, 'band_number': [4]}
+FAKE_IRVISCAL_INFO: InfoDict = {}
+FAKE_INTERCAL_INFO: InfoDict = {'blocklength': 0}
+FAKE_SEGMENT_INFO: InfoDict = {'blocklength': 0}
+FAKE_NAVCORR_INFO: InfoDict = {'blocklength': 0, 'numof_correction_info_data': [1]}
+FAKE_NAVCORR_SUBINFO: InfoDict = {}
+FAKE_OBS_TIME_INFO: InfoDict = {'blocklength': 0, 'number_of_observation_times': [1]}
+FAKE_OBS_LINETIME_INFO: InfoDict = {}
+FAKE_ERROR_INFO: InfoDict = {'blocklength': 0, 'number_of_error_info_data': [1]}
+FAKE_ERROR_LINE_INFO: InfoDict = {}
+FAKE_SPARE_INFO: InfoDict = {'blocklength': 0}
+
+
+def _new_unzip(fname):
+    """Fake unzipping."""
+    if fname[-3:] == 'bz2':
+        return fname[:-4]
+    return fname
 
 
 class TestAHIHSDNavigation(unittest.TestCase):
@@ -131,108 +200,43 @@ class TestAHIHSDNavigation(unittest.TestCase):
                                                               5500000.035542117, -2200000.0142168473))
 
 
-class TestAHIHSDFileHandler(unittest.TestCase):
-    """Test case for the file reading."""
+class TestAHIHSDFileHandler:
+    """Tests for the AHI HSD file handler."""
 
-    def new_unzip(fname):
-        """Fake unzipping."""
-        if fname[-3:] == 'bz2':
-            return fname[:-4]
-        return fname
+    def test_bad_calibration(self):
+        """Test that a bad calibration mode causes an exception."""
+        with pytest.raises(ValueError):
+            with _fake_hsd_handler(fh_kwargs={"calib_mode": "BAD_MODE"}):
+                pass
 
-    @staticmethod
-    def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None):
-        if filename_info is None:
-            filename_info = {'segment': 8, 'total_segments': 10}
-        if filetype_info is None:
-            filetype_info = {'file_type': 'hsd_b01'}
-        fh = AHIHSDFileHandler(in_fname, filename_info, filetype_info)
+    @pytest.mark.parametrize(
+        ("round_actual_position", "expected_result"),
+        [
+            (False, (140.65699999999998, 0.0042985719753897015, 35786903.00011936)),
+            (True, (140.657, 0.0, 35786850.0))
+        ]
+    )
+    def test_actual_satellite_position(self, round_actual_position, expected_result):
+        """Test that rounding of the actual satellite position can be controlled."""
+        with _fake_hsd_handler(fh_kwargs={"round_actual_position": round_actual_position}) as fh:
+            ds_id = make_dataid(name="B01")
+            ds_info = {
+                "units": "%",
+                "standard_name": "some_name",
+                "wavelength": (0.1, 0.2, 0.3),
+            }
+            metadata = fh._get_metadata(ds_id, ds_info)
+            orb_params = metadata["orbital_parameters"]
+            assert orb_params["satellite_actual_longitude"] == expected_result[0]
+            assert orb_params["satellite_actual_latitude"] == expected_result[1]
+            assert orb_params["satellite_actual_altitude"] == expected_result[2]
 
-        # Check that the filename is altered for bz2 format files
-        assert in_fname != fh.filename
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
+    def test_read_header(self, *mocks):
+        """Test header reading."""
+        with _fake_hsd_handler() as fh:
+            fh._read_header(mock.MagicMock())
 
-        fh.proj_info = {
-            'CFAC': 40932549,
-            'COFF': 5500.5,
-            'LFAC': 40932549,
-            'LOFF': 5500.5,
-            'blocklength': 127,
-            'coeff_for_sd': 1737122264.0,
-            'distance_from_earth_center': 42164.0,
-            'earth_equatorial_radius': 6378.137,
-            'earth_polar_radius': 6356.7523,
-            'hblock_number': 3,
-            'req2_rpol2': 1.006739501,
-            'req2_rpol2_req2': 0.0066943844,
-            'resampling_size': 4,
-            'resampling_types': 0,
-            'rpol2_req2': 0.993305616,
-            'spare': '',
-            'sub_lon': 140.7
-        }
-        fh.nav_info = {
-            'SSP_longitude': 140.66,
-            'SSP_latitude': 0.03,
-            'distance_earth_center_to_satellite': 42165.04,
-            'nadir_longitude': 140.67,
-            'nadir_latitude': 0.04
-        }
-        fh.data_info = {
-            'blocklength': 50,
-            'compression_flag_for_data': 0,
-            'hblock_number': 2,
-            'number_of_bits_per_pixel': 16,
-            'number_of_columns': 11000,
-            'number_of_lines': 1100,
-            'spare': ''
-        }
-        fh.basic_info = {
-            'observation_area': np.array(['FLDK']),
-            'observation_start_time': np.array([58413.12523839]),
-            'observation_end_time': np.array([58413.12562439]),
-            'observation_timeline': np.array([300]),
-        }
-        fh.observation_area = fh.basic_info['observation_area']
-        return fh
-
-    @mock.patch('satpy.readers.ahi_hsd.np2str')
-    @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
-    @mock.patch('satpy.readers.ahi_hsd.unzip_file',
-                mock.MagicMock(side_effect=new_unzip))
-    def setUp(self, fromfile, np2str):
-        """Create a test file handler."""
-        np2str.side_effect = lambda x: x
-        m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            # Check if file handler raises exception for invalid calibration mode
-            with self.assertRaises(ValueError):
-                AHIHSDFileHandler('somefile',
-                                  {'segment': 8, 'total_segments': 10},
-                                  filetype_info={'file_type': 'hsd_b01'},
-                                  calib_mode='BAD_MODE')
-            in_fname = 'test_file.bz2'
-            self.fh = self._create_fake_file_handler(in_fname)
-
-    def test_time_properties(self):
-        """Test start/end/scheduled time properties."""
-        self.assertEqual(self.fh.start_time, datetime(2018, 10, 22, 3, 0, 20, 596896))
-        self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
-        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
-
-    def test_scanning_frequencies(self):
-        """Test scanning frequencies."""
-        self.fh.observation_area = 'JP04'
-        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
-        self.fh.observation_area = 'R304'
-        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
-        self.fh.observation_area = 'R420'
-        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
-        self.fh.observation_area = 'R520'
-        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
-        self.fh.observation_area = 'FLDK'
-        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
-
-    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
@@ -240,36 +244,48 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         """Test masking of space pixels."""
         nrows = 25
         ncols = 100
-        self.fh.data_info['number_of_columns'] = ncols
-        self.fh.data_info['number_of_lines'] = nrows
         calibrate.return_value = np.ones((nrows, ncols))
-        m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            im = self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+        with _fake_hsd_handler() as fh:
+            fh.data_info['number_of_columns'] = ncols
+            fh.data_info['number_of_lines'] = nrows
+            im = fh.read_band(mock.MagicMock(), mock.MagicMock())
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask
-            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
-            self.assertTrue(np.all(mask == ref_mask))
+            ref_mask = np.logical_not(get_geostationary_mask(fh.area).compute())
+            np.testing.assert_equal(mask, ref_mask)
 
             # Test attributes
             orb_params_exp = {'projection_longitude': 140.7,
                               'projection_latitude': 0.,
                               'projection_altitude': 35785863.0,
-                              'satellite_actual_longitude': 140.66,
-                              'satellite_actual_latitude': 0.03,
-                              'nadir_longitude': 140.67,
-                              'nadir_latitude': 0.04}
-            self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
-            self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
+                              'satellite_actual_longitude': 140.657,
+                              'satellite_actual_latitude': 0.0,
+                              'satellite_actual_altitude': 35786850,
+                              'nadir_longitude': 140.252539,
+                              'nadir_latitude': 0.01674775}
+            actual_obs_params = im.attrs['orbital_parameters']
+            for key, value in orb_params_exp.items():
+                assert key in actual_obs_params
+                np.testing.assert_allclose(value, actual_obs_params[key])
+
+            time_params_exp = {
+                'nominal_start_time': datetime(2018, 10, 22, 3, 0, 0, 0),
+                'nominal_end_time': datetime(2018, 10, 22, 3, 0, 0, 0),
+                'observation_start_time': datetime(2018, 10, 22, 3, 0, 20, 596896),
+                'observation_end_time': datetime(2018, 10, 22, 3, 0, 53, 947296),
+            }
+            actual_time_params = im.attrs['time_parameters']
+            for key, value in time_params_exp.items():
+                assert key in actual_time_params
+                assert value == actual_time_params[key]
 
             # Test if masking space pixels disables with appropriate flag
-            self.fh.mask_space = False
+            fh.mask_space = False
             with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
-                self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+                fh.read_band(mock.MagicMock(), mock.MagicMock())
                 mask_space.assert_not_called()
 
-    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
@@ -279,62 +295,69 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         nrows = 25
         ncols = 100
         calibrate.return_value = np.ones((nrows, ncols))
-        m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True), \
-             mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler') as fh_cls:
-            fh_cls.return_value = self.fh
-            self.fh.filename_info['total_segments'] = 1
-            self.fh.filename_info['segment'] = 1
-            self.fh.data_info['number_of_columns'] = ncols
-            self.fh.data_info['number_of_lines'] = nrows
-            scn = Scene(reader='ahi_hsd', filenames=['HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT'])
-            scn.load(['B07'])
-            im = scn['B07']
+        with _fake_hsd_handler() as fh:
+            with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler') as fh_cls:
+                fh_cls.return_value = fh
+                fh.filename_info['total_segments'] = 1
+                fh.filename_info['segment'] = 1
+                fh.data_info['number_of_columns'] = ncols
+                fh.data_info['number_of_lines'] = nrows
+                scn = Scene(reader='ahi_hsd', filenames=['HS_H08_20210225_0700_B07_FLDK_R20_S0110.DAT'])
+                scn.load(['B07'])
+                im = scn['B07']
 
-            # Make sure space masking worked
-            mask = im.to_masked_array().mask
-            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
-            self.assertTrue(np.all(mask == ref_mask))
+                # Make sure space masking worked
+                mask = im.to_masked_array().mask
+                ref_mask = np.logical_not(get_geostationary_mask(fh.area).compute())
+                np.testing.assert_equal(mask, ref_mask)
+
+    def test_time_properties(self):
+        """Test start/end/scheduled time properties."""
+        with _fake_hsd_handler() as fh:
+            assert fh.start_time == datetime(2018, 10, 22, 3, 0)
+            assert fh.end_time == datetime(2018, 10, 22, 3, 0)
+            assert fh.observation_start_time == datetime(2018, 10, 22, 3, 0, 20, 596896)
+            assert fh.observation_end_time == datetime(2018, 10, 22, 3, 0, 53, 947296)
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+
+    def test_scanning_frequencies(self):
+        """Test scanning frequencies."""
+        with _fake_hsd_handler() as fh:
+            fh.observation_area = 'JP04'
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            fh.observation_area = 'R304'
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 7, 30, 0)
+            fh.observation_area = 'R420'
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            fh.observation_area = 'R520'
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 9, 30, 0)
+            fh.observation_area = 'FLDK'
+            assert fh.nominal_start_time == datetime(2018, 10, 22, 3, 0, 0, 0)
+            assert fh.nominal_end_time == datetime(2018, 10, 22, 3, 0, 0, 0)
 
     def test_blocklen_error(self, *mocks):
         """Test erraneous blocklength."""
         open_name = '%s.open' % __name__
         fpos = 50
-        with mock.patch(open_name, create=True) as mock_open:
-            with mock_open(mock.MagicMock(), 'r') as fp_:
-                # Expected and actual blocklength match
-                fp_.tell.return_value = 50
-                with warnings.catch_warnings(record=True) as w:
-                    self.fh._check_fpos(fp_, fpos, 0, 'header 1')
-                    self.assertTrue(len(w) == 0)
+        with _fake_hsd_handler() as fh, \
+                mock.patch(open_name, create=True) as mock_open, \
+                mock_open(mock.MagicMock(), 'r') as fp_:
+            # Expected and actual blocklength match
+            fp_.tell.return_value = 50
+            with warnings.catch_warnings(record=True) as w:
+                fh._check_fpos(fp_, fpos, 0, 'header 1')
+                assert len(w) == 0
 
-                # Expected and actual blocklength do not match
-                fp_.tell.return_value = 100
-                with warnings.catch_warnings(record=True) as w:
-                    self.fh._check_fpos(fp_, fpos, 0, 'header 1')
-                    self.assertTrue(len(w) > 0)
-
-    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
-    def test_read_header(self, *mocks):
-        """Test header reading."""
-        nhdr = [
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0, 'band_number': [4]},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0},
-            {'blocklength': 0, 'numof_correction_info_data': [1]},
-            {'blocklength': 0},
-            {'blocklength': 0, 'number_of_observation_times': [1]},
-            {'blocklength': 0},
-            {'blocklength': 0, 'number_of_error_info_data': [1]},
-            {'blocklength': 0},
-            {'blocklength': 0}]
-        with mock.patch('numpy.fromfile', side_effect=nhdr):
-            self.fh._read_header(mock.MagicMock())
+            # Expected and actual blocklength do not match
+            fp_.tell.return_value = 100
+            with warnings.catch_warnings(record=True) as w:
+                fh._check_fpos(fp_, fpos, 0, 'header 1')
+                assert len(w) > 0
 
 
 class TestAHICalibration(unittest.TestCase):
@@ -450,3 +473,74 @@ class TestAHICalibration(unittest.TestCase):
         rad_exp = np.array([[15.2, 12.],
                             [8.8, -0.8]])
         self.assertTrue(np.allclose(rad, rad_exp))
+
+
+@contextlib.contextmanager
+def _fake_hsd_handler(fh_kwargs=None):
+    """Create a test file handler."""
+    m = mock.mock_open()
+    with mock.patch('satpy.readers.ahi_hsd.np.fromfile', _custom_fromfile), \
+            mock.patch('satpy.readers.ahi_hsd.unzip_file', mock.MagicMock(side_effect=_new_unzip)), \
+            mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
+        in_fname = 'test_file.bz2'
+        fh = _create_fake_file_handler(in_fname, fh_kwargs=fh_kwargs)
+        yield fh
+
+
+def _custom_fromfile(*args, **kwargs):
+    from satpy.readers.ahi_hsd import (
+        _BASIC_INFO_TYPE,
+        _CAL_INFO_TYPE,
+        _DATA_INFO_TYPE,
+        _ERROR_INFO_TYPE,
+        _ERROR_LINE_INFO_TYPE,
+        _INTER_CALIBRATION_INFO_TYPE,
+        _IRCAL_INFO_TYPE,
+        _NAV_INFO_TYPE,
+        _NAVIGATION_CORRECTION_INFO_TYPE,
+        _NAVIGATION_CORRECTION_SUBINFO_TYPE,
+        _OBSERVATION_LINE_TIME_INFO_TYPE,
+        _OBSERVATION_TIME_INFO_TYPE,
+        _PROJ_INFO_TYPE,
+        _SEGMENT_INFO_TYPE,
+        _SPARE_TYPE,
+        _VISCAL_INFO_TYPE,
+    )
+    dtype = kwargs.get("dtype")
+    fake_info_map = {
+        _BASIC_INFO_TYPE: FAKE_BASIC_INFO,
+        _DATA_INFO_TYPE: FAKE_DATA_INFO,
+        _NAV_INFO_TYPE: FAKE_NAV_INFO,
+        _PROJ_INFO_TYPE: FAKE_PROJ_INFO,
+        _CAL_INFO_TYPE: FAKE_CAL_INFO,
+        _VISCAL_INFO_TYPE: FAKE_IRVISCAL_INFO,
+        _IRCAL_INFO_TYPE: FAKE_IRVISCAL_INFO,
+        _INTER_CALIBRATION_INFO_TYPE: FAKE_INTERCAL_INFO,
+        _SEGMENT_INFO_TYPE: FAKE_SEGMENT_INFO,
+        _NAVIGATION_CORRECTION_INFO_TYPE: FAKE_NAVCORR_INFO,
+        _NAVIGATION_CORRECTION_SUBINFO_TYPE: FAKE_NAVCORR_SUBINFO,
+        _OBSERVATION_TIME_INFO_TYPE: FAKE_OBS_TIME_INFO,
+        _OBSERVATION_LINE_TIME_INFO_TYPE: FAKE_OBS_LINETIME_INFO,
+        _ERROR_INFO_TYPE: FAKE_ERROR_INFO,
+        _ERROR_LINE_INFO_TYPE: FAKE_ERROR_LINE_INFO,
+        _SPARE_TYPE: FAKE_SPARE_INFO,
+    }
+    info_dict = fake_info_map[dtype]
+    fake_arr = np.zeros((1,), dtype=dtype)
+    for key, value in info_dict.items():
+        fake_arr[key] = value
+    return fake_arr
+
+
+def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None, fh_kwargs=None):
+    if filename_info is None:
+        filename_info = {'segment': 8, 'total_segments': 10}
+    if filetype_info is None:
+        filetype_info = {'file_type': 'hsd_b01'}
+    if fh_kwargs is None:
+        fh_kwargs = {}
+    fh = AHIHSDFileHandler(in_fname, filename_info, filetype_info, **fh_kwargs)
+
+    # Check that the filename is altered for bz2 format files
+    assert in_fname != fh.filename
+    return fh
