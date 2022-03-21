@@ -41,8 +41,6 @@ Each image is decomposed into 24 segments (files) for the high-resolution-visibl
 visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
 which contain global metadata valid for all channels.
 
-This reader also accepts bzipped file with the extension ``.bz2`` for the prologue, epilogue, and segment files.
-
 Reader Arguments
 ----------------
 Some arguments can be provided to the reader to change it's behaviour. These are
@@ -52,6 +50,16 @@ provided through the `Scene` instantiation, eg::
 
 To see the full list of arguments that can be provided, look into the documentation
 of :class:`HRITMSGFileHandler`.
+
+Compression
+-----------
+
+This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT readers, see
+:class:`satpy.readers.hrit_base.HRITFileHandler`.
+
+This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
+epilogue, and segment files.
+
 
 Example
 -------
