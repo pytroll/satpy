@@ -149,6 +149,16 @@ def decompress(infile, outdir='.'):
     return os.path.join(outdir, outfile.decode('utf-8'))
 
 
+def get_header_id(fp):
+    """Return the HRIT header common data."""
+    data = fp.read(common_hdr.itemsize)
+    return np.frombuffer(data, dtype=common_hdr, count=1)[0]
+
+def get_header_content(fp, header_dtype, count=1):
+    """Return the content of the HRIT header."""
+    data = fp.read(header_dtype.itemsize*count)
+    return np.frombuffer(data, dtype=header_dtype, count=count)
+
 class HRITFileHandler(BaseFileHandler):
     """HRIT standard format reader."""
 
@@ -179,14 +189,12 @@ class HRITFileHandler(BaseFileHandler):
         with utils.generic_open(self.filename) as fp:
             total_header_length = 16
             while fp.tell() < total_header_length:
-                hdr_id = np.frombuffer(fp.read(common_hdr.itemsize), dtype=common_hdr, count=1)[0]
+                hdr_id = get_header_id(fp)
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
-                    current_hdr = np.frombuffer(fp.read(the_type.itemsize*field_length),
-                                                dtype=the_type,
-                                                count=field_length)
+                    current_hdr = get_header_content(fp, the_type, field_length)
                     key = variable_length_headers[the_type]
                     if key in self.mda:
                         if not isinstance(self.mda[key], list):
@@ -199,14 +207,10 @@ class HRITFileHandler(BaseFileHandler):
                                        the_type.itemsize)
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
-                    current_hdr = np.frombuffer(fp.read(new_type.itemsize),
-                                                dtype=new_type,
-                                                count=1)[0]
+                    current_hdr = get_header_content(fp, new_type)[0]
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
-                    current_hdr = np.frombuffer(fp.read(the_type.itemsize),
-                                                dtype=the_type,
-                                                count=1)[0]
+                    current_hdr = get_header_content(fp, the_type)[0]
                     self.mda.update(
                         dict(zip(current_hdr.dtype.names, current_hdr)))
 
