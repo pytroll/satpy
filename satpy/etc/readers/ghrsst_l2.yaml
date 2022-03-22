@@ -9,7 +9,7 @@ file_types:
     GHRSST_OSISAF:
         file_reader: !!python/name:satpy.readers.ghrsst_l2.GHRSSTL2FileHandler
         # S-OSI_-FRA_-NPP_-NARSST_FIELD-202010141300Z.nc
-        file_patterns: ['S-OSI_-{generating_centre:4s}-{satid:4s}-{field_type:s}_FIELD-{valid_time:%Y%m%d%H%M}Z.nc']
+        file_patterns: ['S-OSI_-{generating_centre:4s}-{satid:s}-{field_type:s}_FIELD-{valid_time:%Y%m%d%H%M}Z.nc']
 
     SLSTR:
         file_reader: !!python/name:satpy.readers.ghrsst_l2.GHRSSTL2FileHandler
@@ -76,7 +76,7 @@ datasets:
   latitude_osisaf:
     name: latitude_osisaf
     resolution: 2000
-    file_type: GHRSST_OSISAF    
+    file_type: GHRSST_OSISAF
     standard_name: lat
     units: degree
 
