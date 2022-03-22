@@ -20,13 +20,8 @@
 from __future__ import annotations
 
 import logging
-import time
-from datetime import datetime
-from typing import Optional
-from weakref import WeakValueDictionary
 
 import numpy as np
-import xarray as xr
 
 from satpy.modifiers import ModifierBase
 from satpy.modifiers.angles import sunzen_corr_cos
@@ -37,8 +32,6 @@ logger = logging.getLogger(__name__)
 
 class SunZenithCorrectorBase(ModifierBase):
     """Base class for sun zenith correction modifiers."""
-
-    coszen_cache: "WeakValueDictionary[tuple[datetime, str], Optional[xr.DataArray]]" = WeakValueDictionary()
 
     def __init__(self, max_sza=95.0, **kwargs):
         """Collect custom configuration values.
@@ -57,31 +50,24 @@ class SunZenithCorrectorBase(ModifierBase):
         projectables = self.match_data_arrays(list(projectables) + list(info.get('optional_datasets', [])))
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
-            logger.debug("Sun zen correction already applied")
+            logger.debug("Sun zenith correction already applied")
             return vis
 
-        area_name = hash(vis.attrs['area'])
-        key = (vis.attrs["start_time"], area_name)
-        tic = time.time()
         logger.debug("Applying sun zen correction")
-        coszen = self.coszen_cache.get(key)
-        if coszen is None and not info.get('optional_datasets'):
+        if not info.get('optional_datasets'):
             # we were not given SZA, generate cos(SZA)
             logger.debug("Computing sun zenith angles.")
             from .angles import get_cos_sza
             coszen = get_cos_sza(vis)
             if self.max_sza is not None:
                 coszen = coszen.where(coszen >= self.max_sza_cos)
-            self.coszen_cache[key] = coszen
-        elif coszen is None:
+        else:
             # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
-            self.coszen_cache[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
         self.apply_modifier_info(vis, proj)
-        logger.debug("Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
 
     def _apply_correction(self, proj, coszen):

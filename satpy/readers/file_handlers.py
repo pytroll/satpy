@@ -85,10 +85,8 @@ class BaseFileHandler(metaclass=ABCMeta):
          - end_time
          - start_orbit
          - end_orbit
-         - satellite_altitude
-         - satellite_latitude
-         - satellite_longitude
          - orbital_parameters
+         - time_parameters
 
          Also, concatenate the areas.
 
@@ -97,26 +95,8 @@ class BaseFileHandler(metaclass=ABCMeta):
 
         new_dict = self._combine(all_infos, min, 'start_time', 'start_orbit')
         new_dict.update(self._combine(all_infos, max, 'end_time', 'end_orbit'))
-        new_dict.update(self._combine(all_infos, np.mean,
-                                      'satellite_longitude',
-                                      'satellite_latitude',
-                                      'satellite_altitude'))
-
-        # Average orbital parameters
-        orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
-        if all(orb_params):
-            # Collect all available keys
-            orb_params_comb = {}
-            for d in orb_params:
-                orb_params_comb.update(d)
-
-            # Average known keys
-            keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
-                    'satellite_nominal_longitude', 'satellite_nominal_latitude',
-                    'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
-                    'nadir_longitude', 'nadir_latitude']
-            orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
-            new_dict['orbital_parameters'] = orb_params_comb
+        new_dict.update(self._combine_orbital_parameters(all_infos))
+        new_dict.update(self._combine_time_parameters(all_infos))
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
@@ -128,6 +108,44 @@ class BaseFileHandler(metaclass=ABCMeta):
 
         new_dict.update(combined_info)
         return new_dict
+
+    def _combine_orbital_parameters(self, all_infos):
+        orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
+        if not all(orb_params):
+            return {}
+        # Collect all available keys
+        orb_params_comb = {}
+        for d in orb_params:
+            orb_params_comb.update(d)
+
+        # Average known keys
+        keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
+                'satellite_nominal_longitude', 'satellite_nominal_latitude',
+                'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
+                'nadir_longitude', 'nadir_latitude']
+        orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
+        return {'orbital_parameters': orb_params_comb}
+
+    def _combine_time_parameters(self, all_infos):
+        time_params = [info.get('time_parameters', {}) for info in all_infos]
+        if not all(time_params):
+            return {}
+        # Collect all available keys
+        time_params_comb = {}
+        for d in time_params:
+            time_params_comb.update(d)
+
+        start_keys = (
+            'nominal_start_time',
+            'observation_start_time',
+        )
+        end_keys = (
+            'nominal_end_time',
+            'observation_end_time',
+        )
+        time_params_comb.update(self._combine(time_params, min, *start_keys))
+        time_params_comb.update(self._combine(time_params, max, *end_keys))
+        return {'time_parameters': time_params_comb}
 
     @property
     def start_time(self):

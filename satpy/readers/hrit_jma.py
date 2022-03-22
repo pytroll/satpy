@@ -61,9 +61,6 @@ Output:
       * y         (y) float64 5.5e+06 5.498e+06 5.496e+06 ... -5.496e+06 -5.498e+06
       * x         (x) float64 -5.498e+06 -5.496e+06 -5.494e+06 ... 5.498e+06 5.5e+06
     Attributes:
-        satellite_longitude:  140.7
-        satellite_latitude:   0.0
-        satellite_altitude:   35785831.0
         orbital_parameters:   {'projection_longitude': 140.7, 'projection_latitud...
         standard_name:        toa_brightness_temperature
         level:                None
@@ -381,9 +378,6 @@ class HRITJMAFileHandler(HRITFileHandler):
         # Update attributes
         res.attrs.update(info)
         res.attrs['platform_name'] = self.platform
-        res.attrs['satellite_longitude'] = float(self.mda['projection_parameters']['SSP_longitude'])
-        res.attrs['satellite_latitude'] = 0.
-        res.attrs['satellite_altitude'] = float(self.mda['projection_parameters']['h'])
         res.attrs['orbital_parameters'] = {
             'projection_longitude': float(self.mda['projection_parameters']['SSP_longitude']),
             'projection_latitude': 0.,

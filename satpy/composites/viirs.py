@@ -268,7 +268,7 @@ class ERFDNB(CompositeBase):
                                                 max_val)) / dnb_data.size
         LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
         while saturation_pct > 0.005:
-            max_val *= 1.1 * unit_factor
+            max_val *= 1.1
             saturation_pct = float(np.count_nonzero(
                 dnb_data > max_val)) / dnb_data.size
             LOG.debug("Dynamic DNB saturation percentage: %f",
