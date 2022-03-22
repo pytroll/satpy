@@ -27,14 +27,9 @@ from pyresample.geometry import AreaDefinition
 class TestVIIRSComposites:
     """Test various VIIRS-specific composites."""
 
-    def test_load_composite_yaml(self):
-        """Test loading the yaml for this sensor."""
-        from satpy.composites.config_loader import load_compositor_configs_for_sensors
-        load_compositor_configs_for_sensors(['viirs'])
-
-    def test_histogram_dnb(self):
-        """Test the 'histogram_dnb' compositor."""
-        from satpy.composites.viirs import HistogramDNB
+    @pytest.fixture
+    def area(self):
+        """Return fake area for use with DNB tests."""
         rows = 5
         cols = 10
         area = AreaDefinition(
@@ -43,11 +38,21 @@ class TestVIIRSComposites:
              'lat_0': 0.0},
             cols, rows,
             (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
+        return area
+
+    def test_load_composite_yaml(self):
+        """Test loading the yaml for this sensor."""
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        load_compositor_configs_for_sensors(['viirs'])
+
+    def test_histogram_dnb(self, area):
+        """Test the 'histogram_dnb' compositor."""
+        from satpy.composites.viirs import HistogramDNB
 
         comp = HistogramDNB('histogram_dnb', prerequisites=('dnb',),
                             standard_name='toa_outgoing_radiance_per_'
                                           'unit_wavelength')
-        dnb = np.zeros((rows, cols)) + 0.25
+        dnb = np.zeros(area.shape) + 0.25
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
         dnb = da.from_array(dnb, chunks=25)
@@ -55,7 +60,7 @@ class TestVIIRSComposites:
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
         # data changes by row, sza changes by col for testing
-        sza = np.zeros((rows, cols)) + 70.0
+        sza = np.zeros(area.shape) + 70.0
         sza[:, 3] += 20.0
         sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
@@ -71,29 +76,21 @@ class TestVIIRSComposites:
         unique_values = np.unique(data)
         np.testing.assert_allclose(unique_values, [0.5994, 0.7992, 0.999], rtol=1e-3)
 
-    def test_adaptive_dnb(self):
+    def test_adaptive_dnb(self, area):
         """Test the 'adaptive_dnb' compositor."""
         from satpy.composites.viirs import AdaptiveDNB
-        rows = 5
-        cols = 10
-        area = AreaDefinition(
-            'test', 'test', 'test',
-            {'proj': 'eqc', 'lon_0': 0.0,
-             'lat_0': 0.0},
-            cols, rows,
-            (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
 
         comp = AdaptiveDNB('adaptive_dnb', prerequisites=('dnb',),
                            standard_name='toa_outgoing_radiance_per_'
                                          'unit_wavelength')
-        dnb = np.zeros((rows, cols)) + 0.25
+        dnb = np.zeros(area.shape) + 0.25
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
         dnb = da.from_array(dnb, chunks=25)
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
-        sza = np.zeros((rows, cols)) + 70.0
+        sza = np.zeros(area.shape) + 70.0
         sza[:, 3] += 20.0
         sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
@@ -108,36 +105,28 @@ class TestVIIRSComposites:
         data = res.compute()
         np.testing.assert_allclose(data.data, 0.999, rtol=1e-4)
 
-    def test_hncc_dnb(self):
+    def test_hncc_dnb(self, area):
         """Test the 'hncc_dnb' compositor."""
         from satpy.composites.viirs import NCCZinke
-        rows = 5
-        cols = 10
-        area = AreaDefinition(
-            'test', 'test', 'test',
-            {'proj': 'eqc', 'lon_0': 0.0,
-             'lat_0': 0.0},
-            cols, rows,
-            (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
 
         comp = NCCZinke('hncc_dnb', prerequisites=('dnb',),
                         standard_name='toa_outgoing_radiance_per_'
                                       'unit_wavelength')
-        dnb = np.zeros((rows, cols)) + 0.25
+        dnb = np.zeros(area.shape) + 0.25
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
         dnb = da.from_array(dnb, chunks=25)
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
-        sza = np.zeros((rows, cols)) + 70.0
+        sza = np.zeros(area.shape) + 70.0
         sza[:, 3] += 20.0
         sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
                            attrs={'name': 'solar_zenith_angle', 'area': area})
-        lza = np.zeros((rows, cols)) + 70.0
+        lza = np.zeros(area.shape) + 70.0
         lza[:, 3] += 20.0
         lza[:, 4:] += 45.0
         lza = da.from_array(lza, chunks=25)
@@ -161,23 +150,16 @@ class TestVIIRSComposites:
 
     @pytest.mark.parametrize("dnb_units", ["W m-2 sr-1", "W cm-2 sr-1"])
     @pytest.mark.parametrize("saturation_correction", [False, True])
-    def test_erf_dnb(self, dnb_units, saturation_correction):
+    def test_erf_dnb(self, dnb_units, saturation_correction, area):
         """Test the 'dynamic_dnb' or ERF DNB compositor."""
         from satpy.composites.viirs import ERFDNB
-        rows = 5
-        cols = 10
-        area = AreaDefinition(
-            'test', 'test', 'test',
-            {'proj': 'eqc', 'lon_0': 0.0,
-             'lat_0': 0.0},
-            cols, rows,
-            (-20037508.34, -10018754.17, 20037508.34, 10018754.17))
 
         comp = ERFDNB('dynamic_dnb', prerequisites=('dnb',),
                       saturation_correction=saturation_correction,
                       standard_name='toa_outgoing_radiance_per_'
                                     'unit_wavelength')
-        dnb = np.zeros((rows, cols)) + 0.25
+        dnb = np.zeros(area.shape) + 0.25
+        cols = area.shape[1]
         dnb[2, :cols // 2] = np.nan
         dnb[3, :] += 0.25
         dnb[4:, :] += 0.5
@@ -187,14 +169,14 @@ class TestVIIRSComposites:
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area, 'units': dnb_units})
-        sza = np.zeros((rows, cols)) + 70.0
+        sza = np.zeros(area.shape) + 70.0
         sza[:, 3] += 20.0
         sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
                            attrs={'name': 'solar_zenith_angle', 'area': area})
-        lza = np.zeros((rows, cols)) + 70.0
+        lza = np.zeros(area.shape) + 70.0
         lza[:, 3] += 20.0
         lza[:, 4:] += 45.0
         lza = da.from_array(lza, chunks=25)
