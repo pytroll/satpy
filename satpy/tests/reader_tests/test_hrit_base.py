@@ -107,7 +107,8 @@ class TestHRITFileHandler(unittest.TestCase):
              mock.patch.object(HRITFileHandler, '_get_hd', new=new_get_hd):
 
             newopen.return_value.__enter__.return_value.tell.return_value = 1
-            utilopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
+            FAKE_DATA_LARGE_ENOUGH_FOR_TESTING = bytes([0]*8192)
+            utilopen.return_value.__enter__.return_value.read.return_value = FAKE_DATA_LARGE_ENOUGH_FOR_TESTING
             self.reader = HRITFileHandler('filename',
                                           {'platform_shortname': 'MSG3',
                                            'start_time': datetime(2016, 3, 3, 0, 0)},
