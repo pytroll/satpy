@@ -154,10 +154,12 @@ def get_header_id(fp):
     data = fp.read(common_hdr.itemsize)
     return np.frombuffer(data, dtype=common_hdr, count=1)[0]
 
+
 def get_header_content(fp, header_dtype, count=1):
     """Return the content of the HRIT header."""
     data = fp.read(header_dtype.itemsize*count)
     return np.frombuffer(data, dtype=header_dtype, count=count)
+
 
 class HRITFileHandler(BaseFileHandler):
     """HRIT standard format reader."""
