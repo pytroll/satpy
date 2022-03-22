@@ -179,3 +179,25 @@ class TestVIIRSComposites:
                           2.09233451e-01, 1.43916324e+02, 2.03528498e+02,
                           2.49270516e+02]
             np.testing.assert_allclose(nonnan_unique, exp_unique)
+
+    def test_snow_age(self, area):
+        """Test the 'snow_age' compositor."""
+        from satpy.composites.viirs import SnowAge
+
+        projectables = tuple(
+           xr.DataArray(
+                da.from_array(np.full(area.shape, 5.*i), chunks=5),
+                dims=("y", "x"),
+                attrs={"name": f"M0{i:d}",
+                       "calibration": "reflectance",
+                       "units": "%"})
+           for i in range(7, 12))
+        comp = SnowAge(
+                "snow_age",
+                prerequisites=("M07", "M08", "M09", "M10", "M11",),
+                standard_name="snow_age")
+        res = comp(projectables)
+        assert isinstance(res, xr.DataArray)
+        assert isinstance(res.data, da.Array)
+        assert res.attrs["name"] == "snow_age"
+        assert "units" not in res.attrs
