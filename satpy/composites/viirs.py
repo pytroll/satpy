@@ -974,11 +974,13 @@ class SnowAge(GenericCompositor):
         The algorithm and the product are described in this
         presentation :
         http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+        as well as in the paper http://dx.doi.org/10.1016/j.rse.2017.04.028
         For further information you may contact
         Bernard Bellec at Bernard.Bellec@meteo.fr
         or
         Pascale Roquet at Pascale.Roquet@meteo.fr
 
+        The resulting RGB has the units attribute removed.
         """
         if len(projectables) != 5:
             raise ValueError("Expected 5 datasets, got %d" %
