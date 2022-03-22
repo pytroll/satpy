@@ -135,6 +135,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                  'start_time': datetime(2018, 1, 1, 18),
                  'modifiers': tuple(),
                  'resolution': 1000,
+                 'calibration': 'reflectance',
+                 'units': '%',
                  'name': 'test_vis'}
         ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
                            attrs=attrs, dims=('y', 'x'),
@@ -228,6 +230,13 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         np.testing.assert_allclose(res[0], self.ds1.values)
         np.testing.assert_allclose(res[1], np.array([[3, 3], [3, 3]], dtype=np.float64))
         np.testing.assert_allclose(res[2], np.array([[4, 4], [4, 4]], dtype=np.float64))
+
+    def test_no_units(self):
+        """Test that the computed RGB has no units attribute."""
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color')
+        res = comp((self.ds1, self.ds2, self.ds3))
+        assert "units" not in res.attrs
 
 
 class TestDifferenceCompositor(unittest.TestCase):
