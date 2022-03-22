@@ -1007,4 +1007,6 @@ class SnowAge(GenericCompositor):
         ch2.attrs = info
         ch3.attrs = info
 
-        return super(SnowAge, self).__call__([ch1, ch2, ch3], **info)
+        res = super(SnowAge, self).__call__([ch1, ch2, ch3], **info)
+        res.attrs.pop("units", None)
+        return res

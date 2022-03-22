@@ -979,7 +979,9 @@ class RatioSharpenedRGB(GenericCompositor):
         info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info.setdefault("standard_name", "true_color")
-        return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+        res = super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+        res.attrs.pop("units", None)
+        return res
 
 
 def _mean4(data, offset=(0, 0), block_id=None):
