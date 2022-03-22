@@ -33,21 +33,26 @@ the data was actually observed. Scheduled time can be accessed from the
 """
 
 import logging
+import os
+import warnings
 from datetime import datetime, timedelta
 
-import numpy as np
 import dask.array as da
+import numpy as np
 import xarray as xr
-import warnings
-import os
 
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
+from satpy.readers._geos_area import get_area_definition, get_area_extent
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import unzip_file, get_geostationary_mask, \
-                                np2str, get_earth_radius, \
-                                get_user_calibration_factors, \
-                                apply_rad_correction
-from satpy.readers._geos_area import get_area_extent, get_area_definition
+from satpy.readers.utils import (
+    apply_rad_correction,
+    get_earth_radius,
+    get_geostationary_mask,
+    get_user_calibration_factors,
+    np2str,
+    unzip_file,
+)
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -240,13 +245,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'mask_space':: False})
+                            reader_kwargs={'mask_space': False})
         scene.load([0.6])
 
     The AHI HSD data files contain multiple VIS channel calibration
-    coefficients. By default, the standard coefficients in header block 5
-    are used. If the user prefers the updated calibration coefficients then
-    they can pass calib_mode='update' when creating a scene::
+    coefficients. By default, the updated coefficients in header block 6
+    are used. If the user prefers the default calibration coefficients from
+    block 5 then they can pass calib_mode='nominal' when creating a scene::
 
         import satpy
         import glob
@@ -254,15 +259,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'calib_mode':: 'update'})
+                            reader_kwargs={'calib_mode': 'update'})
         scene.load([0.6])
 
     Alternative AHI calibrations are also available, such as GSICS
     coefficients. As such, you can supply custom per-channel correction
-    by setting calib_mode='custom' and passing correction factors via:
-       user_calibration={'chan': ['slope': slope, 'offset': offset]}
+    by setting calib_mode='custom' and passing correction factors via::
+
+        user_calibration={'chan': ['slope': slope, 'offset': offset]}
+
     Where slo and off are per-channel slope and offset coefficients defined by::
-     rad_leo = (rad_geo - off) / slo
+
+        rad_leo = (rad_geo - off) / slo
+
     If you do not have coefficients for a particular band, then by default the
     slope will be set to 1 .and the offset to 0.::
 
@@ -276,7 +285,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'user_calibration':: calib_dict)
+                            reader_kwargs={'user_calibration': calib_dict)
         # B15 will not have custom radiance correction applied.
         scene.load(['B07', 'B14', 'B15'])
 
@@ -286,9 +295,11 @@ class AHIHSDFileHandler(BaseFileHandler):
     converting digital number into radiance via Rad = DN * gain + offset are
     also possible. To supply your own factors, supply a user calibration dict
     using `type: 'DN'` as follows::
+
         calib_dict = {'B07': {'slope': 0.0037, 'offset': 18.5},
                       'B14': {'slope': -0.002, 'offset': 22.8},
                       'type': 'DN'}
+
     You can also explicitly select radiance correction with `'type': 'RAD'`
     but this is not necessary as it is the default option if you supply your
     own correction coefficients.
@@ -296,7 +307,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='nominal',
+                 mask_space=True, calib_mode='update',
                  user_calibration=None):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
@@ -348,7 +359,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def __del__(self):
         """Delete the object."""
-        if (self.is_zipped and os.path.exists(self.filename)):
+        if self.is_zipped and os.path.exists(self.filename):
             os.remove(self.filename)
 
     @property
@@ -377,10 +388,17 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Get the dataset."""
         return self.read_band(key, info)
 
+    @cached_property
+    def area(self):
+        """Get AreaDefinition representing this file's data."""
+        return self._get_area_def()
+
     def get_area_def(self, dsid):
         """Get the area definition."""
         del dsid
+        return self.area
 
+    def _get_area_def(self):
         pdict = {}
         pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
         pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
@@ -402,14 +420,11 @@ class AHIHSDFileHandler(BaseFileHandler):
         pdict['a_desc'] = "AHI {} area".format(self.observation_area)
         pdict['p_id'] = 'geosh8'
 
-        area = get_area_definition(pdict, aex)
-
-        self.area = area
-        return area
+        return get_area_definition(pdict, aex)
 
     def _check_fpos(self, fp_, fpos, offset, block):
         """Check file position matches blocksize."""
-        if (fp_.tell() + offset != fpos):
+        if fp_.tell() + offset != fpos:
             warnings.warn("Actual "+block+" header size does not match expected")
         return
 
@@ -536,17 +551,15 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _mask_space(self, data):
         """Mask space pixels."""
-        return data.where(get_geostationary_mask(self.area))
+        return data.where(get_geostationary_mask(self.area, chunks=data.chunks))
 
     def read_band(self, key, info):
         """Read the data."""
-        tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             header = self._read_header(fp_)
             res = self._read_data(fp_, header)
         res = self._mask_invalid(data=res, header=header)
         self._header = header
-        logger.debug("Reading time " + str(datetime.now() - tic))
 
         # Calibrate
         res = self.calibrate(res, key['calibration'])
@@ -595,8 +608,6 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
-        tic = datetime.now()
-
         if calibration == 'counts':
             return data
 
@@ -606,8 +617,6 @@ class AHIHSDFileHandler(BaseFileHandler):
             data = self._vis_calibrate(data)
         elif calibration == 'brightness_temperature':
             data = self._ir_calibrate(data)
-
-        logger.debug("Calibration time " + str(datetime.now() - tic))
         return data
 
     def convert_to_radiance(self, data):
@@ -627,27 +636,26 @@ class AHIHSDFileHandler(BaseFileHandler):
             dn_offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
         # Assume no user correction
+        correction_type = self._get_user_calibration_correction_type()
+        if correction_type == 'DN':
+            # Replace file calibration with user calibration
+            dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
+                                                              self.user_calibration)
+
+        data = (data * dn_gain + dn_offset)
+        # If using radiance correction factors from GSICS or similar, apply here
+        if correction_type == 'RAD':
+            user_slope, user_offset = get_user_calibration_factors(self.band_name,
+                                                                   self.user_calibration)
+            data = apply_rad_correction(data, user_slope, user_offset)
+        return data
+
+    def _get_user_calibration_correction_type(self):
         correction_type = None
         if isinstance(self.user_calibration, dict):
             # Check if we have DN correction coeffs
-            if 'type' in self.user_calibration:
-                correction_type = self.user_calibration['type']
-            else:
-                # If not, assume radiance correction
-                correction_type = 'RAD'
-            if correction_type == 'DN':
-                # Replace file calibration with user calibration
-                dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
-                                                                  self.user_calibration)
-            elif correction_type == 'RAD':
-                user_slope, user_offset = get_user_calibration_factors(self.band_name,
-                                                                       self.user_calibration)
-
-        data = (data * dn_gain + dn_offset).clip(0)
-        # If using radiance correction factors from GSICS or similar, apply here
-        if correction_type == 'RAD':
-            data = apply_rad_correction(data, user_slope, user_offset)
-        return data
+            correction_type = self.user_calibration.get('type', 'RAD')
+        return correction_type
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""

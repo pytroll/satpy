@@ -19,16 +19,19 @@
 
 import unittest
 from unittest import mock
+
 import numpy as np
+import pytest
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.utils import FakeFileHandler
 
 
 class TestBaseFileHandler(unittest.TestCase):
     """Test the BaseFileHandler."""
 
     def setUp(self):
-        """Setup the test."""
+        """Set up the test."""
         self._old_set = BaseFileHandler.__abstractmethods__
         BaseFileHandler._abstractmethods__ = set()
         self.fh = BaseFileHandler(
@@ -140,6 +143,34 @@ class TestBaseFileHandler(unittest.TestCase):
         # Empty
         self.fh.combine_info([{}])
 
+    def test_file_is_kept_intact(self):
+        """Test that the file object passed (string, path, or other) is kept intact."""
+        open_file = mock.MagicMock()
+        bfh = BaseFileHandler(open_file, {'filename_info': 'bla'}, 'filetype_info')
+        assert bfh.filename == open_file
+
+        from pathlib import Path
+        filename = Path('/bla/bla.nc')
+        bfh = BaseFileHandler(filename, {'filename_info': 'bla'}, 'filetype_info')
+        assert isinstance(bfh.filename, Path)
+
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
+
+
+@pytest.mark.parametrize(
+    ("file_type", "ds_file_type", "exp_result"),
+    [
+        ("fake1", "fake1", True),
+        ("fake1", ["fake1"], True),
+        ("fake1", ["fake1", "fake2"], True),
+        ("fake1", ["fake2"], None),
+        ("fake1", "fake2", None),
+        ("fake1", "fake1_with_suffix", None),
+    ]
+)
+def test_file_type_match(file_type, ds_file_type, exp_result):
+    """Test that file type matching uses exactly equality."""
+    fh = FakeFileHandler("some_file.txt", {}, {"file_type": file_type})
+    assert fh.file_type_matches(ds_file_type) is exp_result

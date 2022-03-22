@@ -40,16 +40,18 @@ References:
 
 
 import logging
-from datetime import datetime
+from contextlib import suppress
+from functools import reduce
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
+from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
+from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
-from satpy import CHUNK_SIZE
-from functools import reduce
 
 logger = logging.getLogger(__name__)
 
@@ -83,12 +85,12 @@ class BitFlags(object):
         data = self._value
         if isinstance(data, xr.DataArray):
             data = data.data
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
             res = xr.DataArray(res, coords=self._value.coords,
                                attrs=self._value.attrs,
                                dims=self._value.dims)
         else:
-            res = ((data >> pos) % 2).astype(np.bool)
+            res = ((data >> pos) % 2).astype(bool)
         return res
 
 
@@ -100,30 +102,35 @@ class NCOLCIBase(BaseFileHandler):
         """Init the olci reader base."""
         super(NCOLCIBase, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  engine=engine,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
-
+        self._engine = engine
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
+        self.open_file = None
+
+    @cached_property
+    def nc(self):
+        """Get the nc xr dataset."""
+        f_obj = open_file_or_filename(self.filename)
+        dataset = xr.open_dataset(f_obj,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  engine=self._engine,
+                                  chunks={'columns': CHUNK_SIZE,
+                                          'rows': CHUNK_SIZE})
+        return dataset.rename({'columns': 'x', 'rows': 'y'})
 
     @property
     def start_time(self):
         """Start time property."""
-        return datetime.strptime(self.nc.attrs['start_time'],
-                                 '%Y-%m-%dT%H:%M:%S.%fZ')
+        return self._start_time
 
     @property
     def end_time(self):
         """End time property."""
-        return datetime.strptime(self.nc.attrs['stop_time'],
-                                 '%Y-%m-%dT%H:%M:%S.%fZ')
+        return self._end_time
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -134,22 +141,16 @@ class NCOLCIBase(BaseFileHandler):
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
-        try:
+        with suppress(IOError, OSError, AttributeError):
             self.nc.close()
-        except (IOError, OSError, AttributeError):
-            pass
 
 
 class NCOLCICal(NCOLCIBase):
     """Dummy class for calibration."""
 
-    pass
-
 
 class NCOLCIGeo(NCOLCIBase):
     """Dummy class for navigation."""
-
-    pass
 
 
 class NCOLCIChannelBase(NCOLCIBase):
@@ -299,7 +300,7 @@ class NCOLCILowResData(BaseFileHandler):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 
@@ -372,7 +373,7 @@ class NCOLCIAngles(NCOLCILowResData):
         """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
-        except (IOError, OSError, AttributeError):
+        except (OSError, AttributeError):
             pass
 
 

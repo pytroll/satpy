@@ -13,16 +13,22 @@ file_types:
       - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_1000M_L1B.{ext}'
       # FY3D_20190808_130200_130300_8965_MERSI_1000M_L1B.HDF
       - '{platform_shortname}_{start_time:%Y%m%d_%H%M%S}_{end_time:%H%M%S}_{orbit_number:s}_MERSI_1000M_L1B.{ext}'
+      # From National Meteorological Satellite Center
+      - '{platform_shortname}_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_1000M_MS.{ext:3s}'
       # Generic
       - '{filename_mda}_MERSI_1000M_L1B.{ext:3s}'
+
   mersi2_l1b_250:
     file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
     rows_per_scan: 40
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF
       - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_0250M_L1B.{ext}'
+      # From National Meteorological Satellite Center
+      - '{platform_shortname}_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_0250M_MS.{ext:3s}'
       # Generic
       - '{filename_mda}_MERSI_0250M_L1B.{ext:3s}'
+
   mersi2_l1b_1000_geo:
     file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
     rows_per_scan: 10
@@ -31,6 +37,8 @@ file_types:
       - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_GEO1K_L1B.{ext}'
       # FY3D_20190808_130200_130300_8965_MERSI_GEO1K_L1B.HDF
       - '{platform_shortname}_{start_time:%Y%m%d_%H%M%S}_{end_time:%H%M%S}_{orbit_number:s}_MERSI_GEO1K_L1B.{ext}'
+      # From National Meteorological Satellite Center
+      - '{platform_shortname}_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_GEO1K_MS.{ext:3s}'
       # Generic
       - '{filename_mda}_MERSI_GEO1K_L1B.{ext:3s}'
 
@@ -40,8 +48,11 @@ file_types:
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF
       - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_GEOQK_L1B.{ext}'
+      # From National Meteorological Satellite Center
+      - '{platform_shortname}_MERSI_GBAL_L1_{start_time:%Y%m%d_%H%M}_GEOQK_MS.{ext:3s}'
       # Generic
       - '{filename_mda}_MERSI_GEOQK_L1B.{ext:3s}'
+
 
 # NOTE: OSCAR website currently has bands in wavelength order
 #       https://www.wmo-sat.info/oscar/instruments/view/279

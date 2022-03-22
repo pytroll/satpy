@@ -19,9 +19,11 @@
 
 import os
 import unittest
-from unittest import mock
 from datetime import datetime, timedelta
+from unittest import mock
+
 import numpy as np
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
@@ -70,10 +72,27 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             '/attr/instrument': 'viirs',
             '/attr/platform': 'Suomi-NPP',
         }
+        self._fill_contents_with_default_data(file_content, file_type)
+
+        self._set_dataset_specific_metadata(file_content)
+
+        convert_file_content_to_data_array(file_content)
+        return file_content
+
+    @staticmethod
+    def _fill_contents_with_default_data(file_content, file_type):
+        """Fill file contents with default data."""
         if file_type.startswith('vgeo'):
             file_content['/attr/OrbitNumber'] = file_content.pop('/attr/orbit_number')
             file_content['geolocation_data/latitude'] = DEFAULT_LAT_DATA
             file_content['geolocation_data/longitude'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/solar_zenith'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/solar_azimuth'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/sensor_zenith'] = DEFAULT_LON_DATA
+            file_content['geolocation_data/sensor_azimuth'] = DEFAULT_LON_DATA
+            if file_type.endswith('d'):
+                file_content['geolocation_data/lunar_zenith'] = DEFAULT_LON_DATA
+                file_content['geolocation_data/lunar_azimuth'] = DEFAULT_LON_DATA
         elif file_type == 'vl1bm':
             file_content['observation_data/M01'] = DEFAULT_FILE_DATA
             file_content['observation_data/M02'] = DEFAULT_FILE_DATA
@@ -101,6 +120,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             file_content['observation_data/DNB_observations'] = DEFAULT_FILE_DATA
             file_content['observation_data/DNB_observations/attr/units'] = 'Watts/cm^2/steradian'
 
+    @staticmethod
+    def _set_dataset_specific_metadata(file_content):
+        """Set dataset-specific metadata."""
         for k in list(file_content.keys()):
             if not k.startswith('observation_data') and not k.startswith('geolocation_data'):
                 continue
@@ -121,14 +143,13 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 file_content[k + '/attr/units'] = 'degrees_east'
             elif k.endswith('latitude'):
                 file_content[k + '/attr/units'] = 'degrees_north'
+            elif k.endswith('zenith') or k.endswith('azimuth'):
+                file_content[k + '/attr/units'] = 'degrees'
             file_content[k + '/attr/valid_min'] = 0
             file_content[k + '/attr/valid_max'] = 65534
             file_content[k + '/attr/_FillValue'] = 65535
             file_content[k + '/attr/scale_factor'] = 1.1
             file_content[k + '/attr/add_offset'] = 0.1
-
-        convert_file_content_to_data_array(file_content)
-        return file_content
 
 
 class TestVIIRSL1BReader(unittest.TestCase):
@@ -138,7 +159,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_l1b import VIIRSL1BFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -260,6 +281,29 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
             self.assertEqual(v.attrs['units'], 'W m-2 sr-1')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+
+    def test_load_dnb_angles(self):
+        """Test loading all DNB angle datasets."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'VL1BD_snpp_d20161130_t012400_c20161130054822.nc',
+            'VGEOD_snpp_d20161130_t012400_c20161130054822.nc',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['dnb_solar_zenith_angle',
+                           'dnb_solar_azimuth_angle',
+                           'dnb_satellite_zenith_angle',
+                           'dnb_satellite_azimuth_angle',
+                           'dnb_lunar_zenith_angle',
+                           'dnb_lunar_azimuth_angle',
+                           ])
+        self.assertEqual(len(datasets), 6)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'degrees')
             self.assertEqual(v.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)

@@ -146,30 +146,30 @@ The 'area' attribute of the DataArray, if present, can be converted to latitude 
     >>> vis006_lon, vis006_lat = vis006.attrs['area'].get_lonlats()
 
 
-Visualizing data                                                                                    
-================                                                                                    
+Visualizing data
+================
 
-To visualize loaded data in a pop-up window:                                                        
-                                                                                                    
-    >>> global_scene.show(0.6)                                                                      
-                                                                                                    
+To visualize loaded data in a pop-up window:
+
+    >>> global_scene.show(0.6)
+
 Alternatively if working in a Jupyter notebook the scene can be converted to
-a `geoviews <http://geo.holoviews.org/index.html>`_ object using the
+a `geoviews <https://geoviews.org>`_ object using the
 :meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
 requirement of the base satpy install so in order to use this feature the user
 needs to install the geoviews package himself.
-                                                                                                    
-    >>> import holoviews as hv                                                                      
-    >>> import geoviews as gv                                                                       
-    >>> import geoviews.feature as gf                                                               
-    >>> gv.extension("bokeh", "matplotlib")                                                         
-    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]      
-    >>> %opts Image QuadMesh (cmap='RdBu_r')                                                        
+
+    >>> import holoviews as hv
+    >>> import geoviews as gv
+    >>> import geoviews.feature as gf
+    >>> gv.extension("bokeh", "matplotlib")
+    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]
+    >>> %opts Image QuadMesh (cmap='RdBu_r')
     >>> gview = global_scene.to_geoviews(vdims=[0.6])
-    >>> gview[::5,::5] * gf.coastline * gf.borders                                                  
-                                                                                                     
-Creating new datasets                                                                               
-=====================                                                                               
+    >>> gview[::5,::5] * gf.coastline * gf.borders
+
+Creating new datasets
+=====================
 
 Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
 
@@ -183,7 +183,7 @@ Assigning additional custom metadata is also possible.
     >>> from satpy.dataset import combine_metadata
     >>> scene['new_band'] = scene[0.8] / scene[0.6]
     >>> scene['new_band'].attrs = combine_metadata(scene[0.8], scene[0.6])
-    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want' 
+    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want'
 
 Generating composites
 =====================
@@ -281,6 +281,7 @@ To subset multi-resolution data consistently, use the :meth:`~satpy.scene.Scene.
   >>> vis006_llbox_lon, vis006_llbox_lat = vis006_llbox.attrs['area'].get_lonlats()
 
 
+.. _troubleshooting:
 
 Troubleshooting
 ===============
@@ -290,9 +291,9 @@ of satpy and its dependencies are installed. Satpy drags in a few packages as
 dependencies per default, but each reader and writer has it's own dependencies
 which can be unfortunately easy to miss when just doing a regular `pip install`.
 To check the missing dependencies for the readers and writers, a utility
-function called `check_satpy` can be used:
+function called :func:`~satpy.utils.check_satpy` can be used:
 
-  >>> from satpy.config import check_satpy
+  >>> from satpy.utils import check_satpy
   >>> check_satpy()
 
 Due to the way Satpy works, producing as many datasets as possible, there are

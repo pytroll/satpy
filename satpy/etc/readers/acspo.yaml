@@ -8,7 +8,7 @@ reader:
 file_types:
   acspo_sst:
     file_reader: !!python/name:satpy.readers.acspo.ACSPOFileHandler
-    file_patterns: ['{start_time:%Y%m%d%H%M%S}-{rdac:4s}-L2P_GHRSST-SSTskin-{sensor_id}-ACSPO_V{version}-v{gds_version}-fv{file_version}.nc']
+    file_patterns: ['{start_time:%Y%m%d%H%M%S}-{rdac:4s}-L2P_GHRSST-{dataset_name}-{sensor_id}-ACSPO_V{version}-v{gds_version}-fv{file_version}.nc']
 
 datasets:
   longitude:
@@ -37,4 +37,3 @@ datasets:
     name: wind_speed
     coordinates: [longitude, latitude]
     file_type: acspo_sst
-

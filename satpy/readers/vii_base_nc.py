@@ -19,12 +19,12 @@
 """EUMETSAT EPS-SG Visible/Infrared Imager (VII) readers base class."""
 
 import logging
-
 from datetime import datetime
+
+from geotiepoints.viiinterpolator import tie_points_geo_interpolation, tie_points_interpolation
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 from satpy.readers.vii_utils import SCAN_ALT_TIE_POINTS, TIE_POINTS_FACTOR
-from geotiepoints.viiinterpolator import tie_points_interpolation, tie_points_geo_interpolation
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,14 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
             logger.warning("Cached longitude and/or latitude datasets are not correctly defined in YAML file")
             self.longitude, self.latitude = None, None
 
+    def _standardize_dims(self, variable):
+        """Standardize dims to y, x."""
+        if 'num_pixels' in variable.dims:
+            variable = variable.rename({'num_pixels': 'x', 'num_lines': 'y'})
+        if variable.dims[0] == 'x':
+            variable = variable.transpose('y', 'x')
+        return variable
+
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using file_key in dataset_info."""
         var_key = dataset_info['file_key']
@@ -84,7 +92,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
                 variable = self._perform_interpolation(variable)
 
             # Perform the calibration if required
-            if dataset_info['calibration'] is not None:
+            if dataset_info.get('calibration') is not None:
                 variable = self._perform_calibration(variable, dataset_info)
 
         # Perform the orthorectification if required
@@ -103,7 +111,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
 
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
-
+        variable = self._standardize_dims(variable)
         return variable
 
     @staticmethod

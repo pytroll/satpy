@@ -19,10 +19,11 @@
 import os
 import unittest
 from unittest import mock
-import numpy as np
-from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
-from satpy.readers import load_reader
 
+import numpy as np
+
+from satpy.readers import load_reader
+from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -85,7 +86,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF4 file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.seviri_l1b_icare import SEVIRI_ICARE
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(SEVIRI_ICARE, '__bases__', (FakeHDF4FileHandler2,))
@@ -97,6 +98,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         self.p.stop()
 
     def compare_areas(self, v):
+        """Compare produced AreaDefinition with expected."""
         test_area = {'area_id': 'geosmsg',
                      'width': 10,
                      'height': 300,
@@ -171,7 +173,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         self.assertEqual(ds['HRV'].attrs['area'].proj_id, 'msg_hires')
 
     def test_sensor_names(self):
-        """Check satellite name conversion is correct, including error case"""
+        """Check satellite name conversion is correct, including error case."""
         file_data = FakeHDF4FileHandler2.get_test_content(mock.MagicMock(),
                                                           mock.MagicMock(),
                                                           mock.MagicMock(),
@@ -189,7 +191,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
                                      mock.MagicMock(),
                                      mock.MagicMock()).sensor_name
 
-            for sat in sensor_list.keys():
+            for sat in sensor_list:
                 file_data['/attr/Sensors'] = sensor_list[sat]
                 plat, sens = _run_target()
                 self.assertEqual(plat, sat)

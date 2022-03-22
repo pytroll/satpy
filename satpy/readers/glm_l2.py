@@ -26,6 +26,8 @@ the project's GitHub repository:
 import logging
 from datetime import datetime
 
+import numpy as np
+
 from satpy.readers.abi_base import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
@@ -56,6 +58,17 @@ class NCGriddedGLML2(NC_ABI_BASE):
         """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%SZ')
 
+    def _is_category_product(self, data_arr):
+        # if after autoscaling we still have an integer
+        is_int = np.issubdtype(data_arr.dtype, np.integer)
+        # and it has a fill value
+        has_fill = '_FillValue' in data_arr.attrs
+        # or it has flag_meanings
+        has_meanings = 'flag_meanings' in data_arr.attrs
+        # then it is likely a category product and we should keep the
+        # _FillValue for satpy to use later
+        return is_int and (has_fill or has_meanings)
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key['name'])
@@ -76,8 +89,10 @@ class NCGriddedGLML2(NC_ABI_BASE):
         }
 
         res.attrs.update(key.to_dict())
+
         # remove attributes that could be confusing later
-        res.attrs.pop('_FillValue', None)
+        if not self._is_category_product(res):
+            res.attrs.pop('_FillValue', None)
         res.attrs.pop('scale_factor', None)
         res.attrs.pop('add_offset', None)
         res.attrs.pop('_Unsigned', None)
@@ -87,16 +102,24 @@ class NCGriddedGLML2(NC_ABI_BASE):
         for attr in ('scene_abbr', 'scan_mode', 'platform_shortname'):
             res.attrs[attr] = self.filename_info[attr]
         # copy global attributes to metadata
-        for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+        for attr in ('scene_id', 'orbital_slot', 'instrument_ID',
+                     'production_site', 'timeline_ID', 'spatial_resolution'):
             res.attrs[attr] = self.nc.attrs.get(attr)
         return res
 
+    def _is_2d_xy_var(self, data_arr):
+        is_2d = data_arr.ndim == 2
+        has_x_dim = 'x' in data_arr.dims
+        has_y_dim = 'y' in data_arr.dims
+        return is_2d and has_x_dim and has_y_dim
+
     def available_datasets(self, configured_datasets=None):
-        """Check actual  Add information to configured datasets."""
+        """Discover new datasets and add information from file."""
         # we know the actual resolution
         res = self.spatial_resolution_to_number()
 
         # update previously configured datasets
+        handled_vars = set()
         for is_avail, ds_info in (configured_datasets or []):
             # some other file handler knows how to load this
             # don't override what they've done
@@ -110,8 +133,25 @@ class NCGriddedGLML2(NC_ABI_BASE):
                 new_info = ds_info.copy()
                 new_info['resolution'] = res
                 exists = ds_info['name'] in self.nc
+                handled_vars.add(ds_info['name'])
                 yield exists, new_info
             elif is_avail is None:
                 # we don't know what to do with this
                 # see if another future file handler does
                 yield is_avail, ds_info
+
+        for var_name, data_arr in self.nc.data_vars.items():
+            if var_name in handled_vars:
+                # it was manually configured and handled above
+                continue
+            if not self._is_2d_xy_var(data_arr):
+                # only handle 2d (y, x) vars for now
+                continue
+
+            new_info = {
+                'name': var_name,
+                'resolution': res,
+                'file_type': self.filetype_info['file_type']
+            }
+            handled_vars.add(var_name)
+            yield True, new_info

@@ -16,7 +16,7 @@ Available Readers
 =================
 
 To get a list of available readers use the `available_readers` function. By default,
-it returns the names of available readers. To return additional reader information 
+it returns the names of available readers. To return additional reader information
 use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers
@@ -63,7 +63,7 @@ polarization::
 
 Or multiple calibrations::
 
-    >>> scn.load([0.6, 10.8], calibrations=['brightness_temperature', 'radiance'])
+    >>> scn.load([0.6, 10.8], calibration=['brightness_temperature', 'radiance'])
 
 In the above case Satpy will load whatever dataset is available and matches
 the specified parameters. So the above ``load`` call would load the ``0.6``
@@ -79,13 +79,13 @@ loading datasets::
 
     >>> scn.load([0.6, 10.8], pad_data=False)
 
-For geostationary products, where the imagery is stored in the files in a flipped orientation
-(e.g. MSG SEVIRI L1.5 data which is flipped upside-down and left-right), the keyword argument
+For geostationary products, where the imagery is stored in the files in an unconventional orientation
+(e.g. MSG SEVIRI L1.5 data are stored with the southwest corner in the upper right), the keyword argument
 ``upper_right_corner`` can be passed into the load call to automatically flip the datasets to the
 wished orientation. Accepted argument values are ``'NE'``, ``'NW'``, ``'SE'``, ``'SW'``,
 and ``'native'``.
 By default, no flipping is applied (corresponding to ``upper_right_corner='native'``) and
-the data is delivered in the original format. To get the data in the common upright orientation,
+the data are delivered in the original format. To get the data in the common upright orientation,
 load the datasets using e.g.::
 
     >>> scn.load(['VIS008'], upper_right_corner='NE')
@@ -146,6 +146,7 @@ time etc. The following attributes are standardized across all readers:
   :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
   projected data and Swaths when data must be described by individual longitude/latitude
   coordinates. See the Coordinates section below.
+* ``reader``: The name of the Satpy reader that produced the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
 
   * For *geostationary* satellites it is described using the following scalar attributes:
@@ -211,11 +212,10 @@ This is described in the developer guide, see :doc:`dev_guide/custom_reader`.
 Implemented readers
 ===================
 
+SEVIRI L1.5 data readers
+------------------------
 
-xRIT-based readers
-------------------
-
-.. automodule:: satpy.readers.hrit_base
+.. automodule:: satpy.readers.seviri_base
     :noindex:
 
 SEVIRI HRIT format reader
@@ -223,6 +223,26 @@ SEVIRI HRIT format reader
 
 .. automodule:: satpy.readers.seviri_l1b_hrit
     :noindex:
+
+SEVIRI Native format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.seviri_l1b_native
+    :noindex:
+
+SEVIRI netCDF format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.seviri_l1b_nc
+    :noindex:
+
+
+Other xRIT-based readers
+------------------------
+
+.. automodule:: satpy.readers.hrit_base
+    :noindex:
+
 
 JMA HRIT format reader
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -250,4 +270,19 @@ hdf-eos based readers
     :noindex:
 
 .. automodule:: satpy.readers.modis_l2
+    :noindex:
+
+satpy cf nc readers
+---------------------
+
+.. automodule:: satpy.readers.satpy_cf_nc
+    :noindex:
+
+hdf5 based readers
+------------------
+
+Arctica-M N1 HDF5 format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: satpy.readers.msu_gsa_l1b
     :noindex:

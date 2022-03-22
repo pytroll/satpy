@@ -19,13 +19,13 @@
 
 The ``vii_l1b_nc`` reader reads and calibrates EPS-SG VII L1b image data in netCDF format. The format is explained
 in the `EPS-SG VII Level 1B Product Format Specification`_.
-References:
-.. _EPS-SG VII Level 1B Product Format Specification: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService
-   =GET_FILE&dDocName=PDF_EPSSG_VII_L1B_PFS&RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+.. _EPS-SG VII Level 1B Product Format Specification: https://www.eumetsat.int/media/44393
 
 """
 
 import logging
+
 import numpy as np
 
 from satpy.readers.vii_base_nc import ViiNCBaseFileHandler
@@ -45,7 +45,7 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         self._bt_conversion_a = self['data/calibration_data/bt_conversion_a'].values
         self._bt_conversion_b = self['data/calibration_data/bt_conversion_b'].values
         self._channel_cw_thermal = self['data/calibration_data/channel_cw_thermal'].values
-        self._integrated_solar_irradiance = self['data/calibration_data/integrated_solar_irradiance'].values
+        self._integrated_solar_irradiance = self['data/calibration_data/Band_averaged_solar_irradiance'].values
         # Computes the angle factor for reflectance calibration as inverse of cosine of solar zenith angle
         # (the values in the product file are on tie points and in degrees,
         # therefore interpolation and conversion to radians are required)
@@ -69,16 +69,17 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         if calibration_name == 'brightness_temperature':
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_thermal_index']
-            cw = self._channel_cw_thermal[chan_index]
+            cw = self._channel_cw_thermal[chan_index] * 1e-3
             a = self._bt_conversion_a[chan_index]
             b = self._bt_conversion_b[chan_index]
             # Perform the calibration
             calibrated_variable = self._calibrate_bt(variable, cw, a, b)
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == 'reflectance':
+            scale = 1/(dataset_info['wavelength'][2] - dataset_info['wavelength'][0])
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_solar_index']
-            isi = self._integrated_solar_irradiance[chan_index]
+            isi = scale * self._integrated_solar_irradiance[chan_index]
             # Perform the calibration
             calibrated_variable = self._calibrate_refl(variable, self.angle_factor, isi)
             calibrated_variable.attrs = variable.attrs

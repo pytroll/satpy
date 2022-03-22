@@ -21,6 +21,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dataid
@@ -110,8 +111,32 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
         xr_.open_dataset.return_value = fake_dataset
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'suffix': 'custom',
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
+
+
+class TestABIYAML:
+    """Tests for the ABI L1b reader's YAML configuration."""
+
+    @pytest.mark.parametrize(['channel', 'suffix'],
+                             [("C{:02d}".format(num), suffix)
+                              for num in range(1, 17)
+                              for suffix in ('', '_test_suffix')])
+    def test_file_patterns_match(self, channel, suffix):
+        """Test that the configured file patterns work."""
+        from satpy.readers import configs_for_reader, load_reader
+        reader_configs = list(configs_for_reader('abi_l1b'))[0]
+        reader = load_reader(reader_configs)
+        fn1 = ("OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
+               "_c20182541300308{}.nc").format(channel, suffix)
+        loadables = reader.select_files_from_pathnames([fn1])
+        assert len(loadables) == 1
+        if not suffix and channel in ["C01", "C02", "C03", "C05"]:
+            fn2 = ("OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
+                   "_c20182541300308-000000_0.nc").format(channel)
+            loadables = reader.select_files_from_pathnames([fn2])
+            assert len(loadables) == 1
 
 
 class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
@@ -150,6 +175,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                'scene_id': None,
                'sensor': 'abi',
                'timeline_ID': None,
+               'suffix': 'custom',
                'units': 'W m-2 um-1 sr-1'}
 
         self.assertDictEqual(res.attrs, exp)
@@ -241,3 +267,97 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
                          'toa_bidirectional_reflectance')
         self.assertEqual(res.attrs['long_name'],
                          'Bidirectional Reflectance')
+
+
+class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader raw calibration."""
+
+    def setUp(self):
+        """Create fake data for the tests."""
+        rad_data = (np.arange(10.).reshape((2, 5)) + 1.)
+        rad_data = (rad_data + 1.) / 0.5
+        rad_data = rad_data.astype(np.int16)
+        rad = xr.DataArray(
+            rad_data,
+            dims=('y', 'x'),
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': 20,
+            }
+        )
+        super(Test_NC_ABI_L1B_raw_cal, self).setUp(rad=rad)
+
+    def test_raw_calibrate(self):
+        """Test RAW calibration."""
+        res = self.reader.get_dataset(
+            make_dataid(name='C05', calibration='counts'), {})
+
+        # We expect the raw data to be unchanged
+        expected = res.data
+        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+
+        # check for the presence of typical attributes
+        self.assertIn('scale_factor', res.attrs)
+        self.assertIn('add_offset', res.attrs)
+        self.assertIn('_FillValue', res.attrs)
+        self.assertIn('orbital_parameters', res.attrs)
+        self.assertIn('platform_shortname', res.attrs)
+        self.assertIn('scene_id', res.attrs)
+
+        # determine if things match their expected values/types.
+        self.assertEqual(res.data.dtype, np.int16, "int16 data type expected")
+        self.assertEqual(res.attrs['standard_name'],
+                         'counts')
+        self.assertEqual(res.attrs['long_name'],
+                         'Raw Counts')
+
+
+class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader with invalid calibration."""
+
+    def test_invalid_calibration(self):
+        """Test detection of invalid calibration values."""
+        # Need to use a custom DataID class because the real DataID class is
+        # smart enough to detect the invalid calibration before the ABI L1B
+        # get_dataset method gets a chance to run.
+        class FakeDataID(dict):
+            def to_dict(self):
+                return self
+
+        with self.assertRaises(ValueError, msg='Did not detect invalid cal'):
+            did = FakeDataID(name='C05', calibration='invalid', modifiers=())
+            self.reader.get_dataset(did, {})
+
+
+class Test_NC_ABI_File(unittest.TestCase):
+    """Test file opening."""
+
+    @mock.patch('satpy.readers.abi_base.xr')
+    def test_open_dataset(self, _):
+        """Test openning a dataset."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
+
+        openable_thing = mock.MagicMock()
+
+        NC_ABI_L1B(openable_thing, {'platform_shortname': 'g16'}, None)
+        openable_thing.open.assert_called()
+
+
+class Test_NC_ABI_L1B_H5netcdf(Test_NC_ABI_L1B):
+    """Allow h5netcdf peculiarities."""
+
+    def setUp(self):
+        """Create fake data for the tests."""
+        rad_data = np.int16(50)
+        rad = xr.DataArray(
+            rad_data,
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': np.array([1002]),
+                'units': 'W m-2 um-1 sr-1',
+                'valid_range': (0, 4095),
+            }
+        )
+        super(Test_NC_ABI_L1B_H5netcdf, self).setUp(rad=rad)

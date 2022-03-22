@@ -49,6 +49,10 @@ class Node:
         self.children = []
         self.parents = []
 
+    def update_name(self, new_name):
+        """Update 'name' property."""
+        self.name = new_name
+
     @property
     def is_leaf(self):
         """Check if the node is a leaf."""
@@ -81,11 +85,16 @@ class Node:
         if self.name is EMPTY_LEAF_NAME:
             return self
 
-        s = Node(self.name, self.data)
+        s = self._copy_name_and_data(node_cache)
         for c in self.children:
             c = c.copy(node_cache=node_cache)
             s.add_child(c)
+        if node_cache is not None:
+            node_cache[s.name] = s
         return s
+
+    def _copy_name_and_data(self, node_cache=None):
+        return Node(self.name, self.data)
 
     def add_child(self, obj):
         """Add a child to the node."""
@@ -98,7 +107,7 @@ class Node:
 
     def __repr__(self):
         """Generate a representation of the node."""
-        return "<Node ({})>".format(repr(self.name))
+        return "<{} ({})>".format(self.__class__.__name__, repr(self.name))
 
     def __eq__(self, other):
         """Check equality."""
@@ -129,16 +138,18 @@ class Node:
                     res.append(sub_child)
         return res
 
-    def trunk(self, unique=True):
+    def trunk(self, unique=True, limit_children_to=None):
         """Get the trunk of the tree starting at this root."""
-        # uniqueness is not correct in `trunk` yet
+        # FIXME: uniqueness is not correct in `trunk` yet
         unique = False
         res = []
         if self.children and self.name is not EMPTY_LEAF_NAME:
             if self.name is not None:
                 res.append(self)
+            if limit_children_to is not None and self.name in limit_children_to:
+                return res
             for child in self.children:
-                for sub_child in child.trunk(unique=unique):
+                for sub_child in child.trunk(unique=unique, limit_children_to=limit_children_to):
                     if not unique or sub_child not in res:
                         res.append(sub_child)
         return res
@@ -168,3 +179,37 @@ class CompositorNode(Node):
     def optional_nodes(self):
         """Get the optional nodes."""
         return self.data[2]
+
+    @property
+    def compositor(self):
+        """Get the compositor."""
+        return self.data[0]
+
+    def _copy_name_and_data(self, node_cache=None):
+        new_node = CompositorNode(self.compositor)
+        new_required_nodes = [node.copy(node_cache) for node in self.required_nodes]
+        new_node.add_required_nodes(new_required_nodes)
+        new_optional_nodes = [node.copy(node_cache) for node in self.optional_nodes]
+        new_node.add_optional_nodes(new_optional_nodes)
+        # `comp.id` uses the compositor's attributes to compute itself
+        # however, this node may have been updated by creation of the
+        # composite. In order to not modify the compositor's attrs, we
+        # overwrite the name here instead.
+        new_node.name = self.name
+        return new_node
+
+
+class ReaderNode(Node):
+    """Implementation of a storage-based node."""
+
+    def __init__(self, unique_id, reader_name):
+        """Set up the node."""
+        super().__init__(unique_id, data={'reader_name': reader_name})
+
+    def _copy_name_and_data(self, node_cache):
+        return ReaderNode(self.name, self.data['reader_name'])
+
+    @property
+    def reader_name(self):
+        """Get the name of the reader."""
+        return self.data['reader_name']

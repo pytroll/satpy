@@ -19,9 +19,10 @@
 import os
 import unittest
 from unittest import mock
-import numpy as np
-from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
+import numpy as np
+
+from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -76,7 +77,7 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF4 file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_flood import VIIRSEDRFlood
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSEDRFlood, '__bases__', (FakeHDF4FileHandler2,))

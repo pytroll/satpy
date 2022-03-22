@@ -21,10 +21,11 @@ This module implements readers for VIIRS Active Fires NetCDF and
 ASCII files.
 """
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.readers.file_handlers import BaseFileHandler
 import dask.dataframe as dd
 import xarray as xr
+
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 # map platform attributes to Oscar standard name
 PLATFORM_MAP = {

@@ -18,53 +18,26 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module defining various utilities."""
 
+from __future__ import annotations
+
+import contextlib
 import logging
 import os
-import re
 import warnings
+from typing import Mapping
+
 import numpy as np
-import configparser
+import xarray as xr
+import yaml
+from yaml import BaseLoader
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 _is_logging_on = False
 TRACE_LEVEL = 5
-
-
-class OrderedConfigParser(object):
-    """Intercepts read and stores ordered section names.
-
-    Cannot use inheritance and super as ConfigParser use old style classes.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Initialize the instance."""
-        self.config_parser = configparser.ConfigParser(*args, **kwargs)
-
-    def __getattr__(self, name):
-        """Get the attribute."""
-        return getattr(self.config_parser, name)
-
-    def read(self, filename):
-        """Read config file."""
-        try:
-            conf_file = open(filename, 'r')
-            config = conf_file.read()
-            config_keys = re.findall(r'\[.*\]', config)
-            self.section_keys = [key[1:-1] for key in config_keys]
-        except IOError as e:
-            # Pass if file not found
-            if e.errno != 2:
-                raise
-        finally:
-            conf_file.close()
-
-        return self.config_parser.read(filename)
-
-    def sections(self):
-        """Get sections from config file."""
-        try:
-            return self.section_keys
-        except:  # noqa: E722
-            return self.config_parser.sections()
 
 
 def ensure_dir(filename):
@@ -74,14 +47,81 @@ def ensure_dir(filename):
         os.makedirs(directory)
 
 
-def debug_on():
-    """Turn debugging logging on."""
+def debug_on(deprecation_warnings=True):
+    """Turn debugging logging on.
+
+    Sets up a StreamHandler to to `sys.stderr` at debug level for all
+    loggers, such that all debug messages (and log messages with higher
+    severity) are logged to the standard error stream.
+
+    By default, since Satpy 0.26, this also enables the global visibility
+    of deprecation warnings.  This can be suppressed by passing a false
+    value.
+
+    Args:
+        deprecation_warnings (Optional[bool]): Switch on deprecation warnings.
+            Defaults to True.
+
+    Returns:
+        None
+    """
     logging_on(logging.DEBUG)
+    if deprecation_warnings:
+        deprecation_warnings_on()
+
+
+def debug_off():
+    """Turn debugging logging off.
+
+    This disables both debugging logging and the global visibility of
+    deprecation warnings.
+    """
+    logging_off()
+    deprecation_warnings_off()
+
+
+@contextlib.contextmanager
+def debug(deprecation_warnings=True):
+    """Context manager to temporarily set debugging on.
+
+    Example::
+
+        >>> with satpy.utils.debug():
+        ...     code_here()
+
+    Args:
+        deprecation_warnings (Optional[bool]): Switch on deprecation warnings.
+            Defaults to True.
+    """
+    debug_on(deprecation_warnings=deprecation_warnings)
+    yield
+    debug_off()
 
 
 def trace_on():
     """Turn trace logging on."""
     logging_on(TRACE_LEVEL)
+
+
+class _WarningManager:
+    """Class to handle switching warnings on and off."""
+
+    filt = None
+
+
+_warning_manager = _WarningManager()
+
+
+def deprecation_warnings_on():
+    """Switch on deprecation warnings."""
+    warnings.filterwarnings("default", category=DeprecationWarning)
+    _warning_manager.filt = warnings.filters[0]
+
+
+def deprecation_warnings_off():
+    """Switch off deprecation warnings."""
+    if _warning_manager.filt in warnings.filters:
+        warnings.filters.remove(_warning_manager.filt)
 
 
 def logging_on(level=logging.WARNING):
@@ -200,42 +240,6 @@ def _get_sunz_corr_li_and_shibata(cos_zen):
     return 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
 
 
-def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
-    """Perform Sun zenith angle correction.
-
-    The correction is based on the provided cosine of the zenith
-    angle (``cos_zen``).  The correction is limited
-    to ``limit`` degrees (default: 88.0 degrees).  For larger zenith
-    angles, the correction is the same as at the ``limit`` if ``max_sza``
-    is `None`. The default behavior is to gradually reduce the correction
-    past ``limit`` degrees up to ``max_sza`` where the correction becomes
-    0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
-
-    """
-    # Convert the zenith angle limit to cosine of zenith angle
-    limit_rad = np.deg2rad(limit)
-    limit_cos = np.cos(limit_rad)
-    max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
-
-    # Cosine correction
-    corr = 1. / cos_zen
-    if max_sza is not None:
-        # gradually fall off for larger zenith angle
-        grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
-        # invert the factor so maximum correction is done at `limit` and falls off later
-        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
-        # make sure we don't make anything negative
-        grad_factor = grad_factor.clip(0.)
-    else:
-        # Use constant value (the limit) for larger zenith angles
-        grad_factor = 1.
-    corr = corr.where(cos_zen > limit_cos, grad_factor / limit_cos)
-    # Force "night" pixels to 0 (where SZA is invalid)
-    corr = corr.where(cos_zen.notnull(), 0)
-
-    return data * corr
-
-
 def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     """Perform Sun zenith angle correction.
 
@@ -294,32 +298,9 @@ def get_satpos(dataset):
     try:
         orb_params = dataset.attrs['orbital_parameters']
 
-        # Altitude
-        try:
-            alt = orb_params['satellite_actual_altitude']
-        except KeyError:
-            try:
-                alt = orb_params['satellite_nominal_altitude']
-            except KeyError:
-                alt = orb_params['projection_altitude']
-                warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+        alt = _get_sat_altitude(orb_params)
 
-        # Longitude & Latitude
-        try:
-            lon = orb_params['nadir_longitude']
-            lat = orb_params['nadir_latitude']
-        except KeyError:
-            try:
-                lon = orb_params['satellite_actual_longitude']
-                lat = orb_params['satellite_actual_latitude']
-            except KeyError:
-                try:
-                    lon = orb_params['satellite_nominal_longitude']
-                    lat = orb_params['satellite_nominal_latitude']
-                except KeyError:
-                    lon = orb_params['projection_longitude']
-                    lat = orb_params['projection_latitude']
-                    warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+        lon, lat = _get_sat_lonlat(orb_params)
     except KeyError:
         # Legacy
         lon = dataset.attrs['satellite_longitude']
@@ -327,3 +308,180 @@ def get_satpos(dataset):
         alt = dataset.attrs['satellite_altitude']
 
     return lon, lat, alt
+
+
+def _get_sat_altitude(orb_params):
+    # Altitude
+    try:
+        alt = orb_params['satellite_actual_altitude']
+    except KeyError:
+        try:
+            alt = orb_params['satellite_nominal_altitude']
+        except KeyError:
+            alt = orb_params['projection_altitude']
+            warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+    return alt
+
+
+def _get_sat_lonlat(orb_params):
+    # Longitude & Latitude
+    try:
+        lon = orb_params['nadir_longitude']
+        lat = orb_params['nadir_latitude']
+    except KeyError:
+        try:
+            lon = orb_params['satellite_actual_longitude']
+            lat = orb_params['satellite_actual_latitude']
+        except KeyError:
+            try:
+                lon = orb_params['satellite_nominal_longitude']
+                lat = orb_params['satellite_nominal_latitude']
+            except KeyError:
+                lon = orb_params['projection_longitude']
+                lat = orb_params['projection_latitude']
+                warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+    return lon, lat
+
+
+def recursive_dict_update(d, u):
+    """Recursive dictionary update.
+
+    Copied from:
+
+        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+
+    """
+    for k, v in u.items():
+        if isinstance(v, Mapping):
+            r = recursive_dict_update(d.get(k, {}), v)
+            d[k] = r
+        else:
+            d[k] = u[k]
+    return d
+
+
+def _check_yaml_configs(configs, key):
+    """Get a diagnostic for the yaml *configs*.
+
+    *key* is the section to look for to get a name for the config at hand.
+    """
+    diagnostic = {}
+    for i in configs:
+        for fname in i:
+            with open(fname, 'r', encoding='utf-8') as stream:
+                try:
+                    res = yaml.load(stream, Loader=UnsafeLoader)
+                    msg = 'ok'
+                except yaml.YAMLError as err:
+                    stream.seek(0)
+                    res = yaml.load(stream, Loader=BaseLoader)
+                    if err.context == 'while constructing a Python object':
+                        msg = err.problem
+                    else:
+                        msg = 'error'
+                finally:
+                    try:
+                        diagnostic[res[key]['name']] = msg
+                    except (KeyError, TypeError):
+                        # this object doesn't have a 'name'
+                        pass
+    return diagnostic
+
+
+def _check_import(module_names):
+    """Import the specified modules and provide status."""
+    diagnostics = {}
+    for module_name in module_names:
+        try:
+            __import__(module_name)
+            res = 'ok'
+        except ImportError as err:
+            res = str(err)
+        diagnostics[module_name] = res
+    return diagnostics
+
+
+def check_satpy(readers=None, writers=None, extras=None):
+    """Check the satpy readers and writers for correct installation.
+
+    Args:
+        readers (list or None): Limit readers checked to those specified
+        writers (list or None): Limit writers checked to those specified
+        extras (list or None): Limit extras checked to those specified
+
+    Returns: bool
+        True if all specified features were successfully loaded.
+
+    """
+    from satpy.readers import configs_for_reader
+    from satpy.writers import configs_for_writer
+
+    print('Readers')
+    print('=======')
+    for reader, res in sorted(_check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
+        print(reader + ': ', res)
+    print()
+
+    print('Writers')
+    print('=======')
+    for writer, res in sorted(_check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
+        print(writer + ': ', res)
+    print()
+
+    print('Extras')
+    print('======')
+    module_names = extras if extras is not None else ('cartopy', 'geoviews')
+    for module_name, res in sorted(_check_import(module_names).items()):
+        print(module_name + ': ', res)
+    print()
+
+
+def unify_chunks(*data_arrays: xr.DataArray) -> tuple[xr.DataArray, ...]:
+    """Run :func:`xarray.unify_chunks` if input dimensions are all the same size.
+
+    This is mostly used in :class:`satpy.composites.CompositeBase` to safe
+    guard against running :func:`dask.array.core.map_blocks` with arrays of
+    different chunk sizes. Doing so can cause unexpected results or errors.
+    However, xarray's ``unify_chunks`` will raise an exception if dimensions
+    of the provided DataArrays are different sizes. This is a common case for
+    Satpy. For example, the "bands" dimension may be 1 (L), 2 (LA), 3 (RGB), or
+    4 (RGBA) for most compositor operations that combine other composites
+    together.
+
+    """
+    if not hasattr(xr, "unify_chunks"):
+        return data_arrays
+    if not _all_dims_same_size(data_arrays):
+        return data_arrays
+    return tuple(xr.unify_chunks(*data_arrays))
+
+
+def _all_dims_same_size(data_arrays: tuple[xr.DataArray, ...]) -> bool:
+    known_sizes: dict[str, int] = {}
+    for data_arr in data_arrays:
+        for dim, dim_size in data_arr.sizes.items():
+            known_size = known_sizes.setdefault(dim, dim_size)
+            if dim_size != known_size:
+                # this dimension is a different size than previously found
+                # xarray.unify_chunks will error out if we tried to use it
+                return False
+    return True
+
+
+@contextlib.contextmanager
+def ignore_invalid_float_warnings():
+    """Ignore warnings generated for working with NaN/inf values.
+
+    Numpy and dask sometimes don't like NaN or inf values in normal function
+    calls. This context manager hides/ignores them inside its context.
+
+    Examples:
+        Use around numpy operations that you expect to produce warnings::
+
+            with ignore_invalid_float_warnings():
+                np.nanmean(np.nan)
+
+    """
+    with np.errstate(invalid="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        yield

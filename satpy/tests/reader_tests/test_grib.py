@@ -19,13 +19,54 @@
 
 import os
 import sys
-import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.dataset import DataQuery
+
+# Parameterized cases
+TEST_ARGS = ('proj_params', 'lon_corners', 'lat_corners')
+TEST_PARAMS = (
+    (None, None, None),  # cyl default case
+    (
+        {
+            'a': 6371229, 'b': 6371229, 'proj': 'lcc',
+            'lon_0': 265.0, 'lat_0': 25.0,
+            'lat_1': 25.0, 'lat_2': 25.0
+        },
+        [-133.459, -65.12555139, -152.8786225, -49.41598659],
+        [12.19, 14.34208538, 54.56534318, 57.32843565]
+    ),
+)
+
+
+def fake_gribdata():
+    """Return some faked data for use as grib values."""
+    return np.arange(25.).reshape((5, 5))
+
+
+def _round_trip_projection_lonlat_check(area):
+    """Check that X/Y coordinates can be transformed multiple times.
+
+    Many GRIB files include non-standard projects that work for the
+    initial transformation of X/Y coordinates to longitude/latitude,
+    but may fail in the reverse transformation. For example, an eqc
+    projection that goes from 0 longitude to 360 longitude. The X/Y
+    coordinates may accurately go from the original X/Y metered space
+    to the correct longitude/latitude, but transforming those coordinates
+    back to X/Y space will produce the wrong result.
+
+    """
+    from pyproj import Proj
+    p = Proj(area.crs)
+    x, y = area.get_proj_vectors()
+    lon, lat = p(x, y, inverse=True)
+    x2, y2 = p(lon, lat)
+    np.testing.assert_almost_equal(x, x2)
+    np.testing.assert_almost_equal(y, y2)
 
 
 class FakeMessage(object):
@@ -40,6 +81,10 @@ class FakeMessage(object):
             proj_params = {'a': 6371229, 'b': 6371229, 'proj': 'cyl'}
         self.projparams = proj_params
         self._latlons = latlons
+
+    def keys(self):
+        """Get message keys."""
+        return self.attrs.keys()
 
     def latlons(self):
         """Get coordinates."""
@@ -65,7 +110,7 @@ class FakeGRIB(object):
         else:
             self._messages = [
                 FakeMessage(
-                    values=np.arange(25.).reshape((5, 5)),
+                    values=fake_gribdata(),
                     name='TEST',
                     shortName='t',
                     level=100,
@@ -79,7 +124,7 @@ class FakeGRIB(object):
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
-                    modelName='unknown',
+                    modelName='notknown',
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
@@ -88,7 +133,7 @@ class FakeGRIB(object):
                     latlons=latlons,
                 ),
                 FakeMessage(
-                    values=np.arange(25.).reshape((5, 5)),
+                    values=fake_gribdata(),
                     name='TEST',
                     shortName='t',
                     level=200,
@@ -102,16 +147,16 @@ class FakeGRIB(object):
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
-                    modelName='unknown',
+                    modelName='notknown',
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
-                    jScansPositively=0,
+                    jScansPositively=1,
                     proj_params=proj_params,
                     latlons=latlons,
                 ),
                 FakeMessage(
-                    values=np.arange(25.).reshape((5, 5)),
+                    values=fake_gribdata(),
                     name='TEST',
                     shortName='t',
                     level=300,
@@ -125,7 +170,6 @@ class FakeGRIB(object):
                     distinctLongitudes=np.arange(5.),
                     distinctLatitudes=np.arange(5.),
                     missingValue=9999,
-                    modelName='unknown',
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
@@ -154,17 +198,16 @@ class FakeGRIB(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit."""
-        pass
 
 
-class TestGRIBReader(unittest.TestCase):
+class TestGRIBReader:
     """Test GRIB Reader."""
 
     yaml_file = "grib.yaml"
 
-    def setUp(self):
+    def setup_method(self):
         """Wrap pygrib to read fake data."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
 
         try:
@@ -174,23 +217,61 @@ class TestGRIBReader(unittest.TestCase):
         self.orig_pygrib = pygrib
         sys.modules['pygrib'] = mock.MagicMock()
 
-    def tearDown(self):
+    def teardown_method(self):
         """Re-enable pygrib import."""
         sys.modules['pygrib'] = self.orig_pygrib
 
-    @mock.patch('satpy.readers.grib.pygrib')
-    def test_init(self, pg):
-        """Test basic init with no extra parameters."""
-        pg.open.return_value = FakeGRIB()
+    def _get_test_datasets(self, dataids, fake_pygrib=None):
         from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'gfs.t18z.sfluxgrbf106.grib2',
-        ])
-        self.assertEqual(len(loadables), 1)
-        r.create_filehandlers(loadables)
-        # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        if fake_pygrib is None:
+            fake_pygrib = FakeGRIB()
+
+        with mock.patch('satpy.readers.grib.pygrib') as pg:
+            pg.open.return_value = fake_pygrib
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames([
+                'gfs.t18z.sfluxgrbf106.grib2',
+            ])
+            r.create_filehandlers(loadables)
+            datasets = r.load(dataids)
+        return datasets
+
+    @staticmethod
+    def _get_fake_pygrib(proj_params, lon_corners, lat_corners):
+        latlons = None
+        if lon_corners is not None:
+            lats = np.array([
+                [lat_corners[0], 0, 0, 0, lat_corners[1]],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [lat_corners[2], 0, 0, 0, lat_corners[3]]])
+            lons = np.array([
+                [lon_corners[0], 0, 0, 0, lon_corners[1]],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [lon_corners[2], 0, 0, 0, lon_corners[3]]])
+            latlons = (lats, lons)
+
+        fake_pygrib = FakeGRIB(
+            proj_params=proj_params,
+            latlons=latlons)
+        return fake_pygrib
+
+    def test_init(self):
+        """Test basic init with no extra parameters."""
+        from satpy.readers import load_reader
+        with mock.patch('satpy.readers.grib.pygrib') as pg:
+            pg.open.return_value = FakeGRIB()
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames([
+                'gfs.t18z.sfluxgrbf106.grib2',
+            ])
+            assert len(loadables) == 1
+            r.create_filehandlers(loadables)
+            # make sure we have some files
+            assert r.file_handlers
 
     def test_file_pattern(self):
         """Test matching of file patterns."""
@@ -205,59 +286,58 @@ class TestGRIBReader(unittest.TestCase):
 
         r = load_reader(self.reader_configs)
         files = r.select_files_from_pathnames(filenames)
-        self.assertEqual(len(files), 4)
+        assert len(files) == 4
 
-    @mock.patch('satpy.readers.grib.pygrib')
-    def test_load_all(self, pg):
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_load_all(self, proj_params, lon_corners, lat_corners):
         """Test loading all test datasets."""
-        pg.open.return_value = FakeGRIB()
-        from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'gfs.t18z.sfluxgrbf106.grib2',
-        ])
-        r.create_filehandlers(loadables)
-        datasets = r.load([
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+        dataids = [
             DataQuery(name='t', level=100, modifiers=tuple()),
             DataQuery(name='t', level=200, modifiers=tuple()),
-            DataQuery(name='t', level=300, modifiers=tuple())])
-        self.assertEqual(len(datasets), 3)
-        for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
-            self.assertIsInstance(v, xr.DataArray)
+            DataQuery(name='t', level=300, modifiers=tuple())
+        ]
+        datasets = self._get_test_datasets(dataids, fake_pygrib)
 
-    @mock.patch('satpy.readers.grib.pygrib')
-    def test_load_all_lcc(self, pg):
-        """Test loading all test datasets with lcc projections."""
-        lons = np.array([
-            [12.19, 0, 0, 0, 14.34208538],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [54.56534318, 0, 0, 0, 57.32843565]])
-        lats = np.array([
-            [-133.459, 0, 0, 0, -65.12555139],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [-152.8786225, 0, 0, 0, -49.41598659]])
-        pg.open.return_value = FakeGRIB(
-            proj_params={
-                'a': 6371229, 'b': 6371229, 'proj': 'lcc',
-                'lon_0': 265.0, 'lat_0': 25.0,
-                'lat_1': 25.0, 'lat_2': 25.0},
-            latlons=(lats, lons))
-        from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'gfs.t18z.sfluxgrbf106.grib2',
-        ])
-        r.create_filehandlers(loadables)
-        datasets = r.load([
-            DataQuery(name='t', level=100, modifiers=tuple()),
-            DataQuery(name='t', level=200, modifiers=tuple()),
-            DataQuery(name='t', level=300, modifiers=tuple())])
-        self.assertEqual(len(datasets), 3)
+        assert len(datasets) == 3
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'K')
-            self.assertIsInstance(v, xr.DataArray)
+            assert v.attrs['units'] == 'K'
+            assert isinstance(v, xr.DataArray)
+
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_area_def_crs(self, proj_params, lon_corners, lat_corners):
+        """Check that the projection is accurate."""
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+        dataids = [DataQuery(name='t', level=100, modifiers=tuple())]
+        datasets = self._get_test_datasets(dataids, fake_pygrib)
+        area = datasets['t'].attrs['area']
+        if not hasattr(area, 'crs'):
+            pytest.skip("Can't test with pyproj < 2.0")
+        _round_trip_projection_lonlat_check(area)
+
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_missing_attributes(self, proj_params, lon_corners, lat_corners):
+        """Check that the grib reader handles missing attributes in the grib file."""
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+
+        # This has modelName
+        query_contains = DataQuery(name='t', level=100, modifiers=tuple())
+        # This does not have modelName
+        query_not_contains = DataQuery(name='t', level=300, modifiers=tuple())
+        dataset = self._get_test_datasets([query_contains, query_not_contains], fake_pygrib)
+        assert dataset[query_contains].attrs['modelName'] == 'notknown'
+        assert dataset[query_not_contains].attrs['modelName'] == 'unknown'
+
+    @pytest.mark.parametrize(TEST_ARGS, TEST_PARAMS)
+    def test_jscanspositively(self, proj_params, lon_corners, lat_corners):
+        """Check that data is flipped if the jScansPositively is present."""
+        fake_pygrib = self._get_fake_pygrib(proj_params, lon_corners, lat_corners)
+
+        # This has no jScansPositively
+        query_not_contains = DataQuery(name='t', level=100, modifiers=tuple())
+        # This contains jScansPositively
+        query_contains = DataQuery(name='t', level=200, modifiers=tuple())
+        dataset = self._get_test_datasets([query_contains, query_not_contains], fake_pygrib)
+
+        np.testing.assert_allclose(fake_gribdata(), dataset[query_not_contains].values)
+        np.testing.assert_allclose(fake_gribdata(), dataset[query_contains].values[::-1])

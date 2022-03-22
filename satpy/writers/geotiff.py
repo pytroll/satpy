@@ -18,11 +18,14 @@
 """GeoTIFF writer objects for creating GeoTIFF files from `DataArray` objects."""
 
 import logging
+
 import numpy as np
-from satpy.writers import ImageWriter
+
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa
+
+from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
 
@@ -34,7 +37,14 @@ class GeoTIFFWriter(ImageWriter):
 
         >>> scn.save_datasets(writer='geotiff')
 
-    Un-enhanced float geotiff with NaN for fill values:
+    By default the writer will use the :class:`~satpy.writers.Enhancer` class to
+    linear stretch the data (see :doc:`../enhancements`).
+    To get Un-enhanced images ``enhance=False`` can be specified which will
+    write a geotiff with the data type of the dataset. The fill value defaults
+    to the the datasets ``"_FillValue"`` attribute if not ``None`` and no value is
+    passed to ``fill_value`` for integer data. In case of float data if ``fill_value``
+    is not passed NaN will be used. If a geotiff with a
+    certain datatype is desired for example 32 bit floating point geotiffs:
 
         >>> scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
 
@@ -43,8 +53,12 @@ class GeoTIFFWriter(ImageWriter):
         >>> scn.save_dataset(dataset_name, writer='geotiff',
         ...                  tags={'offset': 291.8, 'scale': -0.35})
 
+    Images are tiled by default. To create striped TIFF files ``tiled=False`` can be specified:
+
+        >>> scn.save_datasets(writer='geotiff', tiled=False)
+
     For performance tips on creating geotiffs quickly and making them smaller
-    see the :doc:`faq`.
+    see the :ref:`faq`.
 
     """
 
@@ -69,7 +83,25 @@ class GeoTIFFWriter(ImageWriter):
                     "profile",
                     "bigtiff",
                     "pixeltype",
-                    "copy_src_overviews",)
+                    "copy_src_overviews",
+                    # COG driver options (different from GTiff above)
+                    "blocksize",
+                    "resampling",
+                    "quality",
+                    "level",
+                    "overview_resampling",
+                    "warp_resampling",
+                    "overview_compress",
+                    "overview_quality",
+                    "overview_predictor",
+                    "tiling_scheme",
+                    "zoom_level_strategy",
+                    "target_srs",
+                    "res",
+                    "extent",
+                    "aligned_levels",
+                    "add_alpha",
+                    )
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         """Init the writer."""
@@ -104,7 +136,7 @@ class GeoTIFFWriter(ImageWriter):
                    compute=True, keep_palette=False, cmap=None, tags=None,
                    overviews=None, overviews_minsize=256,
                    overviews_resampling=None, include_scale_offset=False,
-                   **kwargs):
+                   scale_offset_tags=None, driver=None, tiled=True, **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -118,7 +150,8 @@ class GeoTIFFWriter(ImageWriter):
                 creation ``filename`` keyword argument, this filename does not
                 get formatted with data attributes.
             dtype (numpy.dtype): Numpy data type to save the image as.
-                Defaults to 8-bit unsigned integer (``np.uint8``). If the
+                Defaults to 8-bit unsigned integer (``np.uint8``) or the data
+                type of the data to be saved if ``enhance=False``. If the
                 ``dtype`` argument is provided during writer creation then
                 that will be used as the default.
             fill_value (int or float): Value to use where data values are
@@ -167,27 +200,32 @@ class GeoTIFFWriter(ImageWriter):
                 provided. Common values include `nearest` (default),
                 `bilinear`, `average`, and many others. See the rasterio
                 documentation for more information.
-            include_scale_offset (bool): Activate inclusion of scale and offset
-                factors in the geotiff to allow retrieving original values from
-                the pixel values. ``False`` by default.
+            scale_offset_tags (Tuple[str, str]): If set, include inclusion of
+                scale and offset in the GeoTIFF headers in the GDALMetaData
+                tag.  The value of this argument should be a keyword argument
+                ``(scale_label, offset_label)``, for example, ``("scale",
+                "offset")``, indicating the labels to be used.
+            include_scale_offset (deprecated, bool): Deprecated.
+                Use ``scale_offset_tags=("scale", "offset")`` to include scale
+                and offset tags.
+            tiled (bool): For performance this defaults to ``True``.
+                Pass ``False`` to created striped TIFF files.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
         """
         filename = filename or self.get_filename(**img.data.attrs)
 
-        # Update global GDAL options with these specific ones
-        gdal_options = self.gdal_options.copy()
-        for k in kwargs.keys():
-            if k in self.GDAL_OPTIONS:
-                gdal_options[k] = kwargs[k]
+        gdal_options = self._get_gdal_options(kwargs)
         if fill_value is None:
             # fall back to fill_value from configuration file
             fill_value = self.info.get('fill_value')
 
         dtype = dtype if dtype is not None else self.dtype
-        if dtype is None:
+        if dtype is None and self.enhancer is not False:
             dtype = np.uint8
+        elif dtype is None:
+            dtype = img.data.dtype.type
 
         if "alpha" in kwargs:
             raise ValueError(
@@ -209,11 +247,23 @@ class GeoTIFFWriter(ImageWriter):
         if tags is None:
             tags = {}
         tags.update(self.tags)
-        return img.save(filename, fformat='tif', fill_value=fill_value,
+
+        return img.save(filename, fformat='tif', driver=driver,
+                        fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
                         tags=tags, include_scale_offset_tags=include_scale_offset,
+                        scale_offset_tags=scale_offset_tags,
                         overviews=overviews,
                         overviews_resampling=overviews_resampling,
                         overviews_minsize=overviews_minsize,
+                        tiled=tiled,
                         **gdal_options)
+
+    def _get_gdal_options(self, kwargs):
+        # Update global GDAL options with these specific ones
+        gdal_options = self.gdal_options.copy()
+        for k in kwargs:
+            if k in self.GDAL_OPTIONS:
+                gdal_options[k] = kwargs[k]
+        return gdal_options

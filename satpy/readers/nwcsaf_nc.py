@@ -29,8 +29,9 @@ from datetime import datetime
 import dask.array as da
 import numpy as np
 import xarray as xr
+from pyproj import CRS
+from pyresample.geometry import AreaDefinition
 
-from pyresample.utils import get_area_def
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
@@ -154,21 +155,7 @@ class NcNWCSAF(BaseFileHandler):
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
-            if '_FillValue' in variable.attrs:
-                variable = variable.where(
-                    variable != variable.attrs['_FillValue'])
-                variable.attrs['_FillValue'] = np.nan
-            if 'valid_range' in variable.attrs:
-                variable = variable.where(
-                    variable <= variable.attrs['valid_range'][1])
-                variable = variable.where(
-                    variable >= variable.attrs['valid_range'][0])
-            if 'valid_max' in variable.attrs:
-                variable = variable.where(
-                    variable <= variable.attrs['valid_max'])
-            if 'valid_min' in variable.attrs:
-                variable = variable.where(
-                    variable >= variable.attrs['valid_min'])
+            variable = self._mask_variable(variable)
         attrs = variable.attrs.copy()
         variable = variable * scale + offset
         variable.attrs = attrs
@@ -192,44 +179,70 @@ class NcNWCSAF(BaseFileHandler):
             pass
 
         if 'palette_meanings' in variable.attrs:
-            if 'scale_offset_dataset' in info:
-                so_dataset = self.nc[info['scale_offset_dataset']]
-                scale = so_dataset.attrs['scale_factor']
-                offset = so_dataset.attrs['add_offset']
-            else:
-                scale = 1
-                offset = 0
-
-            variable.attrs['palette_meanings'] = [int(val)
-                                                  for val in variable.attrs['palette_meanings'].split()]
-            if variable.attrs['palette_meanings'][0] == 1:
-                variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
-                variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
-                                        coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
-
-            val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
-            variable.attrs['palette_meanings'] = val * scale + offset
-            variable = variable[idx]
+            variable = self._prepare_variable_for_palette(variable, info)
 
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
-        if self.sw_version == 'NWC/PPS version v2014' and dsid['name'] == 'ctth_alti':
+        variable = self._adjust_variable_for_legacy_software(variable, dsid)
+
+        return variable
+
+    @staticmethod
+    def _mask_variable(variable):
+        if '_FillValue' in variable.attrs:
+            variable = variable.where(
+                variable != variable.attrs['_FillValue'])
+            variable.attrs['_FillValue'] = np.nan
+        if 'valid_range' in variable.attrs:
+            variable = variable.where(
+                variable <= variable.attrs['valid_range'][1])
+            variable = variable.where(
+                variable >= variable.attrs['valid_range'][0])
+        if 'valid_max' in variable.attrs:
+            variable = variable.where(
+                variable <= variable.attrs['valid_max'])
+        if 'valid_min' in variable.attrs:
+            variable = variable.where(
+                variable >= variable.attrs['valid_min'])
+        return variable
+
+    def _prepare_variable_for_palette(self, variable, info):
+        if 'scale_offset_dataset' in info:
+            so_dataset = self.nc[info['scale_offset_dataset']]
+            scale = so_dataset.attrs['scale_factor']
+            offset = so_dataset.attrs['add_offset']
+        else:
+            scale = 1
+            offset = 0
+        variable.attrs['palette_meanings'] = [int(val)
+                                              for val in variable.attrs['palette_meanings'].split()]
+        if variable.attrs['palette_meanings'][0] == 1:
+            variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+            variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
+                                    coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
+        val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
+        variable.attrs['palette_meanings'] = val * scale + offset
+        variable = variable[idx]
+        return variable
+
+    def _adjust_variable_for_legacy_software(self, variable, data_id):
+        if self.sw_version == 'NWC/PPS version v2014' and data_id['name'] == 'ctth_alti':
             # pps 2014 valid range and palette don't match
             variable.attrs['valid_range'] = (0., 9000.)
-        if self.sw_version == 'NWC/PPS version v2014' and dsid['name'] == 'ctth_alti_pal':
+        if self.sw_version == 'NWC/PPS version v2014' and data_id['name'] == 'ctth_alti_pal':
             # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
-        if self.sw_version == 'NWC/GEO version v2016' and dsid['name'] == 'ctth_alti':
+        if self.sw_version == 'NWC/GEO version v2016' and data_id['name'] == 'ctth_alti':
             # Geo 2016/18 valid range and palette don't match
             # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
             # This now fixed by the scaling of the valid range above.
             pass
-
         return variable
 
     def upsample_geolocation(self, dsid, info):
         """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
+
         # Read the fields needed:
         col_indices = self.nc['nx_reduced'].values
         row_indices = self.nc['ny_reduced'].values
@@ -263,26 +276,42 @@ class NcNWCSAF(BaseFileHandler):
         if dsid['name'].endswith('_pal'):
             raise NotImplementedError
 
-        proj_str, area_extent = self._get_projection()
-
+        crs, area_extent = self._get_projection()
+        crs, area_extent = self._ensure_crs_extents_in_meters(crs, area_extent)
         nlines, ncols = self.nc[dsid['name']].shape
-
-        area = get_area_def('some_area_name',
-                            "On-the-fly area",
-                            'geosmsg',
-                            proj_str,
-                            ncols,
-                            nlines,
-                            area_extent)
+        area = AreaDefinition('some_area_name',
+                              "On-the-fly area",
+                              'geosmsg',
+                              crs,
+                              ncols,
+                              nlines,
+                              area_extent)
 
         return area
+
+    @staticmethod
+    def _ensure_crs_extents_in_meters(crs, area_extent):
+        """Fix units in Earth shape, satellite altitude and 'units' attribute."""
+        if 'kilo' in crs.axis_info[0].unit_name:
+            proj_dict = crs.to_dict()
+            proj_dict["units"] = "m"
+            if "a" in proj_dict:
+                proj_dict["a"] *= 1000.
+            if "b" in proj_dict:
+                proj_dict["b"] *= 1000.
+            if "R" in proj_dict:
+                proj_dict["R"] *= 1000.
+            proj_dict["h"] *= 1000.
+            area_extent = tuple([val * 1000. for val in area_extent])
+            crs = CRS.from_dict(proj_dict)
+        return crs, area_extent
 
     def __del__(self):
         """Delete the instance."""
         if self._unzipped:
             try:
                 os.remove(self._unzipped)
-            except (IOError, OSError):
+            except OSError:
                 pass
 
     @property
@@ -346,7 +375,8 @@ class NcNWCSAF(BaseFileHandler):
                        float(self.nc.attrs['gdal_xgeo_low_right']) / scale,
                        float(self.nc.attrs['gdal_ygeo_up_left']) / scale)
 
-        return proj_str, area_extent
+        crs = CRS.from_string(proj_str)
+        return crs, area_extent
 
 
 def remove_empties(variable):

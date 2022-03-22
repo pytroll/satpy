@@ -16,11 +16,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Enhancements."""
 
-import numpy as np
-import xarray as xr
+import logging
+import os
+import warnings
+from functools import partial
+from numbers import Number
+
 import dask
 import dask.array as da
-import logging
+import numpy as np
+import xarray as xr
+from trollimage.xrimage import XRImage
+
+from satpy._compat import ArrayLike
+from satpy._config import get_config_path
 
 LOG = logging.getLogger(__name__)
 
@@ -82,23 +91,23 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         data.data = xr.concat(data_arrs, dim='bands').data
         data.attrs = attrs
         return data
-    else:
-        band_data = data.sel(bands=[b for b in bands
-                                    if b not in exclude])
-        if pass_dask:
-            dims = band_data.dims
-            coords = band_data.coords
-            d_arr = func(band_data.data)
-            band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-        else:
-            band_data = func(band_data)
 
-        attrs.update(band_data.attrs)
-        # combine the new data with the excluded data
-        new_data = xr.concat([band_data, data.sel(bands=exclude)],
-                             dim='bands')
-        data.data = new_data.sel(bands=bands).data
-        data.attrs = attrs
+    band_data = data.sel(bands=[b for b in bands
+                                if b not in exclude])
+    if pass_dask:
+        dims = band_data.dims
+        coords = band_data.coords
+        d_arr = func(band_data.data)
+        band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
+    else:
+        band_data = func(band_data)
+
+    attrs.update(band_data.attrs)
+    # combine the new data with the excluded data
+    new_data = xr.concat([band_data, data.sel(bands=exclude)],
+                         dim='bands')
+    data.data = new_data.sel(bands=bands).data
+    data.attrs = attrs
 
     return data
 
@@ -106,18 +115,85 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 def crefl_scaling(img, **kwargs):
     """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
+    warnings.warn("'crefl_scaling' is deprecated, use 'piecewise_linear_stretch' instead.", DeprecationWarning)
+    img.data.data = img.data.data / 100
+    return piecewise_linear_stretch(img, xp=kwargs['idx'], fp=kwargs['sc'], reference_scale_factor=255)
 
-    def func(band_data, index=None):
-        idx = np.array(kwargs['idx']) / 255
-        sc = np.array(kwargs['sc']) / 255
-        band_data *= .01
+
+def piecewise_linear_stretch(
+        img: XRImage,
+        xp: ArrayLike,
+        fp: ArrayLike,
+        reference_scale_factor: Number = None,
+        **kwargs) -> xr.DataArray:
+    """Apply 1D linear interpolation.
+
+    This uses :func:`numpy.interp` mapped over the provided dask array chunks.
+
+    Args:
+        img: Image data to be scaled. It is assumed the data is already
+            normalized between 0 and 1.
+        xp: Input reference values of the image data points used for
+            interpolation. This is passed directly to :func:`numpy.interp`.
+        fp: Target reference values of the output image data points used for
+            interpolation. This is passed directly to :func:`numpy.interp`.
+        reference_scale_factor: Divide ``xp`` and ``fp`` by this value before
+            using them for interpolation. This is a convenience to make
+            matching normalized image data to interp coordinates or to avoid
+            floating point precision errors in YAML configuration files.
+            If not provided, ``xp`` and ``fp`` will not be modified.
+
+    Examples:
+        This example YAML uses a 'crude' stretch to pre-scale the RGB data
+        and then uses reference points in a 0-255 range.
+
+        .. code-block:: yaml
+
+              true_color_linear_interpolation:
+                sensor: abi
+                standard_name: true_color
+                operations:
+                - name: reflectance_range
+                  method: !!python/name:satpy.enhancements.stretch
+                  kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
+                - name: Linear interpolation
+                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+                  kwargs:
+                   xp: [0., 25., 55., 100., 255.]
+                   fp: [0., 90., 140., 175., 255.]
+                   reference_scale_factor: 255
+
+        This example YAML does the same as the above on the C02 channel, but
+        the interpolation reference points are already adjusted for the input
+        reflectance (%) data and the output range (0 to 1).
+
+        .. code-block:: yaml
+
+              c02_linear_interpolation:
+                sensor: abi
+                standard_name: C02
+                operations:
+                - name: Linear interpolation
+                  method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+                  kwargs:
+                   xp: [0., 9.8039, 21.5686, 39.2157, 100.]
+                   fp: [0., 0.3529, 0.5490, 0.6863, 1.0]
+
+    """
+    LOG.debug("Applying the piecewise_linear_stretch")
+    if reference_scale_factor is not None:
+        xp = np.asarray(xp) / reference_scale_factor
+        fp = np.asarray(fp) / reference_scale_factor
+
+    def func(band_data, xp, fp, index=None):
         # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
-        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=idx, fp=sc), 0, 1),
+        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=xp, fp=fp), 0, 1),
                                  coords=band_data.coords, dims=band_data.dims, name=band_data.name,
                                  attrs=band_data.attrs)
         return band_data
 
-    return apply_enhancement(img.data, func, separate=True)
+    func_with_kwargs = partial(func, xp=xp, fp=fp)
+    return apply_enhancement(img.data, func_with_kwargs, separate=True)
 
 
 def cira_stretch(img, **kwargs):
@@ -138,6 +214,54 @@ def cira_stretch(img, **kwargs):
         return band_data
 
     return apply_enhancement(img.data, func)
+
+
+def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):
+    """Stretch method based on the Reinhard algorithm, using luminance.
+
+    Args:
+        saturation: Saturation enhancement factor. Less is grayer. Neutral is 1.
+        white: the reflectance luminance to set to white (in %).
+
+
+    Reinhard, Erik & Stark, Michael & Shirley, Peter & Ferwerda, James. (2002).
+    Photographic Tone Reproduction For Digital Images. ACM Transactions on Graphics.
+    :doi: `21. 10.1145/566654.566575`
+    """
+    with xr.set_options(keep_attrs=True):
+        # scale the data to [0, 1] interval
+        rgb = img.data / 100
+        white /= 100
+
+        # extract color components
+        r = rgb.sel(bands='R').data
+        g = rgb.sel(bands='G').data
+        b = rgb.sel(bands='B').data
+
+        # saturate
+        luma = _compute_luminance_from_rgb(r, g, b)
+        rgb = (luma + (rgb - luma) * saturation).clip(0)
+
+        # reinhard
+        reinhard_luma = (luma / (1 + luma)) * (1 + luma/(white**2))
+        coef = reinhard_luma / luma
+        rgb = rgb * coef
+
+        # srgb gamma
+        rgb.data = _srgb_gamma(rgb.data)
+        img.data = rgb
+
+    return img.data
+
+
+def _compute_luminance_from_rgb(r, g, b):
+    """Compute the luminance of the image."""
+    return r * 0.2126 + g * 0.7152 + b * 0.0722
+
+
+def _srgb_gamma(arr):
+    """Apply the srgb gamma."""
+    return da.where(arr < 0.0031308, arr * 12.92, 1.055 * arr ** 0.41666 - 0.055)
 
 
 def _lookup_delayed(luts, band_data):
@@ -232,10 +356,21 @@ def create_colormap(palette):
 
     **From a file**
 
-    Colormaps can be loaded from ``.npy`` files as 2D raw arrays with rows for
-    each color. The filename to load can be provided with the ``filename`` key
-    in the provided palette information. The colormap is interpreted as 1 of 4
-    different "colormap modes": ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
+    Colormaps can be loaded from ``.npy``, ``.npz``, or comma-separated text
+    files. Numpy (npy/npz) files should be 2D arrays with rows for each color.
+    Comma-separated files should have a row for each color with each column
+    representing a single value/channel. The filename to load can be provided
+    with the ``filename`` key in the provided palette information. A filename
+    ending with ``.npy`` or ``.npz`` is read as a numpy file with
+    :func:`numpy.load`. All other extensions are
+    read as a comma-separated file. For ``.npz`` files the data must be stored
+    as a positional list where the first element represents the colormap to
+    use. See :func:`numpy.savez` for more information. The path to the
+    colormap can be relative if it is stored in a directory specified by
+    :ref:`config_path_setting`. Otherwise it should be an absolute path.
+
+    The colormap is interpreted as 1 of 4 different "colormap modes":
+    ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
     colormap mode can be forced with the ``colormap_mode`` key in the provided
     palette information. If it is not provided then a default will be chosen
     based on the number of columns in the array (3: RGB, 4: VRGB, 5: VRGBA).
@@ -291,52 +426,18 @@ def create_colormap(palette):
     information.
 
     """
-    from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
-        data = np.load(fname)
-        cols = data.shape[1]
-        default_modes = {
-            3: 'RGB',
-            4: 'VRGB',
-            5: 'VRGBA'
-        }
-        default_mode = default_modes.get(cols)
-        mode = palette.setdefault('colormap_mode', default_mode)
-        if mode is None or len(mode) != cols:
-            raise ValueError(
-                "Unexpected colormap shape for mode '{}'".format(mode))
-
-        rows = data.shape[0]
-        if mode[0] == 'V':
-            colors = data[:, 1:]
-            if color_scale != 1:
-                colors = data[:, 1:] / float(color_scale)
-            values = data[:, 0]
-        else:
-            colors = data
-            if color_scale != 1:
-                colors = colors / float(color_scale)
-            values = np.arange(rows) / float(rows - 1)
-        cmap = Colormap(*zip(values, colors))
+        cmap = _create_colormap_from_file(fname, palette, color_scale)
     elif isinstance(colors, (tuple, list)):
-        cmap = []
-        values = palette.get('values', None)
-        for idx, color in enumerate(colors):
-            if values is not None:
-                value = values[idx]
-            else:
-                value = idx / float(len(colors) - 1)
-            if color_scale != 1:
-                color = tuple(elem / float(color_scale) for elem in color)
-            cmap.append((value, tuple(color)))
-        cmap = Colormap(*cmap)
+        cmap = _create_colormap_from_sequence(colors, palette, color_scale)
     elif isinstance(colors, str):
-        from trollimage import colormap
         import copy
+
+        from trollimage import colormap
         cmap = copy.copy(getattr(colormap, colors))
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
@@ -349,6 +450,64 @@ def create_colormap(palette):
         raise ValueError("Both 'min_value' and 'max_value' must be specified")
 
     return cmap
+
+
+def _create_colormap_from_sequence(colors, palette, color_scale):
+    from trollimage.colormap import Colormap
+    cmap = []
+    values = palette.get('values', None)
+    for idx, color in enumerate(colors):
+        if values is not None:
+            value = values[idx]
+        else:
+            value = idx / float(len(colors) - 1)
+        if color_scale != 1:
+            color = tuple(elem / float(color_scale) for elem in color)
+        cmap.append((value, tuple(color)))
+    return Colormap(*cmap)
+
+
+def _create_colormap_from_file(filename, palette, color_scale):
+    from trollimage.colormap import Colormap
+    data = _read_colormap_data_from_file(filename)
+    cols = data.shape[1]
+    default_modes = {
+        3: 'RGB',
+        4: 'VRGB',
+        5: 'VRGBA'
+    }
+    default_mode = default_modes.get(cols)
+    mode = palette.setdefault('colormap_mode', default_mode)
+    if mode is None or len(mode) != cols:
+        raise ValueError(
+            "Unexpected colormap shape for mode '{}'".format(mode))
+    rows = data.shape[0]
+    if mode[0] == 'V':
+        colors = data[:, 1:]
+        if color_scale != 1:
+            colors = data[:, 1:] / float(color_scale)
+        values = data[:, 0]
+    else:
+        colors = data
+        if color_scale != 1:
+            colors = colors / float(color_scale)
+        values = np.arange(rows) / float(rows - 1)
+    return Colormap(*zip(values, colors))
+
+
+def _read_colormap_data_from_file(filename):
+    if not os.path.exists(filename):
+        filename = get_config_path(filename)
+    ext = os.path.splitext(filename)[1]
+    if ext in (".npy", ".npz"):
+        file_content = np.load(filename)
+        if ext == ".npz":
+            # .npz is a collection
+            # assume position list-like and get the first element
+            file_content = file_content["arr_0"]
+        return file_content
+    # CSV
+    return np.loadtxt(filename, delimiter=",")
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):

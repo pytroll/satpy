@@ -15,16 +15,23 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI L2 BUFR format reader."""
 
+"""SEVIRI L2 BUFR format reader.
 
+References:
+    EUMETSAT Product Navigator
+    https://navigator.eumetsat.int/
+
+"""
 import logging
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
-from satpy.readers.seviri_base import mpef_product_header
+
 from satpy.readers.eum_base import recarray2dict
+from satpy.readers.seviri_base import mpef_product_header
 
 try:
     import eccodes as ec
@@ -32,8 +39,8 @@ except ImportError:
     raise ImportError(
         "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('SeviriL2Bufr')
 
@@ -97,7 +104,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         return recarray2dict(hdr)
 
     def get_attribute(self, key):
-        ''' Get BUFR attributes '''
+        """Get BUFR attributes."""
         # This function is inefficient as it is looping through the entire
         # file to get 1 attribute. It causes a problem though if you break
         # from the file early - dont know why but investigating - fix later

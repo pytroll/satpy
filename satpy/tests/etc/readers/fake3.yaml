@@ -1,0 +1,19 @@
+reader:
+  name: fake3
+  description: Fake reader used for easier testing
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [fake_sensor]
+datasets:
+  duplicate1:
+    name: duplicate1
+    wavelength: [0.1, 0.2, 0.3]
+    file_type: fake_file1
+  duplicate2:
+    name: duplicate2
+    wavelength: [0.1, 0.2, 0.3]
+    file_type: fake_file1
+file_types:
+  fake_file1:
+    file_reader: !!python/name:satpy.tests.utils.FakeFileHandler
+    file_patterns: ['fake3_{file_idx:d}.txt']
+    sensor: fake_sensor

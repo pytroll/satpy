@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 - 2020 Satpy developers
+# Copyright (c) 2017 - 2020, 2022 Satpy developers
 #
 # This file is part of Satpy.
 #
@@ -16,13 +16,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for the GHRSST level-2 formatted data."""
 
-from datetime import datetime
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-import xarray as xr
-import tarfile
 import os
+import tarfile
 import tempfile
+from datetime import datetime
+
+import xarray as xr
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 
 class GHRSSTL2FileHandler(BaseFileHandler):

@@ -8,6 +8,7 @@ composite_identification_keys:
     enum:
     - nadir
     - oblique
+    transitive: true
   stripe:
     enum:
       - a
@@ -16,7 +17,7 @@ composite_identification_keys:
 
 modifiers:
   nir_reflectance:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - S8
     optional_prerequisites:

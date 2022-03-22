@@ -86,9 +86,10 @@ https://acsaf.org/docs/atbd/Algorithm_Theoretical_Basis_Document_IASI_SO2_Jul_20
 
 import logging
 from datetime import datetime
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 try:
     import eccodes as ec
@@ -97,8 +98,8 @@ except ImportError as e:
         """Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes.
            Error: """, e)
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('IASIL2SO2BUFR')
 
@@ -137,7 +138,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
         return '{}'.format(self.metadata['SpacecraftName'])
 
     def get_start_end_date(self):
-        """Gets the first and last date from the bufr file."""
+        """Get the first and last date from the bufr file."""
         fh = open(self.filename, "rb")
         i = 0
         while True:

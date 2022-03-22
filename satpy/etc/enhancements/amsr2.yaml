@@ -1,0 +1,88 @@
+enhancements:
+  # GAASP enhancements based on PNGs at:
+  # https://www.ospo.noaa.gov/Products/atmosphere/gpds/maps.html?GPRR#gpdsMaps
+  gaasp_clw:
+    name: CLW
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 0.5}
+  gaasp_sst:
+    name: SST
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: -5.0, max_stretch: 35}
+  gaasp_tpw:
+    name: TPW
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 75.0}
+  gaasp_wspd:
+    name: WSPD
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.0}
+  # Snow_Cover unscaled (category product)
+  gaasp_snow_depth:
+    name: Snow_Depth
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 150.0}
+  gaasp_swe:
+    name: SWE
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 16.0}
+  gaasp_soil_moisture:
+    name: Soil_Moisture
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.0}
+  gaasp_ice_concentration_nh:
+    name: NASA_Team_2_Ice_Concentration_NH
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.0}
+  gaasp_ice_concentration_sh:
+    name: NASA_Team_2_Ice_Concentration_SH
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.0}
+#  gaasp_latency_nh:
+#    name: Latency_NH
+#    sensor: amsr2
+#    operations:
+#      - name: linear_stretch
+#        method: !!python/name:satpy.enhancements.stretch
+#        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.0}
+#  gaasp_latency_sh:
+#    name: Latency_SH
+#    sensor: amsr2
+#    operations:
+#      - name: linear_stretch
+#        method: !!python/name:satpy.enhancements.stretch
+#        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.0}
+  gaasp_rain_rate:
+    name: Rain_Rate
+    sensor: amsr2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 65.}
