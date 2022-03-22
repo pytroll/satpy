@@ -327,6 +327,7 @@ class HRITFileHandler(BaseFileHandler):
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
+        # For reading the image data, unzip_context is faster than generic_open
         with utils.unzip_context(self.filename) as fn:
             data = np.memmap(fn, mode='r',
                              offset=self.mda['total_header_length'],
