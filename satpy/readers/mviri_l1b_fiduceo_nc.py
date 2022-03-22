@@ -565,8 +565,12 @@ class FiduceoMviriBase(BaseFileHandler):
         self.projection_longitude = float(filename_info['projection_longitude'])
         self.calib_coefs = self._get_calib_coefs()
 
-        self._get_angles = functools.cache(self._get_angles_uncached)
-        self._get_acq_time = functools.cache(self._get_acq_time_uncached)
+        self._get_angles = functools.lru_cache(maxsize=8)(
+            self._get_angles_uncached
+        )
+        self._get_acq_time = functools.lru_cache(maxsize=3)(
+            self._get_acq_time_uncached
+        )
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
