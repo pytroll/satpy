@@ -25,6 +25,8 @@ from contextlib import suppress
 import h5py
 import numpy as np
 
+from satpy.tests.reader_tests.utils import fill_h5
+
 
 class TestCompact(unittest.TestCase):
     """Test class for reading compact viirs format."""
@@ -2418,19 +2420,6 @@ class TestCompact(unittest.TestCase):
             "SVDNBC_j01_d20191025_t0611251_e0612478_b10015_c20191025062459000870_eum_ops.h5",
         )
         h5f = h5py.File(self.filename, mode="w")
-
-        def fill_h5(root, stuff):
-            for key, val in stuff.items():
-                if key in ["value", "attrs"]:
-                    continue
-                if "value" in val:
-                    root[key] = val["value"]
-                else:
-                    grp = root.create_group(key)
-                    fill_h5(grp, stuff[key])
-                if "attrs" in val:
-                    for attrs, val in val["attrs"].items():
-                        root[key].attrs[attrs] = val
 
         fill_h5(h5f, fake_dnb)
         for attr, val in fake_dnb["attrs"].items():
