@@ -22,10 +22,10 @@ References:
 
 """
 
+import functools
 import logging
 import os
 from datetime import datetime
-from functools import lru_cache
 
 import dask.array as da
 import numpy as np
@@ -103,6 +103,10 @@ class NcNWCSAF(BaseFileHandler):
             kwrgs = {'platform_name': self.nc.attrs['platform']}
 
         self.set_platform_and_sensor(**kwrgs)
+
+        self.upsample_geolocation = functools.lru_cache(maxsize=1)(
+            self._upsample_geolocation_uncached
+        )
 
     def set_platform_and_sensor(self, **kwargs):
         """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
@@ -245,8 +249,7 @@ class NcNWCSAF(BaseFileHandler):
             variable = variable[1:, :]
         return variable
 
-    @lru_cache(maxsize=1)
-    def upsample_geolocation(self):
+    def _upsample_geolocation_uncached(self):
         """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
 
