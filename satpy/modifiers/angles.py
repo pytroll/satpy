@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import warnings
 from datetime import datetime
 from functools import update_wrapper
 from glob import glob
@@ -36,7 +37,7 @@ from pyorbital.orbital import get_observer_look
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 
 import satpy
-from satpy.utils import get_satpos, ignore_invalid_float_warnings
+from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
 
 PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
 
@@ -61,6 +62,13 @@ class ZarrCacheHelper:
     if the arguments are of a certain type (see ``uncacheable_arg_types``).
     The cache value to use is purely based on the hash value of all of the
     provided arguments along with the "cache version" (see below).
+
+    Note that the zarr format requires regular chunking of data. That is,
+    chunks must be all the same size per dimension except for the last chunk.
+    To work around this limitation, this class will determine a good regular
+    chunking based on the existing chunking scheme, rechunk the input
+    arguments, and then rechunk the results before returning them to the user.
+    This rechunking is only done if caching is enabled.
 
     Args:
         func: Function that will be called to generate the value to cache.
@@ -118,16 +126,10 @@ class ZarrCacheHelper:
 
         Intended to mimic the :func:`functools.cache` behavior.
         """
-        if cache_dir is None:
-            cache_dir = satpy.config.get("cache_dir")
-        if cache_dir is None:
-            raise RuntimeError("No 'cache_dir' configured.")
+        cache_dir = self._get_cache_dir_from_config(cache_dir)
         zarr_pattern = self._zarr_pattern("*", cache_version="*").format("*")
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
-            try:
-                shutil.rmtree(zarr_dir)
-            except OSError:
-                continue
+            shutil.rmtree(zarr_dir, ignore_errors=True)
 
     def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = None) -> str:
         if cache_version is None:
@@ -144,9 +146,10 @@ class ZarrCacheHelper:
         zarr_paths = glob(zarr_format.format("*"))
         if not should_cache or not zarr_paths:
             # use sanitized arguments if we are caching, otherwise use original arguments
-            args = new_args if should_cache else args
-            res = self._func(*args)
+            args_to_use = new_args if should_cache else args
+            res = self._func(*args_to_use)
             if should_cache and not zarr_paths:
+                self._warn_if_irregular_input_chunks(args, args_to_use)
                 self._cache_results(res, zarr_format)
         # if we did any caching, let's load from the zarr files
         if should_cache:
@@ -154,16 +157,35 @@ class ZarrCacheHelper:
             zarr_paths = sorted(glob(zarr_format.format("*")))
             if not zarr_paths:
                 raise RuntimeError("Data was cached to disk but no files were found")
-            res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
+            new_chunks = _get_output_chunks_from_func_arguments(args)
+            res = tuple(da.from_zarr(zarr_path, chunks=new_chunks) for zarr_path in zarr_paths)
         return res
 
     def _get_should_cache_and_cache_dir(self, args, cache_dir: Optional[str]) -> tuple[bool, str]:
         should_cache: bool = satpy.config.get(self._cache_config_key, False)
         can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in args)
         should_cache = should_cache and can_cache
-        if cache_dir is None:
-            cache_dir = satpy.config.get("cache_dir")
+        cache_dir = self._get_cache_dir_from_config(cache_dir)
         return should_cache, cache_dir
+
+    @staticmethod
+    def _get_cache_dir_from_config(cache_dir: Optional[str]) -> str:
+        cache_dir = cache_dir or satpy.config.get("cache_dir")
+        if cache_dir is None:
+            raise RuntimeError("Can't use zarr caching. No 'cache_dir' configured.")
+        return cache_dir
+
+    @staticmethod
+    def _warn_if_irregular_input_chunks(args, modified_args):
+        arg_chunks = _get_output_chunks_from_func_arguments(args)
+        new_chunks = _get_output_chunks_from_func_arguments(modified_args)
+        if _chunks_are_irregular(arg_chunks):
+            warnings.warn(
+                "Calling cached function with irregular dask chunks. The data "
+                "has been rechunked for caching, but this is not optimal for "
+                "future calculations. "
+                f"Original chunks: {arg_chunks}; New chunks: {new_chunks}",
+                PerformanceWarning)
 
     def _cache_results(self, res, zarr_format):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
@@ -175,12 +197,26 @@ class ZarrCacheHelper:
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
-                new_sub_res = sub_res.to_zarr(zarr_path,
-                                              return_stored=True,
-                                              compute=False)
+                new_sub_res = sub_res.to_zarr(zarr_path, compute=False)
             new_res.append(new_sub_res)
         # actually compute the storage to zarr
         da.compute(new_res)
+
+
+def _get_output_chunks_from_func_arguments(args):
+    """Determine what the desired output chunks are.
+
+    It is assumed a tuple of tuples of integers is defining chunk sizes. If
+    a tuple like this is not found then arguments are checked for array-like
+    objects with a ``.chunks`` attribute.
+
+    """
+    chunked_args = [arg for arg in args if hasattr(arg, "chunks")]
+    tuple_args = [arg for arg in args if _is_chunk_tuple(arg)]
+    if not tuple_args and not chunked_args:
+        raise RuntimeError("Cannot determine desired output chunksize for cached function.")
+    new_chunks = tuple_args[-1] if tuple_args else chunked_args[0].chunks
+    return new_chunks
 
 
 def cache_to_zarr_if(
@@ -231,9 +267,50 @@ def _sanitize_observer_look_args(*args):
         elif isinstance(arg, (float, np.float64, np.float32)):
             # round floating point numbers to nearest tenth
             new_args.append(round(arg, 1))
+        elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
+            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+            new_args.append(new_chunks)
         else:
             new_args.append(arg)
     return new_args
+
+
+def _sanitize_args_with_chunks(*args):
+    new_args = []
+    for arg in args:
+        if _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
+            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+            new_args.append(new_chunks)
+        else:
+            new_args.append(arg)
+    return new_args
+
+
+def _is_chunk_tuple(some_obj: Any) -> bool:
+    if not isinstance(some_obj, tuple):
+        return False
+    if not all(isinstance(sub_obj, tuple) for sub_obj in some_obj):
+        return False
+    sub_elements = [sub_obj_elem for sub_obj in some_obj for sub_obj_elem in sub_obj]
+    return all(isinstance(sub_obj_elem, int) for sub_obj_elem in sub_elements)
+
+
+def _regular_chunks_from_irregular_chunks(
+        old_chunks: tuple[tuple[int, ...], ...]
+) -> tuple[tuple[int, ...], ...]:
+    shape = tuple(sum(dim_chunks) for dim_chunks in old_chunks)
+    new_dim_chunks = tuple(max(dim_chunks) for dim_chunks in old_chunks)
+    return da.core.normalize_chunks(new_dim_chunks, shape=shape)
+
+
+def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
+    """Determine if an array is irregularly chunked.
+
+    Zarr does not support saving data in irregular chunks. Regular chunking
+    is when all chunks are the same size (except for the last one).
+
+    """
+    return any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple)
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
@@ -293,7 +370,7 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
     return _geo_dask_to_data_array(cos_sza)
 
 
-@cache_to_zarr_if("cache_lonlats")
+@cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
 def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         lons, lats = area.get_lonlats(chunks=chunks)
@@ -337,7 +414,8 @@ def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: dat
 
 
 def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
-    sat_lon, sat_lat, sat_alt = get_satpos(data_arr)
+    preference = satpy.config.get('sensor_angles_position_preference', 'actual')
+    sat_lon, sat_lat, sat_alt = get_satpos(data_arr, preference=preference)
     area_def = data_arr.attrs["area"]
     sata, satz = _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
                                                  data_arr.attrs["start_time"],

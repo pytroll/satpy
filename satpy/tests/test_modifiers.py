@@ -18,6 +18,8 @@
 """Tests for modifiers in modifiers/__init__.py."""
 import contextlib
 import unittest
+import warnings
+from copy import deepcopy
 from datetime import datetime, timedelta
 from glob import glob
 from typing import Optional, Union
@@ -31,6 +33,7 @@ from pyresample.geometry import AreaDefinition, StackedAreaDefinition
 from pytest_lazyfixture import lazy_fixture
 
 import satpy
+from satpy.utils import PerformanceWarning
 
 
 def _sunz_area_def():
@@ -484,6 +487,10 @@ def _get_stacked_angle_test_data():
                                 chunks=(5, (2, 2, 1)))
 
 
+def _get_angle_test_data_odd_chunks():
+    return _get_angle_test_data(chunks=((2, 1, 2), (1, 1, 2, 1)))
+
+
 def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
     # change data slightly
     new_data = orig_data.copy()
@@ -540,6 +547,49 @@ class TestAngleGeneration:
         args = gol.call_args[0]
         assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
 
+    @pytest.mark.parametrize("forced_preference", ["actual", "nadir"])
+    def test_get_angles_satpos_preference(self, forced_preference):
+        """Test that 'actual' satellite position is used for generating sensor angles."""
+        from satpy.modifiers.angles import get_angles
+
+        input_data1 = _get_angle_test_data()
+        # add additional satellite position metadata
+        input_data1.attrs["orbital_parameters"]["nadir_longitude"] = 9.0
+        input_data1.attrs["orbital_parameters"]["nadir_latitude"] = 0.01
+        input_data1.attrs["orbital_parameters"]["satellite_actual_longitude"] = 9.5
+        input_data1.attrs["orbital_parameters"]["satellite_actual_latitude"] = 0.005
+        input_data1.attrs["orbital_parameters"]["satellite_actual_altitude"] = 12345679
+        input_data2 = input_data1.copy(deep=True)
+        input_data2.attrs = deepcopy(input_data1.attrs)
+        input_data2.attrs["orbital_parameters"]["nadir_longitude"] = 9.1
+        input_data2.attrs["orbital_parameters"]["nadir_latitude"] = 0.02
+        input_data2.attrs["orbital_parameters"]["satellite_actual_longitude"] = 9.5
+        input_data2.attrs["orbital_parameters"]["satellite_actual_latitude"] = 0.005
+        input_data2.attrs["orbital_parameters"]["satellite_actual_altitude"] = 12345679
+
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
+                satpy.config.set(sensor_angles_position_preference=forced_preference):
+            angles1 = get_angles(input_data1)
+            da.compute(angles1)
+            angles2 = get_angles(input_data2)
+            da.compute(angles2)
+
+        # get_observer_look should have been called once per array chunk
+        assert gol.call_count == input_data1.data.blocks.size * 2
+        if forced_preference == "actual":
+            exp_call = mock.call(9.5, 0.005, 12345.679, input_data1.attrs["start_time"], mock.ANY, mock.ANY, 0)
+            all_same_calls = [exp_call] * gol.call_count
+            gol.assert_has_calls(all_same_calls)
+            # the dask arrays should have the same name to prove they are the same computation
+            for angle_arr1, angle_arr2 in zip(angles1, angles2):
+                assert angle_arr1.data.name == angle_arr2.data.name
+        else:
+            # nadir 1
+            gol.assert_any_call(9.0, 0.01, 12345.679, input_data1.attrs["start_time"], mock.ANY, mock.ANY, 0)
+            # nadir 2
+            gol.assert_any_call(9.1, 0.02, 12345.679, input_data1.attrs["start_time"], mock.ANY, mock.ANY, 0)
+
     @pytest.mark.parametrize("force_bad_glob", [False, True])
     @pytest.mark.parametrize(
         ("input2_func", "exp_equal_sun", "exp_num_zarr"),
@@ -549,15 +599,20 @@ class TestAngleGeneration:
             (_diff_sat_pos_datetime, False, 6),
         ]
     )
-    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
-    def test_cache_get_angles(self, input_func, input2_func, exp_equal_sun, exp_num_zarr, force_bad_glob, tmpdir):
+    @pytest.mark.parametrize(
+        ("input_func", "num_normalized_chunks"),
+        [
+            (_get_angle_test_data, 9),
+            (_get_stacked_angle_test_data, 3),
+            (_get_angle_test_data_odd_chunks, 9),
+        ])
+    def test_cache_get_angles(
+            self,
+            input_func, num_normalized_chunks,
+            input2_func, exp_equal_sun, exp_num_zarr,
+            force_bad_glob, tmp_path):
         """Test get_angles when caching is enabled."""
-        from satpy.modifiers.angles import (
-            STATIC_EARTH_INERTIAL_DATETIME,
-            _get_sensor_angles_from_sat_pos,
-            _get_valid_lonlats,
-            get_angles,
-        )
+        from satpy.modifiers.angles import STATIC_EARTH_INERTIAL_DATETIME, get_angles
 
         # Patch methods
         data = input_func()
@@ -566,33 +621,86 @@ class TestAngleGeneration:
         # Compute angles
         from pyorbital.orbital import get_observer_look
         with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
-                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmpdir)):
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmp_path)), \
+                warnings.catch_warnings(record=True) as caught_warnings:
             res = get_angles(data)
-            assert all(isinstance(x, xr.DataArray) for x in res)
+            self._check_cached_result(res, data)
 
             # call again, should be cached
             new_data = input2_func(data)
             with _mock_glob_if(force_bad_glob):
                 res2 = get_angles(new_data)
-            assert all(isinstance(x, xr.DataArray) for x in res2)
-            res, res2 = da.compute(res, res2)
-            for r1, r2 in zip(res[:2], res2[:2]):
-                _assert_allclose_if(not additional_cache, r1, r2)
+            self._check_cached_result(res2, data)
 
-            for r1, r2 in zip(res[2:], res2[2:]):
+            res_numpy, res2_numpy = da.compute(res, res2)
+            for r1, r2 in zip(res_numpy[:2], res2_numpy[:2]):
+                _assert_allclose_if(not additional_cache, r1, r2)
+            for r1, r2 in zip(res_numpy[2:], res2_numpy[2:]):
                 _assert_allclose_if(exp_equal_sun, r1, r2)
 
-            zarr_dirs = glob(str(tmpdir / "*.zarr"))
-            assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
+            self._check_cache_and_clear(tmp_path, exp_num_zarr)
 
-            _get_sensor_angles_from_sat_pos.cache_clear()
-            _get_valid_lonlats.cache_clear()
-            zarr_dirs = glob(str(tmpdir / "*.zarr"))
-            assert len(zarr_dirs) == 0
-
-        assert gol.call_count == data.data.blocks.size * (int(additional_cache) + 1)
+        if "odd_chunks" in input_func.__name__:
+            assert any(w.category is PerformanceWarning for w in caught_warnings)
+        else:
+            assert not any(w.category is PerformanceWarning for w in caught_warnings)
+        assert gol.call_count == num_normalized_chunks * (int(additional_cache) + 1)
         args = gol.call_args_list[0][0]
         assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
         exp_sat_lon = 10.1 if additional_cache else 10.0
         args = gol.call_args_list[-1][0]
         assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
+
+    @staticmethod
+    def _check_cached_result(results, input_data):
+        assert all(isinstance(x, xr.DataArray) for x in results)
+        # output chunks should be consistent
+        for angle_data_arr in results:
+            assert angle_data_arr.chunks == input_data.chunks
+
+    @staticmethod
+    def _check_cache_and_clear(tmp_path, exp_num_zarr):
+        from satpy.modifiers.angles import _get_sensor_angles_from_sat_pos, _get_valid_lonlats
+        zarr_dirs = glob(str(tmp_path / "*.zarr"))
+        assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
+
+        _get_valid_lonlats.cache_clear()
+        _get_sensor_angles_from_sat_pos.cache_clear()
+        zarr_dirs = glob(str(tmp_path / "*.zarr"))
+        assert len(zarr_dirs) == 0
+
+    def test_cached_no_chunks_fails(self, tmp_path):
+        """Test that trying to pass non-dask arrays and no chunks fails."""
+        from satpy.modifiers.angles import _sanitize_args_with_chunks, cache_to_zarr_if
+
+        @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
+        def _fake_func(data, tuple_arg, chunks):
+            return da.from_array(data)
+
+        data = list(range(5))
+        with pytest.raises(RuntimeError), \
+                satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
+            _fake_func(data, (1, 2, 3), 5)
+
+    def test_cached_result_numpy_fails(self, tmp_path):
+        """Test that trying to cache with non-dask arrays fails."""
+        from satpy.modifiers.angles import _sanitize_args_with_chunks, cache_to_zarr_if
+
+        @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
+        def _fake_func(shape, chunks):
+            return np.zeros(shape)
+
+        with pytest.raises(ValueError), \
+                satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
+            _fake_func((5, 5), ((5,), (5,)))
+
+    def test_no_cache_dir_fails(self, tmp_path):
+        """Test that 'cache_dir' not being set fails."""
+        from satpy.modifiers.angles import _get_sensor_angles_from_sat_pos, get_angles
+        data = _get_angle_test_data()
+        with pytest.raises(RuntimeError), \
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=None):
+            get_angles(data)
+        with pytest.raises(RuntimeError), \
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=None):
+            _get_sensor_angles_from_sat_pos.cache_clear()

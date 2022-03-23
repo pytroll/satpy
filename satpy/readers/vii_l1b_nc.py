@@ -18,9 +18,11 @@
 """EUMETSAT EPS-SG Visible/Infrared Imager (VII) Level 1B products reader.
 
 The ``vii_l1b_nc`` reader reads and calibrates EPS-SG VII L1b image data in netCDF format. The format is explained
-in the `EPS-SG VII Level 1B Product Format Specification`_.
+in the `EPS-SG VII Level 1B Product Format Specification V4A`_.
 
-.. _EPS-SG VII Level 1B Product Format Specification: https://www.eumetsat.int/media/44393
+This version is applicable for the vii test data V2 to be released in Jan 2022.
+
+.. _EPS-SG VII Level 1B Product Format Specification V4A: https://www.eumetsat.int/media/44393
 
 """
 
@@ -69,19 +71,18 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
         if calibration_name == 'brightness_temperature':
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_thermal_index']
-            cw = self._channel_cw_thermal[chan_index] * 1e-3
+            cw = self._channel_cw_thermal[chan_index]
             a = self._bt_conversion_a[chan_index]
             b = self._bt_conversion_b[chan_index]
             # Perform the calibration
             calibrated_variable = self._calibrate_bt(variable, cw, a, b)
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == 'reflectance':
-            scale = 1/(dataset_info['wavelength'][2] - dataset_info['wavelength'][0])
             # Extract the values of calibration coefficients for the current channel
             chan_index = dataset_info['chan_solar_index']
-            isi = scale * self._integrated_solar_irradiance[chan_index]
+            isi = self._integrated_solar_irradiance[chan_index]
             # Perform the calibration
-            calibrated_variable = self._calibrate_refl(variable, self.angle_factor, isi)
+            calibrated_variable = self._calibrate_refl(variable, self.angle_factor.data, isi)
             calibrated_variable.attrs = variable.attrs
         elif calibration_name == 'radiance':
             calibrated_variable = variable
@@ -141,5 +142,5 @@ class ViiL1bNCFileHandler(ViiNCBaseFileHandler):
             numpy ndarray: array containing the calibrated reflectance values.
 
         """
-        refl_values = (np.pi / isi) * angle_factor * radiance
+        refl_values = (np.pi / isi) * angle_factor * radiance * 100.0
         return refl_values

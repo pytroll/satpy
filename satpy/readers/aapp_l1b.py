@@ -33,10 +33,22 @@ import numpy as np
 import xarray as xr
 from dask import delayed
 
-from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.utils import get_chunk_size_limit
 
-LINE_CHUNK = CHUNK_SIZE ** 2 // 2048
+CHANNEL_DTYPE = np.float64
+
+
+def get_avhrr_lac_chunks(shape, dtype):
+    """Get chunks from a given shape adapted for full-resolution AVHRR data."""
+    limit = get_chunk_size_limit(dtype)
+    return da.core.normalize_chunks(("auto", 2048), shape=shape, limit=limit, dtype=dtype)
+
+
+def get_aapp_chunks(shape):
+    """Get chunks from a given shape adapted for AAPP data."""
+    return get_avhrr_lac_chunks(shape, dtype=CHANNEL_DTYPE)
+
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +183,13 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         self._get_platform_name(AVHRR_PLATFORM_IDS2NAMES)
         self.sensor = 'avhrr-3'
 
+        self._get_all_interpolated_angles = functools.lru_cache(maxsize=10)(
+            self._get_all_interpolated_angles_uncached
+        )
+        self._get_all_interpolated_coordinates = functools.lru_cache(maxsize=10)(
+            self._get_all_interpolated_coordinates_uncached
+        )
+
     def _set_filedata_layout(self):
         """Set the file data type/layout."""
         self._header_offset = 22016
@@ -222,8 +241,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         name_to_variable = dict(zip(self._angle_names, (satz, sunz, azidiff)))
         return create_xarray(name_to_variable[angle_id])
 
-    @functools.lru_cache(maxsize=10)
-    def _get_all_interpolated_angles(self):
+    def _get_all_interpolated_angles_uncached(self):
         sunz40km, satz40km, azidiff40km = self._get_tiepoint_angles_in_degrees()
         return self._interpolate_arrays(sunz40km, satz40km, azidiff40km)
 
@@ -274,8 +292,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
         raise KeyError("Coordinate {} unknown.".format(coordinate_id))
 
-    @functools.lru_cache(maxsize=10)
-    def _get_all_interpolated_coordinates(self):
+    def _get_all_interpolated_coordinates_uncached(self):
         lons40km, lats40km = self._get_coordinates_in_degrees()
         return self._interpolate_arrays(lons40km, lats40km, geolocation=True)
 
@@ -299,10 +316,11 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
         if dataset_id['name'] in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
+            line_chunks = get_aapp_chunks((self._data.shape[0], 2048))[0]
             self._is3a = da.bitwise_and(da.from_array(self._data['scnlinbit'],
-                                                      chunks=LINE_CHUNK), 3) == 0
+                                                      chunks=line_chunks), 3) == 0
             self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
-                                                      chunks=LINE_CHUNK), 3) == 1
+                                                      chunks=line_chunks), 3) == 1
 
         try:
             vis_idx = ['1', '2', '3a'].index(dataset_id['name'])
@@ -530,13 +548,16 @@ def _vis_calibrate(data,
     if calib_type not in ['counts', 'radiance', 'reflectance']:
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
-    channel = da.from_array(data["hrpt"][:, :, chn], chunks=(LINE_CHUNK, 2048))
+    channel_data = data["hrpt"][:, :, chn]
+    chunks = get_aapp_chunks(channel_data.shape)
+    line_chunks = chunks[0]
+    channel = da.from_array(channel_data, chunks=chunks)
     mask &= channel != 0
 
     if calib_type == 'counts':
         return channel
 
-    channel = channel.astype(np.float64)
+    channel = channel.astype(CHANNEL_DTYPE)
 
     if calib_type == 'radiance':
         logger.info("Radiances are not yet supported for " +
@@ -554,23 +575,23 @@ def _vis_calibrate(data,
             coeff_idx = 0
 
     intersection = da.from_array(data["calvis"][:, chn, coeff_idx, 4],
-                                 chunks=LINE_CHUNK)
+                                 chunks=line_chunks)
 
     if calib_coeffs is not None:
         logger.info("Updating from external calibration coefficients.")
-        slope1 = da.from_array(calib_coeffs[0], chunks=LINE_CHUNK)
-        intercept1 = da.from_array(calib_coeffs[1], chunks=LINE_CHUNK)
-        slope2 = da.from_array(calib_coeffs[2], chunks=LINE_CHUNK)
-        intercept2 = da.from_array(calib_coeffs[3], chunks=LINE_CHUNK)
+        slope1 = da.from_array(calib_coeffs[0], chunks=line_chunks)
+        intercept1 = da.from_array(calib_coeffs[1], chunks=line_chunks)
+        slope2 = da.from_array(calib_coeffs[2], chunks=line_chunks)
+        intercept2 = da.from_array(calib_coeffs[3], chunks=line_chunks)
     else:
         slope1 = da.from_array(data["calvis"][:, chn, coeff_idx, 0],
-                               chunks=LINE_CHUNK) * 1e-10
+                               chunks=line_chunks) * 1e-10
         intercept1 = da.from_array(data["calvis"][:, chn, coeff_idx, 1],
-                                   chunks=LINE_CHUNK) * 1e-7
+                                   chunks=line_chunks) * 1e-7
         slope2 = da.from_array(data["calvis"][:, chn, coeff_idx, 2],
-                               chunks=LINE_CHUNK) * 1e-10
+                               chunks=line_chunks) * 1e-10
         intercept2 = da.from_array(data["calvis"][:, chn, coeff_idx, 3],
-                                   chunks=LINE_CHUNK) * 1e-7
+                                   chunks=line_chunks) * 1e-7
 
         if chn == 1:
             # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
@@ -597,18 +618,22 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=True):
     *calib_type* in brightness_temperature, radiance, count
 
     """
-    count = da.from_array(data["hrpt"][:, :, irchn + 2], chunks=(LINE_CHUNK, 2048))
+    channel_data = data["hrpt"][:, :, irchn + 2]
+    chunks = get_aapp_chunks(channel_data.shape)
+    line_chunks = chunks[0]
+
+    count = da.from_array(channel_data, chunks=chunks)
 
     if calib_type == 0:
         return count
 
     # Mask unnaturally low values
     mask &= count != 0
-    count = count.astype(np.float64)
+    count = count.astype(CHANNEL_DTYPE)
 
-    k1_ = da.from_array(data['calir'][:, irchn, 0, 0], chunks=LINE_CHUNK) / 1.0e9
-    k2_ = da.from_array(data['calir'][:, irchn, 0, 1], chunks=LINE_CHUNK) / 1.0e6
-    k3_ = da.from_array(data['calir'][:, irchn, 0, 2], chunks=LINE_CHUNK) / 1.0e6
+    k1_ = da.from_array(data['calir'][:, irchn, 0, 0], chunks=line_chunks) / 1.0e9
+    k2_ = da.from_array(data['calir'][:, irchn, 0, 1], chunks=line_chunks) / 1.0e6
+    k3_ = da.from_array(data['calir'][:, irchn, 0, 2], chunks=line_chunks) / 1.0e6
 
     # Count to radiance conversion:
     rad = k1_[:, None] * count * count + k2_[:, None] * count + k3_[:, None]

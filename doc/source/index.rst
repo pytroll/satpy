@@ -95,7 +95,7 @@ the base Satpy installation.
       - AMV BUFR products not supported yet.
     * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
       - `seviri_l2_grib`
-      - In development, CLM, OCA and FIR products supported
+      - Nominal
     * - MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
       - `mviri_l1b_fiduceo_nc`
       - Beta
@@ -148,6 +148,9 @@ the base Satpy installation.
     * - MTG FCI Level 1C data in NetCDF format
       - `fci_l1c_nc`
       - In development (beta for FDHSI files, HRFI not supported yet)
+    * - MTG FCI Level 2 data in NetCDF format
+      - `fci_l2_nc`
+      - In development.
     * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
       - `caliop_l2_cloud`
       - In development

@@ -34,14 +34,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        brightness_temperature
         units:                K
         wavelength:           (9.8, 10.8, 11.8)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -58,14 +56,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        toa_bidirectional_reflectance
         units:                %
         wavelength:           (0.74, 0.81, 0.88)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -82,14 +78,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        toa_bidirectional_reflectance
         units:                %
         wavelength:           (0.56, 0.635, 0.71)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...

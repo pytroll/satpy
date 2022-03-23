@@ -74,6 +74,18 @@ def _create_cmip_dataset():
     return fake_dataset
 
 
+def _compare_subdict(actual_dict, exp_sub_dict):
+    for key, value in exp_sub_dict.items():
+        assert key in actual_dict
+        assert actual_dict[key] == value
+
+
+def _assert_orbital_parameters(orb_params):
+    assert orb_params['satellite_nominal_longitude'] == -89.5
+    assert orb_params['satellite_nominal_latitude'] == 0.0
+    assert orb_params['satellite_nominal_altitude'] == 35786020.0
+
+
 def _create_mcmip_dataset():
     fake_dataset = _create_cmip_dataset()
     fake_dataset = fake_dataset.copy(deep=True)
@@ -125,9 +137,6 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
                      'platform_name': 'GOES-16',
                      'platform_shortname': 'G16',
                      'production_site': None,
-                     'satellite_altitude': 35786020.,
-                     'satellite_latitude': 0.0,
-                     'satellite_longitude': -89.5,
                      'scan_mode': 'M3',
                      'scene_abbr': 'M1',
                      'scene_id': None,
@@ -136,7 +145,8 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
                      'units': 'm'}
 
         self.assertTrue(np.allclose(res.data, exp_data, equal_nan=True))
-        self.assertDictEqual(dict(res.attrs), exp_attrs)
+        _compare_subdict(res.attrs, exp_attrs)
+        _assert_orbital_parameters(res.attrs['orbital_parameters'])
 
 
 class TestMCMIPReading:
@@ -169,9 +179,6 @@ class TestMCMIPReading:
                      'platform_name': 'GOES-16',
                      'platform_shortname': 'G16',
                      'production_site': None,
-                     'satellite_altitude': 35786020.,
-                     'satellite_latitude': 0.0,
-                     'satellite_longitude': -89.5,
                      'scan_mode': 'M6',
                      'scene_abbr': 'F',
                      'scene_id': None,
@@ -187,10 +194,8 @@ class TestMCMIPReading:
         res = scn['C14']
         np.testing.assert_allclose(res.data, exp_data, equal_nan=True)
         assert isinstance(res.attrs['area'], AreaDefinition)
-        # don't complicate the comparison below
-        for key in ('area', '_satpy_id'):
-            del res.attrs[key]
-        assert dict(res.attrs) == exp_attrs
+        _compare_subdict(res.attrs, exp_attrs)
+        _assert_orbital_parameters(res.attrs['orbital_parameters'])
 
 
 class Test_NC_ABI_L2_area_fixedgrid(Test_NC_ABI_L2_base):
