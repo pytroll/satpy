@@ -931,9 +931,12 @@ enhancements:
           min_stretch: 0.0
           max_stretch: 20.0
 
-  msg_quicklook:
-   standard_name: msg_quicklook
-   operations:
-     - name: stretch
-       method: !!python/name:satpy.enhancements.stretch
-       kwargs: {stretch: crude}
+  msg_quicklook:    
+    standard_name: msg_quicklook
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [-8, -8, -8]
+        max_stretch: [30, 25, 20]
