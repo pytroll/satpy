@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2017 Satpy developers
+# Copyright (c) 2010-2017, 2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -70,6 +70,13 @@ class Scene:
     def __init__(self, filenames=None, reader=None, filter_parameters=None,
                  reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
+
+        Notice (see parameters list below) )that it is possible to load a
+        combinations of files or sets of files each requiring their specific
+        reader. For that the `filenames` needs to be a ``dict``, like e.g.::
+
+            scn = Scene(filenames={'nwcsaf-pps_nc': glob('/path/to/nwc/saf/pps/files/*'),
+                                   'modis_l1b': glob('/path/to/modis/lvl1/files/*')})
 
         To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
         then the available readers will be searched for a Reader that can support the provided files. This can take
