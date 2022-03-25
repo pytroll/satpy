@@ -73,7 +73,7 @@ class Scene:
 
         Notice (see parameters list below) that it is possible to load a
         combination of files or sets of files each requiring their specific
-        reader. For that the `filenames` needs to be a ``dict``, like e.g.::
+        reader. For that ``filenames`` needs to be a `dict`, like e.g.::
 
             scn = Scene(filenames={'nwcsaf-pps_nc': glob('/path/to/nwc/saf/pps/files/*'),
                                    'modis_l1b': glob('/path/to/modis/lvl1/files/*')})
