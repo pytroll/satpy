@@ -233,7 +233,7 @@ class TestNcNWCSAF(unittest.TestCase):
         scale = 4
         offset = 8
         data_array = xr.DataArray(np.ones((5, 10)), attrs={"scale_factor": np.array(scale, dtype=float),
-                                                          "add_offset": np.array(offset, dtype=float)})
+                                                           "add_offset": np.array(offset, dtype=float)})
 
         self.fh.nc["cpp_reff"] = data_array
         self.fh.nc["cmic_cre"] = data_array
