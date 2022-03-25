@@ -71,7 +71,7 @@ class Scene:
                  reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
-        Notice (see parameters list below) )that it is possible to load a
+        Notice (see parameters list below) that it is possible to load a
         combinations of files or sets of files each requiring their specific
         reader. For that the `filenames` needs to be a ``dict``, like e.g.::
 
