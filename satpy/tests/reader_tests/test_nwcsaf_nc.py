@@ -232,11 +232,11 @@ class TestNcNWCSAF(unittest.TestCase):
         dsid_cmic = {'name': 'cmic_cre'}
         scale = 4
         offset = 8
-        the_array = xr.DataArray(np.ones((5, 10)), attrs={"scale_factor": np.array(scale, dtype=float),
+        data_array = xr.DataArray(np.ones((5, 10)), attrs={"scale_factor": np.array(scale, dtype=float),
                                                           "add_offset": np.array(offset, dtype=float)})
 
-        self.fh.nc["cpp_reff"] = the_array
-        self.fh.nc["cmic_cre"] = the_array
+        self.fh.nc["cpp_reff"] = data_array
+        self.fh.nc["cmic_cre"] = data_array
         self.fh.file_key_prefix = 'cpp_'
 
         info_cpp = dict(name="cmic_reff",
