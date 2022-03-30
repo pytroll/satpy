@@ -93,6 +93,62 @@ lookup
 colorize
 --------
 
+The colorize enhancement can be used to map scaled/calibrated physical values
+to colors. One or several `standard Trollimage color maps`_ may be used as in
+the example here::
+
+    - name: colorize
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+          palettes:
+            - {colors: spectral, min_value: 193.15, max_value: 253.149999}
+            - {colors: greys, min_value: 253.15, max_value: 303.15}
+
+It is also possible to provide your own custom defined color mapping by
+specifying a list of RGB values and the corresponding min and max values
+between which to apply the colors. This is a common use case for SST imagery,
+as in this example with the EUMETSAT Ocean and Sea Ice SAF (OSISAF) GHRSST
+product::
+
+    - name: osisaf_sst
+      method: !!python/name:satpy.enhancements.colorize
+      kwargs:
+          palettes:
+            - colors: [
+              [255, 0, 255],
+              [195, 0, 129],
+              [129, 0, 47],
+              [195, 0, 0],
+              [255, 0, 0],
+              [236, 43, 0],
+              [217, 86, 0],
+              [200, 128, 0],
+              [211, 154, 13],
+              [222, 180, 26],
+              [233, 206, 39],
+              [244, 232, 52],
+              [255.99609375, 255.99609375, 63.22265625],
+              [203.125, 255.99609375, 52.734375],
+              [136.71875, 255.99609375, 27.34375],
+              [0, 255.99609375, 0],
+              [0, 207.47265625, 0],
+              [0, 158.94921875, 0],
+              [0, 110.42578125, 0],
+              [0, 82.8203125, 63.99609375],
+              [0, 55.21484375, 127.9921875],
+              [0, 27.609375, 191.98828125],
+              [0, 0, 255.99609375],
+              [100.390625, 100.390625, 255.99609375],
+              [150.5859375, 150.5859375, 255.99609375]]
+              min_value: 296.55
+              max_value: 273.55
+
+The RGB color values will be interpolated to give a smooth result. This is
+contrary to using the palettize enahncement.
+
+.. _`standard Trollimage color maps`: https://trollimage.readthedocs.io/en/latest/colormap.html#default-colormaps
+
+
 palettize
 ---------
 
