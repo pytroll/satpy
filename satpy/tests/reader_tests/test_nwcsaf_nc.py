@@ -227,7 +227,7 @@ class TestNcNWCSAF(unittest.TestCase):
         np.testing.assert_allclose(res_cpp, res_cmic)
 
     def test_get_dataset_can_handle_file_key_list(self):
-        """Test that get_dataset() uses a file_key list if present."""
+        """Test that get_dataset() can handle a list of file_keys."""
         dsid_cpp = {'name': 'cpp_reff'}
         dsid_cmic = {'name': 'cmic_cre'}
         scale = 4
