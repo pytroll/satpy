@@ -624,4 +624,4 @@ composites:
       - name: M09
       - name: I01
       - name: I03
-    standard_name: cloud_type_raw
+    standard_name: cloud_type
