@@ -18,7 +18,6 @@
 """Modifiers related to atmospheric corrections or adjustments."""
 
 import logging
-from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
@@ -33,8 +32,6 @@ logger = logging.getLogger(__name__)
 
 class PSPRayleighReflectance(ModifierBase):
     """Pyspectral-based rayleigh corrector for visible channels."""
-
-    _rayleigh_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.
@@ -64,18 +61,12 @@ class PSPRayleighReflectance(ModifierBase):
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-        rayleigh_key = (vis.attrs['platform_name'],
-                        vis.attrs['sensor'], atmosphere, aerosol_type)
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
                     atmosphere, aerosol_type, vis.attrs['name'])
-        if rayleigh_key not in self._rayleigh_cache:
-            corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                                 atmosphere=atmosphere,
-                                 aerosol_type=aerosol_type)
-            self._rayleigh_cache[rayleigh_key] = corrector
-        else:
-            corrector = self._rayleigh_cache[rayleigh_key]
+        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
 
         try:
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,

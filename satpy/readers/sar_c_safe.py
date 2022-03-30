@@ -34,8 +34,8 @@ References:
 
 """
 
+import functools
 import logging
-from functools import lru_cache
 from threading import Lock
 
 import defusedxml.ElementTree as ET
@@ -126,6 +126,14 @@ class SAFEXML(BaseFileHandler):
 class SAFEXMLAnnotation(SAFEXML):
     """XML file reader for the SAFE format, Annotation file."""
 
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the XML annotation reader."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+        self.get_incidence_angle = functools.lru_cache(maxsize=10)(
+            self._get_incidence_angle_uncached
+        )
+
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
         if self._polarization != key["polarization"]:
@@ -134,8 +142,7 @@ class SAFEXMLAnnotation(SAFEXML):
         if key["name"] == "incidence_angle":
             return self.get_incidence_angle(chunks=chunks or CHUNK_SIZE)
 
-    @lru_cache(maxsize=10)
-    def get_incidence_angle(self, chunks):
+    def _get_incidence_angle_uncached(self, chunks):
         """Get the incidence angle array."""
         incidence_angle = XMLArray(self.root, ".//geolocationGridPoint", "incidenceAngle")
         return incidence_angle.expand(self._image_shape, chunks=chunks)
@@ -143,6 +150,14 @@ class SAFEXMLAnnotation(SAFEXML):
 
 class SAFEXMLCalibration(SAFEXML):
     """XML file reader for the SAFE format, Calibration file."""
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 header_file=None):
+        """Init the XML calibration reader."""
+        super().__init__(filename, filename_info, filetype_info, header_file)
+        self.get_calibration = functools.lru_cache(maxsize=10)(
+            self._get_calibration_uncached
+        )
 
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
@@ -156,8 +171,7 @@ class SAFEXMLCalibration(SAFEXML):
         """Load the calibration constant."""
         return float(self.root.find('.//absoluteCalibrationConstant').text)
 
-    @lru_cache(maxsize=10)
-    def get_calibration(self, calibration, chunks=None):
+    def _get_calibration_uncached(self, calibration, chunks=None):
         """Get the calibration array."""
         calibration_name = _get_calibration_name(calibration)
         calibration_vector = self._get_calibration_vector(calibration_name, chunks)
@@ -178,6 +192,9 @@ class SAFEXMLNoise(SAFEXML):
         super().__init__(filename, filename_info, filetype_info, header_file)
 
         self.azimuth_noise_reader = AzimuthNoiseReader(self.root, self._image_shape)
+        self.get_noise_correction = functools.lru_cache(maxsize=10)(
+            self._get_noise_correction_uncached
+        )
 
     def get_dataset(self, key, info, chunks=None):
         """Load a dataset."""
@@ -186,8 +203,7 @@ class SAFEXMLNoise(SAFEXML):
         if key["name"] == "noise":
             return self.get_noise_correction(chunks=chunks or CHUNK_SIZE)
 
-    @lru_cache(maxsize=10)
-    def get_noise_correction(self, chunks=None):
+    def _get_noise_correction_uncached(self, chunks=None):
         """Get the noise correction array."""
         try:
             noise = self.read_legacy_noise(chunks)
@@ -544,6 +560,9 @@ class SAFEGRD(BaseFileHandler):
         self.read_lock = Lock()
 
         self.filehandle = rasterio.open(self.filename, 'r', sharing=False)
+        self.get_lonlatalts = functools.lru_cache(maxsize=2)(
+            self._get_lonlatalts_uncached
+        )
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -616,8 +635,7 @@ class SAFEGRD(BaseFileHandler):
         data = ((dn + cal_constant) / (cal ** 2)).clip(min=0)
         return data
 
-    @lru_cache(maxsize=2)
-    def get_lonlatalts(self):
+    def _get_lonlatalts_uncached(self):
         """Obtain GCPs and construct latitude and longitude arrays.
 
         Args:

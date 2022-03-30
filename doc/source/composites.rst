@@ -324,9 +324,9 @@ to be added.
 Using modifiers
 ---------------
 
-In many cases the basic datasets need to be adjusted, e.g. for Solar
-zenith angle normalization.  These modifiers can be applied in the
-following way::
+In many cases the basic datasets that go into the composite need to be
+adjusted, e.g. for Solar zenith angle normalization.  These modifiers
+can be applied in the following way::
 
       overview:
         compositor: !!python/name:satpy.composites.GenericCompositor
@@ -346,6 +346,12 @@ Here we see two changes:
 
 The modifier above is a built-in that normalizes the Solar zenith
 angle to Sun being directly at the zenith.
+
+More examples can be found in Satpy source code directory
+`satpy/etc/composites <https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_.
+
+See the :doc:`modifiers` documentation for more information on
+available built-in modifiers.
 
 Using other composites
 ----------------------
@@ -535,3 +541,5 @@ More examples can be found in SatPy source code directory
 
 See the :doc:`enhancements` documentation for more information on
 available built-in enhancements.
+
+.. include:: modifiers.rst

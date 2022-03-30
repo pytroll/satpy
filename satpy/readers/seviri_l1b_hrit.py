@@ -51,6 +51,16 @@ provided through the `Scene` instantiation, eg::
 To see the full list of arguments that can be provided, look into the documentation
 of :class:`HRITMSGFileHandler`.
 
+Compression
+-----------
+
+This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT readers, see
+:class:`satpy.readers.hrit_base.HRITFileHandler`.
+
+This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
+epilogue, and segment files.
+
+
 Example
 -------
 Here is an example how to read the data in satpy:
@@ -77,9 +87,6 @@ Output:
       * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
       * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
     Attributes:
-        satellite_longitude:      0.0
-        satellite_latitude:       0.0
-        satellite_altitude:       35785831.0
         orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
         platform_name:            Meteosat-11
         georef_offset_corrected:  True
@@ -223,17 +230,13 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
-        with utils.unzip_context(filename) as fn:
-            if fn is not None:
-                self.filename = fn
-
-            super(HRITMSGPrologueFileHandler, self).__init__(self.filename, filename_info,
-                                                             filetype_info,
-                                                             (msg_hdr_map,
-                                                              msg_variable_length_headers,
-                                                              msg_text_headers))
-            self.prologue = {}
-            self.read_prologue()
+        super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
+                                                         filetype_info,
+                                                         (msg_hdr_map,
+                                                          msg_variable_length_headers,
+                                                          msg_text_headers))
+        self.prologue = {}
+        self.read_prologue()
 
         service = filename_info['service']
         if service == '':
@@ -243,13 +246,13 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_prologue(self):
         """Read the prologue metadata."""
-        with open(self.filename, "rb") as fp_:
+        with utils.generic_open(self.filename) as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=hrit_prologue, count=1)
+            data = np.frombuffer(fp_.read(hrit_prologue.itemsize), dtype=hrit_prologue, count=1)
             self.prologue.update(recarray2dict(data))
             try:
-                impf = np.fromfile(fp_, dtype=impf_configuration, count=1)[0]
-            except IndexError:
+                impf = np.frombuffer(fp_.read(impf_configuration.itemsize), dtype=impf_configuration, count=1)[0]
+            except ValueError:
                 logger.info('No IMPF configuration field found in prologue.')
             else:
                 self.prologue.update(recarray2dict(impf))
@@ -300,16 +303,13 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
-        with utils.unzip_context(filename) as fn:
-            if fn is not None:
-                self.filename = fn
-            super(HRITMSGEpilogueFileHandler, self).__init__(self.filename, filename_info,
-                                                             filetype_info,
-                                                             (msg_hdr_map,
-                                                              msg_variable_length_headers,
-                                                              msg_text_headers))
-            self.epilogue = {}
-            self.read_epilogue()
+        super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
+                                                         filetype_info,
+                                                         (msg_hdr_map,
+                                                          msg_variable_length_headers,
+                                                          msg_text_headers))
+        self.epilogue = {}
+        self.read_epilogue()
 
         service = filename_info['service']
         if service == '':
@@ -319,9 +319,9 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_epilogue(self):
         """Read the epilogue metadata."""
-        with open(self.filename, "rb") as fp_:
+        with utils.generic_open(self.filename) as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
+            data = np.frombuffer(fp_.read(hrit_epilogue.itemsize), dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
 
     def reduce(self, max_size):
@@ -635,11 +635,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'seviri'
-        res.attrs['satellite_longitude'] = self.mda[
-            'projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = self.mda[
-            'projection_parameters']['SSP_latitude']
-        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
         res.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
             'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],

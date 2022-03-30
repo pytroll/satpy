@@ -502,6 +502,23 @@ def test_dataid_pickle():
     assert did == pickle.loads(pickle.dumps(did))
 
 
+def test_dataid_elements_picklable():
+    """Test individual elements of DataID can be pickled.
+
+    In some cases, like in the base reader classes, the elements of a DataID
+    are extracted and stored in a separate dictionary. This means that the
+    internal/fancy pickle handling of DataID does not play a part.
+
+    """
+    import pickle
+
+    from satpy.tests.utils import make_dataid
+    did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
+    for value in did.values():
+        pickled_value = pickle.loads(pickle.dumps(value))
+        assert value == pickled_value
+
+
 class TestDataQuery:
     """Test case for data queries."""
 

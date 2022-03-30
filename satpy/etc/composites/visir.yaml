@@ -337,43 +337,43 @@ composites:
   cloud_top_phase:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
-    - cpp_phase
-    - cpp_phase_pal
+    - cmic_phase
+    - cmic_phase_pal
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
     compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_reff
-    - cpp_reff_pal
+    - cmic_reff
+    - cmic_reff_pal
     standard_name: cloud_drop_effective_radius
 
   cloud_optical_thickness:
     compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_cot
-    - cpp_cot_pal
+    - cmic_cot
+    - cmic_cot_pal
     standard_name: cloud_optical_thickness
 
   cloud_water_path:
     compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_cwp
-    - cpp_cwp_pal
+    - cmic_cwp
+    - cmic_cwp_pal
     standard_name: cloud_water_path
 
   ice_water_path:
     compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_iwp
-    - cpp_iwp_pal
+    - cmic_iwp
+    - cmic_iwp_pal
     standard_name: ice_water_path
 
   liquid_water_path:
     compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_lwp
-    - cpp_lwp_pal
+    - cmic_lwp
+    - cmic_lwp_pal
     standard_name: liquid_water_path
 
   night_microphysics:
