@@ -144,7 +144,7 @@ product::
               max_value: 273.55
 
 The RGB color values will be interpolated to give a smooth result. This is
-contrary to using the palettize enahncement.
+contrary to using the palettize enhancement.
 
 .. _`standard Trollimage color maps`: https://trollimage.readthedocs.io/en/latest/colormap.html#default-colormaps
 
