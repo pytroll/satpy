@@ -53,6 +53,12 @@ to ``False`` to set these two fill values to the maximum valid value.
                         reader_kwargs={'mask_saturated': False})
     scene.load(['2'])
 
+Note that the saturation fill value can appear in other bands (ex. bands 7-19)
+in addition to band 2. Also, the "can't aggregate" fill value is a generic
+"catch all" for any problems encountered when aggregating high resolution bands
+to lower resolutions. Filling this with the max valid value could replace
+non-saturated invalid pixels with valid values.
+
 Geolocation files
 -----------------
 
@@ -166,26 +172,32 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         return index
 
     def _mask_invalid_or_fill_saturated(self, array, valid_range):
-        """Replace fill values with NaN or replace saturation with max reflectance."""
-        # Fill values:
-        # Data Value Meaning
-        # 65535 Fill Value (includes reflective band data at night mode
-        # and completely missing L1A scans)
-        # 65534 L1A DN is missing within a scan
-        # 65533 Detector is saturated
-        # 65532 Cannot compute zero point DN, e.g., SV is saturated
-        # 65531 Detector is dead (see comments below)
-        # 65530 RSB dn** below the minimum of the scaling range
-        # 65529 TEB radiance or RSB dn** exceeds the maximum of the
-        # scaling range
-        # 65528 Aggregation algorithm failure
-        # 65527 Rotation of Earth view Sector from nominal science
-        # collection position
-        # 65526 Calibration coefficient b1 could not be computed
-        # 65525 Subframe is dead
-        # 65524 Both sides of the PCLW electronics on simultaneously
-        # 65501 - 65523 (reserved for future use)
-        # 65500 NAD closed upper limit
+        """Replace fill values with NaN or replace saturation with max reflectance.
+
+        If the file handler was created with ``mask_saturated`` set to
+        ``True`` then all invalid/fill values are set to NaN. If ``False``
+        then the fill values 65528 and 65533 are set to the maximum valid
+        value. These values correspond to "can't aggregate" and "saturation".
+
+        Fill values:
+
+        * 65535 Fill Value (includes reflective band data at night mode
+          and completely missing L1A scans)
+        * 65534 L1A DN is missing within a scan
+        * 65533 Detector is saturated
+        * 65532 Cannot compute zero point DN, e.g., SV is saturated
+        * 65531 Detector is dead (see comments below)
+        * 65530 RSB dn** below the minimum of the scaling range
+        * 65529 TEB radiance or RSB dn exceeds the maximum of the scaling range
+        * 65528 Aggregation algorithm failure
+        * 65527 Rotation of Earth view Sector from nominal science collection position
+        * 65526 Calibration coefficient b1 could not be computed
+        * 65525 Subframe is dead
+        * 65524 Both sides of the PCLW electronics on simultaneously
+        * 65501 - 65523 (reserved for future use)
+        * 65500 NAD closed upper limit
+
+        """
         valid_min = np.float32(valid_range[0])
         valid_max = np.float32(valid_range[1])
         array = array.where(array >= valid_min)
