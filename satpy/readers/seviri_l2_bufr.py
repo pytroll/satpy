@@ -68,7 +68,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
     **Defining dataset recticifation longitude**
 
-    The BUFR data were originally extracted from a rectified two-dimensinal grid with a given central longitude
+    The BUFR data were originally extracted from a rectified two-dimensional grid with a given central longitude
     (typically the sub-satellite point). This information is not available in the file itself nor the filename (for
     files from the EUMETSAT archive). Also, it cannot be realiably derived from all datasets themselves. Hence, the
     rectification longitude can be defined by the user by providing `rectification_longitude` in the `reader_kwargs`:
