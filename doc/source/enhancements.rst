@@ -93,6 +93,7 @@ lookup
 colorize
 --------
 
+
 The colorize enhancement can be used to map scaled/calibrated physical values
 to colors. One or several `standard Trollimage color maps`_ may be used as in
 the example here::
@@ -106,9 +107,9 @@ the example here::
 
 It is also possible to provide your own custom defined color mapping by
 specifying a list of RGB values and the corresponding min and max values
-between which to apply the colors. This is a common use case for SST imagery,
-as in this example with the EUMETSAT Ocean and Sea Ice SAF (OSISAF) GHRSST
-product::
+between which to apply the colors. This is for instance a common use case for
+Sea Surface Temperature (SST) imagery, as in this example with the EUMETSAT
+Ocean and Sea Ice SAF (OSISAF) GHRSST product::
 
     - name: osisaf_sst
       method: !!python/name:satpy.enhancements.colorize
@@ -145,6 +146,10 @@ product::
 
 The RGB color values will be interpolated to give a smooth result. This is
 contrary to using the palettize enhancement.
+
+The above examples are just two different ways to apply colors to images with
+Satoy. There is a wealth of other options for how to declare a colormap, please
+see :func:`~satpy.enhancements.create_colormap` for more inspiration.
 
 .. _`standard Trollimage color maps`: https://trollimage.readthedocs.io/en/latest/colormap.html#default-colormaps
 
