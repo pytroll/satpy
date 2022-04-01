@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2017, 2022 Satpy developers
+# Copyright (c) 2010-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -71,20 +71,29 @@ class Scene:
                  reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
-        Notice (see parameters list below) that it is possible to load a
-        combination of files or sets of files each requiring their specific
-        reader. For that ``filenames`` needs to be a `dict`, like e.g.::
+        To load data `filenames` and preferably `reader` must be specified::
+
+            scn = Scene(filenames=glob('/path/to/viirs/sdr/files/*'), reader='viirs_sdr')
+
+
+        If ``filenames`` is provided without ``reader`` then the available readers
+        will be searched for a Reader that can support the provided files. This
+        can take a considerable amount of time so it is recommended that
+        ``reader`` always be provided. Note without ``filenames`` the Scene is
+        created with no Readers available requiring Datasets to be added
+        manually::
+
+            scn = Scene()
+            scn['my_dataset'] = Dataset(my_data_array, **my_info)
+
+        Further, notice that it is also possible to load a combination of files
+        or sets of files each requiring their specific reader. For that
+        ``filenames`` needs to be a `dict` (see parameters list below), like
+        e.g.::
 
             scn = Scene(filenames={'nwcsaf-pps_nc': glob('/path/to/nwc/saf/pps/files/*'),
                                    'modis_l1b': glob('/path/to/modis/lvl1/files/*')})
 
-        To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
-        then the available readers will be searched for a Reader that can support the provided files. This can take
-        a considerable amount of time so it is recommended that `reader` always be provided. Note without `filenames`
-        the Scene is created with no Readers available requiring Datasets to be added manually::
-
-            scn = Scene()
-            scn['my_dataset'] = Dataset(my_data_array, **my_info)
 
         Args:
             filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
