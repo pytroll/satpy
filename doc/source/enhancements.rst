@@ -148,7 +148,7 @@ The RGB color values will be interpolated to give a smooth result. This is
 contrary to using the palettize enhancement.
 
 The above examples are just two different ways to apply colors to images with
-Satoy. There is a wealth of other options for how to declare a colormap, please
+Satpy. There is a wealth of other options for how to declare a colormap, please
 see :func:`~satpy.enhancements.create_colormap` for more inspiration.
 
 .. _`standard Trollimage color maps`: https://trollimage.readthedocs.io/en/latest/colormap.html#default-colormaps
