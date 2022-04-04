@@ -103,8 +103,7 @@ class NCOLCIBase(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the olci reader base."""
-        super(NCOLCIBase, self).__init__(filename, filename_info,
-                                         filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
         self._engine = engine
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
@@ -161,7 +160,7 @@ class NCOLCIChannelBase(NCOLCIBase):
 
     def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the file handler."""
-        super().__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info, engine)
         self.channel = filename_info.get('dataset_name')
 
 
@@ -171,7 +170,7 @@ class NCOLCI1B(NCOLCIChannelBase):
     def __init__(self, filename, filename_info, filetype_info, cal,
                  engine=None):
         """Init the file handler."""
-        super().__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info, engine)
         self.cal = cal.nc
 
     @staticmethod
