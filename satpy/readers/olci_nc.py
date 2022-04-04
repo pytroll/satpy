@@ -276,7 +276,7 @@ class NCOLCILowResData(NCOLCIBase):
         return [xr.DataArray(da.from_array(x, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                              dims=['y', 'x']) for x in int_data]
 
-    @cached_property
+    @property
     def _need_interpolation(self):
         return (self.c_step != 1 or self.l_step != 1)
 
