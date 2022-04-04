@@ -299,6 +299,20 @@ class TestHelpers(unittest.TestCase):
         new_fname = hf.unzip_file(filename)
         self.assertIsNone(new_fname)
 
+    @mock.patch('bz2.BZ2File')
+    def test_generic_open(self, bz2_mock):
+        """Test the bz2 file unzipping context manager."""
+        mock_bz2_open = mock.MagicMock()
+        mock_bz2_open.read.return_value = b'TEST'
+        bz2_mock.return_value = mock_bz2_open
+
+        filename = 'tester.DAT.bz2'
+        with hf.generic_open(filename) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
+
+        assert mock_bz2_open.read.called
+
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
