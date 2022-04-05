@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
-import pickle
+import pickle  # nosec B403
 import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
@@ -739,7 +739,7 @@ class FSFile(os.PathLike):
         try:
             fshash = hash(self._fs)
         except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
-            fshash = hash(pickle.dumps(self._fs))
+            fshash = hash(pickle.dumps(self._fs))  # nosec B403
         return hash(self._file) ^ fshash
 
 
