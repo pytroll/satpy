@@ -695,15 +695,15 @@ class FSFile(os.PathLike):
         """Representation of the object."""
         return '<FSFile "' + str(self._file) + '">'
 
-    def open(self):
+    def open(self, *args, **kwargs):
         """Open the file.
 
         This is read-only.
         """
         try:
-            return self._fs.open(self._file)
+            return self._fs.open(self._file, *args, **kwargs)
         except AttributeError:
-            return open(self._file)
+            return open(self._file, *args, **kwargs)
 
     def __lt__(self, other):
         """Implement ordering.
