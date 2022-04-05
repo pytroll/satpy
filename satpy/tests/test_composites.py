@@ -459,7 +459,7 @@ class TestSandwichCompositor(unittest.TestCase):
         # Test RGBA
         bands = ['R', 'G', 'B', 'A']
         rgba_arr = da.from_array(np.random.random((4, 2, 2)), chunks=2)
-        rgba = xr.DataArray(rgba_arr, dims=['bands', 'y', 'x'], 
+        rgba = xr.DataArray(rgba_arr, dims=['bands', 'y', 'x'],
                             coords={'bands': bands})
         lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=['y', 'x'])
@@ -473,11 +473,11 @@ class TestSandwichCompositor(unittest.TestCase):
         for band in rgba:
             if band.bands != 'A':
                 # Check compositor has modified this band
-                np.testing.assert_allclose(res.loc[band.bands].to_numpy(), 
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
                                             band.to_numpy() * lum_arr / 100.)
             else:
                 # Check Alpha band remains intact
-                np.testing.assert_allclose(res.loc[band.bands].to_numpy(), 
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
                                             band.to_numpy())
         # make sure the compositor doesn't modify the input data
         np.testing.assert_allclose(lum.values, lum_arr.compute())
