@@ -456,20 +456,26 @@ class TestSandwichCompositor(unittest.TestCase):
         """Test luminance sharpening compositor."""
         from satpy.composites import SandwichCompositor
 
-        rgb_arr = da.from_array(np.random.random((3, 2, 2)), chunks=2)
-        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'])
+        # Test RGBA
+        bands = ['R', 'G', 'B', 'A']
+        rgba_arr = da.from_array(np.random.random((4, 2, 2)), chunks=2)
+        rgba = xr.DataArray(rgba_arr, dims=['bands', 'y', 'x'], coords={'bands': bands})
         lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=['y', 'x'])
 
         # Make enhance2dataset return unmodified dataset
-        e2d.return_value = rgb
+        e2d.return_value = rgba
         comp = SandwichCompositor(name='test')
 
-        res = comp([lum, rgb])
+        res = comp([lum, rgba])
 
-        for i in range(3):
-            np.testing.assert_allclose(res.data[i, :, :],
-                                       rgb_arr[i, :, :] * lum_arr / 100.)
+        for band in rgba:
+            if band.bands != 'A':
+                # Check compositor has modified this band
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(), band.to_numpy() * lum_arr / 100.)
+            else:
+                # Check Alpha band remains intact
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(), band.to_numpy())
         # make sure the compositor doesn't modify the input data
         np.testing.assert_allclose(lum.values, lum_arr.compute())
 
