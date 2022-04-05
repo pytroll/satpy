@@ -296,7 +296,10 @@ class generic_open():
         if str(self.filename).endswith('.bz2'):
             self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
         else:
-            self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
+            if hasattr(self.filename, "open"):
+                self.fp = self.filename.open(*self.open_args, **self.open_kwargs)
+            else:
+                self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
 
         return self.fp
 
