@@ -102,7 +102,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
 
     def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, **kwargs):
         """Init the file handler."""
-        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
+        super().__init__(self, filename, filename_info, filetype_info, **kwargs)
         self._mask_saturated = mask_saturated
 
         ds = self.metadata['INVENTORYMETADATA'][
