@@ -246,7 +246,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_prologue(self):
         """Read the prologue metadata."""
-        with utils.generic_open(self.filename) as fp_:
+        with utils.generic_open(self.filename, mode="rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.frombuffer(fp_.read(hrit_prologue.itemsize), dtype=hrit_prologue, count=1)
             self.prologue.update(recarray2dict(data))
@@ -319,7 +319,7 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_epilogue(self):
         """Read the epilogue metadata."""
-        with utils.generic_open(self.filename) as fp_:
+        with utils.generic_open(self.filename, mode="rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.frombuffer(fp_.read(hrit_epilogue.itemsize), dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
