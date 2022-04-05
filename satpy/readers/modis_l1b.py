@@ -113,7 +113,10 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         """Read data from file and return the corresponding projectables."""
         if self.resolution != key['resolution']:
             return
-        subdata, uncertainty, var_attrs, band_index = self._get_band_data_uncertainty_attrs_index(key["name"])
+        var_name, band_index = self._get_band_variable_name_and_index(key["name"])
+        subdata = self.sd.select(var_name)
+        var_attrs = subdata.attributes()
+        uncertainty = self.sd.select(var_name + "_Uncert_Indexes")
         array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[band_index, :, :],
                              dims=['y', 'x']).astype(np.float32)
         valid_range = var_attrs['valid_range']
@@ -152,18 +155,17 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         self._add_satpy_metadata(key, projectable)
         return projectable
 
-    def _get_band_data_uncertainty_attrs_index(self, band_name):
-        datasets = self.res_to_possible_variable_names[self.resolution]
-        for dataset in datasets:
-            subdata = self.sd.select(dataset)
+    def _get_band_variable_name_and_index(self, band_name):
+        variable_names = self.res_to_possible_variable_names[self.resolution]
+        for variable_name in variable_names:
+            subdata = self.sd.select(variable_name)
             var_attrs = subdata.attributes()
             try:
                 band_index = self._get_band_index(var_attrs, band_name)
             except ValueError:
                 # can't find band in list of bands
                 continue
-            uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-            return subdata, uncertainty, var_attrs, band_index
+            return variable_name, band_index
 
     def _get_band_index(self, var_attrs, band_name):
         """Get the relative indices of the desired channel."""
