@@ -474,11 +474,11 @@ class TestSandwichCompositor(unittest.TestCase):
             if band.bands != 'A':
                 # Check compositor has modified this band
                 np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
-                                            band.to_numpy() * lum_arr / 100.)
+                                           band.to_numpy() * lum_arr / 100.)
             else:
                 # Check Alpha band remains intact
                 np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
-                                            band.to_numpy())
+                                           band.to_numpy())
         # make sure the compositor doesn't modify the input data
         np.testing.assert_allclose(lum.values, lum_arr.compute())
 
