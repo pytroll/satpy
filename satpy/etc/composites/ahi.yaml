@@ -6,7 +6,7 @@ modifiers:
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
-    - wavelength: B03
+    - name: B03
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
