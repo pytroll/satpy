@@ -120,7 +120,11 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[band_index, :, :],
                              dims=['y', 'x']).astype(np.float32)
         valid_range = var_attrs['valid_range']
-        array = self._mask_invalid_or_fill_saturated(array, valid_range)
+        valid_min = np.float32(valid_range[0])
+        valid_max = np.float32(valid_range[1])
+        if not self._mask_saturated:
+            array = self._fill_saturated(array, valid_max)
+        array = self._mask_invalid(array, valid_min, valid_max)
         array = self._mask_uncertain_pixels(array, uncertainty, band_index)
         projectable = self._calibrate_data(key, info, array, var_attrs, band_index)
 
@@ -173,8 +177,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         index = band_names.index(band_name)
         return index
 
-    def _mask_invalid_or_fill_saturated(self, array, valid_range):
-        """Replace fill values with NaN or replace saturation with max reflectance.
+    def _fill_saturated(self, array, valid_max):
+        """Replace saturation-related values with max reflectance.
 
         If the file handler was created with ``mask_saturated`` set to
         ``True`` then all invalid/fill values are set to NaN. If ``False``
@@ -200,15 +204,11 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         * 65500 NAD closed upper limit
 
         """
-        valid_min = np.float32(valid_range[0])
-        valid_max = np.float32(valid_range[1])
-        array = array.where(array >= valid_min)
-        if self._mask_saturated:
-            array = array.where(array <= valid_max)
-        else:
-            array = array.where((array != 65533) & (array != 65528), valid_max)
-            array = array.where(array <= valid_max)
-        return array
+        return array.where((array != 65533) & (array != 65528), valid_max)
+
+    def _mask_invalid(self, array, valid_min, valid_max):
+        """Replace fill values with NaN."""
+        return array.where((array >= valid_min) & (array <= valid_max))
 
     def _mask_uncertain_pixels(self, array, uncertainty, band_index):
         if not self._mask_saturated:
