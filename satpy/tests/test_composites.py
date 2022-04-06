@@ -448,29 +448,31 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.data, 0.0, atol=1e-9)
 
 
-class TestSandwichCompositor(unittest.TestCase):
+class TestSandwichCompositor:
     """Test sandwich compositor."""
 
+    # Test RGB and RGBA
+    @pytest.mark.parametrize("input_shape,bands", 
+                             [((3, 2, 2), ['R', 'G', 'B']),
+                             ((4, 2, 2), ['R', 'G', 'B', 'A'])])  
     @mock.patch('satpy.composites.enhance2dataset')
-    def test_compositor(self, e2d):
+    def test_compositor(self, e2d, input_shape, bands):
         """Test luminance sharpening compositor."""
         from satpy.composites import SandwichCompositor
 
-        # Test RGBA
-        bands = ['R', 'G', 'B', 'A']
-        rgba_arr = da.from_array(np.random.random((4, 2, 2)), chunks=2)
-        rgba = xr.DataArray(rgba_arr, dims=['bands', 'y', 'x'],
+        rgb_arr = da.from_array(np.random.random(input_shape), chunks=2)
+        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'],
                             coords={'bands': bands})
         lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=['y', 'x'])
 
         # Make enhance2dataset return unmodified dataset
-        e2d.return_value = rgba
+        e2d.return_value = rgb
         comp = SandwichCompositor(name='test')
 
-        res = comp([lum, rgba])
+        res = comp([lum, rgb])
 
-        for band in rgba:
+        for band in rgb:
             if band.bands != 'A':
                 # Check compositor has modified this band
                 np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
