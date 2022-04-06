@@ -45,7 +45,7 @@ except ImportError:
 
 logger = logging.getLogger('SeviriL2Bufr')
 
-data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
+data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0455', 'name': '09'},
                     57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
@@ -66,9 +66,22 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
                             reader='seviri_l2_bufr',
                             reader_kwargs={'with_area_definition': False})
 
+    **Defining dataset recticifation longitude**
+
+    The BUFR data were originally extracted from a rectified two-dimensional grid with a given central longitude
+    (typically the sub-satellite point). This information is not available in the file itself nor the filename (for
+    files from the EUMETSAT archive). Also, it cannot be reliably derived from all datasets themselves. Hence, the
+    rectification longitude can be defined by the user by providing `rectification_longitude` in the `reader_kwargs`:
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l2_bufr',
+                            reader_kwargs={'rectification_longitude': 0.0})
+
+    If not done, default values applicable to the operational grids of the respective SEVIRI instruments will be used.
     """
 
-    def __init__(self, filename, filename_info, filetype_info, with_area_definition=False, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info, with_area_definition=False,
+                 rectification_longitude='default', **kwargs):
         """Initialise the file handler for SEVIRI L2 BUFR data."""
         super(SeviriL2BufrFileHandler, self).__init__(filename,
                                                       filename_info,
@@ -86,6 +99,9 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             self.mpef_header['NominalTime'] = buf_start_time
             self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
             self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
+
+        if rectification_longitude != 'default':
+            self.mpef_header['RectificationLongitude'] = f'E{int(rectification_longitude * 10):04d}'
 
         self.with_adef = with_area_definition
         self.seg_size = seg_size_dict[filetype_info['file_type']]
