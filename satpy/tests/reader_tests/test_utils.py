@@ -318,7 +318,7 @@ class TestHelpers(unittest.TestCase):
     def test_generic_open_FSFile_MemoryFileSystem(self):
         """Test the generic_open method with FSFile in MemoryFileSystem."""
         mem_fs = MemoryFileSystem()
-        mem_file = MemoryFile(fs=mem_fs, path="test.DAT", data=b"TEST")
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
         mem_file.commit()
         fsf = FSFile(mem_file)
         with hf.generic_open(fsf) as file_object:
