@@ -200,7 +200,7 @@ def get_sub_area(area, xslice, yslice):
 
 def unzip_file(filename):
     """Unzip the file if file is bzipped = ending with 'bz2'."""
-    if str(filename).endswith('bz2'):
+    if os.fspath(filename).endswith('bz2'):
         fdn, tmpfilepath = tempfile.mkstemp()
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # try pbzip2
@@ -293,7 +293,7 @@ class generic_open():
 
     def __enter__(self):
         """Return a file-like object."""
-        if str(self.filename).endswith('.bz2'):
+        if os.fspath(self.filename).endswith('.bz2'):
             self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
         else:
             if hasattr(self.filename, "open"):
