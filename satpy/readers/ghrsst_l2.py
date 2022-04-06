@@ -32,7 +32,7 @@ class GHRSSTL2FileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Initialize the file handler for GHRSST L2 netCDF data."""
-        super(GHRSSTL2FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         if filename.endswith('tar'):
             with tempfile.TemporaryDirectory() as tempdir:
