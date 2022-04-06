@@ -448,16 +448,25 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.data, 0.0, atol=1e-9)
 
 
-class TestSandwichCompositor(unittest.TestCase):
+class TestSandwichCompositor:
     """Test sandwich compositor."""
 
+    # Test RGB and RGBA
+    @pytest.mark.parametrize(
+        "input_shape,bands",
+        [
+            ((3, 2, 2), ['R', 'G', 'B']),
+            ((4, 2, 2), ['R', 'G', 'B', 'A'])
+        ]
+    )
     @mock.patch('satpy.composites.enhance2dataset')
-    def test_compositor(self, e2d):
+    def test_compositor(self, e2d, input_shape, bands):
         """Test luminance sharpening compositor."""
         from satpy.composites import SandwichCompositor
 
-        rgb_arr = da.from_array(np.random.random((3, 2, 2)), chunks=2)
-        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'])
+        rgb_arr = da.from_array(np.random.random(input_shape), chunks=2)
+        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'],
+                           coords={'bands': bands})
         lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=['y', 'x'])
 
@@ -467,9 +476,15 @@ class TestSandwichCompositor(unittest.TestCase):
 
         res = comp([lum, rgb])
 
-        for i in range(3):
-            np.testing.assert_allclose(res.data[i, :, :],
-                                       rgb_arr[i, :, :] * lum_arr / 100.)
+        for band in rgb:
+            if band.bands != 'A':
+                # Check compositor has modified this band
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
+                                           band.to_numpy() * lum_arr / 100.)
+            else:
+                # Check Alpha band remains intact
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
+                                           band.to_numpy())
         # make sure the compositor doesn't modify the input data
         np.testing.assert_allclose(lum.values, lum_arr.compute())
 
