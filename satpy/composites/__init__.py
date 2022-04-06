@@ -1106,7 +1106,8 @@ class SandwichCompositor(GenericCompositor):
 
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
-        rgb_img *= luminance
+        # Ignore alpha band when applying luminance
+        rgb_img = rgb_img.where(rgb_img.bands == 'A', rgb_img * luminance)
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
