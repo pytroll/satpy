@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 - 2020, 2022 Satpy developers
+# Copyright (c) 2017 - 2022 Satpy developers
 #
 # This file is part of Satpy.
 #
@@ -18,7 +18,7 @@
 
 import os
 import tarfile
-import tempfile
+from contextlib import suppress
 from datetime import datetime
 
 import xarray as xr
@@ -34,19 +34,17 @@ class GHRSSTL2FileHandler(BaseFileHandler):
         """Initialize the file handler for GHRSST L2 netCDF data."""
         super().__init__(filename, filename_info, filetype_info)
 
-        if filename.endswith('tar'):
-            with tempfile.TemporaryDirectory() as tempdir:
-                with tarfile.open(name=filename, mode='r') as tf:
-                    sst_filename = next((name for name in tf.getnames()
-                                         if name.endswith('nc') and 'GHRSST-SSTskin' in name))
-                    tf.extract(sst_filename, tempdir)
-                    fullpath = os.path.join(tempdir, sst_filename)
-                    self.nc = xr.open_dataset(fullpath,
-                                              decode_cf=True,
-                                              mask_and_scale=True,
-                                              engine=engine,
-                                              chunks={'ni': CHUNK_SIZE,
-                                                      'nj': CHUNK_SIZE})
+        if os.fspath(filename).endswith('tar'):
+            self._tarfile = tarfile.open(name=filename, mode='r')
+            sst_filename = next((name for name in self._tarfile.getnames()
+                                 if name.endswith('nc') and 'GHRSST-SSTskin' in name))
+            file_obj = self._tarfile.extractfile(sst_filename)
+            self.nc = xr.open_dataset(file_obj,
+                                      decode_cf=True,
+                                      mask_and_scale=True,
+                                      engine=engine,
+                                      chunks={'ni': CHUNK_SIZE,
+                                              'nj': CHUNK_SIZE})
         else:
             self.nc = xr.open_dataset(filename,
                                       decode_cf=True,
@@ -80,3 +78,8 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     def sensor(self):
         """Get the sensor name."""
         return self.nc.attrs['sensor'].lower()
+
+    def __del__(self):
+        """Close the tarfile object."""
+        with suppress(AttributeError):
+            self._tarfile.close()
