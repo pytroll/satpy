@@ -452,9 +452,9 @@ class TestSandwichCompositor:
     """Test sandwich compositor."""
 
     # Test RGB and RGBA
-    @pytest.mark.parametrize("input_shape,bands", 
-                             [((3, 2, 2), ['R', 'G', 'B']),
-                             ((4, 2, 2), ['R', 'G', 'B', 'A'])])  
+    @pytest.mark.parametrize("input_shape,bands",
+                              [((3, 2, 2), ['R', 'G', 'B']),
+                              ((4, 2, 2), ['R', 'G', 'B', 'A'])])
     @mock.patch('satpy.composites.enhance2dataset')
     def test_compositor(self, e2d, input_shape, bands):
         """Test luminance sharpening compositor."""
@@ -462,7 +462,7 @@ class TestSandwichCompositor:
 
         rgb_arr = da.from_array(np.random.random(input_shape), chunks=2)
         rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'],
-                            coords={'bands': bands})
+                           coords={'bands': bands})
         lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=['y', 'x'])
 
