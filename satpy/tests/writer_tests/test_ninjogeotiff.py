@@ -904,3 +904,17 @@ def test_create_unknown_tags(test_image_small_arctic_P):
             PhysicValue="N/A",
             SatelliteNameID=6500014,
             Locatie="Hozomeen")
+
+
+def test_str_ids(test_image_small_arctic_P):
+    """Test that channel and satellit IDs can be str."""
+    from satpy.writers.ninjogeotiff import NinJoTagGenerator
+    NinJoTagGenerator(
+        test_image_small_arctic_P,
+        42,
+        "quorn.tif",
+        ChannelID="la manche",
+        DataType="GPRN",
+        PhysicUnit="N/A",
+        PhysicValue="N/A",
+        SatelliteNameID="trollsat")
