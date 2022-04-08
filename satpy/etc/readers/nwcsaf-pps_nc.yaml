@@ -233,15 +233,15 @@ datasets:
 
   cmic_reff:
     name: cmic_reff
-    file_key: reff
-    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    file_key: [cre, reff]
+    file_type: [nc_nwcsaf_cmic, nc_nwcsaf_cpp]
     coordinates: [lon, lat]
 
   cmic_reff_pal:
-    name: [cmic_reff_pal, cpp_reff_pal]
-    file_key: reff_pal
-    scale_offset_dataset: reff
-    file_type: [nc_nwcsaf_cpp, nc_nwcsaf_cmic]
+    name: [cmic_reff_pal, cmic_cre_pal, cpp_reff_pal]
+    file_key: [cre_pal, reff_pal]
+    scale_offset_dataset: [reff, cre]
+    file_type: [nc_nwcsaf_cmic, nc_nwcsaf_cpp]
 
   cmic_cot:
     name: cmic_cot

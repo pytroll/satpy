@@ -149,8 +149,7 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
         assert(res.attrs['name'] == 'solar_zenith_angle')
 
     @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__getitem__')
-    @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__init__')
-    def test_get_full_angles_twice(self, mock__init__, mock__getitem__):
+    def test_get_full_angles_twice(self, mock__getitem__):
         """Test get full angles twice."""
         geotiemock = mock.Mock()
         metop20kmto1km = geotiemock.metop20kmto1km
@@ -162,9 +161,13 @@ class TestEPSL1B(BaseTestCaseEPSL1B):
                     "ANGULAR_RELATIONS_LAST": np.zeros((7, 4)),
                     "NAV_SAMPLE_RATE": 20}
             return data[key]
-        mock__init__.return_value = None
         mock__getitem__.side_effect = mock_getitem
-        avhrr_reader = satpy.readers.eps_l1b.EPSAVHRRFile()
+
+        avhrr_reader = satpy.readers.eps_l1b.EPSAVHRRFile(
+            filename="foo",
+            filename_info={"start_time": "foo", "end_time": "bar"},
+            filetype_info={"foo": "bar"}
+        )
         avhrr_reader.scanlines = 7
         avhrr_reader.pixels = 2048
 

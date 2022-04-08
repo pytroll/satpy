@@ -226,6 +226,32 @@ class TestNcNWCSAF(unittest.TestCase):
         res_cmic = self.fh.get_dataset(dsid_cmic, info_cmic)
         np.testing.assert_allclose(res_cpp, res_cmic)
 
+    def test_get_dataset_can_handle_file_key_list(self):
+        """Test that get_dataset() can handle a list of file_keys."""
+        dsid_cpp = {'name': 'cpp_reff'}
+        dsid_cmic = {'name': 'cmic_cre'}
+        scale = 4
+        offset = 8
+        data_array = xr.DataArray(np.ones((5, 10)), attrs={"scale_factor": np.array(scale, dtype=float),
+                                                           "add_offset": np.array(offset, dtype=float)})
+
+        self.fh.nc["cpp_reff"] = data_array
+        self.fh.nc["cmic_cre"] = data_array
+        self.fh.file_key_prefix = 'cpp_'
+
+        info_cpp = dict(name="cmic_reff",
+                        file_key=['reff', 'cre'],
+                        file_type="nc_nwcsaf_cpp")
+
+        res_cpp = self.fh.get_dataset(dsid_cpp, info_cpp)
+
+        info_cmic = dict(name="cmic_reff",
+                         file_key=['reff', 'cre'],
+                         file_type="nc_nwcsaf_cpp")
+
+        res_cmic = self.fh.get_dataset(dsid_cmic, info_cmic)
+        np.testing.assert_allclose(res_cpp, res_cmic)
+
 
 class TestNcNWCSAFFileKeyPrefix(unittest.TestCase):
     """Test the NcNWCSAF reader when using a file key prefix."""
