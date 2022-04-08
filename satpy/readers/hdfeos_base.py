@@ -91,7 +91,7 @@ def _find_and_run_interpolation(interpolation_functions, src_resolution, dst_res
 class HDFEOSBaseFileReader(BaseFileHandler):
     """Base file handler for HDF EOS data for both L1b and L2 products."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the base reader."""
         BaseFileHandler.__init__(self, filename, filename_info, filetype_info)
         try:
@@ -291,9 +291,9 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         'solar_zenith_angle': ('SolarZenith', 'Solar_Zenith'),
     }
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geographical reader."""
-        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
         self.cache = {}
 
     @staticmethod
