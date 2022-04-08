@@ -188,7 +188,7 @@ class HRITFileHandler(BaseFileHandler):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
 
-        with utils.generic_open(self.filename, mode="rb") as fp:
+        with utils.generic_open(self.filename, mode='rb') as fp:
             total_header_length = 16
             while fp.tell() < total_header_length:
                 hdr_id = get_header_id(fp)
