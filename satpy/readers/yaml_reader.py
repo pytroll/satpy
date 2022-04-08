@@ -1010,6 +1010,11 @@ def _set_orientation(dataset, upper_right_corner):
                     "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
         return dataset
 
+    if isinstance(dataset.attrs['area'], SwathDefinition):
+        logger.info("Dataset {} is in a SwathDefinition "
+                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+        return dataset
+
     projection_type = _get_projection_type(dataset.attrs['area'])
     accepted_geos_proj_types = ['Geostationary Satellite (Sweep Y)', 'Geostationary Satellite (Sweep X)']
     if projection_type not in accepted_geos_proj_types:

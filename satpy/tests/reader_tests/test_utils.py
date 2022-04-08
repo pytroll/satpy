@@ -299,6 +299,62 @@ class TestHelpers(unittest.TestCase):
         new_fname = hf.unzip_file(filename)
         self.assertIsNone(new_fname)
 
+    @mock.patch('bz2.BZ2File')
+    def test_generic_open(self, bz2_mock):
+        """Test the bz2 file unzipping context manager."""
+        mock_bz2_open = mock.MagicMock()
+        mock_bz2_open.read.return_value = b'TEST'
+        bz2_mock.return_value = mock_bz2_open
+
+        filename = 'tester.DAT.bz2'
+        with hf.generic_open(filename) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
+
+        assert mock_bz2_open.read.called
+
+    def test_generic_open_text(self):
+        """Test the bz2 file unzipping context manager using dummy text data."""
+        dummy_text_data = 'Hello'
+        dummy_text_filename = 'dummy.txt'
+        with open(dummy_text_filename, 'w') as f:
+            f.write(dummy_text_data)
+
+        with hf.generic_open(dummy_text_filename, 'r') as f:
+            read_text_data = f.read()
+
+        assert read_text_data == dummy_text_data
+
+        dummy_text_filename = 'dummy.txt.bz2'
+        with hf.bz2.open(dummy_text_filename, 'wt') as f:
+            f.write(dummy_text_data)
+
+        with hf.generic_open(dummy_text_filename, 'rt') as f:
+            read_text_data = f.read()
+
+        assert read_text_data == dummy_text_data
+
+    def test_generic_open_binary(self):
+        """Test the bz2 file unzipping context manager using dummy binary data."""
+        dummy_binary_data = b'Hello'
+        dummy_binary_filename = 'dummy.dat'
+        with open(dummy_binary_filename, 'wb') as f:
+            f.write(dummy_binary_data)
+
+        with hf.generic_open(dummy_binary_filename, 'rb') as f:
+            read_binary_data = f.read()
+
+        assert read_binary_data == dummy_binary_data
+
+        dummy_binary_filename = 'dummy.dat.bz2'
+        with hf.bz2.open(dummy_binary_filename, 'wb') as f:
+            f.write(dummy_binary_data)
+
+        with hf.generic_open(dummy_binary_filename, 'rb') as f:
+            read_binary_data = f.read()
+
+        assert read_binary_data == dummy_binary_data
+
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')
     def test_pro_reading_gets_unzipped_file(self, fake_unzip_file, fake_remove):
