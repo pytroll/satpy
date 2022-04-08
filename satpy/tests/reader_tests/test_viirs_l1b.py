@@ -69,7 +69,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             '/attr/time_coverage_start': dt.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             '/attr/time_coverage_end': (dt + timedelta(minutes=6)).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             '/attr/orbit_number': 26384,
-            '/attr/instrument': 'viirs',
+            '/attr/instrument': 'VIIRS',
             '/attr/platform': 'Suomi-NPP',
         }
         self._fill_contents_with_default_data(file_content, file_type)
@@ -204,6 +204,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances."""
@@ -232,6 +233,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances."""
@@ -266,6 +268,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset."""
@@ -284,6 +287,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_dnb_angles(self):
         """Test loading all DNB angle datasets."""
@@ -307,3 +311,4 @@ class TestVIIRSL1BReader(unittest.TestCase):
             self.assertEqual(v.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
             self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['sensor'] == "viirs"

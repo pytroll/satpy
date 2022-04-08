@@ -72,9 +72,8 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         """Get sensor name."""
         res = self['/attr/instrument']
         if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+            res = str(res.astype(str))
+        return res.lower()
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
         """Adjust scaling factors."""
