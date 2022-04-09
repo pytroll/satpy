@@ -37,7 +37,7 @@ class GHRSSTL2FileHandler(BaseFileHandler):
         if os.fspath(filename).endswith('tar'):
             self._tarfile = tarfile.open(name=filename, mode='r')
             sst_filename = next((name for name in self._tarfile.getnames()
-                                 if name.endswith('nc') and 'GHRSST-SSTskin' in name))
+                                 if self._is_sst_file(name)))
             file_obj = self._tarfile.extractfile(sst_filename)
             self.nc = xr.open_dataset(file_obj,
                                       decode_cf=True,
@@ -58,6 +58,13 @@ class GHRSSTL2FileHandler(BaseFileHandler):
             self.nc.start_time, '%Y%m%dT%H%M%SZ')
         self.filename_info['end_time'] = datetime.strptime(
             self.nc.stop_time, '%Y%m%dT%H%M%SZ')
+
+    @staticmethod
+    def _is_sst_file(name):
+        """Check if file in the tar archive is a valid SST file."""
+        if name.endswith('nc') and 'GHRSST-SSTskin' in name:
+            return True
+        return False
 
     def get_dataset(self, key, info):
         """Get any available dataset."""
