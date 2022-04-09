@@ -318,11 +318,11 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['area'] == area
         assert res.attrs['ancillary_variables'] == []
         data = res.values
-        if abs(np.mean(data) - 38.734365117099145) >= 1e-10:
-            raise AssertionError('{} is not within {} of {}'.format(np.mean(data), 1e-10, 38.734365117099145))
+        if abs(np.mean(data) - 41.43091604185072) >= 1e-10:
+            raise AssertionError('{} is not within {} of {}'.format(np.mean(data), 1e-10, 41.43091604185072))
         assert data.shape == (5, 10)
         unique = np.unique(data)
-        np.testing.assert_allclose(unique, [24.641586, 50.431692, 69.315375])
+        np.testing.assert_allclose(unique, [25.436701, 52.932216, 77.912262])
 
     def test_reflectance_corrector_bad_prereqs(self):
         """Test ReflectanceCorrector modifier with wrong number of inputs."""

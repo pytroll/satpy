@@ -17,8 +17,13 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared utilities for correcting reflectance data using the 'crefl' algorithm.
 
-Original code written by Ralph Kuehn with modifications by David Hoese and Martin Raspaud.
-Ralph's code was originally based on the C crefl code distributed for VIIRS and MODIS.
+Original code written by Ralph Kuehn with modifications by David Hoese and
+Martin Raspaud. Ralph's code was originally based on the C crefl code
+distributed for VIIRS and MODIS. Modifications include group per-band
+coefficients into a single array to separate (as much as possible) the code
+differences between the different methods. Other modifications are mostly
+to make the code more dask friendly.
+
 """
 import logging
 
@@ -28,14 +33,10 @@ import xarray as xr
 
 LOG = logging.getLogger(__name__)
 
-bUseV171 = False
-
-if bUseV171:
-    UO3 = 0.319
-    UH2O = 2.93
-else:
-    UO3 = 0.285
-    UH2O = 2.93
+UO3_MODIS = 0.319
+UH2O_MODIS = 2.93
+UO3_VIIRS = 0.285
+UH2O_VIIRS = 2.93
 
 MAXSOLZ = 86.5
 MAXAIRMASS = 18
@@ -68,49 +69,46 @@ def _csalbr(tau):
             (4.0 + 2.0 * tau) + 2.0 * np.exp(-tau)) / (4.0 + 3.0 * tau)
 
 
-# From crefl.1.7.1
-if bUseV171:
-    aH2O = np.array([-5.60723, -5.25251, 0, 0, -6.29824, -7.70944, -3.91877, 0,
-                     0, 0, 0, 0, 0, 0, 0, 0])
-    bH2O = np.array([0.820175, 0.725159, 0, 0, 0.865732, 0.966947, 0.745342, 0,
-                     0, 0, 0, 0, 0, 0, 0, 0])
-    # const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0,
-    # 0, 0, 0.00244, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119,
-    # 0.00263};*/
-    aO3 = np.array(
-        [0.0715289, 0, 0.00743232, 0.089691, 0, 0, 0, 0.001, 0.00383, 0.0225,
-         0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263])
-    # const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,
-    # 0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994,
-    # 0.0446, 0.0416, 0.0286, 0.0155};*/
-    taur0 = np.array(
-        [0.05100, 0.01631, 0.19325, 0.09536, 0.00366, 0.00123, 0.00043, 0.3139,
-         0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155])
-else:
-    # From polar2grid cviirs.c
-    # This number is what Ralph says "looks good"
-    rg_fudge = .55
-    aH2O = np.array(
-        [0.000406601, 0.0015933, 0, 1.78644e-05, 0.00296457, 0.000617252,
-         0.000996563, 0.00222253, 0.00094005, 0.000563288, 0, 0, 0, 0, 0, 0,
-         2.4111e-003, 7.8454e-003*rg_fudge, 7.9258e-3, 9.3392e-003, 2.53e-2])
-    bH2O = np.array([0.812659, 0.832931, 1., 0.8677850, 0.806816, 0.944958,
-                     0.78812, 0.791204, 0.900564, 0.942907, 0, 0, 0, 0, 0, 0,
-                     # These are actually aO2 values for abi calculations
-                     1.2360e-003, 3.7296e-003, 177.7161e-006, 10.4899e-003, 1.63e-2])
-    # /*const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0, 0, 0, 0.00244,
-    # 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263};*/
-    aO3 = np.array([0.0433461, 0.0, 0.0178299, 0.0853012, 0, 0, 0, 0.0813531,
-                    0, 0, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263,
-                    4.2869e-003, 25.6509e-003*rg_fudge, 802.4319e-006, 0.0000e+000, 2e-5])
-    # /*const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,  0.0036,  0.0012,  0.0004,
-    # 0.3109, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446, 0.0416, 0.0286, 0.0155};*/
-    taur0 = np.array([0.04350, 0.01582, 0.16176, 0.09740, 0.00369, 0.00132,
-                      0.00033, 0.05373, 0.01561, 0.00129, 0.1131, 0.0994,
-                      0.0446, 0.0416, 0.0286, 0.0155,
-                      184.7200e-003, 52.3490e-003, 15.8450e-003, 1.3074e-003, 311.2900e-006])
-    # add last 5 from bH2O to aO2
-    aO2 = 0
+# Values from crefl 1.7.1
+rg_fudge = .55  # This number is what Ralph says "looks good" for ABI/AHI
+aH2O = np.array([
+    # MODIS
+    -5.60723, -5.25251, 0, 0, -6.29824, -7.70944, -3.91877, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    # VIIRS
+    0.000406601, 0.0015933, 0, 1.78644e-05, 0.00296457, 0.000617252, 0.000996563, 0.00222253, 0.00094005, 0.000563288,
+    0, 0, 0, 0, 0, 0,
+    # ABI/AHI
+    2.4111e-003, 7.8454e-003*rg_fudge, 7.9258e-3, 9.3392e-003, 2.53e-2])
+bH2O = np.array([
+    # MODIS
+    0.820175, 0.725159, 0, 0, 0.865732, 0.966947, 0.745342, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    # VIIRS
+    0.812659, 0.832931, 1., 0.8677850, 0.806816, 0.944958, 0.78812, 0.791204, 0.900564, 0.942907, 0, 0, 0, 0, 0, 0,
+    # ABI/AHI - These are actually aO2 values for abi calculations
+    1.2360e-003, 3.7296e-003, 177.7161e-006, 10.4899e-003, 1.63e-2])
+# const float aO3[Nbands]={ 0.0711,    0.00313, 0.0104,     0.0930,   0,
+# 0, 0, 0.00244, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119,
+# 0.00263};*/
+aO3 = np.array([
+    # MODIS
+    0.0715289, 0, 0.00743232, 0.089691, 0, 0, 0, 0.001, 0.00383, 0.0225, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119,
+    0.00263,
+    # VIIRS
+    0.0433461, 0.0, 0.0178299, 0.0853012, 0, 0, 0, 0.0813531, 0, 0, 0.0663, 0.0836, 0.0485, 0.0395, 0.0119, 0.00263,
+    # ABI/AHI
+    4.2869e-003, 25.6509e-003*rg_fudge, 802.4319e-006, 0.0000e+000, 2e-5])
+# const float taur0[Nbands] = { 0.0507,  0.0164,  0.1915,  0.0948,
+# 0.0036,  0.0012,  0.0004,  0.3109, 0.2375, 0.1596, 0.1131, 0.0994,
+# 0.0446, 0.0416, 0.0286, 0.0155};*/
+taur0 = np.array([
+    0.05100, 0.01631, 0.19325, 0.09536, 0.00366, 0.00123, 0.00043, 0.3139, 0.2375, 0.1596, 0.1131, 0.0994, 0.0446,
+    0.0416, 0.0286, 0.0155,
+    # VIIRS
+    0.04350, 0.01582, 0.16176, 0.09740, 0.00369, 0.00132, 0.00033, 0.05373, 0.01561, 0.00129, 0.1131, 0.0994, 0.0446,
+    0.0416, 0.0286, 0.0155,
+    # ABI/AHI
+    184.7200e-003, 52.3490e-003, 15.8450e-003, 1.3074e-003, 311.2900e-006])
+
 
 # Map of pixel resolutions -> wavelength -> coefficient index
 # Map of pixel resolutions -> band name -> coefficient index
@@ -140,28 +138,28 @@ MODIS_COEFF_INDEX_MAP[250] = MODIS_COEFF_INDEX_MAP[1000]
 # resolution -> band name -> coefficient index
 VIIRS_COEFF_INDEX_MAP = {
     1000: {
-        (0.662, 0.6720, 0.682): 0,  # M05
-        "M05": 0,
-        (0.846, 0.8650, 0.885): 1,  # M07
-        "M07": 1,
-        (0.478, 0.4880, 0.498): 2,  # M03
-        "M03": 2,
-        (0.545, 0.5550, 0.565): 3,  # M04
-        "M04": 3,
-        (1.230, 1.2400, 1.250): 4,  # M08
-        "M08": 4,
-        (1.580, 1.6100, 1.640): 5,  # M10
-        "M10": 5,
-        (2.225, 2.2500, 2.275): 6,  # M11
-        "M11": 6,
+        (0.662, 0.6720, 0.682): 16 + 0,  # M05
+        "M05": 16 + 0,
+        (0.846, 0.8650, 0.885): 16 + 1,  # M07
+        "M07": 16 + 1,
+        (0.478, 0.4880, 0.498): 16 + 2,  # M03
+        "M03": 16 + 2,
+        (0.545, 0.5550, 0.565): 16 + 3,  # M04
+        "M04": 16 + 3,
+        (1.230, 1.2400, 1.250): 16 + 4,  # M08
+        "M08": 16 + 4,
+        (1.580, 1.6100, 1.640): 16 + 5,  # M10
+        "M10": 16 + 5,
+        (2.225, 2.2500, 2.275): 16 + 6,  # M11
+        "M11": 16 + 6,
     },
     500: {
-        (0.600, 0.6400, 0.680): 7,  # I01
-        "I01": 7,
-        (0.845, 0.8650, 0.884): 8,  # I02
-        "I02": 8,
-        (1.580, 1.6100, 1.640): 9,  # I03
-        "I03": 9,
+        (0.600, 0.6400, 0.680): 16 + 7,  # I01
+        "I01": 16 + 7,
+        (0.845, 0.8650, 0.884): 16 + 8,  # I02
+        "I02": 16 + 8,
+        (1.580, 1.6100, 1.640): 16 + 9,  # I03
+        "I03": 16 + 9,
     },
 }
 
@@ -170,18 +168,18 @@ VIIRS_COEFF_INDEX_MAP = {
 # resolution -> band name -> coefficient index
 ABI_COEFF_INDEX_MAP = {
     2000: {
-        (0.450, 0.470, 0.490): 16,  # C01
-        "C01": 16,
-        (0.590, 0.640, 0.690): 17,  # C02
-        "C02": 17,
-        (0.8455, 0.865, 0.8845): 18,  # C03
-        "C03": 18,
+        (0.450, 0.470, 0.490): 32 + 0,  # C01
+        "C01": 32 + 0,
+        (0.590, 0.640, 0.690): 32 + 2,  # C02
+        "C02": 32 + 2,
+        (0.8455, 0.865, 0.8845): 32 + 3,  # C03
+        "C03": 32 + 3,
         # (1.3705, 1.378, 1.3855): None,  # C04
         # "C04": None,
-        (1.580, 1.610, 1.640): 19,  # C05
-        "C05": 19,
-        (2.225, 2.250, 2.275): 20,  # C06
-        "C06": 20
+        (1.580, 1.610, 1.640): 32 + 4,  # C05
+        "C05": 32 + 4,
+        (2.225, 2.250, 2.275): 32 + 5,  # C06
+        "C06": 32 + 5
     },
 }
 
@@ -337,19 +335,21 @@ def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb,
     return sphalb, rhoray, TtotraytH2O, tOG
 
 
-def get_atm_variables(mus, muv, phi, height, ah2o, bh2o, ao3, tau):
+def get_atm_variables(mus, muv, phi, height, sensor_name, ah2o, bh2o, ao3, tau):
     """Get atmospheric variables for non-ABI instruments."""
     air_mass = 1.0 / mus + 1 / muv
     air_mass[air_mass > MAXAIRMASS] = -1.0
     tO3 = 1.0
     tH2O = 1.0
+    is_modis = sensor_name is None or sensor_name.lower() == "modis"
     if ao3 != 0:
-        tO3 = np.exp(-air_mass * UO3 * ao3)
+        uo3 = UO3_MODIS if is_modis else UO3_VIIRS
+        tO3 = np.exp(-air_mass * uo3 * ao3)
     if bh2o != 0:
-        if bUseV171:
-            tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O)))
+        if is_modis:
+            tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O_MODIS)))
         else:
-            tH2O = np.exp(-(ah2o * ((air_mass * UH2O) ** bh2o)))
+            tH2O = np.exp(-(ah2o * ((air_mass * UH2O_VIIRS) ** bh2o)))
     # Returns sphalb, rhoray, TtotraytH2O, tOG
     return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
 
@@ -427,7 +427,7 @@ def run_crefl(refl, coeffs,
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
         corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
-                                  height, *coeffs,
+                                  height, refl.attrs.get("sensor"), *coeffs,
                                   meta=np.ndarray((), dtype=refl.dtype),
                                   chunks=refl.chunks, dtype=refl.dtype,
                                   percent=percent)
@@ -449,10 +449,10 @@ def _space_mask_height(lon, lat, avg_elevation):
     return height
 
 
-def _run_crefl(refl, mus, muv, phi, height, *coeffs, percent=True, computing_meta=False):
+def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, percent=True, computing_meta=False):
     if computing_meta:
         return refl
-    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, *coeffs)
+    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, sensor_name, *coeffs)
     return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent)
 
 
