@@ -194,7 +194,7 @@ COEFF_INDEX_MAP = {
 }
 
 
-def find_coefficient_index(sensor, wavelength_range, resolution=0):
+def _find_coefficient_index(sensor, wavelength_range, resolution=0):
     """Return index in to coefficient arrays for this band's wavelength.
 
     This function search through the `COEFF_INDEX_MAP` dictionary and
@@ -229,7 +229,7 @@ def find_coefficient_index(sensor, wavelength_range, resolution=0):
             return v
 
 
-def get_coefficients(sensor, wavelength_range, resolution=0):
+def _get_coefficients(sensor, wavelength_range, resolution=0):
     """Get coefficients used in CREFL correction.
 
     Args:
@@ -241,9 +241,9 @@ def get_coefficients(sensor, wavelength_range, resolution=0):
         aH2O, bH2O, aO3, taur0 coefficient values
 
     """
-    idx = find_coefficient_index(sensor,
-                                 wavelength_range,
-                                 resolution=resolution)
+    idx = _find_coefficient_index(sensor,
+                                  wavelength_range,
+                                  resolution=resolution)
     return aH2O[idx], bH2O[idx], aO3[idx], taur0[idx]
 
 
@@ -294,7 +294,7 @@ def _chand(phi, muv, mus, taur):
 
     # for refl, (ah2o, bh2o, ao3, tau) in zip(reflectance_bands, coefficients):
 
-    # ib = find_coefficient_index(center_wl)
+    # ib = _find_coefficient_index(center_wl)
     # if ib is None:
     #     raise ValueError("Can't handle band with wavelength '{}'".format(center_wl))
 
@@ -338,7 +338,7 @@ def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb,
     return sphalb, rhoray, TtotraytH2O, tOG
 
 
-def get_atm_variables(mus, muv, phi, height, sensor_name, ah2o, bh2o, ao3, tau):
+def _get_atm_variables(mus, muv, phi, height, sensor_name, ah2o, bh2o, ao3, tau):
     """Get atmospheric variables for non-ABI instruments."""
     air_mass = 1.0 / mus + 1 / muv
     air_mass[air_mass > MAXAIRMASS] = -1.0
@@ -357,7 +357,7 @@ def get_atm_variables(mus, muv, phi, height, sensor_name, ah2o, bh2o, ao3, tau):
     return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
 
 
-def get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, ao3, tau):
+def _get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, ao3, tau):
     """Get atmospheric variables for ABI."""
     tO3 = 1.0
     tH2O = 1.0
@@ -407,9 +407,9 @@ class _CREFLRunner:
 
     def __call__(self, sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation):
         refl = self._refl
-        coeffs = get_coefficients(refl.attrs["sensor"],
-                                  refl.attrs["wavelength"],
-                                  refl.attrs["resolution"])
+        coeffs = _get_coefficients(refl.attrs["sensor"],
+                                   refl.attrs["wavelength"],
+                                   refl.attrs["resolution"])
         height = self._height_from_avg_elevation(avg_elevation)
         mus = np.cos(np.deg2rad(solar_zenith))
         mus = mus.where(mus >= 0)
@@ -489,7 +489,7 @@ def _space_mask_height(lon, lat, avg_elevation):
 def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, computing_meta=False):
     if computing_meta:
         return refl
-    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, sensor_name, *coeffs)
+    sphalb, rhoray, TtotraytH2O, tOG = _get_atm_variables(mus, muv, phi, height, sensor_name, *coeffs)
     return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
 
 
@@ -504,7 +504,7 @@ def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
     G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
     G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
     # Note: bh2o values are actually ao2 values for abi
-    sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
+    sphalb, rhoray, TtotraytH2O, tOG = _get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
     return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
 
 
