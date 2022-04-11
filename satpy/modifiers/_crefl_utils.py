@@ -429,21 +429,7 @@ class _CREFLRunner:
         return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
 
     def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
-        if self._refl.attrs["sensor"] == "abi":
-            LOG.debug("Using ABI CREFL algorithm")
-            corr_refl = da.map_blocks(_run_crefl_abi, self._refl.data, mus.data, muv.data, phi.data,
-                                      solar_zenith.data, sensor_zenith.data, height, *coeffs,
-                                      meta=np.ndarray((), dtype=self._refl.dtype),
-                                      chunks=self._refl.chunks, dtype=self._refl.dtype,
-                                      )
-        else:
-            LOG.debug("Using original VIIRS CREFL algorithm")
-            corr_refl = da.map_blocks(_run_crefl, self._refl.data, mus.data, muv.data, phi.data,
-                                      height, self._refl.attrs.get("sensor"), *coeffs,
-                                      meta=np.ndarray((), dtype=self._refl.dtype),
-                                      chunks=self._refl.chunks, dtype=self._refl.dtype,
-                                      )
-        return corr_refl
+        raise NotImplementedError()
 
     def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
         """Get digital elevation map data for our granule with ocean fill value set to 0."""
@@ -459,10 +445,30 @@ class _CREFLRunner:
         return height
 
 
+class _ABICREFLRunner(_CREFLRunner):
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        LOG.debug("Using ABI CREFL algorithm")
+        return da.map_blocks(_run_crefl_abi, self._refl.data, mus.data, muv.data, phi.data,
+                             solar_zenith.data, sensor_zenith.data, height, *coeffs,
+                             meta=np.ndarray((), dtype=self._refl.dtype),
+                             chunks=self._refl.chunks, dtype=self._refl.dtype,
+                             )
+
+
+class _VIIRSCREFLRunner(_CREFLRunner):
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        LOG.debug("Using VIIRS CREFL algorithm")
+        return da.map_blocks(_run_crefl, self._refl.data, mus.data, muv.data, phi.data,
+                             height, self._refl.attrs.get("sensor"), *coeffs,
+                             meta=np.ndarray((), dtype=self._refl.dtype),
+                             chunks=self._refl.chunks, dtype=self._refl.dtype,
+                             )
+
+
 _SENSOR_TO_RUNNER = {
-    "abi": _CREFLRunner,
-    "modis": _CREFLRunner,
-    "viirs": _CREFLRunner,
+    "abi": _ABICREFLRunner,
+    "modis": _VIIRSCREFLRunner,
+    "viirs": _VIIRSCREFLRunner,
 }
 
 
