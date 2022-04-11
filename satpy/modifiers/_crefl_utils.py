@@ -370,14 +370,6 @@ def get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, a
     return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
 
 
-def _G_calc(zenith, a_coeff):
-    return (np.cos(np.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
-
-
-def _avg_elevation_index(avg_elevation, row, col):
-    return avg_elevation[row, col]
-
-
 def run_crefl(refl,
               sensor_azimuth,
               sensor_zenith,
@@ -514,6 +506,10 @@ def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
     # Note: bh2o values are actually ao2 values for abi
     sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
     return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
+
+
+def _G_calc(zenith, a_coeff):
+    return (np.cos(np.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
 
 
 def _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb):
