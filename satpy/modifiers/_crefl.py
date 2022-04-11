@@ -83,10 +83,7 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
     def _call_crefl(self, refl_data, angles):
         from satpy.modifiers._crefl_utils import run_crefl
         avg_elevation = self._get_average_elevation()
-        lons, lats = refl_data.attrs['area'].get_lonlats(chunks=refl_data.chunks)
         results = run_crefl(refl_data,
-                            lons,
-                            lats,
                             *angles,
                             avg_elevation=avg_elevation,
                             )

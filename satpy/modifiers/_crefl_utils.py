@@ -25,7 +25,10 @@ differences between the different methods. Other modifications are mostly
 to make the code more dask friendly.
 
 """
+from __future__ import annotations
+
 import logging
+from typing import Type
 
 import dask.array as da
 import numpy as np
@@ -376,8 +379,6 @@ def _avg_elevation_index(avg_elevation, row, col):
 
 
 def run_crefl(refl,
-              lon,
-              lat,
               sensor_azimuth,
               sensor_zenith,
               solar_azimuth,
@@ -389,10 +390,7 @@ def run_crefl(refl,
     All input parameters are per-pixel values meaning they are the same size
     and shape as the input reflectance data, unless otherwise stated.
 
-    :param reflectance_bands: tuple of reflectance band arrays
-    :param coefficients: tuple of coefficients for each band (see `get_coefficients`)
-    :param lon: input swath longitude array
-    :param lat: input swath latitude array
+    :param refl: tuple of reflectance band arrays
     :param sensor_azimuth: input swath sensor azimuth angle array
     :param sensor_zenith: input swath sensor zenith angle array
     :param solar_azimuth: input swath solar azimuth angle array
@@ -400,44 +398,70 @@ def run_crefl(refl,
     :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
 
     """
-    is_percent = refl.attrs["units"] == "%"
-    use_abi = refl.attrs['sensor'] == 'abi'
-    coeffs = get_coefficients(refl.attrs["sensor"],
-                              refl.attrs["wavelength"],
-                              refl.attrs["resolution"])
+    runner_cls = _runner_class_for_sensor(refl.attrs['sensor'])
+    runner = runner_cls(refl)
+    corr_refl = runner(sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation)
+    return corr_refl
 
-    # FUTURE: Find a way to compute the average elevation before hand
-    # Get digital elevation map data for our granule, set ocean fill value to 0
-    if avg_elevation is None:
-        LOG.debug("No average elevation information provided in CREFL")
-        # height = np.zeros(lon.shape, dtype=np.float64)
-        height = 0.
-    else:
-        LOG.debug("Using average elevation information provided to CREFL")
-        height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
-                               chunks=lon.chunks, dtype=avg_elevation.dtype)
-    mus = np.cos(np.deg2rad(solar_zenith))
-    mus = mus.where(mus >= 0)
-    muv = np.cos(np.deg2rad(sensor_zenith))
-    phi = solar_azimuth - sensor_azimuth
 
-    if use_abi:
-        LOG.debug("Using ABI CREFL algorithm")
-        corr_refl = da.map_blocks(_run_crefl_abi, refl.data, mus.data, muv.data, phi.data,
-                                  solar_zenith.data, sensor_zenith.data, height, *coeffs,
-                                  meta=np.ndarray((), dtype=refl.dtype),
-                                  chunks=refl.chunks, dtype=refl.dtype,
-                                  percent=is_percent)
-    else:
-        LOG.debug("Using original VIIRS CREFL algorithm")
-        corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
-                                  height, refl.attrs.get("sensor"), *coeffs,
-                                  meta=np.ndarray((), dtype=refl.dtype),
-                                  chunks=refl.chunks, dtype=refl.dtype,
-                                  percent=is_percent)
-    if is_percent:
-        corr_refl = corr_refl * 100.0
-    return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
+class _CREFLRunner:
+    def __init__(self, refl_data_arr):
+        self._refl = refl_data_arr
+
+    def __call__(self, sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation):
+        refl = self._refl
+        is_percent = refl.attrs["units"] == "%"
+        use_abi = refl.attrs['sensor'] == 'abi'
+        coeffs = get_coefficients(refl.attrs["sensor"],
+                                  refl.attrs["wavelength"],
+                                  refl.attrs["resolution"])
+
+        # Get digital elevation map data for our granule, set ocean fill value to 0
+        if avg_elevation is None:
+            LOG.debug("No average elevation information provided in CREFL")
+            # height = np.zeros(lon.shape, dtype=np.float64)
+            height = 0.
+        else:
+            LOG.debug("Using average elevation information provided to CREFL")
+            lon, lat = refl.attrs['area'].get_lonlats(chunks=refl.chunks)
+            height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
+                                   chunks=lon.chunks, dtype=avg_elevation.dtype)
+        mus = np.cos(np.deg2rad(solar_zenith))
+        mus = mus.where(mus >= 0)
+        muv = np.cos(np.deg2rad(sensor_zenith))
+        phi = solar_azimuth - sensor_azimuth
+
+        if use_abi:
+            LOG.debug("Using ABI CREFL algorithm")
+            corr_refl = da.map_blocks(_run_crefl_abi, refl.data, mus.data, muv.data, phi.data,
+                                      solar_zenith.data, sensor_zenith.data, height, *coeffs,
+                                      meta=np.ndarray((), dtype=refl.dtype),
+                                      chunks=refl.chunks, dtype=refl.dtype,
+                                      percent=is_percent)
+        else:
+            LOG.debug("Using original VIIRS CREFL algorithm")
+            corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
+                                      height, refl.attrs.get("sensor"), *coeffs,
+                                      meta=np.ndarray((), dtype=refl.dtype),
+                                      chunks=refl.chunks, dtype=refl.dtype,
+                                      percent=is_percent)
+        if is_percent:
+            corr_refl = corr_refl * 100.0
+        return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
+
+
+_SENSOR_TO_RUNNER = {
+    "abi": _CREFLRunner,
+    "modis": _CREFLRunner,
+    "viirs": _CREFLRunner,
+}
+
+
+def _runner_class_for_sensor(sensor_name: str) -> Type[_CREFLRunner]:
+    try:
+        return _SENSOR_TO_RUNNER[sensor_name]
+    except KeyError:
+        raise NotImplementedError(f"Don't know how to apply CREFL to data from sensor {sensor_name}.")
 
 
 def _space_mask_height(lon, lat, avg_elevation):
