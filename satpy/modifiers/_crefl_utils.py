@@ -44,13 +44,20 @@ written by Ralph Kuehn and Min Oo at SSEC. Additional modifications were
 performed by Martin Raspaud, David Hoese, and Will Roberts to make the code
 work together and be more dask compatible.
 
-The ABI/AHI modifications include coefficients based on a radiative transfer
-model that doesn't assume the atmosphere is an infinite plane-parallel. These
-modifications take into account the spheroid shape of the Earth which is
-important for geostationary sensors at medium view angles.
+The AHI/ABI implementation is based on the MODIS collection 6 algorithm, where
+a spherical-shell atmosphere was assumed rather than a plane-parallel. See
+Appendix A in: "The Collection 6 MODIS aerosol products over land and ocean"
+Atmos. Meas. Tech., 6, 2989–3034, 2013 www.atmos-meas-tech.net/6/2989/2013/
+:doi:`10.5194/amt-6-2989-2013`.
 
-.. _NASA CREFL SPA: https://directreadout.sci.gsfc.nasa.gov/?id=dspContent&cid=92&type=software
+
+The original CREFL code is similar to what is described in appendix A1 (page
+74) of the ATBD for the `MODIS MOD04/MYD04`_ data product.
+
+.. _NASA CREFL SPA: https://directreadout.sci.gsfc.nasa.gov/?id=dspContent&cid=92&type=software
 .. _NASA CVIIRS SPA: https://directreadout.sci.gsfc.nasa.gov/?id=dspContent&cid=277&type=software
+.. _MODIS MOD04/MYD04: https://modis.gsfc.nasa.gov/data/atbd/atbd_mod02.pdf
+
 
 """
 from __future__ import annotations
