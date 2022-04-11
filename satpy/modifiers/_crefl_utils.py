@@ -375,7 +375,7 @@ def _avg_elevation_index(avg_elevation, row, col):
     return avg_elevation[row, col]
 
 
-def run_crefl(refl, coeffs,
+def run_crefl(refl,
               lon,
               lat,
               sensor_azimuth,
@@ -383,8 +383,7 @@ def run_crefl(refl, coeffs,
               solar_azimuth,
               solar_zenith,
               avg_elevation=None,
-              percent=False,
-              use_abi=False):
+              ):
     """Run main crefl algorithm.
 
     All input parameters are per-pixel values meaning they are the same size
@@ -399,9 +398,14 @@ def run_crefl(refl, coeffs,
     :param solar_azimuth: input swath solar azimuth angle array
     :param solar_zenith: input swath solar zenith angle array
     :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
-    :param percent: True if input reflectances are on a 0-100 scale instead of 0-1 scale (default: False)
 
     """
+    is_percent = refl.attrs["units"] == "%"
+    use_abi = refl.attrs['sensor'] == 'abi'
+    coeffs = get_coefficients(refl.attrs["sensor"],
+                              refl.attrs["wavelength"],
+                              refl.attrs["resolution"])
+
     # FUTURE: Find a way to compute the average elevation before hand
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
@@ -423,14 +427,16 @@ def run_crefl(refl, coeffs,
                                   solar_zenith.data, sensor_zenith.data, height, *coeffs,
                                   meta=np.ndarray((), dtype=refl.dtype),
                                   chunks=refl.chunks, dtype=refl.dtype,
-                                  percent=percent)
+                                  percent=is_percent)
     else:
         LOG.debug("Using original VIIRS CREFL algorithm")
         corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
                                   height, refl.attrs.get("sensor"), *coeffs,
                                   meta=np.ndarray((), dtype=refl.dtype),
                                   chunks=refl.chunks, dtype=refl.dtype,
-                                  percent=percent)
+                                  percent=is_percent)
+    if is_percent:
+        corr_refl = corr_refl * 100.0
     return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
 
 
