@@ -25,11 +25,39 @@ The ``modis_l1b`` reader reads and calibrates Modis L1 image data in hdf-eos for
 a pattern similar to the following one:
 
 .. parsed-literal::
+
     M[O/Y]D02[1/H/Q]KM.A[date].[time].[collection].[processing_time].hdf
 
 Other patterns where "collection" and/or "proccessing_time" are missing might also work
 (see the readers yaml file for details). Geolocation files (MOD03) are also supported.
+The IMAPP direct broadcast naming format is also supported with names like:
+``a1.12226.1846.1000m.hdf``.
 
+Saturation Handling
+-------------------
+
+Band 2 of the MODIS sensor is available in 250m, 500m, and 1km resolutions.
+The band data may include a special fill value to indicate when the detector
+was saturated in the 250m version of the data. When the data is aggregated to
+coarser resolutions this saturation fill value is converted to a
+"can't aggregate" fill value. By default, Satpy will replace these fill values
+with NaN to indicate they are invalid. This is typically undesired when
+generating images for the data as they appear as "holes" in bright clouds.
+To control this the keyword argument ``mask_saturated`` can be passed and set
+to ``False`` to set these two fill values to the maximum valid value.
+
+.. code-block:: python
+
+    scene = satpy.Scene(filenames=filenames,
+                        reader='modis_l1b',
+                        reader_kwargs={'mask_saturated': False})
+    scene.load(['2'])
+
+Note that the saturation fill value can appear in other bands (ex. bands 7-19)
+in addition to band 2. Also, the "can't aggregate" fill value is a generic
+"catch all" for any problems encountered when aggregating high resolution bands
+to lower resolutions. Filling this with the max valid value could replace
+non-saturated invalid pixels with valid values.
 
 Geolocation files
 -----------------
@@ -62,9 +90,20 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
            "Q": 250,
            "H": 500}
 
-    def __init__(self, filename, filename_info, filetype_info):
+    res_to_possible_variable_names = {
+        1000: ['EV_250_Aggr1km_RefSB',
+               'EV_500_Aggr1km_RefSB',
+               'EV_1KM_RefSB',
+               'EV_1KM_Emissive'],
+        500: ['EV_250_Aggr500_RefSB',
+              'EV_500_RefSB'],
+        250: ['EV_250_RefSB'],
+    }
+
+    def __init__(self, filename, filename_info, filetype_info, mask_saturated=True, **kwargs):
         """Init the file handler."""
-        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info, **kwargs)
+        self._mask_saturated = mask_saturated
 
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
@@ -72,120 +111,145 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
-        datadict = {
-            1000: ['EV_250_Aggr1km_RefSB',
-                   'EV_500_Aggr1km_RefSB',
-                   'EV_1KM_RefSB',
-                   'EV_1KM_Emissive'],
-            500: ['EV_250_Aggr500_RefSB',
-                  'EV_500_RefSB'],
-            250: ['EV_250_RefSB']}
-
         if self.resolution != key['resolution']:
             return
+        var_name, band_index = self._get_band_variable_name_and_index(key["name"])
+        subdata = self.sd.select(var_name)
+        var_attrs = subdata.attributes()
+        uncertainty = self.sd.select(var_name + "_Uncert_Indexes")
+        array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[band_index, :, :],
+                             dims=['y', 'x']).astype(np.float32)
+        valid_range = var_attrs['valid_range']
+        valid_min = np.float32(valid_range[0])
+        valid_max = np.float32(valid_range[1])
+        if not self._mask_saturated:
+            array = self._fill_saturated(array, valid_max)
+        array = self._mask_invalid(array, valid_min, valid_max)
+        array = self._mask_uncertain_pixels(array, uncertainty, band_index)
+        projectable = self._calibrate_data(key, info, array, var_attrs, band_index)
 
-        datasets = datadict[self.resolution]
-        for dataset in datasets:
-            subdata = self.sd.select(dataset)
+        # if ((platform_name == 'Aqua' and key['name'] in ["6", "27", "36"]) or
+        #         (platform_name == 'Terra' and key['name'] in ["29"])):
+        #     height, width = projectable.shape
+        #     row_indices = projectable.mask.sum(1) == width
+        #     if row_indices.sum() != height:
+        #         projectable.mask[row_indices, :] = True
+
+        # Get the orbit number
+        # if not satscene.orbit:
+        #     mda = self.data.attributes()["CoreMetadata.0"]
+        #     orbit_idx = mda.index("ORBITNUMBER")
+        #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+
+        # Trimming out dead sensor lines (detectors) on terra:
+        # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
+        # if satscene.satname == "terra":
+        #     for band in ["29"]:
+        #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
+        #             continue
+        #         width = satscene[band].data.shape[1]
+        #         height = satscene[band].data.shape[0]
+        #         indices = satscene[band].data.mask.sum(1) < width
+        #         if indices.sum() == height:
+        #             continue
+        #         satscene[band] = satscene[band].data[indices, :]
+        #         satscene[band].area = geometry.SwathDefinition(
+        #             lons=satscene[band].area.lons[indices, :],
+        #             lats=satscene[band].area.lats[indices, :])
+        self._add_satpy_metadata(key, projectable)
+        return projectable
+
+    def _get_band_variable_name_and_index(self, band_name):
+        variable_names = self.res_to_possible_variable_names[self.resolution]
+        for variable_name in variable_names:
+            subdata = self.sd.select(variable_name)
             var_attrs = subdata.attributes()
-            band_names = var_attrs["band_names"].split(",")
-
-            # get the relative indices of the desired channel
             try:
-                index = band_names.index(key['name'])
+                band_index = self._get_band_index(var_attrs, band_name)
             except ValueError:
+                # can't find band in list of bands
                 continue
-            uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-            array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
-                                 dims=['y', 'x']).astype(np.float32)
-            valid_range = var_attrs['valid_range']
+            return variable_name, band_index
 
-            # Fill values:
-            # Data Value Meaning
-            # 65535 Fill Value (includes reflective band data at night mode
-            # and completely missing L1A scans)
-            # 65534 L1A DN is missing within a scan
-            # 65533 Detector is saturated
-            # 65532 Cannot compute zero point DN, e.g., SV is saturated
-            # 65531 Detector is dead (see comments below)
-            # 65530 RSB dn** below the minimum of the scaling range
-            # 65529 TEB radiance or RSB dn** exceeds the maximum of the
-            # scaling range
-            # 65528 Aggregation algorithm failure
-            # 65527 Rotation of Earth view Sector from nominal science
-            # collection position
-            # 65526 Calibration coefficient b1 could not be computed
-            # 65525 Subframe is dead
-            # 65524 Both sides of the PCLW electronics on simultaneously
-            # 65501 - 65523 (reserved for future use)
-            # 65500 NAD closed upper limit
+    def _get_band_index(self, var_attrs, band_name):
+        """Get the relative indices of the desired channel."""
+        band_names = var_attrs["band_names"].split(",")
+        index = band_names.index(band_name)
+        return index
 
-            array = array.where(array >= np.float32(valid_range[0]))
-            array = array.where(array <= np.float32(valid_range[1]))
-            array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
+    def _fill_saturated(self, array, valid_max):
+        """Replace saturation-related values with max reflectance.
 
-            if key['calibration'] == 'brightness_temperature':
-                projectable = calibrate_bt(array, var_attrs, index, key['name'])
-                info.setdefault('units', 'K')
-                info.setdefault('standard_name', 'toa_brightness_temperature')
-            elif key['calibration'] == 'reflectance':
-                projectable = calibrate_refl(array, var_attrs, index)
-                info.setdefault('units', '%')
-                info.setdefault('standard_name',
-                                'toa_bidirectional_reflectance')
-            elif key['calibration'] == 'radiance':
-                projectable = calibrate_radiance(array, var_attrs, index)
-                info.setdefault('units', var_attrs.get('radiance_units'))
-                info.setdefault('standard_name',
-                                'toa_outgoing_radiance_per_unit_wavelength')
-            elif key['calibration'] == 'counts':
-                projectable = calibrate_counts(array, var_attrs, index)
-                info.setdefault('units', 'counts')
-                info.setdefault('standard_name', 'counts')  # made up
-            else:
-                raise ValueError("Unknown calibration for "
-                                 "key: {}".format(key))
-            projectable.attrs = info
+        If the file handler was created with ``mask_saturated`` set to
+        ``True`` then all invalid/fill values are set to NaN. If ``False``
+        then the fill values 65528 and 65533 are set to the maximum valid
+        value. These values correspond to "can't aggregate" and "saturation".
 
-            # if ((platform_name == 'Aqua' and key['name'] in ["6", "27", "36"]) or
-            #         (platform_name == 'Terra' and key['name'] in ["29"])):
-            #     height, width = projectable.shape
-            #     row_indices = projectable.mask.sum(1) == width
-            #     if row_indices.sum() != height:
-            #         projectable.mask[row_indices, :] = True
+        Fill values:
 
-            # Get the orbit number
-            # if not satscene.orbit:
-            #     mda = self.data.attributes()["CoreMetadata.0"]
-            #     orbit_idx = mda.index("ORBITNUMBER")
-            #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
+        * 65535 Fill Value (includes reflective band data at night mode
+          and completely missing L1A scans)
+        * 65534 L1A DN is missing within a scan
+        * 65533 Detector is saturated
+        * 65532 Cannot compute zero point DN, e.g., SV is saturated
+        * 65531 Detector is dead (see comments below)
+        * 65530 RSB dn** below the minimum of the scaling range
+        * 65529 TEB radiance or RSB dn exceeds the maximum of the scaling range
+        * 65528 Aggregation algorithm failure
+        * 65527 Rotation of Earth view Sector from nominal science collection position
+        * 65526 Calibration coefficient b1 could not be computed
+        * 65525 Subframe is dead
+        * 65524 Both sides of the PCLW electronics on simultaneously
+        * 65501 - 65523 (reserved for future use)
+        * 65500 NAD closed upper limit
 
-            # Trimming out dead sensor lines (detectors) on terra:
-            # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
-            # if satscene.satname == "terra":
-            #     for band in ["29"]:
-            #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-            #             continue
-            #         width = satscene[band].data.shape[1]
-            #         height = satscene[band].data.shape[0]
-            #         indices = satscene[band].data.mask.sum(1) < width
-            #         if indices.sum() == height:
-            #             continue
-            #         satscene[band] = satscene[band].data[indices, :]
-            #         satscene[band].area = geometry.SwathDefinition(
-            #             lons=satscene[band].area.lons[indices, :],
-            #             lats=satscene[band].area.lats[indices, :])
-            self._add_satpy_metadata(key, projectable)
-            return projectable
+        """
+        return array.where((array != 65533) & (array != 65528), valid_max)
+
+    def _mask_invalid(self, array, valid_min, valid_max):
+        """Replace fill values with NaN."""
+        return array.where((array >= valid_min) & (array <= valid_max))
+
+    def _mask_uncertain_pixels(self, array, uncertainty, band_index):
+        if not self._mask_saturated:
+            return array
+        band_uncertainty = from_sds(uncertainty, chunks=CHUNK_SIZE)[band_index, :, :]
+        array = array.where(band_uncertainty < 15)
+        return array
+
+    def _calibrate_data(self, key, info, array, var_attrs, index):
+        if key['calibration'] == 'brightness_temperature':
+            projectable = calibrate_bt(array, var_attrs, index, key['name'])
+            info.setdefault('units', 'K')
+            info.setdefault('standard_name', 'toa_brightness_temperature')
+        elif key['calibration'] == 'reflectance':
+            projectable = calibrate_refl(array, var_attrs, index)
+            info.setdefault('units', '%')
+            info.setdefault('standard_name',
+                            'toa_bidirectional_reflectance')
+        elif key['calibration'] == 'radiance':
+            projectable = calibrate_radiance(array, var_attrs, index)
+            info.setdefault('units', var_attrs.get('radiance_units'))
+            info.setdefault('standard_name',
+                            'toa_outgoing_radiance_per_unit_wavelength')
+        elif key['calibration'] == 'counts':
+            projectable = calibrate_counts(array, var_attrs, index)
+            info.setdefault('units', 'counts')
+            info.setdefault('standard_name', 'counts')  # made up
+        else:
+            raise ValueError("Unknown calibration for "
+                             "key: {}".format(key))
+        projectable.attrs = info
+        return projectable
 
 
 class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
     """A file handler for the files that have both regular bands and geographical information in them."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Init the file handler."""
-        HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
-        HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
+        HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
 
     def get_dataset(self, key, info):
         """Get the dataset."""
