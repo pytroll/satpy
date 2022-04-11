@@ -140,6 +140,5 @@ class TestGHRSSTL2Reader(unittest.TestCase):
 
     def tearDown(self):
         """Clean up."""
-        print(self._tmpfile.name)
         self._tmpfile.close()
         self._tmpdir.cleanup()
