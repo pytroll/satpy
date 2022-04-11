@@ -183,6 +183,13 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         self._get_platform_name(AVHRR_PLATFORM_IDS2NAMES)
         self.sensor = 'avhrr-3'
 
+        self._get_all_interpolated_angles = functools.lru_cache(maxsize=10)(
+            self._get_all_interpolated_angles_uncached
+        )
+        self._get_all_interpolated_coordinates = functools.lru_cache(maxsize=10)(
+            self._get_all_interpolated_coordinates_uncached
+        )
+
     def _set_filedata_layout(self):
         """Set the file data type/layout."""
         self._header_offset = 22016
@@ -234,8 +241,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
         name_to_variable = dict(zip(self._angle_names, (satz, sunz, azidiff)))
         return create_xarray(name_to_variable[angle_id])
 
-    @functools.lru_cache(maxsize=10)
-    def _get_all_interpolated_angles(self):
+    def _get_all_interpolated_angles_uncached(self):
         sunz40km, satz40km, azidiff40km = self._get_tiepoint_angles_in_degrees()
         return self._interpolate_arrays(sunz40km, satz40km, azidiff40km)
 
@@ -286,8 +292,7 @@ class AVHRRAAPPL1BFile(AAPPL1BaseFileHandler):
 
         raise KeyError("Coordinate {} unknown.".format(coordinate_id))
 
-    @functools.lru_cache(maxsize=10)
-    def _get_all_interpolated_coordinates(self):
+    def _get_all_interpolated_coordinates_uncached(self):
         lons40km, lats40km = self._get_coordinates_in_degrees()
         return self._interpolate_arrays(lons40km, lats40km, geolocation=True)
 

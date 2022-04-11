@@ -97,11 +97,13 @@ class BitFlags(object):
 class NCOLCIBase(BaseFileHandler):
     """The OLCI reader base."""
 
+    rows_name = "rows"
+    cols_name = "columns"
+
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the olci reader base."""
-        super(NCOLCIBase, self).__init__(filename, filename_info,
-                                         filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
         self._engine = engine
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
@@ -118,9 +120,9 @@ class NCOLCIBase(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   engine=self._engine,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-        return dataset.rename({'columns': 'x', 'rows': 'y'})
+                                  chunks={self.cols_name: CHUNK_SIZE,
+                                          self.rows_name: CHUNK_SIZE})
+        return dataset.rename({self.cols_name: 'x', self.rows_name: 'y'})
 
     @property
     def start_time(self):
@@ -141,7 +143,7 @@ class NCOLCIBase(BaseFileHandler):
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
-        with suppress(IOError, OSError, AttributeError):
+        with suppress(IOError, OSError, AttributeError, TypeError):
             self.nc.close()
 
 
@@ -156,12 +158,9 @@ class NCOLCIGeo(NCOLCIBase):
 class NCOLCIChannelBase(NCOLCIBase):
     """Base class for channel reading."""
 
-    def __init__(self, filename, filename_info, filetype_info,
-                 engine=None):
+    def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Init the file handler."""
-        super(NCOLCIChannelBase, self).__init__(filename, filename_info,
-                                                filetype_info)
-
+        super().__init__(filename, filename_info, filetype_info, engine)
         self.channel = filename_info.get('dataset_name')
 
 
@@ -171,8 +170,7 @@ class NCOLCI1B(NCOLCIChannelBase):
     def __init__(self, filename, filename_info, filetype_info, cal,
                  engine=None):
         """Init the file handler."""
-        super(NCOLCI1B, self).__init__(filename, filename_info,
-                                       filetype_info)
+        super().__init__(filename, filename_info, filetype_info, engine)
         self.cal = cal.nc
 
     @staticmethod
@@ -241,33 +239,18 @@ class NCOLCI2(NCOLCIChannelBase):
         return reduce(np.logical_or, [bflags[item] for item in items])
 
 
-class NCOLCILowResData(BaseFileHandler):
+class NCOLCILowResData(NCOLCIBase):
     """Handler for low resolution data."""
+
+    rows_name = "tie_rows"
+    cols_name = "tie_columns"
 
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the file handler."""
-        super(NCOLCILowResData, self).__init__(filename, filename_info, filetype_info)
-        self.nc = None
-        # TODO: get metadata from the manifest file (xfdumanifest.xml)
-        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
-        self.sensor = 'olci'
-        self.cache = {}
-        self.engine = engine
-
-    def _open_dataset(self):
-        if self.nc is None:
-            self.nc = xr.open_dataset(self.filename,
-                                      decode_cf=True,
-                                      mask_and_scale=True,
-                                      engine=self.engine,
-                                      chunks={'tie_columns': CHUNK_SIZE,
-                                              'tie_rows': CHUNK_SIZE})
-
-            self.nc = self.nc.rename({'tie_columns': 'x', 'tie_rows': 'y'})
-
-            self.l_step = self.nc.attrs['al_subsampling_factor']
-            self.c_step = self.nc.attrs['ac_subsampling_factor']
+        super().__init__(filename, filename_info, filetype_info, engine)
+        self.l_step = self.nc.attrs['al_subsampling_factor']
+        self.c_step = self.nc.attrs['ac_subsampling_factor']
 
     def _do_interpolate(self, data):
 
@@ -293,15 +276,9 @@ class NCOLCILowResData(BaseFileHandler):
         return [xr.DataArray(da.from_array(x, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                              dims=['y', 'x']) for x in int_data]
 
+    @property
     def _need_interpolation(self):
         return (self.c_step != 1 or self.l_step != 1)
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except (OSError, AttributeError):
-            pass
 
 
 class NCOLCIAngles(NCOLCILowResData):
@@ -317,32 +294,15 @@ class NCOLCIAngles(NCOLCILowResData):
         if key['name'] not in self.datasets:
             return
 
-        self._open_dataset()
-
         logger.debug('Reading %s.', key['name'])
 
-        if self._need_interpolation() and self.cache.get(key['name']) is None:
-
+        if self._need_interpolation:
             if key['name'].startswith('satellite'):
-                zen = self.nc[self.datasets['satellite_zenith_angle']]
-                zattrs = zen.attrs
-                azi = self.nc[self.datasets['satellite_azimuth_angle']]
-                aattrs = azi.attrs
+                azi, zen = self.satellite_angles
             elif key['name'].startswith('solar'):
-                zen = self.nc[self.datasets['solar_zenith_angle']]
-                zattrs = zen.attrs
-                azi = self.nc[self.datasets['solar_azimuth_angle']]
-                aattrs = azi.attrs
+                azi, zen = self.sun_angles
             else:
                 raise NotImplementedError("Don't know how to read " + key['name'])
-
-            x, y, z = angle2xyz(azi, zen)
-
-            x, y, z = self._do_interpolate((x, y, z))
-
-            azi, zen = xyz2angle(x, y, z)
-            azi.attrs = aattrs
-            zen.attrs = zattrs
 
             if 'zenith' in key['name']:
                 values = zen
@@ -350,16 +310,6 @@ class NCOLCIAngles(NCOLCILowResData):
                 values = azi
             else:
                 raise NotImplementedError("Don't know how to read " + key['name'])
-
-            if key['name'].startswith('satellite'):
-                self.cache['satellite_zenith_angle'] = zen
-                self.cache['satellite_azimuth_angle'] = azi
-            elif key['name'].startswith('solar'):
-                self.cache['solar_zenith_angle'] = zen
-                self.cache['solar_azimuth_angle'] = azi
-
-        elif key['name'] in self.cache:
-            values = self.cache[key['name']]
         else:
             values = self.nc[self.datasets[key['name']]]
 
@@ -369,18 +319,43 @@ class NCOLCIAngles(NCOLCILowResData):
         values.attrs.update(key.to_dict())
         return values
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except (OSError, AttributeError):
-            pass
+    @cached_property
+    def sun_angles(self):
+        """Return the sun angles."""
+        zen = self.nc[self.datasets['solar_zenith_angle']]
+        azi = self.nc[self.datasets['solar_azimuth_angle']]
+        azi, zen = self._interpolate_angles(azi, zen)
+        return azi, zen
+
+    @cached_property
+    def satellite_angles(self):
+        """Return the satellite angles."""
+        zen = self.nc[self.datasets['satellite_zenith_angle']]
+        azi = self.nc[self.datasets['satellite_azimuth_angle']]
+        azi, zen = self._interpolate_angles(azi, zen)
+        return azi, zen
+
+    def _interpolate_angles(self, azi, zen):
+        aattrs = azi.attrs
+        zattrs = zen.attrs
+        x, y, z = angle2xyz(azi, zen)
+        x, y, z = self._do_interpolate((x, y, z))
+        azi, zen = xyz2angle(x, y, z)
+        azi.attrs = aattrs
+        zen.attrs = zattrs
+        return azi, zen
 
 
 class NCOLCIMeteo(NCOLCILowResData):
     """File handler for the OLCI meteo data."""
 
     datasets = ['humidity', 'sea_level_pressure', 'total_columnar_water_vapour', 'total_ozone']
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 engine=None):
+        """Init the file handler."""
+        super().__init__(filename, filename_info, filetype_info, engine)
+        self.cache = {}
 
     # TODO: the following depends on more than columns, rows
     # float atmospheric_temperature_profile(tie_rows, tie_columns, tie_pressure_levels) ;
@@ -392,11 +367,9 @@ class NCOLCIMeteo(NCOLCILowResData):
         if key['name'] not in self.datasets:
             return
 
-        self._open_dataset()
-
         logger.debug('Reading %s.', key['name'])
 
-        if self._need_interpolation() and self.cache.get(key['name']) is None:
+        if self._need_interpolation and self.cache.get(key['name']) is None:
 
             data = self.nc[key['name']]
 

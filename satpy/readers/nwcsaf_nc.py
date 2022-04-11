@@ -22,10 +22,10 @@ References:
 
 """
 
+import functools
 import logging
 import os
 from datetime import datetime
-from functools import lru_cache
 
 import dask.array as da
 import numpy as np
@@ -104,6 +104,10 @@ class NcNWCSAF(BaseFileHandler):
 
         self.set_platform_and_sensor(**kwrgs)
 
+        self.upsample_geolocation = functools.lru_cache(maxsize=1)(
+            self._upsample_geolocation_uncached
+        )
+
     def set_platform_and_sensor(self, **kwargs):
         """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
         try:
@@ -140,16 +144,24 @@ class NcNWCSAF(BaseFileHandler):
                 return lat
 
         logger.debug('Reading %s.', dsid_name)
-        file_key = self._get_filekey(dsid_name, info)
+        file_key = self._get_filekeys(dsid_name, info)
         variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(variable, info)
 
         return variable
 
-    def _get_filekey(self, dsid_name, info):
+    def _get_varname_in_file(self, info, info_type="file_key"):
+        if isinstance(info[info_type], list):
+            for key in info[info_type]:
+                file_key = self.file_key_prefix + key
+                if file_key in self.nc:
+                    return file_key
+        return self.file_key_prefix + info[info_type]
+
+    def _get_filekeys(self, dsid_name, info):
         try:
-            file_key = self.file_key_prefix + info["file_key"]
+            file_key = self._get_varname_in_file(info, info_type="file_key")
         except KeyError:
             file_key = dsid_name
         return file_key
@@ -217,7 +229,7 @@ class NcNWCSAF(BaseFileHandler):
 
     def _prepare_variable_for_palette(self, variable, info):
         try:
-            so_dataset = self.nc[self.file_key_prefix + info['scale_offset_dataset']]
+            so_dataset = self.nc[self._get_varname_in_file(info, info_type='scale_offset_dataset')]
         except KeyError:
             scale = 1
             offset = 0
@@ -245,8 +257,7 @@ class NcNWCSAF(BaseFileHandler):
             variable = variable[1:, :]
         return variable
 
-    @lru_cache(maxsize=1)
-    def upsample_geolocation(self):
+    def _upsample_geolocation_uncached(self):
         """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
 

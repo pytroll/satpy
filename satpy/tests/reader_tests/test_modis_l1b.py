@@ -162,3 +162,27 @@ class TestModisL1b:
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000
         _check_shared_metadata(dataset)
+
+    @pytest.mark.parametrize("mask_saturated", [False, True])
+    def test_load_vis_saturation(self, mask_saturated, modis_l1b_nasa_mod021km_file):
+        """Test loading visible band."""
+        scene = Scene(reader='modis_l1b', filenames=modis_l1b_nasa_mod021km_file,
+                      reader_kwargs={"mask_saturated": mask_saturated})
+        dataset_name = '2'
+        scene.load([dataset_name])
+        dataset = scene[dataset_name]
+        assert dataset.shape == _shape_for_resolution(1000)
+        assert dataset.attrs['resolution'] == 1000
+        _check_shared_metadata(dataset)
+
+        # check saturation fill values
+        data = dataset.values
+        assert np.isnan(data[-1, -1])  # normal fill value
+        if mask_saturated:
+            assert np.isnan(data[-1, -2])  # saturation
+            assert np.isnan(data[-1, -3])  # can't aggregate
+        else:
+            # test data factor/offset are 1/0
+            # albedos are converted to %
+            assert data[-1, -2] >= 32767 * 100.0  # saturation
+            assert data[-1, -3] >= 32767 * 100.0  # can't aggregate

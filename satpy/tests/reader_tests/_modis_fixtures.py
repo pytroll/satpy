@@ -75,7 +75,22 @@ def _generate_angle_data(resolution: int) -> np.ndarray:
 def _generate_visible_data(resolution: int, num_bands: int, dtype=np.uint16) -> np.ndarray:
     shape = _shape_for_resolution(resolution)
     data = np.zeros((num_bands, shape[0], shape[1]), dtype=dtype)
+
+    # add fill value to every band
+    data[:, -1, -1] = 65535
+
+    # add band 2 saturation and can't aggregate fill values
+    data[1, -1, -2] = 65533
+    data[1, -1, -3] = 65528
     return data
+
+
+def _generate_visible_uncertainty_data(shape: tuple) -> np.ndarray:
+    uncertainty = np.zeros(shape, dtype=np.uint8)
+    uncertainty[:, -1, -1] = 15  # fill value
+    uncertainty[:, -1, -2] = 15  # saturated
+    uncertainty[:, -1, -3] = 15  # can't aggregate
+    return uncertainty
 
 
 def _get_lonlat_variable_info(resolution: int) -> dict:
@@ -115,6 +130,7 @@ def _get_angles_variable_info(resolution: int) -> dict:
 def _get_visible_variable_info(var_name: str, resolution: int, bands: list[str]):
     num_bands = len(bands)
     data = _generate_visible_data(resolution, len(bands))
+    uncertainty = _generate_visible_uncertainty_data(data.shape)
     dim_factor = RES_TO_REPEAT_FACTOR[resolution] * 2
     band_dim_name = f"Band_{resolution}_{num_bands}_RefSB:MODIS_SWATH_Type_L1B"
     row_dim_name = f'{dim_factor}*nscans:MODIS_SWATH_Type_L1B'
@@ -136,7 +152,7 @@ def _get_visible_variable_info(var_name: str, resolution: int, bands: list[str])
             },
         },
         var_name + '_Uncert_Indexes': {
-            'data': np.zeros(data.shape, dtype=np.uint8),
+            'data': uncertainty,
             'type': SDC.UINT8,
             'fill_value': 255,
             'attrs': {
