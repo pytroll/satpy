@@ -28,7 +28,7 @@ to make the code more dask friendly.
 from __future__ import annotations
 
 import logging
-from typing import Type
+from typing import Optional, Type
 
 import dask.array as da
 import numpy as np
@@ -411,27 +411,16 @@ class _CREFLRunner:
     def __call__(self, sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation):
         refl = self._refl
         is_percent = refl.attrs["units"] == "%"
-        use_abi = refl.attrs['sensor'] == 'abi'
         coeffs = get_coefficients(refl.attrs["sensor"],
                                   refl.attrs["wavelength"],
                                   refl.attrs["resolution"])
-
-        # Get digital elevation map data for our granule, set ocean fill value to 0
-        if avg_elevation is None:
-            LOG.debug("No average elevation information provided in CREFL")
-            # height = np.zeros(lon.shape, dtype=np.float64)
-            height = 0.
-        else:
-            LOG.debug("Using average elevation information provided to CREFL")
-            lon, lat = refl.attrs['area'].get_lonlats(chunks=refl.chunks)
-            height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
-                                   chunks=lon.chunks, dtype=avg_elevation.dtype)
+        height = self._height_from_avg_elevation(avg_elevation)
         mus = np.cos(np.deg2rad(solar_zenith))
         mus = mus.where(mus >= 0)
         muv = np.cos(np.deg2rad(sensor_zenith))
         phi = solar_azimuth - sensor_azimuth
 
-        if use_abi:
+        if refl.attrs["sensor"] == "abi":
             LOG.debug("Using ABI CREFL algorithm")
             corr_refl = da.map_blocks(_run_crefl_abi, refl.data, mus.data, muv.data, phi.data,
                                       solar_zenith.data, sensor_zenith.data, height, *coeffs,
@@ -448,6 +437,19 @@ class _CREFLRunner:
         if is_percent:
             corr_refl = corr_refl * 100.0
         return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
+
+    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
+        """Get digital elevation map data for our granule with ocean fill value set to 0."""
+        if avg_elevation is None:
+            LOG.debug("No average elevation information provided in CREFL")
+            # height = np.zeros(lon.shape, dtype=np.float64)
+            height = 0.
+        else:
+            LOG.debug("Using average elevation information provided to CREFL")
+            lon, lat = self._refl.attrs['area'].get_lonlats(chunks=self._refl.chunks)
+            height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
+                                   chunks=lon.chunks, dtype=avg_elevation.dtype)
+        return height
 
 
 _SENSOR_TO_RUNNER = {
