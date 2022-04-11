@@ -92,8 +92,7 @@ class TestGHRSSTL2Reader(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.nc',
                                          prefix='L2P_GHRSST-SSTskin', dir=self._slstrdir) as ncfilename:
             self.fake_dataset.to_netcdf(ncfilename.name)
-            xmlfile_path = tempfile.NamedTemporaryFile(prefix='xfdumanifest', suffix='.xml',
-                                                       dir=Path(self._tmpdir.name) / slstr_fakename)
+            xmlfile_path = tempfile.NamedTemporaryFile(prefix='xfdumanifest', suffix='.xml', dir=self._slstrdir)
 
             with tarfile.open(name=self._tarfile_path, mode='w') as tar:
                 tar.add(ncfilename.name, arcname=Path(slstr_fakename) / os.path.basename(ncfilename.name))
