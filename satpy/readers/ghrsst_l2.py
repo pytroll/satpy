@@ -62,9 +62,7 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     @staticmethod
     def _is_sst_file(name):
         """Check if file in the tar archive is a valid SST file."""
-        if name.endswith('nc') and 'GHRSST-SSTskin' in name:
-            return True
-        return False
+        return name.endswith('nc') and 'GHRSST-SSTskin' in name
 
     def get_dataset(self, key, info):
         """Get any available dataset."""
