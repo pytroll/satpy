@@ -17,12 +17,40 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared utilities for correcting reflectance data using the 'crefl' algorithm.
 
-Original code written by Ralph Kuehn with modifications by David Hoese and
-Martin Raspaud. Ralph's code was originally based on the C crefl code
-distributed for VIIRS and MODIS. Modifications include group per-band
-coefficients into a single array to separate (as much as possible) the code
-differences between the different methods. Other modifications are mostly
-to make the code more dask friendly.
+The CREFL algorithm in this module is based on the `NASA CREFL SPA`_ software,
+the `NASA CVIIRS SPA`_, and customizations of these algorithms for ABI/AHI by
+Ralph Kuehn and Min Oo at the Space Science and Engineering Center (SSEC).
+
+The CREFL SPA documentation page describes the algorithm by saying:
+
+    The CREFL_SPA processes MODIS Aqua and Terra Level 1B DB data to create the
+    MODIS Level 2 Corrected Reflectance product. The algorithm performs a simple
+    atmospheric correction with MODIS visible, near-infrared, and short-wave
+    infrared bands (bands 1 through 16).
+
+    It corrects for molecular (Rayleigh) scattering and gaseous absorption (water
+    vapor and ozone) using climatological values for gas contents. It requires no
+    real-time input of ancillary data. The algorithm performs no aerosol
+    correction. The Corrected Reflectance products created by CREFL_SPA are very
+    similar to the MODIS Land Surface Reflectance product (MOD09) in clear
+    atmospheric conditions, since the algorithms used to derive both are based on
+    the 6S Radiative Transfer Model. The products show differences in the presence
+    of aerosols, however, because the MODIS Land Surface Reflectance product uses
+    a more complex atmospheric correction algorithm that includes a correction for
+    aerosols.
+
+The additional logic to support ABI (AHI support not included) was originally
+written by Ralph Kuehn and Min Oo at SSEC. Additional modifications were
+performed by Martin Raspaud, David Hoese, and Will Roberts to make the code
+work together and be more dask compatible.
+
+The ABI/AHI modifications include coefficients based on a radiative transfer
+model that doesn't assume the atmosphere is an infinite plane-parallel. These
+modifications take into account the spheroid shape of the Earth which is
+important for geostationary sensors at medium view angles.
+
+.. _NASA CREFL SPA: https://directreadout.sci.gsfc.nasa.gov/?id=dspContent&cid=92&type=software
+.. _NASA CVIIRS SPA: https://directreadout.sci.gsfc.nasa.gov/?id=dspContent&cid=277&type=software
 
 """
 from __future__ import annotations
