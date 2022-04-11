@@ -370,6 +370,7 @@ class ParallaxCorrectionModifier(ModifierBase):
                 to_be_corrected, plax_corr_area,
                 radius_of_influence=50000, fill_value=np.nan)
         res.attrs["area"] = to_be_corrected.attrs["area"]
+        self.apply_modifier_info(to_be_corrected, res)
 
         return res
 
