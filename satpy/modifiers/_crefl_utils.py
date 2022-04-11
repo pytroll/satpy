@@ -229,62 +229,97 @@ def _get_coefficients(sensor, wavelength_range, resolution=0):
 
 
 class _AtmosphereVariables:
-    def __init__(self, sensor_name):
-        self._sensor_name = sensor_name
+    def __init__(self, mus, muv, phi, height, ah2o, bh2o, ao3, tau):
+        self._mus = mus
+        self._muv = muv
+        self._phi = phi
+        self._height = height
+        self._ah2o = ah2o
+        self._bh2o = bh2o
+        self._ao3 = ao3
+        self._tau = tau
+        self._taustep4sphalb = TAUSTEP4SPHALB
 
-    def __call__(self, mus, muv, phi, height, *coefficients, G_O3=None, G_H2O=None, G_O2=None):
-        if self._sensor_name == "abi":
-            return _get_atm_variables_abi(
-                mus, muv, phi, height, G_O3, G_H2O, G_O2, *coefficients,
-            )
-        return _get_atm_variables(
-            mus, muv, phi, height, self._sensor_name, *coefficients,
-        )
+    def __call__(self):
+        tau_step = np.linspace(
+            self._taustep4sphalb,
+            MAXNUMSPHALBVALUES * self._taustep4sphalb,
+            MAXNUMSPHALBVALUES)
+        sphalb0 = _csalbr(tau_step)
+        taur = self._tau * np.exp(-self._height / SCALEHEIGHT)
+        rhoray, trdown, trup = _chand(self._phi, self._muv, self._mus, taur)
+        sphalb = sphalb0[(taur / self._taustep4sphalb + 0.5).astype(np.int32)]
+        Ttotrayu = ((2 / 3. + self._muv) + (2 / 3. - self._muv) * trup) / (4 / 3. + taur)
+        Ttotrayd = ((2 / 3. + self._mus) + (2 / 3. - self._mus) * trdown) / (4 / 3. + taur)
 
+        tH2O = self._get_th2o()
+        TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
 
-def _get_atm_variables(mus, muv, phi, height, sensor_name, ah2o, bh2o, ao3, tau):
-    """Get atmospheric variables for non-ABI instruments."""
-    air_mass = 1.0 / mus + 1 / muv
-    air_mass[air_mass > MAXAIRMASS] = -1.0
-    tO3 = 1.0
-    tH2O = 1.0
-    is_modis = sensor_name is None or sensor_name.lower() == "modis"
-    if ao3 != 0:
-        uo3 = UO3_MODIS if is_modis else UO3_VIIRS
-        tO3 = np.exp(-air_mass * uo3 * ao3)
-    if bh2o != 0:
-        if is_modis:
-            tH2O = np.exp(-np.exp(ah2o + bh2o * np.log(air_mass * UH2O_MODIS)))
-        else:
-            tH2O = np.exp(-(ah2o * ((air_mass * UH2O_VIIRS) ** bh2o)))
-    # Returns sphalb, rhoray, TtotraytH2O, tOG
-    return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB)
+        tO2 = self._get_to2()
+        tO3 = self._get_to3()
+        tOG = tO3 * tO2
+        return sphalb, rhoray, TtotraytH2O, tOG
 
+    def _get_to2(self):
+        return 1.0
 
-def _get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, ah2o, ao2, ao3, tau):
-    """Get atmospheric variables for ABI."""
-    tO3 = 1.0
-    tH2O = 1.0
-    if ao3 != 0:
-        tO3 = np.exp(-G_O3 * ao3)
-    if ah2o != 0:
-        tH2O = np.exp(-G_H2O * ah2o)
-    tO2 = np.exp(-G_O2 * ao2)
-    # Returns sphalb, rhoray, TtotraytH2O, tOG.
-    return _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, TAUSTEP4SPHALB_ABI, tO2=tO2)
+    def _get_to3(self):
+        raise NotImplementedError()
+
+    def _get_th2o(self):
+        raise NotImplementedError()
 
 
-def _atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
-    tau_step = np.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES)
-    sphalb0 = _csalbr(tau_step)
-    taur = tau * np.exp(-height / SCALEHEIGHT)
-    rhoray, trdown, trup = _chand(phi, muv, mus, taur)
-    sphalb = sphalb0[(taur / taustep4sphalb + 0.5).astype(np.int32)]
-    Ttotrayu = ((2 / 3. + muv) + (2 / 3. - muv) * trup) / (4 / 3. + taur)
-    Ttotrayd = ((2 / 3. + mus) + (2 / 3. - mus) * trdown) / (4 / 3. + taur)
-    TtotraytH2O = Ttotrayu * Ttotrayd * tH2O
-    tOG = tO3 * tO2
-    return sphalb, rhoray, TtotraytH2O, tOG
+class _ABIAtmosphereVariables(_AtmosphereVariables):
+    def __init__(self, G_O3, G_H2O, G_O2, *args):
+        super().__init__(*args)
+        self._G_O3 = G_O3
+        self._G_H2O = G_H2O
+        self._G_O2 = G_O2
+        self._taustep4sphalb = TAUSTEP4SPHALB_ABI
+
+    def _get_to2(self):
+        # NOTE: bh2o is actually ao2 for ABI
+        return np.exp(-self._G_O2 * self._bh2o)
+
+    def _get_to3(self):
+        return np.exp(-self._G_O3 * self._ao3) if self._ao3 != 0 else 1.0
+
+    def _get_th2o(self):
+        return np.exp(-self._G_H2O * self._ah2o) if self._ah2o != 0 else 1.0
+
+
+class _VIIRSAtmosphereVariables(_AtmosphereVariables):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._airmass = self._compute_airmass()
+
+    def _compute_airmass(self):
+        air_mass = 1.0 / self._mus + 1 / self._muv
+        air_mass[air_mass > MAXAIRMASS] = -1.0
+        return air_mass
+
+    def _get_to3(self):
+        if self._ao3 == 0:
+            return 1.0
+        return np.exp(-self._airmass * UO3_VIIRS * self._ao3)
+
+    def _get_th2o(self):
+        if self._bh2o == 0:
+            return 1.0
+        return np.exp(-(self._ah2o * ((self._airmass * UH2O_VIIRS) ** self._bh2o)))
+
+
+class _MODISAtmosphereVariables(_VIIRSAtmosphereVariables):
+    def _get_to3(self):
+        if self._ao3 == 0:
+            return 1.0
+        return np.exp(-self._airmass * UO3_MODIS * self._ao3)
+
+    def _get_th2o(self):
+        if self._bh2o == 0:
+            return 1.0
+        return np.exp(-np.exp(self._ah2o + self._bh2o * np.log(self._airmass * UH2O_MODIS)))
 
 
 def _csalbr(tau):
@@ -503,8 +538,9 @@ def _space_mask_height(lon, lat, avg_elevation):
 def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, computing_meta=False):
     if computing_meta:
         return refl
-    atm_vars = _AtmosphereVariables(sensor_name)
-    sphalb, rhoray, TtotraytH2O, tOG = atm_vars(mus, muv, phi, height, *coeffs)
+    atm_vars_cls = _VIIRSAtmosphereVariables if sensor_name.lower() == "viirs" else _MODISAtmosphereVariables
+    atm_vars = atm_vars_cls(mus, muv, phi, height, *coeffs)
+    sphalb, rhoray, TtotraytH2O, tOG = atm_vars()
     return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
 
 
@@ -519,8 +555,9 @@ def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
     G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
     G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
     # Note: bh2o values are actually ao2 values for abi
-    atm_vars = _AtmosphereVariables("abi")
-    sphalb, rhoray, TtotraytH2O, tOG = atm_vars(mus, muv, phi, height, *coeffs, G_O3=G_O3, G_H2O=G_H2O, G_O2=G_O2)
+    atm_vars = _ABIAtmosphereVariables(G_O3, G_H2O, G_O2,
+                                       mus, muv, phi, height, *coeffs)
+    sphalb, rhoray, TtotraytH2O, tOG = atm_vars()
     return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
 
 
