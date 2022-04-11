@@ -406,11 +406,15 @@ def run_crefl(refl,
 
 class _CREFLRunner:
     def __init__(self, refl_data_arr):
+        self._is_percent = refl_data_arr.attrs["units"] == "%"
+        if self._is_percent:
+            attrs = refl_data_arr.attrs
+            refl_data_arr = refl_data_arr / 100.0
+            refl_data_arr.attrs = attrs
         self._refl = refl_data_arr
 
     def __call__(self, sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation):
         refl = self._refl
-        is_percent = refl.attrs["units"] == "%"
         coeffs = get_coefficients(refl.attrs["sensor"],
                                   refl.attrs["wavelength"],
                                   refl.attrs["resolution"])
@@ -419,24 +423,27 @@ class _CREFLRunner:
         mus = mus.where(mus >= 0)
         muv = np.cos(np.deg2rad(sensor_zenith))
         phi = solar_azimuth - sensor_azimuth
-
-        if refl.attrs["sensor"] == "abi":
-            LOG.debug("Using ABI CREFL algorithm")
-            corr_refl = da.map_blocks(_run_crefl_abi, refl.data, mus.data, muv.data, phi.data,
-                                      solar_zenith.data, sensor_zenith.data, height, *coeffs,
-                                      meta=np.ndarray((), dtype=refl.dtype),
-                                      chunks=refl.chunks, dtype=refl.dtype,
-                                      percent=is_percent)
-        else:
-            LOG.debug("Using original VIIRS CREFL algorithm")
-            corr_refl = da.map_blocks(_run_crefl, refl.data, mus.data, muv.data, phi.data,
-                                      height, refl.attrs.get("sensor"), *coeffs,
-                                      meta=np.ndarray((), dtype=refl.dtype),
-                                      chunks=refl.chunks, dtype=refl.dtype,
-                                      percent=is_percent)
-        if is_percent:
+        corr_refl = self._run_crefl(mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs)
+        if self._is_percent:
             corr_refl = corr_refl * 100.0
         return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
+
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        if self._refl.attrs["sensor"] == "abi":
+            LOG.debug("Using ABI CREFL algorithm")
+            corr_refl = da.map_blocks(_run_crefl_abi, self._refl.data, mus.data, muv.data, phi.data,
+                                      solar_zenith.data, sensor_zenith.data, height, *coeffs,
+                                      meta=np.ndarray((), dtype=self._refl.dtype),
+                                      chunks=self._refl.chunks, dtype=self._refl.dtype,
+                                      )
+        else:
+            LOG.debug("Using original VIIRS CREFL algorithm")
+            corr_refl = da.map_blocks(_run_crefl, self._refl.data, mus.data, muv.data, phi.data,
+                                      height, self._refl.attrs.get("sensor"), *coeffs,
+                                      meta=np.ndarray((), dtype=self._refl.dtype),
+                                      chunks=self._refl.chunks, dtype=self._refl.dtype,
+                                      )
+        return corr_refl
 
     def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
         """Get digital elevation map data for our granule with ocean fill value set to 0."""
@@ -481,15 +488,15 @@ def _space_mask_height(lon, lat, avg_elevation):
     return height
 
 
-def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, percent=True, computing_meta=False):
+def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, computing_meta=False):
     if computing_meta:
         return refl
     sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables(mus, muv, phi, height, sensor_name, *coeffs)
-    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent)
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
 
 
 def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
-                   *coeffs, percent=True, computing_meta=False):
+                   *coeffs, computing_meta=False):
     if computing_meta:
         return refl
     a_O3 = [268.45, 0.5, 115.42, -3.2922]
@@ -500,13 +507,10 @@ def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
     G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
     # Note: bh2o values are actually ao2 values for abi
     sphalb, rhoray, TtotraytH2O, tOG = get_atm_variables_abi(mus, muv, phi, height, G_O3, G_H2O, G_O2, *coeffs)
-    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent)
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
 
 
-def _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb, percent):
-    if percent:
-        corr_refl = ((refl / 100.) / tOG - rhoray) / TtotraytH2O
-    else:
-        corr_refl = (refl / tOG - rhoray) / TtotraytH2O
+def _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb):
+    corr_refl = (refl / tOG - rhoray) / TtotraytH2O
     corr_refl /= (1.0 + corr_refl * sphalb)
     return corr_refl.clip(REFLMIN, REFLMAX)
