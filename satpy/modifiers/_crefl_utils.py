@@ -228,6 +228,158 @@ def _get_coefficients(sensor, wavelength_range, resolution=0):
     return aH2O[idx], bH2O[idx], aO3[idx], taur0[idx]
 
 
+def run_crefl(refl,
+              sensor_azimuth,
+              sensor_zenith,
+              solar_azimuth,
+              solar_zenith,
+              avg_elevation=None,
+              ):
+    """Run main crefl algorithm.
+
+    All input parameters are per-pixel values meaning they are the same size
+    and shape as the input reflectance data, unless otherwise stated.
+
+    :param refl: tuple of reflectance band arrays
+    :param sensor_azimuth: input swath sensor azimuth angle array
+    :param sensor_zenith: input swath sensor zenith angle array
+    :param solar_azimuth: input swath solar azimuth angle array
+    :param solar_zenith: input swath solar zenith angle array
+    :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
+
+    """
+    runner_cls = _runner_class_for_sensor(refl.attrs['sensor'])
+    runner = runner_cls(refl)
+    corr_refl = runner(sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation)
+    return corr_refl
+
+
+class _CREFLRunner:
+    def __init__(self, refl_data_arr):
+        self._is_percent = refl_data_arr.attrs["units"] == "%"
+        if self._is_percent:
+            attrs = refl_data_arr.attrs
+            refl_data_arr = refl_data_arr / 100.0
+            refl_data_arr.attrs = attrs
+        self._refl = refl_data_arr
+
+    def __call__(self, sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation):
+        refl = self._refl
+        coeffs = _get_coefficients(refl.attrs["sensor"],
+                                   refl.attrs["wavelength"],
+                                   refl.attrs["resolution"])
+        height = self._height_from_avg_elevation(avg_elevation)
+        mus = np.cos(np.deg2rad(solar_zenith))
+        mus = mus.where(mus >= 0)
+        muv = np.cos(np.deg2rad(sensor_zenith))
+        phi = solar_azimuth - sensor_azimuth
+        corr_refl = self._run_crefl(mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs)
+        if self._is_percent:
+            corr_refl = corr_refl * 100.0
+        return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
+
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        raise NotImplementedError()
+
+    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
+        """Get digital elevation map data for our granule with ocean fill value set to 0."""
+        if avg_elevation is None:
+            LOG.debug("No average elevation information provided in CREFL")
+            # height = np.zeros(lon.shape, dtype=np.float64)
+            height = 0.
+        else:
+            LOG.debug("Using average elevation information provided to CREFL")
+            lon, lat = self._refl.attrs['area'].get_lonlats(chunks=self._refl.chunks)
+            height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
+                                   chunks=lon.chunks, dtype=avg_elevation.dtype)
+        return height
+
+
+class _ABICREFLRunner(_CREFLRunner):
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        LOG.debug("Using ABI CREFL algorithm")
+        return da.map_blocks(_run_crefl_abi, self._refl.data, mus.data, muv.data, phi.data,
+                             solar_zenith.data, sensor_zenith.data, height, *coeffs,
+                             meta=np.ndarray((), dtype=self._refl.dtype),
+                             chunks=self._refl.chunks, dtype=self._refl.dtype,
+                             )
+
+
+class _VIIRSCREFLRunner(_CREFLRunner):
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        LOG.debug("Using VIIRS CREFL algorithm")
+        return da.map_blocks(_run_crefl, self._refl.data, mus.data, muv.data, phi.data,
+                             height, self._refl.attrs.get("sensor"), *coeffs,
+                             meta=np.ndarray((), dtype=self._refl.dtype),
+                             chunks=self._refl.chunks, dtype=self._refl.dtype,
+                             )
+
+
+_SENSOR_TO_RUNNER = {
+    "abi": _ABICREFLRunner,
+    "modis": _VIIRSCREFLRunner,
+    "viirs": _VIIRSCREFLRunner,
+}
+
+
+def _runner_class_for_sensor(sensor_name: str) -> Type[_CREFLRunner]:
+    try:
+        return _SENSOR_TO_RUNNER[sensor_name]
+    except KeyError:
+        raise NotImplementedError(f"Don't know how to apply CREFL to data from sensor {sensor_name}.")
+
+
+def _space_mask_height(lon, lat, avg_elevation):
+    lat[(lat <= -90) | (lat >= 90)] = np.nan
+    lon[(lon <= -180) | (lon >= 180)] = np.nan
+    row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
+    col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
+    space_mask = np.isnan(lon) | np.isnan(lat)
+    row[space_mask] = 0
+    col[space_mask] = 0
+
+    height = avg_elevation[row, col]
+    # negative heights aren't allowed, clip to 0
+    height[(height < 0.0) | np.isnan(height) | space_mask] = 0.0
+    return height
+
+
+def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, computing_meta=False):
+    if computing_meta:
+        return refl
+    atm_vars_cls = _VIIRSAtmosphereVariables if sensor_name.lower() == "viirs" else _MODISAtmosphereVariables
+    atm_vars = atm_vars_cls(mus, muv, phi, height, *coeffs)
+    sphalb, rhoray, TtotraytH2O, tOG = atm_vars()
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
+
+
+def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
+                   *coeffs, computing_meta=False):
+    if computing_meta:
+        return refl
+    a_O3 = [268.45, 0.5, 115.42, -3.2922]
+    a_H2O = [0.0311, 0.1, 92.471, -1.3814]
+    a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
+    G_O3 = _G_calc(solar_zenith, a_O3) + _G_calc(sensor_zenith, a_O3)
+    G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
+    G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
+    # Note: bh2o values are actually ao2 values for abi
+    atm_vars = _ABIAtmosphereVariables(G_O3, G_H2O, G_O2,
+                                       mus, muv, phi, height, *coeffs)
+    sphalb, rhoray, TtotraytH2O, tOG = atm_vars()
+    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
+
+
+def _G_calc(zenith, a_coeff):
+    return (np.cos(np.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
+
+
+def _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb):
+    corr_refl = (refl / tOG - rhoray) / TtotraytH2O
+    corr_refl /= (1.0 + corr_refl * sphalb)
+    return corr_refl.clip(REFLMIN, REFLMAX)
+
+
 class _AtmosphereVariables:
     def __init__(self, mus, muv, phi, height, ah2o, bh2o, ao3, tau):
         self._mus = mus
@@ -417,155 +569,3 @@ def _chand(phi, muv, mus, taur):
 
     rhoray = xitot1 * xcos1 + xitot2 * xcos2 * 2.0 + xitot3 * xcos3 * 2.0
     return rhoray, trdown, trup
-
-
-def run_crefl(refl,
-              sensor_azimuth,
-              sensor_zenith,
-              solar_azimuth,
-              solar_zenith,
-              avg_elevation=None,
-              ):
-    """Run main crefl algorithm.
-
-    All input parameters are per-pixel values meaning they are the same size
-    and shape as the input reflectance data, unless otherwise stated.
-
-    :param refl: tuple of reflectance band arrays
-    :param sensor_azimuth: input swath sensor azimuth angle array
-    :param sensor_zenith: input swath sensor zenith angle array
-    :param solar_azimuth: input swath solar azimuth angle array
-    :param solar_zenith: input swath solar zenith angle array
-    :param avg_elevation: average elevation (usually pre-calculated and stored in CMGDEM.hdf)
-
-    """
-    runner_cls = _runner_class_for_sensor(refl.attrs['sensor'])
-    runner = runner_cls(refl)
-    corr_refl = runner(sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation)
-    return corr_refl
-
-
-class _CREFLRunner:
-    def __init__(self, refl_data_arr):
-        self._is_percent = refl_data_arr.attrs["units"] == "%"
-        if self._is_percent:
-            attrs = refl_data_arr.attrs
-            refl_data_arr = refl_data_arr / 100.0
-            refl_data_arr.attrs = attrs
-        self._refl = refl_data_arr
-
-    def __call__(self, sensor_azimuth, sensor_zenith, solar_azimuth, solar_zenith, avg_elevation):
-        refl = self._refl
-        coeffs = _get_coefficients(refl.attrs["sensor"],
-                                   refl.attrs["wavelength"],
-                                   refl.attrs["resolution"])
-        height = self._height_from_avg_elevation(avg_elevation)
-        mus = np.cos(np.deg2rad(solar_zenith))
-        mus = mus.where(mus >= 0)
-        muv = np.cos(np.deg2rad(sensor_zenith))
-        phi = solar_azimuth - sensor_azimuth
-        corr_refl = self._run_crefl(mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs)
-        if self._is_percent:
-            corr_refl = corr_refl * 100.0
-        return xr.DataArray(corr_refl, dims=refl.dims, coords=refl.coords, attrs=refl.attrs)
-
-    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
-        raise NotImplementedError()
-
-    def _height_from_avg_elevation(self, avg_elevation: Optional[np.ndarray]) -> da.Array:
-        """Get digital elevation map data for our granule with ocean fill value set to 0."""
-        if avg_elevation is None:
-            LOG.debug("No average elevation information provided in CREFL")
-            # height = np.zeros(lon.shape, dtype=np.float64)
-            height = 0.
-        else:
-            LOG.debug("Using average elevation information provided to CREFL")
-            lon, lat = self._refl.attrs['area'].get_lonlats(chunks=self._refl.chunks)
-            height = da.map_blocks(_space_mask_height, lon, lat, avg_elevation,
-                                   chunks=lon.chunks, dtype=avg_elevation.dtype)
-        return height
-
-
-class _ABICREFLRunner(_CREFLRunner):
-    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
-        LOG.debug("Using ABI CREFL algorithm")
-        return da.map_blocks(_run_crefl_abi, self._refl.data, mus.data, muv.data, phi.data,
-                             solar_zenith.data, sensor_zenith.data, height, *coeffs,
-                             meta=np.ndarray((), dtype=self._refl.dtype),
-                             chunks=self._refl.chunks, dtype=self._refl.dtype,
-                             )
-
-
-class _VIIRSCREFLRunner(_CREFLRunner):
-    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
-        LOG.debug("Using VIIRS CREFL algorithm")
-        return da.map_blocks(_run_crefl, self._refl.data, mus.data, muv.data, phi.data,
-                             height, self._refl.attrs.get("sensor"), *coeffs,
-                             meta=np.ndarray((), dtype=self._refl.dtype),
-                             chunks=self._refl.chunks, dtype=self._refl.dtype,
-                             )
-
-
-_SENSOR_TO_RUNNER = {
-    "abi": _ABICREFLRunner,
-    "modis": _VIIRSCREFLRunner,
-    "viirs": _VIIRSCREFLRunner,
-}
-
-
-def _runner_class_for_sensor(sensor_name: str) -> Type[_CREFLRunner]:
-    try:
-        return _SENSOR_TO_RUNNER[sensor_name]
-    except KeyError:
-        raise NotImplementedError(f"Don't know how to apply CREFL to data from sensor {sensor_name}.")
-
-
-def _space_mask_height(lon, lat, avg_elevation):
-    lat[(lat <= -90) | (lat >= 90)] = np.nan
-    lon[(lon <= -180) | (lon >= 180)] = np.nan
-    row = ((90.0 - lat) * avg_elevation.shape[0] / 180.0).astype(np.int32)
-    col = ((lon + 180.0) * avg_elevation.shape[1] / 360.0).astype(np.int32)
-    space_mask = np.isnan(lon) | np.isnan(lat)
-    row[space_mask] = 0
-    col[space_mask] = 0
-
-    height = avg_elevation[row, col]
-    # negative heights aren't allowed, clip to 0
-    height[(height < 0.0) | np.isnan(height) | space_mask] = 0.0
-    return height
-
-
-def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, computing_meta=False):
-    if computing_meta:
-        return refl
-    atm_vars_cls = _VIIRSAtmosphereVariables if sensor_name.lower() == "viirs" else _MODISAtmosphereVariables
-    atm_vars = atm_vars_cls(mus, muv, phi, height, *coeffs)
-    sphalb, rhoray, TtotraytH2O, tOG = atm_vars()
-    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
-
-
-def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
-                   *coeffs, computing_meta=False):
-    if computing_meta:
-        return refl
-    a_O3 = [268.45, 0.5, 115.42, -3.2922]
-    a_H2O = [0.0311, 0.1, 92.471, -1.3814]
-    a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
-    G_O3 = _G_calc(solar_zenith, a_O3) + _G_calc(sensor_zenith, a_O3)
-    G_H2O = _G_calc(solar_zenith, a_H2O) + _G_calc(sensor_zenith, a_H2O)
-    G_O2 = _G_calc(solar_zenith, a_O2) + _G_calc(sensor_zenith, a_O2)
-    # Note: bh2o values are actually ao2 values for abi
-    atm_vars = _ABIAtmosphereVariables(G_O3, G_H2O, G_O2,
-                                       mus, muv, phi, height, *coeffs)
-    sphalb, rhoray, TtotraytH2O, tOG = atm_vars()
-    return _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb)
-
-
-def _G_calc(zenith, a_coeff):
-    return (np.cos(np.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
-
-
-def _correct_refl(refl, tOG, rhoray, TtotraytH2O, sphalb):
-    corr_refl = (refl / tOG - rhoray) / TtotraytH2O
-    corr_refl /= (1.0 + corr_refl * sphalb)
-    return corr_refl.clip(REFLMIN, REFLMAX)
