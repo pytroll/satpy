@@ -336,11 +336,10 @@ class ParallaxCorrectionModifier(ModifierBase):
         composites:
 
           parallax_corrected_VIS006:
-            compositor: !!python/name:satpy.composites.GenericCompositor
+            compositor: !!python/name:satpy.composites.SingleBandCompositor
             prerequisites:
               - name: VIS006
                 modifiers: [parallax_corrected]
-            standard_name: VIS006
 
     Here, ``ctth_alti`` is CTH provided by the ``nwcsaf-geo`` reader, so to use it
     one would have to pass both on scene creation::

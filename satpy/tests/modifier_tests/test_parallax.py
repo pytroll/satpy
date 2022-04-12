@@ -29,6 +29,8 @@ import xarray as xr
 from pyproj import Geod
 from pyresample import create_area_def
 
+from ...writers import get_enhanced_image
+
 
 def _get_fake_areas(center, sizes, resolution, code=4326):
     """Get multiple square areas with the same center.
@@ -671,11 +673,10 @@ modifiers:
 
 composites:
   parallax_corrected_VIS006:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
       - name: VIS006
         modifiers: [parallax_corrected]
-    standard_name: VIS006
 """
 
 
@@ -758,3 +759,13 @@ class TestParallaxCorrectionSceneLoad:
               dask.config.set(scheduler=CustomScheduler(max_computes=0))):
             sccc.return_value = [os.fspath(conf_file)]
             fake_scene.load(["parallax_corrected_VIS006"])
+
+    def test_enhanced_image(self, fake_scene, conf_file):
+        """Test that image enhancement is the same."""
+        with unittest.mock.patch(
+                "satpy.composites.config_loader.config_search_paths") as sccc:
+            sccc.return_value = [os.fspath(conf_file)]
+            fake_scene.load(["parallax_corrected_VIS006", "VIS006"])
+        im1 = get_enhanced_image(fake_scene["VIS006"])
+        im2 = get_enhanced_image(fake_scene["parallax_corrected_VIS006"])
+        assert im1.data.attrs["enhancement_history"] == im2.data.attrs["enhancement_history"]
