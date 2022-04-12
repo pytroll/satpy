@@ -38,7 +38,7 @@ follows:
     H-000-MSG4__-MSG4________-_________-EPI______-201903011200-__
 
 Each image is decomposed into 24 segments (files) for the high-resolution-visible (HRV) channel and 8 segments for other
-visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
+visible (VIS) and infrared (IR) channels. Additionally, there is one prologue and one epilogue file for the entire scan
 which contain global metadata valid for all channels.
 
 Reader Arguments
