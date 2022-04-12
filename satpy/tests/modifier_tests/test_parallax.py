@@ -624,16 +624,15 @@ class TestParallaxCorrectionModifier:
         # location of cloud in corrected data
         # this may no longer be rectangular!
         dest_mask = np.zeros(shape=test_area.shape, dtype="?")
-        if test_area.name == "foroyar":
-            if cth == 7500:
-                dest_mask[197:202, 152:172] = True
-            elif cth == 15000:
-                dest_mask[239:244, 165:184] = True
-        elif test_area.name == "ouagadougou":
-            if cth == 7500:
-                dest_mask[159:164, 140:160] = True
-            elif cth == 15000:
-                dest_mask[163:168, 141:161] = True
+        cloud_location = {
+                "foroyar": {
+                    7500: (197, 202, 152, 172),
+                    15000: (239, 244, 165, 184)},
+                "ouagadougou": {
+                    7500: (159, 164, 140, 160),
+                    15000: (163, 168, 141, 161)}}
+        (x_lo, x_hi, y_lo, y_hi) = cloud_location[test_area.name][cth]
+        dest_mask[x_lo:x_hi, y_lo:y_hi] = True
 
         modif = ParallaxCorrectionModifier(
                 name="parallax_corrected_dataset",
