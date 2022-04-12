@@ -404,9 +404,7 @@ def _space_mask_height(lon, lat, avg_elevation):
     return height
 
 
-def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, computing_meta=False):
-    if computing_meta:
-        return refl
+def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs):
     atm_vars_cls = _VIIRSAtmosphereVariables if sensor_name.lower() == "viirs" else _MODISAtmosphereVariables
     atm_vars = atm_vars_cls(mus, muv, phi, height, *coeffs)
     sphalb, rhoray, TtotraytH2O, tOG = atm_vars()
@@ -414,9 +412,7 @@ def _run_crefl(refl, mus, muv, phi, height, sensor_name, *coeffs, computing_meta
 
 
 def _run_crefl_abi(refl, mus, muv, phi, solar_zenith, sensor_zenith, height,
-                   *coeffs, computing_meta=False):
-    if computing_meta:
-        return refl
+                   *coeffs):
     a_O3 = [268.45, 0.5, 115.42, -3.2922]
     a_H2O = [0.0311, 0.1, 92.471, -1.3814]
     a_O2 = [0.4567, 0.007, 96.4884, -1.6970]
