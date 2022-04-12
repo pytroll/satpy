@@ -20,11 +20,13 @@
 import os
 import unittest
 from datetime import datetime
+from io import BytesIO
 from tempfile import NamedTemporaryFile, gettempdir
 from unittest import mock
 
 import numpy as np
 
+from satpy.readers import FSFile
 from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
 
 
@@ -168,11 +170,26 @@ class TestHRITFileHandler(unittest.TestCase):
                           30310525626438.438, 3720765401003.719))
 
     @mock.patch('satpy.readers.hrit_base.np.memmap')
-    def test_read_band(self, memmap):
-        """Test reading a single band."""
+    def test_read_band_filepath(self, memmap):
+        """Test reading a single band from a filepath."""
         nbits = self.reader.mda['number_of_bits_per_pixel']
         memmap.return_value = np.random.randint(0, 256,
                                                 size=int((464 * 3712 * nbits) / 8),
                                                 dtype=np.uint8)
+        res = self.reader.read_band('VIS006', None)
+        self.assertEqual(res.compute().shape, (464, 3712))
+
+    @mock.patch('satpy.readers.FSFile.open')
+    def test_read_band_FSFile(self, fsfile_open):
+        """Test reading a single band from a FSFile."""
+        nbits = self.reader.mda['number_of_bits_per_pixel']
+        self.reader.filename = FSFile(self.reader.filename)  # convert str to FSFile
+        fsfile_open.return_value = BytesIO(
+            np.random.randint(
+                0, 256,
+                size=int((464 * 3712 * nbits) / 8) + self.reader.mda['total_header_length'],
+                dtype=np.uint8
+            ).tobytes()
+        )
         res = self.reader.read_band('VIS006', None)
         self.assertEqual(res.compute().shape, (464, 3712))
