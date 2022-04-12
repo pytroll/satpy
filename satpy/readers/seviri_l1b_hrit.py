@@ -43,7 +43,7 @@ which contain global metadata valid for all channels.
 
 Reader Arguments
 ----------------
-Some arguments can be provided to the reader to change it's behaviour. These are
+Some arguments can be provided to the reader to change its behaviour. These are
 provided through the `Scene` instantiation, eg::
 
   Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
