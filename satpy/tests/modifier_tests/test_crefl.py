@@ -184,9 +184,7 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['area'] == area
         assert res.attrs['ancillary_variables'] == []
         data = res.values
-        print(np.nanmean(data))
         unique = np.unique(data[~np.isnan(data)])
-        print(repr(unique))
         assert abs(np.nanmean(data) - exp_mean) < 1e-10
         assert data.shape == (3, 5)
         np.testing.assert_allclose(unique, exp_unique)
@@ -262,10 +260,10 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['area'] == area
         assert res.attrs['ancillary_variables'] == []
         data = res.values
-        assert abs(np.mean(data) - 40.7578684169142) < 1e-10
-        assert data.shape == (5, 10)
+        assert abs(np.mean(data) - 51.12750267805715) < 1e-10
+        assert data.shape == (3, 5)
         unique = np.unique(data)
-        np.testing.assert_allclose(unique, [25.20341702519979, 52.38819447051263, 75.79089653845898])
+        np.testing.assert_allclose(unique, [25.20341703, 52.38819447, 75.79089654])
 
     def test_reflectance_corrector_modis(self):
         """Test ReflectanceCorrector modifier with MODIS data."""
@@ -330,11 +328,10 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['area'] == area
         assert res.attrs['ancillary_variables'] == []
         data = res.values
-        if abs(np.mean(data) - 41.43091604185072) >= 1e-10:
-            raise AssertionError('{} is not within {} of {}'.format(np.mean(data), 1e-10, 41.43091604185072))
-        assert data.shape == (5, 10)
+        assert abs(np.mean(data) - 52.09372623964498) < 1e-10
+        assert data.shape == (3, 5)
         unique = np.unique(data)
-        np.testing.assert_allclose(unique, [25.436701, 52.932216, 77.912262])
+        np.testing.assert_allclose(unique, [25.43670075, 52.93221561, 77.91226236])
 
     def test_reflectance_corrector_bad_prereqs(self):
         """Test ReflectanceCorrector modifier with wrong number of inputs."""

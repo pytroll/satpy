@@ -69,6 +69,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
+from satpy.dataset.dataid import WavelengthRange
+
 LOG = logging.getLogger(__name__)
 
 UO3_MODIS = 0.319
@@ -112,10 +114,16 @@ class _Coefficients:
         `wavelength_range` can also be the standard name of the band. For
         example, "M05" for VIIRS or "1" for MODIS.
 
-        :param wavelength_range: 3-element tuple of (min wavelength, nominal wavelength, max wavelength)
-        :param resolution: resolution of the band to be corrected
-        :return: index in to coefficient arrays like `aH2O`, `aO3`, etc.
-                 None is returned if no matching wavelength is found
+        Args:
+            wavelength_range: 3-element tuple of
+                (min wavelength, nominal wavelength, max wavelength) or the
+                string name of the band.
+            resolution: resolution of the band to be corrected
+
+        Returns:
+            index in to coefficient arrays like `aH2O`, `aO3`, etc.
+            None is returned if no matching wavelength is found
+
         """
         index_map = self.COEFF_INDEX_MAP
         # Find the best resolution of coefficients
@@ -129,12 +137,13 @@ class _Coefficients:
         if isinstance(wavelength_range, str):
             # wavelength range is actually a band name
             return index_map[wavelength_range]
-        for k, v in index_map.items():
-            if isinstance(k, str):
+        for lut_wvl_range, v in index_map.items():
+            if isinstance(lut_wvl_range, str):
                 # we are analyzing wavelengths and ignoring dataset names
                 continue
-            if k[0] <= wavelength_range[1] <= k[2]:
+            if wavelength_range[1] in lut_wvl_range:
                 return v
+        raise ValueError(f"Can't find LUT for {wavelength_range}.")
 
 
 class _ABICoefficients(_Coefficients):
@@ -153,17 +162,17 @@ class _ABICoefficients(_Coefficients):
     # resolution -> band name -> coefficient index
     COEFF_INDEX_MAP = {
         2000: {
-            (0.450, 0.470, 0.490): 0,  # C01
+            WavelengthRange(0.450, 0.470, 0.490): 0,  # C01
             "C01": 0,
-            (0.590, 0.640, 0.690): 1,  # C02
+            WavelengthRange(0.590, 0.640, 0.690): 1,  # C02
             "C02": 1,
-            (0.8455, 0.865, 0.8845): 2,  # C03
+            WavelengthRange(0.8455, 0.865, 0.8845): 2,  # C03
             "C03": 2,
-            # (1.3705, 1.378, 1.3855): None,  # C04 - No coefficients yet
+            # WavelengthRange((1.3705, 1.378, 1.3855)): None,  # C04 - No coefficients yet
             # "C04": None,
-            (1.580, 1.610, 1.640): 3,  # C05
+            WavelengthRange(1.580, 1.610, 1.640): 3,  # C05
             "C05": 3,
-            (2.225, 2.250, 2.275): 4,  # C06
+            WavelengthRange(2.225, 2.250, 2.275): 4,  # C06
             "C06": 4
         },
     }
@@ -189,27 +198,27 @@ class _VIIRSCoefficients(_Coefficients):
     # resolution -> band name -> coefficient index
     COEFF_INDEX_MAP = {
         1000: {
-            (0.662, 0.6720, 0.682): 0,  # M05
+            WavelengthRange(0.662, 0.6720, 0.682): 0,  # M05
             "M05": 0,
-            (0.846, 0.8650, 0.885): 1,  # M07
+            WavelengthRange(0.846, 0.8650, 0.885): 1,  # M07
             "M07": 1,
-            (0.478, 0.4880, 0.498): 2,  # M03
+            WavelengthRange(0.478, 0.4880, 0.498): 2,  # M03
             "M03": 2,
-            (0.545, 0.5550, 0.565): 3,  # M04
+            WavelengthRange(0.545, 0.5550, 0.565): 3,  # M04
             "M04": 3,
-            (1.230, 1.2400, 1.250): 4,  # M08
+            WavelengthRange(1.230, 1.2400, 1.250): 4,  # M08
             "M08": 4,
-            (1.580, 1.6100, 1.640): 5,  # M10
+            WavelengthRange(1.580, 1.6100, 1.640): 5,  # M10
             "M10": 5,
-            (2.225, 2.2500, 2.275): 6,  # M11
+            WavelengthRange(2.225, 2.2500, 2.275): 6,  # M11
             "M11": 6,
         },
         500: {
-            (0.600, 0.6400, 0.680): 7,  # I01
+            WavelengthRange(0.600, 0.6400, 0.680): 7,  # I01
             "I01": 7,
-            (0.845, 0.8650, 0.884): 8,  # I02
+            WavelengthRange(0.845, 0.8650, 0.884): 8,  # I02
             "I02": 8,
-            (1.580, 1.6100, 1.640): 9,  # I03
+            WavelengthRange(1.580, 1.6100, 1.640): 9,  # I03
             "I03": 9,
         },
     }
@@ -233,19 +242,19 @@ class _MODISCoefficients(_Coefficients):
     # Map of pixel resolutions -> band name -> coefficient index
     COEFF_INDEX_MAP = {
         1000: {
-            (0.620, 0.6450, 0.670): 0,
+            WavelengthRange(0.620, 0.6450, 0.670): 0,
             "1": 0,
-            (0.841, 0.8585, 0.876): 1,
+            WavelengthRange(0.841, 0.8585, 0.876): 1,
             "2": 1,
-            (0.459, 0.4690, 0.479): 2,
+            WavelengthRange(0.459, 0.4690, 0.479): 2,
             "3": 2,
-            (0.545, 0.5550, 0.565): 3,
+            WavelengthRange(0.545, 0.5550, 0.565): 3,
             "4": 3,
-            (1.230, 1.2400, 1.250): 4,
+            WavelengthRange(1.230, 1.2400, 1.250): 4,
             "5": 4,
-            (1.628, 1.6400, 1.652): 5,
+            WavelengthRange(1.628, 1.6400, 1.652): 5,
             "6": 5,
-            (2.105, 2.1300, 2.155): 6,
+            WavelengthRange(2.105, 2.1300, 2.155): 6,
             "7": 6,
         }
     }
