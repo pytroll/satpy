@@ -185,9 +185,9 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['ancillary_variables'] == []
         data = res.values
         unique = np.unique(data[~np.isnan(data)])
-        np.testing.assert_allclose(np.nanmean(data), exp_mean, rtol=1e-6)
+        np.testing.assert_allclose(np.nanmean(data), exp_mean, rtol=1e-5)
         assert data.shape == (3, 5)
-        np.testing.assert_allclose(unique, exp_unique, rtol=1e-6)
+        np.testing.assert_allclose(unique, exp_unique, rtol=1e-5)
 
     @pytest.mark.parametrize(
         'url,dem_mock_cm,dem_sds',
