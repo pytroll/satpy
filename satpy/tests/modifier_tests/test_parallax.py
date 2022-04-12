@@ -195,13 +195,15 @@ class TestParallaxCorrectionClass:
         pc = ParallaxCorrection(fake_area)
         assert pc.base_area == fake_area
 
-    @pytest.mark.parametrize("sat_lat,sat_lon,ar_lat,ar_lon",
-                             [(0, 0, 0, 0), (0, 0, 40, 0)])
+    @pytest.mark.parametrize("sat_pos,ar_pos",
+                             [((0, 0), (0, 0)), ((0, 0), (40, 0))])
     @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
-    def test_correct_area_clearsky(self, sat_lat, sat_lon, ar_lat, ar_lon, resolution, caplog):
+    def test_correct_area_clearsky(self, sat_pos, ar_pos, resolution, caplog):
         """Test that ParallaxCorrection doesn't change clearsky geolocation."""
         from ...modifiers.parallax import ParallaxCorrection
         from ..utils import make_fake_scene
+        (sat_lat, sat_lon) = sat_pos
+        (ar_lat, ar_lon) = ar_pos
         small = 5
         large = 9
         (fake_area_small, fake_area_large) = _get_fake_areas(
