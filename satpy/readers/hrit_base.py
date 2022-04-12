@@ -327,16 +327,17 @@ class HRITFileHandler(BaseFileHandler):
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
-        # check, whether 'filename' is a str, thus path to a file on disk,
+        # check, if 'filename' is a file on disk,
         #  or a file like obj, possibly residing already in memory
-        if isinstance(self.filename, str):
+        try:
             # For reading the image data, unzip_context is faster than generic_open
             with utils.unzip_context(self.filename) as fn:
                 data = np.memmap(fn, mode='r',
                                  offset=self.mda['total_header_length'],
                                  dtype=dtype,
                                  shape=shape)
-        else:  # filename is likely to be a file-like object
+        except (FileNotFoundError, AttributeError):
+            # filename is likely to be a file-like object, already in memory
             with utils.generic_open(self.filename, mode="rb") as fp:
                 no_elements = np.prod(shape)
                 fp.seek(self.mda['total_header_length'])
