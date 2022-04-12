@@ -185,7 +185,7 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['ancillary_variables'] == []
         data = res.values
         unique = np.unique(data[~np.isnan(data)])
-        assert abs(np.nanmean(data) - exp_mean) < 1e-10
+        assert abs(np.nanmean(data) - exp_mean) < 1e-6
         assert data.shape == (3, 5)
         np.testing.assert_allclose(unique, exp_unique)
 
@@ -260,7 +260,7 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['area'] == area
         assert res.attrs['ancillary_variables'] == []
         data = res.values
-        assert abs(np.mean(data) - 51.12750267805715) < 1e-10
+        assert abs(np.mean(data) - 51.12750267805715) < 1e-6
         assert data.shape == (3, 5)
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [25.20341703, 52.38819447, 75.79089654])
@@ -328,7 +328,7 @@ class TestReflectanceCorrectorModifier:
         assert res.attrs['area'] == area
         assert res.attrs['ancillary_variables'] == []
         data = res.values
-        assert abs(np.mean(data) - 52.09372623964498) < 1e-10
+        assert abs(np.mean(data) - 52.09372623964498) < 1e-6
         assert data.shape == (3, 5)
         unique = np.unique(data)
         np.testing.assert_allclose(unique, [25.43670075, 52.93221561, 77.91226236])
