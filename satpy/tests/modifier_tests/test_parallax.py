@@ -754,9 +754,9 @@ class TestParallaxCorrectionSceneLoad:
     def test_no_compute(self, fake_scene, conf_file):
         """Test that no computation occurs."""
         from satpy.tests.utils import CustomScheduler
-        with (unittest.mock.patch(
-                "satpy.composites.config_loader.config_search_paths") as sccc,
-              dask.config.set(scheduler=CustomScheduler(max_computes=0))):
+        with unittest.mock.patch(
+                "satpy.composites.config_loader.config_search_paths") as sccc, \
+             dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             sccc.return_value = [os.fspath(conf_file)]
             fake_scene.load(["parallax_corrected_VIS006"])
 
