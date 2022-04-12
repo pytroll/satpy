@@ -107,9 +107,80 @@ Output:
         modifiers:                ()
         ancillary_variables:      []
 
+The `filenames` argument can either be a list of strings, see the example above, or a list of
+:class:`satpy.readers.FSFile` objects. FSFiles can be used in conjunction with `fsspec`_,
+e.g. to handle in-memory data:
+
+.. code-block:: python
+
+    import glob
+
+    from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
+    from satpy import Scene
+    from satpy.readers import FSFile
+
+    # In this example, we will make use of `MemoryFile`s in a `MemoryFileSystem`.
+    memory_fs = MemoryFileSystem()
+
+    # Usually, the data already resides in memory.
+    # For explanatory reasons, we will load the files found with glob in memory,
+    #  and load the scene with FSFiles.
+    filenames = glob.glob('data/H-000-MSG4__-MSG4________-*201903011200*')
+    fs_files = []
+    for fn in filenames:
+        with open(fn, 'rb') as fh:
+            fs_files.append(MemoryFile(
+                fs=memory_fs,
+                path="{}{}".format(memory_fs.root_marker, fn),
+                data=fh.read()
+            ))
+            fs_files[-1].commit()  # commit the file to the filesystem
+    fs_files = [FSFile(open_file) for open_file in filenames]  # wrap MemoryFiles as FSFiles
+    # similar to the example above, we pass a list of FSFiles to the `Scene`
+    scn = Scene(filenames=fs_files, reader='seviri_l1b_hrit')
+    scn.load(['VIS006', 'IR_108'])
+    print(scn['IR_108'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+        acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
+      * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
+      * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
+    Attributes:
+        orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
+        platform_name:            Meteosat-11
+        georef_offset_corrected:  True
+        standard_name:            brightness_temperature
+        raw_metadata:             {'file_type': 0, 'total_header_length': 6198, '...
+        wavelength:               (9.8, 10.8, 11.8)
+        units:                    K
+        sensor:                   seviri
+        platform_name:            Meteosat-11
+        start_time:               2019-03-01 12:00:09.716000
+        end_time:                 2019-03-01 12:12:42.946000
+        area:                     Area ID: some_area_name\\nDescription: On-the-fl...
+        name:                     IR_108
+        resolution:               3000.403165817
+        calibration:              brightness_temperature
+        polarization:             None
+        level:                    None
+        modifiers:                ()
+        ancillary_variables:      []
+
+
+References:
+    - `MSG Level 1.5 Image Data Format Description`_
+
 .. _MSG Level 1.5 Image Data Format Description:
     https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
-
+.. _fsspec:
+    https://filesystem-spec.readthedocs.io
 """
 
 from __future__ import division
