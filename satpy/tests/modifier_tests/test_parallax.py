@@ -16,6 +16,7 @@
 import datetime
 import logging
 import math
+import os
 import unittest.mock
 
 import dask.array as da
@@ -656,3 +657,93 @@ class TestParallaxCorrectionModifier:
                 fake_bt.attrs["area"].get_lonlats()[1][cma].mean())
         # verify that all pixels at the new cloud location are indeed cloudy
         assert (res.data[dest_mask] < 250).all()
+
+
+_test_yaml_code = """
+sensor_name: visir
+
+modifiers:
+  parallax_corrected:
+    modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
+    prerequisites:
+      - name: "ctth_alti"
+
+composites:
+  parallax_corrected_VIS006:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: VIS006
+        modifiers: [parallax_corrected]
+    standard_name: parallax_corrected_VIS006
+"""
+
+
+class TestParallaxCorrectionSceneLoad:
+    """Test that scene load interface works as expected."""
+
+    @pytest.fixture
+    def yaml_code(self):
+        """Return YAML code for parallax_corrected_VIS006."""
+        return _test_yaml_code
+
+    @pytest.fixture
+    def conf_file(self, yaml_code, tmp_path):
+        """Produce a fake configuration file."""
+        conf_file = tmp_path / "test.yaml"
+        with conf_file.open(mode="wt", encoding="ascii") as fp:
+            fp.write(yaml_code)
+        return conf_file
+
+    @pytest.fixture
+    def fake_scene(self, yaml_code):
+        """Produce fake scene and prepare fake composite config."""
+        from satpy import Scene
+        from satpy.dataset.dataid import WavelengthRange
+        from satpy.tests.utils import make_dataid
+
+        area = _get_fake_areas((0, 0), [5], 1)[0]
+        sc = Scene()
+        sc["VIS006"] = xr.DataArray(
+            np.linspace(0, 99, 25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={
+                "_satpy_id": make_dataid(
+                    name="VIS006",
+                    wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit="µm"),
+                    resolution=3000.403165817,
+                    calibration="reflectance",
+                    modifiers=()),
+                "modifiers": (),
+                "sensor": "seviri",
+                "area": area})
+        sc["ctth_alti"] = xr.DataArray(
+            np.linspace(0, 99, 25).reshape(5, 5),
+            dims=("y", "x"),
+            attrs={
+                "_satpy_id": make_dataid(
+                    name="ctth_alti",
+                    resolution=3000,
+                    modifiers=()),
+                "modifiers": (),
+                "sensor": {"seviri"},
+                "platform_name": "Meteosat-11",
+                "start_time": datetime.datetime(2022, 4, 12, 9, 0),
+                "area": area})
+        return sc
+
+    def test_double_load(self, fake_scene, conf_file):
+        """Test that loading corrected and uncorrected works correctly.
+
+        When the modifier ``__call__`` method fails to call
+        ``self.apply_modifier_info(new, old)`` and the original and
+        parallax-corrected dataset are requested at the same time, the
+        DataArrays differ but the underlying dask arrays have object identity,
+        which in turn leads to both being parallax corrected.  This unit test
+        confirms that there is no such object identity.
+        """
+        with unittest.mock.patch(
+                "satpy.composites.config_loader.config_search_paths") as sccc:
+            sccc.return_value = [os.fspath(conf_file)]
+            fake_scene.load(["parallax_corrected_VIS006", "VIS006"])
+        assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
+        assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
