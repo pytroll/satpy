@@ -20,6 +20,7 @@ import os
 import unittest.mock
 
 import dask.array as da
+import dask.config
 import numpy as np
 import pyorbital.tlefile
 import pyresample.kd_tree
@@ -674,7 +675,7 @@ composites:
     prerequisites:
       - name: VIS006
         modifiers: [parallax_corrected]
-    standard_name: parallax_corrected_VIS006
+    standard_name: VIS006
 """
 
 
@@ -710,7 +711,7 @@ class TestParallaxCorrectionSceneLoad:
                 "_satpy_id": make_dataid(
                     name="VIS006",
                     wavelength=WavelengthRange(min=0.56, central=0.635, max=0.71, unit="µm"),
-                    resolution=3000.403165817,
+                    resolution=3000,
                     calibration="reflectance",
                     modifiers=()),
                 "modifiers": (),
@@ -747,3 +748,13 @@ class TestParallaxCorrectionSceneLoad:
             fake_scene.load(["parallax_corrected_VIS006", "VIS006"])
         assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
         assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
+
+    @pytest.mark.xfail(reason="awaiting pyresample fixes")
+    def test_no_compute(self, fake_scene, conf_file):
+        """Test that no computation occurs."""
+        from satpy.tests.utils import CustomScheduler
+        with (unittest.mock.patch(
+                "satpy.composites.config_loader.config_search_paths") as sccc,
+              dask.config.set(scheduler=CustomScheduler(max_computes=0))):
+            sccc.return_value = [os.fspath(conf_file)]
+            fake_scene.load(["parallax_corrected_VIS006"])
