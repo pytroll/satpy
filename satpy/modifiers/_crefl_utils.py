@@ -337,13 +337,8 @@ class _ABICREFLRunner(_CREFLRunner):
                              )
 
 
-class _VIIRSCREFLRunner(_CREFLRunner):
-    @property
-    def coeffs_cls(self) -> Type[_Coefficients]:
-        return _VIIRSCoefficients
-
+class _VIIRSMODISCREFLRunner(_CREFLRunner):
     def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
-        LOG.debug("Using VIIRS CREFL algorithm")
         return da.map_blocks(_run_crefl, self._refl.data, mus.data, muv.data, phi.data,
                              height, self._refl.attrs.get("sensor"), *coeffs,
                              meta=np.ndarray((), dtype=self._refl.dtype),
@@ -351,10 +346,24 @@ class _VIIRSCREFLRunner(_CREFLRunner):
                              )
 
 
-class _MODISCREFLRunner(_VIIRSCREFLRunner):
+class _VIIRSCREFLRunner(_VIIRSMODISCREFLRunner):
+    @property
+    def coeffs_cls(self) -> Type[_Coefficients]:
+        return _VIIRSCoefficients
+
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        LOG.debug("Using VIIRS CREFL algorithm")
+        return super()._run_crefl(mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs)
+
+
+class _MODISCREFLRunner(_VIIRSMODISCREFLRunner):
     @property
     def coeffs_cls(self) -> Type[_Coefficients]:
         return _MODISCoefficients
+
+    def _run_crefl(self, mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs):
+        LOG.debug("Using MODIS CREFL algorithm")
+        return super()._run_crefl(mus, muv, phi, solar_zenith, sensor_zenith, height, coeffs)
 
 
 _SENSOR_TO_RUNNER = {
