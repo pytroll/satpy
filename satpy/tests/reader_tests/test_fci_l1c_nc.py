@@ -123,9 +123,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         data[qual.format(ch_str)] = xrda(
             da.arange(nrows * ncols, dtype="uint8").reshape(nrows, ncols) % 128,
             dims=("y", "x"))
-        # add dummy data for index map starting from 1
+        # add dummy data for index map starting from 100
         data[index_map.format(ch_str)] = xrda(
-            (da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 6000) + 1,
+            (da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 6000) + 100,
             dims=("y", "x"))
 
         data[rad_conv_coeff.format(ch_str)] = xrda(1234.56)
@@ -193,6 +193,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         # compute the last data entry to simulate the FCI caching
         data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
+        data['index'] = xrda(da.arange(indices_dim, dtype="uint16")+100, dims=("index"))
         return data
 
     def _get_global_attributes(self):
@@ -239,6 +240,29 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
         from netCDF4 import default_fillvals
         v = xr.DataArray(default_fillvals["f4"])
         data[meas + "/channel_effective_solar_irradiance"] = v
+        return data
+
+
+class FakeNetCDF4FileHandler4(FakeNetCDF4FileHandler2):
+    """Mock bad data for IDPF TO-DO's."""
+
+    def _get_test_calib_for_channel_vis(self, chroot, meas):
+        data = super()._get_test_calib_for_channel_vis(chroot, meas)
+        data["state/celestial/earth_sun_distance"] = xr.DataArray(da.repeat(da.array([30000000]), 6000))
+        return data
+
+    def _get_test_content_all_channels(self):
+        data = super()._get_test_content_all_channels()
+        data['data/vis_04/measured/x'].attrs['scale_factor'] *= -1
+        data['data/vis_04/measured/x'].attrs['scale_factor'] = \
+            np.float32(data['data/vis_04/measured/x'].attrs['scale_factor'])
+        data['data/vis_04/measured/x'].attrs['add_offset'] = \
+            np.float32(data['data/vis_04/measured/x'].attrs['add_offset'])
+        data['data/vis_04/measured/y'].attrs['scale_factor'] = \
+            np.float32(data['data/vis_04/measured/y'].attrs['scale_factor'])
+        data['data/vis_04/measured/y'].attrs['add_offset'] = \
+            np.float32(data['data/vis_04/measured/y'].attrs['add_offset'])
+
         return data
 
 
@@ -438,7 +462,7 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch + '_index_map'].shape == (200, 11136)
-            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5138)
+            numpy.testing.assert_array_equal(res[ch + '_index_map'][1, 1], 5237)
 
     def test_load_aux_data(self, reader_configs):
         """Test loading of auxiliary data."""
@@ -592,3 +616,41 @@ class TestFCIL1cNCReaderBadData(TestFCIL1cNCReader):
                 name="vis_04",
                 calibration="reflectance")], pad_data=False)
             assert "cannot produce reflectance" in caplog.text
+
+
+class TestFCIL1cNCReaderBadDataFromIDPF(TestFCIL1cNCReader):
+    """Test the FCI L1c NetCDF Reader for bad data input."""
+
+    _alt_handler = FakeNetCDF4FileHandler4
+
+    def test_handling_bad_earthsun_distance(self, reader_configs, caplog):
+        """Test handling of bad earth-sun distance data."""
+        from satpy.tests.utils import make_dataid
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
+
+        res = reader.load([make_dataid(name=["vis_04"], calibration="reflectance")], pad_data=False)
+        numpy.testing.assert_array_almost_equal(res["vis_04"], 100 * 15 * 1 * np.pi / 50)
+
+    def test_bad_xy_coords(self, reader_configs):
+        """Test that the geolocation computation is correct."""
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        res = reader.load(['vis_04'], pad_data=False)
+
+        area_def = res['vis_04'].attrs['area']
+        # test area extents computation
+        np.testing.assert_array_almost_equal(np.array(area_def.area_extent),
+                                             np.array([-5568062.270889, 5168057.806632,
+                                                       16704186.298937, 5568062.270889]))
