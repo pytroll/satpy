@@ -349,6 +349,16 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         extents = {}
         for coord in "xy":
             coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
+
+            # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
+            if coord == "x" and coord_radian.scale_factor > 0:
+                coord_radian.attrs['scale_factor'] *= -1
+
+            # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
+            if type(coord_radian.scale_factor) is np.float32:
+                coord_radian.attrs['scale_factor'] = coord_radian.attrs['scale_factor'].astype('float64')
+                coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
+
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
 
             # FCI defines pixels by centroids (see PUG), while pyresample
