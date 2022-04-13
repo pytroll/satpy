@@ -931,8 +931,8 @@ enhancements:
           min_stretch: 0.0
           max_stretch: 20.0
 
-  cloud_type:
-    standard_name: cloud_type
+  cimss_cloud_type:
+    standard_name: cimss_cloud_type
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch

@@ -601,7 +601,7 @@ composites:
       - name: M05
     standard_name: cloud_phase
 
-  cloud_type:
+  cimss_cloud_type:
     description: >
       Cloud Type RGB, candidate for standard FCI RGB
     references:
@@ -614,9 +614,9 @@ composites:
         modifiers: [sunz_corrected_iband]
       - name: I03
         modifiers: [sunz_corrected_iband]
-    standard_name: cloud_type
+    standard_name: cimss_cloud_type
 
-  cloud_type_raw:
+  cimss_cloud_type_raw:
     description: >
       Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -624,4 +624,4 @@ composites:
       - name: M09
       - name: I01
       - name: I03
-    standard_name: cloud_type
+    standard_name: cimss_cloud_type

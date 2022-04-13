@@ -481,7 +481,7 @@ composites:
       - wavelength: 0.67
     standard_name: cloud_phase
 
-  cloud_type:
+  cimss_cloud_type:
     description: >
       Cloud Type RGB, candidate for standard FCI RGB
     references:
@@ -494,9 +494,9 @@ composites:
         modifiers: [sunz_corrected]
       - wavelength: 1.61
         modifiers: [sunz_corrected]
-    standard_name: cloud_type
+    standard_name: cimss_cloud_type
 
-  cloud_type_raw:
+  cimss_cloud_type_raw:
     description: >
       Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -504,4 +504,4 @@ composites:
       - wavelength: 1.38
       - wavelength: 0.64
       - wavelength: 1.61
-    standard_name: cloud_type_raw
+    standard_name: cimss_cloud_type
