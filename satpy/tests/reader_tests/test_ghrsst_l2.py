@@ -19,23 +19,20 @@
 
 import os
 import tarfile
-import tempfile
-import unittest
 from datetime import datetime
 from pathlib import Path
-from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.readers.ghrsst_l2 import GHRSSTL2FileHandler
 
 
-class TestGHRSSTL2Reader(unittest.TestCase):
+class TestGHRSSTL2Reader:
     """Test Sentinel-3 SST L2 reader."""
 
-    @mock.patch('satpy.readers.ghrsst_l2.xr')
-    def setUp(self, xr_):
+    def setup_method(self, tmp_path):
         """Create a fake osisaf ghrsst dataset."""
         self.base_data = np.array(([-32768, 1135, 1125], [1138, 1128, 1080]))
         self.lon_data = np.array(([-13.43, 1.56, 11.25], [-11.38, 1.28, 10.80]))
@@ -74,57 +71,70 @@ class TestGHRSSTL2Reader(unittest.TestCase):
                 "sensor": "VIIRS",
             },
         )
-        self._tmpfile = tempfile.NamedTemporaryFile(suffix='.nc')
-        self.fake_dataset.to_netcdf(self._tmpfile.name)
 
-        self._create_tarfile_with_testdata()
-
-    def _create_tarfile_with_testdata(self):
+    def _create_tarfile_with_testdata(self, mypath):
         """Create a 'fake' testdata set in a tar file."""
-        self._tmpdir = tempfile.TemporaryDirectory()
-
         slstr_fakename = "S3A_SL_2_WST_MAR_O_NR_003.SEN3"
         tarfile_fakename = "S3A_SL_2_WST_MAR_O_NR_003.SEN3.tar"
-        self._slstrdir = Path(self._tmpdir.name) / slstr_fakename
-        self._slstrdir.mkdir(parents=True, exist_ok=True)
-        self._tarfile_path = Path(self._tmpdir.name) / tarfile_fakename
 
-        with tempfile.NamedTemporaryFile(suffix='.nc',
-                                         prefix='L2P_GHRSST-SSTskin', dir=self._slstrdir) as ncfilename:
-            self.fake_dataset.to_netcdf(ncfilename.name)
-            xmlfile_path = tempfile.NamedTemporaryFile(prefix='xfdumanifest', suffix='.xml', dir=self._slstrdir)
+        slstrdir = mypath / slstr_fakename
+        slstrdir.mkdir(parents=True, exist_ok=True)
+        tarfile_path = mypath / tarfile_fakename
 
-            with tarfile.open(name=self._tarfile_path, mode='w') as tar:
-                tar.add(ncfilename.name, arcname=Path(slstr_fakename) / os.path.basename(ncfilename.name))
-                tar.add(xmlfile_path.name, arcname=Path(slstr_fakename) / os.path.basename(xmlfile_path.name))
+        ncfilename = slstrdir / 'L2P_GHRSST-SSTskin-202204131200.nc'
+        self.fake_dataset.to_netcdf(os.fspath(ncfilename))
+        xmlfile_path = slstrdir / 'xfdumanifest.xml'
+        xmlfile_path.touch()
 
-    def test_instantiate(self):
-        """Test initialization of file handlers."""
+        with tarfile.open(name=tarfile_path, mode='w') as tar:
+            tar.add(os.fspath(ncfilename), arcname=Path(slstr_fakename) / ncfilename.name)
+            tar.add(os.fspath(xmlfile_path), arcname=Path(slstr_fakename) / xmlfile_path.name)
+
+        return tarfile_path
+
+    def test_instantiate_single_netcdf_file(self, tmp_path):
+        """Test initialization of file handlers - given a single netCDF file."""
         filename_info = {}
-        GHRSSTL2FileHandler(self._tmpfile.name, filename_info, None)
-        GHRSSTL2FileHandler(os.fspath(self._tarfile_path), filename_info, None)
+        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
 
-    def test_get_dataset(self):
+        GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
+
+    def test_instantiate_tarfile(self, tmp_path):
+        """Test initialization of file handlers - given a tar file as in the case of the SAFE format."""
+        filename_info = {}
+        tarfile_path = self._create_tarfile_with_testdata(tmp_path)
+
+        GHRSSTL2FileHandler(os.fspath(tarfile_path), filename_info, None)
+
+    def test_get_dataset(self, tmp_path):
         """Test retrieval of datasets."""
         filename_info = {}
-        test = GHRSSTL2FileHandler(self._tmpfile.name, filename_info, None)
+        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
+
+        test = GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
+
         test.get_dataset('longitude', {'standard_name': 'longitude'})
         test.get_dataset('latitude', {'standard_name': 'latitude'})
         test.get_dataset('sea_surface_temperature', {'standard_name': 'sea_surface_temperature'})
 
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             test.get_dataset('erroneous dataset', {'standard_name': 'erroneous dataset'})
 
-    def test_get_sensor(self):
+    def test_get_sensor(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""
         dt_valid = datetime(2022, 3, 21, 11, 26, 40)  # 202203211200Z
         filename_info = {'field_type': 'NARSST', 'generating_centre': 'FRA_',
                          'satid': 'NOAA20_', 'valid_time': dt_valid}
 
-        test = GHRSSTL2FileHandler(self._tmpfile.name, filename_info, None)
+        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
+
+        test = GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
         assert test.sensor == 'viirs'
 
-    def test_get_start_and_end_times(self):
+    def test_get_start_and_end_times(self, tmp_path):
         """Test retrieval of the sensor name from the netCDF file."""
         dt_valid = datetime(2022, 3, 21, 11, 26, 40)  # 202203211200Z
         good_start_time = datetime(2022, 3, 21, 11, 26, 40)  # 20220321T112640Z
@@ -133,12 +143,10 @@ class TestGHRSSTL2Reader(unittest.TestCase):
         filename_info = {'field_type': 'NARSST', 'generating_centre': 'FRA_',
                          'satid': 'NOAA20_', 'valid_time': dt_valid}
 
-        test = GHRSSTL2FileHandler(self._tmpfile.name, filename_info, None)
+        tmp_filepath = tmp_path / 'fake_dataset.nc'
+        self.fake_dataset.to_netcdf(os.fspath(tmp_filepath))
+
+        test = GHRSSTL2FileHandler(os.fspath(tmp_filepath), filename_info, None)
 
         assert test.start_time == good_start_time
         assert test.end_time == good_stop_time
-
-    def tearDown(self):
-        """Clean up."""
-        self._tmpfile.close()
-        self._tmpdir.cleanup()
