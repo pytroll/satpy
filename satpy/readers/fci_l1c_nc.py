@@ -537,5 +537,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
 
+        # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
+        if sun_earth_distance < 0.9 or sun_earth_distance > 1.1:
+            logger.debug('The variable state/celestial/earth_sun_distance contains unexpected values'
+                         '(mean value is {} AU). Defaulting to 1 AU for reflectance calculation.'
+                         ''.format(sun_earth_distance))
+            sun_earth_distance = 1
+
         res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
         return res
