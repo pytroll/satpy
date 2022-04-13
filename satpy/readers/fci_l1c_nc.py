@@ -82,6 +82,22 @@ All auxiliary data can be obtained by prepending the channel name such as
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
     `DataID`.
 
+.. note::
+
+    For reading compressed data, a decompression library is
+    needed. Either install the FCIDECOMP library (see the [FCI L1 Product User
+    Guide] (www.eumetsat.int/media/45923), or the
+    ``hdf5plugin`` package with::
+
+        pip install hdf5plugin
+
+    or::
+
+        conda install hdf5plugin -c conda-forge
+
+    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
+    at the top of your script.
+
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
 .. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
