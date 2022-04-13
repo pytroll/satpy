@@ -357,6 +357,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
             if type(coord_radian.scale_factor) is np.float32:
                 coord_radian.attrs['scale_factor'] = coord_radian.attrs['scale_factor'].astype('float64')
+            if type(coord_radian.add_offset) is np.float32:
                 coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
 
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
