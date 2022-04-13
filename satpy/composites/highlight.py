@@ -116,10 +116,7 @@ class HighlightCompositor(GenericCompositor):
             # First value is the minimum BT for highlighting
             min_t = self.min_highlight[0]
             if skin_t is not None:
-                print("IN HERE")
                 min_t = min_t + skin_t
-
-            _make_gdal('./skin_t.tiff', skin_t)
 
             # This is the difference between min and max highlight BT
             tdiff = self.min_highlight[1]# - self.min_highlight[0]
@@ -133,33 +130,19 @@ class HighlightCompositor(GenericCompositor):
                                         lons, lats),
                                dims=['y', 'x'],
                                coords=[highlight_data['y'], highlight_data['x']])
-            _make_gdal('./sza1.tiff', sza)
             sza = sza.where(sza > min_sza, min_sza)
             sza = sza.where(sza < max_sza, max_sza)
-            _make_gdal('./sza2.tiff', sza)
-            print("Start")
-            print('skt', np.nanmin(skin_t), np.nanmean(skin_t), np.nanmax(skin_t))
-            print('hid', np.nanmin(highlight_data), np.nanmean(highlight_data), np.nanmax(highlight_data))
-            print('mit', np.nanmin(min_t), np.nanmean(min_t), np.nanmax(min_t))
-            _make_gdal('./highlight_data.tiff', highlight_data)
-            _make_gdal('./min_t.tiff', min_t)
 
             # Compute the highlight amount
-            highlighter = 1- ((sza - min_sza) / (max_sza - min_sza))
+            highlighter = 1 - ((sza - min_sza) / (max_sza - min_sza))
             min_highlight = min_t + tdiff * highlighter
             max_highlight = min_highlight + self.max_highlight
-            print('hig', np.nanmin(highlighter), np.nanmean(highlighter), np.nanmax(highlighter))
-            print('mih', np.nanmin(min_highlight), np.nanmean(min_highlight), np.nanmax(min_highlight))
-            _make_gdal('./highlighter.tiff', highlighter)
-            _make_gdal('./min_highlight.tiff', min_highlight)
-            print(self.min_highlight, self.max_highlight)
         else:
             min_highlight = self.min_highlight
             max_highlight = self.max_highlight
 
         # Return the highlight factor.
         tmp = self._retr_highlight(highlight_data, min_highlight, max_highlight)
-        _make_gdal('./tmp.tiff', tmp)
         return tmp
 
     @staticmethod

@@ -204,7 +204,7 @@ composites:
 
   truecol_fire_highlight_skint:
     max_factor: [0.8,0.15,-0.2,0]
-    min_highlight: [35.0, 10.0, 75.0, 100.0]
+    min_highlight: [30.0, 10.0, 75.0, 100.0]
     max_highlight: 20.0
     threshold_t: 10.0
     compositor: !!python/name:satpy.composites.highlight.HighlightCompositor
