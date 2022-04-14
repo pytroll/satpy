@@ -46,10 +46,7 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     def nc(self):
         """Get the xarray Dataset for the filename."""
         if os.fspath(self.filename).endswith('tar'):
-            self._tarfile = tarfile.open(name=self.filename, mode='r')
-            sst_filename = next((name for name in self._tarfile.getnames()
-                                 if self._is_sst_file(name)))
-            file_obj = self._tarfile.extractfile(sst_filename)
+            file_obj = self._open_tarfile()
         else:
             file_obj = self.filename
 
@@ -61,6 +58,13 @@ class GHRSSTL2FileHandler(BaseFileHandler):
                                      'nj': CHUNK_SIZE})
 
         return nc.rename({'ni': 'x', 'nj': 'y'})
+
+    def _open_tarfile(self):
+        self._tarfile = tarfile.open(name=self.filename, mode='r')
+        sst_filename = next((name for name in self._tarfile.getnames()
+                             if self._is_sst_file(name)))
+        file_obj = self._tarfile.extractfile(sst_filename)
+        return file_obj
 
     @staticmethod
     def _is_sst_file(name):
