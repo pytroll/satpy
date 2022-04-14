@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2020 Satpy developers
+# Copyright (c) 2015-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -495,7 +495,7 @@ class ColormapCompositor(GenericCompositor):
         Colormaps come in different forms, but they are all supposed to have
         color values between 0 and 255. The following cases are considered:
 
-        - Palettes comprised of only a list on colors. If *dtype* is uint8,
+        - Palettes comprised of only a list of colors. If *dtype* is uint8,
           the values of the colormap are the enumeration of the colors.
           Otherwise, the colormap values will be spread evenly from the min
           to the max of the valid_range provided in `info`.
