@@ -20,6 +20,7 @@ import os
 import tarfile
 from contextlib import suppress
 from datetime import datetime
+from functools import cached_property
 
 import xarray as xr
 
@@ -33,31 +34,33 @@ class GHRSSTL2FileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, engine=None):
         """Initialize the file handler for GHRSST L2 netCDF data."""
         super().__init__(filename, filename_info, filetype_info)
+        self._engine = engine
+        self._tarfile = None
 
-        if os.fspath(filename).endswith('tar'):
-            self._tarfile = tarfile.open(name=filename, mode='r')
-            sst_filename = next((name for name in self._tarfile.getnames()
-                                 if self._is_sst_file(name)))
-            file_obj = self._tarfile.extractfile(sst_filename)
-            self.nc = xr.open_dataset(file_obj,
-                                      decode_cf=True,
-                                      mask_and_scale=True,
-                                      engine=engine,
-                                      chunks={'ni': CHUNK_SIZE,
-                                              'nj': CHUNK_SIZE})
-        else:
-            self.nc = xr.open_dataset(filename,
-                                      decode_cf=True,
-                                      mask_and_scale=True,
-                                      engine=engine,
-                                      chunks={'ni': CHUNK_SIZE,
-                                              'nj': CHUNK_SIZE})
-
-        self.nc = self.nc.rename({'ni': 'x', 'nj': 'y'})
         self.filename_info['start_time'] = datetime.strptime(
             self.nc.start_time, '%Y%m%dT%H%M%SZ')
         self.filename_info['end_time'] = datetime.strptime(
             self.nc.stop_time, '%Y%m%dT%H%M%SZ')
+
+    @cached_property
+    def nc(self):
+        """Get the xarray Dataset for the filename."""
+        if os.fspath(self.filename).endswith('tar'):
+            self._tarfile = tarfile.open(name=self.filename, mode='r')
+            sst_filename = next((name for name in self._tarfile.getnames()
+                                 if self._is_sst_file(name)))
+            file_obj = self._tarfile.extractfile(sst_filename)
+        else:
+            file_obj = self.filename
+
+        nc = xr.open_dataset(file_obj,
+                             decode_cf=True,
+                             mask_and_scale=True,
+                             engine=self._engine,
+                             chunks={'ni': CHUNK_SIZE,
+                                     'nj': CHUNK_SIZE})
+
+        return nc.rename({'ni': 'x', 'nj': 'y'})
 
     @staticmethod
     def _is_sst_file(name):
