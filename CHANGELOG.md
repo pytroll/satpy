@@ -1,3 +1,56 @@
+## Version 0.36.0 (2022/04/14)
+
+### Issues Closed
+
+* [Issue 2082](https://github.com/pytroll/satpy/issues/2082) - Some composite are produced with the wrong colors
+* [Issue 2073](https://github.com/pytroll/satpy/issues/2073) - Creating scene with SEVIRI HRIT reader fails with UnicodeDecodeError ([PR 2077](https://github.com/pytroll/satpy/pull/2077) by [@pdebuyl](https://github.com/pdebuyl))
+* [Issue 2066](https://github.com/pytroll/satpy/issues/2066) - RGBs should never have units, but some do ([PR 2068](https://github.com/pytroll/satpy/pull/2068) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 2062](https://github.com/pytroll/satpy/issues/2062) - Can make Trollimage colorbar in scene
+* [Issue 1975](https://github.com/pytroll/satpy/issues/1975) - bunzip regular seviri hrit segments ([PR 2060](https://github.com/pytroll/satpy/pull/2060) by [@pdebuyl](https://github.com/pdebuyl))
+* [Issue 1954](https://github.com/pytroll/satpy/issues/1954) - Cloud Phase/Type/Phase Distinction RGBs for VIIRS and FCI ([PR 1957](https://github.com/pytroll/satpy/pull/1957) by [@gerritholl](https://github.com/gerritholl))
+* [Issue 1702](https://github.com/pytroll/satpy/issues/1702) - Resampling not working with SLSTR ancillary datasets
+
+In this release 7 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2084](https://github.com/pytroll/satpy/pull/2084) - Fix CREFL using incorrect coefficients for MODIS
+* [PR 2083](https://github.com/pytroll/satpy/pull/2083) - Fix VIIRS L1B reader sensor not matching VIIRS SDR reader
+* [PR 2080](https://github.com/pytroll/satpy/pull/2080) - Ignore alpha when adding luminance in Sandwich compositor
+* [PR 2079](https://github.com/pytroll/satpy/pull/2079) - Remove marine_clean_aerosol from default AHI rayleigh_corrected modifier
+* [PR 2077](https://github.com/pytroll/satpy/pull/2077) - Fix missing 'rb' mode for opening files ([2073](https://github.com/pytroll/satpy/issues/2073))
+* [PR 2070](https://github.com/pytroll/satpy/pull/2070) - Fix lru_cache memory leaks and other linting errors
+* [PR 2048](https://github.com/pytroll/satpy/pull/2048) - Fix CMIC CRE product in nwcsaf yaml reader
+* [PR 2016](https://github.com/pytroll/satpy/pull/2016) - Fix the sensor name for msu_gsa_l1b reader
+* [PR 1410](https://github.com/pytroll/satpy/pull/1410) - Fix osisaf SST reader
+
+#### Features added
+
+* [PR 2086](https://github.com/pytroll/satpy/pull/2086) - Update FCI reader for new test data release and add patches for IDPF data
+* [PR 2078](https://github.com/pytroll/satpy/pull/2078) - Add possibility to define the dataset rectification longitude in seviri_l2_bufr reader
+* [PR 2076](https://github.com/pytroll/satpy/pull/2076) - Support reading FSFiles in SEVIRI HRIT reader.
+* [PR 2068](https://github.com/pytroll/satpy/pull/2068) - Make sure RGBs do not have units attributes. ([2066](https://github.com/pytroll/satpy/issues/2066))
+* [PR 2065](https://github.com/pytroll/satpy/pull/2065) - Add filename to YAML for NASA NRT VIIRS files with creation date/time.
+* [PR 2060](https://github.com/pytroll/satpy/pull/2060) - Allow reading Bz2 hrit segments ([1975](https://github.com/pytroll/satpy/issues/1975))
+* [PR 2057](https://github.com/pytroll/satpy/pull/2057) - Add option to replace saturated MODIS L1b values with max valid value
+* [PR 1980](https://github.com/pytroll/satpy/pull/1980) - Adapt AAPP reader for generic chunk size
+* [PR 1957](https://github.com/pytroll/satpy/pull/1957) - Add RGBs for cloud phase (distinction) and type ([1954](https://github.com/pytroll/satpy/issues/1954))
+* [PR 1410](https://github.com/pytroll/satpy/pull/1410) - Fix osisaf SST reader
+
+#### Documentation changes
+
+* [PR 2075](https://github.com/pytroll/satpy/pull/2075) - Add documentation on how the colorize enhancement can be used
+* [PR 2071](https://github.com/pytroll/satpy/pull/2071) - Add example to the documentation using multiple readers
+
+#### Refactoring
+
+* [PR 2087](https://github.com/pytroll/satpy/pull/2087) - Refactor HRIT/LRIT format reader.
+
+In this release 22 pull requests were closed.
+
+
 ## Version 0.35.0 (2022/03/16)
 
 ### Issues Closed

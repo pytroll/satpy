@@ -181,7 +181,7 @@ the base Satpy installation.
       - `slstr_l1b`
       - In development
     * - OSISAF SST data in GHRSST (netcdf) format
-      - `ghrsst_l3c_sst`
+      - `ghrsst_l2`
       - In development
     * - NUCAPS EDR Retrieval in NetCDF4 format
       - `nucaps`
@@ -245,7 +245,7 @@ the base Satpy installation.
       - `glm_l2`
       - Beta
     * - Sentinel-3 SLSTR SST data in NetCDF4 format
-      - `slstr_l2`
+      - `ghrsst_l2`
       - Beta
     * - IASI level 2 SO2 in BUFR format
       - `iasi_l2_so2_bufr`
