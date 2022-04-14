@@ -7,6 +7,9 @@ concurrency:
 
 on: [push, pull_request]
 
+env:
+  CACHE_NUMBER: 0
+
 jobs:
   lint:
     name: lint and style checks
