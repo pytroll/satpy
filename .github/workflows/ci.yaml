@@ -7,6 +7,9 @@ concurrency:
 
 on: [push, pull_request]
 
+env:
+  CACHE_NUMBER: 0
+
 jobs:
   lint:
     name: lint and style checks
@@ -28,37 +31,6 @@ jobs:
       - name: Run linting
         run: |
           flake8 satpy/
-
-  website:
-    name: build website
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-
-      - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          miniforge-variant: Mambaforge
-          miniforge-version: latest
-          use-mamba: true
-          python-version: "3.9"
-          environment-file: continuous_integration/environment.yaml
-          activate-environment: test-environment
-
-      - name: Install Satpy
-        shell: bash -l {0}
-        run: |
-          pip install sphinx sphinx_rtd_theme sphinxcontrib-apidoc; \
-          pip install --no-deps -e .
-
-      - name: Run Sphinx Build
-        shell: bash -l {0}
-        run: |
-          cd doc; \
-          make html SPHINXOPTS="-W"
 
   test:
     runs-on: ${{ matrix.os }}
@@ -92,8 +64,24 @@ jobs:
           miniforge-version: latest
           use-mamba: true
           python-version: ${{ matrix.python-version }}
-          environment-file: continuous_integration/environment.yaml
           activate-environment: test-environment
+
+      - name: Set cache environment variables
+        shell: bash -l {0}
+        run: |
+          echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          CONDA_PREFIX=$(python -c "import sys; print(sys.prefix)")
+          echo "CONDA_PREFIX=$CONDA_PREFIX" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA_PREFIX }}
+          key: ${{ matrix.os }}-${{matrix.python-version}}-conda-${{ hashFiles('continuous_integration/environment.yaml') }}-${{ env.DATE }}-${{matrix.experimental}}-${{ env.CACHE_NUMBER }}
+        id: cache
+
+      - name: Update environment
+        run: mamba env update -n test-environment -f continuous_integration/environment.yaml
+        if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Install unstable dependencies
         if: matrix.experimental == true
