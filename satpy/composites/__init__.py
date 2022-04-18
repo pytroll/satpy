@@ -1557,7 +1557,7 @@ class LongitudeMaskingCompositor(GenericCompositor):
         return super(LongitudeMaskingCompositor, self).__call__([masked_projectable], **info)
 
 
-class MSGQuicklook(GenericCompositor):
+class SyntheticTrueColor(GenericCompositor):
     """Pseudo true color composite.
         source: https://www.frontiersin.org/articles/10.3389/frsen.2021.666516/full
     """
@@ -1568,7 +1568,7 @@ class MSGQuicklook(GenericCompositor):
         self.ch06_w = ch06_w
         self.ch08_w = ch08_w
         self.ch16_w = ch16_w
-        super(MSGQuicklook, self).__init__(name, *args, **kwargs)
+        super(SyntheticTrueColor, self).__init__(name, *args, **kwargs)
 
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
@@ -1587,6 +1587,6 @@ class MSGQuicklook(GenericCompositor):
         ch3 = 0.0331077 + 1.030620 * ch1 + 0.102415 * nir - 0.446689 * mir
         ch3.attrs = ch06.attrs
 
-        res = super(MSGQuicklook, self).__call__((ch1, ch2, ch3),
-                                                    *args, **kwargs)
+        res = super(SyntheticTrueColor, self).__call__((ch1, ch2, ch3),
+                                                        *args, **kwargs)
         return res

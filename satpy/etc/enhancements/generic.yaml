@@ -931,8 +931,8 @@ enhancements:
           min_stretch: 0.0
           max_stretch: 20.0
 
-  msg_quicklook:    
-    standard_name: msg_quicklook
+  synthetictruecolor:    
+    standard_name: synthetictruecolor
     operations:
     - name: stretch
       method: !!python/name:satpy.enhancements.stretch
