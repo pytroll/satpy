@@ -964,4 +964,3 @@ enhancements:
           stretch: crude
           min_stretch: [ 0,  0,   0]
           max_stretch: [50, 50, 100]
-
