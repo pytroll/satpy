@@ -623,7 +623,7 @@ composites:
       RGB synthetic image similar to what a human eye would see, Synthetic True Color,
     references:
       CIRA Quick Guide: https://www.frontiersin.org/articles/10.3389/frsen.2021.666516/full
-    compositor: !!python/name:satpy.composites.MSGQuicklook
+    compositor: !!python/name:satpy.composites.SyntheticTrueColor
     prerequisites:
       - name: IR_016
         modifiers: [sunz_corrected]
