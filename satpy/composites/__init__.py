@@ -1566,7 +1566,7 @@ class LongitudeMaskingCompositor(GenericCompositor):
 class SyntheticTrueColor(GenericCompositor):
     """Pseudo true color composite.
 
-       source: https://www.frontiersin.org/articles/10.3389/frsen.2021.666516/full
+    source: https://www.frontiersin.org/articles/10.3389/frsen.2021.666516/full
     """
 
     def __init__(self, name, ch16_w=1.3, ch08_w=2.5, ch06_w=2.2,
