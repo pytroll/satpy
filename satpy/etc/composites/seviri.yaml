@@ -620,7 +620,7 @@ composites:
 
   synthetictruecolor:
     description: >
-      RGB synthetic image similar to what a human eye would see, Synthetic True Color, 
+      RGB synthetic image similar to what a human eye would see, Synthetic True Color,
     references:
       CIRA Quick Guide: https://www.frontiersin.org/articles/10.3389/frsen.2021.666516/full
     compositor: !!python/name:satpy.composites.MSGQuicklook
