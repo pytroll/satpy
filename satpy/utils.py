@@ -31,6 +31,8 @@ import xarray as xr
 import yaml
 from yaml import BaseLoader
 
+from satpy import CHUNK_SIZE
+
 try:
     from yaml import UnsafeLoader
 except ImportError:
@@ -511,3 +513,28 @@ def ignore_invalid_float_warnings():
     with np.errstate(invalid="ignore"), warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         yield
+
+
+def get_chunk_size_limit(dtype):
+    """Compute the chunk size limit in bytes given *dtype*.
+
+    Returns:
+        If PYTROLL_CHUNK_SIZE is not defined, this function returns None,
+        otherwise it returns the computed chunk size in bytes.
+    """
+    pixel_size = get_chunk_pixel_size()
+    if pixel_size is not None:
+        return pixel_size * np.dtype(dtype).itemsize
+    return None
+
+
+def get_chunk_pixel_size():
+    """Compute the maximum chunk size from CHUNK_SIZE."""
+    if CHUNK_SIZE is None:
+        return None
+
+    if isinstance(CHUNK_SIZE, (tuple, list)):
+        array_size = np.product(CHUNK_SIZE)
+    else:
+        array_size = CHUNK_SIZE ** 2
+    return array_size

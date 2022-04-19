@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2020 Satpy developers
+# Copyright (c) 2015-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -495,7 +495,7 @@ class ColormapCompositor(GenericCompositor):
         Colormaps come in different forms, but they are all supposed to have
         color values between 0 and 255. The following cases are considered:
 
-        - Palettes comprised of only a list on colors. If *dtype* is uint8,
+        - Palettes comprised of only a list of colors. If *dtype* is uint8,
           the values of the colormap are the enumeration of the colors.
           Otherwise, the colormap values will be spread evenly from the min
           to the max of the valid_range provided in `info`.
@@ -920,7 +920,10 @@ class RatioSharpenedRGB(GenericCompositor):
         return ret
 
     def __call__(self, datasets, optional_datasets=None, **info):
-        """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``."""
+        """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``.
+
+        The resulting RGB has the units attribute removed.
+        """
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
         if not all(x.shape == datasets[0].shape for x in datasets[1:]) or \
@@ -979,7 +982,9 @@ class RatioSharpenedRGB(GenericCompositor):
         info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info.setdefault("standard_name", "true_color")
-        return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+        res = super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+        res.attrs.pop("units", None)
+        return res
 
 
 def _mean4(data, offset=(0, 0), block_id=None):
@@ -1101,7 +1106,8 @@ class SandwichCompositor(GenericCompositor):
 
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
-        rgb_img *= luminance
+        # Ignore alpha band when applying luminance
+        rgb_img = rgb_img.where(rgb_img.bands == 'A', rgb_img * luminance)
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 

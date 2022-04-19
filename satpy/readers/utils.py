@@ -200,7 +200,7 @@ def get_sub_area(area, xslice, yslice):
 
 def unzip_file(filename):
     """Unzip the file if file is bzipped = ending with 'bz2'."""
-    if filename.endswith('bz2'):
+    if os.fspath(filename).endswith('bz2'):
         fdn, tmpfilepath = tempfile.mkstemp()
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # try pbzip2
@@ -280,6 +280,32 @@ class unzip_context():
         """Remove temporary file."""
         if self.unzipped_filename is not None:
             os.remove(self.unzipped_filename)
+
+
+class generic_open():
+    """Context manager for opening either a regular file or a bzip2 file."""
+
+    def __init__(self, filename, *args, **kwargs):
+        """Keep filename and mode."""
+        self.filename = filename
+        self.open_args = args
+        self.open_kwargs = kwargs
+
+    def __enter__(self):
+        """Return a file-like object."""
+        if os.fspath(self.filename).endswith('.bz2'):
+            self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
+        else:
+            if hasattr(self.filename, "open"):
+                self.fp = self.filename.open(*self.open_args, **self.open_kwargs)
+            else:
+                self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
+
+        return self.fp
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Close the file handler."""
+        self.fp.close()
 
 
 def bbox(img):

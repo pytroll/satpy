@@ -152,7 +152,7 @@ class TestMSUGSABReader:
         res = self.reader.load(ds_ids)
         assert 'C09' in res
         assert res['C09'].attrs['calibration'] == 'brightness_temperature'
-        assert res['C09'].attrs['platform_name'] == 'Arctica-M N1'
+        assert res['C09'].attrs['platform_name'] == 'Arctica-M-N1'
         assert res['C09'].attrs['sat_latitude'] == 71.25
         assert res['C09'].attrs['sat_longitude'] == 21.44
         assert res['C09'].attrs['sat_altitude'] == 38500.
