@@ -1588,5 +1588,5 @@ class SyntheticTrueColor(GenericCompositor):
         ch3.attrs = ch06.attrs
 
         res = super(SyntheticTrueColor, self).__call__((ch1, ch2, ch3),
-                                                        *args, **kwargs)
+                                                       *args, **kwargs)
         return res
