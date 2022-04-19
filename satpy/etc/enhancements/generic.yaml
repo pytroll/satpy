@@ -931,7 +931,7 @@ enhancements:
           min_stretch: 0.0
           max_stretch: 20.0
 
-  synthetictruecolor:    
+  synthetictruecolor:
     standard_name: synthetictruecolor
     operations:
     - name: stretch
