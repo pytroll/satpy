@@ -41,7 +41,7 @@ References:
 
 import logging
 from contextlib import suppress
-from functools import lru_cache, reduce
+from functools import reduce
 
 import dask.array as da
 import numpy as np
@@ -382,19 +382,19 @@ class NCOLCIMeteo(NCOLCILowResData):
 
         logger.debug('Reading %s.', key['name'])
 
-        values = self._get_full_resolution_dataset(key['name'])
-        self._fill_dataarray_attrs(values, key)
-        return values
+        if self._need_interpolation and self.cache.get(key['name']) is None:
 
-    @lru_cache(None)
-    def _get_full_resolution_dataset(self, key_name):
-        """Get the full resolution dataset."""
-        if self._need_interpolation:
-            data = self.nc[key_name]
+            data = self.nc[key['name']]
 
             values, = self._do_interpolate(data)
             values.attrs = data.attrs
 
-            return values
+            self.cache[key['name']] = values
 
-        return self.nc[key_name]
+        elif key['name'] in self.cache:
+            values = self.cache[key['name']]
+        else:
+            values = self.nc[key['name']]
+
+        self._fill_dataarray_attrs(values, key)
+        return values
