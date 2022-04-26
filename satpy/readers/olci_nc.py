@@ -41,7 +41,7 @@ References:
 
 import logging
 from contextlib import suppress
-from functools import reduce, lru_cache
+from functools import lru_cache, reduce
 
 import dask.array as da
 import numpy as np
@@ -326,10 +326,10 @@ class NCOLCIAngles(NCOLCILowResData):
             else:
                 raise NotImplementedError("Don't know how to read " + key['name'])
         else:
-            data = self.nc[self.datasets[key_name]]
+            values = self.nc[self.datasets[key_name]]
 
-        self._fill_dataarray_attrs(data, key)
-        return data
+        self._fill_dataarray_attrs(values, key)
+        return values
 
     @cached_property
     def sun_angles(self):
@@ -389,8 +389,7 @@ class NCOLCIMeteo(NCOLCILowResData):
     @lru_cache(None)
     def _get_full_resolution_dataset(self, key_name):
         """Get the full resolution dataset."""
-        if self._needs_interpolation():
-
+        if self._need_interpolation:
             data = self.nc[key_name]
 
             values, = self._do_interpolate(data)

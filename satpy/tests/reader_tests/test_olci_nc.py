@@ -20,6 +20,7 @@ import unittest
 import unittest.mock as mock
 
 import numpy as np
+
 from satpy.readers.olci_nc import BitFlags
 
 flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
@@ -39,7 +40,7 @@ class TestOLCIReader(unittest.TestCase):
         """Test initialization of file handlers."""
         import xarray as xr
 
-        from satpy.readers.olci_nc import NCOLCI1B, NCOLCI2, NCOLCIBase, NCOLCICal, NCOLCIChannelBase, NCOLCIGeo
+        from satpy.readers.olci_nc import NCOLCI1B, NCOLCI2, NCOLCIBase, NCOLCIChannelBase, NCOLCIGeo
         from satpy.tests.utils import make_dataid
 
         cal_data = xr.Dataset(
@@ -109,8 +110,9 @@ class TestOLCIReader(unittest.TestCase):
 
     def _create_l2_filehandler(self, mocked_dataset):
         """Create a filehandle for the l2 data."""
-        from satpy.readers.olci_nc import NCOLCI2
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI2
         data = xr.DataArray((2 ** (np.arange(30))).astype(np.uint64).reshape(5, 6),
                             dims=["rows", "columns"],
                             coords={'rows': np.arange(5),
@@ -135,8 +137,9 @@ class TestOLCI2Flags(unittest.TestCase):
 
     def _create_wqsf_filehandler(self, mocked_dataset, meanings="INVALID WATER LAND CLOUD"):
         """Create a filehandle for the wqsf quality flags."""
-        from satpy.readers.olci_nc import NCOLCI2Flags
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI2Flags
         nb_flags = len(meanings.split())
         wqsf_data = xr.DataArray((2 ** (np.arange(30) % nb_flags)).astype(np.uint64).reshape(5, 6),
                                  dims=["rows", "columns"],
@@ -228,11 +231,9 @@ class TestOLCIAngles(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.olci_nc import NCOLCIAngles
         import xarray as xr
 
         from satpy.readers.olci_nc import NCOLCIAngles
-        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
@@ -312,11 +313,9 @@ class TestOLCIMeteo(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        from satpy.readers.olci_nc import NCOLCIMeteo
         import xarray as xr
 
         from satpy.readers.olci_nc import NCOLCIMeteo
-        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
