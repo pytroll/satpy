@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -50,6 +50,9 @@ To use these functions, do:
 
 """
 
-from .abi_l1b import get_hurricane_florence_abi, get_us_midlatitude_cyclone_abi  # noqa
-from .ahi_hsd import download_typhoon_surigae_ahi  # noqa
-from .viirs_sdr import get_viirs_sdr_20170128_1229  # noqa
+from .abi_l1b import get_hurricane_florence_abi  # noqa: F401
+from .abi_l1b import get_us_midlatitude_cyclone_abi  # noqa: F401
+from .ahi_hsd import download_typhoon_surigae_ahi  # noqa: F401
+from .fci import download_fci_test_data  # noqa: F401
+from .seviri_hrit import download_seviri_hrit_20180228_1500  # noqa: F401
+from .viirs_sdr import get_viirs_sdr_20170128_1229  # noqa: F401

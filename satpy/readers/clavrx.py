@@ -17,18 +17,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to CLAVR-X HDF4 products."""
 
-import os
 import logging
-
-import numpy as np
-import netCDF4
-import xarray as xr
+import os
 from glob import glob
-from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
-from pyresample import geometry
 from pathlib import Path
+from typing import Optional
+
+import netCDF4
+import numpy as np
+import xarray as xr
+from pyresample import geometry
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.hdf4_utils import SDS, HDF4FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -82,7 +84,7 @@ def _get_platform(platform: str) -> str:
     return platform
 
 
-def _get_rows_per_scan(sensor: str) -> str:
+def _get_rows_per_scan(sensor: str) -> Optional[int]:
     """Get number of rows per scan."""
     for k, v in ROWS_PER_SCAN.items():
         if sensor.startswith(k):
@@ -90,48 +92,59 @@ def _get_rows_per_scan(sensor: str) -> str:
     return None
 
 
+def _remove_attributes(attrs: dict) -> dict:
+    """Remove attributes that described data before scaling."""
+    old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
+                 'SCALED_MISSING']
+
+    for attr_key in old_attrs:
+        attrs.pop(attr_key, None)
+    return attrs
+
+
 class _CLAVRxHelper:
     """A base class for the CLAVRx File Handlers."""
-
-    def _remove_attributes(attrs: dict) -> dict:
-        """Remove attributes that described data before scaling."""
-        old_attrs = ['unscaled_missing', 'SCALED_MIN', 'SCALED_MAX',
-                     'SCALED_MISSING', 'actual_missing']
-
-        for attr_key in old_attrs:
-            attrs.pop(attr_key, None)
-        return attrs
 
     @staticmethod
     def _scale_data(data_arr: xr.DataArray, scale_factor: float, add_offset: float) -> xr.DataArray:
         """Scale data, if needed."""
-        scaling_needed = not (scale_factor == 1 and add_offset == 0)
+        scaling_needed = not (scale_factor == 1.0 and add_offset == 0.0)
         if scaling_needed:
             data_arr = data_arr * scale_factor + add_offset
         return data_arr
 
     @staticmethod
-    def _get_data(data: xr.DataArray, dataset_id: dict, ds_info: dict) -> xr.DataArray:
+    def _get_data(data: xr.DataArray, dataset_id: dict) -> xr.DataArray:
         """Get a dataset."""
         if dataset_id.get('resolution'):
             data.attrs['resolution'] = dataset_id['resolution']
 
         attrs = data.attrs.copy()
-        fill = attrs.pop('_FillValue', None)
-        factor = attrs.pop('scale_factor', 1.0)
-        offset = attrs.pop('add_offset', 0.0)
-        valid_range = attrs.pop('valid_range', None)
 
-        data = data.where(data != fill)
-        data = _CLAVRxHelper._scale_data(data, factor, offset)
+        fill = attrs.get('_FillValue')
+        factor = attrs.pop('scale_factor', (np.ones(1, dtype=data.dtype))[0])
+        offset = attrs.pop('add_offset', (np.zeros(1, dtype=data.dtype))[0])
+        valid_range = attrs.get('valid_range', [None])
+        if isinstance(valid_range, np.ndarray):
+            attrs["valid_range"] = valid_range.tolist()
 
-        if valid_range is not None:
+        flags = not data.attrs.get("SCALED", 1) and any(data.attrs.get("flag_values", [None]))
+        if not flags:
+            data = data.where(data != fill)
+            data = _CLAVRxHelper._scale_data(data, factor, offset)
+            # don't need _FillValue if it has been applied.
+            attrs.pop('_FillValue', None)
+
+        if all(valid_range):
             valid_min = _CLAVRxHelper._scale_data(valid_range[0], factor, offset)
             valid_max = _CLAVRxHelper._scale_data(valid_range[1], factor, offset)
-            data = data.where((data >= valid_min) & (data <= valid_max))
-            data.attrs['valid_min'], data.attrs['valid_max'] = valid_min, valid_max
+            if flags:
+                data = data.where((data >= valid_min) & (data <= valid_max), fill)
+            else:
+                data = data.where((data >= valid_min) & (data <= valid_max))
+            attrs['valid_range'] = [valid_min, valid_max]
 
-        data.attrs = _CLAVRxHelper._remove_attributes(attrs)
+        data.attrs = _remove_attributes(attrs)
 
         return data
 
@@ -169,11 +182,11 @@ class _CLAVRxHelper:
 
     @staticmethod
     def _find_input_nc(filename: str, l1b_base: str) -> str:
-        filename = Path(filename)
-        dirname = filename.parent
-        l1b_filenames = dirname.joinpath(l1b_base + '.nc')
-        if l1b_filenames.exists():
-            return l1b_filenames
+        file_path = Path(filename)
+        dirname = file_path.parent
+        l1b_filename = dirname.joinpath(l1b_base + '.nc')
+        if l1b_filename.exists():
+            return str(l1b_filename)
 
         glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
         LOG.debug("searching for {0}".format(glob_pat))
@@ -237,6 +250,32 @@ class _CLAVRxHelper:
 
         return area
 
+    @staticmethod
+    def get_metadata(sensor, platform, attrs: dict, ds_info: dict) -> dict:
+        """Get metadata."""
+        i = {}
+        i.update(attrs)
+        i.update(ds_info)
+
+        flag_meanings = i.get('flag_meanings', None)
+        if not i.get('SCALED', 1) and not flag_meanings:
+            i['flag_meanings'] = '<flag_meanings_unknown>'
+            i.setdefault('flag_values', [None])
+        u = i.get('units')
+        if u in CF_UNITS:
+            # CF compliance
+            i['units'] = CF_UNITS[u]
+            if u.lower() == "none":
+                i['units'] = "1"
+        i['sensor'] = sensor
+        i['platform_name'] = platform
+        rps = _get_rows_per_scan(sensor)
+        if rps:
+            i['rows_per_scan'] = rps
+        i['reader'] = 'clavrx'
+
+        return i
+
 
 class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
     """A file handler for CLAVRx files."""
@@ -257,36 +296,13 @@ class CLAVRXHDF4FileHandler(HDF4FileHandler, _CLAVRxHelper):
         """Get the end time."""
         return self.filename_info.get('end_time', self.start_time)
 
-    def get_metadata(self, attrs: dict, ds_info: dict) -> dict:
-        """Get metadata."""
-        i = {}
-        i.update(attrs)
-        i.update(ds_info)
-
-        flag_meanings = i.get('flag_meanings', None)
-        if not i.get('SCALED', 1) and not flag_meanings:
-            i['flag_meanings'] = '<flag_meanings_unknown>'
-            i.setdefault('flag_values', [None])
-        u = i.get('units')
-        if u in CF_UNITS:
-            # CF compliance
-            i['units'] = CF_UNITS[u]
-
-        i['sensor'] = self.sensor
-        i['platform'] = i['platform_name'] = self.platform
-        rps = _get_rows_per_scan(self.sensor)
-        if rps:
-            i['rows_per_scan'] = rps
-        i['reader'] = 'clavrx'
-
-        return i
-
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset."""
         var_name = ds_info.get('file_key', dataset_id['name'])
         data = self[var_name]
-        data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
-        data.attrs = self.get_metadata(data.attrs, ds_info)
+        data = _CLAVRxHelper._get_data(data, dataset_id)
+        data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
+                                                data.attrs, ds_info)
         return data
 
     def get_nadir_resolution(self, sensor):
@@ -380,8 +396,7 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   decode_coords=True,
-                                  chunks={'pixel_elements_along_scan_direction': CHUNK_SIZE,
-                                          'scan_lines_along_track_direction': CHUNK_SIZE})
+                                  chunks=CHUNK_SIZE)
         # y,x is used in satpy, bands rather than channel using in xrimage
         self.nc = self.nc.rename_dims({'scan_lines_along_track_direction': "y",
                                        'pixel_elements_along_scan_direction': "x"})
@@ -389,12 +404,16 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         self.platform = _get_platform(
             self.filename_info.get('platform_shortname', None))
         self.sensor = self.nc.attrs.get('sensor', None)
+        # coordinates need scaling and valid_range (mask_and_scale won't work on valid_range)
+        self.nc.coords["latitude"] = _CLAVRxHelper._get_data(self.nc.coords["latitude"],
+                                                             {"name": "latitude"})
+        self.nc.coords["longitude"] = _CLAVRxHelper._get_data(self.nc.coords["longitude"],
+                                                              {"name": "longitude"})
 
     def _get_ds_info_for_data_arr(self, var_name):
         ds_info = {
             'file_type': self.filetype_info['file_type'],
             'name': var_name,
-            'coordinates': ["longitude", "latitude"]
         }
         return ds_info
 
@@ -453,38 +472,13 @@ class CLAVRXNetCDFFileHandler(_CLAVRxHelper, BaseFileHandler):
         l1b_att = str(self.nc.attrs.get('L1B', None))
         return _CLAVRxHelper._read_axi_fixed_grid(self.filename, l1b_att)
 
-    def get_metadata(self, attrs, ds_info):
-        """Get metadata."""
-        i = {}
-        i.update(attrs)
-        i.update(ds_info)
-
-        flag_meanings = i.get('flag_meanings', None)
-        if not i.get('SCALED', 1) and not flag_meanings:
-            i['flag_meanings'] = '<flag_meanings_unknown>'
-            i.setdefault('flag_values', [None])
-
-        u = i.get('units')
-        if u in CF_UNITS:
-            # CF compliance
-            i['units'] = CF_UNITS[u]
-
-        i['sensor'] = self.sensor
-        i['platform'] = i['platform_name'] = self.platform
-        rps = _get_rows_per_scan(self.sensor)
-        if rps:
-            i['rows_per_scan'] = rps
-        i['reader'] = 'clavrx'
-
-        return i
-
     def get_dataset(self, dataset_id, ds_info):
         """Get a dataset."""
         var_name = ds_info.get('name', dataset_id['name'])
         data = self[var_name]
-        data = _CLAVRxHelper._get_data(data, dataset_id, ds_info)
-        data.attrs = self.get_metadata(data.attrs, ds_info)
-
+        data = _CLAVRxHelper._get_data(data, dataset_id)
+        data.attrs = _CLAVRxHelper.get_metadata(self.sensor, self.platform,
+                                                data.attrs, ds_info)
         return data
 
     def __getitem__(self, item):

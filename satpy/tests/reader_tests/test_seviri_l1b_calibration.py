@@ -17,17 +17,14 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the native msg reader."""
 
-from datetime import datetime
 import unittest
+from datetime import datetime
 
 import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.seviri_base import (
-    SEVIRICalibrationHandler, SEVIRICalibrationAlgorithm
-)
-
+from satpy.readers.seviri_base import SEVIRICalibrationAlgorithm, SEVIRICalibrationHandler
 
 COUNTS_INPUT = xr.DataArray(
     np.array([[377.,  377.,  377.,  376.,  375.],

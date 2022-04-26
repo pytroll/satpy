@@ -23,18 +23,21 @@ import logging
 import numpy as np
 import xarray as xr
 
-from satpy._compat import cached_property
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
-                                       CHANNEL_NAMES, SATNUM,
-                                       get_cds_time, add_scanline_acq_time,
-                                       OrbitPolynomialFinder, get_satpos,
-                                       NoValidOrbitParams)
-from satpy.readers.eum_base import get_service_mode
-
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy import CHUNK_SIZE
-
+from satpy._compat import cached_property
+from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.seviri_base import (
+    CHANNEL_NAMES,
+    SATNUM,
+    NoValidOrbitParams,
+    OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
+    add_scanline_acq_time,
+    get_cds_time,
+    get_satpos,
+)
 
 logger = logging.getLogger('nc_msg')
 
@@ -358,5 +361,3 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
 class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     """HRV filehandler."""
-
-    pass

@@ -80,12 +80,11 @@ The metadata to provide to the writer can also be stored in a configuration file
 import logging
 
 import numpy as np
-import xarray as xr
-
 import pyninjotiff.ninjotiff as nt
-from satpy.writers import ImageWriter
+import xarray as xr
 from trollimage.xrimage import invert_scale_offset
 
+from satpy.writers import ImageWriter
 
 logger = logging.getLogger(__name__)
 
@@ -117,8 +116,9 @@ def convert_units(dataset, in_unit, out_unit):
         return dataset
 
     if in_unit.lower() in {"k", "kelvin"} and out_unit.lower() in {"c", "celsius"}:
+        logger.debug("Converting temperature units from K to °C")
         with xr.set_options(keep_attrs=True):
-            new_dataset = dataset + 273.15
+            new_dataset = dataset - 273.15
         new_dataset.attrs["units"] = out_unit
         return new_dataset
 
@@ -173,15 +173,19 @@ class NinjoTIFFWriter(ImageWriter):
                     raise NotImplementedError(
                         "Don't know how to handle non-scale/offset-based enhancements yet."
                     )
+        if img.mode.startswith("P"):
+            img.data = img.data.astype(np.uint8)
         return nt.save(img, filename, data_is_scaled_01=True, compute=compute, **kwargs)
 
     def save_dataset(
-        self, dataset, filename=None, fill_value=None, compute=True, **kwargs
+        self, dataset, filename=None, fill_value=None, compute=True,
+        convert_temperature_units=True, **kwargs
     ):
         """Save a dataset to ninjotiff format.
 
         This calls `save_image` in turn, but first preforms some unit conversion
-        if necessary.
+        if necessary and desired.  Unit conversion can be suppressed by passing
+        ``convert_temperature_units=False``.
         """
         nunits = kwargs.get("physic_unit", None)
         if nunits is None:
@@ -200,7 +204,10 @@ class NinjoTIFFWriter(ImageWriter):
                     "Saving to physical ninjo file without units defined in dataset!"
                 )
             else:
-                dataset = convert_units(dataset, units, nunits)
+                if convert_temperature_units:
+                    dataset = convert_units(dataset, units, nunits)
+                else:
+                    logger.debug("Omitting unit conversion")
         return super(NinjoTIFFWriter, self).save_dataset(
             dataset, filename=filename, compute=compute, fill_value=fill_value, **kwargs
         )

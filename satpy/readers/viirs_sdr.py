@@ -29,12 +29,13 @@ Format documentation:
 
 """
 import logging
+import os.path
+from contextlib import suppress
 from datetime import datetime, timedelta
 from glob import glob
-import os.path
 
-import numpy as np
 import dask.array as da
+import numpy as np
 import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -219,18 +220,33 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             LOG.debug("Unknown units for file key '%s'", dataset_id)
         return file_units
 
-    def scale_swath_data(self, data, scaling_factors):
+    def scale_swath_data(self, data, scaling_factors, dataset_group):
         """Scale swath data using scaling factors and offsets.
 
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
-        num_grans = len(scaling_factors) // 2
-        gran_size = data.shape[0] // num_grans
-        factors = scaling_factors.where(scaling_factors > -999, np.float32(np.nan))
-        factors = factors.data.reshape((-1, 2))
-        factors = xr.DataArray(da.repeat(factors, gran_size, axis=0),
-                               dims=(data.dims[0], 'factors'))
-        data = data * factors[:, 0] + factors[:, 1]
+        rows_per_gran = self._get_rows_per_granule(dataset_group)
+        factors = self._mask_and_reshape_factors(scaling_factors)
+        data = self._map_and_apply_factors(data, factors, rows_per_gran)
+        return data
+
+    @staticmethod
+    def _mask_and_reshape_factors(factors):
+        factors = factors.where(factors > -999, np.float32(np.nan))
+        return factors.data.reshape((-1, 2)).rechunk((1, 2))  # make it so map_blocks happens per factor
+
+    @staticmethod
+    def _map_and_apply_factors(data, factors, rows_per_gran):
+        # The user may have requested a different chunking scheme, but we need
+        # per granule chunking right now so factor chunks map 1:1 to data chunks
+        old_chunks = data.chunks
+        dask_data = data.data.rechunk((tuple(rows_per_gran), data.data.chunks[1]))
+        dask_data = da.map_blocks(_apply_factors, dask_data, factors,
+                                  chunks=dask_data.chunks, dtype=data.dtype,
+                                  meta=np.array([[]], dtype=data.dtype))
+        data = xr.DataArray(dask_data.rechunk(old_chunks),
+                            dims=data.dims, coords=data.coords,
+                            attrs=data.attrs)
         return data
 
     @staticmethod
@@ -282,7 +298,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
             if self.use_tc is True:
                 return var_path + '_TC'
-            elif self.use_tc is None and var_path + '_TC' in self.file_content:
+            if self.use_tc is None and var_path + '_TC' in self.file_content:
                 return var_path + '_TC'
         return var_path
 
@@ -308,13 +324,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     def concatenate_dataset(self, dataset_group, var_path):
         """Concatenate dataset."""
         scan_size = self._scan_size(dataset_group)
-        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
-        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
-        scans = []
-        for granule in range(self[nb_granules_path]):
-            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
-            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
-            scans.append(self[scans_path])
+        scans = self._get_scans_per_granule(dataset_group)
         start_scan = 0
         data_chunks = []
         scans = xr.DataArray(scans)
@@ -327,6 +337,21 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return xr.concat(data_chunks, 'y')
         else:
             return self.expand_single_values(variable, scans)
+
+    def _get_rows_per_granule(self, dataset_group):
+        scan_size = self._scan_size(dataset_group)
+        scans_per_gran = self._get_scans_per_granule(dataset_group)
+        return [scan_size * gran_scans for gran_scans in scans_per_gran]
+
+    def _get_scans_per_granule(self, dataset_group):
+        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
+        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        scans = []
+        for granule in range(self[nb_granules_path]):
+            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
+            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
+            scans.append(self[scans_path])
+        return scans
 
     def mask_fill_values(self, data, ds_info):
         """Mask fill values."""
@@ -353,9 +378,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
         if not dataset_group:
             return
-        else:
-            dataset_group = dataset_group[0]
-            ds_info['dataset_group'] = dataset_group
+        dataset_group = dataset_group[0]
+        ds_info['dataset_group'] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
 
@@ -365,7 +389,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         output_units = ds_info.get("units", file_units)
         factors = self._get_scaling_factors(file_units, output_units, factor_var_path)
         if factors is not None:
-            data = self.scale_swath_data(data, factors)
+            data = self.scale_swath_data(data, factors, dataset_group)
         else:
             LOG.debug("No scaling factors found for %s", dataset_id)
 
@@ -436,16 +460,20 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
                 yield is_avail, ds_info
 
 
-def split_desired_other(fhs, req_geo, rem_geo):
+def split_desired_other(fhs, prime_geo, second_geo):
     """Split the provided filehandlers *fhs* into desired filehandlers and others."""
     desired = []
     other = []
     for fh in fhs:
-        if req_geo in fh.datasets:
+        if prime_geo in fh.datasets:
             desired.append(fh)
-        elif rem_geo in fh.datasets:
+        elif second_geo in fh.datasets:
             other.append(fh)
     return desired, other
+
+
+def _apply_factors(data, factor_set):
+    return data * factor_set[0, 0] + factor_set[0, 1]
 
 
 class VIIRSSDRReader(FileYAMLReader):
@@ -474,7 +502,7 @@ class VIIRSSDRReader(FileYAMLReader):
         geo_keep = []
         geo_del = []
         for filename, filename_info in filename_items:
-            filename_info['datasets'] = datasets = filename_info['datasets'].split('-')
+            datasets = filename_info['datasets'].split('-')
             if ('GITCO' in datasets) or ('GMTCO' in datasets):
                 if self.use_tc is False:
                     geo_del.append(filename)
@@ -486,25 +514,28 @@ class VIIRSSDRReader(FileYAMLReader):
                 else:
                     geo_keep.append(filename)
         if geo_keep:
-            fdict = dict(filename_items)
-            for to_del in geo_del:
-                for dataset in ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']:
-                    try:
-                        fdict[to_del]['datasets'].remove(dataset)
-                    except ValueError:
-                        pass
-                if not fdict[to_del]['datasets']:
-                    del fdict[to_del]
-            filename_items = fdict.items()
-        for _filename, filename_info in filename_items:
-            filename_info['datasets'] = '-'.join(filename_info['datasets'])
+            filename_items = self._remove_geo_datasets_from_files(filename_items, geo_del)
         return super(VIIRSSDRReader, self).filter_filenames_by_info(filename_items)
 
-    def _load_from_geo_ref(self, dsid):
+    def _remove_geo_datasets_from_files(self, filename_items, files_to_edit):
+        fdict = dict(filename_items)
+        for to_del in files_to_edit:
+            fdict[to_del]['datasets'] = fdict[to_del]['datasets'].split('-')
+            for dataset in ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']:
+                with suppress(ValueError):
+                    fdict[to_del]['datasets'].remove(dataset)
+            if not fdict[to_del]['datasets']:
+                del fdict[to_del]
+            else:
+                fdict[to_del]['datasets'] = "-".join(fdict[to_del]['datasets'])
+        filename_items = fdict.items()
+        return filename_items
+
+    def _load_filenames_from_geo_ref(self, dsid):
         """Load filenames from the N_GEO_Ref attribute of a dataset's file."""
         file_handlers = self._get_file_handlers(dsid)
         if not file_handlers:
-            return None
+            return []
 
         fns = []
         for fh in file_handlers:
@@ -529,34 +560,34 @@ class VIIRSSDRReader(FileYAMLReader):
 
         return fns
 
-    def _get_req_rem_geo(self, ds_info):
+    def _get_primary_secondary_geo_groups(self, ds_info):
         """Find out which geolocation files are needed."""
         if ds_info['dataset_groups'][0].startswith('GM'):
             if self.use_tc is False:
-                req_geo = 'GMODO'
-                rem_geo = 'GMTCO'
+                prime_geo = 'GMODO'
+                second_geo = 'GMTCO'
             else:
-                req_geo = 'GMTCO'
-                rem_geo = 'GMODO'
+                prime_geo = 'GMTCO'
+                second_geo = 'GMODO'
         elif ds_info['dataset_groups'][0].startswith('GI'):
             if self.use_tc is False:
-                req_geo = 'GIMGO'
-                rem_geo = 'GITCO'
+                prime_geo = 'GIMGO'
+                second_geo = 'GITCO'
             else:
-                req_geo = 'GITCO'
-                rem_geo = 'GIMGO'
+                prime_geo = 'GITCO'
+                second_geo = 'GIMGO'
         else:
             raise ValueError('Unknown dataset group %s' % ds_info['dataset_groups'][0])
-        return req_geo, rem_geo
+        return prime_geo, second_geo
 
     def get_right_geo_fhs(self, dsid, fhs):
         """Find the right geographical file handlers for given dataset ID *dsid*."""
         ds_info = self.all_ids[dsid]
-        req_geo, rem_geo = self._get_req_rem_geo(ds_info)
-        desired, other = split_desired_other(fhs, req_geo, rem_geo)
+        prime_geo, second_geo = self._get_primary_secondary_geo_groups(ds_info)
+        desired, other = split_desired_other(fhs, prime_geo, second_geo)
         if desired:
             try:
-                ds_info['dataset_groups'].remove(rem_geo)
+                ds_info['dataset_groups'].remove(second_geo)
             except ValueError:
                 pass
             return desired
@@ -587,24 +618,33 @@ class VIIRSSDRReader(FileYAMLReader):
         for c_id in coords:
             c_info = self.all_ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
             self._get_file_handlers(c_id)
-            if len(c_info['dataset_groups']) == 1:  # filtering already done
-                continue
-            try:
-                req_geo, rem_geo = self._get_req_rem_geo(c_info)
-            except ValueError:  # DNB
+            prime_geo, second_geo = self._geo_dataset_groups(c_info)
+            if prime_geo is None:
                 continue
 
             # check the dataset file for the geolocation filename
-            geo_filenames = self._load_from_geo_ref(dsid)
-            if not geo_filenames:
-                c_info['dataset_groups'] = [rem_geo]
-            else:
-                # concatenate all values
-                new_fhs = sum(self.create_filehandlers(geo_filenames).values(), [])
-                desired, other = split_desired_other(new_fhs, req_geo, rem_geo)
-                if desired:
-                    c_info['dataset_groups'].remove(rem_geo)
-                else:
-                    c_info['dataset_groups'].remove(req_geo)
+            geo_filenames = self._load_filenames_from_geo_ref(dsid)
+            self._create_new_geo_file_handlers(geo_filenames)
+            self._remove_not_loaded_geo_dataset_group(c_info['dataset_groups'], prime_geo, second_geo)
 
         return coords
+
+    def _geo_dataset_groups(self, c_info):
+        if len(c_info['dataset_groups']) == 1:  # filtering already done
+            return None, None
+        try:
+            prime_geo, second_geo = self._get_primary_secondary_geo_groups(c_info)
+            return prime_geo, second_geo
+        except ValueError:  # DNB
+            return None, None
+
+    def _create_new_geo_file_handlers(self, geo_filenames):
+        existing_filenames = set([fh.filename for fh in self.file_handlers['generic_file']])
+        geo_filenames = set(geo_filenames) - existing_filenames
+        self.create_filehandlers(geo_filenames)
+
+    def _remove_not_loaded_geo_dataset_group(self, c_dataset_groups, prime_geo, second_geo):
+        all_fhs = self.file_handlers['generic_file']
+        desired, other = split_desired_other(all_fhs, prime_geo, second_geo)
+        group_to_remove = second_geo if desired else prime_geo
+        c_dataset_groups.remove(group_to_remove)

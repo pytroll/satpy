@@ -37,10 +37,10 @@ class TestOLCIReader(unittest.TestCase):
 
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
-        from satpy.readers.olci_nc import (NCOLCIBase, NCOLCICal, NCOLCIGeo,
-                                           NCOLCIChannelBase, NCOLCI1B, NCOLCI2)
-        from satpy.tests.utils import make_dataid
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI1B, NCOLCI2, NCOLCIBase, NCOLCICal, NCOLCIChannelBase, NCOLCIGeo
+        from satpy.tests.utils import make_dataid
 
         cal_data = xr.Dataset(
             {
@@ -55,11 +55,6 @@ class TestOLCIReader(unittest.TestCase):
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
 
         test = NCOLCIBase('somedir/somefile.nc', filename_info, 'c')
-        test.get_dataset(ds_id, filename_info)
-        mocked_dataset.assert_called()
-        mocked_dataset.reset_mock()
-
-        test = NCOLCICal('somedir/somefile.nc', filename_info, 'c')
         test.get_dataset(ds_id, filename_info)
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
@@ -235,6 +230,9 @@ class TestOLCIAngles(unittest.TestCase):
         """Set up the test case."""
         from satpy.readers.olci_nc import NCOLCIAngles
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCIAngles
+        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
@@ -316,6 +314,9 @@ class TestOLCIMeteo(unittest.TestCase):
         """Set up the test case."""
         from satpy.readers.olci_nc import NCOLCIMeteo
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCIMeteo
+        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,

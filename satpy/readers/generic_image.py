@@ -28,15 +28,15 @@ file (key ``nodata_handling`` per dataset with value ``"nan_mask"``).
 """
 
 import logging
-import rasterio
 
-import xarray as xr
 import dask.array as da
 import numpy as np
-
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
+import rasterio
+import xarray as xr
 from pyresample import utils
+
+from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 BANDS = {1: ['L'],
          2: ['L', 'A'],

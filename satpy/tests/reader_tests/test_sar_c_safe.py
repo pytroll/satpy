@@ -423,6 +423,142 @@ noise_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 </noise>
 """
 
+noise_xml_with_holes = b"""<?xml version="1.0" encoding="UTF-8"?>
+<noise>
+  <noiseRangeVectorList count="3">
+    <noiseRangeVector>
+      <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
+      <line>0</line>
+      <pixel count="6">0 2 4 6 8 9</pixel>
+      <noiseRangeLut count="6">0.00000e+00 2.00000e+00 4.00000e+00 6.00000e+00 8.00000e+00 9.00000e+00</noiseRangeLut>
+    </noiseRangeVector>
+    <noiseRangeVector>
+      <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
+      <line>5</line>
+      <pixel count="6">0 2 4 7 8 9</pixel>
+      <noiseRangeLut count="6">0.00000e+00 2.00000e+00 4.00000e+00 7.00000e+00 8.00000e+00 9.00000e+00</noiseRangeLut>
+    </noiseRangeVector>
+    <noiseRangeVector>
+      <azimuthTime>2020-03-15T05:04:28.137817</azimuthTime>
+      <line>9</line>
+      <pixel count="6">0 2 5 7 8 9</pixel>
+      <noiseRangeLut count="6">0.00000e+00 2.00000e+00 5.00000e+00 7.00000e+00 8.00000e+00 9.00000e+00</noiseRangeLut>
+    </noiseRangeVector>
+  </noiseRangeVectorList>
+  <noiseAzimuthVectorList count="12">
+    <noiseAzimuthVector>
+      <swath>IW1</swath>
+      <firstAzimuthLine>0</firstAzimuthLine>
+      <firstRangeSample>3</firstRangeSample>
+      <lastAzimuthLine>2</lastAzimuthLine>
+      <lastRangeSample>5</lastRangeSample>
+      <line count="1">0</line>
+      <noiseAzimuthLut count="1">1.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW1</swath>
+      <firstAzimuthLine>1</firstAzimuthLine>
+      <firstRangeSample>0</firstRangeSample>
+      <lastAzimuthLine>5</lastAzimuthLine>
+      <lastRangeSample>1</lastRangeSample>
+      <line count="4">2 4 5</line>
+      <noiseAzimuthLut count="4">2.000000e+00 2.000000e+00 2.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>2</firstAzimuthLine>
+      <firstRangeSample>8</firstRangeSample>
+      <lastAzimuthLine>4</lastAzimuthLine>
+      <lastRangeSample>9</lastRangeSample>
+      <line count="2">2 4</line>
+      <noiseAzimuthLut count="2">3.000000e+00 3.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>3</firstAzimuthLine>
+      <firstRangeSample>2</firstRangeSample>
+      <lastAzimuthLine>5</lastAzimuthLine>
+      <lastRangeSample>3</lastRangeSample>
+      <line count="2">3 5</line>
+      <noiseAzimuthLut count="2">4.000000e+00 4.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>3</firstAzimuthLine>
+      <firstRangeSample>4</firstRangeSample>
+      <lastAzimuthLine>4</lastAzimuthLine>
+      <lastRangeSample>5</lastRangeSample>
+      <line count="2">3 4</line>
+      <noiseAzimuthLut count="2">5.000000e+00 5.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>4</firstAzimuthLine>
+      <firstRangeSample>6</firstRangeSample>
+      <lastAzimuthLine>4</lastAzimuthLine>
+      <lastRangeSample>7</lastRangeSample>
+      <line count="2">4</line>
+      <noiseAzimuthLut count="2">6.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>5</firstAzimuthLine>
+      <firstRangeSample>4</firstRangeSample>
+      <lastAzimuthLine>7</lastAzimuthLine>
+      <lastRangeSample>6</lastRangeSample>
+      <line count="1">5 7</line>
+      <noiseAzimuthLut count="1">7.000000e+00 7.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>5</firstAzimuthLine>
+      <firstRangeSample>7</firstRangeSample>
+      <lastAzimuthLine>7</lastAzimuthLine>
+      <lastRangeSample>9</lastRangeSample>
+      <line count="1">6</line>
+      <noiseAzimuthLut count="1">8.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>6</firstAzimuthLine>
+      <firstRangeSample>0</firstRangeSample>
+      <lastAzimuthLine>7</lastAzimuthLine>
+      <lastRangeSample>3</lastRangeSample>
+      <line count="2">6 7</line>
+      <noiseAzimuthLut count="2">9.000000e+00 9.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>8</firstAzimuthLine>
+      <firstRangeSample>0</firstRangeSample>
+      <lastAzimuthLine>9</lastAzimuthLine>
+      <lastRangeSample>0</lastRangeSample>
+      <line count="2">8</line>
+      <noiseAzimuthLut count="2">10.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW2</swath>
+      <firstAzimuthLine>8</firstAzimuthLine>
+      <firstRangeSample>2</firstRangeSample>
+      <lastAzimuthLine>9</lastAzimuthLine>
+      <lastRangeSample>3</lastRangeSample>
+      <line count="1">8 9</line>
+      <noiseAzimuthLut count="1">11.000000e+00 11.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+    <noiseAzimuthVector>
+      <swath>IW3</swath>
+      <firstAzimuthLine>8</firstAzimuthLine>
+      <firstRangeSample>4</firstRangeSample>
+      <lastAzimuthLine>8</lastAzimuthLine>
+      <lastRangeSample>5</lastRangeSample>
+      <line count="1">8</line>
+      <noiseAzimuthLut count="1">12.000000e+00</noiseAzimuthLut>
+    </noiseAzimuthVector>
+  </noiseAzimuthVectorList>
+</noise>
+"""
+
+
 calibration_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 <calibration>
   <adsHeader>
@@ -515,10 +651,30 @@ class TestSAFEXMLNoise(unittest.TestCase):
                                               [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                                               ])
 
+        self.noise_fh_with_holes = SAFEXMLNoise(BytesIO(noise_xml_with_holes), filename_info, mock.MagicMock(),
+                                                self.annotation_fh)
+        self.expected_azimuth_noise_with_holes = np.array(
+            [[np.nan, np.nan, np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan],
+             [2, 2, np.nan, 1, 1, 1, np.nan, np.nan, np.nan, np.nan],
+             [2, 2, np.nan, 1, 1, 1, np.nan, np.nan, 3, 3],
+             [2, 2, 4, 4, 5, 5, np.nan, np.nan, 3, 3],
+             [2, 2, 4, 4, 5, 5, 6, 6, 3, 3],
+             [2, 2, 4, 4, 7, 7, 7, 8, 8, 8],
+             [9, 9, 9, 9, 7, 7, 7, 8, 8, 8],
+             [9, 9, 9, 9, 7, 7, 7, 8, 8, 8],
+             [10, np.nan, 11, 11, 12, 12, np.nan, np.nan, np.nan, np.nan],
+             [10, np.nan, 11, 11, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+             ])
+
     def test_azimuth_noise_array(self):
         """Test reading the azimuth-noise array."""
         res = self.noise_fh.azimuth_noise_reader.read_azimuth_noise_array()
         np.testing.assert_array_equal(res, self.expected_azimuth_noise)
+
+    def test_azimuth_noise_array_with_holes(self):
+        """Test reading the azimuth-noise array."""
+        res = self.noise_fh_with_holes.azimuth_noise_reader.read_azimuth_noise_array()
+        np.testing.assert_array_equal(res, self.expected_azimuth_noise_with_holes)
 
     def test_range_noise_array(self):
         """Test reading the range-noise array."""

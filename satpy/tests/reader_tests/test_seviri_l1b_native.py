@@ -17,9 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
-from datetime import datetime
+from __future__ import annotations
+
 import os
 import unittest
+from datetime import datetime
 from unittest import mock
 
 import dask.array as da
@@ -28,17 +30,10 @@ import pytest
 import xarray as xr
 
 from satpy.readers.eum_base import time_cds_short
-from satpy.readers.seviri_l1b_native import (
-    NativeMSGFileHandler, ImageBoundaries, Padder,
-    get_available_channels,
-)
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
-    TestFileHandlerCalibrationBase
-)
-from satpy.tests.reader_tests.test_seviri_base import (
-    ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
-)
-from satpy.tests.utils import make_dataid, assert_attrs_equal
+from satpy.readers.seviri_l1b_native import ImageBoundaries, NativeMSGFileHandler, Padder, get_available_channels
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS, ORBIT_POLYNOMIALS_INVALID
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
+from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
                       'WV_062', 'WV_073', 'IR_087', 'IR_097',
@@ -50,13 +45,13 @@ for item in CHANNEL_INDEX_LIST:
 SEC15HDR = '15_SECONDARY_PRODUCT_HEADER'
 IDS = 'SelectedBandIDs'
 
-TEST1_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST1_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST1_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX--XX--XX--'
 
-TEST2_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST2_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST2_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XX-XXXX----X'
 
-TEST3_HEADER_CHNLIST = {SEC15HDR: {IDS: {}}}
+TEST3_HEADER_CHNLIST: dict[str, dict[str, dict]] = {SEC15HDR: {IDS: {}}}
 TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
@@ -1157,6 +1152,7 @@ class TestNativeMSGDataset:
             fh.fill_disk = False
             fh.calib_mode = 'NOMINAL'
             fh.ext_calib_coefs = {}
+            fh.include_raw_metadata = False
             fh.mda_max_array_size = 100
             return fh
 
@@ -1204,9 +1200,24 @@ class TestNativeMSGDataset:
                                       np.datetime64('1958-01-02 00:00:03'),
                                       np.datetime64('1958-01-02 00:00:04')])
         xr.testing.assert_equal(dataset, expected)
-        assert 'raw_metadata' in dataset.attrs
-        dataset.attrs.pop('raw_metadata')
+        assert 'raw_metadata' not in dataset.attrs
         assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+
+    def test_get_dataset_with_raw_metadata(self, file_handler):
+        """Test provision of raw metadata."""
+        file_handler.include_raw_metadata = True
+        dataset_id = make_dataid(
+            name='VIS006',
+            resolution=3000,
+            calibration='counts'
+        )
+        dataset_info = {
+            'units': '1',
+            'wavelength': (1, 2, 3),
+            'standard_name': 'counts'
+        }
+        res = file_handler.get_dataset(dataset_id, dataset_info)
+        assert 'raw_metadata' in res.attrs
 
     def test_satpos_no_valid_orbit_polynomial(self, file_handler):
         """Test satellite position if there is no valid orbit polynomial."""

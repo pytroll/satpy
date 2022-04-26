@@ -24,6 +24,8 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
+import pytest
+
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
@@ -86,9 +88,9 @@ def _create_test_area(proj_str=None, shape=DEFAULT_SHAPE, extents=None):
 
 def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None):
     """Create a test DataArray object."""
-    import xarray as xr
     import dask.array as da
     import numpy as np
+    import xarray as xr
 
     return xr.DataArray(
         da.zeros(shape, dtype=np.float32, chunks=shape), dims=('y', 'x'),
@@ -186,12 +188,13 @@ class TestMultiScene(unittest.TestCase):
             scn_mock.assert_has_calls(calls)
 
             scn_mock.reset_mock()
-            mscn = MultiScene.from_files(
-                    input_files_abi + input_files_glm,
-                    reader=('abi_l1b', "glm_l2"),
-                    group_keys=["start_time"],
-                    ensure_all_readers=True,
-                    time_threshold=30)
+            with pytest.warns(DeprecationWarning):
+                mscn = MultiScene.from_files(
+                        input_files_abi + input_files_glm,
+                        reader=('abi_l1b', "glm_l2"),
+                        group_keys=["start_time"],
+                        ensure_all_readers=True,
+                        time_threshold=30)
             assert len(mscn.scenes) == 2
             calls = [mock.call(
                 filenames={'abi_l1b': [in_file_abi], 'glm_l2': [in_file_glm]})
@@ -210,7 +213,7 @@ class TestMultiScene(unittest.TestCase):
 
     def test_group(self):
         """Test group."""
-        from satpy import Scene, MultiScene
+        from satpy import MultiScene, Scene
 
         ds1 = _create_test_dataset(name='ds1')
         ds2 = _create_test_dataset(name='ds2')
@@ -232,12 +235,13 @@ class TestMultiScene(unittest.TestCase):
 
     def test_add_group_aliases(self):
         """Test adding group aliases."""
-        import xarray as xr
-        import numpy as np
         import types
 
-        from satpy.multiscene import add_group_aliases
+        import numpy as np
+        import xarray as xr
+
         from satpy import Scene
+        from satpy.multiscene import add_group_aliases
 
         # Define test scenes
         ds_id1 = make_dataid(name='ds1', wavelength=(10.7, 10.8, 10.9))
@@ -433,8 +437,9 @@ class TestMultiSceneSave(unittest.TestCase):
     @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_datasets_distributed_delayed(self):
         """Test distributed save for writers returning delayed obejcts e.g. simple_image."""
-        from satpy import MultiScene
         from dask.delayed import Delayed
+
+        from satpy import MultiScene
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
 
@@ -467,8 +472,9 @@ class TestMultiSceneSave(unittest.TestCase):
     @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_datasets_distributed_source_target(self):
         """Test distributed save for writers returning sources and targets e.g. geotiff writer."""
-        from satpy import MultiScene
         import dask.array as da
+
+        from satpy import MultiScene
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
 
@@ -499,10 +505,11 @@ class TestMultiSceneSave(unittest.TestCase):
 
     def test_crop(self):
         """Test the crop method."""
-        from satpy import Scene, MultiScene
-        from xarray import DataArray
-        from pyresample.geometry import AreaDefinition
         import numpy as np
+        from pyresample.geometry import AreaDefinition
+        from xarray import DataArray
+
+        from satpy import MultiScene, Scene
         scene1 = Scene()
         area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
                        5570248.477339745)
@@ -548,9 +555,10 @@ class TestBlendFuncs(unittest.TestCase):
 
     def setUp(self):
         """Set up test data."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         area = AreaDefinition('test', 'test', 'test',
                               {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
@@ -576,8 +584,9 @@ class TestBlendFuncs(unittest.TestCase):
 
     def test_timeseries(self):
         """Test the 'timeseries' function."""
-        from satpy.multiscene import timeseries
         import xarray as xr
+
+        from satpy.multiscene import timeseries
         res = timeseries([self.ds1, self.ds2])
         res2 = timeseries([self.ds3, self.ds4])
         self.assertIsInstance(res, xr.DataArray)

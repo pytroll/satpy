@@ -16,16 +16,20 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of utils."""
+from __future__ import annotations
 
 import logging
+import typing
 import unittest
 import warnings
 from unittest import mock
 
+import dask.array as da
+import numpy as np
 import pytest
-from numpy import sqrt
+import xarray as xr
 
-from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters, get_satpos
+from satpy.utils import angle2xyz, get_satpos, lonlat2xyz, proj_units_to_meters, xyz2angle, xyz2lonlat
 
 
 class TestUtils(unittest.TestCase):
@@ -64,14 +68,14 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(z__, -1)
 
         x__, y__, z__ = lonlat2xyz(0, 45)
-        self.assertAlmostEqual(x__, sqrt(2) / 2)
+        self.assertAlmostEqual(x__, np.sqrt(2) / 2)
         self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, sqrt(2) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
 
         x__, y__, z__ = lonlat2xyz(0, 60)
-        self.assertAlmostEqual(x__, sqrt(1) / 2)
+        self.assertAlmostEqual(x__, np.sqrt(1) / 2)
         self.assertAlmostEqual(y__, 0)
-        self.assertAlmostEqual(z__, sqrt(3) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(3) / 2)
 
     def test_angle2xyz(self):
         """Test the lonlat2xyz function."""
@@ -127,13 +131,13 @@ class TestUtils(unittest.TestCase):
 
         x__, y__, z__ = angle2xyz(0, 45)
         self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, sqrt(2) / 2)
-        self.assertAlmostEqual(z__, sqrt(2) / 2)
+        self.assertAlmostEqual(y__, np.sqrt(2) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(2) / 2)
 
         x__, y__, z__ = angle2xyz(0, 60)
         self.assertAlmostEqual(x__, 0)
-        self.assertAlmostEqual(y__, sqrt(3) / 2)
-        self.assertAlmostEqual(z__, sqrt(1) / 2)
+        self.assertAlmostEqual(y__, np.sqrt(3) / 2)
+        self.assertAlmostEqual(z__, np.sqrt(1) / 2)
 
     def test_xyz2lonlat(self):
         """Test xyz2lonlat."""
@@ -153,7 +157,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(lon, 0)
         self.assertAlmostEqual(lat, 90)
 
-        lon, lat = xyz2lonlat(sqrt(2) / 2, sqrt(2) / 2, 0)
+        lon, lat = xyz2lonlat(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
         self.assertAlmostEqual(lon, 45)
         self.assertAlmostEqual(lat, 0)
 
@@ -175,7 +179,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(azi, 0)
         self.assertAlmostEqual(zen, 0)
 
-        azi, zen = xyz2angle(sqrt(2) / 2, sqrt(2) / 2, 0)
+        azi, zen = xyz2angle(np.sqrt(2) / 2, np.sqrt(2) / 2, 0)
         self.assertAlmostEqual(azi, 45)
         self.assertAlmostEqual(zen, 90)
 
@@ -205,54 +209,67 @@ class TestUtils(unittest.TestCase):
         res = proj_units_to_meters(prj)
         self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
 
-    @mock.patch('satpy.utils.warnings.warn')
-    def test_get_satpos(self, warn_mock):
+
+class TestGetSatPos:
+    """Tests for 'get_satpos'."""
+
+    @pytest.mark.parametrize(
+        ("included_prefixes", "preference", "expected_result"),
+        [
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), None, (1, 2, 3)),
+            (("satellite_actual_", "satellite_nominal_", "projection_"), None, (1.1, 2.1, 3)),
+            (("satellite_nominal_", "projection_"), None, (1.2, 2.2, 3.1)),
+            (("projection_",), None, (1.3, 2.3, 3.2)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nadir", (1, 2, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "actual", (1.1, 2.1, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nominal", (1.2, 2.2, 3.1)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "projection", (1.3, 2.3, 3.2)),
+            (("satellite_nominal_", "projection_"), "actual", (1.2, 2.2, 3.1)),
+            (("projection_",), "projection", (1.3, 2.3, 3.2)),
+        ]
+    )
+    def test_get_satpos(self, included_prefixes, preference, expected_result):
         """Test getting the satellite position."""
-        orb_params = {'nadir_longitude': 1,
-                      'satellite_actual_longitude': 1.1,
-                      'satellite_nominal_longitude': 1.2,
-                      'projection_longitude': 1.3,
-                      'nadir_latitude': 2,
-                      'satellite_actual_latitude': 2.1,
-                      'satellite_nominal_latitude': 2.2,
-                      'projection_latitude': 2.3,
-                      'satellite_actual_altitude': 3,
-                      'satellite_nominal_altitude': 3.1,
-                      'projection_altitude': 3.2}
-        dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params,
-                                        'satellite_longitude': -1,
-                                        'satellite_latitude': -2,
-                                        'satellite_altitude': -3})
+        all_orb_params = {
+            'nadir_longitude': 1,
+            'satellite_actual_longitude': 1.1,
+            'satellite_nominal_longitude': 1.2,
+            'projection_longitude': 1.3,
+            'nadir_latitude': 2,
+            'satellite_actual_latitude': 2.1,
+            'satellite_nominal_latitude': 2.2,
+            'projection_latitude': 2.3,
+            'satellite_actual_altitude': 3,
+            'satellite_nominal_altitude': 3.1,
+            'projection_altitude': 3.2
+        }
+        orb_params = {key: value for key, value in all_orb_params.items() if
+                      any(in_prefix in key for in_prefix in included_prefixes)}
+        data_arr = xr.DataArray((), attrs={'orbital_parameters': orb_params})
 
-        # Nadir
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1, 2, 3))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            lon, lat, alt = get_satpos(data_arr, preference=preference)
+        has_satpos_warnings = any("using projection" in str(msg.message) for msg in caught_warnings)
+        expect_warning = included_prefixes == ("projection_",) and preference != "projection"
+        if expect_warning:
+            assert has_satpos_warnings
+        else:
+            assert not has_satpos_warnings
+        assert (lon, lat, alt) == expected_result
 
-        # Actual
-        orb_params.pop('nadir_longitude')
-        orb_params.pop('nadir_latitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.1, 2.1, 3))
-
-        # Nominal
-        orb_params.pop('satellite_actual_longitude')
-        orb_params.pop('satellite_actual_latitude')
-        orb_params.pop('satellite_actual_altitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3.1))
-
-        # Projection
-        orb_params.pop('satellite_nominal_longitude')
-        orb_params.pop('satellite_nominal_latitude')
-        orb_params.pop('satellite_nominal_altitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
-        warn_mock.assert_called()
-
-        # Legacy
-        dataset.attrs.pop('orbital_parameters')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
+    @pytest.mark.parametrize(
+        "attrs",
+        (
+                {},
+                {'orbital_parameters':  {'projection_longitude': 1}},
+                {'satellite_altitude': 1}
+        )
+    )
+    def test_get_satpos_fails_with_informative_error(self, attrs):
+        """Test that get_satpos raises an informative error message."""
+        data_arr = xr.DataArray((), attrs=attrs)
+        with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
+            get_satpos(data_arr)
 
 
 def test_make_fake_scene():
@@ -262,9 +279,6 @@ def test_make_fake_scene():
     purposes, it has grown sufficiently complex that it needs its own
     testing.
     """
-    import numpy as np
-    import dask.array as da
-    import xarray as xr
     from satpy.tests.utils import make_fake_scene
 
     assert make_fake_scene({}).keys() == []
@@ -316,7 +330,7 @@ class TestCheckSatpy(unittest.TestCase):
 
 def test_debug_on(caplog):
     """Test that debug_on is working as expected."""
-    from satpy.utils import debug_on, debug_off, debug
+    from satpy.utils import debug, debug_off, debug_on
 
     def depwarn():
         logger = logging.getLogger("satpy.silly")
@@ -345,7 +359,7 @@ def test_debug_on(caplog):
 
 def test_logging_on_and_off(caplog):
     """Test that switching logging on and off works."""
-    from satpy.utils import logging_on, logging_off
+    from satpy.utils import logging_off, logging_on
     logger = logging.getLogger("satpy.silly")
     logging_on()
     with caplog.at_level(logging.WARNING):
@@ -357,3 +371,85 @@ def test_logging_on_and_off(caplog):
     with caplog.at_level(logging.DEBUG):
         logger.warning("You've got a nice army base here, Colonel.")
     assert "You've got a nice army base here, Colonel." not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("shapes", "chunks", "dims", "exp_unified"),
+    [
+        (
+                ((3, 5, 5), (5, 5)),
+                (-1, -1),
+                (("bands", "y", "x"), ("y", "x")),
+                True,
+        ),
+        (
+                ((3, 5, 5), (5, 5)),
+                (-1, 2),
+                (("bands", "y", "x"), ("y", "x")),
+                True,
+        ),
+        (
+                ((4, 5, 5), (3, 5, 5)),
+                (-1, -1),
+                (("bands", "y", "x"), ("bands", "y", "x")),
+                False,
+        ),
+    ],
+)
+def test_unify_chunks(shapes, chunks, dims, exp_unified):
+    """Test unify_chunks utility function."""
+    from satpy.utils import unify_chunks
+    inputs = list(_data_arrays_from_params(shapes, chunks, dims))
+    results = unify_chunks(*inputs)
+    if exp_unified:
+        _verify_unified(results)
+    else:
+        _verify_unchanged_chunks(results, inputs)
+
+
+def _data_arrays_from_params(shapes: list[tuple[int, ...]],
+                             chunks: list[tuple[int, ...]],
+                             dims: list[tuple[int, ...]]
+                             ) -> typing.Generator[xr.DataArray, None, None]:
+    for shape, chunk, dim in zip(shapes, chunks, dims):
+        yield xr.DataArray(da.ones(shape, chunks=chunk), dims=dim)
+
+
+def _verify_unified(data_arrays: list[xr.DataArray]) -> None:
+    dim_chunks: dict[str, int] = {}
+    for data_arr in data_arrays:
+        for dim, chunk_size in zip(data_arr.dims, data_arr.chunks):
+            exp_chunks = dim_chunks.setdefault(dim, chunk_size)
+            assert exp_chunks == chunk_size
+
+
+def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
+                             orig_arrays: list[xr.DataArray]) -> None:
+    for data_arr, orig_arr in zip(data_arrays, orig_arrays):
+        assert data_arr.chunks == orig_arr.chunks
+
+
+def test_chunk_pixel_size():
+    """Check the chunk pixel size computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_pixel_size
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_pixel_size() is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_pixel_size() == 100
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_pixel_size() == 200
+
+
+def test_chunk_size_limit():
+    """Check the chunk size limit computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_size_limit
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_size_limit(np.uint8) is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_size_limit(np.float64) == 800
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_size_limit(np.int32) == 800

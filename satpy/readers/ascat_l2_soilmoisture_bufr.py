@@ -23,9 +23,10 @@ Based on the IASI L2 SO2 BUFR reader.
 
 import logging
 from datetime import datetime
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
 
 try:
     import eccodes as ec
@@ -34,8 +35,8 @@ except ImportError as e:
         """Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes.
            Error: """, e)
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger('AscatSoilMoistureBufr')
 
