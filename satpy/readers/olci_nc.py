@@ -68,6 +68,16 @@ class BitFlags:
         self._meanings = meanings
         self._map = dict(zip(meanings, masks))
 
+    @property
+    def masks(self):
+        """Return masks."""
+        return self._masks
+
+    @property
+    def meanings(self):
+        """Return meanings."""
+        return self._meanings
+
     def match_item(self, item, data):
         """Match any of the item."""
         mask = self._map[item]
@@ -80,7 +90,7 @@ class BitFlags:
 
     def __eq__(self, other):
         """Check equality."""
-        return all(self._masks == other._masks) and self._meanings == other._meanings
+        return all(self._masks == other.masks) and self._meanings == other.meanings
 
 
 class NCOLCIBase(BaseFileHandler):
