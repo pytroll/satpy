@@ -1947,3 +1947,31 @@ class TestSceneAggregation(unittest.TestCase):
         scene2 = scene1.aggregate(func='sum', x=2, y=2, boundary='trim')
         expected_aggregated_shape = (y_size // 2, x_size // 2)
         self._check_aggregation_results(expected_aggregated_shape, scene1, scene2, x_size, y_size)
+
+
+def test_check_file_protocols():
+    """Test checking file protocols.
+
+    Case without scheme/protocol, which should default to plain filenames.
+    """
+    from satpy.scene import check_file_protocols
+
+    filenames = ["/tmp/file1.nc", "/tmp/file2.nc"]
+    res = check_file_protocols(filenames)
+    assert res == filenames
+
+
+def test_check_file_protocols_mixed_sources():
+    """Test checking file protocols.
+
+    Case with mixed local and remote files.
+    """
+    from satpy.readers import FSFile
+    from satpy.scene import check_file_protocols
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
+    res = check_file_protocols(filenames)
+    # Two local files, one remote
+    assert filenames[0] in res
+    assert filenames[2] in res
+    assert sum(isinstance(f, FSFile) for f in res) == 1

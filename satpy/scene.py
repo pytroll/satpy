@@ -118,6 +118,9 @@ class Scene:
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
+        if filenames:
+            filenames = check_file_protocols(filenames)
+
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
                                                       reader_kwargs=reader_kwargs)
@@ -1501,3 +1504,38 @@ class Scene:
                 LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
+
+
+def check_file_protocols(filenames):
+    """Check filenames for transfer protocols, convert to FSFile objects if possible."""
+    local_files, remote_files = _sort_files_to_local_and_remote(filenames)
+    try:
+        fs_files = _filenames_to_fsfile(remote_files)
+    except ImportError:
+        return filenames
+
+    return local_files + fs_files
+
+
+def _sort_files_to_local_and_remote(filenames):
+    from urllib.parse import urlparse
+
+    local_files = []
+    remote_files = []
+    for f in filenames:
+        if urlparse(f).scheme in ('', 'file'):
+            local_files.append(f)
+        else:
+            remote_files.append(f)
+    return local_files, remote_files
+
+
+def _filenames_to_fsfile(filenames):
+    import fsspec
+
+    from satpy.readers import FSFile
+
+    if filenames:
+        fsspec_files = fsspec.open_files(filenames)
+        return [FSFile(f) for f in fsspec_files]
+    return []
