@@ -1995,3 +1995,17 @@ def test_check_file_protocols_filename_dict():
     assert filenames["reader2"][1] in res["reader2"]
     assert filenames["reader2"][2] in res["reader2"]
     assert sum(isinstance(f, FSFile) for f in res["reader2"]) == 1
+
+
+def test_check_file_protocols_fsfile():
+    """Test checking file protocols.
+
+    Case where the some of the files are already FSFile objects.
+    """
+    from satpy.readers import FSFile
+    from satpy.scene import check_file_protocols
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
+    res = check_file_protocols(filenames)
+
+    assert sum(isinstance(f, FSFile) for f in res) == 2

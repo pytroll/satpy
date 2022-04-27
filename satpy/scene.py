@@ -1521,30 +1521,31 @@ def _check_file_protocols_for_dicts(filenames):
 
 
 def _check_file_protocols(filenames):
-    local_files, remote_files = _sort_files_to_local_and_remote(filenames)
+    local_files, remote_files, fs_files = _sort_files_to_local_remote_and_fsfiles(filenames)
     try:
-        fs_files = _filenames_to_fsfile(remote_files)
+        new_fs_files = _filenames_to_fsfile(remote_files)
     except ImportError:
         return filenames
 
-    return local_files + fs_files
+    return local_files + fs_files + new_fs_files
 
 
-def _sort_files_to_local_and_remote(filenames):
+def _sort_files_to_local_remote_and_fsfiles(filenames):
     from urllib.parse import urlparse
 
     from satpy.readers import FSFile
 
     local_files = []
     remote_files = []
+    fs_files = []
     for f in filenames:
         if isinstance(f, FSFile):
-            remote_files.append(f)
+            fs_files.append(f)
         elif urlparse(f).scheme in ('', 'file'):
             local_files.append(f)
         else:
             remote_files.append(f)
-    return local_files, remote_files
+    return local_files, remote_files, fs_files
 
 
 def _filenames_to_fsfile(filenames):
