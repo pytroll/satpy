@@ -1974,7 +1974,7 @@ def test_check_file_protocols_mixed_sources():
     # Two local files, one remote
     assert filenames[0] in res
     assert filenames[2] in res
-    assert sum(isinstance(f, FSFile) for f in res) == 1
+    assert sum([isinstance(f, FSFile) for f in res]) == 1
 
 
 def test_check_file_protocols_filename_dict():
@@ -1994,7 +1994,7 @@ def test_check_file_protocols_filename_dict():
     assert res["reader1"] == filenames["reader1"]
     assert filenames["reader2"][1] in res["reader2"]
     assert filenames["reader2"][2] in res["reader2"]
-    assert sum(isinstance(f, FSFile) for f in res["reader2"]) == 1
+    assert sum([isinstance(f, FSFile) for f in res["reader2"]]) == 1
 
 
 def test_check_file_protocols_fsfile():
@@ -2008,4 +2008,4 @@ def test_check_file_protocols_fsfile():
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
     res = check_file_protocols(filenames)
 
-    assert sum(isinstance(f, FSFile) for f in res) == 2
+    assert sum([isinstance(f, FSFile) for f in res]) == 2
