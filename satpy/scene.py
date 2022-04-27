@@ -1533,10 +1533,14 @@ def _check_file_protocols(filenames):
 def _sort_files_to_local_and_remote(filenames):
     from urllib.parse import urlparse
 
+    from satpy.readers import FSFile
+
     local_files = []
     remote_files = []
     for f in filenames:
-        if urlparse(f).scheme in ('', 'file'):
+        if isinstance(f, FSFile):
+            remote_files.append(f)
+        elif urlparse(f).scheme in ('', 'file'):
             local_files.append(f)
         else:
             remote_files.append(f)
