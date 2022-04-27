@@ -148,7 +148,11 @@ class NcNWCSAF(BaseFileHandler):
         variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
         variable = self.scale_dataset(variable, info)
-
+        try:
+            variable = variable.drop_vars('y')
+            variable = variable.drop_vars('x')
+        except ValueError:
+            pass
         return variable
 
     def _get_varname_in_file(self, info, info_type="file_key"):
@@ -279,6 +283,8 @@ class NcNWCSAF(BaseFileHandler):
         lons, lats = satint.interpolate()
         lon = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
         lat = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
+        lat = lat.drop_vars('y', 'x')        
+        lon = lon.drop_vars('y', 'x')
         return lon, lat
 
     def get_area_def(self, dsid):
