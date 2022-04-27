@@ -1522,12 +1522,11 @@ def _check_file_protocols_for_dicts(filenames):
 
 def _check_file_protocols(filenames):
     local_files, remote_files, fs_files = _sort_files_to_local_remote_and_fsfiles(filenames)
-    try:
-        new_fs_files = _filenames_to_fsfile(remote_files)
-    except ImportError:
-        return filenames
 
-    return local_files + fs_files + new_fs_files
+    if remote_files:
+        return local_files + fs_files + _filenames_to_fsfile(remote_files)
+
+    return local_files + fs_files
 
 
 def _sort_files_to_local_remote_and_fsfiles(filenames):
