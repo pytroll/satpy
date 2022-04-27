@@ -1975,3 +1975,23 @@ def test_check_file_protocols_mixed_sources():
     assert filenames[0] in res
     assert filenames[2] in res
     assert sum(isinstance(f, FSFile) for f in res) == 1
+
+
+def test_check_file_protocols_filename_dict():
+    """Test checking file protocols.
+
+    Case where filenames is a dictionary mapping readers and filenames.
+    """
+    from satpy.readers import FSFile
+    from satpy.scene import check_file_protocols
+
+    filenames = {
+        "reader1": ["/tmp/file1.nc", "/tmp/file2.nc"],
+        "reader2": ["s3://tmp/file3.nc", "file:///tmp/file4.nc", "/tmp/file5.nc"]
+    }
+    res = check_file_protocols(filenames)
+
+    assert res["reader1"] == filenames["reader1"]
+    assert filenames["reader2"][1] in res["reader2"]
+    assert filenames["reader2"][2] in res["reader2"]
+    assert sum(isinstance(f, FSFile) for f in res["reader2"]) == 1

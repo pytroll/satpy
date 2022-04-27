@@ -1508,6 +1508,19 @@ class Scene:
 
 def check_file_protocols(filenames):
     """Check filenames for transfer protocols, convert to FSFile objects if possible."""
+    if isinstance(filenames, dict):
+        return _check_file_protocols_for_dicts(filenames)
+    return _check_file_protocols(filenames)
+
+
+def _check_file_protocols_for_dicts(filenames):
+    res = {}
+    for reader, files in filenames.items():
+        res[reader] = _check_file_protocols(files)
+    return res
+
+
+def _check_file_protocols(filenames):
     local_files, remote_files = _sort_files_to_local_and_remote(filenames)
     try:
         fs_files = _filenames_to_fsfile(remote_files)
