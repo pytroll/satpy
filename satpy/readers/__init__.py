@@ -647,6 +647,9 @@ def _get_reader_kwargs(reader, reader_kwargs):
 class FSFile(os.PathLike):
     """Implementation of a PathLike file object, that can be opened.
 
+    Giving the filenames to :class:`Scene` with valid transfer protocols will automatically
+    use this class and manual operation is not anymore necessary.
+
     This is made to be used in conjuction with fsspec or s3fs. For example::
 
         from satpy import Scene
