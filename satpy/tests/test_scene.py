@@ -2009,3 +2009,16 @@ def test_check_file_protocols_fsfile():
     res = check_file_protocols(filenames)
 
     assert sum([isinstance(f, FSFile) for f in res]) == 2
+
+
+def test_check_file_protocols_windows_paths():
+    """Test checking file protocols.
+
+    Case where windows paths are used.
+    """
+    from satpy.scene import check_file_protocols
+
+    filenames = [r"C:\wintendo\file1.nc", "e:\\wintendo\\file2.nc", r"wintendo\file3.nc"]
+    res = check_file_protocols(filenames)
+
+    assert res == filenames

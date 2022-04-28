@@ -1540,7 +1540,7 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
     for f in filenames:
         if isinstance(f, FSFile):
             fs_files.append(f)
-        elif urlparse(f).scheme in ('', 'file'):
+        elif urlparse(f).scheme in ('', 'file') or "\\" in f:
             local_files.append(f)
         else:
             remote_files.append(f)
