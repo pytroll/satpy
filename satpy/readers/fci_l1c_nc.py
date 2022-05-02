@@ -191,18 +191,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
-        # store position information of chunk
-        self.chunk_position_info = {
-            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
-                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
-                    'chunk_height': self['data/vis_04/measured/end_position_row'].item() -
-                    self['data/vis_04/measured/start_position_row'].item() + 1},
-            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
-                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
-                    'chunk_height': self['data/ir_105/measured/end_position_row'].item() -
-                    self['data/ir_105/measured/start_position_row'].item() + 1}
-        }
-
         self._cache = {}
 
     @property
@@ -214,6 +202,24 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
     def end_time(self):
         """Get end time."""
         return self.filename_info['end_time']
+
+    def get_segment_position_info(self):
+        """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
+        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks."""
+        segment_position_info = {
+            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
+                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
+                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
+                    self['data/vis_04/measured/start_position_row'].item() + 1,
+                    'segment_width': 11136},
+            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
+                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
+                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
+                    self['data/ir_105/measured/start_position_row'].item() + 1,
+                    'segment_width': 5568}
+        }
+
+        return segment_position_info
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""

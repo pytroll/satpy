@@ -1352,13 +1352,15 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
     return empty_segment
 
 
-class FCIChunksYAMLReader(GEOSegmentYAMLReader):
-    """FCIChunksYAMLReader for handling FCI L1c chunk files.
+class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
+    """GEOVariableSegmentYAMLReader for handling chunked/segmented GEO products with segments of variable size.
 
-    This YAMLReader ovverrides  parts of the GEOSegmentYAMLReader to account for specific format properties of the
-    FCI L1c chunking configuration. Since the size of the FCI L1c chunks is configurable by the data producer,
-    this YAMLReader computes the sizes of the padded chunks using the information available in the files, so that
-    gaps of any size can be filled as needed.
+    This YAMLReader ovverrides parts of the GEOSegmentYAMLReader to account for formats where the segments can
+    have variable sizes. It computes the sizes of the padded segments using the information available in the
+    file(handlers), so that gaps of any size can be filled as needed.
+
+    This implementation was motivated by the FCI L1c format, where the segments (also called chunks)
+    can have variable sizes.
 
     For more information on please see the documentation of GEOSegmentYAMLReader.
     """
@@ -1366,34 +1368,34 @@ class FCIChunksYAMLReader(GEOSegmentYAMLReader):
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Create file handler objects and determine expected segments for each."""
         created_fhs = super().create_filehandlers(filenames, fh_kwargs=fh_kwargs)
-        self._extract_chunk_location_dicts(created_fhs['fci_l1c_fdhsi'])
+        self._extract_segment_location_dicts(created_fhs['fci_l1c_fdhsi'])
         return created_fhs
 
-    def _extract_chunk_location_dicts(self, filehandlers):
-        self.chunk_infos = []
+    def _extract_segment_location_dicts(self, filehandlers):
+        self.segment_infos = []
         for fh in filehandlers:
-            chk_infos = fh.chunk_position_info
-            chk_infos.update({'chunk_nr': fh.filename_info['segment'] - 1})
-            self.chunk_infos.append(chk_infos)
-        self.exp_chunk_nr = filehandlers[0].filetype_info['expected_segments']
+            chk_infos = fh.get_segment_position_info()
+            chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
+            self.segment_infos.append(chk_infos)
+        self.exp_segment_nr = filehandlers[0].filetype_info['expected_segments']
         return
 
     def _get_empty_segment(self, dim=None, idx=None):
-        segment_height = self.chunk_heights[FCI_WIDTH_TO_GRID_TYPE[self.empty_segment.shape[1]]][idx]
+        segment_height = self.segment_heights[FCI_WIDTH_TO_GRID_TYPE[self.empty_segment.shape[1]]][idx]
         return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
 
     @cached_property
-    def chunk_heights(self):
-        """Compute FCI padded chunk heights."""
-        chunk_sizes = {'1km': _compute_optimal_chunk_sizes_for_FCI(self.chunk_infos, '1km', 11136,
-                                                                   self.exp_chunk_nr),
-                       '2km': _compute_optimal_chunk_sizes_for_FCI(self.chunk_infos, '2km', 5568,
-                                                                   self.exp_chunk_nr)}
-        return chunk_sizes
+    def segment_heights(self):
+        """Compute FCI padded segment heights."""
+        segment_sizes = {'1km': _compute_optimal_segment_sizes_for_FCI(self.segment_infos, '1km', 11136,
+                                                                       self.exp_segment_nr),
+                         '2km': _compute_optimal_segment_sizes_for_FCI(self.segment_infos, '2km', 5568,
+                                                                       self.exp_segment_nr)}
+        return segment_sizes
 
     def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None):
-        # retrieve the chunk/segment pixel height
-        new_height_px = self.chunk_heights[FCI_WIDTH_TO_GRID_TYPE[previous_seg_size[1]]][segment_n - 1]
+        # retrieve the segment/segment pixel height
+        new_height_px = self.segment_heights[FCI_WIDTH_TO_GRID_TYPE[previous_seg_size[1]]][segment_n - 1]
         # scale the previous vertical area extent using the new pixel height
         prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
         new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
@@ -1401,58 +1403,58 @@ class FCIChunksYAMLReader(GEOSegmentYAMLReader):
         return new_height_proj_coord, new_height_px
 
 
-def _compute_optimal_chunk_sizes_for_FCI(chk_infos, grid_type, expected_size, exp_chunk_nr):
+def _compute_optimal_segment_sizes_for_FCI(chk_infos, grid_type, expected_size, exp_segment_nr):
     # initialise positioning arrays
-    chunk_start_rows, chunk_end_rows, chunk_heights = _initialise_positioning_arrays_for_FCI(chk_infos, grid_type,
-                                                                                             exp_chunk_nr)
+    segment_start_rows, segment_end_rows, segment_heights = _initialise_positioning_arrays_for_FCI(chk_infos, grid_type,
+                                                                                                   exp_segment_nr)
 
-    # populate start row of first chunk and end row of last chunk with known values
-    chunk_start_rows[0] = 1
-    chunk_end_rows[exp_chunk_nr - 1] = expected_size
+    # populate start row of first segment and end row of last segment with known values
+    segment_start_rows[0] = 1
+    segment_end_rows[exp_segment_nr - 1] = expected_size
 
-    # find missing chunks and group contiguous missing chunks together
-    groups_missing_chunks = [list(group) for group in mit.consecutive_groups(np.where(chunk_heights == 0)[0])]
+    # find missing segments and group contiguous missing segments together
+    groups_missing_segments = [list(group) for group in mit.consecutive_groups(np.where(segment_heights == 0)[0])]
 
-    for group in groups_missing_chunks:
-        _compute_positioning_data_for_missing_group(chunk_start_rows, chunk_end_rows, chunk_heights, group)
+    for group in groups_missing_segments:
+        _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group)
 
-    return chunk_heights.astype('int')
+    return segment_heights.astype('int')
 
 
-def _compute_positioning_data_for_missing_group(chunk_start_rows, chunk_end_rows, chunk_heights, group):
-    # populate start row of first missing chunk using the end row of the previous chunk
-    # if this is the first chunk in the full-disk, it will have a non-zero value already
-    if chunk_start_rows[group[0]] == 0:
-        chunk_start_rows[group[0]] = chunk_end_rows[group[0] - 1] + 1
-    # populate end row of last missing chunk using the start row of the following chunk
-    # if this is the last chunk in the full-disk, it will have a non-zero value already
-    if chunk_end_rows[group[-1]] == 0:
-        chunk_end_rows[group[-1]] = chunk_start_rows[group[-1] + 1] - 1
-    # compute gap size of missing chunks group
-    size_gap = chunk_end_rows[group[-1]] - chunk_start_rows[group[0]] + 1
-    # split the gap by the number of missing chunks in (almost) equal parts
-    proposed_sizes_missing_chunks = split_integer_in_most_equal_parts(size_gap, len(group))
-    # populate the rest of the start and end rows and heights using computed sizes of missing chunks
+def _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group):
+    # populate start row of first missing segment using the end row of the previous segment
+    # if this is the first segment in the full-disk, it will have a non-zero value already
+    if segment_start_rows[group[0]] == 0:
+        segment_start_rows[group[0]] = segment_end_rows[group[0] - 1] + 1
+    # populate end row of last missing segment using the start row of the following segment
+    # if this is the last segment in the full-disk, it will have a non-zero value already
+    if segment_end_rows[group[-1]] == 0:
+        segment_end_rows[group[-1]] = segment_start_rows[group[-1] + 1] - 1
+    # compute gap size of missing segments group
+    size_gap = segment_end_rows[group[-1]] - segment_start_rows[group[0]] + 1
+    # split the gap by the number of missing segments in (almost) equal parts
+    proposed_sizes_missing_segments = split_integer_in_most_equal_parts(size_gap, len(group))
+    # populate the rest of the start and end rows and heights using computed sizes of missing segments
     for n in range(len(group)):
-        # first and last missing chunks start and end have been populated already
+        # first and last missing segments start and end have been populated already
         if n != 0:
-            chunk_start_rows[group[n]] = chunk_start_rows[group[n - 1]] + proposed_sizes_missing_chunks[n] + 1
+            segment_start_rows[group[n]] = segment_start_rows[group[n - 1]] + proposed_sizes_missing_segments[n] + 1
         if n != len(group) - 1:
-            chunk_end_rows[group[n]] = chunk_start_rows[group[n]] + proposed_sizes_missing_chunks[n]
-        chunk_heights[group[n]] = proposed_sizes_missing_chunks[n]
+            segment_end_rows[group[n]] = segment_start_rows[group[n]] + proposed_sizes_missing_segments[n]
+        segment_heights[group[n]] = proposed_sizes_missing_segments[n]
 
 
-def _initialise_positioning_arrays_for_FCI(chk_infos, grid_type, exp_chunk_nr):
-    chunk_heights = np.zeros(exp_chunk_nr)
-    chunk_start_rows = np.zeros(exp_chunk_nr)
-    chunk_end_rows = np.zeros(exp_chunk_nr)
-    # populate positioning arrays with available information from loaded chunks
+def _initialise_positioning_arrays_for_FCI(chk_infos, grid_type, exp_segment_nr):
+    segment_heights = np.zeros(exp_segment_nr)
+    segment_start_rows = np.zeros(exp_segment_nr)
+    segment_end_rows = np.zeros(exp_segment_nr)
+    # populate positioning arrays with available information from loaded segments
     for chk_info in chk_infos:
-        current_fh_chunk_nr = chk_info['chunk_nr']
-        chunk_heights[current_fh_chunk_nr] = chk_info[grid_type]['chunk_height']
-        chunk_start_rows[current_fh_chunk_nr] = chk_info[grid_type]['start_position_row']
-        chunk_end_rows[current_fh_chunk_nr] = chk_info[grid_type]['end_position_row']
-    return chunk_start_rows, chunk_end_rows, chunk_heights
+        current_fh_segment_nr = chk_info['segment_nr']
+        segment_heights[current_fh_segment_nr] = chk_info[grid_type]['segment_height']
+        segment_start_rows[current_fh_segment_nr] = chk_info[grid_type]['start_position_row']
+        segment_end_rows[current_fh_segment_nr] = chk_info[grid_type]['end_position_row']
+    return segment_start_rows, segment_end_rows, segment_heights
 
 
 def split_integer_in_most_equal_parts(x, n):
