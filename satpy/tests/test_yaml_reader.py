@@ -981,13 +981,17 @@ def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_p
     get_area_def = MagicMock()
     get_area_def.return_value = seg_area
 
+    get_segment_position_info = MagicMock()
+    get_segment_position_info.return_value = chk_pos_info
+
     fh = MagicMock()
-    filetype_info = {'expected_segments': expected_segments}
+    filetype_info = {'expected_segments': expected_segments,
+                     'file_type': 'filetype1'}
     filename_info = {'segment': segment}
     fh.filetype_info = filetype_info
     fh.filename_info = filename_info
     fh.get_area_def = get_area_def
-    fh.chunk_position_info = chk_pos_info
+    fh.get_segment_position_info = get_segment_position_info
 
     return fh, seg_area
 
@@ -1266,24 +1270,26 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertTrue(proj is projectable)
 
 
-class TestFCIChunksYAMLReader(unittest.TestCase):
-    """Test FCIChunksYAMLReader."""
+class TestGEOVariableSegmentYAMLReader(unittest.TestCase):
+    """Test GEOVariableSegmentYAMLReader."""
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area() for the FCI case."""
         # implicitly checks also _extract_chunk_location_dicts and chunk_heights for the first-chunk-missing case
-        from satpy.readers.yaml_reader import FCIChunksYAMLReader
-        reader = FCIChunksYAMLReader()
+        from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
+        reader = GEOVariableSegmentYAMLReader()
         # setting to 0 or None values that shouldn't be relevant
         chk_pos_info = {
             '1km': {'start_position_row': 0,
                     'end_position_row': 0,
-                    'chunk_height': 0},
+                    'segment_height': 0,
+                    'segment_width': 11136},
             '2km': {'start_position_row': 140,
                     'end_position_row': None,
-                    'chunk_height': 278}
+                    'segment_height': 278,
+                    'segment_width': 5568}
         }
         expected_segments = 2
         segment = 2
@@ -1291,11 +1297,11 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         ashape = [278, 5568]
         fh_2, seg2_area = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
-        file_handlers = [fh_2]
-        reader._extract_chunk_location_dicts(file_handlers)
+        file_handlers = {'filetype1': [fh_2]}
+        reader._extract_segment_location_dicts(file_handlers)
         dataid = 'dataid'
         area_defs = {2: seg2_area}
-        res = reader._pad_earlier_segments_area(file_handlers, dataid, area_defs)
+        res = reader._pad_earlier_segments_area([fh_2], dataid, area_defs)
         self.assertEqual(len(res), 2)
 
         # The later vertical chunk (nr. 2) size is 278, which is exactly double the size
@@ -1313,26 +1319,28 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
     def test_pad_later_segments_area(self, AreaDefinition):
         """Test _pad_later_segments_area() in the FCI padding case."""
         # implicitly checks also _extract_chunk_location_dicts and chunk_heights for the last-chunk-missing case
-        from satpy.readers.yaml_reader import FCIChunksYAMLReader
-        reader = FCIChunksYAMLReader()
+        from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
+        reader = GEOVariableSegmentYAMLReader()
 
         chk_pos_info = {
             '1km': {'start_position_row': None,
                     'end_position_row': 11136 - 278,
-                    'chunk_height': 556},
+                    'segment_height': 556,
+                    'segment_width': 11136},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
-                    'chunk_height': 0}}
+                    'segment_height': 0,
+                    'segment_width': 5568}}
 
         expected_segments = 2
         segment = 1
         aex = [0, 1000, 200, 500]
         ashape = [556, 11136]
         fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
-        file_handlers = [fh_1]
-        reader._extract_chunk_location_dicts(file_handlers)
+        file_handlers = {'filetype1': [fh_1]}
+        reader._extract_segment_location_dicts(file_handlers)
         dataid = 'dataid'
-        res = reader._pad_later_segments_area(file_handlers, dataid)
+        res = reader._pad_later_segments_area([fh_1], dataid)
         self.assertEqual(len(res), 2)
 
         # The previous chunk size is 556, which is exactly double the size of the gap left
@@ -1349,8 +1357,8 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
     def test_pad_later_segments_area_for_multiple_chunks_gap(self, AreaDefinition):
         """Test _pad_later_segments_area() in the FCI padding case for mulitple gaps with multiple chunks."""
         # implicitly checks also _extract_chunk_location_dicts and chunk_heights for multi-chunk gaps
-        from satpy.readers.yaml_reader import FCIChunksYAMLReader
-        reader = FCIChunksYAMLReader()
+        from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
+        reader = GEOVariableSegmentYAMLReader()
 
         def side_effect_areadef(a, b, c, crs, width, height, aex):
             m = MagicMock()
@@ -1364,41 +1372,46 @@ class TestFCIChunksYAMLReader(unittest.TestCase):
         chk_pos_info = {
             '1km': {'start_position_row': 11136 - 600 - 100 + 1,
                     'end_position_row': 11136 - 600,
-                    'chunk_height': 100},
+                    'segment_height': 100,
+                    'segment_width': 11136},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
-                    'chunk_height': 0}}
+                    'segment_height': 0,
+                    'segment_width': 5568}}
         expected_segments = 8
         segment = 1
         aex = [0, 1000, 200, 500]
         ashape = [100, 11136]
         fh_1, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
-
         chk_pos_info = {
             '1km': {'start_position_row': 11136 - 300 - 100 + 1,
                     'end_position_row': 11136 - 300,
-                    'chunk_height': 100},
+                    'segment_height': 100,
+                    'segment_width': 11136},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
-                    'chunk_height': 0}}
+                    'segment_height': 0,
+                    'segment_width': 5568}}
         segment = 4
         fh_4, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
         chk_pos_info = {
             '1km': {'start_position_row': 11136 - 100 + 1,
                     'end_position_row': None,
-                    'chunk_height': 100},
+                    'segment_height': 100,
+                    'segment_width': 11136},
             '2km': {'start_position_row': 0,
                     'end_position_row': 0,
-                    'chunk_height': 0}}
+                    'segment_height': 0,
+                    'segment_width': 5568}}
         segment = 8
         fh_8, _ = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
 
-        file_handlers = [fh_1, fh_4, fh_8]
+        file_handlers = {'filetype1': [fh_1, fh_4, fh_8]}
 
-        reader._extract_chunk_location_dicts(file_handlers)
+        reader._extract_segment_location_dicts(file_handlers)
         dataid = 'dataid'
-        res = reader._pad_later_segments_area(file_handlers, dataid)
+        res = reader._pad_later_segments_area([fh_1, fh_4, fh_8], dataid)
         self.assertEqual(len(res), 8)
 
         # Regarding the chunk sizes:
