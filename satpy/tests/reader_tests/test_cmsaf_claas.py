@@ -28,8 +28,22 @@ from pyresample.geometry import AreaDefinition
 from satpy.tests.utils import make_dataid
 
 
+@pytest.fixture(
+    params=[datetime.datetime(2017, 12, 5), datetime.datetime(2017, 12, 6)]
+)
+def start_time(request):
+    """Get start time of the dataset."""
+    return request.param
+
+
 @pytest.fixture
-def fake_dataset():
+def start_time_str(start_time):
+    """Get string representation of the start time."""
+    return start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+@pytest.fixture()
+def fake_dataset(start_time_str):
     """Create a CLAAS-like test dataset."""
     cph = xr.DataArray(
         [[[0, 1], [2, 0]]],
@@ -49,7 +63,7 @@ def fake_dataset():
         "CMSAF_area_extent": np.array(
             [-5456233.41938636, -5453233.01608472,
              5453233.01608472, 5456233.41938636]),
-        "time_coverage_start": "1985-08-13T13:15:00Z",
+        "time_coverage_start": start_time_str,
         "time_coverage_end": "2085-08-13T13:15:00Z",
     }
     return xr.Dataset(
@@ -132,9 +146,9 @@ class TestCLAAS2MultiFile:
         datasets = multi_file_reader.load(ds_ids)
         return datasets
 
-    def test_combine_timestamps(self, multi_file_reader):
+    def test_combine_timestamps(self, multi_file_reader, start_time):
         """Test combination of timestamps."""
-        assert multi_file_reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
+        assert multi_file_reader.start_time == start_time
         assert multi_file_reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
 
     @pytest.mark.parametrize(
@@ -164,30 +178,36 @@ class TestCLAAS2SingleFile:
         from satpy.readers.cmsaf_claas2 import CLAAS2
         return CLAAS2(fake_file, {}, {})
 
-    def test_get_area_def(self, file_handler):
-        """Test area definition."""
-        MAJOR_AXIS_OF_EARTH_ELLIPSOID = 6378169.0
-        MINOR_AXIS_OF_EARTH_ELLIPSOID = 6356583.8
-        SATELLITE_ALTITUDE = 35785831.0
-        PROJECTION_LONGITUDE = 0.0
-        PROJ_DICT = {
-            "a": MAJOR_AXIS_OF_EARTH_ELLIPSOID,
-            "b": MINOR_AXIS_OF_EARTH_ELLIPSOID,
-            "h": SATELLITE_ALTITUDE,
-            "lon_0": PROJECTION_LONGITUDE,
+    @pytest.fixture
+    def area_extent_exp(self, start_time):
+        """Get expected area extent."""
+        if start_time < datetime.datetime(2017, 12, 6):
+            return (-5454733.160460291, -5454733.160460292, 5454733.160460292, 5454733.160460291)
+        return (-5456233.362099582, -5453232.958821001, 5453232.958821001, 5456233.362099582)
+
+    @pytest.fixture
+    def area_exp(self, area_extent_exp):
+        """Get expected area definition."""
+        proj_dict = {
+            "a": 6378169.0,
+            "b": 6356583.8,
+            "h": 35785831.0,
+            "lon_0": 0.0,
             "proj": "geos",
             "units": "m",
         }
-        area_exp = AreaDefinition(
-            area_id="some_area_name",
-            description="on-the-fly area",
+        return AreaDefinition(
+            area_id="msg_seviri_fes_3km",
+            description="MSG SEVIRI Full Earth Scanning service area definition with 3 km resolution",
             proj_id="geos",
-            projection=PROJ_DICT,
-            area_extent=[-5456233.41938636, -5453233.01608472,
-                         5453233.01608472, 5456233.41938636],
-            width=2,
-            height=2,
+            projection=proj_dict,
+            area_extent=area_extent_exp,
+            width=3636,
+            height=3636,
         )
+
+    def test_get_area_def(self, file_handler, area_exp):
+        """Test area definition."""
         area = file_handler.get_area_def(make_dataid(name="foo"))
         assert area == area_exp
 
@@ -204,9 +224,9 @@ class TestCLAAS2SingleFile:
         ds = file_handler.get_dataset(dsid, {})
         xr.testing.assert_allclose(ds, expected)
 
-    def test_start_time(self, file_handler):
+    def test_start_time(self, file_handler, start_time):
         """Test start time property."""
-        assert file_handler.start_time == datetime.datetime(1985, 8, 13, 13, 15)
+        assert file_handler.start_time == start_time
 
     def test_end_time(self, file_handler):
         """Test end time property."""
