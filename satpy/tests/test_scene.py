@@ -721,6 +721,45 @@ class TestFinestCoarsestArea:
         # doesn't matter what order they were added, this should be the same area
         assert coarse_area2 is course_area1
 
+    def test_coarsest_finest_swath_same_shape(self):
+        """Test that two swaths with the same shape are consistently returned.
+
+        If two SwathDefinitions have the same resolution (shape) but different
+        geolocation, which one has the finest resolution is ultimately
+        determined by the semi-random ordering of the internal container of
+        the Scene (a dict). This test makes sure that it is always the same
+        object returned.
+
+        """
+        from pyresample import SwathDefinition
+        ds1 = self.ds1.copy()
+        ds2 = self.ds1.copy()
+        lons_arr = da.zeros(ds1.shape, dtype=np.float32)
+        lons_data_arr = xr.DataArray(lons_arr, attrs={"name": "longitude1"})
+        lats_arr = da.zeros(ds1.shape, dtype=np.float32)
+        lats_data_arr = xr.DataArray(lats_arr, attrs={"name": "latitude1"})
+        swath_def1 = SwathDefinition(lons_data_arr, lats_data_arr)
+
+        lons_arr = da.ones(ds1.shape, dtype=np.float32)
+        lons_data_arr = xr.DataArray(lons_arr, attrs={"name": "longitude2"})
+        lats_arr = da.ones(ds1.shape, dtype=np.float32)
+        lats_data_arr = xr.DataArray(lats_arr, attrs={"name": "latitude2"})
+        swath_def2 = SwathDefinition(lons_data_arr, lats_data_arr)
+
+        ds1.attrs["area"] = swath_def1
+        ds2.attrs["area"] = swath_def2
+        scn = Scene()
+        scn["ds1"] = ds1
+        scn["ds2"] = ds2
+        course_area1 = scn.coarsest_area()
+
+        scn = Scene()
+        scn["ds2"] = ds2
+        scn["ds1"] = ds1
+        coarse_area2 = scn.coarsest_area()
+        # doesn't matter what order they were added, this should be the same area
+        assert coarse_area2 is course_area1
+
 
 class TestSceneAvailableDatasets:
     """Test the Scene's handling of various dependencies."""
