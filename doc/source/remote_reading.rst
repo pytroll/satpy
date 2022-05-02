@@ -7,6 +7,8 @@ Reading remote files
     >>> reload(sys)
     >>> sys.setdefaultencoding('utf8')
 
+Examples
+========
 
 Some of the readers in Satpy can read data directly over various transfer protocols. This is done
 using `fsspec <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ and various packages
@@ -54,3 +56,26 @@ As this is a private resource (like CEPH or MinIO), credentials and server end-p
             "key": "ACCESSKEY"
         }
     }
+
+
+Supported readers
+=================
+
+.. _reader_table:
+
+.. list-table:: Satpy Readers capable of reading remote files using `fsspec`
+    :header-rows: 1
+    :widths: 70 30
+
+    * - Description
+      - Reader name
+    * - MSG (Meteosat 8 to 11) SEVIRI data in HRIT format
+      - `seviri_l1b_hrit`
+    * - GOES-R imager data in netcdf format
+      - `abi_l1b`
+    * - NOAA GOES-R ABI L2+ products in netcdf format
+      - `abi_l2_nc`
+    * - Sentinel-3 A and B OLCI Level 1B data in netCDF4 format
+      - `olci_l1b`
+    * - Sentinel-3 A and B OLCI Level 2 data in netCDF4 format
+      - `olci_l2`
