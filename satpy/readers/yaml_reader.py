@@ -1366,7 +1366,10 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
     file(handlers), so that gaps of any size can be filled as needed.
 
     This implementation was motivated by the FCI L1c format, where the segments (also called chunks)
-    can have variable sizes.
+    can have variable sizes. It is however generic, so that any future reader can use it. The requirement
+    for the reader is to have a method called `get_segment_position_info`, returning a dictionary containing
+    the positioning info for each chunk (see example in
+    :func:`satpy.readers.FCIL1cNCFileHandler.get_segment_position_info`).
 
     For more information on please see the documentation of GEOSegmentYAMLReader.
     """
@@ -1381,8 +1384,12 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         self.segment_infos = dict()
         for filetype, filetype_fhs in created_fhs.items():
             exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
+
+            width_to_grid_type = _get_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
+
             self.segment_infos.update({filetype: {'available_segment_infos': [],
-                                                  'expected_segments': exp_segment_nr}})
+                                                  'expected_segments': exp_segment_nr,
+                                                  'width_to_grid_type': width_to_grid_type}})
             for fh in filetype_fhs:
                 chk_infos = fh.get_segment_position_info()
                 chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
@@ -1390,7 +1397,8 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         return
 
     def _get_empty_segment(self, dim=None, idx=None, filetype=None):
-        segment_height = self.segment_heights[filetype][FCI_WIDTH_TO_GRID_TYPE[self.empty_segment.shape[1]]][idx]
+        grid_type = self.segment_infos[filetype]['width_to_grid_type'][self.empty_segment.shape[1]]
+        segment_height = self.segment_heights[filetype][grid_type][idx]
         return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
 
     @cached_property
@@ -1405,12 +1413,20 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
 
     def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None, filetype=None):
         # retrieve the segment/segment pixel height
-        new_height_px = self.segment_heights[filetype][FCI_WIDTH_TO_GRID_TYPE[previous_seg_size[1]]][segment_n - 1]
+        grid_type = self.segment_infos[filetype]['width_to_grid_type'][previous_seg_size[1]]
+        new_height_px = self.segment_heights[filetype][grid_type][segment_n - 1]
         # scale the previous vertical area extent using the new pixel height
         prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
         new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
 
         return new_height_proj_coord, new_height_px
+
+
+def _get_width_to_grid_type(seg_info):
+    width_to_grid_type = dict()
+    for grid_type, grid_type_seg_info in seg_info.items():
+        width_to_grid_type.update({grid_type_seg_info['segment_width']: grid_type})
+    return width_to_grid_type
 
 
 def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_size):
