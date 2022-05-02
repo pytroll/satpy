@@ -239,14 +239,25 @@ class Scene:
                 raise ValueError("Can't compare areas with different "
                                  "projections.")
 
-            def key_func(ds):
-                return 1. / abs(ds.pixel_size_x)
-        else:
-            def key_func(ds):
-                return ds.shape
+            def _key_func(area_def: AreaDefinition) -> tuple:
+                """Get comparable version of area based on resolution.
 
-        # find the highest/lowest area among the provided
-        return compare_func(areas, key=key_func)
+                Pixel size x is the primary comparison parameter followed by
+                the y dimension pixel size. The extent of the area and the
+                name (area_id) of the area are also used to act as
+                "tiebreakers" between areas of the same resolution.
+
+                """
+                pixel_size_x_inverse = 1. / abs(area_def.pixel_size_x)
+                pixel_size_y_inverse = 1. / abs(area_def.pixel_size_y)
+                area_id = area_def.area_id
+                return pixel_size_x_inverse, pixel_size_y_inverse, area_def.area_extent, area_id
+            return compare_func(areas, key=_key_func)
+
+        def _key_func(swath_def: SwathDefinition) -> tuple:
+            return swath_def.shape[1], swath_def.shape[0], None, None
+
+        return compare_func(areas, key=_key_func)
 
     def _gather_all_areas(self, datasets):
         """Gather all areas from datasets.

@@ -695,6 +695,32 @@ class TestFinestCoarsestArea:
         assert self.scene.finest_area() is area_def2_flipped
         assert self.scene.coarsest_area(['2', '3']) is area_def2_flipped
 
+    def test_coarsest_finest_area_same_shape(self):
+        """Test that two areas with the same shape are consistently returned.
+
+        If two AreaDefinitions have the same resolution (shape) but different
+        geolocation, which one has the finest resolution is ultimately
+        determined by the semi-random ordering of the internal container of
+        the Scene (a dict). This test makes sure that it is always the same
+        object returned.
+
+        """
+        ds1 = self.ds1.copy()
+        ds2 = self.ds1.copy()
+        ds1.attrs["area"] = self.area_def1
+        ds2.attrs["area"] = self.area_def1.copy(area_extent=tuple(x + 100 for x in self.area_def1.area_extent))
+        scn = Scene()
+        scn["ds1"] = ds1
+        scn["ds2"] = ds2
+        course_area1 = scn.coarsest_area()
+
+        scn = Scene()
+        scn["ds2"] = ds2
+        scn["ds1"] = ds1
+        coarse_area2 = scn.coarsest_area()
+        # doesn't matter what order they were added, this should be the same area
+        assert coarse_area2 is course_area1
+
 
 class TestSceneAvailableDatasets:
     """Test the Scene's handling of various dependencies."""
