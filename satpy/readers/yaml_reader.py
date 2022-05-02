@@ -1191,14 +1191,14 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
+        filetype = file_handlers[0].filetype_info['file_type']
         self.empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
-                slice_list[i] = self._get_empty_segment(dim=dim, idx=i)
+                slice_list[i] = self._get_empty_segment(dim=dim, idx=i, filetype=filetype)
 
         while expected_segments > counter:
-            slice_list.append(self._get_empty_segment(dim=dim, idx=counter))
-
+            slice_list.append(self._get_empty_segment(dim=dim, idx=counter, filetype=filetype))
             counter += 1
 
         if dim not in slice_list[0].dims:
@@ -1237,6 +1237,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         """Pad area definitions for missing segments that are later in sequence than the first available."""
         seg_size = None
         expected_segments = file_handlers[0].filetype_info['expected_segments']
+        filetype = file_handlers[0].filetype_info['file_type']
         available_segments = [int(fh.filename_info.get('segment', 1)) for
                               fh in file_handlers]
         area_defs = {}
@@ -1249,7 +1250,9 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             except ValueError:
                 logger.debug("Padding to full disk with segment nr. %d", segment)
 
-                new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size, segment)
+                new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size,
+                                                                                     segment_n=segment,
+                                                                                     filetype=filetype)
                 new_ll_y = area.area_extent[1] + new_height_proj_coord
                 new_ur_y = area.area_extent[1]
                 fill_extent = (area.area_extent[0], new_ll_y,
@@ -1269,12 +1272,15 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                               fh in file_handlers]
         area = file_handlers[0].get_area_def(dsid)
         seg_size = area.shape
+        filetype = file_handlers[0].filetype_info['file_type']
 
         for segment in range(available_segments[0] - 1, 0, -1):
             logger.debug("Padding segment %d to full disk.",
                          segment)
 
-            new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size, segment)
+            new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size,
+                                                                                 segment_n=segment,
+                                                                                 filetype=filetype)
             new_ll_y = area.area_extent[3]
             new_ur_y = area.area_extent[3] - new_height_proj_coord
             fill_extent = (area.area_extent[0], new_ll_y,
@@ -1288,7 +1294,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
         return area_defs
 
-    def _get_new_areadef_heights(self, previous_area, previous_seg_size, *kwargs):
+    def _get_new_areadef_heights(self, previous_area, previous_seg_size, **kwargs):
         new_height_px = previous_seg_size[0]
         new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
 
@@ -1368,34 +1374,38 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
     def create_filehandlers(self, filenames, fh_kwargs=None):
         """Create file handler objects and determine expected segments for each."""
         created_fhs = super().create_filehandlers(filenames, fh_kwargs=fh_kwargs)
-        self._extract_segment_location_dicts(created_fhs['fci_l1c_fdhsi'])
+        self._extract_segment_location_dicts(created_fhs)
         return created_fhs
 
-    def _extract_segment_location_dicts(self, filehandlers):
-        self.segment_infos = []
-        for fh in filehandlers:
-            chk_infos = fh.get_segment_position_info()
-            chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
-            self.segment_infos.append(chk_infos)
-        self.exp_segment_nr = filehandlers[0].filetype_info['expected_segments']
+    def _extract_segment_location_dicts(self, created_fhs):
+        self.segment_infos = dict()
+        for filetype, filetype_fhs in created_fhs.items():
+            exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
+            self.segment_infos.update({filetype: {'available_segment_infos': [],
+                                                  'expected_segments': exp_segment_nr}})
+            for fh in filetype_fhs:
+                chk_infos = fh.get_segment_position_info()
+                chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
+                self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
         return
 
-    def _get_empty_segment(self, dim=None, idx=None):
-        segment_height = self.segment_heights[FCI_WIDTH_TO_GRID_TYPE[self.empty_segment.shape[1]]][idx]
+    def _get_empty_segment(self, dim=None, idx=None, filetype=None):
+        segment_height = self.segment_heights[filetype][FCI_WIDTH_TO_GRID_TYPE[self.empty_segment.shape[1]]][idx]
         return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
 
     @cached_property
     def segment_heights(self):
         """Compute FCI padded segment heights."""
-        segment_sizes = {'1km': _compute_optimal_segment_sizes_for_FCI(self.segment_infos, '1km', 11136,
-                                                                       self.exp_segment_nr),
-                         '2km': _compute_optimal_segment_sizes_for_FCI(self.segment_infos, '2km', 5568,
-                                                                       self.exp_segment_nr)}
-        return segment_sizes
+        segment_heights = dict()
+        for filetype, filetype_seginfos in self.segment_infos.items():
+            filetype_seg_heights = {'1km': _compute_optimal_missing_segment_heights(filetype_seginfos, '1km', 11136),
+                                    '2km': _compute_optimal_missing_segment_heights(filetype_seginfos, '2km', 5568)}
+            segment_heights.update({filetype: filetype_seg_heights})
+        return segment_heights
 
-    def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None):
+    def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None, filetype=None):
         # retrieve the segment/segment pixel height
-        new_height_px = self.segment_heights[FCI_WIDTH_TO_GRID_TYPE[previous_seg_size[1]]][segment_n - 1]
+        new_height_px = self.segment_heights[filetype][FCI_WIDTH_TO_GRID_TYPE[previous_seg_size[1]]][segment_n - 1]
         # scale the previous vertical area extent using the new pixel height
         prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
         new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
@@ -1403,14 +1413,15 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         return new_height_proj_coord, new_height_px
 
 
-def _compute_optimal_segment_sizes_for_FCI(chk_infos, grid_type, expected_size, exp_segment_nr):
+def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_size):
     # initialise positioning arrays
-    segment_start_rows, segment_end_rows, segment_heights = _initialise_positioning_arrays_for_FCI(chk_infos, grid_type,
-                                                                                                   exp_segment_nr)
+    segment_start_rows, segment_end_rows, segment_heights = _initialise_positioning_arrays_for_FCI(
+        seg_infos['available_segment_infos'], grid_type,
+        seg_infos['expected_segments'])
 
     # populate start row of first segment and end row of last segment with known values
     segment_start_rows[0] = 1
-    segment_end_rows[exp_segment_nr - 1] = expected_size
+    segment_end_rows[seg_infos['expected_segments'] - 1] = expected_size
 
     # find missing segments and group contiguous missing segments together
     groups_missing_segments = [list(group) for group in mit.consecutive_groups(np.where(segment_heights == 0)[0])]
