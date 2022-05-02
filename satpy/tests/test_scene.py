@@ -672,27 +672,27 @@ class TestFinestCoarsestArea:
     """Test the Scene logic for finding the finest and coarsest area."""
 
     @pytest.mark.parametrize(
-        ("coarse_shape", "fine_shape", "coarse_extents", "fine_extents"),
+        ("coarse_area", "fine_area"),
         [
-            ((2, 5), (4, 10), (1000.0, 1500.0, -1000.0, -1500.0), (1000.0, 1500.0, -1000.0, -1500.0)),
-            ((2, 5), (4, 10), (-1000.0, -1500.0, 1000.0, 1500.0), (-1000.0, -1500.0, 1000.0, 1500.0)),
+            (_create_coarsest_finest_area_def((2, 5), (1000.0, 1500.0, -1000.0, -1500.0)),
+             _create_coarsest_finest_area_def((4, 10), (1000.0, 1500.0, -1000.0, -1500.0))),
+            (_create_coarsest_finest_area_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0)),
+             _create_coarsest_finest_area_def((4, 10), (-1000.0, -1500.0, 1000.0, 1500.0))),
         ]
     )
-    def test_coarsest_finest_area_different_shape(self, coarse_shape, fine_shape, coarse_extents, fine_extents):
+    def test_coarsest_finest_area_different_shape(self, coarse_area, fine_area):
         """Test 'coarsest_area' and 'finest_area' methods for upright areas."""
-        coarser_area = _create_coarsest_finest_area_def(coarse_shape, coarse_extents)
-        finer_area = _create_coarsest_finest_area_def(fine_shape, fine_extents)
-        ds1 = _create_coarest_finest_data_array(coarse_shape, coarser_area, {"wavelength": (0.1, 0.2, 0.3)})
-        ds2 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.4, 0.5, 0.6)})
-        ds3 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.7, 0.8, 0.9)})
+        ds1 = _create_coarest_finest_data_array(coarse_area.shape, coarse_area, {"wavelength": (0.1, 0.2, 0.3)})
+        ds2 = _create_coarest_finest_data_array(fine_area.shape, fine_area, {"wavelength": (0.4, 0.5, 0.6)})
+        ds3 = _create_coarest_finest_data_array(fine_area.shape, fine_area, {"wavelength": (0.7, 0.8, 0.9)})
         scn = Scene()
         scn["1"] = ds1
         scn["2"] = ds2
         scn["3"] = ds3
 
-        assert scn.coarsest_area() is coarser_area
-        assert scn.finest_area() is finer_area
-        assert scn.coarsest_area(['2', '3']) is finer_area
+        assert scn.coarsest_area() is coarse_area
+        assert scn.finest_area() is fine_area
+        assert scn.coarsest_area(['2', '3']) is fine_area
 
     @pytest.mark.parametrize(
         ("area_def", "shifted_area"),
