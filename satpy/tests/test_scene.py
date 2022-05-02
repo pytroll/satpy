@@ -661,8 +661,8 @@ def _create_coarsest_area_def(shape, extents):
 
 def _create_coarsest_finest_swath_def(shape, extents, name_suffix):
     from pyresample import SwathDefinition
-    lons_arr = da.repeat(da.arange(extents[0], extents[2], dtype=np.float32)[None, :], shape[0], axis=0)
-    lats_arr = da.repeat(da.arange(extents[1], extents[3], dtype=np.float32)[:, None], shape[1], axis=1)
+    lons_arr = da.repeat(da.linspace(extents[0], extents[2], shape[1], dtype=np.float32)[None, :], shape[0], axis=0)
+    lats_arr = da.repeat(da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)[:, None], shape[1], axis=1)
     lons_data_arr = xr.DataArray(lons_arr, attrs={"name": f"longitude{name_suffix}"})
     lats_data_arr = xr.DataArray(lats_arr, attrs={"name": f"latitude1{name_suffix}"})
     return SwathDefinition(lons_data_arr, lats_data_arr)
@@ -694,50 +694,28 @@ class TestFinestCoarsestArea:
         assert scn.finest_area() is finer_area
         assert scn.coarsest_area(['2', '3']) is finer_area
 
-    def test_coarsest_finest_area_same_shape(self):
+    @pytest.mark.parametrize(
+        ("area_def", "shifted_area"),
+        [
+            (_create_coarsest_area_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0)),
+             _create_coarsest_area_def((2, 5), (-900.0, -1400.0, 1100.0, 1600.0))),
+            (_create_coarsest_finest_swath_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0), "1"),
+             _create_coarsest_finest_swath_def((2, 5), (-900.0, -1400.0, 1100.0, 1600.0), "2")),
+        ],
+    )
+    def test_coarsest_finest_area_same_shape(self, area_def, shifted_area):
         """Test that two areas with the same shape are consistently returned.
 
-        If two AreaDefinitions have the same resolution (shape) but different
-        geolocation, which one has the finest resolution is ultimately
+        If two geometries (ex. two AreaDefinitions or two SwathDefinitions)
+        have the same resolution (shape) but different
+        coordinates, which one has the finer resolution would ultimately be
         determined by the semi-random ordering of the internal container of
-        the Scene (a dict). This test makes sure that it is always the same
-        object returned.
+        the Scene (a dict) if only pixel resolution was compared. This test
+        makes sure that it is always the same object returned.
 
         """
-        shape = (2, 5)
-        area_def = _create_coarsest_area_def(shape, (-1000.0, -1500.0, 1000.0, 1500.0))
-        shifted_area = _create_coarsest_area_def(shape, (-900.0, -1400.0, 1100.0, 1600.0))
-        ds1 = _create_coarest_finest_data_array(shape, area_def)
-        ds2 = _create_coarest_finest_data_array(shape, shifted_area)
-        ds1.attrs["area"] = area_def
-        ds2.attrs["area"] = shifted_area
-        scn = Scene()
-        scn["ds1"] = ds1
-        scn["ds2"] = ds2
-        course_area1 = scn.coarsest_area()
-
-        scn = Scene()
-        scn["ds2"] = ds2
-        scn["ds1"] = ds1
-        coarse_area2 = scn.coarsest_area()
-        # doesn't matter what order they were added, this should be the same area
-        assert coarse_area2 is course_area1
-
-    def test_coarsest_finest_swath_same_shape(self):
-        """Test that two swaths with the same shape are consistently returned.
-
-        If two SwathDefinitions have the same resolution (shape) but different
-        geolocation, which one has the finest resolution is ultimately
-        determined by the semi-random ordering of the internal container of
-        the Scene (a dict). This test makes sure that it is always the same
-        object returned.
-
-        """
-        shape = (2, 5)
-        swath_def1 = _create_coarsest_finest_swath_def(shape, (0, 0, shape[1], shape[0]), "1")
-        swath_def2 = _create_coarsest_finest_swath_def(shape, (1, 1, shape[1] + 1, shape[0] + 1), "2")
-        ds1 = _create_coarest_finest_data_array(shape, swath_def1)
-        ds2 = _create_coarest_finest_data_array(shape, swath_def2)
+        ds1 = _create_coarest_finest_data_array(area_def.shape, area_def)
+        ds2 = _create_coarest_finest_data_array(area_def.shape, shifted_area)
         scn = Scene()
         scn["ds1"] = ds1
         scn["ds2"] = ds2
