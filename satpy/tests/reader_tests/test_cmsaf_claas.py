@@ -79,18 +79,15 @@ def fake_file(fake_dataset, encoding, tmp_path):
 
 
 @pytest.fixture
-def fake_files(fake_dataset, encoding):
+def fake_files(fake_dataset, encoding, tmp_path):
     """Write the same fake dataset into two different files."""
     filenames = [
-        "CPPin20140101001500305SVMSG01MD.nc",
-        "CPPin20140101003000305SVMSG01MD.nc",
+        tmp_path / "CPPin20140101001500305SVMSG01MD.nc",
+        tmp_path / "CPPin20140101003000305SVMSG01MD.nc",
     ]
     for filename in filenames:
         fake_dataset.to_netcdf(filename, encoding=encoding)
     yield filenames
-    # Cleanup executed after test
-    for filename in filenames:
-        os.unlink(filename)
 
 
 @pytest.fixture
