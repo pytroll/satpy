@@ -644,7 +644,7 @@ def _create_coarest_finest_data_array(shape, area_def, attrs=None):
     return data_arr
 
 
-def _create_coarsest_area_def(shape, extents):
+def _create_coarsest_finest_area_def(shape, extents):
     from pyresample import AreaDefinition
     proj_str = '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'
     area_def = AreaDefinition(
@@ -680,8 +680,8 @@ class TestFinestCoarsestArea:
     )
     def test_coarsest_finest_area_different_shape(self, coarse_shape, fine_shape, coarse_extents, fine_extents):
         """Test 'coarsest_area' and 'finest_area' methods for upright areas."""
-        coarser_area = _create_coarsest_area_def(coarse_shape, coarse_extents)
-        finer_area = _create_coarsest_area_def(fine_shape, fine_extents)
+        coarser_area = _create_coarsest_finest_area_def(coarse_shape, coarse_extents)
+        finer_area = _create_coarsest_finest_area_def(fine_shape, fine_extents)
         ds1 = _create_coarest_finest_data_array(coarse_shape, coarser_area, {"wavelength": (0.1, 0.2, 0.3)})
         ds2 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.4, 0.5, 0.6)})
         ds3 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.7, 0.8, 0.9)})
@@ -697,8 +697,8 @@ class TestFinestCoarsestArea:
     @pytest.mark.parametrize(
         ("area_def", "shifted_area"),
         [
-            (_create_coarsest_area_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0)),
-             _create_coarsest_area_def((2, 5), (-900.0, -1400.0, 1100.0, 1600.0))),
+            (_create_coarsest_finest_area_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0)),
+             _create_coarsest_finest_area_def((2, 5), (-900.0, -1400.0, 1100.0, 1600.0))),
             (_create_coarsest_finest_swath_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0), "1"),
              _create_coarsest_finest_swath_def((2, 5), (-900.0, -1400.0, 1100.0, 1600.0), "2")),
         ],
