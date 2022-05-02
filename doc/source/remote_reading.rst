@@ -22,9 +22,9 @@ As an example, reading ABI data from public AWS S3 storage can be done in the fo
     scn = Scene(reader='abi_l1b', filenames=filenames)
     scn.load(['true_color_raw'])
 
-In addition to `fsspec` the `s3fs` library needs to be installed. The credentials and non-AWS end-point
-are given in the `fsspec` configuration file for `s3` protocol, which is by default placed in
-`~/.config/fsspec/s3.json` in Linux::
+In addition to `fsspec` the `s3fs` library needs to be installed. All the configuration are done via the
+`fsspec` configuration, which are by default placed in `~/.config/fsspec/` directory in Linux. For `s3`
+protocol and anonymous AWS access the configuration placed in `s3.json` is simply::
 
     {
         "s3": {
@@ -44,7 +44,8 @@ For reference, reading SEVIRI HRIT data from a local S3 storage works the same w
     scn = Scene(reader='seviri_l1b_hrit', filenames=filenames)
     scn.load(['WV_073'])
 
-As this is a private resource, credentials and server end-point need to be configured::
+As this is a private resource (like CEPH or MinIO), credentials and server end-point need to be configured in
+`fsspec` configuration file::
 
     {
         "s3": {
