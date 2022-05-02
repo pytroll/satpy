@@ -644,7 +644,7 @@ def _create_coarest_finest_data_array(shape, area_def, attrs=None):
     return data_arr
 
 
-def _create_coarsest_area_def(width=100, height=200, extents=(-1000.0, -1500.0, 1000.0, 1500.0)):
+def _create_coarsest_area_def(shape, extents):
     from pyresample import AreaDefinition
     proj_str = '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'
     area_def = AreaDefinition(
@@ -652,11 +652,20 @@ def _create_coarsest_area_def(width=100, height=200, extents=(-1000.0, -1500.0, 
         'test',
         'test',
         proj_str,
-        width,
-        height,
+        shape[1],
+        shape[0],
         extents,
     )
     return area_def
+
+
+def _create_coarsest_finest_swath_def(shape, extents, name_suffix):
+    from pyresample import SwathDefinition
+    lons_arr = da.repeat(da.arange(extents[0], extents[2], dtype=np.float32)[None, :], shape[0], axis=0)
+    lats_arr = da.repeat(da.arange(extents[1], extents[3], dtype=np.float32)[:, None], shape[1], axis=1)
+    lons_data_arr = xr.DataArray(lons_arr, attrs={"name": f"longitude{name_suffix}"})
+    lats_data_arr = xr.DataArray(lats_arr, attrs={"name": f"latitude1{name_suffix}"})
+    return SwathDefinition(lons_data_arr, lats_data_arr)
 
 
 class TestFinestCoarsestArea:
@@ -669,10 +678,10 @@ class TestFinestCoarsestArea:
             ((2, 5), (4, 10), (-1000.0, -1500.0, 1000.0, 1500.0), (-1000.0, -1500.0, 1000.0, 1500.0)),
         ]
     )
-    def test_coarsest_finest_area_upright_area(self, coarse_shape, fine_shape, coarse_extents, fine_extents):
+    def test_coarsest_finest_area_different_shape(self, coarse_shape, fine_shape, coarse_extents, fine_extents):
         """Test 'coarsest_area' and 'finest_area' methods for upright areas."""
-        coarser_area = _create_coarsest_area_def(width=coarse_shape[1], height=coarse_shape[0], extents=coarse_extents)
-        finer_area = _create_coarsest_area_def(width=fine_shape[1], height=fine_shape[0], extents=fine_extents)
+        coarser_area = _create_coarsest_area_def(coarse_shape, coarse_extents)
+        finer_area = _create_coarsest_area_def(fine_shape, fine_extents)
         ds1 = _create_coarest_finest_data_array(coarse_shape, coarser_area, {"wavelength": (0.1, 0.2, 0.3)})
         ds2 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.4, 0.5, 0.6)})
         ds3 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.7, 0.8, 0.9)})
@@ -695,10 +704,11 @@ class TestFinestCoarsestArea:
         object returned.
 
         """
-        area_def = _create_coarsest_area_def()
-        shifted_area = _create_coarsest_area_def(extents=(-900.0, -1400.0, 1100.0, 1600.0))
-        ds1 = _create_coarest_finest_data_array((2, 5), area_def)
-        ds2 = _create_coarest_finest_data_array((2, 5), shifted_area)
+        shape = (2, 5)
+        area_def = _create_coarsest_area_def(shape, (-1000.0, -1500.0, 1000.0, 1500.0))
+        shifted_area = _create_coarsest_area_def(shape, (-900.0, -1400.0, 1100.0, 1600.0))
+        ds1 = _create_coarest_finest_data_array(shape, area_def)
+        ds2 = _create_coarest_finest_data_array(shape, shifted_area)
         ds1.attrs["area"] = area_def
         ds2.attrs["area"] = shifted_area
         scn = Scene()
@@ -723,20 +733,9 @@ class TestFinestCoarsestArea:
         object returned.
 
         """
-        from pyresample import SwathDefinition
         shape = (2, 5)
-        lons_arr = da.zeros(shape, dtype=np.float32)
-        lons_data_arr = xr.DataArray(lons_arr, attrs={"name": "longitude1"})
-        lats_arr = da.zeros(shape, dtype=np.float32)
-        lats_data_arr = xr.DataArray(lats_arr, attrs={"name": "latitude1"})
-        swath_def1 = SwathDefinition(lons_data_arr, lats_data_arr)
-
-        lons_arr = da.ones(shape, dtype=np.float32)
-        lons_data_arr = xr.DataArray(lons_arr, attrs={"name": "longitude2"})
-        lats_arr = da.ones(shape, dtype=np.float32)
-        lats_data_arr = xr.DataArray(lats_arr, attrs={"name": "latitude2"})
-        swath_def2 = SwathDefinition(lons_data_arr, lats_data_arr)
-
+        swath_def1 = _create_coarsest_finest_swath_def(shape, (0, 0, shape[1], shape[0]), "1")
+        swath_def2 = _create_coarsest_finest_swath_def(shape, (1, 1, shape[1] + 1, shape[0] + 1), "2")
         ds1 = _create_coarest_finest_data_array(shape, swath_def1)
         ds2 = _create_coarest_finest_data_array(shape, swath_def2)
         scn = Scene()
