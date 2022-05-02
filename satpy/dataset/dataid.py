@@ -469,7 +469,7 @@ class DataID(dict):
     popitem = _immutable
     clear = _immutable
     update = _immutable  # type: ignore
-    setdefault = _immutable
+    setdefault = _immutable  # type: ignore
 
     def _find_modifiers_key(self):
         for key, val in self.items():
