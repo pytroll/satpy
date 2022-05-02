@@ -671,8 +671,8 @@ class TestFinestCoarsestArea:
     )
     def test_coarsest_finest_area_upright_area(self, coarse_shape, fine_shape, coarse_extents, fine_extents):
         """Test 'coarsest_area' and 'finest_area' methods for upright areas."""
-        coarser_area = _create_coarsest_area_def(width=coarse_shape[1], height=coarse_shape[0])
-        finer_area = _create_coarsest_area_def(width=fine_shape[1], height=fine_shape[0])
+        coarser_area = _create_coarsest_area_def(width=coarse_shape[1], height=coarse_shape[0], extents=coarse_extents)
+        finer_area = _create_coarsest_area_def(width=fine_shape[1], height=fine_shape[0], extents=fine_extents)
         ds1 = _create_coarest_finest_data_array(coarse_shape, coarser_area, {"wavelength": (0.1, 0.2, 0.3)})
         ds2 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.4, 0.5, 0.6)})
         ds3 = _create_coarest_finest_data_array(fine_shape, finer_area, {"wavelength": (0.7, 0.8, 0.9)})
