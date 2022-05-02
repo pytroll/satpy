@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2019, 2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -29,8 +29,54 @@ import xarray as xr
 
 import satpy.readers.yaml_reader as yr
 from satpy.dataset import DataQuery
+from satpy.dataset.dataid import ModifierTuple
+from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand, FrequencyRange
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.tests.utils import make_dataid
+
+MHS_YAML_READER_DICT = {
+    'reader': {'name': 'mhs_l1c_aapp',
+               'description': 'AAPP l1c Reader for AMSU-B/MHS data',
+               'sensors': ['mhs'],
+               'default_channels': [1, 2, 3, 4, 5],
+               'data_identification_keys': {'name': {'required': True},
+                                            'frequency_double_sideband':
+                                            {'type': FrequencyDoubleSideBand},
+                                            'frequency_range': {'type': FrequencyRange},
+                                            'resolution': None,
+                                            'polarization': {'enum': ['H', 'V']},
+                                            'calibration': {'enum': ['brightness_temperature'], 'transitive': True},
+                                            'modifiers': {'required': True,
+                                                          'default': [],
+                                                          'type': ModifierTuple}},
+               'config_files': ('satpy/etc/readers/mhs_l1c_aapp.yaml',)},
+    'datasets': {'1': {'name': '1',
+                       'frequency_range': {'central': 89.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'},
+                 '2': {'name': '2',
+                       'frequency_range': {'central': 157.0, 'bandwidth': 2.8, 'unit': 'GHz'},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'},
+                 '3': {'name': '3',
+                       'frequency_double_sideband': {'unit': 'GHz',
+                                                     'central': 183.31,
+                                                     'side': 1.0,
+                                                     'bandwidth': 1.0},
+                       'polarization': 'V',
+                       'resolution': 16000,
+                       'calibration': {'brightness_temperature': {'standard_name': 'toa_brightness_temperature'}},
+                       'coordinates': ['longitude', 'latitude'],
+                       'file_type': 'mhs_aapp_l1c'}},
+    'file_types': {'mhs_aapp_l1c': {'file_reader': BaseFileHandler,
+                                    'file_patterns': [
+                                        'mhsl1c_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1c']}}}  # noqa
 
 
 class FakeFH(BaseFileHandler):
@@ -208,6 +254,41 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
 
         self.reader.create_filehandlers(filelist)
         self.assertEqual(len(self.reader.file_handlers['ftype1']), 3)
+
+    def test_serializable(self):
+        """Check that a reader is serializable by dask.
+
+        This ensures users are able to serialize a Scene object that contains
+        readers.
+        """
+        from distributed.protocol import deserialize, serialize
+        filelist = ['a001.bla', 'a002.bla', 'a001.bla', 'a002.bla',
+                    'abcd.bla', 'k001.bla', 'a003.bli']
+
+        self.reader.create_filehandlers(filelist)
+        cloned_reader = deserialize(*serialize(self.reader))
+        assert self.reader.file_handlers.keys() == cloned_reader.file_handlers.keys()
+        assert self.reader.all_ids == cloned_reader.all_ids
+
+
+class TestFileYAMLReaderWithCustomIDKey(unittest.TestCase):
+    """Test units from FileYAMLReader with custom id_keys."""
+
+    def setUp(self):
+        """Set up the test case."""
+        self.config = MHS_YAML_READER_DICT
+        self.reader = yr.FileYAMLReader(MHS_YAML_READER_DICT,
+                                        filter_parameters={
+                                            'start_time': datetime(2000, 1, 1),
+                                            'end_time': datetime(2000, 1, 2),
+                                        })
+
+    def test_custom_type_with_dict_contents_gets_parsed_correctly(self):
+        """Test custom type with dictionary contents gets parsed correctly."""
+        ds_ids = list(self.reader.all_dataset_ids)
+        assert ds_ids[0]["frequency_range"] == FrequencyRange(89., 2.8, "GHz")
+
+        assert ds_ids[2]["frequency_double_sideband"] == FrequencyDoubleSideBand(183.31, 1., 1., "GHz")
 
 
 class TestFileFileYAMLReader(unittest.TestCase):
@@ -831,6 +912,65 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
         np.testing.assert_equal(res.coords['y'], np.flip(np.arange(4)))
         np.testing.assert_equal(res.coords['x'], np.arange(3))
         np.testing.assert_equal(res.coords['time'], np.flip(np.arange(4)))
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    def test_load_dataset_with_area_for_swath_def_data(self, ldwa):
+        """Test _load_dataset_with_area() for swath definition data."""
+        from pyresample.geometry import SwathDefinition
+
+        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+
+        reader = GEOFlippableFileYAMLReader()
+
+        dsid = MagicMock()
+        coords = MagicMock()
+
+        # create a dummy upright xarray
+        original_array = np.ones(3)
+        dim = np.arange(3)
+        lats = np.arange(3)
+        lons = np.arange(3)
+
+        swath_def = SwathDefinition(lons, lats)
+        dummy_ds_xr = xr.DataArray(original_array,
+                                   coords={'y': dim},
+                                   attrs={'area': swath_def},
+                                   dims=('y',))
+
+        # assign the dummy xr as return for the super _load_dataset_with_area method
+        ldwa.return_value = dummy_ds_xr
+
+        # returned dataset should be unchanged since datasets with a swath definition are not flippable
+        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, original_array)
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "_load_dataset_with_area")
+    def test_load_dataset_with_area_for_data_without_area(self, ldwa):
+        """Test _load_dataset_with_area() for data wihtout area information."""
+        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+
+        reader = GEOFlippableFileYAMLReader()
+
+        dsid = MagicMock()
+        coords = MagicMock()
+
+        # create a dummy upright xarray
+        original_array = np.ones(3)
+        dim = np.arange(3)
+
+        dummy_ds_xr = xr.DataArray(original_array,
+                                   coords={'y': dim},
+                                   attrs={},
+                                   dims=('y',))
+
+        # assign the dummy xr as return for the super _load_dataset_with_area method
+        ldwa.return_value = dummy_ds_xr
+
+        # returned dataset should be unchanged since datasets without area information are not flippable
+        res = reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, original_array)
 
 
 def _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info):

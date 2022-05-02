@@ -268,7 +268,7 @@ class ERFDNB(CompositeBase):
                                                 max_val)) / dnb_data.size
         LOG.debug("Dynamic DNB saturation percentage: %f", saturation_pct)
         while saturation_pct > 0.005:
-            max_val *= 1.1 * unit_factor
+            max_val *= 1.1
             saturation_pct = float(np.count_nonzero(
                 dnb_data > max_val)) / dnb_data.size
             LOG.debug("Dynamic DNB saturation percentage: %f",
@@ -340,7 +340,7 @@ class ERFDNB(CompositeBase):
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
-            inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
+            inner_sqrt.data = np.clip(inner_sqrt.data, 0, None)
             output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()
@@ -953,18 +953,19 @@ class SnowAge(GenericCompositor):
     Product is based on method presented at the second
     CSPP/IMAPP users' meeting at Eumetsat in Darmstadt on 14-16 April 2015
 
-    # Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
-    # These Look-up Tables allow you to create the RGB snow product
-    # for SUOMI-NPP VIIRS Imager according to the algorithm
-    # presented at the second CSPP/IMAPP users' meeting at Eumetsat
-    # in Darmstadt on 14-16 April 2015
-    # The algorithm and the product are described in this
-    # presentation :
-    # http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
-    # For further information you may contact
-    # Bernard Bellec at Bernard.Bellec@meteo.fr
-    # or
-    # Pascale Roquet at Pascale.Roquet@meteo.fr
+    Bernard Bellec snow Look-Up Tables V 1.0 (c) Meteo-France
+    These Look-up Tables allow you to create the RGB snow product
+    for SUOMI-NPP VIIRS Imager according to the algorithm
+    presented at the second CSPP/IMAPP users' meeting at Eumetsat
+    in Darmstadt on 14-16 April 2015
+    The algorithm and the product are described in this
+    presentation :
+    http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+    as well as in the paper http://dx.doi.org/10.1016/j.rse.2017.04.028
+    For further information you may contact
+    Bernard Bellec at Bernard.Bellec@meteo.fr
+    or
+    Pascale Roquet at Pascale.Roquet@meteo.fr
     """
 
     def __call__(self, projectables, nonprojectables=None, **info):
@@ -973,11 +974,13 @@ class SnowAge(GenericCompositor):
         The algorithm and the product are described in this
         presentation :
         http://www.ssec.wisc.edu/meetings/cspp/2015/Agenda%20PDF/Wednesday/Roquet_snow_product_cspp2015.pdf
+        as well as in the paper http://dx.doi.org/10.1016/j.rse.2017.04.028
         For further information you may contact
         Bernard Bellec at Bernard.Bellec@meteo.fr
         or
         Pascale Roquet at Pascale.Roquet@meteo.fr
 
+        The resulting RGB has the units attribute removed.
         """
         if len(projectables) != 5:
             raise ValueError("Expected 5 datasets, got %d" %
@@ -1006,4 +1009,6 @@ class SnowAge(GenericCompositor):
         ch2.attrs = info
         ch3.attrs = info
 
-        return super(SnowAge, self).__call__([ch1, ch2, ch3], **info)
+        res = super(SnowAge, self).__call__([ch1, ch2, ch3], **info)
+        res.attrs.pop("units", None)
+        return res

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
-import pickle
+import pickle  # nosec B403
 import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
@@ -695,15 +695,15 @@ class FSFile(os.PathLike):
         """Representation of the object."""
         return '<FSFile "' + str(self._file) + '">'
 
-    def open(self):
+    def open(self, *args, **kwargs):
         """Open the file.
 
         This is read-only.
         """
         try:
-            return self._fs.open(self._file)
+            return self._fs.open(self._file, *args, **kwargs)
         except AttributeError:
-            return open(self._file)
+            return open(self._file, *args, **kwargs)
 
     def __lt__(self, other):
         """Implement ordering.
@@ -739,7 +739,7 @@ class FSFile(os.PathLike):
         try:
             fshash = hash(self._fs)
         except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
-            fshash = hash(pickle.dumps(self._fs))
+            fshash = hash(pickle.dumps(self._fs))  # nosec B403
         return hash(self._file) ^ fshash
 
 

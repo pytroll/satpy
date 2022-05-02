@@ -24,12 +24,14 @@ import contextlib
 import logging
 import os
 import warnings
-from typing import Mapping
+from typing import Mapping, Optional
 
 import numpy as np
 import xarray as xr
 import yaml
 from yaml import BaseLoader
+
+from satpy import CHUNK_SIZE
 
 try:
     from yaml import UnsafeLoader
@@ -38,6 +40,10 @@ except ImportError:
 
 _is_logging_on = False
 TRACE_LEVEL = 5
+
+
+class PerformanceWarning(Warning):
+    """Warning raised when there is a possible performance impact."""
 
 
 def ensure_dir(filename):
@@ -240,42 +246,6 @@ def _get_sunz_corr_li_and_shibata(cos_zen):
     return 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
 
 
-def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
-    """Perform Sun zenith angle correction.
-
-    The correction is based on the provided cosine of the zenith
-    angle (``cos_zen``).  The correction is limited
-    to ``limit`` degrees (default: 88.0 degrees).  For larger zenith
-    angles, the correction is the same as at the ``limit`` if ``max_sza``
-    is `None`. The default behavior is to gradually reduce the correction
-    past ``limit`` degrees up to ``max_sza`` where the correction becomes
-    0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
-
-    """
-    # Convert the zenith angle limit to cosine of zenith angle
-    limit_rad = np.deg2rad(limit)
-    limit_cos = np.cos(limit_rad)
-    max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
-
-    # Cosine correction
-    corr = 1. / cos_zen
-    if max_sza is not None:
-        # gradually fall off for larger zenith angle
-        grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
-        # invert the factor so maximum correction is done at `limit` and falls off later
-        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
-        # make sure we don't make anything negative
-        grad_factor = grad_factor.clip(0.)
-    else:
-        # Use constant value (the limit) for larger zenith angles
-        grad_factor = 1.
-    corr = corr.where(cos_zen > limit_cos, grad_factor / limit_cos)
-    # Force "night" pixels to 0 (where SZA is invalid)
-    corr = corr.where(cos_zen.notnull(), 0)
-
-    return data * corr
-
-
 def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     """Perform Sun zenith angle correction.
 
@@ -317,66 +287,88 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     return data * corr
 
 
-def get_satpos(dataset):
+def get_satpos(
+        data_arr: xr.DataArray,
+        preference: Optional[str] = None,
+) -> tuple[float, float, float]:
     """Get satellite position from dataset attributes.
 
-    Preferences are:
+    Args:
+        data_arr: DataArray object to access ``.attrs`` metadata
+            from.
+        preference: Optional preference for one of the available types of
+            position information. If not provided or ``None`` then the default
+            preference is:
 
-    * Longitude & Latitude: Nadir, actual, nominal, projection
-    * Altitude: Actual, nominal, projection
+            * Longitude & Latitude: nadir, actual, nominal, projection
+            * Altitude: actual, nominal, projection
 
-    A warning is issued when projection values have to be used because nothing else is available.
+            The provided ``preference`` can be any one of these individual
+            strings (nadir, actual, nominal, projection). If the
+            preference is not available then the original preference list is
+            used. A warning is issued when projection values have to be used because
+            nothing else is available and it wasn't provided as the ``preference``.
 
     Returns:
         Geodetic longitude, latitude, altitude
 
     """
+    if preference is not None and preference not in ("nadir", "actual", "nominal", "projection"):
+        raise ValueError(f"Unrecognized satellite coordinate preference: {preference}")
+    lonlat_prefixes = ("nadir_", "satellite_actual_", "satellite_nominal_", "projection_")
+    alt_prefixes = _get_prefix_order_by_preference(lonlat_prefixes[1:], preference)
+    lonlat_prefixes = _get_prefix_order_by_preference(lonlat_prefixes, preference)
     try:
-        orb_params = dataset.attrs['orbital_parameters']
-
-        alt = _get_sat_altitude(orb_params)
-
-        lon, lat = _get_sat_lonlat(orb_params)
+        lon, lat = _get_sat_lonlat(data_arr, lonlat_prefixes)
+        alt = _get_sat_altitude(data_arr, alt_prefixes)
     except KeyError:
-        # Legacy
-        lon = dataset.attrs['satellite_longitude']
-        lat = dataset.attrs['satellite_latitude']
-        alt = dataset.attrs['satellite_altitude']
-
+        raise KeyError("Unable to determine satellite position. Either the "
+                       "reader doesn't provide that information or "
+                       "geolocation datasets were not available.")
     return lon, lat, alt
 
 
-def _get_sat_altitude(orb_params):
-    # Altitude
+def _get_prefix_order_by_preference(prefixes, preference):
+    preferred_prefixes = [prefix for prefix in prefixes if preference and preference in prefix]
+    nonpreferred_prefixes = [prefix for prefix in prefixes if not preference or preference not in prefix]
+    if nonpreferred_prefixes[-1] == "projection_":
+        # remove projection as a prefix as it is our fallback
+        nonpreferred_prefixes = nonpreferred_prefixes[:-1]
+    return preferred_prefixes + nonpreferred_prefixes
+
+
+def _get_sat_altitude(data_arr, key_prefixes):
+    orb_params = data_arr.attrs["orbital_parameters"]
+    alt_keys = [prefix + "altitude" for prefix in key_prefixes]
     try:
-        alt = orb_params['satellite_actual_altitude']
+        alt = _get_first_available_item(orb_params, alt_keys)
     except KeyError:
-        try:
-            alt = orb_params['satellite_nominal_altitude']
-        except KeyError:
-            alt = orb_params['projection_altitude']
-            warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+        alt = orb_params['projection_altitude']
+        warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
     return alt
 
 
-def _get_sat_lonlat(orb_params):
-    # Longitude & Latitude
+def _get_sat_lonlat(data_arr, key_prefixes):
+    orb_params = data_arr.attrs["orbital_parameters"]
+    lon_keys = [prefix + "longitude" for prefix in key_prefixes]
+    lat_keys = [prefix + "latitude" for prefix in key_prefixes]
     try:
-        lon = orb_params['nadir_longitude']
-        lat = orb_params['nadir_latitude']
+        lon = _get_first_available_item(orb_params, lon_keys)
+        lat = _get_first_available_item(orb_params, lat_keys)
     except KeyError:
-        try:
-            lon = orb_params['satellite_actual_longitude']
-            lat = orb_params['satellite_actual_latitude']
-        except KeyError:
-            try:
-                lon = orb_params['satellite_nominal_longitude']
-                lat = orb_params['satellite_nominal_latitude']
-            except KeyError:
-                lon = orb_params['projection_longitude']
-                lat = orb_params['projection_latitude']
-                warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+        lon = orb_params['projection_longitude']
+        lat = orb_params['projection_latitude']
+        warnings.warn('Actual satellite lon/lat not available, using projection center instead.')
     return lon, lat
+
+
+def _get_first_available_item(data_dict, possible_keys):
+    for possible_key in possible_keys:
+        try:
+            return data_dict[possible_key]
+        except KeyError:
+            continue
+    raise KeyError("None of the possible keys found: {}".format(", ".join(possible_keys)))
 
 
 def recursive_dict_update(d, u):
@@ -521,3 +513,28 @@ def ignore_invalid_float_warnings():
     with np.errstate(invalid="ignore"), warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         yield
+
+
+def get_chunk_size_limit(dtype):
+    """Compute the chunk size limit in bytes given *dtype*.
+
+    Returns:
+        If PYTROLL_CHUNK_SIZE is not defined, this function returns None,
+        otherwise it returns the computed chunk size in bytes.
+    """
+    pixel_size = get_chunk_pixel_size()
+    if pixel_size is not None:
+        return pixel_size * np.dtype(dtype).itemsize
+    return None
+
+
+def get_chunk_pixel_size():
+    """Compute the maximum chunk size from CHUNK_SIZE."""
+    if CHUNK_SIZE is None:
+        return None
+
+    if isinstance(CHUNK_SIZE, (tuple, list)):
+        array_size = np.product(CHUNK_SIZE)
+    else:
+        array_size = CHUNK_SIZE ** 2
+    return array_size

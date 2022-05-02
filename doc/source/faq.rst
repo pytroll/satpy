@@ -129,11 +129,11 @@ control the number of threads used during compression by specifying the
 to set this to at least the same number of dask workers you use. Do this by
 adding ``num_threads`` to your `save_dataset` or `save_datasets` call::
 
-    scn.save_datasets(base_dir='/tmp', tiled=True, num_threads=8)
+    scn.save_datasets(base_dir='/tmp', num_threads=8)
 
-Here we're also using the `tiled` option to store our data as "tiles" instead
+Satpy also stores our data as "tiles" instead
 of "stripes" which is another way to get more efficient compression of our
-GeoTIFF image.
+GeoTIFF image. You can disable this with ``tiled=False``.
 
 See the
 `GDAL GeoTIFF documentation <https://gdal.org/drivers/raster/gtiff.html#creation-options>`_

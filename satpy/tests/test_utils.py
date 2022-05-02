@@ -209,54 +209,67 @@ class TestUtils(unittest.TestCase):
         res = proj_units_to_meters(prj)
         self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
 
-    @mock.patch('satpy.utils.warnings.warn')
-    def test_get_satpos(self, warn_mock):
+
+class TestGetSatPos:
+    """Tests for 'get_satpos'."""
+
+    @pytest.mark.parametrize(
+        ("included_prefixes", "preference", "expected_result"),
+        [
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), None, (1, 2, 3)),
+            (("satellite_actual_", "satellite_nominal_", "projection_"), None, (1.1, 2.1, 3)),
+            (("satellite_nominal_", "projection_"), None, (1.2, 2.2, 3.1)),
+            (("projection_",), None, (1.3, 2.3, 3.2)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nadir", (1, 2, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "actual", (1.1, 2.1, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nominal", (1.2, 2.2, 3.1)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "projection", (1.3, 2.3, 3.2)),
+            (("satellite_nominal_", "projection_"), "actual", (1.2, 2.2, 3.1)),
+            (("projection_",), "projection", (1.3, 2.3, 3.2)),
+        ]
+    )
+    def test_get_satpos(self, included_prefixes, preference, expected_result):
         """Test getting the satellite position."""
-        orb_params = {'nadir_longitude': 1,
-                      'satellite_actual_longitude': 1.1,
-                      'satellite_nominal_longitude': 1.2,
-                      'projection_longitude': 1.3,
-                      'nadir_latitude': 2,
-                      'satellite_actual_latitude': 2.1,
-                      'satellite_nominal_latitude': 2.2,
-                      'projection_latitude': 2.3,
-                      'satellite_actual_altitude': 3,
-                      'satellite_nominal_altitude': 3.1,
-                      'projection_altitude': 3.2}
-        dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params,
-                                        'satellite_longitude': -1,
-                                        'satellite_latitude': -2,
-                                        'satellite_altitude': -3})
+        all_orb_params = {
+            'nadir_longitude': 1,
+            'satellite_actual_longitude': 1.1,
+            'satellite_nominal_longitude': 1.2,
+            'projection_longitude': 1.3,
+            'nadir_latitude': 2,
+            'satellite_actual_latitude': 2.1,
+            'satellite_nominal_latitude': 2.2,
+            'projection_latitude': 2.3,
+            'satellite_actual_altitude': 3,
+            'satellite_nominal_altitude': 3.1,
+            'projection_altitude': 3.2
+        }
+        orb_params = {key: value for key, value in all_orb_params.items() if
+                      any(in_prefix in key for in_prefix in included_prefixes)}
+        data_arr = xr.DataArray((), attrs={'orbital_parameters': orb_params})
 
-        # Nadir
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1, 2, 3))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            lon, lat, alt = get_satpos(data_arr, preference=preference)
+        has_satpos_warnings = any("using projection" in str(msg.message) for msg in caught_warnings)
+        expect_warning = included_prefixes == ("projection_",) and preference != "projection"
+        if expect_warning:
+            assert has_satpos_warnings
+        else:
+            assert not has_satpos_warnings
+        assert (lon, lat, alt) == expected_result
 
-        # Actual
-        orb_params.pop('nadir_longitude')
-        orb_params.pop('nadir_latitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.1, 2.1, 3))
-
-        # Nominal
-        orb_params.pop('satellite_actual_longitude')
-        orb_params.pop('satellite_actual_latitude')
-        orb_params.pop('satellite_actual_altitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3.1))
-
-        # Projection
-        orb_params.pop('satellite_nominal_longitude')
-        orb_params.pop('satellite_nominal_latitude')
-        orb_params.pop('satellite_nominal_altitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
-        warn_mock.assert_called()
-
-        # Legacy
-        dataset.attrs.pop('orbital_parameters')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
+    @pytest.mark.parametrize(
+        "attrs",
+        (
+                {},
+                {'orbital_parameters':  {'projection_longitude': 1}},
+                {'satellite_altitude': 1}
+        )
+    )
+    def test_get_satpos_fails_with_informative_error(self, attrs):
+        """Test that get_satpos raises an informative error message."""
+        data_arr = xr.DataArray((), attrs=attrs)
+        with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
+            get_satpos(data_arr)
 
 
 def test_make_fake_scene():
@@ -414,3 +427,29 @@ def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
                              orig_arrays: list[xr.DataArray]) -> None:
     for data_arr, orig_arr in zip(data_arrays, orig_arrays):
         assert data_arr.chunks == orig_arr.chunks
+
+
+def test_chunk_pixel_size():
+    """Check the chunk pixel size computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_pixel_size
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_pixel_size() is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_pixel_size() == 100
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_pixel_size() == 200
+
+
+def test_chunk_size_limit():
+    """Check the chunk size limit computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_size_limit
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_size_limit(np.uint8) is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_size_limit(np.float64) == 800
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_size_limit(np.int32) == 800

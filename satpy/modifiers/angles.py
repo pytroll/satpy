@@ -21,29 +21,33 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import warnings
 from datetime import datetime
 from functools import update_wrapper
 from glob import glob
 from typing import Any, Callable, Optional, Union
 
 import dask
-import dask.array as da
 import numpy as np
 import xarray as xr
-from pyorbital.astronomy import get_alt_az, sun_zenith_angle
+from dask import array as da
+from pyorbital.astronomy import cos_zen as pyob_cos_zen
+from pyorbital.astronomy import get_alt_az
 from pyorbital.orbital import get_observer_look
-from pyresample.geometry import AreaDefinition, SwathDefinition
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 
 import satpy
-from satpy.utils import get_satpos, ignore_invalid_float_warnings
+from satpy.utils import PerformanceWarning, get_satpos, ignore_invalid_float_warnings
 
-PRGeometry = Union[SwathDefinition, AreaDefinition]
+PRGeometry = Union[SwathDefinition, AreaDefinition, StackedAreaDefinition]
 
 # Arbitrary time used when computing sensor angles that is passed to
 # pyorbital's get_observer_look function.
 # The difference is on the order of 1e-10 at most as time changes so we force
 # it to a single time for easier caching. It is *only* used if caching.
 STATIC_EARTH_INERTIAL_DATETIME = datetime(2000, 1, 1, 12, 0, 0)
+DEFAULT_UNCACHE_TYPES = (SwathDefinition, xr.DataArray, da.Array)
+HASHABLE_GEOMETRIES = (AreaDefinition, StackedAreaDefinition)
 
 
 class ZarrCacheHelper:
@@ -58,6 +62,13 @@ class ZarrCacheHelper:
     if the arguments are of a certain type (see ``uncacheable_arg_types``).
     The cache value to use is purely based on the hash value of all of the
     provided arguments along with the "cache version" (see below).
+
+    Note that the zarr format requires regular chunking of data. That is,
+    chunks must be all the same size per dimension except for the last chunk.
+    To work around this limitation, this class will determine a good regular
+    chunking based on the existing chunking scheme, rechunk the input
+    arguments, and then rechunk the results before returning them to the user.
+    This rechunking is only done if caching is enabled.
 
     Args:
         func: Function that will be called to generate the value to cache.
@@ -99,7 +110,7 @@ class ZarrCacheHelper:
     def __init__(self,
                  func: Callable,
                  cache_config_key: str,
-                 uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
+                 uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
                  sanitize_args_func: Callable = None,
                  cache_version: int = 1,
                  ):
@@ -115,16 +126,10 @@ class ZarrCacheHelper:
 
         Intended to mimic the :func:`functools.cache` behavior.
         """
-        if cache_dir is None:
-            cache_dir = satpy.config.get("cache_dir")
-        if cache_dir is None:
-            raise RuntimeError("No 'cache_dir' configured.")
+        cache_dir = self._get_cache_dir_from_config(cache_dir)
         zarr_pattern = self._zarr_pattern("*", cache_version="*").format("*")
         for zarr_dir in glob(os.path.join(cache_dir, zarr_pattern)):
-            try:
-                shutil.rmtree(zarr_dir)
-            except OSError:
-                continue
+            shutil.rmtree(zarr_dir, ignore_errors=True)
 
     def _zarr_pattern(self, arg_hash, cache_version: Union[int, str] = None) -> str:
         if cache_version is None:
@@ -134,33 +139,53 @@ class ZarrCacheHelper:
     def __call__(self, *args, cache_dir: Optional[str] = None) -> Any:
         """Call the decorated function."""
         new_args = self._sanitize_args_func(*args) if self._sanitize_args_func is not None else args
-        arg_hash = _hash_args(*new_args)
+        arg_hash = _hash_args(*new_args, unhashable_types=self._uncacheable_arg_types)
         should_cache, cache_dir = self._get_should_cache_and_cache_dir(new_args, cache_dir)
         zarr_fn = self._zarr_pattern(arg_hash)
         zarr_format = os.path.join(cache_dir, zarr_fn)
         zarr_paths = glob(zarr_format.format("*"))
         if not should_cache or not zarr_paths:
             # use sanitized arguments if we are caching, otherwise use original arguments
-            args = new_args if should_cache else args
-            res = self._func(*args)
+            args_to_use = new_args if should_cache else args
+            res = self._func(*args_to_use)
             if should_cache and not zarr_paths:
+                self._warn_if_irregular_input_chunks(args, args_to_use)
                 self._cache_results(res, zarr_format)
         # if we did any caching, let's load from the zarr files
         if should_cache:
             # re-calculate the cached paths
-            zarr_paths = glob(zarr_format.format("*"))
+            zarr_paths = sorted(glob(zarr_format.format("*")))
             if not zarr_paths:
                 raise RuntimeError("Data was cached to disk but no files were found")
-            res = tuple(da.from_zarr(zarr_path) for zarr_path in zarr_paths)
+            new_chunks = _get_output_chunks_from_func_arguments(args)
+            res = tuple(da.from_zarr(zarr_path, chunks=new_chunks) for zarr_path in zarr_paths)
         return res
 
     def _get_should_cache_and_cache_dir(self, args, cache_dir: Optional[str]) -> tuple[bool, str]:
         should_cache: bool = satpy.config.get(self._cache_config_key, False)
         can_cache = not any(isinstance(arg, self._uncacheable_arg_types) for arg in args)
         should_cache = should_cache and can_cache
-        if cache_dir is None:
-            cache_dir = satpy.config.get("cache_dir")
+        cache_dir = self._get_cache_dir_from_config(cache_dir)
         return should_cache, cache_dir
+
+    @staticmethod
+    def _get_cache_dir_from_config(cache_dir: Optional[str]) -> str:
+        cache_dir = cache_dir or satpy.config.get("cache_dir")
+        if cache_dir is None:
+            raise RuntimeError("Can't use zarr caching. No 'cache_dir' configured.")
+        return cache_dir
+
+    @staticmethod
+    def _warn_if_irregular_input_chunks(args, modified_args):
+        arg_chunks = _get_output_chunks_from_func_arguments(args)
+        new_chunks = _get_output_chunks_from_func_arguments(modified_args)
+        if _chunks_are_irregular(arg_chunks):
+            warnings.warn(
+                "Calling cached function with irregular dask chunks. The data "
+                "has been rechunked for caching, but this is not optimal for "
+                "future calculations. "
+                f"Original chunks: {arg_chunks}; New chunks: {new_chunks}",
+                PerformanceWarning)
 
     def _cache_results(self, res, zarr_format):
         os.makedirs(os.path.dirname(zarr_format), exist_ok=True)
@@ -172,17 +197,31 @@ class ZarrCacheHelper:
             zarr_path = zarr_format.format(idx)
             # See https://github.com/dask/dask/issues/8380
             with dask.config.set({"optimization.fuse.active": False}):
-                new_sub_res = sub_res.to_zarr(zarr_path,
-                                              return_stored=True,
-                                              compute=False)
+                new_sub_res = sub_res.to_zarr(zarr_path, compute=False)
             new_res.append(new_sub_res)
         # actually compute the storage to zarr
         da.compute(new_res)
 
 
+def _get_output_chunks_from_func_arguments(args):
+    """Determine what the desired output chunks are.
+
+    It is assumed a tuple of tuples of integers is defining chunk sizes. If
+    a tuple like this is not found then arguments are checked for array-like
+    objects with a ``.chunks`` attribute.
+
+    """
+    chunked_args = [arg for arg in args if hasattr(arg, "chunks")]
+    tuple_args = [arg for arg in args if _is_chunk_tuple(arg)]
+    if not tuple_args and not chunked_args:
+        raise RuntimeError("Cannot determine desired output chunksize for cached function.")
+    new_chunks = tuple_args[-1] if tuple_args else chunked_args[0].chunks
+    return new_chunks
+
+
 def cache_to_zarr_if(
         cache_config_key: str,
-        uncacheable_arg_types=(SwathDefinition, xr.DataArray, da.Array),
+        uncacheable_arg_types=DEFAULT_UNCACHE_TYPES,
         sanitize_args_func: Callable = None,
 ) -> Callable:
     """Decorate a function and cache the results as a zarr array on disk.
@@ -204,13 +243,13 @@ def cache_to_zarr_if(
     return _decorator
 
 
-def _hash_args(*args):
+def _hash_args(*args, unhashable_types=DEFAULT_UNCACHE_TYPES):
     import json
     hashable_args = []
     for arg in args:
-        if isinstance(arg, (xr.DataArray, da.Array, SwathDefinition)):
+        if isinstance(arg, unhashable_types):
             continue
-        if isinstance(arg, AreaDefinition):
+        if isinstance(arg, HASHABLE_GEOMETRIES):
             arg = hash(arg)
         elif isinstance(arg, datetime):
             arg = arg.isoformat(" ")
@@ -228,9 +267,50 @@ def _sanitize_observer_look_args(*args):
         elif isinstance(arg, (float, np.float64, np.float32)):
             # round floating point numbers to nearest tenth
             new_args.append(round(arg, 1))
+        elif _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
+            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+            new_args.append(new_chunks)
         else:
             new_args.append(arg)
     return new_args
+
+
+def _sanitize_args_with_chunks(*args):
+    new_args = []
+    for arg in args:
+        if _is_chunk_tuple(arg) and _chunks_are_irregular(arg):
+            new_chunks = _regular_chunks_from_irregular_chunks(arg)
+            new_args.append(new_chunks)
+        else:
+            new_args.append(arg)
+    return new_args
+
+
+def _is_chunk_tuple(some_obj: Any) -> bool:
+    if not isinstance(some_obj, tuple):
+        return False
+    if not all(isinstance(sub_obj, tuple) for sub_obj in some_obj):
+        return False
+    sub_elements = [sub_obj_elem for sub_obj in some_obj for sub_obj_elem in sub_obj]
+    return all(isinstance(sub_obj_elem, int) for sub_obj_elem in sub_elements)
+
+
+def _regular_chunks_from_irregular_chunks(
+        old_chunks: tuple[tuple[int, ...], ...]
+) -> tuple[tuple[int, ...], ...]:
+    shape = tuple(sum(dim_chunks) for dim_chunks in old_chunks)
+    new_dim_chunks = tuple(max(dim_chunks) for dim_chunks in old_chunks)
+    return da.core.normalize_chunks(new_dim_chunks, shape=shape)
+
+
+def _chunks_are_irregular(chunks_tuple: tuple) -> bool:
+    """Determine if an array is irregularly chunked.
+
+    Zarr does not support saving data in irregular chunks. Regular chunking
+    is when all chunks are the same size (except for the last one).
+
+    """
+    return any(len(set(chunks[:-1])) > 1 for chunks in chunks_tuple)
 
 
 def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
@@ -247,13 +327,17 @@ def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.D
 
     Args:
         data_arr: DataArray to get angles for. Information extracted from this
-            object are ``.attrs["area"]`` and ``.attrs["start_time"]``.
+            object are ``.attrs["area"]``,``.attrs["start_time"]``, and
+            ``.attrs["orbital_parameters"]``. See :func:`satpy.utils.get_satpos`
+            and :ref:`dataset_metadata` for more information.
             Additionally, the dask array chunk size is used when generating
             new arrays. The actual data of the object is not used.
 
     Returns:
         Four DataArrays representing sensor azimuth angle, sensor zenith angle,
-        solar azimuth angle, and solar zenith angle.
+        solar azimuth angle, and solar zenith angle. All values are in degrees.
+        Sensor angles are provided in the [0, 360] degree range.
+        Solar angles are provided in the [-180, 180] degree range.
 
     """
     sata, satz = _get_sensor_angles(data_arr)
@@ -267,15 +351,27 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
     Note that this function can benefit from the ``satpy.config`` parameters
     :ref:`cache_lonlats <config_cache_lonlats_setting>` and
     :ref:`cache_sensor_angles <config_cache_sensor_angles_setting>`
-    being set to ``True``.
+    being set to ``True``. Values are in degrees.
 
     """
     satz = _get_sensor_angles(data_arr)[1]
     return satz
 
 
-@cache_to_zarr_if("cache_lonlats")
-def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str] = "auto") -> tuple[da.Array, da.Array]:
+def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
+    """Generate the cosine of the solar zenith angle for the provided data.
+
+    Returns:
+        DataArray with the same shape as ``data_arr``.
+
+    """
+    lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.chunks)
+    cos_sza = _get_cos_sza(data_arr.attrs["start_time"], lons, lats)
+    return _geo_dask_to_data_array(cos_sza)
+
+
+@cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
+def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
         lons, lats = area.get_lonlats(chunks=chunks)
         lons = da.where(lons >= 1e30, np.nan, lons)
@@ -285,25 +381,41 @@ def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str] = "auto") -> tu
 
 def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.data.chunks)
-    res = da.map_blocks(_get_sun_angles_wrapper, lons, lats,
-                        data_arr.attrs["start_time"],
-                        dtype=lons.dtype, meta=np.array((), dtype=lons.dtype),
-                        new_axis=[0], chunks=(2,) + lons.chunks)
-    suna = _geo_dask_to_data_array(res[0])
-    sunz = _geo_dask_to_data_array(res[1])
+    suna = da.map_blocks(_get_sun_azimuth_ndarray, lons, lats,
+                         data_arr.attrs["start_time"],
+                         dtype=lons.dtype, meta=np.array((), dtype=lons.dtype),
+                         chunks=lons.chunks)
+    cos_sza = _get_cos_sza(data_arr.attrs["start_time"], lons, lats)
+    sunz = np.rad2deg(np.arccos(cos_sza))
+    suna = _geo_dask_to_data_array(suna)
+    sunz = _geo_dask_to_data_array(sunz)
     return suna, sunz
 
 
-def _get_sun_angles_wrapper(lons: da.Array, lats: da.Array, start_time: datetime) -> np.ndarray:
+def _get_cos_sza(utc_time, lons, lats):
+    cos_sza = da.map_blocks(_cos_zen_ndarray,
+                            lons, lats, utc_time,
+                            meta=np.array((), dtype=lons.dtype),
+                            dtype=lons.dtype,
+                            chunks=lons.chunks)
+    return cos_sza
+
+
+def _cos_zen_ndarray(lons, lats, utc_time):
+    with ignore_invalid_float_warnings():
+        return pyob_cos_zen(utc_time, lons, lats)
+
+
+def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: datetime) -> np.ndarray:
     with ignore_invalid_float_warnings():
         suna = get_alt_az(start_time, lons, lats)[1]
         suna = np.rad2deg(suna)
-        sunz = sun_zenith_angle(start_time, lons, lats)
-        return np.stack([suna, sunz])
+    return suna
 
 
 def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
-    sat_lon, sat_lat, sat_alt = get_satpos(data_arr)
+    preference = satpy.config.get('sensor_angles_position_preference', 'actual')
+    sat_lon, sat_lat, sat_alt = get_satpos(data_arr, preference=preference)
     area_def = data_arr.attrs["area"]
     sata, satz = _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
                                                  data_arr.attrs["start_time"],
@@ -316,13 +428,13 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
 @cache_to_zarr_if("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)
 def _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt, start_time, area_def, chunks):
     lons, lats = _get_valid_lonlats(area_def, chunks)
-    res = da.map_blocks(_get_sensor_angles_wrapper, lons, lats, start_time, sat_lon, sat_lat, sat_alt,
+    res = da.map_blocks(_get_sensor_angles_ndarray, lons, lats, start_time, sat_lon, sat_lat, sat_alt,
                         dtype=lons.dtype, meta=np.array((), dtype=lons.dtype), new_axis=[0],
                         chunks=(2,) + lons.chunks)
     return res[0], res[1]
 
 
-def _get_sensor_angles_wrapper(lons, lats, start_time, sat_lon, sat_lat, sat_alt) -> np.ndarray:
+def _get_sensor_angles_ndarray(lons, lats, start_time, sat_lon, sat_lat, sat_alt) -> np.ndarray:
     with ignore_invalid_float_warnings():
         sata, satel = get_observer_look(
             sat_lon,
@@ -332,3 +444,51 @@ def _get_sensor_angles_wrapper(lons, lats, start_time, sat_lon, sat_lat, sat_alt
             lons, lats, 0)
         satz = 90 - satel
         return np.stack([sata, satz])
+
+
+def sunzen_corr_cos(data: da.Array,
+                    cos_zen: da.Array,
+                    limit: float = 88.,
+                    max_sza: Optional[float] = 95.) -> da.Array:
+    """Perform Sun zenith angle correction.
+
+    The correction is based on the provided cosine of the zenith
+    angle (``cos_zen``).  The correction is limited
+    to ``limit`` degrees (default: 88.0 degrees).  For larger zenith
+    angles, the correction is the same as at the ``limit`` if ``max_sza``
+    is `None`. The default behavior is to gradually reduce the correction
+    past ``limit`` degrees up to ``max_sza`` where the correction becomes
+    0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
+
+    """
+    return da.map_blocks(_sunzen_corr_cos_ndarray,
+                         data, cos_zen, limit, max_sza,
+                         meta=np.array((), dtype=data.dtype),
+                         chunks=data.chunks)
+
+
+def _sunzen_corr_cos_ndarray(data: np.ndarray,
+                             cos_zen: np.ndarray,
+                             limit: float,
+                             max_sza: Optional[float]) -> np.ndarray:
+    # Convert the zenith angle limit to cosine of zenith angle
+    limit_rad = np.deg2rad(limit)
+    limit_cos = np.cos(limit_rad)
+    max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
+
+    # Cosine correction
+    corr = 1. / cos_zen
+    if max_sza is not None:
+        # gradually fall off for larger zenith angle
+        grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
+        # invert the factor so maximum correction is done at `limit` and falls off later
+        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
+        # make sure we don't make anything negative
+        grad_factor = grad_factor.clip(0.)
+    else:
+        # Use constant value (the limit) for larger zenith angles
+        grad_factor = 1.
+    corr = np.where(cos_zen > limit_cos, corr, grad_factor / limit_cos)
+    # Force "night" pixels to 0 (where SZA is invalid)
+    corr[np.isnan(cos_zen)] = 0
+    return data * corr

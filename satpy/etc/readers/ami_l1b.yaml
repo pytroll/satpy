@@ -338,4 +338,3 @@ datasets:
         units: K
     file_type: ir133
     file_key: image_pixel_values
-

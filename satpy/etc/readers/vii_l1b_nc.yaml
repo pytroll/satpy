@@ -3,7 +3,7 @@ reader:
   short_name: VII L1B RAD NetCDF4
   long_name: EPS-SG VII L1B Radiance (NetCDF4)
   description: >
-    Reader for EUMETSAT EPSG-SG Visual Infrared Imager Level 1B Radiance files in NetCDF4 format.
+    Reader for EUMETSAT EPS-SG Visual Infrared Imager Level 1B Radiance files in NetCDF4 format per FS V4A.
   sensors: [vii]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
@@ -11,9 +11,7 @@ file_types:
   # EUMETSAT EPSG-SG Visual Infrared Imager Level 1B Radiance files in NetCDF4 format
   nc_vii_l1b_rad:
     file_reader: !!python/name:satpy.readers.vii_l1b_nc.ViiL1bNCFileHandler
-    file_patterns: ['W_DE-AIRBUSDS-Friedrichshafen,SAT,{spacecraft_name:s}-VII-1B-RAD_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc',
-                    'W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-1B-RAD_C_EUM_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc',
-                    'W_xx-eumetsat-darmstadt,SAT,{spacecraft_name:s}-VII-1B-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-VII-1B-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
     cached_longitude: data/measurement_data/longitude
     cached_latitude: data/measurement_data/latitude
 
@@ -51,7 +49,7 @@ datasets:
     name: vii_443
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_443
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -65,7 +63,7 @@ datasets:
     name: vii_555
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_555
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -79,7 +77,7 @@ datasets:
     name: vii_668
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_668
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -93,7 +91,7 @@ datasets:
     name: vii_752
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_752
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -107,7 +105,7 @@ datasets:
     name: vii_763
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_763
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration: [reflectance, radiance]
     chan_solar_index: 4
     wavelength: [0.75695, 0.7627, 0.76845]
@@ -116,7 +114,7 @@ datasets:
     name: vii_865
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_865
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -130,7 +128,7 @@ datasets:
     name: vii_914
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_914
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -144,7 +142,7 @@ datasets:
     name: vii_1240
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1240
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -158,7 +156,7 @@ datasets:
     name: vii_1375
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1375
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -172,7 +170,7 @@ datasets:
     name: vii_1630
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_1630
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -186,7 +184,7 @@ datasets:
     name: vii_2250
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_2250
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -200,7 +198,7 @@ datasets:
     name: vii_3740
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_3740
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -214,7 +212,7 @@ datasets:
     name: vii_3959
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_3959
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -228,7 +226,7 @@ datasets:
     name: vii_4050
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_4050
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -242,7 +240,7 @@ datasets:
     name: vii_6725
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_6725
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -256,7 +254,7 @@ datasets:
     name: vii_7325
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_7325
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -270,7 +268,7 @@ datasets:
     name: vii_8540
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_8540
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -284,7 +282,7 @@ datasets:
     name: vii_10690
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_10690
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -298,7 +296,7 @@ datasets:
     name: vii_12020
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_12020
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -312,7 +310,7 @@ datasets:
     name: vii_13345
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/vii_13345
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -329,28 +327,28 @@ datasets:
     standard_name: solar_zenith_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/solar_zenith
-    coordinates: [lon_tie_points, lat_tie_points]
+    coordinates: [lat_tie_points, lon_tie_points]
 
   solar_azimuth_tie_points:
     name: solar_azimuth_tie_points
     standard_name: solar_azimuth_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/solar_azimuth
-    coordinates: [lon_tie_points, lat_tie_points]
+    coordinates: [lat_tie_points, lon_tie_points]
 
   observation_zenith_tie_points:
     name: observation_zenith_tie_points
     standard_name: sensor_zenith_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_zenith
-    coordinates: [lon_tie_points, lat_tie_points]
+    coordinates: [lat_tie_points, lon_tie_points]
 
   observation_azimuth_tie_points:
     name: observation_azimuth_tie_points
     standard_name: sensor_azimuth_angle
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_azimuth
-    coordinates: [lon_tie_points, lat_tie_points]
+    coordinates: [lat_tie_points, lon_tie_points]
 
   solar_zenith:
     name: solar_zenith
@@ -358,7 +356,7 @@ datasets:
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/solar_zenith
     interpolate: True
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
 
   solar_azimuth:
     name: solar_azimuth
@@ -366,7 +364,7 @@ datasets:
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/solar_azimuth
     interpolate: True
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
 
   observation_zenith:
     name: observation_zenith
@@ -374,7 +372,7 @@ datasets:
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_zenith
     interpolate: True
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
 
   observation_azimuth:
     name: observation_azimuth
@@ -382,19 +380,19 @@ datasets:
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/observation_azimuth
     interpolate: True
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
 
   # --- Orthorectification data ---
   delta_lat_N_dem:
     name: delta_lat_N_dem
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/delta_lat_N_dem
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     standard_name: parallax_delta_latitude
 
   delta_lon_N_dem:
     name: delta_lon_N_dem
     file_type: nc_vii_l1b_rad
     file_key: data/measurement_data/delta_lon_N_dem
-    coordinates: [lon_pixels, lat_pixels]
+    coordinates: [lat_pixels, lon_pixels]
     standard_name: parallax_delta_longitude

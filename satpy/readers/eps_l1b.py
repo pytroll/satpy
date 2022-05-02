@@ -18,8 +18,8 @@
 
 """Reader for eps level 1b data. Uses xml files as a format description."""
 
+import functools
 import logging
-from functools import lru_cache
 
 import dask.array as da
 import numpy as np
@@ -141,6 +141,9 @@ class EPSAVHRRFile(BaseFileHandler):
 
     sensors = {"AVHR": "avhrr-3"}
 
+    units = {"reflectance": "%",
+             "brightness_temperature": "K"}
+
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize FileHandler."""
         super(EPSAVHRRFile, self).__init__(
@@ -153,6 +156,12 @@ class EPSAVHRRFile(BaseFileHandler):
         self.scanlines = None
         self.pixels = None
         self.sections = None
+        self.get_full_angles = functools.lru_cache(maxsize=1)(
+            self._get_full_angles_uncached
+        )
+        self.get_full_lonlats = functools.lru_cache(maxsize=1)(
+            self._get_full_lonlats_uncached
+        )
 
     def _read_all(self):
         logger.debug("Reading %s", self.filename)
@@ -186,8 +195,7 @@ class EPSAVHRRFile(BaseFileHandler):
             keys += val.dtype.fields.keys()
         return keys
 
-    @lru_cache(maxsize=1)
-    def get_full_lonlats(self):
+    def _get_full_lonlats_uncached(self):
         """Get the interpolated longitudes and latitudes."""
         raw_lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                               self["EARTH_LOCATIONS"][:, :, 0],
@@ -236,8 +244,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       " and earth views = " +
                                       str(self.pixels))
 
-    @lru_cache(maxsize=1)
-    def get_full_angles(self):
+    def _get_full_angles_uncached(self):
         """Get the interpolated angles."""
         solar_zenith = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [0]],
                                   self["ANGULAR_RELATIONS"][:, :, 0],
@@ -296,6 +303,8 @@ class EPSAVHRRFile(BaseFileHandler):
 
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor_name
+        if "calibration" in key:
+            dataset.attrs["units"] = self.units[key["calibration"]]
         dataset.attrs.update(info)
         dataset.attrs.update(key.to_dict())
         return dataset

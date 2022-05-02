@@ -22,10 +22,13 @@ import unittest
 from unittest import mock
 
 import numpy as np
+from pyresample.utils import proj4_radius_parameters
 from xarray import DataArray
 
 from satpy.readers.goes_imager_hrit import (
     ALTITUDE,
+    EQUATOR_RADIUS,
+    POLE_RADIUS,
     HRITGOESFileHandler,
     HRITGOESPrologueFileHandler,
     make_gvar_float,
@@ -166,3 +169,31 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                              {'projection_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
                               'projection_latitude': 0.0,
                               'projection_altitude': ALTITUDE})
+
+    def test_get_area_def(self):
+        """Test getting the area definition."""
+        self.reader.mda.update({
+            'cfac': 10216334,
+            'lfac': 10216334,
+            'coff': 1408.0,
+            'loff': 944.0,
+            'number_of_lines': 464,
+            'number_of_columns': 2816
+        })
+        dsid = make_dataid(name="CH1", calibration='reflectance',
+                           resolution=3000)
+        area = self.reader.get_area_def(dsid)
+
+        a, b = proj4_radius_parameters(area.proj_dict)
+        assert a == EQUATOR_RADIUS
+        assert b == POLE_RADIUS
+        assert area.proj_dict['h'] == ALTITUDE
+        assert area.proj_dict['lon_0'] == 100.1640625
+        assert area.proj_dict['proj'] == 'geos'
+        assert area.proj_dict['units'] == 'm'
+        assert area.width == 2816
+        assert area.height == 464
+        assert area.area_id == 'goes-15_goes_imager_fd_3km'
+        area_extent_exp = (-5639254.900260435, 1925159.4881528523,
+                           5643261.475678028, 3784210.48191544)
+        np.testing.assert_allclose(area.area_extent, area_extent_exp)

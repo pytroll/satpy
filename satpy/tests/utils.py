@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests."""
 
+from contextlib import contextmanager
 from datetime import datetime
 from unittest import mock
 
@@ -282,6 +283,14 @@ class CustomScheduler(object):
             raise RuntimeError("Too many dask computations were scheduled: "
                                "{}".format(self.total_computes))
         return dask.get(dsk, keys, **kwargs)
+
+
+@contextmanager
+def assert_maximum_dask_computes(max_computes=1):
+    """Context manager to make sure dask computations are not executed more than ``max_computes`` times."""
+    import dask
+    with dask.config.set(scheduler=CustomScheduler(max_computes=max_computes)) as new_config:
+        yield new_config
 
 
 def make_fake_scene(content_dict, daskify=False, area=True,

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2017 Satpy developers
+# Copyright (c) 2010-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -71,13 +71,28 @@ class Scene:
                  reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
-        To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
-        then the available readers will be searched for a Reader that can support the provided files. This can take
-        a considerable amount of time so it is recommended that `reader` always be provided. Note without `filenames`
-        the Scene is created with no Readers available requiring Datasets to be added manually::
+        To load data `filenames` and preferably `reader` must be specified::
+
+            scn = Scene(filenames=glob('/path/to/viirs/sdr/files/*'), reader='viirs_sdr')
+
+
+        If ``filenames`` is provided without ``reader`` then the available readers
+        will be searched for a Reader that can support the provided files. This
+        can take a considerable amount of time so it is recommended that
+        ``reader`` always be provided. Note without ``filenames`` the Scene is
+        created with no Readers available requiring Datasets to be added
+        manually::
 
             scn = Scene()
             scn['my_dataset'] = Dataset(my_data_array, **my_info)
+
+        Further, notice that it is also possible to load a combination of files
+        or sets of files each requiring their specific reader. For that
+        ``filenames`` needs to be a `dict` (see parameters list below), e.g.::
+
+            scn = Scene(filenames={'nwcsaf-pps_nc': glob('/path/to/nwc/saf/pps/files/*'),
+                                   'modis_l1b': glob('/path/to/modis/lvl1/files/*')})
+
 
         Args:
             filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
@@ -908,7 +923,8 @@ class Scene:
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        new_scn.generate_possible_composites(generate, unload)
+        if generate:
+            new_scn.generate_possible_composites(unload)
 
         return new_scn
 
@@ -1257,7 +1273,8 @@ class Scene:
         self._wishlist |= needed_datasets
 
         self._read_datasets_from_storage(**kwargs)
-        self.generate_possible_composites(generate, unload)
+        if generate:
+            self.generate_possible_composites(unload)
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
@@ -1313,13 +1330,15 @@ class Scene:
             loaded_datasets.update(new_datasets)
         return loaded_datasets
 
-    def generate_possible_composites(self, generate, unload):
-        """See what we can generate and do it."""
-        if generate:
-            keepables = self._generate_composites_from_loaded_datasets()
-        else:
-            # don't lose datasets we loaded to try to generate composites
-            keepables = set(self._datasets.keys()) | self._wishlist
+    def generate_possible_composites(self, unload):
+        """See which composites can be generated and generate them.
+
+        Args:
+            unload (bool): if the dependencies of the composites
+                           should be unloaded after successful generation.
+        """
+        keepables = self._generate_composites_from_loaded_datasets()
+
         if self.missing_datasets:
             self._remove_failed_datasets(keepables)
         if unload:
