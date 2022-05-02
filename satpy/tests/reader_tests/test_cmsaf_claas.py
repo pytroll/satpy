@@ -71,13 +71,11 @@ def encoding():
 
 
 @pytest.fixture
-def fake_file(fake_dataset, encoding):
+def fake_file(fake_dataset, encoding, tmp_path):
     """Write a fake dataset to file."""
-    filename = "CPPin20140101001500305SVMSG01MD.nc"
+    filename = tmp_path / "CPPin20140101001500305SVMSG01MD.nc"
     fake_dataset.to_netcdf(filename, encoding=encoding)
     yield filename
-    # Cleanup executed after test
-    os.unlink(filename)
 
 
 @pytest.fixture
