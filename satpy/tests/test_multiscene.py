@@ -211,6 +211,10 @@ class TestMultiScene(unittest.TestCase):
                     time_threshold=30)
             assert len(mscn.scenes) == 12
 
+
+class TestMultiSceneGrouping:
+    """Test dataset grouping in MultiScene."""
+
     def test_group(self):
         """Test group."""
         from satpy import DataQuery, MultiScene, Scene
@@ -231,7 +235,7 @@ class TestMultiScene(unittest.TestCase):
                   DataQuery(name='even'): ['ds2', 'ds4']}
         multi_scene.group(groups)
         shared_ids_exp = {make_dataid(name="odd"), make_dataid(name="even")}
-        self.assertSetEqual(multi_scene.shared_dataset_ids, shared_ids_exp)
+        assert multi_scene.shared_dataset_ids == shared_ids_exp
 
     def test_add_group_aliases(self):
         """Test adding group aliases."""
@@ -265,11 +269,11 @@ class TestMultiScene(unittest.TestCase):
 
         # Test adding aliases
         with_aliases = add_group_aliases(iter(scenes), groups)
-        self.assertIsInstance(with_aliases, types.GeneratorType)
+        assert isinstance(with_aliases, types.GeneratorType)
         with_aliases = list(with_aliases)
-        self.assertSetEqual(set(with_aliases[0].keys()), {make_dataid(**g1.to_dict()), ds_id1})
-        self.assertSetEqual(set(with_aliases[1].keys()), {make_dataid(**g2.to_dict()), ds_id2})
-        self.assertSetEqual(set(with_aliases[2].keys()), {make_dataid(**g1.to_dict()), ds_id3, ds_id31})
+        assert set(with_aliases[0].keys()) == {make_dataid(**g1.to_dict()), ds_id1}
+        assert set(with_aliases[1].keys()) == {make_dataid(**g2.to_dict()), ds_id2}
+        assert set(with_aliases[2].keys()) == {make_dataid(**g1.to_dict()), ds_id3, ds_id31}
 
         np.testing.assert_array_equal(with_aliases[0]['g1'].values, [1])
         np.testing.assert_array_equal(with_aliases[0]['ds1'].values, [1])
@@ -280,11 +284,12 @@ class TestMultiScene(unittest.TestCase):
         np.testing.assert_array_equal(with_aliases[2]['ds31'].values, [4])
 
         # Make sure that modifying the result doesn't modify the original
-        self.assertNotIn(g1, scene1)
+        assert g1 not in scene1
 
         # Adding an alias for multiple datasets in one scene should fail
         gen = add_group_aliases([scene3], {g1: ['ds3', 'ds31']})
-        self.assertRaises(ValueError, list, gen)
+        with pytest.raises(ValueError):
+            list(gen)
 
 
 class TestMultiSceneSave(unittest.TestCase):
