@@ -44,18 +44,6 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         """Mimic reader input file content."""
         dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         file_type = filename[:5].lower()
-        # num_lines = {
-        #     'vl1bi': 3248 * 2,
-        #     'vl1bm': 3248,
-        #     'vl1bd': 3248,
-        # }[file_type]
-        # num_pixels = {
-        #     'vl1bi': 6400,
-        #     'vl1bm': 3200,
-        #     'vl1bd': 4064,
-        # }[file_type]
-        # num_scans = 203
-        # num_luts = 65536
         num_lines = DEFAULT_FILE_SHAPE[0]
         num_pixels = DEFAULT_FILE_SHAPE[1]
         num_scans = 5
@@ -72,9 +60,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             '/attr/platform': 'Suomi-NPP',
         }
         self._fill_contents_with_default_data(file_content, file_type)
-
         self._set_dataset_specific_metadata(file_content)
-
         convert_file_content_to_data_array(file_content)
         return file_content
 
