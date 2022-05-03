@@ -57,6 +57,8 @@ As this is a private resource (like CEPH or MinIO), credentials and server end-p
         }
     }
 
+For finer-grained control see :class:`~satpy.readers.FSFile` for direct usage.
+
 
 Supported readers
 =================
