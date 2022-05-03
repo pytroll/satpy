@@ -538,3 +538,55 @@ def get_chunk_pixel_size():
     else:
         array_size = CHUNK_SIZE ** 2
     return array_size
+
+
+def check_file_protocols(filenames):
+    """Check filenames for transfer protocols, convert to FSFile objects if possible."""
+    if isinstance(filenames, dict):
+        return _check_file_protocols_for_dicts(filenames)
+    return _check_file_protocols(filenames)
+
+
+def _check_file_protocols_for_dicts(filenames):
+    res = {}
+    for reader, files in filenames.items():
+        res[reader] = _check_file_protocols(files)
+    return res
+
+
+def _check_file_protocols(filenames):
+    local_files, remote_files, fs_files = _sort_files_to_local_remote_and_fsfiles(filenames)
+
+    if remote_files:
+        return local_files + fs_files + _filenames_to_fsfile(remote_files)
+
+    return local_files + fs_files
+
+
+def _sort_files_to_local_remote_and_fsfiles(filenames):
+    from urllib.parse import urlparse
+
+    from satpy.readers import FSFile
+
+    local_files = []
+    remote_files = []
+    fs_files = []
+    for f in filenames:
+        if isinstance(f, FSFile):
+            fs_files.append(f)
+        elif urlparse(f).scheme in ('', 'file') or "\\" in f:
+            local_files.append(f)
+        else:
+            remote_files.append(f)
+    return local_files, remote_files, fs_files
+
+
+def _filenames_to_fsfile(filenames):
+    import fsspec
+
+    from satpy.readers import FSFile
+
+    if filenames:
+        fsspec_files = fsspec.open_files(filenames)
+        return [FSFile(f) for f in fsspec_files]
+    return []

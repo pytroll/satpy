@@ -453,3 +453,78 @@ def test_chunk_size_limit():
         assert get_chunk_size_limit(np.float64) == 800
     with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
         assert get_chunk_size_limit(np.int32) == 800
+
+
+def test_check_file_protocols():
+    """Test checking file protocols.
+
+    Case without scheme/protocol, which should default to plain filenames.
+    """
+    from satpy.scene import check_file_protocols
+
+    filenames = ["/tmp/file1.nc", "/tmp/file2.nc"]
+    res = check_file_protocols(filenames)
+    assert res == filenames
+
+
+def test_check_file_protocols_mixed_sources():
+    """Test checking file protocols.
+
+    Case with mixed local and remote files.
+    """
+    from satpy.readers import FSFile
+    from satpy.scene import check_file_protocols
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
+    res = check_file_protocols(filenames)
+    # Two local files, one remote
+    assert filenames[0] in res
+    assert filenames[2] in res
+    assert sum([isinstance(f, FSFile) for f in res]) == 1
+
+
+def test_check_file_protocols_filename_dict():
+    """Test checking file protocols.
+
+    Case where filenames is a dictionary mapping readers and filenames.
+    """
+    from satpy.readers import FSFile
+    from satpy.scene import check_file_protocols
+
+    filenames = {
+        "reader1": ["/tmp/file1.nc", "/tmp/file2.nc"],
+        "reader2": ["s3://tmp/file3.nc", "file:///tmp/file4.nc", "/tmp/file5.nc"]
+    }
+    res = check_file_protocols(filenames)
+
+    assert res["reader1"] == filenames["reader1"]
+    assert filenames["reader2"][1] in res["reader2"]
+    assert filenames["reader2"][2] in res["reader2"]
+    assert sum([isinstance(f, FSFile) for f in res["reader2"]]) == 1
+
+
+def test_check_file_protocols_fsfile():
+    """Test checking file protocols.
+
+    Case where the some of the files are already FSFile objects.
+    """
+    from satpy.readers import FSFile
+    from satpy.scene import check_file_protocols
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
+    res = check_file_protocols(filenames)
+
+    assert sum([isinstance(f, FSFile) for f in res]) == 2
+
+
+def test_check_file_protocols_windows_paths():
+    """Test checking file protocols.
+
+    Case where windows paths are used.
+    """
+    from satpy.scene import check_file_protocols
+
+    filenames = [r"C:\wintendo\file1.nc", "e:\\wintendo\\file2.nc", r"wintendo\file3.nc"]
+    res = check_file_protocols(filenames)
+
+    assert res == filenames
