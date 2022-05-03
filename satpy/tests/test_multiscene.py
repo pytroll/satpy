@@ -213,7 +213,7 @@ class TestMultiScene(unittest.TestCase):
 
     def test_group(self):
         """Test group."""
-        from satpy import MultiScene, Scene
+        from satpy import DataQuery, MultiScene, Scene
 
         ds1 = _create_test_dataset(name='ds1')
         ds2 = _create_test_dataset(name='ds2')
@@ -227,11 +227,11 @@ class TestMultiScene(unittest.TestCase):
         scene2['ds4'] = ds4
 
         multi_scene = MultiScene([scene1, scene2])
-        groups = {make_dataid(name='odd', wavelength=(1, 2, 3)): ['ds1', 'ds3'],
-                  make_dataid(name='even', wavelength=(2, 3, 4)): ['ds2', 'ds4']}
+        groups = {DataQuery(name='odd'): ['ds1', 'ds3'],
+                  DataQuery(name='even'): ['ds2', 'ds4']}
         multi_scene.group(groups)
-
-        self.assertSetEqual(multi_scene.shared_dataset_ids, set(groups.keys()))
+        shared_ids_exp = {make_dataid(name="odd"), make_dataid(name="even")}
+        self.assertSetEqual(multi_scene.shared_dataset_ids, shared_ids_exp)
 
     def test_add_group_aliases(self):
         """Test adding group aliases."""
@@ -240,7 +240,7 @@ class TestMultiScene(unittest.TestCase):
         import numpy as np
         import xarray as xr
 
-        from satpy import Scene
+        from satpy import DataQuery, Scene
         from satpy.multiscene import add_group_aliases
 
         # Define test scenes
@@ -259,17 +259,17 @@ class TestMultiScene(unittest.TestCase):
         scenes = [scene1, scene2, scene3]
 
         # Define groups
-        g1 = make_dataid(name='g1', wavelength=(10, 11, 12))
-        g2 = make_dataid(name='g2', wavelength=(1, 2, 3), polarization='V')
+        g1 = DataQuery(name='g1', wavelength=(10, 11, 12))
+        g2 = DataQuery(name='g2', wavelength=(1, 2, 3), polarization='V')
         groups = {g1: ['ds1', 'ds3'], g2: ['ds2']}
 
         # Test adding aliases
         with_aliases = add_group_aliases(iter(scenes), groups)
         self.assertIsInstance(with_aliases, types.GeneratorType)
         with_aliases = list(with_aliases)
-        self.assertSetEqual(set(with_aliases[0].keys()), {g1, ds_id1})
-        self.assertSetEqual(set(with_aliases[1].keys()), {g2, ds_id2})
-        self.assertSetEqual(set(with_aliases[2].keys()), {g1, ds_id3, ds_id31})
+        self.assertSetEqual(set(with_aliases[0].keys()), {make_dataid(**g1.to_dict()), ds_id1})
+        self.assertSetEqual(set(with_aliases[1].keys()), {make_dataid(**g2.to_dict()), ds_id2})
+        self.assertSetEqual(set(with_aliases[2].keys()), {make_dataid(**g1.to_dict()), ds_id3, ds_id31})
 
         np.testing.assert_array_equal(with_aliases[0]['g1'].values, [1])
         np.testing.assert_array_equal(with_aliases[0]['ds1'].values, [1])
