@@ -95,14 +95,19 @@ class CLAAS2(NetCDF4FileHandler):
 
     def get_area_def(self, dataset_id):
         """Get the area definition."""
+        return self._get_subset_of_full_disk()
+
+    def _get_subset_of_full_disk(self):
+        """Get subset of the full disk.
+
+        CLAAS products are provided on a grid that is slightly smaller
+        than the full disk (excludes most of the space pixels).
+        """
         full_disk = self._get_full_disk()
-        return self._subset_full_disk(full_disk)
+        offset = int((full_disk.width - self.grid_size) // 2)
+        return full_disk[offset:-offset, offset:-offset]
 
     def _get_full_disk(self):
         if _is_georef_offset_present(self.start_time.date()):
             return FULL_DISK_WITH_OFFSET
         return FULL_DISK
-
-    def _subset_full_disk(self, full_disk):
-        offset = int((full_disk.width - self.grid_size) // 2)
-        return full_disk[offset:-offset, offset:-offset]
