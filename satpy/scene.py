@@ -1177,6 +1177,47 @@ class Scene:
                                           **kwargs)
         return writer.save_datasets(dataarrays, compute=compute, **save_kwargs)
 
+    def compute(self, **kwargs):
+        """Call `compute` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.compute` for more details.
+        Note that this will convert the contents of the DataArray to numpy arrays which
+        may not work with all parts of Satpy which may expect dask arrays.
+        """
+        from dask import compute
+        new_scn = self.copy()
+        datasets = compute(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def persist(self, **kwargs):
+        """Call `persist` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.persist` for more details.
+        """
+        from dask import persist
+        new_scn = self.copy()
+        datasets = persist(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def chunk(self, **kwargs):
+        """Call `chunk` on all Scene  data arrays.
+
+        See :meth:`xarray.DataArray.chunk` for more details.
+        """
+        new_scn = self.copy()
+        for k in new_scn._datasets.keys():
+            new_scn[k] = new_scn[k].chunk(**kwargs)
+
+        return new_scn
+
     @staticmethod
     def _get_writer_by_ext(extension):
         """Find the writer matching the ``extension``.

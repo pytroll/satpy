@@ -1432,6 +1432,31 @@ class TestSceneLoading:
         available_comp_ids = scene.available_composite_ids()
         assert make_cid(name='static_image') in available_comp_ids
 
+    def test_compute_pass_through(self):
+        """Test pass through of xarray compute."""
+        import numpy as np
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'])
+        scene = scene.compute()
+        assert isinstance(scene['ds1'].data, np.ndarray)
+
+    def test_persist_pass_through(self):
+        """Test pass through of xarray persist."""
+        from dask.array.utils import assert_eq
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'])
+        scenep = scene.persist()
+        assert_eq(scene['ds1'].data, scenep['ds1'].data)
+        assert set(scenep['ds1'].data.dask).issubset(scene['ds1'].data.dask)
+        assert len(scenep["ds1"].data.dask) == scenep['ds1'].data.npartitions
+
+    def test_chunk_pass_through(self):
+        """Test pass through of xarray chunk."""
+        scene = Scene(filenames=['fake1_1.txt'], reader='fake1')
+        scene.load(['ds1'])
+        scene = scene.chunk(chunks=2)
+        assert scene['ds1'].data.chunksize == (2, 2)
+
 
 class TestSceneResampling:
     """Test resampling a Scene to another Scene object."""
