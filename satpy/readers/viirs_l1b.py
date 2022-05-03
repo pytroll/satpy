@@ -175,7 +175,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
 
         # Get extra metadata
-        if '/dimension/number_of_scans' in self:
+        if '/dimension/number_of_scans' in self and isinstance(shape, tuple) and shape:
             rows_per_scan = int(shape[0] / self['/dimension/number_of_scans'])
             ds_info.setdefault('rows_per_scan', rows_per_scan)
 
