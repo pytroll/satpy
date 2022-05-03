@@ -51,9 +51,6 @@ from satpy.utils import recursive_dict_update
 
 logger = logging.getLogger(__name__)
 
-FCI_WIDTH_TO_GRID_TYPE = {11136: '1km',
-                          5568: '2km'}
-
 
 def listify_string(something):
     """Take *something* and make it a list.
