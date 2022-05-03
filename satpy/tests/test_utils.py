@@ -528,3 +528,19 @@ def test_check_file_protocols_windows_paths():
     res = check_file_protocols(filenames)
 
     assert res == filenames
+
+
+@mock.patch('fsspec.open_files')
+def test_check_file_protocols_storage_options(open_files):
+    """Test checking file protocols.
+
+    Case with storage options given.
+    """
+    from satpy.utils import check_file_protocols
+
+    filenames = ["s3://tmp/file1.nc"]
+    storage_options = {'anon': True}
+
+    _ = check_file_protocols(filenames, storage_options=storage_options)
+
+    open_files.assert_called_once_with(filenames, **storage_options)

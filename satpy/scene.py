@@ -69,7 +69,7 @@ class Scene:
     """
 
     def __init__(self, filenames=None, reader=None, filter_parameters=None,
-                 reader_kwargs=None):
+                 reader_kwargs=None, storage_options=None):
         """Initialize Scene with Reader and Compositor objects.
 
         To load data `filenames` and preferably `reader` must be specified::
@@ -106,6 +106,9 @@ class Scene:
                 reader instances, or a dictionary mapping reader names to
                 sub-dictionaries to pass different arguments to different
                 reader instances.
+            storage_options (dict): Keyword arguments to pass to ``fsspec.open_files()`` for remote file access.
+                See `fsspec documentation <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ for
+                more details.
 
         """
         self.attrs = dict()
@@ -120,7 +123,7 @@ class Scene:
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
         if filenames:
-            filenames = check_file_protocols(filenames)
+            filenames = check_file_protocols(filenames, storage_options)
 
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,

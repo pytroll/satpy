@@ -12,21 +12,23 @@ Examples
 
 Some of the readers in Satpy can read data directly over various transfer protocols. This is done
 using `fsspec <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ and various packages
-it is using underneath. All the credential handling etc. are also done using
-`fsspec configuration <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_.
-Simple example configs are shown below each code example.
+it is using underneath.
 
 As an example, reading ABI data from public AWS S3 storage can be done in the following way::
 
     from satpy import Scene
 
+    storage_options = {'anon': True}
     filenames = ['s3://noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*']
-    scn = Scene(reader='abi_l1b', filenames=filenames)
+    scn = Scene(reader='abi_l1b', filenames=filenames, storage_options=storage_options)
     scn.load(['true_color_raw'])
 
-In addition to `fsspec` the `s3fs` library needs to be installed. All the configuration are done via the
-`fsspec` configuration, which are by default placed in `~/.config/fsspec/` directory in Linux. For `s3`
-protocol and anonymous AWS access the configuration placed in `s3.json` is simply::
+In addition to `fsspec` the `s3fs` library needs to be installed.
+
+As an alternative, the storage options can be given using
+`fsspec configuration <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_.
+For the above example, the configuration could be saved to `s3.json` in the `fsspec` configuration directory
+(by default placed in `~/.config/fsspec/` directory in Linux)::
 
     {
         "s3": {
@@ -37,17 +39,17 @@ protocol and anonymous AWS access the configuration placed in `s3.json` is simpl
 For reference, reading SEVIRI HRIT data from a local S3 storage works the same way::
 
     filenames = [
-        's3://satellite-data-eumetcast-seviri-rss/H-000-MSG3__-MSG3_RSS____-WV_073___-000006___-202204260855-__',
-        's3://satellite-data-eumetcast-seviri-rss/H-000-MSG3__-MSG3_RSS____-WV_073___-000007___-202204260855-__',
-        's3://satellite-data-eumetcast-seviri-rss/H-000-MSG3__-MSG3_RSS____-WV_073___-000008___-202204260855-__',
-        's3://satellite-data-eumetcast-seviri-rss/H-000-MSG3__-MSG3_RSS____-_________-EPI______-202204260855-__',
-        's3://satellite-data-eumetcast-seviri-rss/H-000-MSG3__-MSG3_RSS____-_________-PRO______-202204260855-__',
+        's3://satellite-data-eumetcast-seviri-rss/H-000-MSG3*202204260855*',
     ]
-    scn = Scene(reader='seviri_l1b_hrit', filenames=filenames)
+    storage_options = {
+        "client_kwargs": {"endpoint_url": "https://PLACE-YOUR-SERVER-URL-HERE"},
+        "secret": "VERYBIGSECRET",
+        "key": "ACCESSKEY"
+    }
+    scn = Scene(reader='seviri_l1b_hrit', filenames=filenames, storage_options=storage_options)
     scn.load(['WV_073'])
 
-As this is a private resource (like CEPH or MinIO), credentials and server end-point need to be configured in
-`fsspec` configuration file::
+Using the `fsspec` configuration in `s3.json` the configuration would look like this::
 
     {
         "s3": {
@@ -57,7 +59,7 @@ As this is a private resource (like CEPH or MinIO), credentials and server end-p
         }
     }
 
-For finer-grained control see :class:`~satpy.readers.FSFile` for direct usage.
+See :class:`~satpy.readers.FSFile` for direct usage of `fsspec`.
 
 
 Supported readers

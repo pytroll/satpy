@@ -540,25 +540,27 @@ def get_chunk_pixel_size():
     return array_size
 
 
-def check_file_protocols(filenames):
+def check_file_protocols(filenames, storage_options=None):
     """Check filenames for transfer protocols, convert to FSFile objects if possible."""
+    if storage_options is None:
+        storage_options = {}
     if isinstance(filenames, dict):
-        return _check_file_protocols_for_dicts(filenames)
-    return _check_file_protocols(filenames)
+        return _check_file_protocols_for_dicts(filenames, storage_options)
+    return _check_file_protocols(filenames, storage_options)
 
 
-def _check_file_protocols_for_dicts(filenames):
+def _check_file_protocols_for_dicts(filenames, storage_options):
     res = {}
     for reader, files in filenames.items():
-        res[reader] = _check_file_protocols(files)
+        res[reader] = _check_file_protocols(files, storage_options)
     return res
 
 
-def _check_file_protocols(filenames):
+def _check_file_protocols(filenames, storage_options):
     local_files, remote_files, fs_files = _sort_files_to_local_remote_and_fsfiles(filenames)
 
     if remote_files:
-        return local_files + fs_files + _filenames_to_fsfile(remote_files)
+        return local_files + fs_files + _filenames_to_fsfile(remote_files, storage_options)
 
     return local_files + fs_files
 
@@ -581,12 +583,12 @@ def _sort_files_to_local_remote_and_fsfiles(filenames):
     return local_files, remote_files, fs_files
 
 
-def _filenames_to_fsfile(filenames):
+def _filenames_to_fsfile(filenames, storage_options):
     import fsspec
 
     from satpy.readers import FSFile
 
     if filenames:
-        fsspec_files = fsspec.open_files(filenames)
+        fsspec_files = fsspec.open_files(filenames, **storage_options)
         return [FSFile(f) for f in fsspec_files]
     return []
