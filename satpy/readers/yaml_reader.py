@@ -37,7 +37,6 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader  # type: ignore
 
-import more_itertools as mit
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
@@ -1440,7 +1439,8 @@ def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vert
     segment_end_rows[seg_infos['expected_segments'] - 1] = expected_vertical_size
 
     # find missing segments and group contiguous missing segments together
-    groups_missing_segments = [list(group) for group in mit.consecutive_groups(np.where(segment_heights == 0)[0])]
+    missing_segments = np.where(segment_heights == 0)[0]
+    groups_missing_segments = np.split(missing_segments, np.where(np.diff(missing_segments) > 1)[0] + 1)
 
     for group in groups_missing_segments:
         _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group)
