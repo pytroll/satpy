@@ -1276,8 +1276,8 @@ class TestGEOVariableSegmentYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area(self, AreaDefinition):
-        """Test _pad_earlier_segments_area() for the FCI case."""
-        # implicitly checks also _extract_chunk_location_dicts and chunk_heights for the first-chunk-missing case
+        """Test _pad_earlier_segments_area() for the variable segment case."""
+        # implicitly checks also _extract_segment_location_dicts and chunk_heights for the first-chunk-missing case
         from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
         reader = GEOVariableSegmentYAMLReader()
         # setting to 0 or None values that shouldn't be relevant
@@ -1317,8 +1317,8 @@ class TestGEOVariableSegmentYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_later_segments_area(self, AreaDefinition):
-        """Test _pad_later_segments_area() in the FCI padding case."""
-        # implicitly checks also _extract_chunk_location_dicts and chunk_heights for the last-chunk-missing case
+        """Test _pad_later_segments_area() in the variable padding case."""
+        # implicitly checks also _extract_segment_location_dicts and chunk_heights for the last-chunk-missing case
         from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
         reader = GEOVariableSegmentYAMLReader()
 
@@ -1355,8 +1355,8 @@ class TestGEOVariableSegmentYAMLReader(unittest.TestCase):
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_later_segments_area_for_multiple_chunks_gap(self, AreaDefinition):
-        """Test _pad_later_segments_area() in the FCI padding case for mulitple gaps with multiple chunks."""
-        # implicitly checks also _extract_chunk_location_dicts and chunk_heights for multi-chunk gaps
+        """Test _pad_later_segments_area() in the variable padding case for mulitple gaps with multiple chunks."""
+        # implicitly checks also _extract_segment_location_dicts and chunk_heights for multi-chunk gaps
         from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
         reader = GEOVariableSegmentYAMLReader()
 
