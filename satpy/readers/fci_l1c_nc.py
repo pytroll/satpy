@@ -205,7 +205,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     def get_segment_position_info(self):
         """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
-        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks."""
+
+        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
+        """
         segment_position_info = {
             '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
                     'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
