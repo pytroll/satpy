@@ -633,67 +633,102 @@ class TestScene:
         assert name_list == []
 
 
+def _create_coarest_finest_data_array(shape, area_def, attrs=None):
+    data_arr = xr.DataArray(
+        da.arange(shape[0] * shape[1]).reshape(shape),
+        attrs={
+            'area': area_def,
+        })
+    if attrs:
+        data_arr.attrs.update(attrs)
+    return data_arr
+
+
+def _create_coarsest_finest_area_def(shape, extents):
+    from pyresample import AreaDefinition
+    proj_str = '+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'
+    area_def = AreaDefinition(
+        'test',
+        'test',
+        'test',
+        proj_str,
+        shape[1],
+        shape[0],
+        extents,
+    )
+    return area_def
+
+
+def _create_coarsest_finest_swath_def(shape, extents, name_suffix):
+    from pyresample import SwathDefinition
+    lons_arr = da.repeat(da.linspace(extents[0], extents[2], shape[1], dtype=np.float32)[None, :], shape[0], axis=0)
+    lats_arr = da.repeat(da.linspace(extents[1], extents[3], shape[0], dtype=np.float32)[:, None], shape[1], axis=1)
+    lons_data_arr = xr.DataArray(lons_arr, attrs={"name": f"longitude{name_suffix}"})
+    lats_data_arr = xr.DataArray(lats_arr, attrs={"name": f"latitude1{name_suffix}"})
+    return SwathDefinition(lons_data_arr, lats_data_arr)
+
+
 class TestFinestCoarsestArea:
     """Test the Scene logic for finding the finest and coarsest area."""
 
-    def setup_method(self):
-        """Set common variables."""
-        from pyresample.geometry import AreaDefinition
-        from pyresample.utils import proj4_str_to_dict
-        self.scene = Scene()
-        self.scene["1"] = xr.DataArray(np.arange(10).reshape((2, 5)),
-                                       attrs={'wavelength': (0.1, 0.2, 0.3)})
-        self.ds1 = self.scene["1"]
-
-        self.scene["2"] = xr.DataArray(np.arange(40).reshape((4, 10)),
-                                       attrs={'wavelength': (0.4, 0.5, 0.6)})
-        self.ds2 = self.scene["2"]
-
-        self.scene["3"] = xr.DataArray(np.arange(40).reshape((4, 10)),
-                                       attrs={'wavelength': (0.7, 0.8, 0.9)})
-        self.ds3 = self.scene["3"]
-
-        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
-                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
-                                      '+units=m +no_defs')
-        self.area_def1 = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            100,
-            200,
-            (-1000., -1500., 1000., 1500.),
-        )
-        self.area_def2 = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            200,
-            400,
-            (-1000., -1500., 1000., 1500.),
-        )
-
-    def test_coarsest_finest_area_upright_area(self):
+    @pytest.mark.parametrize(
+        ("coarse_area", "fine_area"),
+        [
+            (_create_coarsest_finest_area_def((2, 5), (1000.0, 1500.0, -1000.0, -1500.0)),
+             _create_coarsest_finest_area_def((4, 10), (1000.0, 1500.0, -1000.0, -1500.0))),
+            (_create_coarsest_finest_area_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0)),
+             _create_coarsest_finest_area_def((4, 10), (-1000.0, -1500.0, 1000.0, 1500.0))),
+            (_create_coarsest_finest_swath_def((2, 5), (1000.0, 1500.0, -1000.0, -1500.0), "1"),
+             _create_coarsest_finest_swath_def((4, 10), (1000.0, 1500.0, -1000.0, -1500.0), "1")),
+        ]
+    )
+    def test_coarsest_finest_area_different_shape(self, coarse_area, fine_area):
         """Test 'coarsest_area' and 'finest_area' methods for upright areas."""
-        self.ds1.attrs['area'] = self.area_def1
-        self.ds2.attrs['area'] = self.area_def2
-        self.ds3.attrs['area'] = self.area_def2
-        assert self.scene.coarsest_area() is self.area_def1
-        assert self.scene.finest_area() is self.area_def2
-        assert self.scene.coarsest_area(['2', '3']) is self.area_def2
+        ds1 = _create_coarest_finest_data_array(coarse_area.shape, coarse_area, {"wavelength": (0.1, 0.2, 0.3)})
+        ds2 = _create_coarest_finest_data_array(fine_area.shape, fine_area, {"wavelength": (0.4, 0.5, 0.6)})
+        ds3 = _create_coarest_finest_data_array(fine_area.shape, fine_area, {"wavelength": (0.7, 0.8, 0.9)})
+        scn = Scene()
+        scn["1"] = ds1
+        scn["2"] = ds2
+        scn["3"] = ds3
 
-    def test_coarsest_finest_area_flipped_area(self):
-        """Test 'coarsest_area' and 'finest_area' methods for flipped areas with negative pixel sizes."""
-        area_def1_flipped = self.area_def1.copy(area_extent=tuple([-1*ae for ae in self.area_def1.area_extent]))
-        area_def2_flipped = self.area_def2.copy(area_extent=tuple([-1*ae for ae in self.area_def2.area_extent]))
-        self.ds1.attrs['area'] = area_def1_flipped
-        self.ds2.attrs['area'] = area_def2_flipped
-        self.ds3.attrs['area'] = area_def2_flipped
-        assert self.scene.coarsest_area() is area_def1_flipped
-        assert self.scene.finest_area() is area_def2_flipped
-        assert self.scene.coarsest_area(['2', '3']) is area_def2_flipped
+        assert scn.coarsest_area() is coarse_area
+        assert scn.finest_area() is fine_area
+        assert scn.coarsest_area(['2', '3']) is fine_area
+
+    @pytest.mark.parametrize(
+        ("area_def", "shifted_area"),
+        [
+            (_create_coarsest_finest_area_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0)),
+             _create_coarsest_finest_area_def((2, 5), (-900.0, -1400.0, 1100.0, 1600.0))),
+            (_create_coarsest_finest_swath_def((2, 5), (-1000.0, -1500.0, 1000.0, 1500.0), "1"),
+             _create_coarsest_finest_swath_def((2, 5), (-900.0, -1400.0, 1100.0, 1600.0), "2")),
+        ],
+    )
+    def test_coarsest_finest_area_same_shape(self, area_def, shifted_area):
+        """Test that two areas with the same shape are consistently returned.
+
+        If two geometries (ex. two AreaDefinitions or two SwathDefinitions)
+        have the same resolution (shape) but different
+        coordinates, which one has the finer resolution would ultimately be
+        determined by the semi-random ordering of the internal container of
+        the Scene (a dict) if only pixel resolution was compared. This test
+        makes sure that it is always the same object returned.
+
+        """
+        ds1 = _create_coarest_finest_data_array(area_def.shape, area_def)
+        ds2 = _create_coarest_finest_data_array(area_def.shape, shifted_area)
+        scn = Scene()
+        scn["ds1"] = ds1
+        scn["ds2"] = ds2
+        course_area1 = scn.coarsest_area()
+
+        scn = Scene()
+        scn["ds2"] = ds2
+        scn["ds1"] = ds1
+        coarse_area2 = scn.coarsest_area()
+        # doesn't matter what order they were added, this should be the same area
+        assert coarse_area2 is course_area1
 
 
 class TestSceneAvailableDatasets:

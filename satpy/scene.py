@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from typing import Callable
 
 import numpy as np
 import xarray as xr
@@ -238,15 +239,33 @@ class Scene:
             if not all(ad.crs == first_crs for ad in areas[1:]):
                 raise ValueError("Can't compare areas with different "
                                  "projections.")
+            return self._compare_area_defs(compare_func, areas)
+        return self._compare_swath_defs(compare_func, areas)
 
-            def key_func(ds):
-                return 1. / abs(ds.pixel_size_x)
-        else:
-            def key_func(ds):
-                return ds.shape
+    @staticmethod
+    def _compare_area_defs(compare_func: Callable, area_defs: list[AreaDefinition]) -> list[AreaDefinition]:
+        def _key_func(area_def: AreaDefinition) -> tuple:
+            """Get comparable version of area based on resolution.
 
-        # find the highest/lowest area among the provided
-        return compare_func(areas, key=key_func)
+            Pixel size x is the primary comparison parameter followed by
+            the y dimension pixel size. The extent of the area and the
+            name (area_id) of the area are also used to act as
+            "tiebreakers" between areas of the same resolution.
+
+            """
+            pixel_size_x_inverse = 1. / abs(area_def.pixel_size_x)
+            pixel_size_y_inverse = 1. / abs(area_def.pixel_size_y)
+            area_id = area_def.area_id
+            return pixel_size_x_inverse, pixel_size_y_inverse, area_def.area_extent, area_id
+        return compare_func(area_defs, key=_key_func)
+
+    @staticmethod
+    def _compare_swath_defs(compare_func: Callable, swath_defs: list[SwathDefinition]) -> list[SwathDefinition]:
+        def _key_func(swath_def: SwathDefinition) -> tuple:
+            attrs = getattr(swath_def.lons, "attrs", {})
+            lon_ds_name = attrs.get("name")
+            return swath_def.shape[1], swath_def.shape[0], lon_ds_name
+        return compare_func(swath_defs, key=_key_func)
 
     def _gather_all_areas(self, datasets):
         """Gather all areas from datasets.
