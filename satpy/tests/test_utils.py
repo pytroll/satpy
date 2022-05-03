@@ -460,7 +460,7 @@ def test_check_file_protocols():
 
     Case without scheme/protocol, which should default to plain filenames.
     """
-    from satpy.scene import check_file_protocols
+    from satpy.utils import check_file_protocols
 
     filenames = ["/tmp/file1.nc", "/tmp/file2.nc"]
     res = check_file_protocols(filenames)
@@ -473,7 +473,7 @@ def test_check_file_protocols_mixed_sources():
     Case with mixed local and remote files.
     """
     from satpy.readers import FSFile
-    from satpy.scene import check_file_protocols
+    from satpy.utils import check_file_protocols
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
     res = check_file_protocols(filenames)
@@ -489,7 +489,7 @@ def test_check_file_protocols_filename_dict():
     Case where filenames is a dictionary mapping readers and filenames.
     """
     from satpy.readers import FSFile
-    from satpy.scene import check_file_protocols
+    from satpy.utils import check_file_protocols
 
     filenames = {
         "reader1": ["/tmp/file1.nc", "/tmp/file2.nc"],
@@ -509,7 +509,7 @@ def test_check_file_protocols_fsfile():
     Case where the some of the files are already FSFile objects.
     """
     from satpy.readers import FSFile
-    from satpy.scene import check_file_protocols
+    from satpy.utils import check_file_protocols
 
     filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
     res = check_file_protocols(filenames)
@@ -522,7 +522,7 @@ def test_check_file_protocols_windows_paths():
 
     Case where windows paths are used.
     """
-    from satpy.scene import check_file_protocols
+    from satpy.utils import check_file_protocols
 
     filenames = [r"C:\wintendo\file1.nc", "e:\\wintendo\\file2.nc", r"wintendo\file3.nc"]
     res = check_file_protocols(filenames)
