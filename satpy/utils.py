@@ -541,7 +541,7 @@ def get_chunk_pixel_size():
     return array_size
 
 
-def check_file_protocols(filenames, storage_options=None):
+def convert_remote_files_to_fsspec(filenames, storage_options=None):
     """Check filenames for transfer protocols, convert to FSFile objects if possible."""
     if storage_options is None:
         storage_options = {}

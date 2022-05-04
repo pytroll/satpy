@@ -34,7 +34,7 @@ from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
-from satpy.utils import _get_storage_options_from_reader_kwargs, check_file_protocols
+from satpy.utils import _get_storage_options_from_reader_kwargs, convert_remote_files_to_fsspec
 from satpy.writers import load_writer
 
 LOG = logging.getLogger(__name__)
@@ -127,7 +127,7 @@ class Scene:
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
         if filenames:
-            filenames = check_file_protocols(filenames, storage_options)
+            filenames = convert_remote_files_to_fsspec(filenames, storage_options)
 
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
