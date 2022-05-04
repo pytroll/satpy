@@ -205,7 +205,7 @@ class ParallaxCorrection:
 
         cth_dataset = self._prepare_cth_dataset(cth_dataset)
 
-        (pixel_lon, pixel_lat) = self.base_area.get_lonlats()
+        (pixel_lon, pixel_lat) = self.base_area.get_lonlats(chunks=1024)
         # calculate the shift/error due to the parallax effect
         (shifted_lon, shifted_lat) = forward_parallax(
                 sat_lon, sat_lat, sat_alt_m,
@@ -268,7 +268,7 @@ class ParallaxCorrection:
         When a satellite observes a cloud, a reprojection onto the cloud has
         already happened.
         """
-        (source_lon, source_lat) = source_area.get_lonlats()
+        (source_lon, source_lat) = source_area.get_lonlats(chunks=1024)
         lon_diff = source_lon - pixel_lon
         lat_diff = source_lat - pixel_lat
         # We use the bucket resampler here, because parallax correction
@@ -291,7 +291,7 @@ class ParallaxCorrection:
         inv_lat_diff = br.get_abs_max(lat_diff)
         inv_lon_diff = br.get_abs_max(lon_diff)
 
-        (base_lon, base_lat) = self.base_area.get_lonlats()
+        (base_lon, base_lat) = self.base_area.get_lonlats(chunks=1024)
         inv_lon = base_lon - inv_lon_diff
         inv_lat = base_lat - inv_lat_diff
         if self.debug_mode:
