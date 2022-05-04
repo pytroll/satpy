@@ -171,6 +171,20 @@ class TestVIIRSL1BReaderDay:
         # make sure we have some files
         assert r.file_handlers
 
+    def test_available_datasets_m_bands(self):
+        """Test available datasets for M band files."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'VL1BM_snpp_d20161130_t012400_c20161130054822.nc',
+            'VGEOM_snpp_d20161130_t012400_c20161130054822.nc',
+        ])
+        r.create_filehandlers(loadables)
+        avail_names = r.available_dataset_names
+        angles = {"satellite_azimuth_angle", "satellite_zenith_angle", "solar_azimuth_angle", "solar_zenith_angle"}
+        geo = {"m_lon", "m_lat"}
+        assert set(avail_names) == set(self.fake_cls.M_BANDS) | angles | geo
+
     def test_load_every_m_band_bt(self):
         """Test loading all M band brightness temperatures."""
         from satpy.readers import load_reader
