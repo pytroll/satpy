@@ -396,10 +396,10 @@ def _check_yaml_configs(configs, key):
     diagnostic = {}
     for i in configs:
         for fname in i:
+            msg = 'ok'
             with open(fname, 'r', encoding='utf-8') as stream:
                 try:
                     res = yaml.load(stream, Loader=UnsafeLoader)
-                    msg = 'ok'
                 except yaml.YAMLError as err:
                     stream.seek(0)
                     res = yaml.load(stream, Loader=BaseLoader)
