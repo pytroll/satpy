@@ -34,7 +34,7 @@ from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
-from satpy.utils import check_file_protocols
+from satpy.utils import _get_storage_options_from_reader_kwargs, check_file_protocols
 from satpy.writers import load_writer
 
 LOG = logging.getLogger(__name__)
@@ -1512,31 +1512,3 @@ class Scene:
                 LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
-
-
-def _get_storage_options_from_reader_kwargs(reader_kwargs):
-    if reader_kwargs is None:
-        return None, None
-    storage_options = reader_kwargs.pop('storage_options', None)
-    storage_opt_dict = _get_storage_dictionary_options(reader_kwargs)
-    storage_options = _merge_storage_options(storage_options, storage_opt_dict)
-
-    return storage_options, reader_kwargs
-
-
-def _get_storage_dictionary_options(reader_kwargs):
-    storage_opt_dict = {}
-    for k, v in reader_kwargs.items():
-        if isinstance(v, dict):
-            storage_opt_dict[k] = v.pop('storage_options', None)
-
-    return storage_opt_dict
-
-
-def _merge_storage_options(storage_options, storage_opt_dict):
-    if storage_opt_dict:
-        if storage_options:
-            storage_opt_dict['storage_options'] = storage_options
-        storage_options = storage_opt_dict
-
-    return storage_options
