@@ -114,14 +114,14 @@ class Scene:
         """
         self.attrs = dict()
 
-        storage_options, reader_kwargs = _get_storage_options_from_reader_kwargs(reader_kwargs)
+        storage_options, cleaned_reader_kwargs = _get_storage_options_from_reader_kwargs(reader_kwargs)
 
         if filter_parameters:
-            if reader_kwargs is None:
-                reader_kwargs = {}
+            if cleaned_reader_kwargs is None:
+                cleaned_reader_kwargs = {}
             else:
-                reader_kwargs = reader_kwargs.copy()
-            reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
+                cleaned_reader_kwargs = cleaned_reader_kwargs.copy()
+            cleaned_reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
@@ -131,7 +131,7 @@ class Scene:
 
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
-                                                      reader_kwargs=reader_kwargs)
+                                                      reader_kwargs=cleaned_reader_kwargs)
         self._datasets = DatasetDict()
         self._wishlist = set()
         self._dependency_tree = DependencyTree(self._readers)
