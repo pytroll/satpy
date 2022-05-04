@@ -1518,12 +1518,25 @@ def _get_storage_options_from_reader_kwargs(reader_kwargs):
     if reader_kwargs is None:
         return None, None
     storage_options = reader_kwargs.pop('storage_options', None)
+    storage_opt_dict = _get_storage_dictionary_options(reader_kwargs)
+    storage_options = _merge_storage_options(storage_options, storage_opt_dict)
+
+    return storage_options, reader_kwargs
+
+
+def _get_storage_dictionary_options(reader_kwargs):
     storage_opt_dict = {}
     for k, v in reader_kwargs.items():
         if isinstance(v, dict):
             storage_opt_dict[k] = v.pop('storage_options', None)
+
+    return storage_opt_dict
+
+
+def _merge_storage_options(storage_options, storage_opt_dict):
     if storage_opt_dict:
         if storage_options:
             storage_opt_dict['storage_options'] = storage_options
         storage_options = storage_opt_dict
-    return storage_options, reader_kwargs
+
+    return storage_options
