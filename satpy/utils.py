@@ -397,6 +397,7 @@ def _check_yaml_configs(configs, key):
     for i in configs:
         for fname in i:
             msg = 'ok'
+            res = None
             with open(fname, 'r', encoding='utf-8') as stream:
                 try:
                     res = yaml.load(stream, Loader=UnsafeLoader)
