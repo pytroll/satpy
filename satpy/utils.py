@@ -552,7 +552,7 @@ def check_file_protocols(filenames, storage_options=None):
 def _check_file_protocols_for_dicts(filenames, storage_options):
     res = {}
     for reader, files in filenames.items():
-        opts = storage_options.get(reader, None)
+        opts = storage_options.get(reader, {})
         res[reader] = _check_file_protocols(files, opts)
     return res
 
