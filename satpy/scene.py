@@ -69,7 +69,7 @@ class Scene:
     """
 
     def __init__(self, filenames=None, reader=None, filter_parameters=None,
-                 reader_kwargs=None, storage_options=None):
+                 reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
         To load data `filenames` and preferably `reader` must be specified::
@@ -106,12 +106,16 @@ class Scene:
                 reader instances, or a dictionary mapping reader names to
                 sub-dictionaries to pass different arguments to different
                 reader instances.
-            storage_options (dict): Keyword arguments to pass to ``fsspec.open_files()`` for remote file access.
-                See `fsspec documentation <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ for
-                more details.
+
+                Keyword arguments for remote file access are also given in this dictionary.
+                See `documentation <https://satpy.readthedocs.io/en/stable/remote_reading.html>`_
+                for usage examples.
 
         """
         self.attrs = dict()
+
+        storage_options, reader_kwargs = _get_storage_options_from_reader_kwargs(reader_kwargs)
+
         if filter_parameters:
             if reader_kwargs is None:
                 reader_kwargs = {}
@@ -1508,3 +1512,18 @@ class Scene:
                 LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
+
+
+def _get_storage_options_from_reader_kwargs(reader_kwargs):
+    if reader_kwargs is None:
+        return None, None
+    storage_options = reader_kwargs.pop('storage_options', None)
+    storage_opt_dict = {}
+    for k, v in reader_kwargs.items():
+        if isinstance(v, dict):
+            storage_opt_dict[k] = v.pop('storage_options', None)
+    if storage_opt_dict:
+        if storage_options:
+            storage_opt_dict['storage_options'] = storage_options
+        storage_options = storage_opt_dict
+    return storage_options, reader_kwargs

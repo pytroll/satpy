@@ -7,8 +7,9 @@ Reading remote files
     >>> reload(sys)
     >>> sys.setdefaultencoding('utf8')
 
-Examples
-========
+
+Using a single reader
+=====================
 
 Some of the readers in Satpy can read data directly over various transfer protocols. This is done
 using `fsspec <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ and various packages
@@ -20,7 +21,7 @@ As an example, reading ABI data from public AWS S3 storage can be done in the fo
 
     storage_options = {'anon': True}
     filenames = ['s3://noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*']
-    scn = Scene(reader='abi_l1b', filenames=filenames, storage_options=storage_options)
+    scn = Scene(reader='abi_l1b', filenames=filenames, reader_kwargs={'storage_options': storage_options})
     scn.load(['true_color_raw'])
 
 In addition to `fsspec` the `s3fs` library needs to be installed.
@@ -46,7 +47,7 @@ For reference, reading SEVIRI HRIT data from a local S3 storage works the same w
         "secret": "VERYBIGSECRET",
         "key": "ACCESSKEY"
     }
-    scn = Scene(reader='seviri_l1b_hrit', filenames=filenames, storage_options=storage_options)
+    scn = Scene(reader='seviri_l1b_hrit', filenames=filenames, reader_kwargs={'storage_options': storage_options})
     scn.load(['WV_073'])
 
 Using the `fsspec` configuration in `s3.json` the configuration would look like this::
@@ -59,7 +60,39 @@ Using the `fsspec` configuration in `s3.json` the configuration would look like 
         }
     }
 
-See :class:`~satpy.readers.FSFile` for direct usage of `fsspec`.
+
+Using multiple readers
+======================
+
+If multiple readers are used and the required credentials differ, the storage options are passed per reader like this::
+
+    reader1_filenames = [...]
+    reader2_filenames = [...]
+    filenames = {
+        'reader1': reader1_filenames,
+        'reader2': reader2_filenames,
+    }
+    reader1_storage_options = {...}
+    reader2_storage_options = {...}
+    reader_kwargs = {
+        'reader1': {
+            'option1': 'foo',
+            'storage_options': reader1_storage_options,
+        },
+        'reader2': {
+            'option1': 'foo',
+            'storage_options': reader1_storage_options,
+        }
+    }
+    scn = Scene(filenames=filenames, reader_kwargs=reader_kwargs)
+
+
+Resources
+=========
+
+See :class:`~satpy.readers.FSFile` for direct usage of `fsspec` with Satpy, and
+`fsspec documentation <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ for more details on connection options
+and detailes.
 
 
 Supported readers
