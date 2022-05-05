@@ -1454,21 +1454,19 @@ def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vert
 
 
 def _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group):
-    # populate start row of first missing segment using the end row of the previous segment
-    # if this is the first segment in the full-disk, it will have a non-zero value already
-    if segment_start_rows[group[0]] == 0:
-        segment_start_rows[group[0]] = segment_end_rows[group[0] - 1] + 1
-    # populate end row of last missing segment using the start row of the following segment
-    # if this is the last segment in the full-disk, it will have a non-zero value already
-    if segment_end_rows[group[-1]] == 0:
-        segment_end_rows[group[-1]] = segment_start_rows[group[-1] + 1] - 1
-    # compute gap size of missing segments group
-    size_gap = segment_end_rows[group[-1]] - segment_start_rows[group[0]] + 1
-    # split the gap by the number of missing segments in (almost) equal parts
-    proposed_sizes_missing_segments = split_integer_in_most_equal_parts(size_gap, len(group))
-    # populate the rest of the start and end rows and heights using computed sizes of missing segments
+    _populate_group_start_end_row_using_neighbour_segments(group, segment_end_rows, segment_start_rows)
+    proposed_sizes_missing_segments = _compute_proposed_sizes_of_missing_segments_in_group(group, segment_end_rows,
+                                                                                           segment_start_rows)
+    _populate_start_end_rows_of_missing_segments_with_proposed_sizes(group, proposed_sizes_missing_segments,
+                                                                     segment_start_rows, segment_end_rows,
+                                                                     segment_heights)
+
+
+def _populate_start_end_rows_of_missing_segments_with_proposed_sizes(group, proposed_sizes_missing_segments,
+                                                                     segment_start_rows, segment_end_rows,
+                                                                     segment_heights):
     for n in range(len(group)):
-        # first and last missing segments start and end have been populated already
+        # start of first and end of last missing segment have been populated already
         if n != 0:
             segment_start_rows[group[n]] = segment_start_rows[group[n - 1]] + proposed_sizes_missing_segments[n] + 1
         if n != len(group) - 1:
@@ -1476,17 +1474,45 @@ def _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_
         segment_heights[group[n]] = proposed_sizes_missing_segments[n]
 
 
+def _compute_proposed_sizes_of_missing_segments_in_group(group, segment_end_rows, segment_start_rows):
+    size_group_gap = segment_end_rows[group[-1]] - segment_start_rows[group[0]] + 1
+    proposed_sizes_missing_segments = split_integer_in_most_equal_parts(size_group_gap, len(group))
+    return proposed_sizes_missing_segments
+
+
+def _populate_group_start_end_row_using_neighbour_segments(group, segment_end_rows, segment_start_rows):
+    # if group is at the start/end of the full-disk, we know the start/end value already
+    if segment_start_rows[group[0]] == 0:
+        _populate_group_start_row_using_previous_segment(group, segment_end_rows, segment_start_rows)
+    if segment_end_rows[group[-1]] == 0:
+        _populate_group_end_row_using_later_segment(group, segment_end_rows, segment_start_rows)
+
+
+def _populate_group_end_row_using_later_segment(group, segment_end_rows, segment_start_rows):
+    segment_end_rows[group[-1]] = segment_start_rows[group[-1] + 1] - 1
+
+
+def _populate_group_start_row_using_previous_segment(group, segment_end_rows, segment_start_rows):
+    segment_start_rows[group[0]] = segment_end_rows[group[0] - 1] + 1
+
+
 def _init_positioning_arrays_for_variable_padding(chk_infos, grid_type, exp_segment_nr):
     segment_heights = np.zeros(exp_segment_nr)
     segment_start_rows = np.zeros(exp_segment_nr)
     segment_end_rows = np.zeros(exp_segment_nr)
-    # populate positioning arrays with available information from loaded segments
+
+    _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                           segment_heights)
+    return segment_start_rows, segment_end_rows, segment_heights
+
+
+def _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                           segment_heights):
     for chk_info in chk_infos:
         current_fh_segment_nr = chk_info['segment_nr']
         segment_heights[current_fh_segment_nr] = chk_info[grid_type]['segment_height']
         segment_start_rows[current_fh_segment_nr] = chk_info[grid_type]['start_position_row']
         segment_end_rows[current_fh_segment_nr] = chk_info[grid_type]['end_position_row']
-    return segment_start_rows, segment_end_rows, segment_heights
 
 
 def split_integer_in_most_equal_parts(x, n):
