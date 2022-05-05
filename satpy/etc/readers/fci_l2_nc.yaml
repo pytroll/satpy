@@ -7,37 +7,45 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
-  nc_fci_oca:
-    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-OCA--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
-
   nc_fci_clm:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CLM--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CLM-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_test_clm:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: [ 'W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CLMTest-{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-PAD-CLMTest-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_ct:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CT--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CT-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_ctth:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CTTH--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CTTH-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_oca:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-OCA-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_asr:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
-    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-ASR--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-ASR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_gii:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
-    file_patterns: ["W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-GII--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-GII-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_toz:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
-    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-TOZ--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc" ]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-TOZ-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
 datasets:
 
