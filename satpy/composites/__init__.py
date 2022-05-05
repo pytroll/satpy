@@ -638,7 +638,7 @@ class DayNightCompositor(GenericCompositor):
                 chunks = foreground_data.sel(bands=foreground_data['bands'][0]).chunks
             except KeyError:
                 chunks = foreground_data.chunks
-            coszen = get_cos_sza(foreground_data, chunks=chunks)
+            coszen = get_cos_sza(foreground_data)
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
