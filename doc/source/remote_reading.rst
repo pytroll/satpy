@@ -24,7 +24,7 @@ As an example, reading ABI data from public AWS S3 storage can be done in the fo
     scn = Scene(reader='abi_l1b', filenames=filenames, reader_kwargs={'storage_options': storage_options})
     scn.load(['true_color_raw'])
 
-In addition to `fsspec` the `s3fs` library needs to be installed.
+Reading from S3 as above requires the `s3fs` library to be installed in addition to `fsspec`.
 
 As an alternative, the storage options can be given using
 `fsspec configuration <https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration>`_.
