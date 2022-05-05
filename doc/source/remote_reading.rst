@@ -37,6 +37,11 @@ For the above example, the configuration could be saved to `s3.json` in the `fss
         }
     }
 
+.. note::
+
+    Using `reader_kwargs` doesn't completely override the configuration file, so in case of problems
+    remove the configuration file to see if that solves the issue.
+
 For reference, reading SEVIRI HRIT data from a local S3 storage works the same way::
 
     filenames = [
@@ -85,6 +90,55 @@ If multiple readers are used and the required credentials differ, the storage op
         }
     }
     scn = Scene(filenames=filenames, reader_kwargs=reader_kwargs)
+
+
+Caching the remote files
+========================
+
+Caching the remote file locally can speedup the overall processing time significantly, especially if the data are re-used
+for example when testing. The caching can be done by taking advantage of the `fsspec caching mechanism
+<https://filesystem-spec.readthedocs.io/en/latest/features.html#caching-files-locally>`_::
+
+    reader_kwargs = {
+        'storage_options': {
+            's3': {'anon': True},
+            'filecache': {
+                'cache_storage': '/tmp/s3_cache',
+            }
+        }
+    }
+
+    filenames = ['filecache::s3://noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*']
+    scn = Scene(reader='abi_l1b', filenames=filenames, reader_kwargs=reader_kwargs)
+    scn.load(['true_color_raw'])
+    scn2 = scn.resample(scn.coarsest_area(), resampler='native')
+    scn2.save_datasets(base_dir='/tmp/', tiled=True, blockxsize=512, blockysize=512, driver='COG', overviews=[])
+
+
+The following table shows the timings for running the above
+
+.. _cache_timing_table:
+
+.. list-table:: Processing times without and with caching
+    :header-rows: 1
+    :widths: 40 30 30
+
+    * - Caching
+      - Elapsed time
+      - Notes
+    * - No caching
+      - 650 s
+      - remove `reader_kwargs` and `filecache::`
+    * - File cache
+      - 66 s
+      - Initial run
+    * - File cache
+      - 13 s
+      - After the inital run
+
+.. note::
+
+    The cache is not cleaned by Satpy nor fsspec so the user should handle cleaning excess files from `cache_storage`.
 
 
 Resources
