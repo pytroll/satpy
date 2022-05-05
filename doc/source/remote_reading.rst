@@ -2,12 +2,6 @@
 Reading remote files
 ====================
 
-.. testsetup:: *
-    >>> import sys
-    >>> reload(sys)
-    >>> sys.setdefaultencoding('utf8')
-
-
 Using a single reader
 =====================
 
