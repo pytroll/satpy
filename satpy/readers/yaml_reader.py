@@ -37,12 +37,13 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader  # type: ignore
 
+from functools import cached_property
+
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
 
 from satpy import DatasetDict
-from satpy._compat import cached_property
 from satpy.aux_download import DataDownloadMixin
 from satpy.dataset import DataID, DataQuery, get_key
 from satpy.dataset.dataid import default_co_keys_config, default_id_keys_config, get_keys_from_config
