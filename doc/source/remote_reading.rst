@@ -109,7 +109,7 @@ for example when testing. The caching can be done by taking advantage of the `fs
     scn2.save_datasets(base_dir='/tmp/', tiled=True, blockxsize=512, blockysize=512, driver='COG', overviews=[])
 
 
-The following table shows the timings for running the above
+The following table shows the timings for running the above code with different cache statuses::
 
 .. _cache_timing_table:
 
@@ -122,7 +122,7 @@ The following table shows the timings for running the above
       - Notes
     * - No caching
       - 650 s
-      - remove `reader_kwargs` and `filecache::`
+      - remove `reader_kwargs` and `filecache::` from the code
     * - File cache
       - 66 s
       - Initial run
