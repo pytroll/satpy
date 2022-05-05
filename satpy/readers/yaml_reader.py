@@ -1360,7 +1360,7 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
 class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
     """GEOVariableSegmentYAMLReader for handling chunked/segmented GEO products with segments of variable height.
 
-    This YAMLReader ovverrides parts of the GEOSegmentYAMLReader to account for formats where the segments can
+    This YAMLReader overrides parts of the GEOSegmentYAMLReader to account for formats where the segments can
     have variable heights. It computes the sizes of the padded segments using the information available in the
     file(handlers), so that gaps of any size can be filled as needed.
 

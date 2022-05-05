@@ -1044,11 +1044,10 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertEqual(es, 5)
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
-    @patch('satpy.readers.yaml_reader._get_empty_segment_with_height')
     @patch('satpy.readers.yaml_reader.FileYAMLReader._load_dataset')
     @patch('satpy.readers.yaml_reader.xr')
     @patch('satpy.readers.yaml_reader._find_missing_segments')
-    def test_load_dataset(self, mss, xr, parent_load_dataset, geswh):
+    def test_load_dataset(self, mss, xr, parent_load_dataset):
         """Test _load_dataset()."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
         reader = GEOSegmentYAMLReader()
@@ -1136,30 +1135,6 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
                                    pad_data=False)
         parent_load_dataset.assert_called_once_with(dataid, ds_info,
                                                     file_handlers)
-
-    def test_get_empty_segment_with_height(self):
-        """Test _get_empty_segment_with_height()."""
-        from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
-
-        dim = 'y'
-
-        # check expansion of empty segment
-        empty_segment = xr.DataArray(np.ones((139, 5568)), dims=['y', 'x'])
-        new_height = 140
-        new_empty_segment = geswh(empty_segment, new_height, dim)
-        assert new_empty_segment.shape == (140, 5568)
-
-        # check reduction of empty segment
-        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
-        new_height = 139
-        new_empty_segment = geswh(empty_segment, new_height, dim)
-        assert new_empty_segment.shape == (139, 5568)
-
-        # check that empty segment is not modified if it has the right height already
-        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
-        new_height = 140
-        new_empty_segment = geswh(empty_segment, new_height, dim)
-        assert new_empty_segment is empty_segment
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader._load_area_def')
@@ -1272,6 +1247,51 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
 
 class TestGEOVariableSegmentYAMLReader(unittest.TestCase):
     """Test GEOVariableSegmentYAMLReader."""
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch('satpy.readers.yaml_reader._get_empty_segment_with_height')
+    @patch('satpy.readers.yaml_reader.xr')
+    @patch('satpy.readers.yaml_reader._find_missing_segments')
+    def test_get_empty_segment(self, mss, xr, geswh):
+        """Test execution of (overridden) get_empty_segment inside _load_dataset."""
+        from satpy.readers.yaml_reader import GEOVariableSegmentYAMLReader
+        reader = GEOVariableSegmentYAMLReader()
+        # Setup input, and output of mocked functions for first segment missing
+        chk_pos_info = {
+            '1km': {'start_position_row': 0,
+                    'end_position_row': 0,
+                    'segment_height': 0,
+                    'segment_width': 11136},
+            '2km': {'start_position_row': 140,
+                    'end_position_row': None,
+                    'segment_height': 278,
+                    'segment_width': 5568}
+        }
+        expected_segments = 2
+        segment = 2
+        aex = [0, 1000, 200, 500]
+        ashape = [278, 5568]
+        fh_2, seg2_area = _create_mocked_fh_and_areadef(aex, ashape, expected_segments, segment, chk_pos_info)
+
+        file_handlers = {'filetype1': [fh_2]}
+        reader._extract_segment_location_dicts(file_handlers)
+
+        counter = 2
+        seg = MagicMock(dims=['y', 'x'])
+        slice_list = [None, seg]
+        failure = False
+        projectable = MagicMock()
+        empty_segment = MagicMock()
+        empty_segment.shape = [278, 5568]
+        xr.full_like.return_value = empty_segment
+        dataid = MagicMock()
+        ds_info = MagicMock()
+
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        reader._load_dataset(dataid, ds_info, [fh_2])
+        # the return of get_empty_segment
+        geswh.assert_called_once_with(empty_segment, 139, dim='y')
 
     @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.AreaDefinition')
@@ -1454,3 +1474,27 @@ class TestGEOVariableSegmentYAMLReader(unittest.TestCase):
                                          call(*expected_call4),
                                          call(*expected_call5)
                                          ])
+
+    def test_get_empty_segment_with_height(self):
+        """Test _get_empty_segment_with_height()."""
+        from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
+
+        dim = 'y'
+
+        # check expansion of empty segment
+        empty_segment = xr.DataArray(np.ones((139, 5568)), dims=['y', 'x'])
+        new_height = 140
+        new_empty_segment = geswh(empty_segment, new_height, dim)
+        assert new_empty_segment.shape == (140, 5568)
+
+        # check reduction of empty segment
+        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
+        new_height = 139
+        new_empty_segment = geswh(empty_segment, new_height, dim)
+        assert new_empty_segment.shape == (139, 5568)
+
+        # check that empty segment is not modified if it has the right height already
+        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
+        new_height = 140
+        new_empty_segment = geswh(empty_segment, new_height, dim)
+        assert new_empty_segment is empty_segment
