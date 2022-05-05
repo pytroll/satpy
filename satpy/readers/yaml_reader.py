@@ -1245,18 +1245,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                 fh = file_handlers[idx]
                 area = fh.get_area_def(dsid)
             except ValueError:
-                logger.debug("Padding to full disk with segment nr. %d", segment)
-
-                new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size,
-                                                                                     segment_n=segment,
-                                                                                     filetype=filetype)
-                new_ll_y = area.area_extent[1] + new_height_proj_coord
-                new_ur_y = area.area_extent[1]
-                fill_extent = (area.area_extent[0], new_ll_y,
-                               area.area_extent[2], new_ur_y)
-                area = AreaDefinition('fill', 'fill', 'fill', area.crs,
-                                      seg_size[1], new_height_px,
-                                      fill_extent)
+                area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type='later')
 
             area_defs[segment] = area
             seg_size = area.shape
@@ -1272,24 +1261,37 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         filetype = file_handlers[0].filetype_info['file_type']
 
         for segment in range(available_segments[0] - 1, 0, -1):
-            logger.debug("Padding segment %d to full disk.",
-                         segment)
-
-            new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size,
-                                                                                 segment_n=segment,
-                                                                                 filetype=filetype)
-            new_ll_y = area.area_extent[3]
-            new_ur_y = area.area_extent[3] - new_height_proj_coord
-            fill_extent = (area.area_extent[0], new_ll_y,
-                           area.area_extent[2], new_ur_y)
-            area = AreaDefinition('fill', 'fill', 'fill',
-                                  area.crs,
-                                  seg_size[1], new_height_px,
-                                  fill_extent)
+            area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type='earlier')
             area_defs[segment] = area
             seg_size = area.shape
 
         return area_defs
+
+    def _get_new_areadef_for_padded_segment(self, area, filetype, seg_size, segment, padding_type):
+        logger.debug("Padding to full disk with segment nr. %d", segment)
+        new_height_px, new_ll_y, new_ur_y = self._get_y_area_extents_for_padded_segment(area, filetype, padding_type,
+                                                                                        seg_size, segment)
+
+        fill_extent = (area.area_extent[0], new_ll_y,
+                       area.area_extent[2], new_ur_y)
+        area = AreaDefinition('fill', 'fill', 'fill', area.crs,
+                              seg_size[1], new_height_px,
+                              fill_extent)
+        return area
+
+    def _get_y_area_extents_for_padded_segment(self, area, filetype, padding_type, seg_size, segment):
+        new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size,
+                                                                             segment_n=segment,
+                                                                             filetype=filetype)
+        if padding_type == 'later':
+            new_ll_y = area.area_extent[1] + new_height_proj_coord
+            new_ur_y = area.area_extent[1]
+        elif padding_type == 'earlier':
+            new_ll_y = area.area_extent[3]
+            new_ur_y = area.area_extent[3] - new_height_proj_coord
+        else:
+            raise ValueError("Padding type not recognised.")
+        return new_height_px, new_ll_y, new_ur_y
 
     def _get_new_areadef_heights(self, previous_area, previous_seg_size, **kwargs):
         new_height_px = previous_seg_size[0]
