@@ -358,14 +358,16 @@ def get_satellite_zenith_angle(data_arr: xr.DataArray) -> xr.DataArray:
     return satz
 
 
-def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
+def get_cos_sza(data_arr: xr.DataArray, chunks: Union[int, str, tuple] = None) -> xr.DataArray:
     """Generate the cosine of the solar zenith angle for the provided data.
 
     Returns:
         DataArray with the same shape as ``data_arr``.
 
     """
-    lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.chunks)
+    if chunks is None:
+        chunks = data_arr.chunks
+    lons, lats = _get_valid_lonlats(data_arr.attrs["area"], chunks)
     cos_sza = _get_cos_sza(data_arr.attrs["start_time"], lons, lats)
     return _geo_dask_to_data_array(cos_sza)
 
