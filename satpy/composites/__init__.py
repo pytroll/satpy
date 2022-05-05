@@ -634,10 +634,6 @@ class DayNightCompositor(GenericCompositor):
             from satpy.modifiers.angles import get_cos_sza
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
-            try:
-                chunks = foreground_data.sel(bands=foreground_data['bands'][0]).chunks
-            except KeyError:
-                chunks = foreground_data.chunks
             coszen = get_cos_sza(foreground_data)
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
