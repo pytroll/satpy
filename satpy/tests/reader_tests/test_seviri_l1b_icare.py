@@ -206,3 +206,15 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             self.p.target(mock.MagicMock(),
                           mock.MagicMock(),
                           mock.MagicMock())._get_dsname({'name': 'badband'})
+
+    def test_nocompute(self):
+        """Test that dask does not compute anything in the reader itself."""
+        from satpy.tests.utils import CustomScheduler
+        import dask
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            r = load_reader(self.reader_configs)
+            loadables = r.select_files_from_pathnames([
+                'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf'
+            ])
+            r.create_filehandlers(loadables)
+            r.load(['VIS008'])
