@@ -128,7 +128,7 @@ The following table shows the timings for running the above code with different 
       - Initial run
     * - File cache
       - 13 s
-      - After the inital run
+      - Second run
 
 .. note::
 
