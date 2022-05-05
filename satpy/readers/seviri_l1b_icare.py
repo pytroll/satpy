@@ -256,11 +256,11 @@ class SEVIRI_ICARE(HDF4FileHandler):
         data = data.where(data != fill)
         data.data = data.data.astype(np.float32)
         if scale_factor is not None and offset is not None:
-            data *= scale_factor
-            data += offset
+            data = data * scale_factor
+            data = data + offset
             # Now we correct range from 0-1 to 0-100 for VIS:
             if ds_id['name'] in self.ref_bands:
-                data *= 100.
+                data = data * 100.
         return data
 
     def get_area_def(self, ds_id):
