@@ -101,7 +101,7 @@ class FciL2CommonFunctions(object):
         slice_dict = {dim: dataset_info[dim_id] for (dim, dim_id) in dimensions.items()
                       if dim_id in dataset_info.keys() and dim in variable.dims}
         for dim, dim_ind in slice_dict.items():
-            logger.debug(f"Extracting {dimensions[dim]}-layer {dim_ind} from dimension '{dim}'.")
+            logger.debug(f"Extracting {dimensions[dim]}-index {dim_ind} from dimension '{dim}'.")
         variable = variable.sel(slice_dict)
 
         return variable
@@ -152,7 +152,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self.nlines = self.nc['y'].size
         self.ncols = self.nc['x'].size
         self._projection = self.nc['mtg_geos_projection']
-        self.multi_dims = {'number_of_vis_channels': 'vis_channel_id'}
+        self.multi_dims = {'maximum_number_of_layers': 'layer', 'number_of_vis_channels': 'vis_channel_id'}
 
     def get_area_def(self, key):
         """Return the area definition."""
@@ -180,19 +180,8 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if any(dim_id in dataset_info.keys() for dim_id in self.multi_dims.values()):
             variable = self._slice_dataset(variable, dataset_info, self.multi_dims)
 
-        # If the variable has 3 dimensions, select the required layer
-        if variable.ndim == 3:
-            if par_name == 'retrieved_cloud_optical_thickness':
-                variable = self.get_total_cot(variable)
-
-            elif par_name == 'crm':
-                pass
-
-            else:
-                # Extract data from layer defined in yaml-file
-                layer = dataset_info['layer']
-                logger.debug('Selecting the layer %d.', layer)
-                variable = variable.sel(maximum_number_of_layers=layer)
+        if par_name == 'retrieved_cloud_optical_thickness':
+            variable = self.get_total_cot(variable)
 
         if dataset_info['file_type'] == 'nc_fci_test_clm':
             variable = self._decode_clm_test_data(variable, dataset_info)
