@@ -1382,19 +1382,24 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
     def _extract_segment_location_dicts(self, created_fhs):
         self.segment_infos = dict()
         for filetype, filetype_fhs in created_fhs.items():
-            # initialise the segment info for this filetype
-            exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
-            width_to_grid_type = _get_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
-            self.segment_infos.update({filetype: {'available_segment_infos': [],
-                                                  'expected_segments': exp_segment_nr,
-                                                  'width_to_grid_type': width_to_grid_type}})
-
-            # collect the segment positioning infos for all available segments
-            for fh in filetype_fhs:
-                chk_infos = fh.get_segment_position_info()
-                chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
-                self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
+            self._initialise_segment_infos(filetype, filetype_fhs)
+            self._collect_segment_position_infos(filetype, filetype_fhs)
         return
+
+    def _collect_segment_position_infos(self, filetype, filetype_fhs):
+        # collect the segment positioning infos for all available segments
+        for fh in filetype_fhs:
+            chk_infos = fh.get_segment_position_info()
+            chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
+            self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
+
+    def _initialise_segment_infos(self, filetype, filetype_fhs):
+        # initialise the segment info for this filetype
+        exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
+        width_to_grid_type = _get_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
+        self.segment_infos.update({filetype: {'available_segment_infos': [],
+                                              'expected_segments': exp_segment_nr,
+                                              'width_to_grid_type': width_to_grid_type}})
 
     def _get_empty_segment(self, dim=None, idx=None, filetype=None):
         grid_type = self.segment_infos[filetype]['width_to_grid_type'][self.empty_segment.shape[1]]
