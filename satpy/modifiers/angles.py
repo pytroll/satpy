@@ -365,14 +365,17 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
         DataArray with the same shape as ``data_arr``.
 
     """
-    x_dim_index = data_arr.dims.index("x")
-    y_dim_index = data_arr.dims.index("y")
-
-    chunks = (data_arr.chunks[y_dim_index], data_arr.chunks[x_dim_index])
-
+    chunks = _geo_chunks_from_data_arr(data_arr)
     lons, lats = _get_valid_lonlats(data_arr.attrs["area"], chunks)
     cos_sza = _get_cos_sza(data_arr.attrs["start_time"], lons, lats)
     return _geo_dask_to_data_array(cos_sza)
+
+
+def _geo_chunks_from_data_arr(data_arr: xr.DataArray) -> tuple:
+    x_dim_index = data_arr.dims.index("x")
+    y_dim_index = data_arr.dims.index("y")
+    chunks = (data_arr.chunks[y_dim_index], data_arr.chunks[x_dim_index])
+    return chunks
 
 
 @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
