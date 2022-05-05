@@ -273,29 +273,13 @@ class TestMultiSceneGrouping:
             DataQuery(name='even'): ['ds2', 'ds4']
         }
 
-    @pytest.fixture
-    def grouped_multi_scene(self, multi_scene, groups):
-        """Group the MultiScene."""
+    def test_multi_scene_grouping(self, multi_scene, groups, scene1):
+        """Test grouping a MultiScene."""
         multi_scene.group(groups)
-        return multi_scene
-
-    @pytest.fixture
-    def shared_ids_exp(self):
-        """Get expected shared dataset IDs of the grouped MultiScene."""
-        return {make_dataid(name="odd"), make_dataid(name="even")}
-
-    def test_shared_dataset_ids_of_grouped_multi_scene(self, grouped_multi_scene, shared_ids_exp):
-        """Test shared dataset IDs of the grouped MultiScene."""
-        assert grouped_multi_scene.shared_dataset_ids == shared_ids_exp
-
-    def test_group_alias_equals_original_dataset(self, grouped_multi_scene, scene1):
-        """Test that the group alias equals the original dataset."""
-        scene1_grp = grouped_multi_scene.scenes[0]
-        xr.testing.assert_allclose(scene1_grp["ds1"], scene1["ds1"])
-
-    def test_grouping_does_not_modify_orignal_dataset(self, grouped_multi_scene, scene1):
-        """Test that grouping does not modify the original dataset."""
+        shared_ids_exp = {make_dataid(name="odd"), make_dataid(name="even")}
+        assert multi_scene.shared_dataset_ids == shared_ids_exp
         assert DataQuery(name='odd') not in scene1
+        xr.testing.assert_allclose(multi_scene.scenes[0]["ds1"], scene1["ds1"])
 
     def test_fails_to_add_multiple_datasets_from_the_same_scene_to_a_group(self, multi_scene):
         """Test that multiple datasets from the same scene in one group fails."""
