@@ -75,7 +75,7 @@ located in the ``satpy/etc/readers`` directory, along with the YAML
 files for all other readers.  If you are developing a reader for internal
 purposes (such as for unpublished data), the YAML file should be located
 in any directory in ``$SATPY_CONFIG_PATH`` within the subdirectory
-``readers/``.
+``readers/`` (see :ref:`config`).
 
 The YAML file is composed of three sections:
 
@@ -583,10 +583,6 @@ One way of implementing a file handler is shown below:
 
     class NCSEVIRIHRVFileHandler():
       # left as an exercise to the reader :)
-
-For readers for NetCDF files in particular, you
-may want to implement your reader as a subclass of
-:class:`~satpy.readers.netcdf_utils.NetCDF4FileHandler`.
 
 If you have any questions, please contact the
 :ref:`Satpy developers <dev_help>`.
