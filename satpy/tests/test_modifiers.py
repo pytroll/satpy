@@ -465,6 +465,7 @@ def _angle_cache_stacked_area_def():
 def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDefinition]] = None,
                          chunks: Optional[Union[int, tuple]] = 2,
                          shape: tuple = (5, 5),
+                         dims: tuple = None,
                          ) -> xr.DataArray:
     if area_def is None:
         area_def = _angle_cache_area_def()
@@ -476,6 +477,7 @@ def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDef
     stime = datetime(2020, 1, 1, 12, 0, 0)
     data = da.zeros(shape, chunks=chunks)
     vis = xr.DataArray(data,
+                       dims=dims,
                        attrs={
                            'area': area_def,
                            'start_time': stime,
@@ -490,6 +492,11 @@ def _get_stacked_angle_test_data():
 
 
 def _get_angle_test_data_rgb():
+    return _get_angle_test_data(shape=(5, 5, 3), chunks=((2, 2, 1), (2, 2, 1), (1, 1, 1)),
+                                dims=("y", "x", "bands"))
+
+
+def _get_angle_test_data_rgb_nodims():
     return _get_angle_test_data(shape=(3, 5, 5), chunks=((1, 1, 1), (2, 2, 1), (2, 2, 1)))
 
 
@@ -540,6 +547,7 @@ class TestAngleGeneration:
             (_get_angle_test_data, 9),
             (_get_stacked_angle_test_data, 3),
             (_get_angle_test_data_rgb, 9),
+            (_get_angle_test_data_rgb_nodims, 9),
         ],
     )
     def test_get_angles(self, input_func, exp_calls):
@@ -619,6 +627,7 @@ class TestAngleGeneration:
             (_get_stacked_angle_test_data, 3, ((5,), (2, 2, 1))),
             (_get_angle_test_data_odd_chunks, 9, ((2, 1, 2), (1, 1, 2, 1))),
             (_get_angle_test_data_rgb, 9, ((2, 2, 1), (2, 2, 1))),
+            (_get_angle_test_data_rgb_nodims, 9, ((2, 2, 1), (2, 2, 1))),
         ])
     def test_cache_get_angles(
             self,

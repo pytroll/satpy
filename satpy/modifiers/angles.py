@@ -371,20 +371,6 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
     return _geo_dask_to_data_array(cos_sza)
 
 
-def _geo_chunks_from_data_arr(data_arr: xr.DataArray) -> tuple:
-    x_dim_index = _dim_index_with_default(data_arr.dims, "x", -1)
-    y_dim_index = _dim_index_with_default(data_arr.dims, "y", -2)
-    chunks = (data_arr.chunks[y_dim_index], data_arr.chunks[x_dim_index])
-    return chunks
-
-
-def _dim_index_with_default(dims: tuple, dim_name: str, default: int) -> int:
-    try:
-        return dims.index(dim_name)
-    except ValueError:
-        return default
-
-
 @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
 def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto") -> tuple[da.Array, da.Array]:
     with ignore_invalid_float_warnings():
@@ -440,6 +426,20 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
     sata = _geo_dask_to_data_array(sata)
     satz = _geo_dask_to_data_array(satz)
     return sata, satz
+
+
+def _geo_chunks_from_data_arr(data_arr: xr.DataArray) -> tuple:
+    x_dim_index = _dim_index_with_default(data_arr.dims, "x", -1)
+    y_dim_index = _dim_index_with_default(data_arr.dims, "y", -2)
+    chunks = (data_arr.chunks[y_dim_index], data_arr.chunks[x_dim_index])
+    return chunks
+
+
+def _dim_index_with_default(dims: tuple, dim_name: str, default: int) -> int:
+    try:
+        return dims.index(dim_name)
+    except ValueError:
+        return default
 
 
 @cache_to_zarr_if("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)
