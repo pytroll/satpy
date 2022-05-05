@@ -69,59 +69,72 @@ def timeseries(datasets):
     return res
 
 
-def add_group_aliases_to_scenes(scenes, groups):
-    """Add group aliases to multiple scenes."""
+def group_datasets_in_scenes(scenes, groups):
+    """Group different datasets in multiple scenes by adding aliases.
+
+    Args:
+        scenes (iterable): Scenes to be processed.
+        groups (dict): Groups of datasets that shall be treated equally by
+            MultiScene. Keys specify the groups, values specify the dataset
+            names to be grouped. For example::
+
+            from satpy import DataQuery
+            groups = {DataQuery(name='odd'): ['ds1', 'ds3'],
+                      DataQuery(name='even'): ['ds2', 'ds4']}
+    """
     for scene in scenes:
-        yield _duplicate_datasets_to_be_grouped(scene, groups)
+        grp = GroupAliasGenerator(scene, groups)
+        yield grp.duplicate_datasets_with_group_alias()
 
 
-def _duplicate_datasets_to_be_grouped(scene, groups):
-    scene = scene.copy()
-    for group_id, group_members in groups.items():
-        _duplicate_dataset_to_be_grouped(group_id, group_members, scene)
-    return scene
+class GroupAliasGenerator:
+    """Add group aliases to a scene."""
 
+    def __init__(self, scene, groups):
+        """Initialize the alias generator."""
+        self.scene = scene.copy()
+        self.groups = groups
 
-def _duplicate_dataset_to_be_grouped(group_id, group_members, scene):
-    member_ids = _get_dataset_id_of_group_members_in_scene(group_members, scene)
-    if len(member_ids) == 1:
-        _duplicate_dataset_with_different_id(
-            dataset_id=member_ids[0],
-            alias_id=group_id,
-            scene=scene
-        )
-    elif len(member_ids) > 1:
-        raise ValueError('Cannot add multiple datasets from a scene '
-                         'to the same group')
+    def duplicate_datasets_with_group_alias(self):
+        """Duplicate datasets to be grouped with a group alias."""
+        for group_id, group_members in self.groups.items():
+            self._duplicate_dataset_with_group_alias(group_id, group_members)
+        return self.scene
 
+    def _duplicate_dataset_with_group_alias(self, group_id, group_members):
+        member_ids = self._get_dataset_id_of_group_members_in_scene(group_members)
+        if len(member_ids) == 1:
+            self._duplicate_dataset_with_different_id(
+                dataset_id=member_ids[0],
+                alias_id=group_id,
+            )
+        elif len(member_ids) > 1:
+            raise ValueError('Cannot add multiple datasets from a scene '
+                             'to the same group')
 
-def _get_dataset_id_of_group_members_in_scene(group_members, scene):
-    return [
-        scene[member].attrs['_satpy_id']
-        for member in group_members if member in scene
-    ]
+    def _get_dataset_id_of_group_members_in_scene(self, group_members):
+        return [
+            self.scene[member].attrs['_satpy_id']
+            for member in group_members if member in self.scene
+        ]
 
+    def _duplicate_dataset_with_different_id(self, dataset_id, alias_id):
+        dataset = self.scene[dataset_id].copy()
+        self._prepare_dataset_for_duplication(dataset, alias_id)
+        self.scene[alias_id] = dataset
 
-def _duplicate_dataset_with_different_id(dataset_id, alias_id, scene):
-    dataset = scene[dataset_id].copy()
-    _prepare_dataset_for_being_duplicated(dataset, alias_id)
-    scene[alias_id] = dataset
+    def _prepare_dataset_for_duplication(self, dataset, alias_id):
+        # Drop all identifier attributes from the original dataset. Otherwise
+        # they might invalidate the dataset ID of the alias.
+        self._drop_id_attrs(dataset)
+        dataset.attrs.update(alias_id.to_dict())
 
+    def _drop_id_attrs(self, dataset):
+        for drop_key in self._get_id_attrs(dataset):
+            dataset.attrs.pop(drop_key)
 
-def _prepare_dataset_for_being_duplicated(dataset, alias_id):
-    # Drop all identifier attributes from the original dataset. Otherwise
-    # they might invalidate the dataset ID of the alias.
-    _drop_id_attrs(dataset)
-    dataset.attrs.update(alias_id.to_dict())
-
-
-def _drop_id_attrs(dataset):
-    for drop_key in _get_id_attrs(dataset):
-        dataset.attrs.pop(drop_key)
-
-
-def _get_id_attrs(dataset):
-    return dataset.attrs["_satpy_id"].to_dict().keys()
+    def _get_id_attrs(self, dataset):
+        return dataset.attrs["_satpy_id"].to_dict().keys()
 
 
 class _SceneGenerator(object):
@@ -368,7 +381,7 @@ class MultiScene(object):
                 DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
             }
         """
-        self._scenes = add_group_aliases_to_scenes(self._scenes, groups)
+        self._scenes = group_datasets_in_scenes(self._scenes, groups)
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
