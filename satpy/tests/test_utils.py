@@ -455,14 +455,14 @@ def test_chunk_size_limit():
         assert get_chunk_size_limit(np.int32) == 800
 
 
-def test_convert_remote_files_to_fsspec():
+def test_convert_remote_files_to_fsspec_local_files():
     """Test convertion of remote files to fsspec objects.
 
     Case without scheme/protocol, which should default to plain filenames.
     """
     from satpy.utils import convert_remote_files_to_fsspec
 
-    filenames = ["/tmp/file1.nc", "/tmp/file2.nc"]
+    filenames = ["/tmp/file1.nc", "file:///tmp/file2.nc"]
     res = convert_remote_files_to_fsspec(filenames)
     assert res == filenames
 
