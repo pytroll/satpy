@@ -58,6 +58,10 @@ in the :mod:`~satpy.modifiers` module documentation.
 Parallax correction
 -------------------
 
+.. warning::
+
+    The Satpy parallax correction is experimental and subject to change.
+
 Since early 2022, Satpy has included a
 modifier for parallax correction, implemented in the
 :class:`~satpy.modifiers.parallax.ParallaxCorrectionModifier` class.
