@@ -145,8 +145,6 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         datasets = r.load(['IR_108'])
         self.assertEqual(len(datasets), 1)
-        print("")
-        print(type(datasets['IR_108'].data))
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'brightness_temperature')
 
