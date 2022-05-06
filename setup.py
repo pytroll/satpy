@@ -37,7 +37,9 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
-                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml']
+                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
+                 'hvplot']
+
 
 extras_require = {
     # Readers:
