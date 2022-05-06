@@ -596,7 +596,8 @@ def _filenames_to_fsfile(filenames, storage_options):
     return []
 
 
-def _get_storage_options_from_reader_kwargs(reader_kwargs):
+def get_storage_options_from_reader_kwargs(reader_kwargs):
+    """Read and clean storage options from reader_kwargs."""
     if reader_kwargs is None:
         return None, None
     storage_options = reader_kwargs.pop('storage_options', None)
