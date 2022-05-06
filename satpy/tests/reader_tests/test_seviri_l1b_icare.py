@@ -206,8 +206,9 @@ class TestSEVIRIICAREReader(unittest.TestCase):
 
     def test_nocompute(self):
         """Test that dask does not compute anything in the reader itself."""
-        from satpy.tests.utils import CustomScheduler
         import dask
+
+        from satpy.tests.utils import CustomScheduler
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             r = load_reader(self.reader_configs)
             loadables = r.select_files_from_pathnames([
