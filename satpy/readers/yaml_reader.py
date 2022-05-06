@@ -1232,13 +1232,20 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
     def _pad_later_segments_area(self, file_handlers, dsid):
         """Pad area definitions for missing segments that are later in sequence than the first available."""
-        seg_size = None
         expected_segments = file_handlers[0].filetype_info['expected_segments']
         filetype = file_handlers[0].filetype_info['file_type']
         available_segments = [int(fh.filename_info.get('segment', 1)) for
                               fh in file_handlers]
-        area_defs = {}
 
+        area_defs = self._get_segments_areadef_with_later_padded(file_handlers, filetype, dsid, available_segments,
+                                                                 expected_segments)
+
+        return area_defs
+
+    def _get_segments_areadef_with_later_padded(self, file_handlers, filetype, dsid, available_segments,
+                                                expected_segments):
+        seg_size = None
+        area_defs = {}
         for segment in range(available_segments[0], expected_segments + 1):
             try:
                 idx = available_segments.index(segment)
@@ -1249,7 +1256,6 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
 
             area_defs[segment] = area
             seg_size = area.shape
-
         return area_defs
 
     def _pad_earlier_segments_area(self, file_handlers, dsid, area_defs):
