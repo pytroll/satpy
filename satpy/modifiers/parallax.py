@@ -469,35 +469,6 @@ def _get_satpos_from_cth(cth_dataset):
     either directly from orbital parameters, or, when missing, from the
     platform name using pyorbital and skyfield.
     """
-    try:
-        (sat_lon, sat_lat, sat_alt_km) = get_satpos(cth_dataset)
-    except KeyError:
-        logger.warning(
-                "Orbital parameters missing from metadata. "
-                "Calculating from TLE using skyfield and astropy.")
-        (sat_lon, sat_lat, sat_alt_km) = _get_satpos_from_platform_name(cth_dataset)
+    (sat_lon, sat_lat, sat_alt_km) = get_satpos(
+            cth_dataset, maybe_attempt_tle=True)
     return (sat_lon, sat_lat, sat_alt_km * 1000)
-
-
-def _get_satpos_from_platform_name(cth_dataset):
-    """Get satellite position if no orbital parameters in metadata.
-
-    Some cloud top height datasets lack orbital parameter information in
-    metadata.  Here, orbital parameters are calculated based on the platform
-    name and start time, via Two Line Element (TLE) information.
-
-    Needs pyorbital, skyfield, and astropy to be installed.
-    """
-    from pyorbital.orbital import tlefile
-    from skyfield.api import EarthSatellite, load
-    from skyfield.toposlib import wgs84
-
-    name = cth_dataset.attrs["platform_name"]
-    tle = tlefile.read(name)
-    es = EarthSatellite(tle.line1, tle.line2, name)
-    ts = load.timescale()
-    gc = es.at(ts.from_datetime(
-        cth_dataset.attrs["start_time"].replace(tzinfo=datetime.timezone.utc)))
-    (lat, lon) = wgs84.latlon_of(gc)
-    height = wgs84.height_of(gc).to("km")
-    return (lon.degrees, lat.degrees, height.value)
