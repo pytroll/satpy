@@ -1021,6 +1021,71 @@ class Scene:
             gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
 
         return gview
+        
+    def to_hvplot(self,datasets=None, *args,**kwargs):
+        """
+        Convert satpy Scene to Hvplot.
+        Args:        
+            datasets (list): Limit included products to these datasets.
+            kwargs: hvplot options list.
+
+        Returns: hvplot object that contains within it the plots of datasets list. 
+                 As default it contains all Scene datasets plots and a plot title is shown.
+    
+        Example usage:
+           scene_list = ['ash','IR_108']
+           plot = scn.to_hvplot(datasets=scene_list)
+       
+           plot.ash+plot.IR_108
+        """
+        
+        import hvplot.xarray
+        from holoviews import Overlay
+        from satpy import composites 
+        from cartopy import crs 
+       
+        def _get_crs(xarray_ds):
+            return xarray_ds.area.to_cartopy_crs()
+
+        def _get_timestamp(xarray_ds):
+            time = xarray_ds.attrs['start_time']
+            return time.strftime('%Y %m %d -- %H:%M UTC')
+    
+        def _get_units(xarray_ds,variable):
+            return xarray_ds[variable].attrs['units']
+    
+        def _plot_rgb(xarray_ds, variable,**defaults):
+            img = composites.enhance2dataset(xarray_ds[variable])
+            return img.hvplot.rgb(bands='bands',title=title,
+                                  clabel='',**defaults)
+
+        def _plot_quadmesh(xarray_ds,variable,**defaults):
+            return xarray_ds[variable].hvplot.quadmesh(
+                clabel=f'[{_get_units(xarray_ds,variable)}]',
+                title=title,**defaults)
+     
+        plot = Overlay()   
+        xarray_ds = self.to_xarray_dataset(datasets)
+        ccrs = _get_crs(xarray_ds)
+    
+        if datasets is None: datasets = list(xarray_ds.keys())
+
+        defaults = dict(x='x',y='y',data_aspect=1,project=True,geo=True,
+                        crs=ccrs,projection=ccrs,rasterize=True,
+                        coastline='110m',cmap='Plasma',responsive=True,
+                        dynamic=False,framewise=True,colorbar=False,
+                        global_extent=False,xlabel='Longitude',ylabel='Latitude')
+    
+        defaults.update(kwargs)
+    
+        for element in datasets:
+            title = f'{element} @ {_get_timestamp(xarray_ds)}'
+            if xarray_ds[element].shape[0] == 3:
+                plot[element] =_plot_rgb(xarray_ds,element,**defaults)
+            else:
+                plot[element]=_plot_quadmesh(xarray_ds,element,**defaults)
+              
+        return plot    
 
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.

@@ -47,6 +47,7 @@ The following people have made contributions to this project:
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
+- [Luca Merucci (lmeru)](https://github.com/lmeru)
 - [Ondrej Nedelcev (nedelceo)](https://github.com/nedelceo)
 - [Oana Nicola](https://github.com/)
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
