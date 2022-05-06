@@ -97,13 +97,13 @@ for example when testing. The caching can be done by taking advantage of the `fs
     reader_kwargs = {
         'storage_options': {
             's3': {'anon': True},
-            'filecache': {
+            'simple': {
                 'cache_storage': '/tmp/s3_cache',
             }
         }
     }
 
-    filenames = ['filecache::s3://noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*']
+    filenames = ['simplecache::s3://noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*']
     scn = Scene(reader='abi_l1b', filenames=filenames, reader_kwargs=reader_kwargs)
     scn.load(['true_color_raw'])
     scn2 = scn.resample(scn.coarsest_area(), resampler='native')
@@ -123,7 +123,7 @@ The following table shows the timings for running the above code with different 
       - Notes
     * - No caching
       - 650 s
-      - remove `reader_kwargs` and `filecache::` from the code
+      - remove `reader_kwargs` and `simplecache::` from the code
     * - File cache
       - 66 s
       - Initial run
@@ -134,6 +134,12 @@ The following table shows the timings for running the above code with different 
 .. note::
 
     The cache is not cleaned by Satpy nor fsspec so the user should handle cleaning excess files from `cache_storage`.
+
+
+.. note::
+
+    Only `simplecache` is considered thread-safe, so using the other caching mechanisms may or may not work depending
+    on the reader, Dask scheduler or the phase of the moon.
 
 
 Resources
