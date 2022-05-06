@@ -23,12 +23,14 @@ import os
 import warnings
 from typing import Callable
 
+import hvplot.xarray  # noqa
 import numpy as np
 import xarray as xr
+from holoviews import Overlay
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 from xarray import DataArray
 
-from satpy.composites import IncompatibleAreas
+from satpy.composites import IncompatibleAreas, enhance2dataset
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
@@ -1024,11 +1026,12 @@ class Scene:
 
     def to_hvplot(self, datasets=None, *args, **kwargs):
         """Convert satpy Scene to Hvplot.
-        Args:        
+
+        Args:
             datasets (list): Limit included products to these datasets.
             kwargs: hvplot options list.
 
-        Returns: hvplot object that contains within it the plots of datasets list. 
+        Returns: hvplot object that contains within it the plots of datasets list.
                  As default it contains all Scene datasets plots and a plot title is shown.
 
         Example usage:
@@ -1038,11 +1041,6 @@ class Scene:
            plot.ash+plot.IR_108
 
         """
-        import hvplot.xarray
-        from holoviews import Overlay
-        from satpy import composites 
-        from cartopy import crs
-
         def _get_crs(xarray_ds):
             return xarray_ds.area.to_cartopy_crs()
 
@@ -1054,22 +1052,23 @@ class Scene:
             return xarray_ds[variable].attrs['units']
 
         def _plot_rgb(xarray_ds, variable, **defaults):
-            img = composites.enhance2dataset(xarray_ds[variable])
+            img = enhance2dataset(xarray_ds[variable])
             return img.hvplot.rgb(bands='bands', title=title,
                                   clabel='', **defaults)
 
         def _plot_quadmesh(xarray_ds, variable, **defaults):
             return xarray_ds[variable].hvplot.quadmesh(
-                clabel=f'[{_get_units(xarray_ds,variable)}]', title=title, 
+                clabel=f'[{_get_units(xarray_ds,variable)}]', title=title,
                 **defaults)
 
-        plot = Overlay()   
+        plot = Overlay()
         xarray_ds = self.to_xarray_dataset(datasets)
         ccrs = _get_crs(xarray_ds)
 
-        if datasets is None: datasets = list(xarray_ds.keys())
+        if datasets is None:
+            datasets = list(xarray_ds.keys())
 
-        defaults = dict(x='x', y='y', data_aspect=1, project=True, geo=True, 
+        defaults = dict(x='x', y='y', data_aspect=1, project=True, geo=True,
                         crs=ccrs, projection=ccrs, rasterize=True, coastline='110m',
                         cmap='Plasma', responsive=True, dynamic=False, framewise=True,
                         colorbar=False, global_extent=False, xlabel='Longitude',
@@ -1085,7 +1084,7 @@ class Scene:
                 plot[element] = _plot_quadmesh(xarray_ds, element, **defaults)
 
         return plot
-        
+
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.
 
