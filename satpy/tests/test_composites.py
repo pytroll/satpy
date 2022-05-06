@@ -27,6 +27,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample import AreaDefinition
 
 
 class TestMatchDataArrays(unittest.TestCase):
@@ -324,12 +325,12 @@ class TestDayNightCompositor(unittest.TestCase):
         self.sza = xr.DataArray(sza, dims=('y', 'x'))
 
         # fake area
-        my_area = mock.MagicMock()
-        lons = np.array([[-95., -94.], [-93., -92.]])
-        lons = da.from_array(lons, lons.shape)
-        lats = np.array([[40., 41.], [42., 43.]])
-        lats = da.from_array(lats, lats.shape)
-        my_area.get_lonlats.return_value = (lons, lats)
+        my_area = AreaDefinition(
+            "test", "", "",
+            "+proj=longlat",
+            2, 2,
+            (-95.0, 40.0, -92.0, 43.0),
+        )
         self.data_a.attrs['area'] = my_area
         self.data_b.attrs['area'] = my_area
         # not used except to check that it matches the data arrays
