@@ -64,6 +64,7 @@ extras_require = {
     'seviri_l2_bufr': ['eccodes-python'],
     'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
+    'remote_reading': ['fsspec'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
