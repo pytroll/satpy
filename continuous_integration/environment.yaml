@@ -17,7 +17,7 @@ dependencies:
   - scipy
   - pyyaml
   - pyproj
-  - pyresample
+  - pyresample>=1.24
   - coveralls
   - coverage
   - codecov
