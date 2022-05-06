@@ -1022,9 +1022,8 @@ class Scene:
 
         return gview
         
-    def to_hvplot(self,datasets=None, *args,**kwargs):
-        """
-        Convert satpy Scene to Hvplot.
+    def to_hvplot(self,datasets=None,*args,**kwargs):
+        """Convert satpy Scene to Hvplot.
         Args:        
             datasets (list): Limit included products to these datasets.
             kwargs: hvplot options list.
@@ -1037,8 +1036,8 @@ class Scene:
            plot = scn.to_hvplot(datasets=scene_list)
        
            plot.ash+plot.IR_108
+
         """
-        
         import hvplot.xarray
         from holoviews import Overlay
         from satpy import composites 
@@ -1054,7 +1053,7 @@ class Scene:
         def _get_units(xarray_ds,variable):
             return xarray_ds[variable].attrs['units']
     
-        def _plot_rgb(xarray_ds, variable,**defaults):
+        def _plot_rgb(xarray_ds,variable,**defaults):
             img = composites.enhance2dataset(xarray_ds[variable])
             return img.hvplot.rgb(bands='bands',title=title,
                                   clabel='',**defaults)
