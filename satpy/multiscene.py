@@ -69,29 +69,72 @@ def timeseries(datasets):
     return res
 
 
-def add_group_aliases(scenes, groups):
-    """Add aliases for the groups datasets belong to."""
-    for scene in scenes:
-        scene = scene.copy()
-        for group_id, member_names in groups.items():
-            # Find out whether one of the datasets in this scene belongs
-            # to this group
-            member_ids = [scene[name].attrs['_satpy_id']
-                          for name in member_names if name in scene]
+def group_datasets_in_scenes(scenes, groups):
+    """Group different datasets in multiple scenes by adding aliases.
 
-            # Add an alias for the group it belongs to
-            if len(member_ids) == 1:
-                member_id = member_ids[0]
-                new_ds = scene[member_id].copy()
-                new_ds.attrs.update(group_id.to_dict())
-                scene[group_id] = new_ds
-            elif len(member_ids) > 1:
-                raise ValueError('Cannot add multiple datasets from the same '
-                                 'scene to a group')
-            else:
-                # Datasets in this scene don't belong to any group
-                pass
-        yield scene
+    Args:
+        scenes (iterable): Scenes to be processed.
+        groups (dict): Groups of datasets that shall be treated equally by
+            MultiScene. Keys specify the groups, values specify the dataset
+            names to be grouped. For example::
+
+            from satpy import DataQuery
+            groups = {DataQuery(name='odd'): ['ds1', 'ds3'],
+                      DataQuery(name='even'): ['ds2', 'ds4']}
+    """
+    for scene in scenes:
+        grp = GroupAliasGenerator(scene, groups)
+        yield grp.duplicate_datasets_with_group_alias()
+
+
+class GroupAliasGenerator:
+    """Add group aliases to a scene."""
+
+    def __init__(self, scene, groups):
+        """Initialize the alias generator."""
+        self.scene = scene.copy()
+        self.groups = groups
+
+    def duplicate_datasets_with_group_alias(self):
+        """Duplicate datasets to be grouped with a group alias."""
+        for group_id, group_members in self.groups.items():
+            self._duplicate_dataset_with_group_alias(group_id, group_members)
+        return self.scene
+
+    def _duplicate_dataset_with_group_alias(self, group_id, group_members):
+        member_ids = self._get_dataset_id_of_group_members_in_scene(group_members)
+        if len(member_ids) == 1:
+            self._duplicate_dataset_with_different_id(
+                dataset_id=member_ids[0],
+                alias_id=group_id,
+            )
+        elif len(member_ids) > 1:
+            raise ValueError('Cannot add multiple datasets from a scene '
+                             'to the same group')
+
+    def _get_dataset_id_of_group_members_in_scene(self, group_members):
+        return [
+            self.scene[member].attrs['_satpy_id']
+            for member in group_members if member in self.scene
+        ]
+
+    def _duplicate_dataset_with_different_id(self, dataset_id, alias_id):
+        dataset = self.scene[dataset_id].copy()
+        self._prepare_dataset_for_duplication(dataset, alias_id)
+        self.scene[alias_id] = dataset
+
+    def _prepare_dataset_for_duplication(self, dataset, alias_id):
+        # Drop all identifier attributes from the original dataset. Otherwise
+        # they might invalidate the dataset ID of the alias.
+        self._drop_id_attrs(dataset)
+        dataset.attrs.update(alias_id.to_dict())
+
+    def _drop_id_attrs(self, dataset):
+        for drop_key in self._get_id_attrs(dataset):
+            dataset.attrs.pop(drop_key)
+
+    def _get_id_attrs(self, dataset):
+        return dataset.attrs["_satpy_id"].to_dict().keys()
 
 
 class _SceneGenerator(object):
@@ -338,7 +381,7 @@ class MultiScene(object):
                 DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
             }
         """
-        self._scenes = add_group_aliases(self._scenes, groups)
+        self._scenes = group_datasets_in_scenes(self._scenes, groups)
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
