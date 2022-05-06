@@ -33,7 +33,6 @@ import yaml
 from yaml import BaseLoader
 
 from satpy import CHUNK_SIZE
-from satpy.readers import FSFile
 
 try:
     from yaml import UnsafeLoader
@@ -570,6 +569,8 @@ def _check_file_protocols(filenames, storage_options):
 
 
 def _sort_files_to_local_remote_and_fsfiles(filenames):
+    from satpy.readers import FSFile
+
     local_files = []
     remote_files = []
     fs_files = []
