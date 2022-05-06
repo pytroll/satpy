@@ -26,6 +26,12 @@ for the cloud or mountain top.  This module contains routines to correct
 imagery such that pixels are shifted or interpolated to correct for this
 parallax effect.
 
+Parallax correction is currently only supported for (cloud top) height
+that arrives on an :class:`~pyresample.geometry.AreaDefinition`, such
+as is standard for geostationary satellites.  Parallax correction with
+data described by a :class:`~pyresample.geometry.SwathDefinition`,
+such as is common for polar satellites, is not (yet) supported.
+
 See also the :doc:`../modifiers` page in the documentation for an introduction to
 parallax correction as a modifier in Satpy.
 """
@@ -202,13 +208,15 @@ class ParallaxCorrection:
     such shifts being deselected.  Other resampling methods would average
     large shifts with small shifts, leading to unpredictable results.
     Now the reprojected shifts can be applied to the original lat/lon,
-    retaining a new :class:`~pyresample.geometry.SwathDefinition.
+    returning a new :class:`~pyresample.geometry.SwathDefinition`.
     This is is the object returned by :meth:`corrected_area`.
 
     This procedure can be configured as a modifier using the
     :class:`ParallaxCorrectionModifier` class.  However, the modifier can only
     be applied to one dataset at the time, which may not provide optimal
-    performance.
+    performance, although dask should reuse identical calculations between
+    multiple channels.
+
     """
 
     def __init__(self, base_area,
