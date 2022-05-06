@@ -1022,7 +1022,7 @@ class Scene:
 
         return gview
 
-    def to_hvplot(self,datasets=None,*args,**kwargs):
+    def to_hvplot(self, datasets=None, *args, **kwargs):
         """Convert satpy Scene to Hvplot.
         Args:        
             datasets (list): Limit included products to these datasets.
@@ -1050,18 +1050,18 @@ class Scene:
             time = xarray_ds.attrs['start_time']
             return time.strftime('%Y %m %d -- %H:%M UTC')
 
-        def _get_units(xarray_ds,variable):
+        def _get_units(xarray_ds, variable):
             return xarray_ds[variable].attrs['units']
 
-        def _plot_rgb(xarray_ds,variable,**defaults):
+        def _plot_rgb(xarray_ds, variable, **defaults):
             img = composites.enhance2dataset(xarray_ds[variable])
-            return img.hvplot.rgb(bands='bands',title=title,
-                                  clabel='',**defaults)
+            return img.hvplot.rgb(bands='bands', title=title,
+                                  clabel='', **defaults)
 
-        def _plot_quadmesh(xarray_ds,variable,**defaults):
+        def _plot_quadmesh(xarray_ds, variable, **defaults):
             return xarray_ds[variable].hvplot.quadmesh(
-                clabel=f'[{_get_units(xarray_ds,variable)}]',
-                title=title,**defaults)
+                clabel=f'[{_get_units(xarray_ds,variable)}]', title=title, 
+                **defaults)
 
         plot = Overlay()   
         xarray_ds = self.to_xarray_dataset(datasets)
@@ -1069,20 +1069,19 @@ class Scene:
 
         if datasets is None: datasets = list(xarray_ds.keys())
 
-        defaults = dict(x='x',y='y',data_aspect=1,project=True,geo=True,
-                        crs=ccrs,projection=ccrs,rasterize=True,
-                        coastline='110m',cmap='Plasma',responsive=True,
-                        dynamic=False,framewise=True,colorbar=False,
-                        global_extent=False,xlabel='Longitude',ylabel='Latitude')
+        defaults = dict(x='x', y='y', data_aspect=1, project=True, geo=True,
+        crs=ccrs, projection=ccrs, rasterize=True, coastline='110m',
+        cmap='Plasma', responsive=True, dynamic=False, framewise=True, 
+        colorbar=False, global_extent=False, xlabel='Longitude', ylabel='Latitude')
 
         defaults.update(kwargs)
 
         for element in datasets:
             title = f'{element} @ {_get_timestamp(xarray_ds)}'
             if xarray_ds[element].shape[0] == 3:
-                plot[element] =_plot_rgb(xarray_ds,element,**defaults)
+                plot[element] = _plot_rgb(xarray_ds, element, **defaults)
             else:
-                plot[element]=_plot_quadmesh(xarray_ds,element,**defaults)
+                plot[element] = _plot_quadmesh(xarray_ds, element, **defaults)
 
         return plot
         
