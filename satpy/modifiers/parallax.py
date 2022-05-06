@@ -391,7 +391,8 @@ class ParallaxCorrectionModifier(ModifierBase):
     :func:`forward_parallax` function.  See the documentation there for
     details on the behaviour.
 
-    To use this, add in your ``etc/modifiers/visir.yaml`` something like::
+    To use this, add to ``composites/visir.yaml`` within ``SATPY_CONFIG_PATH``
+    something like::
 
         sensor_name: visir
 
@@ -400,8 +401,6 @@ class ParallaxCorrectionModifier(ModifierBase):
             modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
             prerequisites:
               - "ctth_alti"
-            resampler_args:
-              radius_of_influence: 50000
 
         composites:
 
@@ -422,7 +421,8 @@ class ParallaxCorrectionModifier(ModifierBase):
     datasets need to be corrected.  RGB Composites cannot be modified in this way
     (i.e. you can't replace "VIS006" by "natural_color").  To get a parallax
     corrected RGB composite, create a new composite where each input has the
-    modifier applied.
+    modifier applied.  The parallax calculation should only occur once, because
+    calculations are happening via dask and dask should reuse the calculation.
     """
 
     def __call__(self, projectables, optional_datasets=None, **info):
