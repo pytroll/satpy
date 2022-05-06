@@ -463,7 +463,10 @@ def _angle_cache_stacked_area_def():
 
 
 def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDefinition]] = None,
-                         chunks: Optional[Union[int, tuple]] = 2) -> xr.DataArray:
+                         chunks: Optional[Union[int, tuple]] = 2,
+                         shape: tuple = (5, 5),
+                         dims: tuple = None,
+                         ) -> xr.DataArray:
     if area_def is None:
         area_def = _angle_cache_area_def()
     orb_params = {
@@ -472,8 +475,9 @@ def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDef
         "satellite_nominal_latitude": 0.0,
     }
     stime = datetime(2020, 1, 1, 12, 0, 0)
-    data = da.zeros((5, 5), chunks=chunks)
+    data = da.zeros(shape, chunks=chunks)
     vis = xr.DataArray(data,
+                       dims=dims,
                        attrs={
                            'area': area_def,
                            'start_time': stime,
@@ -485,6 +489,15 @@ def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDef
 def _get_stacked_angle_test_data():
     return _get_angle_test_data(area_def=_angle_cache_stacked_area_def(),
                                 chunks=(5, (2, 2, 1)))
+
+
+def _get_angle_test_data_rgb():
+    return _get_angle_test_data(shape=(5, 5, 3), chunks=((2, 2, 1), (2, 2, 1), (1, 1, 1)),
+                                dims=("y", "x", "bands"))
+
+
+def _get_angle_test_data_rgb_nodims():
+    return _get_angle_test_data(shape=(3, 5, 5), chunks=((1, 1, 1), (2, 2, 1), (2, 2, 1)))
 
 
 def _get_angle_test_data_odd_chunks():
@@ -528,8 +541,16 @@ def _assert_allclose_if(expect_equal, arr1, arr2):
 class TestAngleGeneration:
     """Test the angle generation utility functions."""
 
-    @pytest.mark.parametrize("input_func", [_get_angle_test_data, _get_stacked_angle_test_data])
-    def test_get_angles(self, input_func):
+    @pytest.mark.parametrize(
+        ("input_func", "exp_calls"),
+        [
+            (_get_angle_test_data, 9),
+            (_get_stacked_angle_test_data, 3),
+            (_get_angle_test_data_rgb, 9),
+            (_get_angle_test_data_rgb_nodims, 9),
+        ],
+    )
+    def test_get_angles(self, input_func, exp_calls):
         """Test sun and satellite angle calculation."""
         from satpy.modifiers.angles import get_angles
         data = input_func()
@@ -541,7 +562,7 @@ class TestAngleGeneration:
             da.compute(angles)
 
         # get_observer_look should have been called once per array chunk
-        assert gol.call_count == data.data.blocks.size
+        assert gol.call_count == exp_calls
         # Check arguments of get_orbserver_look() call, especially the altitude
         # unit conversion from meters to kilometers
         args = gol.call_args[0]
@@ -600,15 +621,17 @@ class TestAngleGeneration:
         ]
     )
     @pytest.mark.parametrize(
-        ("input_func", "num_normalized_chunks"),
+        ("input_func", "num_normalized_chunks", "exp_zarr_chunks"),
         [
-            (_get_angle_test_data, 9),
-            (_get_stacked_angle_test_data, 3),
-            (_get_angle_test_data_odd_chunks, 9),
+            (_get_angle_test_data, 9, ((2, 2, 1), (2, 2, 1))),
+            (_get_stacked_angle_test_data, 3, ((5,), (2, 2, 1))),
+            (_get_angle_test_data_odd_chunks, 9, ((2, 1, 2), (1, 1, 2, 1))),
+            (_get_angle_test_data_rgb, 9, ((2, 2, 1), (2, 2, 1))),
+            (_get_angle_test_data_rgb_nodims, 9, ((2, 2, 1), (2, 2, 1))),
         ])
     def test_cache_get_angles(
             self,
-            input_func, num_normalized_chunks,
+            input_func, num_normalized_chunks, exp_zarr_chunks,
             input2_func, exp_equal_sun, exp_num_zarr,
             force_bad_glob, tmp_path):
         """Test get_angles when caching is enabled."""
@@ -624,13 +647,13 @@ class TestAngleGeneration:
                 satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmp_path)), \
                 warnings.catch_warnings(record=True) as caught_warnings:
             res = get_angles(data)
-            self._check_cached_result(res, data)
+            self._check_cached_result(res, exp_zarr_chunks)
 
             # call again, should be cached
             new_data = input2_func(data)
             with _mock_glob_if(force_bad_glob):
                 res2 = get_angles(new_data)
-            self._check_cached_result(res2, data)
+            self._check_cached_result(res2, exp_zarr_chunks)
 
             res_numpy, res2_numpy = da.compute(res, res2)
             for r1, r2 in zip(res_numpy[:2], res2_numpy[:2]):
@@ -652,11 +675,11 @@ class TestAngleGeneration:
         assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
 
     @staticmethod
-    def _check_cached_result(results, input_data):
+    def _check_cached_result(results, exp_zarr_chunks):
         assert all(isinstance(x, xr.DataArray) for x in results)
         # output chunks should be consistent
         for angle_data_arr in results:
-            assert angle_data_arr.chunks == input_data.chunks
+            assert angle_data_arr.chunks == exp_zarr_chunks
 
     @staticmethod
     def _check_cache_and_clear(tmp_path, exp_num_zarr):

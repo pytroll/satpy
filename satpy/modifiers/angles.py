@@ -365,7 +365,8 @@ def get_cos_sza(data_arr: xr.DataArray) -> xr.DataArray:
         DataArray with the same shape as ``data_arr``.
 
     """
-    lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.chunks)
+    chunks = _geo_chunks_from_data_arr(data_arr)
+    lons, lats = _get_valid_lonlats(data_arr.attrs["area"], chunks)
     cos_sza = _get_cos_sza(data_arr.attrs["start_time"], lons, lats)
     return _geo_dask_to_data_array(cos_sza)
 
@@ -380,7 +381,8 @@ def _get_valid_lonlats(area: PRGeometry, chunks: Union[int, str, tuple] = "auto"
 
 
 def _get_sun_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray]:
-    lons, lats = _get_valid_lonlats(data_arr.attrs["area"], data_arr.data.chunks)
+    chunks = _geo_chunks_from_data_arr(data_arr)
+    lons, lats = _get_valid_lonlats(data_arr.attrs["area"], chunks)
     suna = da.map_blocks(_get_sun_azimuth_ndarray, lons, lats,
                          data_arr.attrs["start_time"],
                          dtype=lons.dtype, meta=np.array((), dtype=lons.dtype),
@@ -417,12 +419,27 @@ def _get_sensor_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArr
     preference = satpy.config.get('sensor_angles_position_preference', 'actual')
     sat_lon, sat_lat, sat_alt = get_satpos(data_arr, preference=preference)
     area_def = data_arr.attrs["area"]
+    chunks = _geo_chunks_from_data_arr(data_arr)
     sata, satz = _get_sensor_angles_from_sat_pos(sat_lon, sat_lat, sat_alt,
                                                  data_arr.attrs["start_time"],
-                                                 area_def, data_arr.data.chunks)
+                                                 area_def, chunks)
     sata = _geo_dask_to_data_array(sata)
     satz = _geo_dask_to_data_array(satz)
     return sata, satz
+
+
+def _geo_chunks_from_data_arr(data_arr: xr.DataArray) -> tuple:
+    x_dim_index = _dim_index_with_default(data_arr.dims, "x", -1)
+    y_dim_index = _dim_index_with_default(data_arr.dims, "y", -2)
+    chunks = (data_arr.chunks[y_dim_index], data_arr.chunks[x_dim_index])
+    return chunks
+
+
+def _dim_index_with_default(dims: tuple, dim_name: str, default: int) -> int:
+    try:
+        return dims.index(dim_name)
+    except ValueError:
+        return default
 
 
 @cache_to_zarr_if("cache_sensor_angles", sanitize_args_func=_sanitize_observer_look_args)

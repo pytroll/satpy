@@ -631,18 +631,10 @@ class DayNightCompositor(GenericCompositor):
         try:
             coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
         except IndexError:
-            from pyorbital.astronomy import cos_zen
+            from satpy.modifiers.angles import get_cos_sza
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
-            try:
-                chunks = foreground_data.sel(bands=foreground_data['bands'][0]).chunks
-            except KeyError:
-                chunks = foreground_data.chunks
-            lons, lats = foreground_data.attrs["area"].get_lonlats(chunks=chunks)
-            coszen = xr.DataArray(cos_zen(foreground_data.attrs["start_time"],
-                                          lons, lats),
-                                  dims=['y', 'x'],
-                                  coords=[foreground_data['y'], foreground_data['x']])
+            coszen = get_cos_sza(foreground_data)
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
