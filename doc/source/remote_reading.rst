@@ -33,8 +33,9 @@ For the above example, the configuration could be saved to `s3.json` in the `fss
 
 .. note::
 
-    Using `reader_kwargs` doesn't completely override the configuration file, so in case of problems
-    remove the configuration file to see if that solves the issue.
+    Options given in `reader_kwargs` override only the matching options given in configuration file and everythin else is left
+    as-is. In case of problems in data access, remove the configuration file to see if that solves the issue.
+
 
 For reference, reading SEVIRI HRIT data from a local S3 storage works the same way::
 
