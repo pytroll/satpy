@@ -1069,10 +1069,11 @@ class Scene:
 
         if datasets is None: datasets = list(xarray_ds.keys())
 
-        defaults = dict(x='x', y='y', data_aspect=1, project=True, geo=True,
-        crs=ccrs, projection=ccrs, rasterize=True, coastline='110m',
-        cmap='Plasma', responsive=True, dynamic=False, framewise=True, 
-        colorbar=False, global_extent=False, xlabel='Longitude', ylabel='Latitude')
+        defaults = dict(x='x', y='y', data_aspect=1, project=True, geo=True, 
+                        crs=ccrs, projection=ccrs, rasterize=True, coastline='110m',
+                        cmap='Plasma', responsive=True, dynamic=False, framewise=True,
+                        colorbar=False, global_extent=False, xlabel='Longitude',
+                        ylabel='Latitude')
 
         defaults.update(kwargs)
 
