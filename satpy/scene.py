@@ -1034,7 +1034,7 @@ class Scene:
 
         Args:
             datasets (list): Limit included products to these datasets.
-            kwargs: hvplot options list.
+            kwargs: hvplot options dictionary.
 
         Returns: hvplot object that contains within it the plots of datasets list.
                  As default it contains all Scene datasets plots and a plot title is shown.
