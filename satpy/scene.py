@@ -1039,7 +1039,8 @@ class Scene:
         Returns: hvplot object that contains within it the plots of datasets list.
                  As default it contains all Scene datasets plots and a plot title is shown.
 
-        Example usage:
+        Example usage::
+
            scene_list = ['ash','IR_108']
            plot = scn.to_hvplot(datasets=scene_list)
 
