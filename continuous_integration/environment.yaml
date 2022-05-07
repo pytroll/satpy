@@ -35,6 +35,7 @@ dependencies:
   - mock
   - libtiff
   - geoviews
+  - hvplot
   - zarr
   - python-eccodes
   # 2.19.1 seems to cause library linking issues

@@ -23,7 +23,6 @@ import os
 import warnings
 from typing import Callable
 
-import hvplot.xarray  # noqa
 import numpy as np
 import xarray as xr
 from holoviews import Overlay
@@ -38,6 +37,12 @@ from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.writers import load_writer
+
+try:
+    import hvplot.xarray  # noqa
+except ImportError:
+    hvplot.xarray = None
+
 
 LOG = logging.getLogger(__name__)
 
@@ -1060,6 +1065,9 @@ class Scene:
             return xarray_ds[variable].hvplot.quadmesh(
                 clabel=f'[{_get_units(xarray_ds,variable)}]', title=title,
                 **defaults)
+
+        if hvplot.xarray is None:
+            raise ImportError("'hvplot' must be installed to use this feature")
 
         plot = Overlay()
         xarray_ds = self.to_xarray_dataset(datasets)
