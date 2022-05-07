@@ -39,9 +39,9 @@ from satpy.resample import get_area_def, prepare_resampler, resample_dataset
 from satpy.writers import load_writer
 
 try:
-    import hvplot.xarray  # noqa
+    import hvplot.xarray as hvplot_xarray  # noqa
 except ImportError:
-    hvplot.xarray = None
+    hvplot_xarray = None
 
 
 LOG = logging.getLogger(__name__)
