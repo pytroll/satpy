@@ -1067,7 +1067,7 @@ class Scene:
                 clabel=f'[{_get_units(xarray_ds,variable)}]', title=title,
                 **defaults)
 
-        if hvplot.xarray is None:
+        if hvplot_xarray is None:
             raise ImportError("'hvplot' must be installed to use this feature")
 
         plot = Overlay()
