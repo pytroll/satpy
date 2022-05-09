@@ -455,9 +455,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         else:
             observation_frequency_seconds = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
             dt = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
-        return observation_time.replace(
-            hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
-            second=dt % 60, microsecond=0)
+        if int(timeline[:2]) < 24:
+            return observation_time.replace(
+                hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
+                second=dt % 60, microsecond=0)
+        else:
+            warnings.warn("Observation timeline is fill value, not rounding observation time.")
+            return observation_time
 
     def get_dataset(self, key, info):
         """Get the dataset."""
