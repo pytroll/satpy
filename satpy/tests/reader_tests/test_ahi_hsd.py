@@ -359,10 +359,14 @@ class TestAHIHSDFileHandler:
                 fh._check_fpos(fp_, fpos, 0, 'header 1')
                 assert len(w) > 0
 
+    def test_is_valid_time(self):
+        """Test that valid times are correctly itentified"""
+
+        assert AHIHSDFileHandler._is_valid_timeline(FAKE_BASIC_INFO['observation_timeline'])
+        assert not AHIHSDFileHandler._is_valid_timeline('65526')
+
     def test_time_rounding(self):
         """Test rounding of the nominal time."""
-        assert AHIHSDFileHandler._is_valid_timeline(FAKE_BASIC_INFO['observation_timeline']) is True
-        assert AHIHSDFileHandler._is_valid_timeline('65526') is False
 
         mocker = mock.MagicMock()
         in_date = datetime(2020, 1, 1, 12, 0, 0)
