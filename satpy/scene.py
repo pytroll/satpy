@@ -35,6 +35,7 @@ from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
+from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
 LOG = logging.getLogger(__name__)
@@ -107,21 +108,31 @@ class Scene:
                 sub-dictionaries to pass different arguments to different
                 reader instances.
 
+                Keyword arguments for remote file access are also given in this dictionary.
+                See `documentation <https://satpy.readthedocs.io/en/stable/remote_reading.html>`_
+                for usage examples.
+
         """
         self.attrs = dict()
+
+        storage_options, cleaned_reader_kwargs = get_storage_options_from_reader_kwargs(reader_kwargs)
+
         if filter_parameters:
-            if reader_kwargs is None:
-                reader_kwargs = {}
+            if cleaned_reader_kwargs is None:
+                cleaned_reader_kwargs = {}
             else:
-                reader_kwargs = reader_kwargs.copy()
-            reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
+                cleaned_reader_kwargs = cleaned_reader_kwargs.copy()
+            cleaned_reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
+        if filenames:
+            filenames = convert_remote_files_to_fsspec(filenames, storage_options)
+
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
-                                                      reader_kwargs=reader_kwargs)
+                                                      reader_kwargs=cleaned_reader_kwargs)
         self._datasets = DatasetDict()
         self._wishlist = set()
         self._dependency_tree = DependencyTree(self._readers)

@@ -56,6 +56,7 @@ the base Satpy installation.
     examples/index
     quickstart
     readers
+    remote_reading
     composites
     resample
     enhancements

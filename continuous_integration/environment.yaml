@@ -44,6 +44,7 @@ dependencies:
   - pytest-cov
   - pytest-lazy-fixture
   - fsspec
+  - s3fs
   - pylibtiff
   - python-geotiepoints
   - pooch
