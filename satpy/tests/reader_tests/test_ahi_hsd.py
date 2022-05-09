@@ -37,11 +37,11 @@ InfoDict = Dict[str, Any]
 
 FAKE_BASIC_INFO: InfoDict = {
     'blocklength': 0,
-    'satellite': np.array(['Himawari-8']),
-    'observation_area': np.array(['FLDK']),
-    'observation_start_time': np.array([58413.12523839]),
-    'observation_end_time': np.array([58413.12562439]),
-    'observation_timeline': np.array([300]),
+    'satellite': 'Himawari-8',
+    'observation_area': 'FLDK',
+    'observation_start_time': 58413.12523839,
+    'observation_end_time': 58413.12562439,
+    'observation_timeline': '0300',
 }
 FAKE_DATA_INFO: InfoDict = {
     'blocklength': 50,
@@ -358,6 +358,22 @@ class TestAHIHSDFileHandler:
             with warnings.catch_warnings(record=True) as w:
                 fh._check_fpos(fp_, fpos, 0, 'header 1')
                 assert len(w) > 0
+
+    def test_time_rounding(self):
+        """Test rounding of the nominal time."""
+
+        assert AHIHSDFileHandler._is_valid_timeline(FAKE_BASIC_INFO['observation_timeline']) is True
+        assert AHIHSDFileHandler._is_valid_timeline('65526') is False
+
+        mocker = mock.MagicMock()
+        in_date = datetime(2020, 1, 1, 12, 0, 0)
+
+        with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._is_valid_timeline', mocker):
+            with _fake_hsd_handler() as fh:
+                mocker.return_value = True
+                assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 3, 0, 0)
+                mocker.return_value = False
+                assert fh._modify_observation_time_for_nominal(in_date) == datetime(2020, 1, 1, 12, 0, 0)
 
 
 class TestAHICalibration(unittest.TestCase):
