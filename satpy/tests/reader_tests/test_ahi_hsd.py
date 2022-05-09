@@ -361,7 +361,6 @@ class TestAHIHSDFileHandler:
 
     def test_time_rounding(self):
         """Test rounding of the nominal time."""
-
         assert AHIHSDFileHandler._is_valid_timeline(FAKE_BASIC_INFO['observation_timeline']) is True
         assert AHIHSDFileHandler._is_valid_timeline('65526') is False
 
