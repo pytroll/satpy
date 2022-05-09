@@ -459,9 +459,8 @@ class AHIHSDFileHandler(BaseFileHandler):
             return observation_time.replace(
                 hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
                 second=dt % 60, microsecond=0)
-        else:
-            warnings.warn("Observation timeline is fill value, not rounding observation time.")
-            return observation_time
+        warnings.warn("Observation timeline is fill value, not rounding observation time.")
+        return observation_time
 
     def get_dataset(self, key, info):
         """Get the dataset."""
