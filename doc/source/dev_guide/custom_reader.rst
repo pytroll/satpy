@@ -60,17 +60,24 @@ if needed (ex. goes-imager).
 :file format: If the file format of the files is informative to the user or
     can distinguish one reader from another then this field should be
     specified. Common format names should be abbreviated following existing
-    abbreviations like `nc` for NetCDF3 or NetCDF4, `hdf` for HDF4, `h5` for
+    abbreviations like ``nc`` for NetCDF3 or NetCDF4, ``hdf`` for HDF4, ``h5`` for
     HDF5.
 
 The existing :ref:`reader's table <reader_table>` can be used for reference.
-When in doubt, reader names can be discussed in the github pull
-request when this reader is added to Satpy or a github issue.
+When in doubt, reader names can be discussed in the GitHub pull
+request when this reader is added to Satpy, or in a GitHub issue.
 
 The YAML file
 -------------
 
-The yaml file is composed of three sections:
+If your reader is going to be part of Satpy, the YAML file should be
+located in the ``satpy/etc/readers`` directory, along with the YAML
+files for all other readers.  If you are developing a reader for internal
+purposes (such as for unpublished data), the YAML file should be located
+in any directory in ``$SATPY_CONFIG_PATH`` within the subdirectory
+``readers/`` (see :doc:`../../config`).
+
+The YAML file is composed of three sections:
 
  - the :ref:`reader <custom_reader_reader_section>` section,
    that provides basic parameters for the reader
@@ -109,7 +116,9 @@ The parameters to provide in this section are:
  - sensors: The list of sensors this reader will support. This must be
    all lowercase letters for full support throughout in Satpy.
  - reader: The main python reader class to use, in most cases the
-   ``FileYAMLReader`` is a good choice.
+   ``FileYAMLReader`` is a good choice.  Note that this is **not** the file handler
+   class described later (the file handler will be specified in the ``file_types``
+   section later down in the YAML file).
 
 .. code:: yaml
 
@@ -122,8 +131,8 @@ The parameters to provide in this section are:
       sensors: [seviri]
       reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
-Optionally, if you need to customize the `DataID` for this reader, you can provide the
-relevant keys with a `data_identification_keys` item here. See the :doc:`satpy_internals`
+Optionally, if you need to customize the ``DataID`` for this reader, you can provide the
+relevant keys with a ``data_identification_keys`` item here. See the :doc:`satpy_internals`
 section for more information.
 
 .. _custom_reader_file_types_section:
@@ -203,7 +212,7 @@ Parameters you can define for example are:
    is optional if the data being read is gridded already. Swath data,
    from example data from some polar-orbiting satellites, should have these
    defined or no geolocation information will be available when the data
-   is loaded. For gridded datasets a `get_area_def` function will be
+   are loaded. For gridded datasets a ``get_area_def`` function will be
    implemented in python (see below) to define geolocation information.
  - Any other field that is relevant for the reader or could be useful metadata
    provided to the user.
@@ -433,7 +442,7 @@ This method is good when you want to:
 
 1. Define datasets dynamically without needing to define them in the YAML.
 2. Supplement metadata from the YAML file with information from the file
-   content (ex. `resolution`).
+   content (ex. ``resolution``).
 3. Determine if a dataset is available by the file contents. This differs from
    the default behavior of a dataset being considered loadable if its
    "file_type" is loaded.
