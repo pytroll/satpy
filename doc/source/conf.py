@@ -26,6 +26,7 @@ from pkg_resources import get_distribution
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
+from reader_table import generate_reader_table  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -74,6 +75,10 @@ autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4'
                         'pyorbital', 'pyspectral', 'rasterio', 'trollimage',
                         'zarr']
 autoclass_content = 'both'  # append class __init__ docstring to the class docstring
+
+# auto generate reader table from reader config files
+with open("reader_table.rst", mode="w") as f:
+    f.write(generate_reader_table())
 
 # -- General configuration -----------------------------------------------------
 
