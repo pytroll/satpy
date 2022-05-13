@@ -15,8 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""The vii_l1b_nc reader tests package.
 
-"""The vii_l1b_nc reader tests package."""
+This version tests the readers for VII test data V2 as per PFS V4A.
+
+"""
+
 
 import datetime
 import os
@@ -75,9 +79,9 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
 
             # Add variables to data/measurement_data group
             sza = g1_2.createVariable('solar_zenith', np.float32,
-                                      dimensions=('num_tie_points_act', 'num_tie_points_alt'))
+                                      dimensions=('num_tie_points_alt', 'num_tie_points_act'))
             sza[:] = 25.0
-            delta_lat = g1_2.createVariable('delta_lat', np.float32, dimensions=('num_pixels', 'num_lines'))
+            delta_lat = g1_2.createVariable('delta_lat', np.float32, dimensions=('num_lines', 'num_pixels'))
             delta_lat[:] = 1.0
 
         self.reader = ViiL1bNCFileHandler(
@@ -116,25 +120,25 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         angle_factor = 0.4
         isi = 2.0
         refl = self.reader._calibrate_refl(radiance, angle_factor, isi)
-        expected_refl = np.array([[0.628318531, 1.256637061, 3.141592654],
-                                  [4.398229715, 6.283185307, 12.56637061]])
+        expected_refl = np.array([[62.8318531, 125.6637061, 314.1592654],
+                                  [439.8229715, 628.3185307, 1256.637061]])
         self.assertTrue(np.allclose(refl, expected_refl))
 
     def test_functions(self):
         """Test the functions."""
         # Checks that the _perform_orthorectification function is correctly executed
         variable = xr.DataArray(
-            dims=('num_pixels', 'num_lines'),
+            dims=('num_lines', 'num_pixels'),
             name='test_name',
             attrs={
                 'key_1': 'value_1',
                 'key_2': 'value_2'
             },
-            data=da.from_array(np.ones((72, 600)))
+            data=da.from_array(np.ones((600, 72)))
         )
 
         orthorect_variable = self.reader._perform_orthorectification(variable, 'data/measurement_data/delta_lat')
-        expected_values = np.degrees(np.ones((72, 600)) / MEAN_EARTH_RADIUS) + np.ones((72, 600))
+        expected_values = np.degrees(np.ones((600, 72)) / MEAN_EARTH_RADIUS) + np.ones((600, 72))
         self.assertTrue(np.allclose(orthorect_variable.values, expected_values))
 
         # Checks that the _perform_calibration function is correctly executed in all cases
@@ -151,7 +155,7 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
         calibrated_variable = self.reader._perform_calibration(variable,
                                                                {'calibration': 'brightness_temperature',
                                                                 'chan_thermal_index': 3})
-        expected_values = np.ones((72, 600)) * 302007.42728603
+        expected_values = np.full((600, 72), 1101.10413712)
         self.assertTrue(np.allclose(calibrated_variable.values, expected_values))
 
         # reflectance calibration: checks that the return value is correct
@@ -159,5 +163,5 @@ class TestViiL1bNCFileHandler(unittest.TestCase):
                                                                {'calibration': 'reflectance',
                                                                 'wavelength': [0.658, 0.668, 0.678],
                                                                 'chan_solar_index': 2})
-        expected_values = np.ones((72, 600)) * 1.733181982 * (0.678 - 0.658)
+        expected_values = np.full((600, 72), 173.3181982)
         self.assertTrue(np.allclose(calibrated_variable.values, expected_values))

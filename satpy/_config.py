@@ -43,6 +43,7 @@ _CONFIG_DEFAULTS = {
     'data_dir': _satpy_dirs.user_data_dir,
     'demo_data_dir': '.',
     'download_aux': True,
+    'sensor_angles_position_preference': 'actual',
 }
 
 # Satpy main configuration object

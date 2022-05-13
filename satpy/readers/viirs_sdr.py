@@ -604,7 +604,7 @@ class VIIRSSDRReader(FileYAMLReader):
             LOG.warning("Required file type '%s' not found or loaded for "
                         "'%s'", ds_info['file_type'], dsid['name'])
         else:
-            if len(set(ds_info['dataset_groups']) & set(['GITCO', 'GIMGO', 'GMTCO', 'GMODO'])) > 1:
+            if len(set(ds_info['dataset_groups']) & {'GITCO', 'GIMGO', 'GMTCO', 'GMODO'}) > 1:
                 fhs = self.get_right_geo_fhs(dsid, fhs)
             return fhs
 

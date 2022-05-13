@@ -37,7 +37,8 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
-                 'rioxarray', 'pytest', 'pytest-lazy-fixture']
+                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
+                 's3fs']
 
 extras_require = {
     # Readers:
@@ -55,7 +56,7 @@ extras_require = {
     'hrit_msg': ['pytroll-schedule'],
     'msi_safe': ['rioxarray', "bottleneck", "python-geotiepoints"],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
-    'sar_c': ['python-geotiepoints >= 1.1.7', 'rasterio', 'rioxarray'],
+    'sar_c': ['python-geotiepoints >= 1.1.7', 'rasterio', 'rioxarray', 'defusedxml'],
     'abi_l1b': ['h5netcdf'],
     'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
     'seviri_l1b_native': ['pyorbital >= 1.3.1'],
@@ -63,6 +64,7 @@ extras_require = {
     'seviri_l2_bufr': ['eccodes-python'],
     'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
+    'remote_reading': ['fsspec'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],

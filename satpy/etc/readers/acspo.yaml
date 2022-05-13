@@ -37,4 +37,3 @@ datasets:
     name: wind_speed
     coordinates: [longitude, latitude]
     file_type: acspo_sst
-

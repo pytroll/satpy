@@ -3,7 +3,7 @@ Satpy's Documentation
 =====================
 
 Satpy is a python library for reading, manipulating, and writing data from
-remote-sensing earth-observing meteorological satellite instruments. Satpy
+remote-sensing earth-observing satellite instruments. Satpy
 provides users with readers that convert geophysical parameters from various
 file formats to the common Xarray :class:`~xarray.DataArray` and
 :class:`~xarray.Dataset` classes for easier interoperability with other
@@ -30,7 +30,7 @@ libraries maintained by the Pytroll group including:
 
 Go to the Satpy project_ page for source code and downloads.
 
-Satpy is designed to be easily extendable to support any meteorological
+Satpy is designed to be easily extendable to support any earth observation
 satellite by the creation of plugins (readers, compositors, writers, etc).
 The table at the bottom of this page shows the input formats supported by
 the base Satpy installation.
@@ -56,6 +56,7 @@ the base Satpy installation.
     examples/index
     quickstart
     readers
+    remote_reading
     composites
     resample
     enhancements
@@ -68,6 +69,8 @@ the base Satpy installation.
 
     Satpy API <api/modules>
     faq
+    Release Notes <https://github.com/pytroll/satpy/blob/main/CHANGELOG.md>
+    Security Policy <https://github.com/pytroll/satpy/blob/main/SECURITY.md>
 
 .. _reader_table:
 
@@ -94,7 +97,7 @@ the base Satpy installation.
       - AMV BUFR products not supported yet.
     * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
       - `seviri_l2_grib`
-      - In development, CLM, OCA and FIR products supported
+      - Nominal
     * - MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
       - `mviri_l1b_fiduceo_nc`
       - Beta
@@ -148,6 +151,9 @@ the base Satpy installation.
     * - MTG FCI Level 1C data in NetCDF format
       - `fci_l1c_nc`
       - In development (beta for FDHSI files, HRFI not supported yet)
+    * - MTG FCI Level 2 data in NetCDF format
+      - `fci_l2_nc`
+      - In development.
     * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
       - `caliop_l2_cloud`
       - In development
@@ -180,7 +186,7 @@ the base Satpy installation.
       - `slstr_l1b`
       - In development
     * - OSISAF SST data in GHRSST (netcdf) format
-      - `ghrsst_l3c_sst`
+      - `ghrsst_l2`
       - In development
     * - NUCAPS EDR Retrieval in NetCDF4 format
       - `nucaps`
@@ -245,7 +251,7 @@ the base Satpy installation.
       - `glm_l2`
       - Beta
     * - Sentinel-3 SLSTR SST data in NetCDF4 format
-      - `slstr_l2`
+      - `ghrsst_l2`
       - Beta
     * - IASI level 2 SO2 in BUFR format
       - `iasi_l2_so2_bufr`
@@ -282,6 +288,18 @@ the base Satpy installation.
       - Beta
     * - MIMIC Total Precipitable Water Product Reader in NetCDF format
       - mimicTPW2_comp
+      - Beta
+    * - SEADAS L2 Chlorphyll A product in HDF4 format
+      - seadas_l2
+      - Beta
+    * - AAPP L1C MHS format
+      - `aapp_mhs_l1c`
+      - Nominal
+    * - AAPP L1C AMSU-B format
+      - `aapp_amsub_l1c`
+      - Beta
+    * - Arctica-M (N1) MSU-GS/A data in HDF5 format
+      - `msu_gsa_l1b`
       - Beta
 
 Indices and tables

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2020 Satpy developers
+# Copyright (c) 2015-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -45,7 +45,14 @@ def get_keys_from_config(common_id_keys, config):
 
 
 class ValueList(IntEnum):
-    """A static value list."""
+    """A static value list.
+
+    This class is meant to be used for dynamically created Enums. Due to this
+    it should not be used as a normal Enum class or there may be some
+    unexpected behavior. For example, this class contains custom pickling and
+    unpickling handling that may break in subclasses.
+
+    """
 
     @classmethod
     def convert(cls, value):
@@ -54,6 +61,21 @@ class ValueList(IntEnum):
             return cls[value]
         except KeyError:
             raise ValueError('{} invalid value for {}'.format(value, cls))
+
+    @classmethod
+    def _unpickle(cls, enum_name, enum_members, enum_member):
+        """Create dynamic class that was previously pickled.
+
+        See :meth:`__reduce_ex__` for implementation details.
+
+        """
+        enum_cls = cls(enum_name, enum_members)
+        return enum_cls[enum_member]
+
+    def __reduce_ex__(self, proto):
+        """Reduce the object for pickling."""
+        return (ValueList._unpickle,
+                (self.__class__.__name__, list(self.__class__.__members__.keys()), self.name))
 
     def __eq__(self, other):
         """Check equality."""
@@ -243,7 +265,6 @@ default_id_keys_config = {'name': {
                               'type': ModifierTuple,
                           },
                           }
-
 
 #: Default ID keys for coordinate DataArrays.
 default_co_keys_config = {'name': {
@@ -448,7 +469,7 @@ class DataID(dict):
     popitem = _immutable
     clear = _immutable
     update = _immutable  # type: ignore
-    setdefault = _immutable
+    setdefault = _immutable  # type: ignore
 
     def _find_modifiers_key(self):
         for key, val in self.items():
@@ -475,12 +496,12 @@ def _generalize_value_for_comparison(val):
     """Get a generalize value for comparisons."""
     if isinstance(val, numbers.Number):
         return 0
-    elif isinstance(val, str):
+    if isinstance(val, str):
         return ""
-    elif isinstance(val, tuple):
+    if isinstance(val, tuple):
         return tuple()
-    else:
-        raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+
+    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
 
 
 class DataQuery:

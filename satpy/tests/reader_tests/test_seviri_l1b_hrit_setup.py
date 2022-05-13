@@ -57,6 +57,7 @@ def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
     m = mock.mock_open()
     with mock.patch('satpy.readers.seviri_l1b_hrit.np.fromfile') as fromfile, \
             mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, \
+            mock.patch('satpy.readers.utils.open', m, create=True) as utilopen, \
             mock.patch('satpy.readers.seviri_l1b_hrit.CHANNEL_NAMES'), \
             mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd), \
             mock.patch.object(HRITMSGPrologueFileHandler, 'read_prologue',
@@ -68,6 +69,10 @@ def get_fake_file_handler(start_time, nlines, ncols, projection_longitude=0,
                    ('hdr_id', int)]
         )
         newopen.return_value.__enter__.return_value.tell.return_value = 1
+        # The size of the return value hereafter was chosen arbitrarily with the expectation
+        # that it would return sufficiently many bytes for testing the fake-opening of HRIT
+        # files.
+        utilopen.return_value.__enter__.return_value.read.return_value = bytes([0]*8192)
         prologue = HRITMSGPrologueFileHandler(
             filename='dummy_prologue_filename',
             filename_info=filename_info,
@@ -207,9 +212,6 @@ def get_attrs_exp(projection_longitude=0.0):
         'standard_name': 'standard_name',
         'platform_name': 'Meteosat-11',
         'sensor': 'seviri',
-        'satellite_longitude': projection_longitude,
-        'satellite_latitude': 0.0,
-        'satellite_altitude': 35785831.0,
         'orbital_parameters': {'projection_longitude': projection_longitude,
                                'projection_latitude': 0.,
                                'projection_altitude': 35785831.0,

@@ -209,54 +209,67 @@ class TestUtils(unittest.TestCase):
         res = proj_units_to_meters(prj)
         self.assertEqual(res, '+a=6378137.000 +b=6378137.000 +h=35785863.000')
 
-    @mock.patch('satpy.utils.warnings.warn')
-    def test_get_satpos(self, warn_mock):
+
+class TestGetSatPos:
+    """Tests for 'get_satpos'."""
+
+    @pytest.mark.parametrize(
+        ("included_prefixes", "preference", "expected_result"),
+        [
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), None, (1, 2, 3)),
+            (("satellite_actual_", "satellite_nominal_", "projection_"), None, (1.1, 2.1, 3)),
+            (("satellite_nominal_", "projection_"), None, (1.2, 2.2, 3.1)),
+            (("projection_",), None, (1.3, 2.3, 3.2)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nadir", (1, 2, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "actual", (1.1, 2.1, 3)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "nominal", (1.2, 2.2, 3.1)),
+            (("nadir_", "satellite_actual_", "satellite_nominal_", "projection_"), "projection", (1.3, 2.3, 3.2)),
+            (("satellite_nominal_", "projection_"), "actual", (1.2, 2.2, 3.1)),
+            (("projection_",), "projection", (1.3, 2.3, 3.2)),
+        ]
+    )
+    def test_get_satpos(self, included_prefixes, preference, expected_result):
         """Test getting the satellite position."""
-        orb_params = {'nadir_longitude': 1,
-                      'satellite_actual_longitude': 1.1,
-                      'satellite_nominal_longitude': 1.2,
-                      'projection_longitude': 1.3,
-                      'nadir_latitude': 2,
-                      'satellite_actual_latitude': 2.1,
-                      'satellite_nominal_latitude': 2.2,
-                      'projection_latitude': 2.3,
-                      'satellite_actual_altitude': 3,
-                      'satellite_nominal_altitude': 3.1,
-                      'projection_altitude': 3.2}
-        dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params,
-                                        'satellite_longitude': -1,
-                                        'satellite_latitude': -2,
-                                        'satellite_altitude': -3})
+        all_orb_params = {
+            'nadir_longitude': 1,
+            'satellite_actual_longitude': 1.1,
+            'satellite_nominal_longitude': 1.2,
+            'projection_longitude': 1.3,
+            'nadir_latitude': 2,
+            'satellite_actual_latitude': 2.1,
+            'satellite_nominal_latitude': 2.2,
+            'projection_latitude': 2.3,
+            'satellite_actual_altitude': 3,
+            'satellite_nominal_altitude': 3.1,
+            'projection_altitude': 3.2
+        }
+        orb_params = {key: value for key, value in all_orb_params.items() if
+                      any(in_prefix in key for in_prefix in included_prefixes)}
+        data_arr = xr.DataArray((), attrs={'orbital_parameters': orb_params})
 
-        # Nadir
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1, 2, 3))
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            lon, lat, alt = get_satpos(data_arr, preference=preference)
+        has_satpos_warnings = any("using projection" in str(msg.message) for msg in caught_warnings)
+        expect_warning = included_prefixes == ("projection_",) and preference != "projection"
+        if expect_warning:
+            assert has_satpos_warnings
+        else:
+            assert not has_satpos_warnings
+        assert (lon, lat, alt) == expected_result
 
-        # Actual
-        orb_params.pop('nadir_longitude')
-        orb_params.pop('nadir_latitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.1, 2.1, 3))
-
-        # Nominal
-        orb_params.pop('satellite_actual_longitude')
-        orb_params.pop('satellite_actual_latitude')
-        orb_params.pop('satellite_actual_altitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3.1))
-
-        # Projection
-        orb_params.pop('satellite_nominal_longitude')
-        orb_params.pop('satellite_nominal_latitude')
-        orb_params.pop('satellite_nominal_altitude')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
-        warn_mock.assert_called()
-
-        # Legacy
-        dataset.attrs.pop('orbital_parameters')
-        lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
+    @pytest.mark.parametrize(
+        "attrs",
+        (
+                {},
+                {'orbital_parameters':  {'projection_longitude': 1}},
+                {'satellite_altitude': 1}
+        )
+    )
+    def test_get_satpos_fails_with_informative_error(self, attrs):
+        """Test that get_satpos raises an informative error message."""
+        data_arr = xr.DataArray((), attrs=attrs)
+        with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
+            get_satpos(data_arr)
 
 
 def test_make_fake_scene():
@@ -414,3 +427,120 @@ def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
                              orig_arrays: list[xr.DataArray]) -> None:
     for data_arr, orig_arr in zip(data_arrays, orig_arrays):
         assert data_arr.chunks == orig_arr.chunks
+
+
+def test_chunk_pixel_size():
+    """Check the chunk pixel size computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_pixel_size
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_pixel_size() is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_pixel_size() == 100
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_pixel_size() == 200
+
+
+def test_chunk_size_limit():
+    """Check the chunk size limit computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_size_limit
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_size_limit(np.uint8) is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_size_limit(np.float64) == 800
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_size_limit(np.int32) == 800
+
+
+def test_convert_remote_files_to_fsspec_local_files():
+    """Test convertion of remote files to fsspec objects.
+
+    Case without scheme/protocol, which should default to plain filenames.
+    """
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["/tmp/file1.nc", "file:///tmp/file2.nc"]
+    res = convert_remote_files_to_fsspec(filenames)
+    assert res == filenames
+
+
+def test_convert_remote_files_to_fsspec_mixed_sources():
+    """Test convertion of remote files to fsspec objects.
+
+    Case with mixed local and remote files.
+    """
+    from satpy.readers import FSFile
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
+    res = convert_remote_files_to_fsspec(filenames)
+    # Two local files, one remote
+    assert filenames[0] in res
+    assert filenames[2] in res
+    assert sum([isinstance(f, FSFile) for f in res]) == 1
+
+
+def test_convert_remote_files_to_fsspec_filename_dict():
+    """Test convertion of remote files to fsspec objects.
+
+    Case where filenames is a dictionary mapping readers and filenames.
+    """
+    from satpy.readers import FSFile
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = {
+        "reader1": ["/tmp/file1.nc", "/tmp/file2.nc"],
+        "reader2": ["s3://tmp/file3.nc", "file:///tmp/file4.nc", "/tmp/file5.nc"]
+    }
+    res = convert_remote_files_to_fsspec(filenames)
+
+    assert res["reader1"] == filenames["reader1"]
+    assert filenames["reader2"][1] in res["reader2"]
+    assert filenames["reader2"][2] in res["reader2"]
+    assert sum([isinstance(f, FSFile) for f in res["reader2"]]) == 1
+
+
+def test_convert_remote_files_to_fsspec_fsfile():
+    """Test convertion of remote files to fsspec objects.
+
+    Case where the some of the files are already FSFile objects.
+    """
+    from satpy.readers import FSFile
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
+    res = convert_remote_files_to_fsspec(filenames)
+
+    assert sum([isinstance(f, FSFile) for f in res]) == 2
+
+
+def test_convert_remote_files_to_fsspec_windows_paths():
+    """Test convertion of remote files to fsspec objects.
+
+    Case where windows paths are used.
+    """
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = [r"C:\wintendo\file1.nc", "e:\\wintendo\\file2.nc", r"wintendo\file3.nc"]
+    res = convert_remote_files_to_fsspec(filenames)
+
+    assert res == filenames
+
+
+@mock.patch('fsspec.open_files')
+def test_convert_remote_files_to_fsspec_storage_options(open_files):
+    """Test convertion of remote files to fsspec objects.
+
+    Case with storage options given.
+    """
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["s3://tmp/file1.nc"]
+    storage_options = {'anon': True}
+
+    _ = convert_remote_files_to_fsspec(filenames, storage_options=storage_options)
+
+    open_files.assert_called_once_with(filenames, **storage_options)

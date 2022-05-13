@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2020 Satpy developers
+# Copyright (c) 2015-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -35,7 +35,7 @@ from satpy.writers import get_enhanced_image
 
 LOG = logging.getLogger(__name__)
 
-NEGLIBLE_COORDS = ['time']
+NEGLIGIBLE_COORDS = ['time']
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
 MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
@@ -90,7 +90,7 @@ def sub_arrays(proj1, proj2):
 
 
 class CompositeBase:
-    """Base class for all compositors.
+    """Base class for all compositors and modifiers.
 
     A compositor in Satpy is a class that takes in zero or more input
     DataArrays and produces a new DataArray with its own identifier (name).
@@ -153,18 +153,51 @@ class CompositeBase:
                     d[k] = o[k]
 
     def match_data_arrays(self, data_arrays):
-        """Match data arrays so that they can be used together in a composite."""
+        """Match data arrays so that they can be used together in a composite.
+
+        For the purpose of this method, "can be used together" means:
+
+        - All arrays should have the same dimensions.
+        - Either all arrays should have an area, or none should.
+        - If all have an area, the areas should be all the same.
+
+        In addition, negligible non-dimensional coordinates are dropped (see
+        :meth:`drop_coordinates`) and dask chunks are unified (see
+        :func:`satpy.utils.unify_chunks`).
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+
+        Returns:
+            data_arrays (List[arrays]):
+                Arrays with negligible non-dimensional coordinates removed.
+
+        Raises:
+            :class:`IncompatibleAreas`:
+                If dimension or areas do not match.
+            :class:`ValueError`:
+                If some, but not all data arrays lack an area attribute.
+        """
         self.check_geolocation(data_arrays)
         new_arrays = self.drop_coordinates(data_arrays)
         new_arrays = list(unify_chunks(*new_arrays))
         return new_arrays
 
     def drop_coordinates(self, data_arrays):
-        """Drop neglible non-dimensional coordinates."""
+        """Drop negligible non-dimensional coordinates.
+
+        Drops negligible coordinates if they do not correspond to any
+        dimension.  Negligible coordinates are defined in the
+        :attr:`NEGLIGIBLE_COORDS` module attribute.
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+        """
         new_arrays = []
         for ds in data_arrays:
             drop = [coord for coord in ds.coords
-                    if coord not in ds.dims and any([neglible in coord for neglible in NEGLIBLE_COORDS])]
+                    if coord not in ds.dims and
+                    any([neglible in coord for neglible in NEGLIGIBLE_COORDS])]
             if drop:
                 new_arrays.append(ds.drop(drop))
             else:
@@ -173,7 +206,23 @@ class CompositeBase:
         return new_arrays
 
     def check_geolocation(self, data_arrays):
-        """Check that the geolocations of the *data_arrays* are compatible."""
+        """Check that the geolocations of the *data_arrays* are compatible.
+
+        For the purpose of this method, "compatible" means:
+
+        - All arrays should have the same dimensions.
+        - Either all arrays should have an area, or none should.
+        - If all have an area, the areas should be all the same.
+
+        Args:
+            data_arrays (List[arrays]): Arrays to be checked
+
+        Raises:
+            :class:`IncompatibleAreas`:
+                If dimension or areas do not match.
+            :class:`ValueError`:
+                If some, but not all data arrays lack an area attribute.
+        """
         if len(data_arrays) == 1:
             return
 
@@ -197,12 +246,6 @@ class CompositeBase:
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
-    def check_areas(self, data_arrays):
-        """Check that the areas of the *data_arrays* are compatible."""
-        warnings.warn('satpy.composites.CompositeBase.check_areas is deprecated, use '
-                      'satpy.composites.CompositeBase.match_data_arrays instead')
-        return self.match_data_arrays(data_arrays)
-
 
 class DifferenceCompositor(CompositeBase):
     """Make the difference of two data arrays."""
@@ -214,7 +257,8 @@ class DifferenceCompositor(CompositeBase):
         projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
-        info.update(attrs)
+        info.update(self.attrs)  # attrs from YAML/__init__
+        info.update(attrs)  # overwriting of DataID properties
 
         proj = projectables[0] - projectables[1]
         proj.attrs = info
@@ -451,7 +495,7 @@ class ColormapCompositor(GenericCompositor):
         Colormaps come in different forms, but they are all supposed to have
         color values between 0 and 255. The following cases are considered:
 
-        - Palettes comprised of only a list on colors. If *dtype* is uint8,
+        - Palettes comprised of only a list of colors. If *dtype* is uint8,
           the values of the colormap are the enumeration of the colors.
           Otherwise, the colormap values will be spread evenly from the min
           to the max of the valid_range provided in `info`.
@@ -587,18 +631,10 @@ class DayNightCompositor(GenericCompositor):
         try:
             coszen = np.cos(np.deg2rad(projectables[2 if self.day_night == "day_night" else 1]))
         except IndexError:
-            from pyorbital.astronomy import cos_zen
+            from satpy.modifiers.angles import get_cos_sza
             LOG.debug("Computing sun zenith angles.")
             # Get chunking that matches the data
-            try:
-                chunks = foreground_data.sel(bands=foreground_data['bands'][0]).chunks
-            except KeyError:
-                chunks = foreground_data.chunks
-            lons, lats = foreground_data.attrs["area"].get_lonlats(chunks=chunks)
-            coszen = xr.DataArray(cos_zen(foreground_data.attrs["start_time"],
-                                          lons, lats),
-                                  dims=['y', 'x'],
-                                  coords=[foreground_data['y'], foreground_data['x']])
+            coszen = get_cos_sza(foreground_data)
         # Calculate blending weights
         coszen -= np.min((lim_high, lim_low))
         coszen /= np.abs(lim_low - lim_high)
@@ -876,7 +912,10 @@ class RatioSharpenedRGB(GenericCompositor):
         return ret
 
     def __call__(self, datasets, optional_datasets=None, **info):
-        """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``."""
+        """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``.
+
+        The resulting RGB has the units attribute removed.
+        """
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
         if not all(x.shape == datasets[0].shape for x in datasets[1:]) or \
@@ -935,7 +974,9 @@ class RatioSharpenedRGB(GenericCompositor):
         info.update(self.attrs)
         # Force certain pieces of metadata that we *know* to be true
         info.setdefault("standard_name", "true_color")
-        return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+        res = super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
+        res.attrs.pop("units", None)
+        return res
 
 
 def _mean4(data, offset=(0, 0), block_id=None):
@@ -1057,7 +1098,8 @@ class SandwichCompositor(GenericCompositor):
 
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
-        rgb_img *= luminance
+        # Ignore alpha band when applying luminance
+        rgb_img = rgb_img.where(rgb_img.bands == 'A', rgb_img * luminance)
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
@@ -1295,7 +1337,10 @@ class BackgroundCompositor(GenericCompositor):
 class MaskingCompositor(GenericCompositor):
     """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
 
-    def __init__(self, name, transparency=None, conditions=None, **kwargs):
+    _supported_modes = {"LA", "RGBA"}
+
+    def __init__(self, name, transparency=None, conditions=None, mode="LA",
+                 **kwargs):
         """Collect custom configuration values.
 
         Kwargs:
@@ -1305,6 +1350,10 @@ class MaskingCompositor(GenericCompositor):
                                  DEPRECATED.
             conditions (list): list of three items determining the masking
                                settings.
+            mode (str, optional): Image mode to return.  For single-band input,
+                                  this shall be "LA" (default) or "RGBA".  For
+                                  multi-band input, this argument is ignored
+                                  as the result is always RGBA.
 
         Each condition in *conditions* consists of three items:
 
@@ -1363,6 +1412,10 @@ class MaskingCompositor(GenericCompositor):
             self.conditions = conditions
         if self.conditions is None:
             raise ValueError("Masking conditions not defined.")
+        if mode not in self._supported_modes:
+            raise ValueError(f"Invalid mode {mode!s}.  Supported modes: " +
+                             ", ".join(self._supported_modes))
+        self.mode = mode
 
         super(MaskingCompositor, self).__init__(name, **kwargs)
 
@@ -1373,34 +1426,11 @@ class MaskingCompositor(GenericCompositor):
         projectables = self.match_data_arrays(projectables)
         data_in = projectables[0]
         mask_in = projectables[1]
-        mask_data = mask_in.data
 
         alpha_attrs = data_in.attrs.copy()
-        if 'bands' in data_in.dims:
-            data = [data_in.sel(bands=b) for b in data_in['bands'] if b != 'A']
-        else:
-            data = [data_in]
+        data = self._select_data_bands(data_in)
 
-        # Create alpha band
-        alpha = da.ones((data[0].sizes['y'],
-                         data[0].sizes['x']),
-                        chunks=data[0].chunks)
-
-        for condition in self.conditions:
-            method = condition['method']
-            value = condition.get('value', None)
-            if isinstance(value, str):
-                value = _get_flag_value(mask_in, value)
-            transparency = condition['transparency']
-            mask = self._get_mask(method, value, mask_data)
-
-            if transparency == 100.0:
-                data = self._set_data_nans(data, mask, alpha_attrs)
-            alpha_val = 1. - transparency / 100.
-            alpha = da.where(mask, alpha_val, alpha)
-
-        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
-                             dims=data[0].dims, coords=data[0].coords)
+        alpha = self._get_alpha_bands(data, mask_in, alpha_attrs)
         data.append(alpha)
 
         res = super(MaskingCompositor, self).__call__(data, **kwargs)
@@ -1433,6 +1463,44 @@ class MaskingCompositor(GenericCompositor):
             data[i].attrs = attrs
 
         return data
+
+    def _select_data_bands(self, data_in):
+        """Select data to be composited from input data.
+
+        From input data, select the bands that need to have masking applied.
+        """
+        if 'bands' in data_in.dims:
+            return [data_in.sel(bands=b) for b in data_in['bands'] if b != 'A']
+        if self.mode == "RGBA":
+            return [data_in, data_in, data_in]
+        return [data_in]
+
+    def _get_alpha_bands(self, data, mask_in, alpha_attrs):
+        """Get alpha bands.
+
+        From input data, masks, and attributes, get alpha band.
+        """
+        # Create alpha band
+        mask_data = mask_in.data
+        alpha = da.ones((data[0].sizes['y'],
+                         data[0].sizes['x']),
+                        chunks=data[0].chunks)
+
+        for condition in self.conditions:
+            method = condition['method']
+            value = condition.get('value', None)
+            if isinstance(value, str):
+                value = _get_flag_value(mask_in, value)
+            transparency = condition['transparency']
+            mask = self._get_mask(method, value, mask_data)
+
+            if transparency == 100.0:
+                data = self._set_data_nans(data, mask, alpha_attrs)
+            alpha_val = 1. - transparency / 100.
+            alpha = da.where(mask, alpha_val, alpha)
+
+        return xr.DataArray(data=alpha, attrs=alpha_attrs,
+                            dims=data[0].dims, coords=data[0].coords)
 
 
 def _get_flag_value(mask, val):

@@ -72,34 +72,21 @@ class ReflectanceCorrector(ModifierBase, DataDownloadMixin):
 
     def __call__(self, datasets, optional_datasets, **info):
         """Create modified DataArray object by applying the crefl algorithm."""
-        from satpy.modifiers._crefl_utils import get_coefficients
         refl_data, angles = self._extract_angle_data_arrays(datasets, optional_datasets)
-        coefficients = get_coefficients(refl_data.attrs["sensor"],
-                                        refl_data.attrs["wavelength"],
-                                        refl_data.attrs["resolution"])
-        results = self._call_crefl(refl_data, coefficients, angles)
+        results = self._call_crefl(refl_data, angles)
         info.update(refl_data.attrs)
         info["rayleigh_corrected"] = True
         results.attrs = info
         self.apply_modifier_info(refl_data, results)
         return results
 
-    def _call_crefl(self, refl_data, coefficients, angles):
+    def _call_crefl(self, refl_data, angles):
         from satpy.modifiers._crefl_utils import run_crefl
         avg_elevation = self._get_average_elevation()
-        lons, lats = refl_data.attrs['area'].get_lonlats(chunks=refl_data.chunks)
-        is_percent = refl_data.attrs["units"] == "%"
-        use_abi = refl_data.attrs['sensor'] == 'abi'
         results = run_crefl(refl_data,
-                            coefficients,
-                            lons,
-                            lats,
                             *angles,
                             avg_elevation=avg_elevation,
-                            percent=is_percent,
-                            use_abi=use_abi)
-        factor = 100. if is_percent else 1.
-        results = results * factor
+                            )
         return results
 
     def _get_average_elevation(self):

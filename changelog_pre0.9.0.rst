@@ -4374,6 +4374,3 @@ Other
 - Modified image inversion unit test to reflect new behaviour. [Martin
   Raspaud]
 - New rebase. [Martin Raspaud]
-
-
-
