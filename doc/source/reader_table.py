@@ -56,7 +56,8 @@ def rst_table_header(name=None, header=None, header_rows=1, widths="auto"):
 
     table_header = (f".. list-table:: {name}\n"
                     f"    :header-rows: {header_rows}\n"
-                    f"    :widths: {widths}\n\n"
+                    f"    :widths: {widths}\n"
+                    f"    :class: datatable\n\n"
                     f"{header}")
 
     return table_header
