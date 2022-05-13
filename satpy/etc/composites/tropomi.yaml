@@ -13,4 +13,3 @@ composites:
     prerequisites:
     - nitrogendioxide_tropospheric_column
     standard_name: no2_tropospheric_polluted
-

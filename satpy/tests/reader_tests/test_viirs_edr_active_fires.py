@@ -22,17 +22,18 @@ readers.
 
 """
 
+import io
 import os
 import unittest
 from unittest import mock
-import numpy as np
-import io
-import dask.dataframe as dd
-import pandas as pd
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
 
+import dask.dataframe as dd
+import numpy as np
+import pandas as pd
+
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 DEFAULT_FILE_SHAPE = (1, 100)
 

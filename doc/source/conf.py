@@ -12,9 +12,12 @@
 # serve to show the default.
 """Sphinx documentation configuration and setup."""
 
+from __future__ import annotations
+
 import os
 import sys
 from datetime import datetime
+
 from pkg_resources import get_distribution
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -64,7 +67,7 @@ class Mock(object):  # noqa
 # https://github.com/sphinx-doc/sphinx/issues/3920
 MOCK_MODULES = ['h5py']
 for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = Mock()
+    sys.modules[mod_name] = Mock()  # type: ignore
 
 autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4',
                         'pygac', 'pygrib', 'pyhdf', 'pyninjotiff',
@@ -122,7 +125,7 @@ copyright = u'2009-{}, The PyTroll Team'.format(datetime.utcnow().strftime("%Y")
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_trees = []
+exclude_trees: list[str] = []
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 # default_role = None
@@ -234,8 +237,8 @@ htmlhelp_basename = 'NWCSAFMSGPPdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'satpy.tex', u'satpy documentation',
-   u'SMHI', 'manual'),
+  ('index', 'satpy.tex', 'Satpy Documentation',
+   'Satpy Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -261,14 +264,14 @@ intersphinx_mapping = {
     'dask': ('https://docs.dask.org/en/latest', None),
     'geoviews': ('http://geoviews.org', None),
     'jobqueue': ('https://jobqueue.dask.org/en/latest', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
     'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
     'pyorbital': ('https://pyorbital.readthedocs.io/en/stable', None),
     'pyproj': ('https://pyproj4.github.io/pyproj/dev', None),
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
     'pytest': ('https://docs.pytest.org/en/stable/', None),
     'python': ('https://docs.python.org/3', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'scipy': ('http://scipy.github.io/devdocs', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),

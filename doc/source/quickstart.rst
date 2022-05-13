@@ -34,14 +34,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        brightness_temperature
         units:                K
         wavelength:           (9.8, 10.8, 11.8)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -58,14 +56,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        toa_bidirectional_reflectance
         units:                %
         wavelength:           (0.74, 0.81, 0.88)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -82,14 +78,12 @@ method. Printing the Scene object will list each of the
       * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
       * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
     Attributes:
-        satellite_longitude:  0.0
+        orbital_parameters:   {'projection_longitude': 0.0, 'pr...
         sensor:               seviri
-        satellite_altitude:   35785831.0
         platform_name:        Meteosat-11
         standard_name:        toa_bidirectional_reflectance
         units:                %
         wavelength:           (0.56, 0.635, 0.71)
-        satellite_latitude:   0.0
         start_time:           2018-02-28 15:00:10.814000
         end_time:             2018-02-28 15:12:43.956000
         area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
@@ -146,30 +140,30 @@ The 'area' attribute of the DataArray, if present, can be converted to latitude 
     >>> vis006_lon, vis006_lat = vis006.attrs['area'].get_lonlats()
 
 
-Visualizing data                                                                                    
-================                                                                                    
+Visualizing data
+================
 
-To visualize loaded data in a pop-up window:                                                        
-                                                                                                    
-    >>> global_scene.show(0.6)                                                                      
-                                                                                                    
+To visualize loaded data in a pop-up window:
+
+    >>> global_scene.show(0.6)
+
 Alternatively if working in a Jupyter notebook the scene can be converted to
-a `geoviews <http://geo.holoviews.org/index.html>`_ object using the
+a `geoviews <https://geoviews.org>`_ object using the
 :meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
 requirement of the base satpy install so in order to use this feature the user
 needs to install the geoviews package himself.
-                                                                                                    
-    >>> import holoviews as hv                                                                      
-    >>> import geoviews as gv                                                                       
-    >>> import geoviews.feature as gf                                                               
-    >>> gv.extension("bokeh", "matplotlib")                                                         
-    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]      
-    >>> %opts Image QuadMesh (cmap='RdBu_r')                                                        
+
+    >>> import holoviews as hv
+    >>> import geoviews as gv
+    >>> import geoviews.feature as gf
+    >>> gv.extension("bokeh", "matplotlib")
+    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]
+    >>> %opts Image QuadMesh (cmap='RdBu_r')
     >>> gview = global_scene.to_geoviews(vdims=[0.6])
-    >>> gview[::5,::5] * gf.coastline * gf.borders                                                  
-                                                                                                     
-Creating new datasets                                                                               
-=====================                                                                               
+    >>> gview[::5,::5] * gf.coastline * gf.borders
+
+Creating new datasets
+=====================
 
 Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
 
@@ -183,7 +177,7 @@ Assigning additional custom metadata is also possible.
     >>> from satpy.dataset import combine_metadata
     >>> scene['new_band'] = scene[0.8] / scene[0.6]
     >>> scene['new_band'].attrs = combine_metadata(scene[0.8], scene[0.6])
-    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want' 
+    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want'
 
 Generating composites
 =====================
@@ -281,6 +275,7 @@ To subset multi-resolution data consistently, use the :meth:`~satpy.scene.Scene.
   >>> vis006_llbox_lon, vis006_llbox_lat = vis006_llbox.attrs['area'].get_lonlats()
 
 
+.. _troubleshooting:
 
 Troubleshooting
 ===============

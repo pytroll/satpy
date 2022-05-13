@@ -18,18 +18,17 @@
 
 """The vii_2_nc reader tests package."""
 
-import os
-import numpy as np
-import xarray as xr
-import dask.array as da
 import datetime
-from netCDF4 import Dataset
+import os
+import unittest
 import uuid
 
+import dask.array as da
+import numpy as np
+import xarray as xr
+from netCDF4 import Dataset
+
 from satpy.readers.vii_l2_nc import ViiL2NCFileHandler
-
-import unittest
-
 
 TEST_FILE = 'test_file_vii_l2_nc.nc'
 

@@ -18,14 +18,17 @@
 """Geostationary project utility module tests package."""
 
 import unittest
-from satpy.readers._geos_area import (get_xy_from_linecol,
-                                      get_area_extent,
-                                      get_area_definition,
-                                      sampling_to_lfac_cfac,
-                                      get_geos_area_naming,
-                                      get_resolution_and_unit_strings)
 
 import numpy as np
+
+from satpy.readers._geos_area import (
+    get_area_definition,
+    get_area_extent,
+    get_geos_area_naming,
+    get_resolution_and_unit_strings,
+    get_xy_from_linecol,
+    sampling_to_lfac_cfac,
+)
 
 
 class TestGEOSProjectionUtil(unittest.TestCase):

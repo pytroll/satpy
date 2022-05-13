@@ -119,33 +119,42 @@ Examples coming soon...
 Store area definitions
 ----------------------
 
-Area definitions can be added to a custom YAML file (see
-`pyresample's documentation <http://pyresample.readthedocs.io/en/stable/geo_def.html#pyresample-utils>`_
-for more information)
-and loaded using pyresample's utility methods::
+Area definitions can be saved to a custom YAML file (see
+`pyresample's writing to disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#writing-to-disk>`_)
+and loaded using pyresample's utility methods
+(`pyresample's loading from disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#loading-from-disk>`_)::
 
-    >>> from pyresample.utils import parse_area_file
-    >>> my_area = parse_area_file('my_areas.yaml', 'my_area')[0]
+    >>> from pyresample import load_area
+    >>> my_area = load_area('my_areas.yaml', 'my_area')
 
-Examples coming soon...
+Or using :func:`satpy.resample.get_area_def`, which will search through all
+``areas.yaml`` files in your ``SATPY_CONFIG_PATH``::
+
+    >>> from satpy.resample import get_area_def
+    >>> area_eurol = get_area_def("eurol")
+
+For examples of area definitions, see the file ``etc/areas.yaml`` that is
+included with Satpy and where all the area definitions shipped with Satpy are
+defined.
 
 """
 import hashlib
 import json
 import os
+import warnings
 from logging import getLogger
 from weakref import WeakValueDictionary
-import warnings
-import numpy as np
-import xarray as xr
+
 import dask
 import dask.array as da
-import zarr
+import numpy as np
 import pyresample
+import xarray as xr
+import zarr
 from packaging import version
-
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
+
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
 except ImportError:
@@ -162,7 +171,6 @@ except ImportError:
 from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_config_path
 
-
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
@@ -177,7 +185,7 @@ BIL_COORDINATES = {'bilinear_s': ('x1', ),
                    'out_coords_x': ('x2', ),
                    'out_coords_y': ('y2', )}
 
-resamplers_cache = WeakValueDictionary()
+resamplers_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
 
 PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 
@@ -185,7 +193,7 @@ PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 def hash_dict(the_dict, the_hash=None):
     """Calculate a hash for a dictionary."""
     if the_hash is None:
-        the_hash = hashlib.sha1()
+        the_hash = hashlib.sha1()  # nosec
     the_hash.update(json.dumps(the_dict, sort_keys=True).encode('utf-8'))
     return the_hash
 
@@ -205,7 +213,7 @@ def get_area_file():
 def get_area_def(area_name):
     """Get the definition of *area_name* from file.
 
-    The file is defined to use is to be placed in the $PPP_CONFIG_DIR
+    The file is defined to use is to be placed in the $SATPY_CONFIG_PATH
     directory, and its name is defined in satpy's configuration file.
     """
     try:
@@ -234,14 +242,12 @@ def add_xy_coords(data_arr, area, crs=None):
     if 'x' in data_arr.coords and 'y' in data_arr.coords:
         # x/y coords already provided
         return data_arr
-    elif 'x' not in data_arr.dims or 'y' not in data_arr.dims:
+    if 'x' not in data_arr.dims or 'y' not in data_arr.dims:
         # no defined x and y dimensions
         return data_arr
-
-    if hasattr(area, 'get_proj_vectors'):
-        x, y = area.get_proj_vectors()
-    else:
+    if not hasattr(area, 'get_proj_vectors'):
         return data_arr
+    x, y = area.get_proj_vectors()
 
     # convert to DataArrays
     y_attrs = {}
@@ -432,12 +438,10 @@ class BaseResampler(object):
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
-    def _create_cache_filename(self, cache_dir=None, prefix='',
+    def _create_cache_filename(self, cache_dir, prefix='',
                                fmt='.zarr', **kwargs):
         """Create filename for the cached resampling parameters."""
-        cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
-
         return os.path.join(cache_dir, prefix + hash_str + fmt)
 
 
@@ -487,18 +491,7 @@ class KDTreeResampler(BaseResampler):
             cache_dir = None
 
         if radius_of_influence is None and not hasattr(self.source_geo_def, 'geocentric_resolution'):
-            warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
-            try:
-                radius_of_influence = self.source_geo_def.lons.resolution * 3
-            except AttributeError:
-                try:
-                    radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
-                                              abs(self.source_geo_def.pixel_size_y)) * 3
-                except AttributeError:
-                    radius_of_influence = 1000
-
-            except TypeError:
-                radius_of_influence = 10000
+            radius_of_influence = self._adjust_radius_of_influence(radius_of_influence)
 
         kwargs = dict(source_geo_def=self.source_geo_def,
                       target_geo_def=self.target_geo_def,
@@ -518,6 +511,22 @@ class KDTreeResampler(BaseResampler):
             self.resampler.get_neighbour_info(mask=mask)
             self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
 
+    def _adjust_radius_of_influence(self, radius_of_influence):
+        """Adjust radius of influence."""
+        warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
+        try:
+            radius_of_influence = self.source_geo_def.lons.resolution * 3
+        except AttributeError:
+            try:
+                radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
+                                          abs(self.source_geo_def.pixel_size_y)) * 3
+            except AttributeError:
+                radius_of_influence = 1000
+
+        except TypeError:
+            radius_of_influence = 10000
+        return radius_of_influence
+
     def _apply_cached_index(self, val, idx_name, persist=False):
         """Reassign resampler index attributes."""
         if isinstance(val, np.ndarray):
@@ -530,6 +539,8 @@ class KDTreeResampler(BaseResampler):
     def _check_numpy_cache(self, cache_dir, mask=None,
                            **kwargs):
         """Check if there's Numpy cache file and convert it to zarr."""
+        if cache_dir is None:
+            return
         fname_np = self._create_cache_filename(cache_dir,
                                                prefix='resample_lut-',
                                                mask=mask, fmt='.npz',
@@ -558,14 +569,15 @@ class KDTreeResampler(BaseResampler):
         cached = {}
         self._check_numpy_cache(cache_dir, mask=mask_name, **kwargs)
 
-        filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
-                                               mask=mask_name, **kwargs)
         for idx_name in NN_COORDINATES:
             if mask_name in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
                 try:
+                    filename = self._create_cache_filename(
+                        cache_dir, prefix='nn_lut-',
+                        mask=mask_name, **kwargs)
                     fid = zarr.open(filename, 'r')
                     cache = np.array(fid[idx_name])
                     if idx_name == 'valid_input_index':
@@ -938,6 +950,17 @@ def _mean(data, y_size, x_size):
     return data_mean
 
 
+def _repeat_by_factor(data, block_info=None):
+    if block_info is None:
+        return data
+    out_shape = block_info[None]['chunk-shape']
+    out_data = data
+    for axis, axis_size in enumerate(out_shape):
+        in_size = data.shape[axis]
+        out_data = np.repeat(out_data, int(axis_size / in_size), axis=axis)
+    return out_data
+
+
 class NativeResampler(BaseResampler):
     """Expand or reduce input datasets to be the same shape.
 
@@ -961,7 +984,7 @@ class NativeResampler(BaseResampler):
                                                      **kwargs)
 
     @staticmethod
-    def aggregate(d, y_size, x_size):
+    def _aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array."""
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
@@ -979,42 +1002,55 @@ class NativeResampler(BaseResampler):
 
         new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
                       tuple(int(x / x_size) for x in d.chunks[1]))
-        return da.core.map_blocks(_mean, d, y_size, x_size, dtype=d.dtype, chunks=new_chunks)
+        return da.core.map_blocks(_mean, d, y_size, x_size,
+                                  meta=np.array((), dtype=d.dtype),
+                                  dtype=d.dtype, chunks=new_chunks)
+
+    @staticmethod
+    def _replicate(d_arr, repeats):
+        """Repeat data pixels by the per-axis factors specified."""
+        # rechunk so new chunks are the same size as old chunks
+        c_size = max(x[0] for x in d_arr.chunks)
+
+        def _calc_chunks(c, c_size):
+            whole_chunks = [c_size] * int(sum(c) // c_size)
+            remaining = sum(c) - sum(whole_chunks)
+            if remaining:
+                whole_chunks += [remaining]
+            return tuple(whole_chunks)
+        new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
+                      for axis, x in enumerate(d_arr.chunks)]
+        d_arr = d_arr.rechunk(new_chunks)
+
+        repeated_chunks = []
+        for axis, axis_chunks in enumerate(d_arr.chunks):
+            factor = repeats[axis]
+            if not factor.is_integer():
+                raise ValueError("Expand factor must be a whole number")
+            repeated_chunks.append(tuple(x * int(factor) for x in axis_chunks))
+        repeated_chunks = tuple(repeated_chunks)
+        d_arr = d_arr.map_blocks(_repeat_by_factor,
+                                 meta=np.array((), dtype=d_arr.dtype),
+                                 dtype=d_arr.dtype,
+                                 chunks=repeated_chunks)
+        return d_arr
 
     @classmethod
-    def expand_reduce(cls, d_arr, repeats):
+    def _expand_reduce(cls, d_arr, repeats):
         """Expand reduce."""
         if not isinstance(d_arr, da.Array):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
         if all(x == 1 for x in repeats.values()):
             return d_arr
-        elif all(x >= 1 for x in repeats.values()):
-            # rechunk so new chunks are the same size as old chunks
-            c_size = max(x[0] for x in d_arr.chunks)
-
-            def _calc_chunks(c, c_size):
-                whole_chunks = [c_size] * int(sum(c) // c_size)
-                remaining = sum(c) - sum(whole_chunks)
-                if remaining:
-                    whole_chunks += [remaining]
-                return tuple(whole_chunks)
-            new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
-                          for axis, x in enumerate(d_arr.chunks)]
-            d_arr = d_arr.rechunk(new_chunks)
-
-            for axis, factor in repeats.items():
-                if not factor.is_integer():
-                    raise ValueError("Expand factor must be a whole number")
-                d_arr = da.repeat(d_arr, int(factor), axis=axis)
-            return d_arr
-        elif all(x <= 1 for x in repeats.values()):
+        if all(x >= 1 for x in repeats.values()):
+            return cls._replicate(d_arr, repeats)
+        if all(x <= 1 for x in repeats.values()):
             # reduce
             y_size = 1. / repeats[0]
             x_size = 1. / repeats[1]
-            return cls.aggregate(d_arr, y_size, x_size)
-        else:
-            raise ValueError("Must either expand or reduce in both "
-                             "directions")
+            return cls._aggregate(d_arr, y_size, x_size)
+        raise ValueError("Must either expand or reduce in both "
+                         "directions")
 
     def compute(self, data, expand=True, **kwargs):
         """Resample data with NativeResampler."""
@@ -1045,7 +1081,7 @@ class NativeResampler(BaseResampler):
         repeats[y_axis] = y_repeats
         repeats[x_axis] = x_repeats
 
-        d_arr = self.expand_reduce(data.data, repeats)
+        d_arr = self._expand_reduce(data.data, repeats)
         new_data = xr.DataArray(d_arr, dims=data.dims)
         return update_resampled_coords(data, new_data, target_geo_def)
 
@@ -1307,7 +1343,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     if isinstance(resampler, (BaseResampler, PRBaseResampler)):
         raise ValueError("Trying to create a resampler when one already "
                          "exists.")
-    elif isinstance(resampler, str):
+    if isinstance(resampler, str):
         resampler_class = RESAMPLERS.get(resampler, None)
         if resampler_class is None:
             if resampler == "gradient_search":

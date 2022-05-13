@@ -284,10 +284,3 @@ datasets:
     coordinates: [longitude, latitude]
     key: '#1#brightnessTemperatureRealPart'
     fill_value: -1.e+100
-
-
-
-
-
-
-

@@ -20,7 +20,9 @@
 import os
 import unittest
 from unittest import mock
+
 import numpy as np
+
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
@@ -169,7 +171,7 @@ class TestOMPSEDRReader(unittest.TestCase):
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
-        from satpy.readers.omps_edr import EDRFileHandler, EDREOSFileHandler
+        from satpy.readers.omps_edr import EDREOSFileHandler, EDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(EDRFileHandler, '__bases__', (FakeHDF5FileHandler2,))
