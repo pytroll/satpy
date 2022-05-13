@@ -19,6 +19,7 @@
 
 import os
 import unittest
+import pytest
 from contextlib import suppress
 from datetime import datetime
 
@@ -61,8 +62,8 @@ class TestCFReader(unittest.TestCase):
         )
 
         x, y = area.get_proj_coords()
-        y_visir = x[0, :]
-        x_visir = y[:, 0]
+        y_visir = y[:, 0]
+        x_visir = x[0, :]
 
         common_attrs = {'start_time': tstart,
                         'end_time': tend,
@@ -141,7 +142,7 @@ class TestCFReader(unittest.TestCase):
             assert isinstance(scn_['image0'].attrs['wavelength'], WavelengthRange)
             expected_area = self.scene['image0'].attrs['area']
             actual_area = scn_['image0'].attrs['area']
-            assert expected_area.area_extent == actual_area.area_extent
+            assert pytest.approx(expected_area.area_extent, 0.000001) == actual_area.area_extent
             assert expected_area.proj_dict == actual_area.proj_dict
             assert expected_area.shape == actual_area.shape
             assert expected_area.area_id == actual_area.area_id
