@@ -1,6 +1,10 @@
 reader:
-  description: Generic Eumetsat HY2 L2B H5 Wind field Reader
   name: hy2_scat_l2b_h5
+  short_name: Eumetsat Wind field
+  long_name: HY-2B Scatterometer level 2b data in HDF5 format from both EUMETSAT and NSOAS
+  description: Generic Eumetsat HY2 L2B H5 Wind field Reader
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [scatterometer]
   default_datasets:

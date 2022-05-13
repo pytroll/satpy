@@ -3,6 +3,8 @@ reader:
   short_name: GOES Imager HRIT
   long_name: GOES Imager Level 1 (HRIT)
   description: Reader for GOES Imager Level 1 data in HRIT format
+  status: Nominal
+  supports_fsspec: false
   sensors: [goes_imager]
   default_channels: [00_7, 03_9, 06_6, 10_7]
   reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader

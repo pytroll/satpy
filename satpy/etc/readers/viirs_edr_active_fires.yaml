@@ -1,6 +1,10 @@
 reader:
-    description: VIIRS Active Fires Reader
     name: viirs_edr_active_fires
+    short_name: VIIRS active fires
+    long_name: VIIRS EDR Active Fires data in netCDF4 & CSV .txt format
+    description: VIIRS Active Fires Reader
+    status: Beta
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [viirs]
 

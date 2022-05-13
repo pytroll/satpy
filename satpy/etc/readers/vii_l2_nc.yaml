@@ -1,9 +1,11 @@
 reader:
   name: vii_l2_nc
   short_name: VII L2 NetCDF4
-  long_name: EPS-SG VII L2 (NetCDF4)
+  long_name: EPS-SG Visual Infrared Imager (VII) Level 2 data in netCDF4 format
   description: >
     Reader for EUMETSAT EPSG-SG Visual Infrared Imager Level 2 files in NetCDF4 format.
+  status: Beta
+  supports_fsspec: false
   sensors: [vii]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
