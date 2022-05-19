@@ -207,18 +207,23 @@ For *geostationary* satellites it is described using the following scalar attrib
 
   * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
     time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
-    surface of the ellipsoid).
+    surface of the ellipsoid). The longitude and latitude are given in degrees, the altitude in meters.
   * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
     confined area in which the satellite is actively maintained in using maneuvers). Inbetween
     major maneuvers, when the satellite is permanently moved, the nominal position is constant.
+    The longitude and latitude are given in degrees, the altitude in meters.
   * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
     earth. May differ from the actual satellite position, if the instrument is pointing slightly
     off the axis (satellite, earth-center). If available, this should be used to compute viewing
-    angles etc. Otherwise, use the actual satellite position.
+    angles etc. Otherwise, use the actual satellite position. The values are given in degrees.
   * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
     should be used to compute lat/lon coordinates. Note that the projection center can differ
     considerably from the actual satellite position. For example MSG-1 was at times positioned
     at 3.4 degrees west, while the image data was re-projected to 0 degrees.
+    The longitude and latitude are given in degrees, the altitude in meters.
+
+    .. note:: For use in pyorbital, the altitude has to be converted to kilometers, see for example
+              :func:`pyorbital.orbital.get_observer_look`.
 
 For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
 the swath as ancillary datasets. Additional metadata related to the satellite position includes:
