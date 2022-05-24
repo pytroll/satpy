@@ -12,4 +12,3 @@ composites:
     prerequisites:
     - name: surface_soil_moisture
     standard_name: soil_moisture
-

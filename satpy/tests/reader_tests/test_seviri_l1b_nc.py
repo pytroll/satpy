@@ -25,11 +25,9 @@ import pytest
 import xarray as xr
 
 from satpy.readers.seviri_l1b_nc import NCSEVIRIFileHandler
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
-    TestFileHandlerCalibrationBase
-)
 from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
-from satpy.tests.utils import make_dataid, assert_attrs_equal
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
+from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 
 channel_keys_dict = {'VIS006': 'ch1', 'IR_108': 'ch9'}
@@ -49,8 +47,17 @@ def to_cds_time(time):
 class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
     """Unit tests for SEVIRI netCDF reader."""
 
-    def _get_fake_dataset(self, counts):
-        """Create a fake dataset."""
+    def _get_fake_dataset(self, counts, h5netcdf):
+        """Create a fake dataset.
+
+        Args:
+            counts (xr.DataArray):
+                Array with data.
+            h5netcdf (boolean):
+                If True an array attribute will be created which is common
+                for the h5netcdf backend in xarray for scalar values.
+
+        """
         acq_time_day = np.repeat([1, 1], 11).reshape(2, 11)
         acq_time_msec = np.repeat([1000, 2000], 11).reshape(2, 11)
         quality = np.repeat([0, 3], 11).reshape(2, 11)
@@ -144,13 +151,25 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
                 'east_most_pixel': 1,
                 'west_most_pixel': 3712,
                 'south_most_line': 1,
+                'vis_ir_grid_origin': 0,
                 'vis_ir_column_dir_grid_step': 3.0004032,
                 'vis_ir_line_dir_grid_step': 3.0004032,
                 'type_of_earth_model': '0x02',
             }
         )
-        # VIS006 is dataset with key ch1
-        ds['ch1'].attrs.update({
+
+        if h5netcdf:
+            nattrs = {'equatorial_radius': np.array([6378.169]),
+                      'north_polar_radius': np.array([6356.5838]),
+                      'south_polar_radius': np.array([6356.5838]),
+                      'longitude_of_SSP': np.array([0.0]),
+                      'vis_ir_column_dir_grid_step': np.array([3.0004032]),
+                      'vis_ir_line_dir_grid_step': np.array([3.0004032])
+                      }
+
+            ds.attrs.update(nattrs)
+
+        ds['VIS006'].attrs.update({
             'scale_factor': self.gains_nominal[0],
             'add_offset': self.offsets_nominal[0]
         })
@@ -172,12 +191,17 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
 
         return ds
 
+    @pytest.fixture
+    def h5netcdf(self):
+        """Fixture for xr backend choice."""
+        return False
+
     @pytest.fixture(name='file_handler')
-    def file_handler(self, counts):
+    def file_handler(self, counts, h5netcdf):
         """Create a mocked file handler."""
         with mock.patch(
-            'satpy.readers.seviri_l1b_nc.xr.open_dataset',
-            return_value=self._get_fake_dataset(counts)
+            'satpy.readers.seviri_l1b_nc.open_dataset',
+            return_value=self._get_fake_dataset(counts=counts, h5netcdf=h5netcdf)
         ):
             return NCSEVIRIFileHandler(
                 'filename',
@@ -218,10 +242,6 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
             self, file_handler, channel, calibration, use_ext_coefs
     ):
         """Test the calibration."""
-        file_handler.nc = file_handler.nc.rename({
-            'num_rows_vis_ir': 'y',
-            'num_columns_vis_ir': 'x'
-        })
         external_coefs = self.external_coefs if use_ext_coefs else {}
         expected = self._get_expected(
             channel=channel,
@@ -307,3 +327,9 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         res = file_handler.get_dataset(dataset_id, dataset_info)
         assert 'satellite_actual_longitude' not in res.attrs[
             'orbital_parameters']
+
+    @pytest.mark.parametrize('h5netcdf', [True])
+    def test_h5netcdf_pecularity(self, file_handler, h5netcdf):
+        """Test conversion of attributes when xarray is used with h5netcdf backend."""
+        fh = file_handler
+        assert isinstance(fh.mda['projection_parameters']['a'], float)

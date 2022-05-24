@@ -16,9 +16,10 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to OMPS EDR format."""
-from datetime import datetime, timedelta
-import numpy as np
 import logging
+from datetime import datetime, timedelta
+
+import numpy as np
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
@@ -77,7 +78,7 @@ class EDRFileHandler(HDF5FileHandler):
             file_units = self.get(var_path + '/attr/units', self.get(var_path + '/attr/Units'))
         if file_units is None:
             raise KeyError("File variable '{}' has no units attribute".format(var_path))
-        elif file_units == 'deg':
+        if file_units == 'deg':
             file_units = 'degrees'
         elif file_units == 'Unitless':
             file_units = '1'

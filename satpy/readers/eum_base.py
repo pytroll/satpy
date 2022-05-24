@@ -18,6 +18,7 @@
 """Utilities for EUMETSAT satellite data."""
 
 from datetime import datetime, timedelta
+
 import numpy as np
 
 # 6 bytes, 8 bytes, 10 bytes
@@ -75,8 +76,9 @@ def recarray2dict(arr):
                     try:
                         data = data.decode()
                     except ValueError:
-                        pass
-                    data = data.split(':')[0].strip()
+                        data = None
+                    else:
+                        data = data.split(':')[0].strip()
                 res[key] = data
             else:
                 res[key] = data.squeeze()

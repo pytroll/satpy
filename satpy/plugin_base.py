@@ -24,7 +24,7 @@ import yaml
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 from satpy._config import config_search_paths
 from satpy.utils import recursive_dict_update
@@ -44,7 +44,7 @@ class Plugin(object):
             default_config_filename (str): Configuration filename to use if
                 no other files have been specified with `config_files`.
             config_files (list or str): Configuration files to load instead
-                of those automatically found in `ppp_config_dir` and other
+                of those automatically found in `SATPY_CONFIG_PATH` and other
                 default configuration locations.
             kwargs (dict): Unused keyword arguments.
 

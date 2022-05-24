@@ -20,8 +20,8 @@
 import unittest
 from unittest import mock
 
-import pytest
 import numpy as np
+import pytest
 import xarray as xr
 
 from satpy.tests.utils import make_dataid
@@ -267,6 +267,67 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
                          'toa_bidirectional_reflectance')
         self.assertEqual(res.attrs['long_name'],
                          'Bidirectional Reflectance')
+
+
+class Test_NC_ABI_L1B_raw_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader raw calibration."""
+
+    def setUp(self):
+        """Create fake data for the tests."""
+        rad_data = (np.arange(10.).reshape((2, 5)) + 1.)
+        rad_data = (rad_data + 1.) / 0.5
+        rad_data = rad_data.astype(np.int16)
+        rad = xr.DataArray(
+            rad_data,
+            dims=('y', 'x'),
+            attrs={
+                'scale_factor': 0.5,
+                'add_offset': -1.,
+                '_FillValue': 20,
+            }
+        )
+        super(Test_NC_ABI_L1B_raw_cal, self).setUp(rad=rad)
+
+    def test_raw_calibrate(self):
+        """Test RAW calibration."""
+        res = self.reader.get_dataset(
+            make_dataid(name='C05', calibration='counts'), {})
+
+        # We expect the raw data to be unchanged
+        expected = res.data
+        self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+
+        # check for the presence of typical attributes
+        self.assertIn('scale_factor', res.attrs)
+        self.assertIn('add_offset', res.attrs)
+        self.assertIn('_FillValue', res.attrs)
+        self.assertIn('orbital_parameters', res.attrs)
+        self.assertIn('platform_shortname', res.attrs)
+        self.assertIn('scene_id', res.attrs)
+
+        # determine if things match their expected values/types.
+        self.assertEqual(res.data.dtype, np.int16, "int16 data type expected")
+        self.assertEqual(res.attrs['standard_name'],
+                         'counts')
+        self.assertEqual(res.attrs['long_name'],
+                         'Raw Counts')
+
+
+class Test_NC_ABI_L1B_invalid_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader with invalid calibration."""
+
+    def test_invalid_calibration(self):
+        """Test detection of invalid calibration values."""
+        # Need to use a custom DataID class because the real DataID class is
+        # smart enough to detect the invalid calibration before the ABI L1B
+        # get_dataset method gets a chance to run.
+        class FakeDataID(dict):
+            def to_dict(self):
+                return self
+
+        with self.assertRaises(ValueError, msg='Did not detect invalid cal'):
+            did = FakeDataID(name='C05', calibration='invalid', modifiers=())
+            self.reader.get_dataset(did, {})
 
 
 class Test_NC_ABI_File(unittest.TestCase):

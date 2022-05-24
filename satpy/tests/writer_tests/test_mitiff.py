@@ -41,9 +41,10 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_datasets(self):
         """Create a datasets list."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
@@ -107,9 +108,10 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_datasets_sensor_set(self):
         """Create a datasets list."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
@@ -173,9 +175,10 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset(self, bands=3):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
@@ -203,9 +206,10 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_one_dataset(self):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
@@ -233,9 +237,10 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_one_dataset_sensor_set(self):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
@@ -263,9 +268,10 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_with_bad_values(self, bands=3):
         """Create a single test dataset."""
-        import xarray as xr
-        import numpy as np
         from datetime import datetime
+
+        import numpy as np
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         area_def = AreaDefinition(
@@ -297,13 +303,15 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_calibration(self, bands=6):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy.tests.utils import make_dsq
+
         from satpy.scene import Scene
+        from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             'test',
             'test',
@@ -400,13 +408,15 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_calibration_one_dataset(self, bands=1):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy.tests.utils import make_dsq
+
         from satpy.scene import Scene
+        from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             'test',
             'test',
@@ -453,11 +463,13 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_three_bands_two_prereq(self, bands=3):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
+
         from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             'test',
@@ -486,11 +498,13 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def _get_test_dataset_three_bands_prereq(self, bands=3):
         """Create a single test dataset."""
-        import xarray as xr
-        import dask.array as da
         from datetime import datetime
+
+        import dask.array as da
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
+
         from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             'test',
@@ -532,8 +546,10 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_datasets(self):
         """Test basic writer operation save_datasets."""
         import os
+
         import numpy as np
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
         expected = np.full((100, 200), 0)
         dataset = self._get_test_datasets()
@@ -548,8 +564,10 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_datasets_sensor_set(self):
         """Test basic writer operation save_datasets."""
         import os
+
         import numpy as np
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
         expected = np.full((100, 200), 0)
         dataset = self._get_test_datasets_sensor_set()
@@ -564,7 +582,9 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_one_dataset(self):
         """Test basic writer operation with one dataset ie. no bands."""
         import os
+
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset()
         w = MITIFFWriter(base_dir=self.base_dir)
@@ -579,7 +599,9 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_one_dataset_sesnor_set(self):
         """Test basic writer operation with one dataset ie. no bands."""
         import os
+
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset_sensor_set()
         w = MITIFFWriter(base_dir=self.base_dir)
@@ -594,8 +616,10 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_dataset_with_calibration(self):
         """Test writer operation with calibration."""
         import os
+
         import numpy as np
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
 
         expected_ir = np.full((100, 200), 255)
@@ -767,8 +791,10 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_dataset_with_calibration_one_dataset(self):
         """Test saving if mitiff as dataset with only one channel."""
         import os
+
         import numpy as np
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
 
         expected = np.full((100, 200), 255)
@@ -819,8 +845,10 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_dataset_with_bad_value(self):
         """Test writer operation with bad values."""
         import os
+
         import numpy as np
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
 
         expected = np.array([[0, 4, 1, 37, 73],
@@ -837,10 +865,11 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_convert_proj4_string(self):
         """Test conversion of geolocations."""
-        import xarray as xr
         import dask.array as da
-        from satpy.writers.mitiff import MITIFFWriter
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.writers.mitiff import MITIFFWriter
         checks = [{'epsg': '+init=EPSG:32631',
                    'proj4': (' Proj string: +proj=etmerc +lat_0=0 +lon_0=3 +k=0.9996 '
                              '+ellps=WGS84 +datum=WGS84 +units=km +x_0=501020.000000 '
@@ -885,8 +914,10 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_dataset_palette(self):
         """Test writer operation as palette."""
         import os
+
         import numpy as np
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
 
         expected = np.full((100, 200), 0)
@@ -979,7 +1010,9 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_get_test_dataset_three_bands_prereq(self):
         """Test basic writer operation with 3 bands with DataQuery prerequisites with missing name."""
         import os
+
         from libtiff import TIFF
+
         from satpy.writers.mitiff import MITIFFWriter
         IMAGEDESCRIPTION = 270
 

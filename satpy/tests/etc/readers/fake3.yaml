@@ -1,8 +1,8 @@
 reader:
-  name: fake1
+  name: fake3
   description: Fake reader used for easier testing
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  sensors: [fake_sensor2]
+  sensors: [fake_sensor]
 datasets:
   duplicate1:
     name: duplicate1
