@@ -15,9 +15,10 @@ requested, or added to a Scene object.
 Available Readers
 =================
 
-To get a list of available readers use the `available_readers` function. By default,
-it returns the names of available readers. To return additional reader information
-use `available_readers(as_dict=True)`::
+For readers currently available in Satpy see :ref:`reader_table`.
+Additionally to get a list of available readers you can use the `available_readers`
+function. By default, it returns the names of available readers.
+To return additional reader information use `available_readers(as_dict=True)`::
 
     >>> from satpy import available_readers
     >>> available_readers()
@@ -108,8 +109,37 @@ names of Datasets::
 
     >>> scn.available_dataset_names()
 
-Search for local files
-======================
+Load remote data
+================
+
+Starting with Satpy version 0.25.1 with supported readers it is possible to
+load data from remote file systems like ``s3fs`` or ``fsspec``.
+For example:
+
+::
+
+    >>> from satpy import Scene
+    >>> from satpy.readers import FSFile
+    >>> import fsspec
+
+    >>> filename = 'noaa-goes16/ABI-L1b-RadC/2019/001/17/*_G16_s20190011702186*'
+
+    >>> the_files = fsspec.open_files("simplecache::s3://" + filename, s3={'anon': True})
+
+    >>> fs_files = [FSFile(open_file) for open_file in the_files]
+
+    >>> scn = Scene(filenames=fs_files, reader='abi_l1b')
+    >>> scn.load(['true_color_raw'])
+
+Check the list of :ref:`reader_table` to see which reader supports remote
+files. For the usage of ``fsspec`` and advanced features like caching files
+locally see the `fsspec Documentation <https://filesystem-spec.readthedocs.io/en/latest>`_ .
+
+
+.. _search_for_files:
+
+Search for local/remote files
+=============================
 
 Satpy provides a utility
 :func:`~satpy.readers.find_files_and_readers` for searching for files in
@@ -129,7 +159,8 @@ the :class:`~satpy.scene.Scene` initialization.
     >>> scn = Scene(filenames=my_files)
 
 See the :func:`~satpy.readers.find_files_and_readers` documentation for
-more information on the possible parameters.
+more information on the possible parameters as well as for searching on
+remote file systems.
 
 .. _dataset_metadata:
 
