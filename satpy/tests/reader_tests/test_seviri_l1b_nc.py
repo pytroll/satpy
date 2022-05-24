@@ -29,7 +29,6 @@ from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS
 from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
 from satpy.tests.utils import assert_attrs_equal, make_dataid
 
-
 channel_keys_dict = {'VIS006': 'ch1', 'IR_108': 'ch9'}
 
 
@@ -169,7 +168,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
 
             ds.attrs.update(nattrs)
 
-        ds['VIS006'].attrs.update({
+        ds['ch1'].attrs.update({
             'scale_factor': self.gains_nominal[0],
             'add_offset': self.offsets_nominal[0]
         })
