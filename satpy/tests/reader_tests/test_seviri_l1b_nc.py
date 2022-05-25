@@ -258,7 +258,7 @@ class TestNCSEVIRIFileHandler(TestFileHandlerCalibrationBase):
         xr.testing.assert_allclose(res, expected)
 
     @pytest.mark.parametrize(
-        ('channel', 'key', 'calibration'),
+        ('channel', 'calibration'),
         [
             ('VIS006', 'reflectance'),
             ('IR_108', 'brightness_temperature')
