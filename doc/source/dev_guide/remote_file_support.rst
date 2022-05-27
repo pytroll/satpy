@@ -14,7 +14,7 @@ To add this feature to a reader the call to :func:`xarray.open_dataset`
 has to be replaced by the function :func:`~satpy.readers.file_handlers.open_dataset`
 included in Satpy which handles passing on the filename to be opened regardless
 if it is a local file path or a :class:`~satpy.readers.FSFile` object which can wrap
-:func:`fsspec.open` objects. 
+:func:`fsspec.open` objects.
 
 To be able to cache the ``open_dataset`` call which is favourable for remote files
 it should be separated from the ``get_dataset`` method which needs to be implemented
