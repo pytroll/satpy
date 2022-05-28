@@ -55,8 +55,8 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         """Get instrument name for this file's data."""
         res = self['/attr/sensor']
         if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        return res
+            res = str(res.astype(str))
+        return res.lower()
 
     def get_shape(self, ds_id, ds_info):
         """Get numpy array shape for the specified dataset.
