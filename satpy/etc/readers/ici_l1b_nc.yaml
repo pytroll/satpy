@@ -47,13 +47,13 @@ datasets:
     standard_name: longitude
     n_horns: 1
 
-  lat_pixels_horn_3:
-    name: lat_pixels_horn_3
+  lat_pixels_horn_2:
+    name: lat_pixels_horn_2
     file_type: nc_ici_l1b_rad
     file_key: cached_latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
-    n_horns: 2
+    n_horns: 1
 
   lon_pixels_horn_3:
     name: lon_pixels_horn_3
@@ -311,7 +311,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
-  
+
   ici_11v:
     name: ici_11v
     file_type: nc_ici_l1b_rad
@@ -327,7 +327,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
-    
+
   ici_11h:
     name: ici_11h
     file_type: nc_ici_l1b_rad
@@ -352,7 +352,7 @@ datasets:
     file_key: cached_solar_zenith
     n_horns: 0
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
-  
+
   solar_zenith_horn_2:
     name: solar_zenith_horn_2
     standard_name: solar_zenith_angle
@@ -368,7 +368,7 @@ datasets:
     file_key: cached_solar_zenith
     n_horns: 2
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
-  
+
   solar_zenith_horn_4:
     name: solar_zenith_horn_4
     standard_name: solar_zenith_angle
@@ -416,7 +416,7 @@ datasets:
     file_key: cached_solar_azimuth
     n_horns: 1
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
-  
+
   solar_azimuth_horn_3:
     name: solar_azimuth
     standard_name: solar_azimuth_angle
@@ -480,7 +480,7 @@ datasets:
     file_key: cached_observation_zenith
     n_horns: 2
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
-  
+
   observation_zenith_horn_4:
     name: observation_zenith
     standard_name: sensor_zenith_angle

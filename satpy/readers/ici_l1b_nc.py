@@ -49,9 +49,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     """Reader class for ICI L1B products in netCDF format."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """
-        Read the calibration data and prepare the class for dataset reading.
-        """
+        """Read the calibration data and prepare the class for dataset reading."""  # noqa: E501
         super().__init__(
             filename, filename_info, filetype_info, auto_maskandscale=True,
         )
@@ -60,7 +58,6 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         self._bt_conversion_a = self[f'{measurement}/bt_conversion_a'].values
         self._bt_conversion_b = self[f'{measurement}/bt_conversion_b'].values
         self._channel_cw = self[f'{measurement}/centre_wavenumber'].values
-        self._n_scan = self[measurement].n_scan
         self._n_samples = self[measurement].n_samples
         self._n_subs = self['data/navigation_data'].n_subs
         self.orthorect = filetype_info.get('orthorect', True)
@@ -68,7 +65,6 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             self.longitude, self.latitude = self._perform_geo_interpolation(
                 self[filetype_info['cached_longitude']],
                 self[filetype_info['cached_latitude']],
-                self._n_scan,
                 self._n_samples,
                 self._n_subs,
             )
@@ -82,7 +78,6 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             ) = self._perform_geo_interpolation(
                 self[filetype_info['cached_observation_azimuth']],
                 self[filetype_info['cached_observation_zenith']],
-                self._n_scan,
                 self._n_samples,
                 self._n_subs,
             )
@@ -96,7 +91,6 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             ) = self._perform_geo_interpolation(
                 self[filetype_info['cached_solar_azimuth']],
                 self[filetype_info['cached_solar_zenith']],
-                self._n_scan,
                 self._n_samples,
                 self._n_subs,
             )
@@ -243,10 +237,8 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             variable = variable.drop_vars(coords)
         return variable
 
-    def get_dataset(self, dataset_id, dataset_info):
-        """Get dataset using file_key in dataset_info."""
-        var_key = dataset_info['file_key']
-        logger.debug('Reading in file to get dataset with key %s.', var_key)
+    def _fetch_variable(self, var_key):
+        """Fetch variable."""
         if var_key == 'cached_longitude' and self.longitude is not None:
             variable = self.longitude.copy()
         elif var_key == 'cached_latitude' and self.latitude is not None:
@@ -272,11 +264,18 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         ):
             variable = self.solar_azimuth.copy()
         else:
-            try:
-                variable = self[var_key]
-            except KeyError:
-                logger.warning(f'Could not find key {var_key} in NetCDF file, no valid Dataset created')  # noqa: E501
-                return None
+            variable = self[var_key]
+        return variable
+
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset using file_key in dataset_info."""
+        var_key = dataset_info['file_key']
+        logger.debug(f'Reading in file to get dataset with key {var_key}.')
+        try:
+            variable = self._fetch_variable(var_key)
+        except KeyError:
+            logger.warning(f'Could not find key {var_key} in NetCDF file, no valid Dataset created')  # noqa: E501
+            return None
         variable = self._filter_variable(variable, dataset_info)
         # Perform the calibration if required
         if dataset_info.get('calibration') is not None:
@@ -301,13 +300,11 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     def _perform_geo_interpolation(
         longitude,
         latitude,
-        n_scan,
         n_samples,
         n_subs,
     ):
         """
-        Perform the interpolation of geographic coodinates from tie points
-        to pixel points.
+        Perform the interpolation of geographic coodinates from tie points to pixel points.
 
         Args:
             longitude: xarray DataArray containing the longitude dataset to
@@ -320,11 +317,12 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 metadata and the updated dimension names.
 
         """
-        horns = longitude.n_horns.values
+        horns = longitude.n_horns
+        n_scan = longitude.n_scan
         lons = np.zeros((n_scan.size, n_samples.size, horns.size))
         lats = np.zeros((n_scan.size, n_samples.size, horns.size))
         n_subs = np.linspace(0, n_samples.size - 1, n_subs.size).astype(int)
-        for horn in horns:
+        for horn in horns.values:
             satint = GeoInterpolator(
                 (longitude.values[:, :, horn], latitude.values[:, :, horn]),
                 (n_scan.values, n_subs),
@@ -349,8 +347,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
     def _get_global_attributes(self):
         """
-        Create a dictionary of global attributes to be added to all
-        datasets.
+        Create a dictionary of global attributes to be added to all datasets.
         """
         attributes = {
             'filename': self.filename,

@@ -28,7 +28,6 @@ import uuid
 from datetime import datetime
 from unittest.mock import patch, ANY
 
-import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
@@ -61,85 +60,15 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
             nc.instrument = "ICI"
             nc.spacecraft = "SGB"
             # Create quality group
-            g0 = nc.createGroup('quality')
-            duration_of_product = g0.createVariable(
+            quality_group = nc.createGroup('quality')
+            duration_of_product = quality_group.createVariable(
                 'duration_of_product', "f4"
             )
             duration_of_product[:] = 1000.
             # Create data group
-            g1 = nc.createGroup('data')
-            # Create measurement_data group
-            g1_1 = g1.createGroup('measurement_data')
-            g1_1.createDimension('n_scan', self.n_scan)
-            g1_1.createDimension('n_samples', self.n_samples)
-            g1_1.createDimension('n_channels', self.n_channels)
-            g1_1.createDimension('n_183', self.n_183)
-            scan = g1_1.createVariable(
-                'n_scan', "i4", dimensions=('n_scan',)
-            )
-            scan[:] = np.arange(self.n_scan)
-            samples = g1_1.createVariable(
-                'n_samples', "i4", dimensions=('n_samples',)
-            )
-            samples[:] = np.arange(self.n_samples)
-            bt_a = g1_1.createVariable(
-                'bt_conversion_a', np.float32, dimensions=('n_channels',)
-            )
-            bt_a[:] = np.ones(self.n_channels)
-            bt_b = g1_1.createVariable(
-                'bt_conversion_b', np.float32, dimensions=('n_channels',)
-            )
-            bt_b[:] = np.zeros(self.n_channels)
-            cw = g1_1.createVariable(
-                'centre_wavenumber', np.float32, dimensions=('n_channels',)
-            )
-            cw[:] = np.arange(self.n_channels)
-            ici_radiance_183 = g1_1.createVariable(
-                'ici_radiance_183',
-                np.float32,
-                dimensions=('n_scan', 'n_samples', 'n_183'),
-            )
-            ici_radiance_183[:] = 0.08 * np.ones(
-                (self.n_scan, self.n_samples, self.n_183)
-            )
-            # Create navigation_data group
-            g1_2 = g1.createGroup('navigation_data')
-            g1_2.createDimension('n_scan', self.n_scan)
-            g1_2.createDimension('n_samples', self.n_samples)
-            g1_2.createDimension('n_subs', self.n_subs)
-            g1_2.createDimension('n_horns', self.n_horns)
-            subs = g1_2.createVariable(
-                'n_subs', "i4", dimensions=('n_subs',)
-            )
-            subs[:] = np.arange(self.n_subs)
-            longitude = g1_2.createVariable(
-                'longitude',
-                np.float32,
-                dimensions=('n_scan', 'n_subs', 'n_horns'),
-            )
-            longitude[:] = np.ones((self.n_scan, self.n_subs, self.n_horns))
-            latitude = g1_2.createVariable(
-                'latitude',
-                np.float32,
-                dimensions=('n_scan', 'n_subs', 'n_horns'),
-            )
-            latitude[:] = np.ones((self.n_scan, self.n_subs, self.n_horns))
-            delta_longitude = g1_2.createVariable(
-                'delta_longitude',
-                np.float32,
-                dimensions=('n_scan', 'n_samples', 'n_horns'),
-            )
-            delta_longitude[:] = 1000. * np.ones(
-                (self.n_scan, self.n_samples, self.n_horns)
-            )
-            delta_latitude = g1_2.createVariable(
-                'delta_latitude',
-                np.float32,
-                dimensions=('n_scan', 'n_samples', 'n_horns'),
-            )
-            delta_latitude[:] = 1000. * np.ones(
-                (self.n_scan, self.n_samples, self.n_horns)
-            )
+            data_group = nc.createGroup('data')
+            self._setup_measurement_data_group(data_group)
+            self._setup_navigation_data_group(data_group)
 
         self.reader = IciL1bNCFileHandler(
             filename=self.test_file_name,
@@ -160,6 +89,78 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
             }
         )
 
+    def _setup_navigation_data_group(self, dataset):
+        """Setup of navigation data group."""
+        group = dataset.createGroup('navigation_data')
+        group.createDimension('n_scan', self.n_scan)
+        group.createDimension('n_samples', self.n_samples)
+        group.createDimension('n_subs', self.n_subs)
+        group.createDimension('n_horns', self.n_horns)
+        subs = group.createVariable('n_subs', "i4", dimensions=('n_subs',))
+        subs[:] = np.arange(self.n_subs)
+        longitude = group.createVariable(
+            'longitude',
+            np.float32,
+            dimensions=('n_scan', 'n_subs', 'n_horns'),
+        )
+        longitude[:] = np.ones((self.n_scan, self.n_subs, self.n_horns))
+        latitude = group.createVariable(
+            'latitude',
+            np.float32,
+            dimensions=('n_scan', 'n_subs', 'n_horns'),
+        )
+        latitude[:] = np.ones((self.n_scan, self.n_subs, self.n_horns))
+        delta_longitude = group.createVariable(
+            'delta_longitude',
+            np.float32,
+            dimensions=('n_scan', 'n_samples', 'n_horns'),
+        )
+        delta_longitude[:] = 1000. * np.ones(
+            (self.n_scan, self.n_samples, self.n_horns)
+        )
+        delta_latitude = group.createVariable(
+            'delta_latitude',
+            np.float32,
+            dimensions=('n_scan', 'n_samples', 'n_horns'),
+        )
+        delta_latitude[:] = 1000. * np.ones(
+            (self.n_scan, self.n_samples, self.n_horns)
+        )
+
+    def _setup_measurement_data_group(self, dataset):
+        """Setup of measurement data group."""
+        group = dataset.createGroup('measurement_data')
+        group.createDimension('n_scan', self.n_scan)
+        group.createDimension('n_samples', self.n_samples)
+        group.createDimension('n_channels', self.n_channels)
+        group.createDimension('n_183', self.n_183)
+        scan = group.createVariable('n_scan', "i4", dimensions=('n_scan',))
+        scan[:] = np.arange(self.n_scan)
+        samples = group.createVariable(
+            'n_samples', "i4", dimensions=('n_samples',)
+        )
+        samples[:] = np.arange(self.n_samples)
+        bt_a = group.createVariable(
+            'bt_conversion_a', np.float32, dimensions=('n_channels',)
+        )
+        bt_a[:] = np.ones(self.n_channels)
+        bt_b = group.createVariable(
+            'bt_conversion_b', np.float32, dimensions=('n_channels',)
+        )
+        bt_b[:] = np.zeros(self.n_channels)
+        cw = group.createVariable(
+            'centre_wavenumber', np.float32, dimensions=('n_channels',)
+        )
+        cw[:] = np.arange(self.n_channels)
+        ici_radiance_183 = group.createVariable(
+            'ici_radiance_183',
+            np.float32,
+            dimensions=('n_scan', 'n_samples', 'n_183'),
+        )
+        ici_radiance_183[:] = 0.08 * np.ones(
+            (self.n_scan, self.n_samples, self.n_183)
+        )
+
     def tearDown(self):
         """Remove the previously created test file."""
         # Catch Windows PermissionError for removing the created test file.
@@ -169,31 +170,38 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
             pass
 
     def test_start_time(self):
+        """Test start time."""
         assert self.reader.start_time == datetime(2000, 1, 2, 3, 4, 5)
 
     def test_end_time(self):
+        """Test end time."""
         assert self.reader.end_time == datetime(2000, 1, 2, 4, 5, 6)
 
     def test_sensor(self):
+        """Test sensor."""
         assert self.reader.sensor == "ICI"
 
     def test_spacecraft_name(self):
+        """Test spacecraft name."""
         assert self.reader.spacecraft_name == "SGB"
 
     def test_ssp_lon(self):
+        """Test sub satellite path longitude."""
         assert self.reader.ssp_lon is None
 
     def test_perform_calibration_raises(self):
+        """Test perform calibration raises for unknown calibration method."""
         variable = xr.DataArray(np.ones(3))
         dataset_info = {'calibration': 'unknown', 'name': 'radiance'}
         with pytest.raises(ValueError, match='Unknown calibration'):
             self.reader._perform_calibration(variable, dataset_info)
 
     @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt')
-    def test_perform_calibration_does_not_call_calibrate(
+    def test_perform_calibration_does_not_call_calibrate_if_not_needed(
         self,
         mocked_calibrate,
     ):
+        """Test perform calibration does not call calibrate if not needed"""
         variable = xr.DataArray(
             np.array([
                 [0.060, 0.065, 0.070, 0.075],
@@ -206,10 +214,11 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         mocked_calibrate.assert_not_called()
 
     @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._calibrate_bt')
-    def test_perform_calibration_call_calibrate(
+    def test_perform_calibration_calls_calibrate(
         self,
         mocked_calibrate,
     ):
+        """Test perform calibration calls calibrate."""
         variable = xr.DataArray(
             np.array([
                 [0.060, 0.065, 0.070, 0.075],
@@ -230,6 +239,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         )
 
     def test_calibrate_bt(self):
+        """Test calibrate brightness temperature."""
         radiance = np.array([
             [0.060, 0.065, 0.070, 0.075],
             [0.080, 0.085, 0.090, 0.095],
@@ -245,6 +255,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         assert np.allclose(bt, expected_bt)
 
     def test_standardize_dims(self):
+        """Test standardize dims."""
         variable = xr.DataArray(
             np.arange(6).reshape(2, 3),
             dims=('n_scan', 'n_samples'),
@@ -253,6 +264,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         assert standardized.dims == ('y', 'x')
 
     def test_filter_variable(self):
+        """Test filter variable."""
         data = np.arange(24).reshape(2, 3, 4)
         variable = xr.DataArray(
             np.arange(24).reshape(2, 3, 4),
@@ -263,6 +275,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         assert (filtered == data[:, :, 1]).all()
 
     def test_drop_coords(self):
+        """Test drop coordinates."""
         coords = "dummy"
         data = xr.DataArray(
             np.ones(10),
@@ -274,6 +287,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         assert coords not in data.coords
 
     def test_get_dataset_return_none_if_data_not_exist(self):
+        """Tes get dataset return none if data does not exist."""
         dataset_id = {'name': 'unknown'}
         dataset_info = {'file_key': 'non/existing/data'}
         dataset = self.reader.get_dataset(dataset_id, dataset_info)
@@ -284,6 +298,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         self,
         mocked_calibrate,
     ):
+        """Test get dataset does not calibrate if not desired."""
         dataset_id = {'name': 'lon_pixels_horn_1'}
         dataset_info = {
             'name': 'lon_pixels_horn_1',
@@ -303,6 +318,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         self,
         mocked_orthorectification,
     ):
+        """Test get dataset orthorectifies if orthorect data is defined."""
         dataset_id = {'name': 'lon_pixels_horn_1'}
         dataset_info = {
             'name': 'lon_pixels_horn_1',
@@ -324,6 +340,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         self,
         mocked_calibration,
     ):
+        """Test get dataset handles calibration."""
         dataset_id = {'name': 'ici_1'}
         dataset_info = {
             'name': 'ici_1',
@@ -342,7 +359,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         )
 
     def test_perform_geo_interpolation(self):
-        n_scan = xr.DataArray(np.arange(self.n_scan))
+        """Test perform geo interpolation."""
         n_samples = xr.DataArray(np.arange(self.n_samples))
         n_subs = xr.DataArray(np.arange(self.n_subs))
         longitude = xr.DataArray(
@@ -354,7 +371,6 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         lon, lat = self.reader._perform_geo_interpolation(
             longitude,
             latitude,
-            n_scan,
             n_samples,
             n_subs
         )
@@ -364,6 +380,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         assert np.allclose(lat, 1.0)
 
     def test_perform_orthorectification(self):
+        """Test perform orthorectification."""
         variable = xr.DataArray(
             np.ones((self.n_scan, self.n_samples, self.n_horns)),
             dims=('y', 'x', 'n_horns'),
@@ -378,6 +395,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         assert np.allclose(orthorectified, 1.009)
 
     def test_get_global_attributes(self):
+        """Test get global attributes."""
         attributes = self.reader._get_global_attributes()
         assert attributes['quality_group'] == {
             'duration_of_product': np.array(1000., dtype=np.float32)
