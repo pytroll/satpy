@@ -1,0 +1,570 @@
+reader:
+  name: ici_l1b_nc
+  short_name: ICI L1B RAD NetCDF4
+  long_name: EPS-SG ICI L1B Radiance (NetCDF4)
+  description: >
+    Reader for EUMETSAT EPS-SG Ice Cloud Imager Level 1B Radiance files in NetCDF4.
+  sensors: [ici]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  # EUMETSAT EPSG-SG Ice Cloud Imager Level 1B Radiance files in NetCDF4 format
+  nc_ici_l1b_rad:
+    file_reader: !!python/name:satpy.readers.ici_l1b_nc.IciL1bNCFileHandler
+    file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-ICI-1B-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    cached_longitude: data/navigation_data/longitude
+    cached_latitude: data/navigation_data/latitude
+    cached_observation_zenith: data/navigation_data/ici_oza
+    cached_observation_azimuth: data/navigation_data/ici_azimuth
+    cached_solar_zenith: data/navigation_data/ici_solar_zenith_angle
+    cached_solar_azimuth: data/navigation_data/ici_solar_azimuth_angle
+    orthorect: True
+
+datasets:
+
+# --- Coordinates ---
+  lon_pixels_horn_1:
+    name: lon_pixels_horn_1
+    file_type: nc_ici_l1b_rad
+    file_key: cached_longitude
+    orthorect_data: data/navigation_data/delta_longitude
+    standard_name: longitude
+    n_horns: 0
+
+  lat_pixels_horn_1:
+    name: lat_pixels_horn_1
+    file_type: nc_ici_l1b_rad
+    file_key: cached_latitude
+    orthorect_data: data/navigation_data/delta_latitude
+    standard_name: latitude
+    n_horns: 0
+
+  lon_pixels_horn_2:
+    name: lon_pixels_horn_2
+    file_type: nc_ici_l1b_rad
+    file_key: cached_longitude
+    orthorect_data: data/navigation_data/delta_longitude
+    standard_name: longitude
+    n_horns: 1
+
+  lat_pixels_horn_3:
+    name: lat_pixels_horn_3
+    file_type: nc_ici_l1b_rad
+    file_key: cached_latitude
+    orthorect_data: data/navigation_data/delta_latitude
+    standard_name: latitude
+    n_horns: 2
+
+  lon_pixels_horn_3:
+    name: lon_pixels_horn_3
+    file_type: nc_ici_l1b_rad
+    file_key: cached_longitude
+    orthorect_data: data/navigation_data/delta_longitude
+    standard_name: longitude
+    n_horns: 2
+
+  lat_pixels_horn_3:
+    name: lat_pixels_horn_3
+    file_type: nc_ici_l1b_rad
+    file_key: cached_latitude
+    orthorect_data: data/navigation_data/delta_latitude
+    standard_name: latitude
+    n_horns: 3
+
+  lon_pixels_horn_4:
+    name: lon_pixels_horn_4
+    file_type: nc_ici_l1b_rad
+    file_key: cached_longitude
+    orthorect_data: data/navigation_data/delta_longitude
+    standard_name: longitude
+    n_horns: 3
+
+  lat_pixels_horn_4:
+    name: lat_pixels_horn_4
+    file_type: nc_ici_l1b_rad
+    file_key: cached_latitude
+    orthorect_data: data/navigation_data/delta_latitude
+    standard_name: latitude
+    n_horns: 3
+
+  lon_pixels_horn_5:
+    name: lon_pixels_horn_5
+    file_type: nc_ici_l1b_rad
+    file_key: cached_longitude
+    orthorect_data: data/navigation_data/delta_longitude
+    standard_name: longitude
+    n_horns: 4
+
+  lat_pixels_horn_5:
+    name: lat_pixels_horn_5
+    file_type: nc_ici_l1b_rad
+    file_key: cached_latitude
+    orthorect_data: data/navigation_data/delta_latitude
+    standard_name: latitude
+    n_horns: 4
+
+  lon_pixels_horn_6:
+    name: lon_pixels_horn_6
+    file_type: nc_ici_l1b_rad
+    file_key: cached_longitude
+    orthorect_data: data/navigation_data/delta_longitude
+    standard_name: longitude
+    n_horns: 5
+
+  lat_pixels_horn_6:
+    name: lat_pixels_horn_6
+    file_type: nc_ici_l1b_rad
+    file_key: cached_latitude
+    orthorect_data: data/navigation_data/delta_latitude
+    standard_name: latitude
+    n_horns: 5
+
+  lon_pixels_horn_7:
+    name: lon_pixels_horn_7
+    file_type: nc_ici_l1b_rad
+    file_key: cached_longitude
+    orthorect_data: data/navigation_data/delta_longitude
+    standard_name: longitude
+    n_horns: 6
+
+  lat_pixels_horn_7:
+    name: lat_pixels_horn_7
+    file_type: nc_ici_l1b_rad
+    file_key: cached_latitude
+    orthorect_data: data/navigation_data/delta_latitude
+    standard_name: latitude
+    n_horns: 6
+
+# --- Measurement data ---
+  ici_1:
+    name: ici_1
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_183
+    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    n_183: 0
+    n_horns: 0
+    chan_index: 0
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_2:
+    name: ici_2
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_183
+    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    n_183: 1
+    n_horns: 0
+    chan_index: 1
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_3:
+    name: ici_3
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_183
+    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    n_183: 2
+    n_horns: 0
+    chan_index: 2
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_4v:
+    name: ici_4v
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_243
+    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+    n_243: 0
+    n_horns: 1
+    chan_index: 3
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_4h:
+    name: ici_4h
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_243
+    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+    n_243: 1
+    n_horns: 2
+    chan_index: 4
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_5:
+    name: ici_5
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_325
+    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    n_325: 0
+    n_horns: 3
+    chan_index: 5
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_6:
+    name: ici_6
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_325
+    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    n_325: 1
+    n_horns: 3
+    chan_index: 6
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_7:
+    name: ici_7
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_325
+    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    n_325: 2
+    n_horns: 3
+    chan_index: 6
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_8:
+    name: ici_8
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_448
+    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    n_448: 0
+    n_horns: 4
+    chan_index: 8
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_9:
+    name: ici_9
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_448
+    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    n_448: 1
+    n_horns: 4
+    chan_index: 9
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  ici_10:
+    name: ici_10
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_448
+    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    n_448: 2
+    n_horns: 4
+    chan_index: 10
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+  
+  ici_11v:
+    name: ici_11v
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_664
+    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+    n_664: 0
+    n_horns: 5
+    chan_index: 11
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    
+  ici_11h:
+    name: ici_11h
+    file_type: nc_ici_l1b_rad
+    file_key: data/measurement_data/ici_radiance_664
+    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+    n_664: 1
+    n_horns: 6
+    chan_index: 12
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: "mWm^-2sr^-1(cm^-1)^-1"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+
+  # --- Geometric data ---
+  solar_zenith_horn_1:
+    name: solar_zenith_horn_1
+    standard_name: solar_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_zenith
+    n_horns: 0
+    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+  
+  solar_zenith_horn_2:
+    name: solar_zenith_horn_2
+    standard_name: solar_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_zenith
+    n_horns: 1
+    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+
+  solar_zenith_horn_3:
+    name: solar_zenith_horn_3
+    standard_name: solar_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_zenith
+    n_horns: 2
+    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+  
+  solar_zenith_horn_4:
+    name: solar_zenith_horn_4
+    standard_name: solar_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_zenith
+    n_horns: 3
+    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+
+  solar_zenith_horn_5:
+    name: solar_zenith_horn_5
+    standard_name: solar_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_zenith
+    n_horns: 4
+    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+
+  solar_zenith_horn_6:
+    name: solar_zenith_horn_6
+    standard_name: solar_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_zenith
+    n_horns: 5
+    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+
+  solar_zenith_horn_7:
+    name: solar_zenith_horn_7
+    standard_name: solar_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_zenith
+    n_horns: 6
+    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+
+  solar_azimuth_horn_1:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_azimuth
+    n_horns: 0
+    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+
+  solar_azimuth_horn_2:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_azimuth
+    n_horns: 1
+    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+  
+  solar_azimuth_horn_3:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_azimuth
+    n_horns: 2
+    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+
+  solar_azimuth_horn_4:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_azimuth
+    n_horns: 3
+    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+
+  solar_azimuth_horn_5:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_azimuth
+    n_horns: 4
+    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+
+  solar_azimuth_horn_6:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_azimuth
+    n_horns: 5
+    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+
+  solar_azimuth_horn_7:
+    name: solar_azimuth
+    standard_name: solar_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_solar_azimuth
+    n_horns: 6
+    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+
+  observation_zenith_horn_1:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_zenith
+    n_horns: 0
+    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+
+  observation_zenith_horn_2:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_zenith
+    n_horns: 1
+    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+
+  observation_zenith_horn_3:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_zenith
+    n_horns: 2
+    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+  
+  observation_zenith_horn_4:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_zenith
+    n_horns: 3
+    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+
+  observation_zenith_horn_5:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_zenith
+    n_horns: 4
+    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+
+  observation_zenith_horn_6:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_zenith
+    n_horns: 5
+    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+
+  observation_zenith_horn_7:
+    name: observation_zenith
+    standard_name: sensor_zenith_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_zenith
+    n_horns: 6
+    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+
+  observation_azimuth_horn_1:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_azimuth
+    n_horns: 0
+    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+
+  observation_azimuth_horn_2:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_azimuth
+    n_horns: 1
+    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+
+  observation_azimuth_horn_3:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_azimuth
+    n_horns: 2
+    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+
+  observation_azimuth_horn_4:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_azimuth
+    n_horns: 3
+    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+
+  observation_azimuth_horn_5:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_azimuth
+    n_horns: 4
+    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+
+  observation_azimuth_horn_6:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_azimuth
+    n_horns: 5
+    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+
+  observation_azimuth_horn_7:
+    name: observation_azimuth
+    standard_name: sensor_azimuth_angle
+    file_type: nc_ici_l1b_rad
+    file_key: cached_observation_azimuth
+    n_horns: 6
+    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
