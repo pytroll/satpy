@@ -27,11 +27,11 @@ This version is applicable for the ici test data released in Jan 2021.
 """
 
 import logging
-import numpy as np
-import xarray as xr
 from datetime import datetime
 from functools import cached_property
 
+import numpy as np
+import xarray as xr
 from geotiepoints.geointerpolator import GeoInterpolator, lonlat2xyz, xyz2lonlat
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
@@ -65,7 +65,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
     @cached_property
     def observation_azimuth_and_zenith(self):
-        """Ger observation azimuth and zenith angles."""
+        """Get observation azimuth and zenith angles."""
         try:
             return self._perform_viewing_angle_interpolation(
                 self[self.filetype_info['cached_observation_azimuth']],

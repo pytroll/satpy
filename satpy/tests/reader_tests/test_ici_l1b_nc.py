@@ -22,18 +22,17 @@ This version tests the reader for ICI test data as per PFS V3A.
 """
 
 import os
-import pytest
 import unittest
 import uuid
 from datetime import datetime
-from unittest.mock import patch, ANY
+from unittest.mock import ANY, patch
 
 import numpy as np
+import pytest
 import xarray as xr
 from netCDF4 import Dataset
 
 from satpy.readers.ici_l1b_nc import IciL1bNCFileHandler
-
 
 TEST_FILE = 'test_file_ici_l1b_nc.nc'
 
@@ -368,7 +367,10 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
                 'n_subs': np.arange(self.n_subs),
             },
         )
-        latitude = longitude
+        latitude = xr.DataArray(
+            2. * np.ones((self.n_scan, self.n_subs, self.n_horns)),
+            dims=('n_scan', 'n_subs', 'n_horns'),
+        )
         lon, lat = self.reader._perform_geo_interpolation(
             longitude,
             latitude,
@@ -377,7 +379,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         assert lon.shape == (self.n_scan, self.n_samples, self.n_horns)
         assert lat.shape == (self.n_scan, self.n_samples, self.n_horns)
         assert np.allclose(lon, 1.0)
-        assert np.allclose(lat, 1.0)
+        assert np.allclose(lat, 2.0)
 
     def test_perform_viewing_angle_interpolation(self):
         """Test perform viewing angle interpolation."""
