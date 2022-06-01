@@ -90,7 +90,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         )
 
     def _setup_navigation_data_group(self, dataset):
-        """Setup of navigation data group."""
+        """Set up the navigation data group."""
         group = dataset.createGroup('navigation_data')
         group.createDimension('n_scan', self.n_scan)
         group.createDimension('n_samples', self.n_samples)
@@ -128,7 +128,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         )
 
     def _setup_measurement_data_group(self, dataset):
-        """Setup of measurement data group."""
+        """Set up the measurement data group."""
         group = dataset.createGroup('measurement_data')
         group.createDimension('n_scan', self.n_scan)
         group.createDimension('n_samples', self.n_samples)
@@ -201,7 +201,7 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
         self,
         mocked_calibrate,
     ):
-        """Test perform calibration does not call calibrate if not needed"""
+        """Test perform calibration does not call calibrate if not needed."""
         variable = xr.DataArray(
             np.array([
                 [0.060, 0.065, 0.070, 0.075],
@@ -360,24 +360,52 @@ class TestIciL1bNCFileHandler(unittest.TestCase):
 
     def test_perform_geo_interpolation(self):
         """Test perform geo interpolation."""
-        n_samples = xr.DataArray(np.arange(self.n_samples))
-        n_subs = xr.DataArray(np.arange(self.n_subs))
         longitude = xr.DataArray(
             np.ones((self.n_scan, self.n_subs, self.n_horns)),
             dims=('n_scan', 'n_subs', 'n_horns'),
-            coords={'n_horns': np.arange(self.n_horns)}
+            coords={
+                'n_horns': np.arange(self.n_horns),
+                'n_subs': np.arange(self.n_subs),
+            },
         )
         latitude = longitude
         lon, lat = self.reader._perform_geo_interpolation(
             longitude,
             latitude,
-            n_samples,
-            n_subs
+            self.n_samples,
         )
         assert lon.shape == (self.n_scan, self.n_samples, self.n_horns)
         assert lat.shape == (self.n_scan, self.n_samples, self.n_horns)
         assert np.allclose(lon, 1.0)
         assert np.allclose(lat, 1.0)
+
+    def test_perform_viewing_angle_interpolation(self):
+        """Test perform viewing angle interpolation."""
+        azimuth = xr.DataArray(
+            np.ones((self.n_scan, self.n_subs, self.n_horns)),
+            dims=('n_scan', 'n_subs', 'n_horns'),
+            coords={
+                'n_horns': np.arange(self.n_horns),
+                'n_subs': np.arange(self.n_subs),
+            },
+        )
+        zenith = xr.DataArray(
+            100. * np.ones((self.n_scan, self.n_subs, self.n_horns)),
+            dims=('n_scan', 'n_subs', 'n_horns'),
+            coords={
+                'n_horns': np.arange(self.n_horns),
+                'n_subs': np.arange(self.n_subs),
+            },
+        )
+        azimuth, zenith = self.reader._perform_viewing_angle_interpolation(
+            azimuth,
+            zenith,
+            self.n_samples,
+        )
+        assert azimuth.shape == (self.n_scan, self.n_samples, self.n_horns)
+        assert zenith.shape == (self.n_scan, self.n_samples, self.n_horns)
+        assert np.allclose(azimuth, 1.0)
+        assert np.allclose(zenith, 100.0)
 
     def test_perform_orthorectification(self):
         """Test perform orthorectification."""

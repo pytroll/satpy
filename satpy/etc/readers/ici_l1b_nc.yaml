@@ -402,7 +402,7 @@ datasets:
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
 
   solar_azimuth_horn_1:
-    name: solar_azimuth
+    name: solar_azimuth_horn_1
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_solar_azimuth
@@ -410,7 +410,7 @@ datasets:
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
 
   solar_azimuth_horn_2:
-    name: solar_azimuth
+    name: solar_azimuth_horn_2
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_solar_azimuth
@@ -418,7 +418,7 @@ datasets:
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
 
   solar_azimuth_horn_3:
-    name: solar_azimuth
+    name: solar_azimuth_horn_3
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_solar_azimuth
@@ -426,7 +426,7 @@ datasets:
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
 
   solar_azimuth_horn_4:
-    name: solar_azimuth
+    name: solar_azimuth_horn_4
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_solar_azimuth
@@ -434,7 +434,7 @@ datasets:
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
 
   solar_azimuth_horn_5:
-    name: solar_azimuth
+    name: solar_azimuth_horn_5
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_solar_azimuth
@@ -442,7 +442,7 @@ datasets:
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
 
   solar_azimuth_horn_6:
-    name: solar_azimuth
+    name: solar_azimuth_horn_6
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_solar_azimuth
@@ -450,7 +450,7 @@ datasets:
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
 
   solar_azimuth_horn_7:
-    name: solar_azimuth
+    name: solar_azimuth_horn_7
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_solar_azimuth
@@ -458,7 +458,7 @@ datasets:
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
 
   observation_zenith_horn_1:
-    name: observation_zenith
+    name: observation_zenith_horn_1
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_zenith
@@ -466,7 +466,7 @@ datasets:
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
 
   observation_zenith_horn_2:
-    name: observation_zenith
+    name: observation_zenith_horn_2
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_zenith
@@ -474,7 +474,7 @@ datasets:
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
 
   observation_zenith_horn_3:
-    name: observation_zenith
+    name: observation_zenith_horn_3
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_zenith
@@ -482,7 +482,7 @@ datasets:
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
 
   observation_zenith_horn_4:
-    name: observation_zenith
+    name: observation_zenith_horn_4
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_zenith
@@ -490,7 +490,7 @@ datasets:
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
 
   observation_zenith_horn_5:
-    name: observation_zenith
+    name: observation_zenith_horn_5
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_zenith
@@ -498,7 +498,7 @@ datasets:
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
 
   observation_zenith_horn_6:
-    name: observation_zenith
+    name: observation_zenith_horn_6
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_zenith
@@ -506,7 +506,7 @@ datasets:
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
 
   observation_zenith_horn_7:
-    name: observation_zenith
+    name: observation_zenith_horn_7
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_zenith
@@ -514,7 +514,7 @@ datasets:
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
 
   observation_azimuth_horn_1:
-    name: observation_azimuth
+    name: observation_azimuth_horn_1
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_azimuth
@@ -522,7 +522,7 @@ datasets:
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
 
   observation_azimuth_horn_2:
-    name: observation_azimuth
+    name: observation_azimuth_horn_2
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_azimuth
@@ -530,7 +530,7 @@ datasets:
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
 
   observation_azimuth_horn_3:
-    name: observation_azimuth
+    name: observation_azimuth_horn_3
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_azimuth
@@ -538,7 +538,7 @@ datasets:
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
 
   observation_azimuth_horn_4:
-    name: observation_azimuth
+    name: observation_azimuth_horn_4
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_azimuth
@@ -546,7 +546,7 @@ datasets:
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
 
   observation_azimuth_horn_5:
-    name: observation_azimuth
+    name: observation_azimuth_horn_5
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_azimuth
@@ -554,7 +554,7 @@ datasets:
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
 
   observation_azimuth_horn_6:
-    name: observation_azimuth
+    name: observation_azimuth_horn_6
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_azimuth
@@ -562,7 +562,7 @@ datasets:
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
 
   observation_azimuth_horn_7:
-    name: observation_azimuth
+    name: observation_azimuth_horn_5
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
     file_key: cached_observation_azimuth
