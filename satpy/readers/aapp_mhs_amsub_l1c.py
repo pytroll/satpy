@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2020, 2021 Pytroll developers
+# Copyright (c) 2020, 2021, 2022 Pytroll developers
 
 # Author(s):
 
@@ -304,8 +304,7 @@ class MHS_AMSUB_AAPPL1CFile(AAPPL1BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize object information by reading the input file."""
-        super(MHS_AMSUB_AAPPL1CFile, self).__init__(filename, filename_info,
-                                                    filetype_info)
+        super().__init__(filename, filename_info, filetype_info)
 
         self.channels = {i: None for i in MHS_AMSUB_CHANNEL_NAMES}
         self.units = {i: 'brightness_temperature' for i in MHS_AMSUB_CHANNEL_NAMES}
