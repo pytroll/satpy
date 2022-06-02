@@ -49,6 +49,7 @@ MEAN_EARTH_RADIUS = 6371008.7714  # [m]
 
 class InterpolationType(Enum):
     """Enum for interpolation types."""
+
     LONLAT = 0
     SOLAR_ANGLES = 1
     OBSERVATION_ANGLES = 2
