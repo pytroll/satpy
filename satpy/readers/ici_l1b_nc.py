@@ -243,19 +243,10 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
         """
         # interpolate onto spherical coords system with origin at equator
-        aa, za = self._interpolate_geo(
-            azimuth,
-            90. - zenith,
-            n_samples,
-        )
-        # transform to spherical coords with origin at north pole
-        # following Eumetsat spe
-        x, y, z = lonlat2xyz(aa, za)
-        aa = np.degrees(np.arctan2(y, x))
-        za = np.degrees(np.arctan2(np.sqrt(x ** 2 + y ** 2), z))
-        aa.attrs = azimuth.attrs
-        za.attrs = zenith.attrs
-        return aa, za
+        azimuth, zenith = self._interpolate_geo(azimuth, 90. - zenith, n_samples)
+        # transform back such that the origin is at the north pole
+        zenith = 90. - zenith
+        return azimuth, zenith
 
     def _interpolate(
         self,
