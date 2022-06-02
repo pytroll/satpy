@@ -33,7 +33,7 @@ from functools import cached_property
 
 import numpy as np
 import xarray as xr
-from geotiepoints.geointerpolator import GeoInterpolator, lonlat2xyz
+from geotiepoints.geointerpolator import GeoInterpolator
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
