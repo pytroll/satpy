@@ -42,6 +42,11 @@ _CFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
 _LOFF_list = [10991.5, 5495.5, 2747.5, 1373.5]
 _LFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
 
+CHANS_ID = 'NOMChannel'
+SAT_ID = 'NOMSatellite'
+SUN_ID = 'NOMSun'
+
+
 PLATFORM_NAMES = {'FY4A': 'FY-4A',
                   'FY4B': 'FY-4B',
                   'FY4C': 'FY-4C'}
@@ -101,7 +106,16 @@ class HDF_AGRI_L1(HDF5FileHandler):
         ds_name = dataset_id['name']
         logger.debug('Reading in get_dataset %s.', ds_name)
         file_key = ds_info.get('file_key', ds_name)
+        if self.filename_info['platform_id'] == 'FY4B':
+            if CHANS_ID in file_key:
+                file_key = f'Data/{file_key}'
+            elif SUN_ID in file_key or SAT_ID in file_key:
+                file_key = f'Navigation/{file_key}'
+
         data = self.get(file_key)
+
+        print(file_key)
+
         if data.ndim >= 2:
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
 
@@ -154,7 +168,10 @@ class HDF_AGRI_L1(HDF5FileHandler):
         """Calibrate to reflectance [%]."""
         logger.debug("Calibrating to reflectances")
         # using the corresponding SCALE and OFFSET
-        cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
+        if self.filename_info['platform_id'] == 'FY4B':
+            cal_coef = 'Calibration/CALIBRATION_COEF(SCALE+OFFSET)'
+        else:
+            cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
         num_channel = self.get(cal_coef).shape[0]
         if num_channel == 1:
             # only channel_2, resolution = 500 m
