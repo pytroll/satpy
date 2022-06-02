@@ -12,12 +12,12 @@ file_types:
   nc_ici_l1b_rad:
     file_reader: !!python/name:satpy.readers.ici_l1b_nc.IciL1bNCFileHandler
     file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-ICI-1B-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
-    cached_longitude: data/navigation_data/longitude
-    cached_latitude: data/navigation_data/latitude
-    cached_observation_zenith: data/navigation_data/ici_oza
-    cached_observation_azimuth: data/navigation_data/ici_azimuth
-    cached_solar_zenith: data/navigation_data/ici_solar_zenith_angle
-    cached_solar_azimuth: data/navigation_data/ici_solar_azimuth_angle
+    longitude: data/navigation_data/longitude
+    latitude: data/navigation_data/latitude
+    observation_zenith: data/navigation_data/ici_oza
+    observation_azimuth: data/navigation_data/ici_azimuth
+    solar_zenith: data/navigation_data/ici_solar_zenith_angle
+    solar_azimuth: data/navigation_data/ici_solar_azimuth_angle
     orthorect: True
 
 datasets:
@@ -26,7 +26,7 @@ datasets:
   lon_pixels_horn_1:
     name: lon_pixels_horn_1
     file_type: nc_ici_l1b_rad
-    file_key: cached_longitude
+    file_key: longitude
     orthorect_data: data/navigation_data/delta_longitude
     standard_name: longitude
     n_horns: 0
@@ -34,7 +34,7 @@ datasets:
   lat_pixels_horn_1:
     name: lat_pixels_horn_1
     file_type: nc_ici_l1b_rad
-    file_key: cached_latitude
+    file_key: latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 0
@@ -42,7 +42,7 @@ datasets:
   lon_pixels_horn_2:
     name: lon_pixels_horn_2
     file_type: nc_ici_l1b_rad
-    file_key: cached_longitude
+    file_key: longitude
     orthorect_data: data/navigation_data/delta_longitude
     standard_name: longitude
     n_horns: 1
@@ -50,7 +50,7 @@ datasets:
   lat_pixels_horn_2:
     name: lat_pixels_horn_2
     file_type: nc_ici_l1b_rad
-    file_key: cached_latitude
+    file_key: latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 1
@@ -58,7 +58,7 @@ datasets:
   lon_pixels_horn_3:
     name: lon_pixels_horn_3
     file_type: nc_ici_l1b_rad
-    file_key: cached_longitude
+    file_key: longitude
     orthorect_data: data/navigation_data/delta_longitude
     standard_name: longitude
     n_horns: 2
@@ -66,7 +66,7 @@ datasets:
   lat_pixels_horn_3:
     name: lat_pixels_horn_3
     file_type: nc_ici_l1b_rad
-    file_key: cached_latitude
+    file_key: latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 3
@@ -74,7 +74,7 @@ datasets:
   lon_pixels_horn_4:
     name: lon_pixels_horn_4
     file_type: nc_ici_l1b_rad
-    file_key: cached_longitude
+    file_key: longitude
     orthorect_data: data/navigation_data/delta_longitude
     standard_name: longitude
     n_horns: 3
@@ -82,7 +82,7 @@ datasets:
   lat_pixels_horn_4:
     name: lat_pixels_horn_4
     file_type: nc_ici_l1b_rad
-    file_key: cached_latitude
+    file_key: latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 3
@@ -90,7 +90,7 @@ datasets:
   lon_pixels_horn_5:
     name: lon_pixels_horn_5
     file_type: nc_ici_l1b_rad
-    file_key: cached_longitude
+    file_key: longitude
     orthorect_data: data/navigation_data/delta_longitude
     standard_name: longitude
     n_horns: 4
@@ -98,7 +98,7 @@ datasets:
   lat_pixels_horn_5:
     name: lat_pixels_horn_5
     file_type: nc_ici_l1b_rad
-    file_key: cached_latitude
+    file_key: latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 4
@@ -106,7 +106,7 @@ datasets:
   lon_pixels_horn_6:
     name: lon_pixels_horn_6
     file_type: nc_ici_l1b_rad
-    file_key: cached_longitude
+    file_key: longitude
     orthorect_data: data/navigation_data/delta_longitude
     standard_name: longitude
     n_horns: 5
@@ -114,7 +114,7 @@ datasets:
   lat_pixels_horn_6:
     name: lat_pixels_horn_6
     file_type: nc_ici_l1b_rad
-    file_key: cached_latitude
+    file_key: latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 5
@@ -122,7 +122,7 @@ datasets:
   lon_pixels_horn_7:
     name: lon_pixels_horn_7
     file_type: nc_ici_l1b_rad
-    file_key: cached_longitude
+    file_key: longitude
     orthorect_data: data/navigation_data/delta_longitude
     standard_name: longitude
     n_horns: 6
@@ -130,7 +130,7 @@ datasets:
   lat_pixels_horn_7:
     name: lat_pixels_horn_7
     file_type: nc_ici_l1b_rad
-    file_key: cached_latitude
+    file_key: latitude
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 6
@@ -349,7 +349,7 @@ datasets:
     name: solar_zenith_horn_1
     standard_name: solar_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_zenith
+    file_key: solar_zenith
     n_horns: 0
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
 
@@ -357,7 +357,7 @@ datasets:
     name: solar_zenith_horn_2
     standard_name: solar_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_zenith
+    file_key: solar_zenith
     n_horns: 1
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
 
@@ -365,7 +365,7 @@ datasets:
     name: solar_zenith_horn_3
     standard_name: solar_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_zenith
+    file_key: solar_zenith
     n_horns: 2
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
 
@@ -373,7 +373,7 @@ datasets:
     name: solar_zenith_horn_4
     standard_name: solar_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_zenith
+    file_key: solar_zenith
     n_horns: 3
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
 
@@ -381,7 +381,7 @@ datasets:
     name: solar_zenith_horn_5
     standard_name: solar_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_zenith
+    file_key: solar_zenith
     n_horns: 4
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
 
@@ -389,7 +389,7 @@ datasets:
     name: solar_zenith_horn_6
     standard_name: solar_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_zenith
+    file_key: solar_zenith
     n_horns: 5
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
 
@@ -397,7 +397,7 @@ datasets:
     name: solar_zenith_horn_7
     standard_name: solar_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_zenith
+    file_key: solar_zenith
     n_horns: 6
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
 
@@ -405,7 +405,7 @@ datasets:
     name: solar_azimuth_horn_1
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_azimuth
+    file_key: solar_azimuth
     n_horns: 0
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
 
@@ -413,7 +413,7 @@ datasets:
     name: solar_azimuth_horn_2
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_azimuth
+    file_key: solar_azimuth
     n_horns: 1
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
 
@@ -421,7 +421,7 @@ datasets:
     name: solar_azimuth_horn_3
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_azimuth
+    file_key: solar_azimuth
     n_horns: 2
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
 
@@ -429,7 +429,7 @@ datasets:
     name: solar_azimuth_horn_4
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_azimuth
+    file_key: solar_azimuth
     n_horns: 3
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
 
@@ -437,7 +437,7 @@ datasets:
     name: solar_azimuth_horn_5
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_azimuth
+    file_key: solar_azimuth
     n_horns: 4
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
 
@@ -445,7 +445,7 @@ datasets:
     name: solar_azimuth_horn_6
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_azimuth
+    file_key: solar_azimuth
     n_horns: 5
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
 
@@ -453,7 +453,7 @@ datasets:
     name: solar_azimuth_horn_7
     standard_name: solar_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_solar_azimuth
+    file_key: solar_azimuth
     n_horns: 6
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
 
@@ -461,7 +461,7 @@ datasets:
     name: observation_zenith_horn_1
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_zenith
+    file_key: observation_zenith
     n_horns: 0
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
 
@@ -469,7 +469,7 @@ datasets:
     name: observation_zenith_horn_2
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_zenith
+    file_key: observation_zenith
     n_horns: 1
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
 
@@ -477,7 +477,7 @@ datasets:
     name: observation_zenith_horn_3
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_zenith
+    file_key: observation_zenith
     n_horns: 2
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
 
@@ -485,7 +485,7 @@ datasets:
     name: observation_zenith_horn_4
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_zenith
+    file_key: observation_zenith
     n_horns: 3
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
 
@@ -493,7 +493,7 @@ datasets:
     name: observation_zenith_horn_5
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_zenith
+    file_key: observation_zenith
     n_horns: 4
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
 
@@ -501,7 +501,7 @@ datasets:
     name: observation_zenith_horn_6
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_zenith
+    file_key: observation_zenith
     n_horns: 5
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
 
@@ -509,7 +509,7 @@ datasets:
     name: observation_zenith_horn_7
     standard_name: sensor_zenith_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_zenith
+    file_key: observation_zenith
     n_horns: 6
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
 
@@ -517,7 +517,7 @@ datasets:
     name: observation_azimuth_horn_1
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_azimuth
+    file_key: observation_azimuth
     n_horns: 0
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
 
@@ -525,7 +525,7 @@ datasets:
     name: observation_azimuth_horn_2
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_azimuth
+    file_key: observation_azimuth
     n_horns: 1
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
 
@@ -533,7 +533,7 @@ datasets:
     name: observation_azimuth_horn_3
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_azimuth
+    file_key: observation_azimuth
     n_horns: 2
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
 
@@ -541,7 +541,7 @@ datasets:
     name: observation_azimuth_horn_4
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_azimuth
+    file_key: observation_azimuth
     n_horns: 3
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
 
@@ -549,7 +549,7 @@ datasets:
     name: observation_azimuth_horn_5
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_azimuth
+    file_key: observation_azimuth
     n_horns: 4
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
 
@@ -557,7 +557,7 @@ datasets:
     name: observation_azimuth_horn_6
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_azimuth
+    file_key: bservation_azimuth
     n_horns: 5
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
 
@@ -565,6 +565,6 @@ datasets:
     name: observation_azimuth_horn_5
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: cached_observation_azimuth
+    file_key: observation_azimuth
     n_horns: 6
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]

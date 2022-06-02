@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2022 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,11 +28,12 @@ This version is applicable for the ici test data released in Jan 2021.
 
 import logging
 from datetime import datetime
-from functools import cached_property
+from enum import Enum
+from functools import lru_cache
 
 import numpy as np
 import xarray as xr
-from geotiepoints.geointerpolator import GeoInterpolator, lonlat2xyz, xyz2lonlat
+from geotiepoints.geointerpolator import GeoInterpolator, lonlat2xyz
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
@@ -44,6 +45,12 @@ C1 = 1.191042e-5  # [mW/(sr·m2·cm-4)]
 C2 = 1.4387752  # [K·cm]
 # MEAN EARTH RADIUS AS DEFINED BY IUGG
 MEAN_EARTH_RADIUS = 6371008.7714  # [m]
+
+
+class InterpolationType(Enum):
+    LONLAT = 0
+    SOLAR_ANGLES = 1
+    OBSERVATION_ANGLES = 2
 
 
 class IciL1bNCFileHandler(NetCDF4FileHandler):
@@ -63,43 +70,28 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         self._filetype_info = filetype_info
         self.orthorect = filetype_info.get('orthorect', True)
 
-    @cached_property
-    def observation_azimuth_and_zenith(self):
-        """Get observation azimuth and zenith angles."""
+    @lru_cache(maxsize=32)
+    def _interpolate(
+        self,
+        interpolation_type,
+    ):
+        """Interpolate from tie points to pixel points."""
         try:
-            return self._perform_viewing_angle_interpolation(
-                self[self.filetype_info['cached_observation_azimuth']],
-                self[self.filetype_info['cached_observation_zenith']],
-                self._n_samples,
-            )
+            if interpolation_type is InterpolationType.SOLAR_ANGLES:
+                var_key1 = self.filetype_info['solar_azimuth']
+                var_key2 = self.filetype_info['solar_zenith']
+                interp_method = self._interpolate_viewing_angle
+            elif interpolation_type is InterpolationType.OBSERVATION_ANGLES:
+                var_key1 = self.filetype_info['observation_azimuth']
+                var_key2 = self.filetype_info['observation_zenith']
+                interp_method = self._interpolate_viewing_angle
+            else:
+                var_key1 = self.filetype_info['longitude']
+                var_key2 = self.filetype_info['latitude']
+                interp_method = self._interpolate_geo
+            return interp_method(self[var_key1], self[var_key2], self._n_samples)
         except KeyError:
-            logger.warning("Cached observation zenith and/or azimuth datasets are not correctly defined in YAML file")  # noqa: E501
-        return None, None
-
-    @cached_property
-    def solar_azimuth_and_zenith(self):
-        """Get solar azimuth and zenith angles."""
-        try:
-            return self._perform_viewing_angle_interpolation(
-                self[self.filetype_info['cached_solar_azimuth']],
-                self[self.filetype_info['cached_solar_zenith']],
-                self._n_samples,
-            )
-        except KeyError:
-            logger.warning("Cached solar zenith and/or azimuth datasets are not correctly defined in YAML file")  # noqa: E501
-        return None, None
-
-    @cached_property
-    def longitude_and_latitude(self):
-        """Get longitude and latitude coordinates."""
-        try:
-            return self._perform_geo_interpolation(
-                self[self.filetype_info['cached_longitude']],
-                self[self.filetype_info['cached_latitude']],
-                self._n_samples,
-            )
-        except KeyError:
-            logger.warning("Cached longitude and/or latitude datasets are not correctly defined in YAML file")  # noqa: E501
+            logger.warning(f'Datasets for {interpolation_type.name} interpolation not correctly defined in YAML file')  # noqa: E501
         return None, None
 
     @property
@@ -133,8 +125,8 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         return end_time
 
     @property
-    def spacecraft_name(self):
-        """Return spacecraft name."""
+    def platform_name(self):
+        """Return platform name."""
         return self['/attr/spacecraft']
 
     @property
@@ -149,39 +141,43 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         return None
 
     @property
-    def cached_observation_azimuth(self):
+    def observation_azimuth(self):
         """Get observation azimuth angles."""
-        observation_azimuth, _ = self.observation_azimuth_and_zenith
+        observation_azimuth, _ = self._interpolate(
+            InterpolationType.OBSERVATION_ANGLES
+        )
         return observation_azimuth
 
     @property
-    def cached_observation_zenith(self):
+    def observation_zenith(self):
         """Get observation zenith angles."""
-        _, observation_zenith = self.observation_azimuth_and_zenith
+        _, observation_zenith = self._interpolate(
+            InterpolationType.OBSERVATION_ANGLES
+        )
         return observation_zenith
 
     @property
-    def cached_solar_azimuth(self):
+    def solar_azimuth(self):
         """Get solar azimuth angles."""
-        solar_azimuth, _ = self.solar_azimuth_and_zenith
+        solar_azimuth, _ = self._interpolate(InterpolationType.SOLAR_ANGLES)
         return solar_azimuth
 
     @property
-    def cached_solar_zenith(self):
+    def solar_zenith(self):
         """Get solar zenith angles."""
-        _, solar_zenith = self.solar_azimuth_and_zenith
+        _, solar_zenith = self._interpolate(InterpolationType.SOLAR_ANGLES)
         return solar_zenith
 
     @property
-    def cached_longitude(self):
+    def longitude(self):
         """Get longitude coordinates."""
-        longitude, _ = self.longitude_and_latitude
+        longitude, _ = self._interpolate(InterpolationType.LONLAT)
         return longitude
 
     @property
-    def cached_latitude(self):
+    def latitude(self):
         """Get latitude coordinates."""
-        _, latitude = self.longitude_and_latitude
+        _, latitude = self._interpolate(InterpolationType.LONLAT)
         return latitude
 
     @staticmethod
@@ -189,7 +185,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         """Perform the calibration to brightness temperature.
 
         Args:
-            radiance: numpy ndarray containing the radiance values.
+            radiance: xarray DataArray containing the radiance values.
             cw: center wavenumber [cm-1].
             a: temperature coefficient [-].
             b: temperature coefficient [K].
@@ -202,7 +198,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         return b + (a * C2 * cw / np.log(1 + C1 * cw ** 3 / radiance))
 
     @staticmethod
-    def _perform_geo_interpolation(
+    def _interpolate_geo(
         longitude,
         latitude,
         n_samples,
@@ -252,7 +248,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         )
         return lon, lat
 
-    def _perform_viewing_angle_interpolation(
+    def _interpolate_viewing_angle(
         self,
         azimuth,
         zenith,
@@ -274,23 +270,22 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 metadata and the updated dimension names.
 
         """
-        # transform to coordinates where origin is at the equator
-        x, y, z = lonlat2xyz(azimuth, 90. - zenith)
-        lon, lat = xyz2lonlat(x, y, z)
-        lon, lat = self._perform_geo_interpolation(
-            lon,
-            xr.DataArray(lat),
+        # interpolate onto spherical coords system with origin at equator
+        aa, za = self._interpolate_geo(
+            azimuth,
+            90. - zenith,
             n_samples,
         )
-        x, y, z = lonlat2xyz(lon, lat)
-        # transform from cartesian to spherical coords following Eumetsat spec
+        # transform to spherical coords with origin at north pole
+        # following Eumetsat spe
+        x, y, z = lonlat2xyz(aa, za)
         aa = np.degrees(np.arctan2(y, x))
         za = np.degrees(np.arctan2(np.sqrt(x ** 2 + y ** 2), z))
         aa.attrs = azimuth.attrs
         za.attrs = zenith.attrs
         return aa, za
 
-    def _perform_calibration(self, variable, dataset_info):
+    def _calibrate(self, variable, dataset_info):
         """Perform the calibration.
 
         Args:
@@ -317,7 +312,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
 
         return calibrated_variable
 
-    def _perform_orthorectification(self, variable, orthorect_data_name):
+    def _orthorectify(self, variable, orthorect_data_name):
         """Perform the orthorectification.
 
         Args:
@@ -342,7 +337,8 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             logger.warning('Required dataset %s for orthorectification not available, skipping', orthorect_data_name)  # noqa: E501
         return variable
 
-    def _standardize_dims(self, variable):
+    @staticmethod
+    def _standardize_dims(variable):
         """Standardize dims to y, x."""
         if 'n_scan' in variable.dims and 'n_samples' in variable.dims:
             variable = variable.rename({'n_samples': 'x', 'n_scan': 'y'})
@@ -350,7 +346,8 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             variable = variable.transpose('y', 'x')
         return variable
 
-    def _filter_variable(self, variable, dataset_info):
+    @staticmethod
+    def _filter_variable(variable, dataset_info):
         """Select desired data."""
         for dim in ["n_183", "n_243", "n_325", "n_448", "n_664"]:
             if dim in dataset_info and dim in variable.dims:
@@ -361,7 +358,8 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             variable = variable.sel({dim: dataset_info[dim]})
         return variable
 
-    def _drop_coords(self, variable, coords):
+    @staticmethod
+    def _drop_coords(variable, coords):
         if coords in variable.coords:
             variable = variable.drop_vars(coords)
         return variable
@@ -369,12 +367,12 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     def _fetch_variable(self, var_key):
         """Fetch variable."""
         if var_key in [
-            'cached_longitude',
-            'cached_latitude',
-            'cached_observation_zenith',
-            'cached_observation_azimuth',
-            'cached_solar_zenith',
-            'cached_solar_azimuth',
+            'longitude',
+            'latitude',
+            'observation_zenith',
+            'observation_azimuth',
+            'solar_zenith',
+            'solar_azimuth',
         ] and getattr(self, var_key) is not None:
             variable = getattr(self, var_key).copy()
         else:
@@ -391,41 +389,41 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             logger.warning(f'Could not find key {var_key} in NetCDF file, no valid Dataset created')  # noqa: E501
             return None
         variable = self._filter_variable(variable, dataset_info)
-        # Perform the calibration if required
         if dataset_info.get('calibration') is not None:
-            variable = self._perform_calibration(variable, dataset_info)
-        # Perform the orthorectification if required
+            variable = self._calibrate(variable, dataset_info)
         if self.orthorect:
             orthorect_data_name = dataset_info.get('orthorect_data', None)
             if orthorect_data_name is not None:
-                variable = self._perform_orthorectification(
-                    variable,
-                    orthorect_data_name,
-                )
-        # Manage the attributes of the dataset
-        variable.attrs.setdefault('units', None)
-        variable.attrs.update(dataset_info)
-        variable.attrs.update(self._get_global_attributes())
+                variable = self._orthorectify(variable, orthorect_data_name)
+        variable = self._manage_attributes(variable, dataset_info)
         variable = self._drop_coords(variable, 'n_horns')
         variable = self._standardize_dims(variable)
         return variable
 
+    def _manage_attributes(self, variable, dataset_info):
+        """Manage attributes of the dataset."""
+        variable.attrs.setdefault('units', None)
+        variable.attrs.update(dataset_info)
+        variable.attrs.update(self._get_global_attributes())
+        return variable
+
     def _get_global_attributes(self):
-        """Create a dictionary of global attributes to be added to all datasets."""
-        attributes = {
+        """Create a dictionary of global attributes."""
+        return {
             'filename': self.filename,
             'start_time': self.start_time,
             'end_time': self.end_time,
-            'spacecraft_name': self.spacecraft_name,
+            'spacecraft_name': self.platform_name,
             'ssp_lon': self.ssp_lon,
             'sensor': self.sensor,
             'filename_start_time': self.filename_info['sensing_start_time'],
             'filename_end_time': self.filename_info['sensing_end_time'],
-            'platform_name': self.spacecraft_name,
+            'platform_name': self.platform_name,
+            'quality_group': self._get_quality_attributes(),
         }
 
-        # Add a "quality_group" item to the dictionary with all the variables
-        # and attributes which are found in the 'quality' group of the product
+    def _get_quality_attributes(self):
+        """Get quality attributes."""
         quality_group = self['quality']
         quality_dict = {}
         for key in quality_group:
@@ -437,5 +435,4 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 quality_dict[key] = None
         # Add the attributes of the quality group
         quality_dict.update(quality_group.attrs)
-        attributes['quality_group'] = quality_dict
-        return attributes
+        return quality_dict
