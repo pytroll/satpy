@@ -29,7 +29,7 @@ This version is applicable for the ici test data released in Jan 2021.
 import logging
 from datetime import datetime
 from enum import Enum
-from functools import lru_cache
+from functools import cached_property
 
 import numpy as np
 import xarray as xr
@@ -48,6 +48,7 @@ MEAN_EARTH_RADIUS = 6371008.7714  # [m]
 
 
 class InterpolationType(Enum):
+    """Enum for interpolation types."""
     LONLAT = 0
     SOLAR_ANGLES = 1
     OBSERVATION_ANGLES = 2
@@ -69,30 +70,6 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         self._n_samples = self[measurement].n_samples.size
         self._filetype_info = filetype_info
         self.orthorect = filetype_info.get('orthorect', True)
-
-    @lru_cache(maxsize=32)
-    def _interpolate(
-        self,
-        interpolation_type,
-    ):
-        """Interpolate from tie points to pixel points."""
-        try:
-            if interpolation_type is InterpolationType.SOLAR_ANGLES:
-                var_key1 = self.filetype_info['solar_azimuth']
-                var_key2 = self.filetype_info['solar_zenith']
-                interp_method = self._interpolate_viewing_angle
-            elif interpolation_type is InterpolationType.OBSERVATION_ANGLES:
-                var_key1 = self.filetype_info['observation_azimuth']
-                var_key2 = self.filetype_info['observation_zenith']
-                interp_method = self._interpolate_viewing_angle
-            else:
-                var_key1 = self.filetype_info['longitude']
-                var_key2 = self.filetype_info['latitude']
-                interp_method = self._interpolate_geo
-            return interp_method(self[var_key1], self[var_key2], self._n_samples)
-        except KeyError:
-            logger.warning(f'Datasets for {interpolation_type.name} interpolation not correctly defined in YAML file')  # noqa: E501
-        return None, None
 
     @property
     def start_time(self):
@@ -143,59 +120,53 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     @property
     def observation_azimuth(self):
         """Get observation azimuth angles."""
-        observation_azimuth, _ = self._interpolate(
-            InterpolationType.OBSERVATION_ANGLES
-        )
+        observation_azimuth, _ = self.observation_azimuth_and_zenith
         return observation_azimuth
 
     @property
     def observation_zenith(self):
         """Get observation zenith angles."""
-        _, observation_zenith = self._interpolate(
-            InterpolationType.OBSERVATION_ANGLES
-        )
+        _, observation_zenith = self.observation_azimuth_and_zenith
         return observation_zenith
 
     @property
     def solar_azimuth(self):
         """Get solar azimuth angles."""
-        solar_azimuth, _ = self._interpolate(InterpolationType.SOLAR_ANGLES)
+        solar_azimuth, _ = self.solar_azimuth_and_zenith
         return solar_azimuth
 
     @property
     def solar_zenith(self):
         """Get solar zenith angles."""
-        _, solar_zenith = self._interpolate(InterpolationType.SOLAR_ANGLES)
+        _, solar_zenith = self.solar_azimuth_and_zenith
         return solar_zenith
 
     @property
     def longitude(self):
         """Get longitude coordinates."""
-        longitude, _ = self._interpolate(InterpolationType.LONLAT)
+        longitude, _ = self.longitude_and_latitude
         return longitude
 
     @property
     def latitude(self):
         """Get latitude coordinates."""
-        _, latitude = self._interpolate(InterpolationType.LONLAT)
+        _, latitude = self.longitude_and_latitude
         return latitude
 
-    @staticmethod
-    def _calibrate_bt(radiance, cw, a, b):
-        """Perform the calibration to brightness temperature.
+    @cached_property
+    def observation_azimuth_and_zenith(self):
+        """Get observation azimuth and zenith angles."""
+        return self._interpolate(InterpolationType.OBSERVATION_ANGLES)
 
-        Args:
-            radiance: xarray DataArray containing the radiance values.
-            cw: center wavenumber [cm-1].
-            a: temperature coefficient [-].
-            b: temperature coefficient [K].
+    @cached_property
+    def solar_azimuth_and_zenith(self):
+        """Get solar azimuth and zenith angles."""
+        return self._interpolate(InterpolationType.SOLAR_ANGLES)
 
-        Returns:
-            numpy ndarray: array containing the calibrated brightness
-                temperature values.
-
-        """
-        return b + (a * C2 * cw / np.log(1 + C1 * cw ** 3 / radiance))
+    @cached_property
+    def longitude_and_latitude(self):
+        """Get longitude and latitude coordinates."""
+        return self._interpolate(InterpolationType.LONLAT)
 
     @staticmethod
     def _interpolate_geo(
@@ -284,6 +255,51 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         aa.attrs = azimuth.attrs
         za.attrs = zenith.attrs
         return aa, za
+
+    def _interpolate(
+        self,
+        interpolation_type,
+    ):
+        """Interpolate from tie points to pixel points."""
+        try:
+            if interpolation_type is InterpolationType.SOLAR_ANGLES:
+                var_key1 = self.filetype_info['solar_azimuth']
+                var_key2 = self.filetype_info['solar_zenith']
+                interp_method = self._interpolate_viewing_angle
+            elif interpolation_type is InterpolationType.OBSERVATION_ANGLES:
+                var_key1 = self.filetype_info['observation_azimuth']
+                var_key2 = self.filetype_info['observation_zenith']
+                interp_method = self._interpolate_viewing_angle
+            else:
+                var_key1 = self.filetype_info['longitude']
+                var_key2 = self.filetype_info['latitude']
+                interp_method = self._interpolate_geo
+            return interp_method(
+                self[var_key1],
+                self[var_key2],
+                self._n_samples,
+            )
+        except KeyError:
+            logger.warning(f'Datasets for {interpolation_type.name} interpolation not correctly defined in YAML file')  # noqa: E501
+        return None, None
+
+    @staticmethod
+    def _calibrate_bt(radiance, cw, a, b):
+        """Perform the calibration to brightness temperature.
+
+        Args:
+            radiance: xarray DataArray or numpy ndarray containing the
+                radiance values.
+            cw: center wavenumber [cm-1].
+            a: temperature coefficient [-].
+            b: temperature coefficient [K].
+
+        Returns:
+            DataArray: array containing the calibrated brightness
+                temperature values.
+
+        """
+        return b + (a * C2 * cw / np.log(1 + C1 * cw ** 3 / radiance))
 
     def _calibrate(self, variable, dataset_info):
         """Perform the calibration.

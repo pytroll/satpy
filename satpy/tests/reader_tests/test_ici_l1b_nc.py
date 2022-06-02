@@ -21,9 +21,8 @@ This version tests the reader for ICI test data as per PFS V3A.
 
 """
 
-import os
 from datetime import datetime
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -67,6 +66,7 @@ def reader(fake_file):
 
 @pytest.fixture
 def fake_file(tmp_path):
+    """Return file path to level1b file."""
     file_path = tmp_path / 'test_file_ici_l1b_nc.nc'
     writer = IciL1bFakeFileWriter(file_path)
     writer.write()
@@ -75,6 +75,7 @@ def fake_file(tmp_path):
 
 @pytest.fixture
 def dataset_info():
+    """Return dataset info."""
     return {
         'name': 'ici_1',
         'file_type': 'nc_ici_l1b_rad',
@@ -408,6 +409,7 @@ class TestIciL1bNCFileHandler:
         np.testing.assert_allclose(dataset, 272.73734)
 
     def test_interpolate_returns_none_if_dataset_not_exist(self, reader):
+        """Test interpolate returns none if dataset not exist."""
         azimuth, zenith = reader._interpolate(
             InterpolationType.OBSERVATION_ANGLES
         )
@@ -415,11 +417,13 @@ class TestIciL1bNCFileHandler:
 
     @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._interpolate_geo')
     def test_interpolate_calls_interpolate_geo(self, mock, reader):
+        """Test interpolate calls interpolate_geo."""
         reader._interpolate(InterpolationType.LONLAT)
         mock.assert_called_once()
 
     @patch('satpy.readers.ici_l1b_nc.IciL1bNCFileHandler._interpolate_viewing_angle')  # noqa: E501
     def test_interpolate_calls_interpolate_viewing_angles(self, mock, reader):
+        """Test interpolate calls interpolate viewing_angles."""
         reader._interpolate(InterpolationType.SOLAR_ANGLES)
         mock.assert_called_once()
 
@@ -506,6 +510,7 @@ class TestIciL1bNCFileHandler:
         }
 
     def test_get_quality_attributes(self, reader):
+        """Test get quality attributes."""
         attributes = reader._get_quality_attributes()
         assert attributes == {
             'duration_of_product': np.array(1000., dtype=np.float32),
@@ -517,6 +522,7 @@ class TestIciL1bNCFileHandler:
         return_value={"mocked_global_attributes": True},
     )
     def test_manage_attributes(self, mock, reader):
+        """Test manage attributes."""
         variable = xr.DataArray(
             np.ones(N_SCAN),
             attrs={"season": "summer"},
