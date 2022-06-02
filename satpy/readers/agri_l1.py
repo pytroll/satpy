@@ -114,8 +114,6 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         data = self.get(file_key)
 
-        print(file_key)
-
         if data.ndim >= 2:
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
 
