@@ -20,7 +20,6 @@ file_types:
     solar_azimuth: data/navigation_data/mwi_solar_azimuth_angle
     orthorect: True
 
-
 datasets:
 
 # --- Coordinates ---
@@ -192,7 +191,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
-  
+
   '3':
     name: '3'
     file_type: nc_mwi_l1b_rad
@@ -272,7 +271,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
-  
+
   '7':
     name: '7'
     file_type: nc_mwi_l1b_rad
@@ -352,7 +351,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
-  
+
   '11':
     name: '11'
     file_type: nc_mwi_l1b_rad
@@ -424,7 +423,7 @@ datasets:
       central: 53.75
       bandwidth: 0.4
       unit: GHz
-    polarization: H 
+    polarization: H
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -682,7 +681,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: K
- 
+
   # --- Geometric data ---
   solar_zenith_group_1:
     name: solar_zenith_group_1

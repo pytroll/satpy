@@ -357,10 +357,12 @@ class TestIciL1bNCFileHandler:
         assert coords not in data.coords
 
     def test_get_third_dimension_name(self, reader):
+        """Test get third dimension name."""
         data = xr.DataArray(np.ones((1, 1, 1)), dims=('x', 'y', 'z'))
         assert reader._get_third_dimension_name(data) == 'z'
 
     def test_get_third_dimension_name_return_none_for_2d_data(self, reader):
+        """Test get third dimension name return none for 2d data."""
         data = xr.DataArray(np.ones((1, 1)), dims=('x', 'y'))
         assert reader._get_third_dimension_name(data) is None
 
