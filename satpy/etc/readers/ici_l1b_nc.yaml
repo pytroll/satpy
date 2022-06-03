@@ -136,14 +136,19 @@ datasets:
     n_horns: 6
 
 # --- Measurement data ---
-  ici_1:
-    name: ici_1
+  '1':
+    name: '1'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_183
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
     n_183: 0
-    n_horns: 0
     chan_index: 0
+    frequency_double_sideband:
+      central: 183.31
+      side: 7.0
+      bandwidth: 2.0
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -152,14 +157,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_2:
-    name: ici_2
+  '2':
+    name: '2'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_183
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
     n_183: 1
-    n_horns: 0
     chan_index: 1
+    frequency_double_sideband:
+      central: 183.31
+      side: 3.4
+      bandwidth: 1.5
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -168,14 +178,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_3:
-    name: ici_3
+  '3':
+    name: '3'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_183
     coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
     n_183: 2
-    n_horns: 0
     chan_index: 2
+    frequency_double_sideband:
+      central: 183.31
+      side: 2.0
+      bandwidth: 1.5
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -184,14 +199,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_4v:
-    name: ici_4v
+  '4':
+    name: '4'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_243
     coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
     n_243: 0
-    n_horns: 1
     chan_index: 3
+    frequency_double_sideband:
+      central: 243.2
+      side: 2.5
+      bandwidth: 3.0
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -200,14 +220,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_4h:
-    name: ici_4h
+  '5':
+    name: '5'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_243
     coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
     n_243: 1
-    n_horns: 2
     chan_index: 4
+    frequency_double_sideband:
+      central: 243.2
+      side: 2.5
+      bandwidth: 3.0
+      unit: GHz
+    polarization: H
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -216,14 +241,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_5:
-    name: ici_5
+  '6':
+    name: '6'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_325
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
     n_325: 0
-    n_horns: 3
     chan_index: 5
+    frequency_double_sideband:
+      central: 325.15
+      side: 9.5
+      bandwidth: 3.0
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -232,14 +262,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_6:
-    name: ici_6
+  '7':
+    name: '7'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_325
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
     n_325: 1
-    n_horns: 3
     chan_index: 6
+    frequency_double_sideband:
+      central: 325.15
+      side: 3.5
+      bandwidth: 2.4
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -248,14 +283,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_7:
-    name: ici_7
+  '8':
+    name: '8'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_325
     coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
     n_325: 2
-    n_horns: 3
     chan_index: 6
+    frequency_double_sideband:
+      central: 325.15
+      side: 1.5
+      bandwidth: 1.6
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -264,14 +304,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_8:
-    name: ici_8
+  '9':
+    name: '9'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_448
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
     n_448: 0
-    n_horns: 4
     chan_index: 8
+    frequency_double_sideband:
+      central: 448.0
+      side: 7.2
+      bandwidth: 3.0
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -280,14 +325,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_9:
-    name: ici_9
+  '10':
+    name: '10'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_448
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
     n_448: 1
-    n_horns: 4
     chan_index: 9
+    frequency_double_sideband:
+      central: 448.0
+      side: 3.0
+      bandwidth: 2.0
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -296,14 +346,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_10:
-    name: ici_10
+  '11':
+    name: '11'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_448
     coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
     n_448: 2
-    n_horns: 4
     chan_index: 10
+    frequency_double_sideband:
+      central: 448.0
+      side: 1.4
+      bandwidth: 1.2
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -312,14 +367,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_11v:
-    name: ici_11v
+  '12':
+    name: '12'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_664
     coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
     n_664: 0
-    n_horns: 5
     chan_index: 11
+    frequency_double_sideband:
+      central: 664.0
+      side: 4.2
+      bandwidth: 5.0
+      unit: GHz
+    polarization: V
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -328,14 +388,19 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
-  ici_11h:
-    name: ici_11h
+  '13':
+    name: '13'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_664
     coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
     n_664: 1
-    n_horns: 6
     chan_index: 12
+    frequency_double_sideband:
+      central: 664.0
+      side: 4.2
+      bandwidth: 5.0
+      unit: GHz
+    polarization: H
     calibration:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength

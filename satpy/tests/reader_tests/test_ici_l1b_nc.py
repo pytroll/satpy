@@ -77,12 +77,11 @@ def fake_file(tmp_path):
 def dataset_info():
     """Return dataset info."""
     return {
-        'name': 'ici_1',
+        'name': '1',
         'file_type': 'nc_ici_l1b_rad',
         'file_key': 'data/measurement_data/ici_radiance_183',
         'coordinates': ['lat_pixels_horn_1', 'lon_pixels_horn_1'],
         'n_183': 0,
-        'n_horns': 0,
         'chan_index': 0,
         'calibration': 'brightness_temperature',
     }
@@ -354,8 +353,16 @@ class TestIciL1bNCFileHandler:
             coords={coords: 0},
         )
         assert coords in data.coords
-        data = reader._drop_coords(data, coords)
+        data = reader._drop_coords(data)
         assert coords not in data.coords
+
+    def test_get_third_dimension_name(self, reader):
+        data = xr.DataArray(np.ones((1, 1, 1)), dims=('x', 'y', 'z'))
+        assert reader._get_third_dimension_name(data) == 'z'
+
+    def test_get_third_dimension_name_return_none_for_2d_data(self, reader):
+        data = xr.DataArray(np.ones((1, 1)), dims=('x', 'y'))
+        assert reader._get_third_dimension_name(data) is None
 
     def test_get_dataset_return_none_if_data_not_exist(self, reader):
         """Tes get dataset return none if data does not exist."""
@@ -372,7 +379,7 @@ class TestIciL1bNCFileHandler:
         dataset_info,
     ):
         """Test get dataset does not calibrate if not desired."""
-        dataset_id = {'name': 'ici_1'}
+        dataset_id = {'name': '1'}
         dataset_info.pop('calibration')
         dataset = reader.get_dataset(dataset_id, dataset_info)
         assert dataset.dims == ('y', 'x')
@@ -403,7 +410,7 @@ class TestIciL1bNCFileHandler:
         dataset_info,
     ):
         """Test get dataset handles calibration."""
-        dataset_id = {'name': 'ici_1'}
+        dataset_id = {'name': '1'}
         dataset = reader.get_dataset(dataset_id, dataset_info)
         assert dataset.attrs["calibration"] == "brightness_temperature"
         np.testing.assert_allclose(dataset, 272.73734)

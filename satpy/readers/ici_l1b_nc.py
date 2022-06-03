@@ -31,6 +31,7 @@ from datetime import datetime
 from enum import Enum
 from functools import cached_property
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 from geotiepoints.geointerpolator import GeoInterpolator
@@ -191,11 +192,12 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
                 metadata and the updated dimension names.
 
         """
-        horns = longitude.n_horns
+        third_dim_name = longitude.dims[2]
+        horns = longitude[third_dim_name]
         n_scan = longitude.n_scan
         n_subs = longitude.n_subs
-        lons = np.zeros((n_scan.size, n_samples, horns.size))
-        lats = np.zeros((n_scan.size, n_samples, horns.size))
+        lons = da.zeros((n_scan.size, n_samples, horns.size))
+        lats = da.zeros((n_scan.size, n_samples, horns.size))
         n_subs = np.linspace(0, n_samples - 1, n_subs.size).astype(int)
         for horn in horns.values:
             satint = GeoInterpolator(
@@ -206,17 +208,18 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             lons_horn, lats_horn = satint.interpolate()
             lons[:, :, horn] = lons_horn
             lats[:, :, horn] = lats_horn
+        dims = ['y', 'x', third_dim_name]
         lon = xr.DataArray(
             lons,
             attrs=longitude.attrs,
-            dims=['y', 'x', 'n_horns'],
-            coords={"n_horns": horns},
+            dims=dims,
+            coords={third_dim_name: horns},
         )
         lat = xr.DataArray(
             lats,
             attrs=latitude.attrs,
-            dims=['y', 'x', 'n_horns'],
-            coords={"n_horns": horns},
+            dims=dims,
+            coords={third_dim_name: horns},
         )
         return lon, lat
 
@@ -337,9 +340,9 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
         try:
             # Convert the orthorectification delta values from meters to
             # degrees based on the simplified formula using mean Earth radius
-            orthorect_data = self[orthorect_data_name].sel(
-                {"n_horns": variable.n_horns}
-            )
+            orthorect_data = self[orthorect_data_name]
+            dim = self._get_third_dimension_name(orthorect_data)
+            orthorect_data = orthorect_data.sel({dim: variable[dim]})
             variable += np.degrees(orthorect_data.values / MEAN_EARTH_RADIUS)
         except KeyError:
             logger.warning('Required dataset %s for orthorectification not available, skipping', orthorect_data_name)  # noqa: E501
@@ -354,23 +357,28 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             variable = variable.transpose('y', 'x')
         return variable
 
-    @staticmethod
-    def _filter_variable(variable, dataset_info):
-        """Select desired data."""
-        for dim in ["n_183", "n_243", "n_325", "n_448", "n_664"]:
-            if dim in dataset_info and dim in variable.dims:
-                variable = variable.sel({dim: dataset_info[dim]})
-                break
-        dim = 'n_horns'
-        if dim in dataset_info and dim in variable.dims:
+    def _filter_variable(self, variable, dataset_info):
+        """Filter variable in the third dimension."""
+        dim = self._get_third_dimension_name(variable)
+        if dim is not None and dim in dataset_info:
             variable = variable.sel({dim: dataset_info[dim]})
         return variable
 
     @staticmethod
-    def _drop_coords(variable, coords):
-        if coords in variable.coords:
-            variable = variable.drop_vars(coords)
+    def _drop_coords(variable):
+        """Drop coords that are not in dims."""
+        for coord in variable.coords:
+            if coord not in variable.dims:
+                variable = variable.drop_vars(coord)
         return variable
+
+    @staticmethod
+    def _get_third_dimension_name(variable):
+        """Get name of the third dimension of the variable."""
+        dims = variable.dims
+        if len(dims) < 3:
+            return None
+        return dims[2]
 
     def _fetch_variable(self, var_key):
         """Fetch variable."""
@@ -404,7 +412,7 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
             if orthorect_data_name is not None:
                 variable = self._orthorectify(variable, orthorect_data_name)
         variable = self._manage_attributes(variable, dataset_info)
-        variable = self._drop_coords(variable, 'n_horns')
+        variable = self._drop_coords(variable)
         variable = self._standardize_dims(variable)
         return variable
 
