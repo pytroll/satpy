@@ -740,12 +740,12 @@ datasets:
     coordinates: [lat_pixels_group_7, lon_pixels_group_7]
 
   solar_zenith_group_8:
-    name: solar_zenith_group_7
+    name: solar_zenith_group_8
     standard_name: solar_zenith_angle
     file_type: nc_mwi_l1b_rad
     file_key: solar_zenith
     n_data_groups: 7
-    coordinates: [lat_pixels_group_7, lon_pixels_group_7]
+    coordinates: [lat_pixels_group_8, lon_pixels_group_8]
 
   solar_azimuth_group_1:
     name: solar_azimuth_group_1
@@ -804,12 +804,12 @@ datasets:
     coordinates: [lat_pixels_group_7, lon_pixels_group_7]
 
   solar_azimuth_group_8:
-    name: solar_azimuth_group_7
+    name: solar_azimuth_group_8
     standard_name: solar_azimuth_angle
     file_type: nc_mwi_l1b_rad
     file_key: solar_azimuth
     n_data_groups: 7
-    coordinates: [lat_pixels_group_7, lon_pixels_group_7]
+    coordinates: [lat_pixels_group_8, lon_pixels_group_8]
 
   observation_zenith_group_1:
     name: observation_zenith_group_1
@@ -873,7 +873,7 @@ datasets:
     file_type: nc_mwi_l1b_rad
     file_key: observation_zenith
     n_data_groups: 7
-    coordinates: [lat_pixels_group_7, lon_pixels_group_7]
+    coordinates: [lat_pixels_group_8, lon_pixels_group_8]
 
   observation_azimuth_group_1:
     name: observation_azimuth_group_1
@@ -924,7 +924,7 @@ datasets:
     coordinates: [lat_pixels_group_6, lon_pixels_group_6]
 
   observation_azimuth_group_7:
-    name: observation_azimuth_group_5
+    name: observation_azimuth_group_7
     standard_name: sensor_azimuth_angle
     file_type: nc_mwi_l1b_rad
     file_key: observation_azimuth
@@ -932,9 +932,9 @@ datasets:
     coordinates: [lat_pixels_group_7, lon_pixels_group_7]
 
   observation_azimuth_group_8:
-    name: observation_azimuth_group_5
+    name: observation_azimuth_group_8
     standard_name: sensor_azimuth_angle
     file_type: nc_mwi_l1b_rad
     file_key: observation_azimuth
     n_data_groups: 7
-    coordinates: [lat_pixels_group_7, lon_pixels_group_7]
+    coordinates: [lat_pixels_group_8, lon_pixels_group_8]
