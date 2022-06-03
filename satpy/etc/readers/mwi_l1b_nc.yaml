@@ -456,7 +456,7 @@ datasets:
     name: '16'
     file_type: nc_mwi_l1b_rad
     file_key: data/measurement_data/mwi_radiance_50_53_vh
-    coordinates: [lat_pixels_group_4, lon_pixels_group_4]
+    coordinates: [lat_pixels_group_5, lon_pixels_group_5]
     n_89: 1
     chan_index: 7
     frequency_range:
