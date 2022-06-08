@@ -7,19 +7,6 @@ reader:
   sensors: [mwi]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
-file_types:
-  # EUMETSAT EPSG-SG Micro-Wave Imager Level 1B Radiance files in NetCDF4 format
-  nc_mwi_l1b_rad:
-    file_reader: !!python/name:satpy.readers.ici_l1b_nc.IciL1bNCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-MWI-1B-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
-    longitude: data/navigation_data/longitude
-    latitude: data/navigation_data/latitude
-    observation_zenith: data/navigation_data/mwi_oza
-    observation_azimuth: data/navigation_data/mwi_azimuth
-    solar_zenith: data/navigation_data/mwi_solar_zenith_angle
-    solar_azimuth: data/navigation_data/mwi_solar_azimuth_angle
-    orthorect: True
-
   data_identification_keys:
     name:
       required: true
@@ -36,6 +23,19 @@ file_types:
         - brightness_temperature
         - radiance
       transitive: true
+
+file_types:
+  # EUMETSAT EPSG-SG Micro-Wave Imager Level 1B Radiance files in NetCDF4 format
+  nc_mwi_l1b_rad:
+    file_reader: !!python/name:satpy.readers.ici_l1b_nc.IciL1bNCFileHandler
+    file_patterns: ['W_XX-EUMETSAT-Darmstadt,SAT,{spacecraft_name:s}-MWI-1B-RAD_C_EUMT_{creation_time:%Y%m%d%H%M%S}_{mission_type:s}_{environment:s}_{sensing_start_time:%Y%m%d%H%M%S}_{sensing_end_time:%Y%m%d%H%M%S}_{disposition_mode:s}_{processing_mode:s}____.nc']
+    longitude: data/navigation_data/longitude
+    latitude: data/navigation_data/latitude
+    observation_zenith: data/navigation_data/mwi_oza
+    observation_azimuth: data/navigation_data/mwi_azimuth
+    solar_zenith: data/navigation_data/mwi_solar_zenith_angle
+    solar_azimuth: data/navigation_data/mwi_solar_azimuth_angle
+    orthorect: True
 
 datasets:
 
