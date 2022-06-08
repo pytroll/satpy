@@ -20,6 +20,21 @@ file_types:
     solar_azimuth: data/navigation_data/ici_solar_azimuth_angle
     orthorect: True
 
+  data_identification_keys:
+    name:
+      required: true
+    frequency_double_sideband:
+      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyDoubleSideBand
+    polarization:
+      enum:
+        - H
+        - V
+    calibration:
+      enum:
+        - brightness_temperature
+        - radiance
+      transitive: true
+
 datasets:
 
 # --- Coordinates ---

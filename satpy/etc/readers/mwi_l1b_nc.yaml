@@ -20,6 +20,23 @@ file_types:
     solar_azimuth: data/navigation_data/mwi_solar_azimuth_angle
     orthorect: True
 
+  data_identification_keys:
+    name:
+      required: true
+    frequency_double_sideband:
+      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyDoubleSideBand
+    frequency_range:
+      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyRange
+    polarization:
+      enum:
+        - H
+        - V
+    calibration:
+      enum:
+        - brightness_temperature
+        - radiance
+      transitive: true
+
 datasets:
 
 # --- Coordinates ---
@@ -240,7 +257,7 @@ datasets:
     n_31: 0
     chan_index: 2
     frequency_range:
-      central: 32.4
+      central: 31.4
       bandwidth: 0.4
       unit: GHz
     polarization: V
