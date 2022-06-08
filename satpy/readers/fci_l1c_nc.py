@@ -105,6 +105,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from functools import cached_property
 
 import numpy as np
 import xarray as xr
@@ -307,7 +308,35 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         # remove attributes from original file which don't apply anymore
         res.attrs.pop('long_name')
 
+        res.attrs.update(self.orbital_param)
+
         return res
+
+    @cached_property
+    def orbital_param(self):
+        """Compute the orbital parameters for the current chunk."""
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
+
+        nominal_and_proj_subsat_lon = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        nominal_and_proj_subsat_lat = 0
+        nominal_and_proj_sat_alt = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+
+        orb_param_dict = {
+            'orbital_parameters': {
+                'satellite_actual_longitude': actual_subsat_lon,
+                'satellite_actual_latitude': actual_subsat_lat,
+                'satellite_actual_altitude': actual_sat_alt,
+                'satellite_nominal_longitude': nominal_and_proj_subsat_lon,
+                'satellite_nominal_latitude': nominal_and_proj_subsat_lat,
+                'satellite_nominal_altitude': nominal_and_proj_sat_alt,
+                'projection_longitude': nominal_and_proj_subsat_lon,
+                'projection_latitude': nominal_and_proj_subsat_lat,
+                'projection_altitude': nominal_and_proj_sat_alt,
+            }}
+
+        return orb_param_dict
 
     def _get_dataset_quality(self, dsname):
         """Load a quality field for an FCI channel."""
