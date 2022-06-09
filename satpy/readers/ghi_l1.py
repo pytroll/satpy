@@ -35,15 +35,20 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 logger = logging.getLogger(__name__)
 
 # info of 500 m, 1 km, 2 km and 4 km data
-RESOLUTION_LIST = [500, 1000, 2000, 4000]
-_COFF_list = [10991.5, 5495.5, 2747.5, 1373.5]
-_CFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
-_LOFF_list = [10991.5, 5495.5, 2747.5, 1373.5]
-_LFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
+RESOLUTION_LIST = [250, 500, 1000, 2000]
+_COFF_list = [21982.5, 10991.5, 5495.5, 2747.5]
+_CFAC_list = [163730198.0, 81865099.0, 40932549.0, 20466274.0]
+_LOFF_list = [21982.5, 10991.5, 5495.5, 2747.5]
+_LFAC_list = [163730198.0, 81865099.0, 40932549.0, 20466274.0]
+_NLINE_list = [43960, 21980, 10990, 5495]
+_NCOLS_list = [43960, 21980, 10990, 5495]
 
-PLATFORM_NAMES = {'FY4A': 'FY-4A',
-                  'FY4B': 'FY-4B',
+PLATFORM_NAMES = {'FY4B': 'FY-4B',
                   'FY4C': 'FY-4C'}
+
+CHANS_ID = 'NOMChannel'
+SAT_ID = 'NOMSatellite'
+SUN_ID = 'NOMSun'
 
 
 def scale(dn, slope, offset):
@@ -88,18 +93,22 @@ def _getitem(block, lut):
     return lut[block]
 
 
-class HDF_AGRI_L1(HDF5FileHandler):
+class HDF_GHI_L1(HDF5FileHandler):
     """AGRI l1 file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init filehandler."""
-        super(HDF_AGRI_L1, self).__init__(filename, filename_info, filetype_info)
+        super(HDF_GHI_L1, self).__init__(filename, filename_info, filetype_info)
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
         ds_name = dataset_id['name']
         logger.debug('Reading in get_dataset %s.', ds_name)
         file_key = ds_info.get('file_key', ds_name)
+        if CHANS_ID in file_key:
+            file_key = f'Data/{file_key}'
+        elif SUN_ID in file_key or SAT_ID in file_key:
+            file_key = f'Navigation/{file_key}'
         data = self.get(file_key)
         if data.ndim >= 2:
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
@@ -116,8 +125,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
         data.attrs.update({'platform_name': satname,
                            'sensor': self['/attr/Sensor Identification Code'].lower(),
                            'orbital_parameters': {
-                               'satellite_nominal_latitude': self['/attr/NOMCenterLat'].item(),
-                               'satellite_nominal_longitude': self['/attr/NOMCenterLon'].item(),
+                               'satellite_nominal_latitude': self['/attr/NOMSubSatLat'].item(),
+                               'satellite_nominal_longitude': self['/attr/NOMSubSatLon'].item(),
                                'satellite_nominal_altitude': self['/attr/NOMSatHeight'].item()}})
         data.attrs.update(ds_info)
         # remove attributes that could be confusing later
@@ -153,7 +162,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         """Calibrate to reflectance [%]."""
         logger.debug("Calibrating to reflectances")
         # using the corresponding SCALE and OFFSET
-        cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
+        cal_coef = 'Calibration/CALIBRATION_COEF(SCALE+OFFSET)'
         num_channel = self.get(cal_coef).shape[0]
         if num_channel == 1:
             # only channel_2, resolution = 500 m
@@ -169,7 +178,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
     def calibrate_to_bt(self, data, ds_info, ds_name):
         """Calibrate to Brightness Temperatures [K]."""
         logger.debug("Calibrating to brightness_temperature")
-        lut_key = ds_info.get('lut_key', ds_name)
+        lut_key = f'Calibration/{ds_info.get("lut_key", ds_name)}'
         lut = self.get(lut_key)
         # the value of dn is the index of brightness_temperature
         data = apply_lut(data, lut)
@@ -182,45 +191,45 @@ class HDF_AGRI_L1(HDF5FileHandler):
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key['resolution']
         pdict = {}
-        pdict['coff'] = _COFF_list[RESOLUTION_LIST.index(res)]
-        pdict['loff'] = _LOFF_list[RESOLUTION_LIST.index(res)]
+        pdict['loff'] = (808. + 1807.) / 2.
+        pdict['coff'] = (1485. + 2384.) / 2.
         pdict['cfac'] = _CFAC_list[RESOLUTION_LIST.index(res)]
         pdict['lfac'] = _LFAC_list[RESOLUTION_LIST.index(res)]
-        pdict['a'] = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
-        pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
-        pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
+        pdict['a'] = self.file_content['/attr/Semi_major_axis'] * 1E3  # equator radius (m)
+        pdict['b'] = self.file_content['/attr/Semi_minor_axis'] * 1E3  # equator radius (m)
+        pdict['h'] = self.file_content['/attr/NOMSatHeight'] * 1E3  # the altitude of satellite (m)
 
-        pdict['ssp_lon'] = self.file_content['/attr/NOMCenterLon']
+        pdict['ssp_lon'] = self.file_content['/attr/NOMSubSatLon']
         pdict['nlines'] = self.file_content['/attr/RegLength']
         pdict['ncols'] = self.file_content['/attr/RegWidth']
 
+        print(pdict['coff'], pdict['loff'])
+
         pdict['scandir'] = 'S2N'
 
-        b500 = ['C02']
-        b1000 = ['C01', 'C03']
-        b2000 = ['C04', 'C05', 'C06', 'C07']
+        b250 = ['C01']
+        b500 = ['C02', 'C03', 'C04', 'C05', 'C06']
 
         pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
 
-        if key['name'] in b500:
-            pdict['a_name'] = self.filename_info['observation_type']+'_500m'
+        if key['name'] in b250:
+            pdict['a_name'] = self.filename_info['observation_type'] + '_250m'
+            pdict['p_id'] = 'FY-4A, 250m'
+        elif key['name'] in b500:
+            pdict['a_name'] = self.filename_info['observation_type'] + '_500m'
             pdict['p_id'] = 'FY-4A, 500m'
-        elif key['name'] in b1000:
-            pdict['a_name'] = self.filename_info['observation_type']+'_1000m'
-            pdict['p_id'] = 'FY-4A, 1000m'
-        elif key['name'] in b2000:
-            pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
-            pdict['p_id'] = 'FY-4A, 2000m'
         else:
-            pdict['a_name'] = self.filename_info['observation_type']+'_4000m'
-            pdict['p_id'] = 'FY-4A, 4000m'
+            pdict['a_name'] = self.filename_info['observation_type'] + '_2000m'
+            pdict['p_id'] = 'FY-4A, 2000m'
 
         pdict['coff'] = pdict['coff'] + 0.5
         pdict['nlines'] = pdict['nlines'] - 1
         pdict['ncols'] = pdict['ncols'] - 1
-        pdict['loff'] = (pdict['loff'] - self.file_content['/attr/End Line Number'] + 0.5)
+        pdict['loff'] = (_NLINE_list[RESOLUTION_LIST.index(res)] - pdict['loff'] + 0.5)
         area_extent = get_area_extent(pdict)
         area_extent = (area_extent[0], area_extent[1], area_extent[2], area_extent[3])
+
+        print(area_extent)
 
         pdict['nlines'] = pdict['nlines'] + 1
         pdict['ncols'] = pdict['ncols'] + 1

@@ -12,24 +12,24 @@ reader:
 file_types:
     ghi_l1_0250m:
         file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF']
+        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0250M_{version:s}.HDF']
     ghi_l1_0500m:
         file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_1000M_{version:s}.HDF']
+        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF']
     ghi_l1_2000m:
         file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
         file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
-    ghi_l1_4000m_geo:
+    ghi_l1_2000m_geo:
         file_reader: !!python/name:satpy.readers.ghi_l1.HDF_GHI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_GEO-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
+        file_patterns: ['{platform_id:4s}-_{instrument:3s}---_N_{observation_type:s}_{longitude:5s}_L1-_GEO-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
 
 datasets:
   C01:
     name: C01
     wavelength: [0.45, 0.675, 0.90]
     resolution:
-        0250: {file_type: ghi_l1_0250m}
-        0500: {file_type: ghi_l1_0500m}
+        250: {file_type: ghi_l1_0250m}
+        500: {file_type: ghi_l1_0500m}
         2000: {file_type: ghi_l1_2000m}
     calibration:
       reflectance:
