@@ -93,6 +93,28 @@ class TestNcNWCSAF(unittest.TestCase):
         self.fh.nc.attrs = PROJ
         _check_area_def(self.fh.get_area_def(dsid))
 
+    def test_drop_xycoords(self):
+        """Test the drop of x and y coords."""
+        y_line = xr.DataArray(list(range(5)), dims=('y'), attrs={"long_name": "scan line number"})
+        x_pixel = xr.DataArray(list(range(10)), dims=('x'), attrs={"long_name": "pixel number"})
+        lat = xr.DataArray(np.ones((5, 10)),
+                           dims=('y', 'x'),
+                           coords={'y': y_line, 'x': x_pixel},
+                           attrs={'name': 'lat',
+                                  'standard_name': 'latitude'})
+        lon = xr.DataArray(np.ones((5, 10)),
+                           dims=('y', 'x'),
+                           coords={'y': y_line, 'x': x_pixel},
+                           attrs={'name': 'lon',
+                                  'standard_name': 'longitude'})
+        data_array_in = xr.DataArray(np.ones((5, 10)),
+                                     attrs={"scale_factor": np.array(0, dtype=float),
+                                            "add_offset": np.array(1, dtype=float)},
+                                     dims=('y', 'x'),
+                                     coords={'lon': lon, 'lat': lat, 'y': y_line, 'x': x_pixel})
+        data_array_out = self.fh.drop_xycoords(data_array_in)
+        self.assertNotIn('y', data_array_out.coords)
+
     def test_scale_dataset_attr_removal(self):
         """Test the scaling of the dataset and removal of obsolete attributes."""
         import numpy as np
