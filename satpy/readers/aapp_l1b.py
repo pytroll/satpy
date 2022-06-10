@@ -593,7 +593,7 @@ def _vis_calibrate(data,
         intercept2 = da.from_array(data["calvis"][:, chn, coeff_idx, 3],
                                    chunks=line_chunks) * 1e-7
 
-        if chn == 1 or chn == 3a:
+        if chn == 1 or chn == 2:
             # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
             # them to real numbers which are applied to the measured counts. The coefficient is different depending on
             # whether the counts are less than or greater than the high-gain/low-gain transition value (nominally 500).
