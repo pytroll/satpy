@@ -27,8 +27,8 @@ from datetime import datetime
 
 import dask.array as da
 import numpy as np
-from pyproj import Proj
 import xarray as xr
+from pyproj import Proj
 
 from satpy.readers._geos_area import get_area_definition
 from satpy.readers.hdf5_utils import HDF5FileHandler
