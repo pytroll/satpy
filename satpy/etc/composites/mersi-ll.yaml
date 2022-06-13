@@ -1,0 +1,91 @@
+sensor_name: visir/mersi-ll
+
+composites:
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '7'
+          - name: '6'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '6'
+          - name: '5'
+      - name: '6'
+    standard_name: ash
+
+  cloudtop:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '2'
+      - name: '6'
+      - name: '7'
+    standard_name: cloudtop
+
+  night_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '7'
+      - name: '6'
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '6'
+      - name: '2'
+    - name: '6'
+    standard_name: night_fog
+
+  fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '7'
+      - name: '6'
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: '6'
+      - name: '5'
+    - name: '6'
+    standard_name: fog
+
+  histogram_dnb:
+    compositor: !!python/name:satpy.composites.viirs.HistogramDNB
+    prerequisites:
+    - name: '1'
+    - name: 'solar_zenith_angle'
+    standard_name: equalized_radiance
+    units: "1"
+
+  adaptive_dnb:
+    compositor: !!python/name:satpy.composites.viirs.AdaptiveDNB
+    prerequisites:
+    - name: '1'
+    - name: 'solar_zenith_angle'
+    adaptive_day: multiple
+    adaptive_mixed: always
+    adaptive_night: never
+    standard_name: equalized_radiance
+    units: "1"
+
+  # These are commented out currently due to lack of Moon phase information
+  #dynamic_dnb:
+  #  compositor: !!python/name:satpy.composites.viirs.ERFDNB
+  #  prerequisites:
+  #  - name: '1'
+  #  - name: 'solar_zenith_angle'
+  #  - name: 'moon_zenith_angle'
+  #  standard_name: equalized_radiance
+  #  units: "1"
+
+  #hncc_dnb:
+  #  compositor: !!python/name:satpy.composites.viirs.NCCZinke
+  #  prerequisites:
+  #  - name: '1'
+  #  - name: 'solar_zenith_angle'
+  #  - name: 'moon_zenith_angle'
+  #  standard_name: ncc_radiance
+  #  units: "1"

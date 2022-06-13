@@ -32,6 +32,7 @@ from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
+N_TOT_IR_CHANS_LL = 6
 
 class MERSI2L1B(HDF5FileHandler):
     """MERSI-2 L1B file reader."""
@@ -60,6 +61,7 @@ class MERSI2L1B(HDF5FileHandler):
         file_sensor = self['/attr/Sensor Identification Code']
         sensor = {
             'MERSI': 'mersi-2',
+            'MERSI LL': 'mersi-ll',
         }.get(file_sensor, file_sensor)
         return sensor
 
@@ -180,8 +182,15 @@ class MERSI2L1B(HDF5FileHandler):
             # new versions of pyspectral can do dask arrays
             data.data = bt_data
         # additional corrections from the file
-        corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][calibration_index])
-        corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][calibration_index])
+        if self.sensor_name == 'mersi-2':
+            corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][calibration_index])
+            corr_coeff_b = float(self['/attr/TBB_Trans_Coefficient_B'][calibration_index])
+        elif self.sensor_name == 'mersi-ll':
+            # MERSI-LL stores these coefficients differently
+            coeffs = self['/attr/TBB_Trans_Coefficient']
+            corr_coeff_a = coeffs[calibration_index]
+            corr_coeff_b = coeffs[calibration_index + N_TOT_IR_CHANS_LL]
+
         if corr_coeff_a != 0:
             data = (data - corr_coeff_b) / corr_coeff_a
         # Some BT bands seem to have 0 in the first 10 columns
