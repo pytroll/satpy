@@ -7,37 +7,60 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
 
 file_types:
-  nc_fci_oca:
-    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-OCA--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
-
   nc_fci_clm:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CLM--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
-
-  nc_fci_test_clm:
-    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: [ 'W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CLMTest-{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CLM-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_ct:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CT--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc']
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CT-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_ctth:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
-    file_patterns: ['W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-CTTH--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc' ]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CTTH-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
-  nc_fci_asr:
-    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
-    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-ASR--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
+  nc_fci_oca:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-OCA-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_fir:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-FIR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_olr:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-OLR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_crm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-CRM-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_gii:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
-    file_patterns: ["W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-GII--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc"]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-GII-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
   nc_fci_toz:
     file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
-    file_patterns: [ "W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}-{level}-TOZ--{temp_str}_C_EUMT_{creation_time:%Y%m%d%H%M%S}_L2PF_{env}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_N__T_{rep_cycle_in_day}_{rep_cycle_count}.nc" ]
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-TOZ-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_test_clm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-PAD-CLMTest-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
+
+  nc_fci_asr:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCSegmentFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+FCI-2-ASR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
 
 datasets:
 
@@ -381,6 +404,203 @@ datasets:
   product_timeliness_oca:
     name: product_timeliness_oca
     file_type: nc_fci_oca
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # FIR
+  fire_probability:
+    name: fire_probability
+    resolution: 2000
+    file_type: nc_fci_fir
+    file_key: fire_probability
+
+  fire_result:
+    name: fire_result
+    resolution: 2000
+    file_type: nc_fci_fir
+    file_key: fire_result
+
+  product_quality_fir:
+    name: product_quality_fir
+    file_type: nc_fci_fir
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_fir:
+    name: product_completeness_fir
+    file_type: nc_fci_fir
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_fir:
+    name: product_timeliness_fir
+    file_type: nc_fci_fir
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # OLR
+  olr:
+    name: olr
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: olr_value
+    long_name: outgoing_longwave_radiation
+
+  cloud_type_olr:
+    name: cloud_type_olr
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: cloud_type
+    long_name: cloud_type_olr
+
+  quality_overall_processing_olr:
+    name: quality_overall_processing_olr
+    resolution: 2000
+    file_type: nc_fci_olr
+    file_key: quality_overall_processing
+    long_name: quality_index
+
+  product_quality_olr:
+    name: product_quality_olr
+    file_type: nc_fci_olr
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_olr:
+    name: product_completeness_olr
+    file_type: nc_fci_olr
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_olr:
+    name: product_timeliness_olr
+    file_type: nc_fci_olr
+    file_key: product_timeliness
+    long_name: product_timeliness_index
+
+  # CRM
+  crm:
+    name: crm
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance
+
+  crm_vis04:
+    name: crm_vis04
+    resolution: 1000
+    wavelength: [0.384, 0.444, 0.504]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis04
+    vis_channel_id: 0
+
+  crm_vis05:
+    name: crm_vis05
+    resolution: 1000
+    wavelength: [0.47, 0.51, 0.55]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis05
+    vis_channel_id: 1
+
+  crm_vis06:
+    name: crm_vis06
+    resolution: 1000
+    wavelength: [0.59, 0.64, 0.69]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis06
+    vis_channel_id: 2
+
+  crm_vis08:
+    name: crm_vis08
+    resolution: 1000
+    wavelength: [0.815, 0.865, 0.915]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis08
+    vis_channel_id: 3
+
+  crm_vis09:
+    name: crm_vis09
+    resolution: 1000
+    wavelength: [0.894, 0.914, 0.934]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_vis09
+    vis_channel_id: 4
+
+  crm_nir13:
+    name: crm_nir13
+    resolution: 1000
+    wavelength: [1.35, 1.38, 1.41]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_nir13
+    vis_channel_id: 5
+
+  crm_nir16:
+    name: crm_nir16
+    resolution: 1000
+    wavelength: [1.56, 1.61, 1.66]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_nir16
+    vis_channel_id: 6
+
+  crm_nir22:
+    name: crm_nir22
+    resolution: 1000
+    wavelength: [2.2, 2.25, 2.3]
+    file_type: nc_fci_crm
+    file_key: mean_clear_sky_reflectance
+    long_name: mean_clear_sky_reflectance_nir22
+    vis_channel_id: 7
+
+  mean_sza:
+    name: mean_sza
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_solar_zenith
+    long_name: mean_solar_zenith_angle
+
+  mean_rel_azi:
+    name: mean_rel_azi
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: mean_rel_solar_sat_azimuth
+    long_name: mean_relative_solar_satellite_azimuth_angle
+
+  n_acc:
+    name: n_acc
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: number_of_accumulations
+    long_name: number_of_accumulations
+
+  historical_data:
+    name: historical_data
+    resolution: 1000
+    file_type: nc_fci_crm
+    file_key: historical_data
+    long_name: historical_data
+
+  product_quality_crm:
+    name: product_quality_crm
+    file_type: nc_fci_crm
+    file_key: product_quality
+    long_name: product_quality_index
+
+  product_completeness_crm:
+    name: product_completeness_crm
+    file_type: nc_fci_crm
+    file_key: product_completeness
+    long_name: product_completeness_index
+
+  product_timeliness_crm:
+    name: product_timeliness_crm
+    file_type: nc_fci_crm
     file_key: product_timeliness
     long_name: product_timeliness_index
 

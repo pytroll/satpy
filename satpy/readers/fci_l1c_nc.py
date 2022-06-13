@@ -82,6 +82,21 @@ All auxiliary data can be obtained by prepending the channel name such as
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
     `DataID`.
 
+.. note::
+
+    For reading compressed data, a decompression library is
+    needed. Either install the FCIDECOMP library (see `PUG`_), or the
+    ``hdf5plugin`` package with::
+
+        pip install hdf5plugin
+
+    or::
+
+        conda install hdf5plugin -c conda-forge
+
+    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
+    at the top of your script.
+
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
 .. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
@@ -90,6 +105,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from functools import cached_property
 
 import numpy as np
 import xarray as xr
@@ -188,6 +204,26 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Get end time."""
         return self.filename_info['end_time']
 
+    def get_segment_position_info(self):
+        """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
+
+        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
+        """
+        segment_position_info = {
+            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
+                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
+                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
+                    self['data/vis_04/measured/start_position_row'].item() + 1,
+                    'segment_width': 11136},
+            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
+                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
+                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
+                    self['data/ir_105/measured/start_position_row'].item() + 1,
+                    'segment_width': 5568}
+        }
+
+        return segment_position_info
+
     def get_dataset(self, key, info=None):
         """Load a dataset."""
         logger.debug('Reading {} from {}'.format(key['name'], self.filename))
@@ -272,7 +308,35 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         # remove attributes from original file which don't apply anymore
         res.attrs.pop('long_name')
 
+        res.attrs.update(self.orbital_param)
+
         return res
+
+    @cached_property
+    def orbital_param(self):
+        """Compute the orbital parameters for the current chunk."""
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
+
+        nominal_and_proj_subsat_lon = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        nominal_and_proj_subsat_lat = 0
+        nominal_and_proj_sat_alt = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+
+        orb_param_dict = {
+            'orbital_parameters': {
+                'satellite_actual_longitude': actual_subsat_lon,
+                'satellite_actual_latitude': actual_subsat_lat,
+                'satellite_actual_altitude': actual_sat_alt,
+                'satellite_nominal_longitude': nominal_and_proj_subsat_lon,
+                'satellite_nominal_latitude': nominal_and_proj_subsat_lat,
+                'satellite_nominal_altitude': nominal_and_proj_sat_alt,
+                'projection_longitude': nominal_and_proj_subsat_lon,
+                'projection_latitude': nominal_and_proj_subsat_lat,
+                'projection_altitude': nominal_and_proj_sat_alt,
+            }}
+
+        return orb_param_dict
 
     def _get_dataset_quality(self, dsname):
         """Load a quality field for an FCI channel."""
@@ -307,10 +371,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Get the auxiliary data arrays using the index map."""
         # get index map
         index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
-        # index map indexing starts from 1
-        index_map -= 1
+        # subtract minimum of index variable (index_offset)
+        index_map -= np.min(self['index'])
 
-        # get lut values from 1-d vector
+        # get lut values from 1-d vector variable
         lut = self._get_aux_data_lut_vector(_get_aux_data_name_from_dsname(dsname))
 
         # assign lut values based on index map indices
@@ -349,6 +413,17 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         extents = {}
         for coord in "xy":
             coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
+
+            # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
+            if coord == "x" and coord_radian.scale_factor > 0:
+                coord_radian.attrs['scale_factor'] *= -1
+
+            # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
+            if type(coord_radian.scale_factor) is np.float32:
+                coord_radian.attrs['scale_factor'] = coord_radian.attrs['scale_factor'].astype('float64')
+            if type(coord_radian.add_offset) is np.float32:
+                coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
+
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
 
             # FCI defines pixels by centroids (see PUG), while pyresample
@@ -526,6 +601,13 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             return radiance * np.nan
 
         sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
+
+        # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
+        if sun_earth_distance < 0.9 or sun_earth_distance > 1.1:
+            logger.info('The variable state/celestial/earth_sun_distance contains unexpected values'
+                        '(mean value is {} AU). Defaulting to 1 AU for reflectance calculation.'
+                        ''.format(sun_earth_distance))
+            sun_earth_distance = 1
 
         res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
         return res

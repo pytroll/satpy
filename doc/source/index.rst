@@ -56,6 +56,7 @@ the base Satpy installation.
     examples/index
     quickstart
     readers
+    remote_reading
     composites
     resample
     enhancements
@@ -90,6 +91,7 @@ the base Satpy installation.
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
         | in the files. EUMETSAT has been notified.
+        | fsspec support: yes
     * - MSG (Meteosat 8 to 11) L2 products in BUFR format
       - `seviri_l2_bufr`
       - AMV BUFR products not supported yet.
@@ -117,7 +119,8 @@ the base Satpy installation.
       - Beta
     * - GOES-R imager data in netcdf format
       - `abi_l1b`
-      - Nominal
+      - | Nominal
+        | fsspec support: yes
     * - NOAA GOES-R ABI L2+ products in netcdf format
       - `abi_l2_nc`
       - Beta
@@ -173,15 +176,17 @@ the base Satpy installation.
       - Nominal
     * - Sentinel-3 A and B OLCI Level 1B data in netCDF4 format
       - `olci_l1b`
-      - Nominal
+      - | Nominal
+        | fsspec support: yes
     * - Sentinel-3 A and B OLCI Level 2 data in netCDF4 format
       - `olci_l2`
-      - Nominal
+      - | Nominal
+        | fsspec support: yes
     * - Sentinel-3 A and B SLSTR data in netCDF4 format
       - `slstr_l1b`
       - In development
     * - OSISAF SST data in GHRSST (netcdf) format
-      - `ghrsst_l3c_sst`
+      - `ghrsst_l2`
       - In development
     * - NUCAPS EDR Retrieval in NetCDF4 format
       - `nucaps`
@@ -218,7 +223,8 @@ the base Satpy installation.
       - Beta
     * - SCMI ABI L1B format
       - `abi_l1b_scmi`
-      - Beta
+      - | Beta
+        | fsspec support: yes
     * - VIRR data in HDF5 format
       - `virr_l1b`
       - Beta
@@ -245,7 +251,7 @@ the base Satpy installation.
       - `glm_l2`
       - Beta
     * - Sentinel-3 SLSTR SST data in NetCDF4 format
-      - `slstr_l2`
+      - `ghrsst_l2`
       - Beta
     * - IASI level 2 SO2 in BUFR format
       - `iasi_l2_so2_bufr`

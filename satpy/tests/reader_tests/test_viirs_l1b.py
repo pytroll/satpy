@@ -18,7 +18,6 @@
 """Module for testing the satpy.readers.viirs_l1b module."""
 
 import os
-import unittest
 from datetime import datetime, timedelta
 from unittest import mock
 
@@ -38,25 +37,20 @@ DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
+class FakeNetCDF4FileHandlerDay(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler."""
+
+    M_REFL_BANDS = [f"M{band_num:02d}" for band_num in range(1, 12)]
+    M_BT_BANDS = [f"M{band_num:02d}" for band_num in range(12, 17)]
+    M_BANDS = M_REFL_BANDS + M_BT_BANDS
+    I_REFL_BANDS = [f"I{band_num:02d}" for band_num in range(1, 4)]
+    I_BT_BANDS = [f"I{band_num:02d}" for band_num in range(4, 6)]
+    I_BANDS = I_REFL_BANDS + I_BT_BANDS
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         dt = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         file_type = filename[:5].lower()
-        # num_lines = {
-        #     'vl1bi': 3248 * 2,
-        #     'vl1bm': 3248,
-        #     'vl1bd': 3248,
-        # }[file_type]
-        # num_pixels = {
-        #     'vl1bi': 6400,
-        #     'vl1bm': 3200,
-        #     'vl1bd': 4064,
-        # }[file_type]
-        # num_scans = 203
-        # num_luts = 65536
         num_lines = DEFAULT_FILE_SHAPE[0]
         num_pixels = DEFAULT_FILE_SHAPE[1]
         num_scans = 5
@@ -69,18 +63,15 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             '/attr/time_coverage_start': dt.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             '/attr/time_coverage_end': (dt + timedelta(minutes=6)).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
             '/attr/orbit_number': 26384,
-            '/attr/instrument': 'viirs',
+            '/attr/instrument': 'VIIRS',
             '/attr/platform': 'Suomi-NPP',
         }
         self._fill_contents_with_default_data(file_content, file_type)
-
         self._set_dataset_specific_metadata(file_content)
-
         convert_file_content_to_data_array(file_content)
         return file_content
 
-    @staticmethod
-    def _fill_contents_with_default_data(file_content, file_type):
+    def _fill_contents_with_default_data(self, file_content, file_type):
         """Fill file contents with default data."""
         if file_type.startswith('vgeo'):
             file_content['/attr/OrbitNumber'] = file_content.pop('/attr/orbit_number')
@@ -94,28 +85,11 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 file_content['geolocation_data/lunar_zenith'] = DEFAULT_LON_DATA
                 file_content['geolocation_data/lunar_azimuth'] = DEFAULT_LON_DATA
         elif file_type == 'vl1bm':
-            file_content['observation_data/M01'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M02'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M03'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M04'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M05'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M06'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M07'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M08'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M09'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M10'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M11'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M12'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M13'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M14'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M15'] = DEFAULT_FILE_DATA
-            file_content['observation_data/M16'] = DEFAULT_FILE_DATA
+            for m_band in self.M_BANDS:
+                file_content[f'observation_data/{m_band}'] = DEFAULT_FILE_DATA
         elif file_type == 'vl1bi':
-            file_content['observation_data/I01'] = DEFAULT_FILE_DATA
-            file_content['observation_data/I02'] = DEFAULT_FILE_DATA
-            file_content['observation_data/I03'] = DEFAULT_FILE_DATA
-            file_content['observation_data/I04'] = DEFAULT_FILE_DATA
-            file_content['observation_data/I05'] = DEFAULT_FILE_DATA
+            for i_band in self.I_BANDS:
+                file_content[f'observation_data/{i_band}'] = DEFAULT_FILE_DATA
         elif file_type == 'vl1bd':
             file_content['observation_data/DNB_observations'] = DEFAULT_FILE_DATA
             file_content['observation_data/DNB_observations/attr/units'] = 'Watts/cm^2/steradian'
@@ -152,22 +126,36 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             file_content[k + '/attr/add_offset'] = 0.1
 
 
-class TestVIIRSL1BReader(unittest.TestCase):
+class FakeNetCDF4FileHandlerNight(FakeNetCDF4FileHandlerDay):
+    """Same as the day file handler, but some day-only bands are missing.
+
+    This matches what happens in real world files where reflectance bands
+    are removed in night data to save space.
+
+    """
+
+    M_BANDS = FakeNetCDF4FileHandlerDay.M_BT_BANDS
+    I_BANDS = FakeNetCDF4FileHandlerDay.I_BT_BANDS
+
+
+class TestVIIRSL1BReaderDay:
     """Test VIIRS L1B Reader."""
 
     yaml_file = "viirs_l1b.yaml"
+    fake_cls = FakeNetCDF4FileHandlerDay
+    has_reflectance_bands = True
 
-    def setUp(self):
+    def setup_method(self):
         """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.viirs_l1b import VIIRSL1BFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(VIIRSL1BFileHandler, '__bases__', (FakeNetCDF4FileHandler2,))
+        self.p = mock.patch.object(VIIRSL1BFileHandler, '__bases__', (self.fake_cls,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
-    def tearDown(self):
+    def teardown_method(self):
         """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
@@ -178,10 +166,24 @@ class TestVIIRSL1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'VL1BM_snpp_d20161130_t012400_c20161130054822.nc',
         ])
-        self.assertEqual(len(loadables), 1)
+        assert len(loadables) == 1
         r.create_filehandlers(loadables)
         # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        assert r.file_handlers
+
+    def test_available_datasets_m_bands(self):
+        """Test available datasets for M band files."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'VL1BM_snpp_d20161130_t012400_c20161130054822.nc',
+            'VGEOM_snpp_d20161130_t012400_c20161130054822.nc',
+        ])
+        r.create_filehandlers(loadables)
+        avail_names = r.available_dataset_names
+        angles = {"satellite_azimuth_angle", "satellite_zenith_angle", "solar_azimuth_angle", "solar_zenith_angle"}
+        geo = {"m_lon", "m_lat"}
+        assert set(avail_names) == set(self.fake_cls.M_BANDS) | angles | geo
 
     def test_load_every_m_band_bt(self):
         """Test loading all M band brightness temperatures."""
@@ -197,13 +199,14 @@ class TestVIIRSL1BReader(unittest.TestCase):
                            'M14',
                            'M15',
                            'M16'])
-        self.assertEqual(len(datasets), 5)
+        assert len(datasets) == 5
         for v in datasets.values():
-            self.assertEqual(v.attrs['calibration'], 'brightness_temperature')
-            self.assertEqual(v.attrs['units'], 'K')
-            self.assertEqual(v.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['calibration'] == 'brightness_temperature'
+            assert v.attrs['units'] == 'K'
+            assert v.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lons.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lats.attrs['rows_per_scan'] == 2
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances."""
@@ -225,13 +228,14 @@ class TestVIIRSL1BReader(unittest.TestCase):
                            'M09',
                            'M10',
                            'M11'])
-        self.assertEqual(len(datasets), 11)
+        assert len(datasets) == (11 if self.has_reflectance_bands else 0)
         for v in datasets.values():
-            self.assertEqual(v.attrs['calibration'], 'reflectance')
-            self.assertEqual(v.attrs['units'], '%')
-            self.assertEqual(v.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['calibration'] == 'reflectance'
+            assert v.attrs['units'] == '%'
+            assert v.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lons.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lats.attrs['rows_per_scan'] == 2
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances."""
@@ -259,13 +263,14 @@ class TestVIIRSL1BReader(unittest.TestCase):
                            make_dataid(name='M14', calibration='radiance'),
                            make_dataid(name='M15', calibration='radiance'),
                            make_dataid(name='M16', calibration='radiance')])
-        self.assertEqual(len(datasets), 16)
+        assert len(datasets) == (16 if self.has_reflectance_bands else 5)
         for v in datasets.values():
-            self.assertEqual(v.attrs['calibration'], 'radiance')
-            self.assertEqual(v.attrs['units'], 'W m-2 um-1 sr-1')
-            self.assertEqual(v.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['calibration'] == 'radiance'
+            assert v.attrs['units'] == 'W m-2 um-1 sr-1'
+            assert v.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lons.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lats.attrs['rows_per_scan'] == 2
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset."""
@@ -277,13 +282,14 @@ class TestVIIRSL1BReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['DNB'])
-        self.assertEqual(len(datasets), 1)
+        assert len(datasets) == 1
         for v in datasets.values():
-            self.assertEqual(v.attrs['calibration'], 'radiance')
-            self.assertEqual(v.attrs['units'], 'W m-2 sr-1')
-            self.assertEqual(v.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['calibration'] == 'radiance'
+            assert v.attrs['units'] == 'W m-2 sr-1'
+            assert v.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lons.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lats.attrs['rows_per_scan'] == 2
+            assert v.attrs['sensor'] == "viirs"
 
     def test_load_dnb_angles(self):
         """Test loading all DNB angle datasets."""
@@ -301,9 +307,21 @@ class TestVIIRSL1BReader(unittest.TestCase):
                            'dnb_lunar_zenith_angle',
                            'dnb_lunar_azimuth_angle',
                            ])
-        self.assertEqual(len(datasets), 6)
+        assert len(datasets) == 6
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'degrees')
-            self.assertEqual(v.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
-            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
+            assert v.attrs['units'] == 'degrees'
+            assert v.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lons.attrs['rows_per_scan'] == 2
+            assert v.attrs['area'].lats.attrs['rows_per_scan'] == 2
+            assert v.attrs['sensor'] == "viirs"
+
+
+class TestVIIRSL1BReaderDayNight(TestVIIRSL1BReaderDay):
+    """Test VIIRS L1b with night data.
+
+    Night data files don't have reflectance bands in them.
+
+    """
+
+    fake_cls = FakeNetCDF4FileHandlerNight
+    has_reflectance_bands = False

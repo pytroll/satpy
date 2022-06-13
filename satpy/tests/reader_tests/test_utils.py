@@ -27,8 +27,10 @@ import numpy as np
 import numpy.testing
 import pyresample.geometry
 import xarray as xr
+from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
 
+from satpy.readers import FSFile
 from satpy.readers import utils as hf
 
 
@@ -300,8 +302,8 @@ class TestHelpers(unittest.TestCase):
         self.assertIsNone(new_fname)
 
     @mock.patch('bz2.BZ2File')
-    def test_generic_open(self, bz2_mock):
-        """Test the bz2 file unzipping context manager."""
+    def test_generic_open_BZ2File(self, bz2_mock):
+        """Test the generic_open method with bz2 filename input."""
         mock_bz2_open = mock.MagicMock()
         mock_bz2_open.read.return_value = b'TEST'
         bz2_mock.return_value = mock_bz2_open
@@ -312,6 +314,72 @@ class TestHelpers(unittest.TestCase):
             assert data == b'TEST'
 
         assert mock_bz2_open.read.called
+
+    def test_generic_open_FSFile_MemoryFileSystem(self):
+        """Test the generic_open method with FSFile in MemoryFileSystem."""
+        mem_fs = MemoryFileSystem()
+        mem_file = MemoryFile(fs=mem_fs, path="{}test.DAT".format(mem_fs.root_marker), data=b"TEST")
+        mem_file.commit()
+        fsf = FSFile(mem_file)
+        with hf.generic_open(fsf) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
+
+    @mock.patch('satpy.readers.utils.open')
+    def test_generic_open_filename(self, open_mock):
+        """Test the generic_open method with filename (str)."""
+        mock_fn_open = mock.MagicMock()
+        mock_fn_open.read.return_value = b'TEST'
+        open_mock.return_value = mock_fn_open
+
+        filename = "test.DAT"
+        with hf.generic_open(filename) as file_object:
+            data = file_object.read()
+            assert data == b'TEST'
+
+        assert mock_fn_open.read.called
+
+    def test_generic_open_text(self):
+        """Test the bz2 file unzipping context manager using dummy text data."""
+        dummy_text_data = 'Hello'
+        dummy_text_filename = 'dummy.txt'
+        with open(dummy_text_filename, 'w') as f:
+            f.write(dummy_text_data)
+
+        with hf.generic_open(dummy_text_filename, 'r') as f:
+            read_text_data = f.read()
+
+        assert read_text_data == dummy_text_data
+
+        dummy_text_filename = 'dummy.txt.bz2'
+        with hf.bz2.open(dummy_text_filename, 'wt') as f:
+            f.write(dummy_text_data)
+
+        with hf.generic_open(dummy_text_filename, 'rt') as f:
+            read_text_data = f.read()
+
+        assert read_text_data == dummy_text_data
+
+    def test_generic_open_binary(self):
+        """Test the bz2 file unzipping context manager using dummy binary data."""
+        dummy_binary_data = b'Hello'
+        dummy_binary_filename = 'dummy.dat'
+        with open(dummy_binary_filename, 'wb') as f:
+            f.write(dummy_binary_data)
+
+        with hf.generic_open(dummy_binary_filename, 'rb') as f:
+            read_binary_data = f.read()
+
+        assert read_binary_data == dummy_binary_data
+
+        dummy_binary_filename = 'dummy.dat.bz2'
+        with hf.bz2.open(dummy_binary_filename, 'wb') as f:
+            f.write(dummy_binary_data)
+
+        with hf.generic_open(dummy_binary_filename, 'rb') as f:
+            read_binary_data = f.read()
+
+        assert read_binary_data == dummy_binary_data
 
     @mock.patch("os.remove")
     @mock.patch("satpy.readers.utils.unzip_file", return_value='dummy.txt')

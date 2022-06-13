@@ -37,7 +37,8 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
-                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml']
+                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
+                 's3fs']
 
 extras_require = {
     # Readers:
@@ -63,6 +64,7 @@ extras_require = {
     'seviri_l2_bufr': ['eccodes-python'],
     'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
+    'remote_reading': ['fsspec'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
@@ -153,7 +155,7 @@ setup(name=NAME,
                               ]},
       zip_safe=False,
       install_requires=requires,
-      python_requires='>=3.7',
+      python_requires='>=3.8',
       extras_require=extras_require,
       entry_points=entry_points,
       )

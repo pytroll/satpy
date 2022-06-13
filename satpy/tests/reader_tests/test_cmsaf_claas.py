@@ -19,88 +19,89 @@
 
 import datetime
 import os
-from unittest import mock
 
 import numpy as np
-import numpy.testing
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition
 
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import make_dataid
 
 
-class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
-    """Class for faking the NetCDF4 Filehandler."""
+@pytest.fixture(
+    params=[datetime.datetime(2017, 12, 5), datetime.datetime(2017, 12, 6)]
+)
+def start_time(request):
+    """Get start time of the dataset."""
+    return request.param
 
-    _nrows = 30
-    _ncols = 40
 
-    def __init__(self, *args, auto_maskandscale, **kwargs):
-        """Init the file handler."""
-        # make sure that CLAAS2 reader asks NetCDF4FileHandler for having
-        # auto_maskandscale enabled
-        assert auto_maskandscale
-        super().__init__(*args, **kwargs)
+@pytest.fixture
+def start_time_str(start_time):
+    """Get string representation of the start time."""
+    return start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def _get_global_attributes(self):
-        data = {}
-        attrs = {
-                "CMSAF_proj4_params": "+a=6378169.0 +h=35785831.0 "
-                                      "+b=6356583.8 +lon_0=0 +proj=geos",
-                "CMSAF_area_extent": np.array(
-                    [-5456233.41938636, -5453233.01608472,
-                     5453233.01608472, 5456233.41938636]),
-                "time_coverage_start": "1985-08-13T13:15:00Z",
-                "time_coverage_end": "2085-08-13T13:15:00Z",
-                }
-        for (k, v) in attrs.items():
-            data["/attr/" + k] = v
-        return data
 
-    def _get_data(self):
-        data = {
-                "cph": xr.DataArray(
-                    np.arange(self._nrows*self._ncols, dtype="i4").reshape(
-                        (1, self._nrows, self._ncols))/100,
-                    dims=("time", "y", "x")),
-                "ctt": xr.DataArray(
-                    np.arange(self._nrows*self._ncols, 0, -1,
-                              dtype="i4").reshape(
-                                  (self._nrows, self._ncols))/100,
-                    dims=("y", "x")),
-                "time_bnds": xr.DataArray(
-                    [[12436.91666667, 12436.92534722]],
-                    dims=("time", "time_bnds"))}
-        for k in set(data.keys()):
-            data[f"{k:s}/dimensions"] = data[k].dims
-            data[f"{k:s}/attr/fruit"] = "apple"
-            data[f"{k:s}/attr/scale_factor"] = np.float32(0.01)
-        return data
+@pytest.fixture()
+def fake_dataset(start_time_str):
+    """Create a CLAAS-like test dataset."""
+    cph = xr.DataArray(
+        [[[0, 1], [2, 0]]],
+        dims=("time", "y", "x")
+    )
+    ctt = xr.DataArray(
+        [[280, 290], [300, 310]],
+        dims=("y", "x")
+    )
+    time_bounds = xr.DataArray(
+        [[12436.91666667, 12436.92534722]],
+        dims=("time", "bndsize")
+    )
+    attrs = {
+        "CMSAF_proj4_params": "+a=6378169.0 +h=35785831.0 "
+                              "+b=6356583.8 +lon_0=0 +proj=geos",
+        "CMSAF_area_extent": np.array(
+            [-5456233.41938636, -5453233.01608472,
+             5453233.01608472, 5456233.41938636]),
+        "time_coverage_start": start_time_str,
+        "time_coverage_end": "2085-08-13T13:15:00Z",
+    }
+    return xr.Dataset(
+        {
+            "cph": cph,
+            "ctt": ctt,
+            "time_bnds": time_bounds
+        },
+        attrs=attrs
+    )
 
-    def _get_dimensions(self):
-        data = {
-                "/dimension/x": self._nrows,
-                "/dimension/y": self._ncols,
-                "/dimension/time": 1,
-                "/dimension/time_bnds": 2,
-                }
-        return data
 
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Get the content of the test data."""
-        # mock global attributes
-        # - root groups global
-        # - other groups global
-        # mock data variables
-        # mock dimensions
-        #
-        # ... but only what satpy is using ...
+@pytest.fixture
+def encoding():
+    """Dataset encoding."""
+    return {
+        "ctt": {"scale_factor": np.float32(0.01)},
+    }
 
-        D = {}
-        D.update(self._get_data())
-        D.update(self._get_dimensions())
-        D.update(self._get_global_attributes())
-        return D
+
+@pytest.fixture
+def fake_file(fake_dataset, encoding, tmp_path):
+    """Write a fake dataset to file."""
+    filename = tmp_path / "CPPin20140101001500305SVMSG01MD.nc"
+    fake_dataset.to_netcdf(filename, encoding=encoding)
+    yield filename
+
+
+@pytest.fixture
+def fake_files(fake_dataset, encoding, tmp_path):
+    """Write the same fake dataset into two different files."""
+    filenames = [
+        tmp_path / "CPPin20140101001500305SVMSG01MD.nc",
+        tmp_path / "CPPin20140101003000305SVMSG01MD.nc",
+    ]
+    for filename in filenames:
+        fake_dataset.to_netcdf(filename, encoding=encoding)
+    yield filenames
 
 
 @pytest.fixture
@@ -113,20 +114,6 @@ def reader():
         os.path.join("readers", "cmsaf-claas2_l2_nc.yaml"))
     reader = load_reader(reader_configs)
     return reader
-
-
-@pytest.fixture(autouse=True, scope="class")
-def fake_handler():
-    """Wrap NetCDF4 FileHandler with our own fake handler."""
-    # implementation strongly inspired by test_viirs_l1b.py
-    from satpy.readers.cmsaf_claas2 import CLAAS2
-    p = mock.patch.object(
-            CLAAS2,
-            "__bases__",
-            (FakeNetCDF4FileHandler2,))
-    with p:
-        p.is_local = True
-        yield p
 
 
 def test_file_pattern(reader):
@@ -142,25 +129,105 @@ def test_file_pattern(reader):
     assert len(files) == 3
 
 
-def test_load(reader):
-    """Test loading."""
-    from satpy.tests.utils import make_dataid
+class TestCLAAS2MultiFile:
+    """Test reading multiple CLAAS-2 files."""
 
-    # testing two filenames to test correctly combined
-    filenames = [
-        "CTXin20040120091500305SVMSG01MD.nc",
-        "CTXin20040120093000305SVMSG01MD.nc"]
+    @pytest.fixture
+    def multi_file_reader(self, reader, fake_files):
+        """Create a multi-file reader."""
+        loadables = reader.select_files_from_pathnames(fake_files)
+        reader.create_filehandlers(loadables)
+        return reader
 
-    loadables = reader.select_files_from_pathnames(filenames)
-    reader.create_filehandlers(loadables)
-    res = reader.load(
-            [make_dataid(name=name) for name in ["cph", "ctt"]])
-    assert 2 == len(res)
-    assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
-    assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
-    np.testing.assert_array_almost_equal(
-            res["cph"].data,
-            np.tile(np.arange(0.0, 12.0, 0.01).reshape((30, 40)), [2, 1]))
-    np.testing.assert_array_almost_equal(
-            res["ctt"].data,
-            np.tile(np.arange(12.0, 0.0, -0.01).reshape((30, 40)), [2, 1]))
+    @pytest.fixture
+    def multi_file_dataset(self, multi_file_reader):
+        """Load datasets from multiple files."""
+        ds_ids = [make_dataid(name=name) for name in ["cph", "ctt"]]
+        datasets = multi_file_reader.load(ds_ids)
+        return datasets
+
+    def test_combine_timestamps(self, multi_file_reader, start_time):
+        """Test combination of timestamps."""
+        assert multi_file_reader.start_time == start_time
+        assert multi_file_reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
+
+    @pytest.mark.parametrize(
+        "ds_name,expected",
+        [
+            ("cph", [[0, 1], [2, 0], [0, 1], [2, 0]]),
+            ("ctt", [[280, 290], [300, 310], [280, 290], [300, 310]]),
+        ]
+    )
+    def test_combine_datasets(self, multi_file_dataset, ds_name, expected):
+        """Test combination of datasets."""
+        np.testing.assert_array_almost_equal(
+            multi_file_dataset[ds_name].data, expected
+        )
+
+    def test_number_of_datasets(self, multi_file_dataset):
+        """Test number of datasets."""
+        assert 2 == len(multi_file_dataset)
+
+
+class TestCLAAS2SingleFile:
+    """Test reading a single CLAAS2 file."""
+
+    @pytest.fixture
+    def file_handler(self, fake_file):
+        """Return a CLAAS-2 file handler."""
+        from satpy.readers.cmsaf_claas2 import CLAAS2
+        return CLAAS2(fake_file, {}, {})
+
+    @pytest.fixture
+    def area_extent_exp(self, start_time):
+        """Get expected area extent."""
+        if start_time < datetime.datetime(2017, 12, 6):
+            return (-5454733.160460291, -5454733.160460292, 5454733.160460292, 5454733.160460291)
+        return (-5456233.362099582, -5453232.958821001, 5453232.958821001, 5456233.362099582)
+
+    @pytest.fixture
+    def area_exp(self, area_extent_exp):
+        """Get expected area definition."""
+        proj_dict = {
+            "a": 6378169.0,
+            "b": 6356583.8,
+            "h": 35785831.0,
+            "lon_0": 0.0,
+            "proj": "geos",
+            "units": "m",
+        }
+        return AreaDefinition(
+            area_id="msg_seviri_fes_3km",
+            description="MSG SEVIRI Full Earth Scanning service area definition with 3 km resolution",
+            proj_id="geos",
+            projection=proj_dict,
+            area_extent=area_extent_exp,
+            width=3636,
+            height=3636,
+        )
+
+    def test_get_area_def(self, file_handler, area_exp):
+        """Test area definition."""
+        area = file_handler.get_area_def(make_dataid(name="foo"))
+        assert area == area_exp
+
+    @pytest.mark.parametrize(
+        "ds_name,expected",
+        [
+            ("ctt", xr.DataArray([[280, 290], [300, 310]], dims=('y', 'x'))),
+            ("cph", xr.DataArray([[0, 1], [2, 0]], dims=('y', 'x'))),
+        ]
+    )
+    def test_get_dataset(self, file_handler, ds_name, expected):
+        """Test dataset loading."""
+        dsid = make_dataid(name=ds_name)
+        ds = file_handler.get_dataset(dsid, {})
+        xr.testing.assert_allclose(ds, expected)
+
+    def test_start_time(self, file_handler, start_time):
+        """Test start time property."""
+        assert file_handler.start_time == start_time
+
+    def test_end_time(self, file_handler):
+        """Test end time property."""
+        assert file_handler.end_time == datetime.datetime(2085, 8, 13, 13, 15)
