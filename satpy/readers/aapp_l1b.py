@@ -593,15 +593,14 @@ def _vis_calibrate(data,
         intercept2 = da.from_array(data["calvis"][:, chn, coeff_idx, 3],
                                    chunks=line_chunks) * 1e-7
 
-        if chn == 1 or chn == 2:
-            # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
-            # them to real numbers which are applied to the measured counts. The coefficient is different depending on
-            # whether the counts are less than or greater than the high-gain/low-gain transition value (nominally 500).
-            # The slope for visible channels should always be positive (reflectance increases with count). With the
-            # pre-launch coefficients the channel 2 slope is always positive but with the operational coefs the stored
-            # number in the high-reflectance regime overflows the maximum 2147483647, i.e. it is negative when
-            # interpreted as a signed integer. So you have to modify it.
-            slope2 = da.where(slope2 < 0, slope2 + 0.4294967296, slope2)
+        # In the level 1b file, the visible coefficients are stored as 4-byte integers. Scaling factors then convert
+        # them to real numbers which are applied to the measured counts. The coefficient is different depending on
+        # whether the counts are less than or greater than the high-gain/low-gain transition value (nominally 500).
+        # The slope for visible channels should always be positive (reflectance increases with count). With the
+        # pre-launch coefficients the channel 2, 3a slope is always positive but with the operational coefs the stored
+        # number in the high-reflectance regime overflows the maximum 2147483647, i.e. it is negative when
+        # interpreted as a signed integer. So you have to modify it. Also chanel 1 is treated the same way in AAPP.
+        slope2 = da.where(slope2 < 0, slope2 + 0.4294967296, slope2)
 
     channel = da.where(channel <= intersection[:, None],
                        channel * slope1[:, None] + intercept1[:, None],
