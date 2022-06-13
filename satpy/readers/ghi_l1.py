@@ -272,12 +272,6 @@ class HDF_GHI_L1(HDF5FileHandler):
         pdict['ncols'] = pdict['ncols'] + 1
         area = get_area_definition(pdict, (lons[2], lats[3], lons[3], lats[2]))
 
-        print(p(p1[0], p1[1]))
-        print(p(p2[0], p2[1]))
-        print(p(p3[0], p3[1]))
-        print(p(p4[0], p4[1]))
-        print(area.area_extent)
-
         return area
 
     @property
