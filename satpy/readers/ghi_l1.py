@@ -27,9 +27,10 @@ from datetime import datetime
 
 import dask.array as da
 import numpy as np
+from pyproj import Proj
 import xarray as xr
 
-from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers._geos_area import get_area_definition
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
@@ -40,8 +41,8 @@ _COFF_list = [21982.5, 10991.5, 5495.5, 2747.5]
 _CFAC_list = [163730198.0, 81865099.0, 40932549.0, 20466274.0]
 _LOFF_list = [21982.5, 10991.5, 5495.5, 2747.5]
 _LFAC_list = [163730198.0, 81865099.0, 40932549.0, 20466274.0]
-_NLINE_list = [43960, 21980, 10990, 5495]
-_NCOLS_list = [43960, 21980, 10990, 5495]
+_NLINE_list = [43960/2., 21980/2., 10990/2., 5495/2.]
+_NCOLS_list = [43960/2., 21980/2., 10990/2., 5495/2.]
 
 PLATFORM_NAMES = {'FY4B': 'FY-4B',
                   'FY4C': 'FY-4C'}
@@ -191,21 +192,47 @@ class HDF_GHI_L1(HDF5FileHandler):
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key['resolution']
         pdict = {}
-        pdict['loff'] = (808. + 1807.) / 2.
-        pdict['coff'] = (1485. + 2384.) / 2.
+
+        c_lats = self.file_content['/attr/Corner-Point Latitudes']
+        c_lons = self.file_content['/attr/Corner-Point Longitudes']
+
+        p1 = (c_lons[0], c_lats[0])
+        p2 = (c_lons[1], c_lats[1])
+        p3 = (c_lons[2], c_lats[2])
+        p4 = (c_lons[3], c_lats[3])
+
+        init_line = self.file_content['/attr/Begin Line Number']
+        end_line = self.file_content['/attr/End Line Number']
+        init_col = self.file_content['/attr/Begin Pixel Number']
+        end_col = self.file_content['/attr/End Pixel Number']
+
+        mid_line = (init_line + end_line) / 2.
+        mid_col = (init_col + end_col) / 2.
+
+      #  pdict['init_line'] = init_line
+      #  pdict['end_line'] = end_line
+      #  pdict['init_col'] = init_col
+      #  pdict['end_col'] = end_col
+
+      #  pdict['mid_line'] = mid_line
+      #  pdict['mid_col'] = mid_col
+
+        pdict['coff'] = _COFF_list[RESOLUTION_LIST.index(res)]
+        pdict['loff'] = -_LOFF_list[RESOLUTION_LIST.index(res)]
         pdict['cfac'] = _CFAC_list[RESOLUTION_LIST.index(res)]
         pdict['lfac'] = _LFAC_list[RESOLUTION_LIST.index(res)]
         pdict['a'] = self.file_content['/attr/Semi_major_axis'] * 1E3  # equator radius (m)
         pdict['b'] = self.file_content['/attr/Semi_minor_axis'] * 1E3  # equator radius (m)
         pdict['h'] = self.file_content['/attr/NOMSatHeight'] * 1E3  # the altitude of satellite (m)
 
-        pdict['ssp_lon'] = self.file_content['/attr/NOMSubSatLon']
+        pdict['ssp_lon'] = float(self.file_content['/attr/NOMSubSatLon'])
         pdict['nlines'] = self.file_content['/attr/RegLength']
         pdict['ncols'] = self.file_content['/attr/RegWidth']
 
-        print(pdict['coff'], pdict['loff'])
+        pdict['col_step_ang'] = self.file_content['/attr/dSamplingAngle'] * 1e-6
+        pdict['line_step_ang'] = self.file_content['/attr/dSteppingAngle'] * 1e-6
 
-        pdict['scandir'] = 'S2N'
+        pdict['scandir'] = 'N2S'
 
         b250 = ['C01']
         b500 = ['C02', 'C03', 'C04', 'C05', 'C06']
@@ -222,18 +249,34 @@ class HDF_GHI_L1(HDF5FileHandler):
             pdict['a_name'] = self.filename_info['observation_type'] + '_2000m'
             pdict['p_id'] = 'FY-4A, 2000m'
 
-        pdict['coff'] = pdict['coff'] + 0.5
         pdict['nlines'] = pdict['nlines'] - 1
         pdict['ncols'] = pdict['ncols'] - 1
-        pdict['loff'] = (_NLINE_list[RESOLUTION_LIST.index(res)] - pdict['loff'] + 0.5)
-        area_extent = get_area_extent(pdict)
-        area_extent = (area_extent[0], area_extent[1], area_extent[2], area_extent[3])
 
-        print(area_extent)
+        proj_dict = {'a': pdict['a'],
+                     'lon_0': pdict['ssp_lon'],
+                     'h': pdict['h'],# - pdict['a'],
+                     'rf': 1 / (pdict['a'] / pdict['b'] - 1),
+                     'proj': 'geos',
+                     'units': 'm',
+                     'sweep': 'x'}
+        p = Proj(proj_dict)
+        o1 = (p(p1[0], p1[1]))
+        o2 = (p(p2[0], p2[1]))
+        o3 = (p(p3[0], p3[1]))
+        o4 = (p(p4[0], p4[1]))
+
+        lons = (o1[0], o2[0], o3[0], o4[0])
+        lats = (o1[1], o2[1], o3[1], o4[1])
 
         pdict['nlines'] = pdict['nlines'] + 1
         pdict['ncols'] = pdict['ncols'] + 1
-        area = get_area_definition(pdict, area_extent)
+        area = get_area_definition(pdict, (lons[2], lats[3], lons[3], lats[2]))
+
+        print(p(p1[0], p1[1]))
+        print(p(p2[0], p2[1]))
+        print(p(p3[0], p3[1]))
+        print(p(p4[0], p4[1]))
+        print(area.area_extent)
 
         return area
 
