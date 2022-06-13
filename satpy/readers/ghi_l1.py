@@ -201,22 +201,6 @@ class HDF_GHI_L1(HDF5FileHandler):
         p3 = (c_lons[2], c_lats[2])
         p4 = (c_lons[3], c_lats[3])
 
-        init_line = self.file_content['/attr/Begin Line Number']
-        end_line = self.file_content['/attr/End Line Number']
-        init_col = self.file_content['/attr/Begin Pixel Number']
-        end_col = self.file_content['/attr/End Pixel Number']
-
-        mid_line = (init_line + end_line) / 2.
-        mid_col = (init_col + end_col) / 2.
-
-      #  pdict['init_line'] = init_line
-      #  pdict['end_line'] = end_line
-      #  pdict['init_col'] = init_col
-      #  pdict['end_col'] = end_col
-
-      #  pdict['mid_line'] = mid_line
-      #  pdict['mid_col'] = mid_col
-
         pdict['coff'] = _COFF_list[RESOLUTION_LIST.index(res)]
         pdict['loff'] = -_LOFF_list[RESOLUTION_LIST.index(res)]
         pdict['cfac'] = _CFAC_list[RESOLUTION_LIST.index(res)]
@@ -254,11 +238,12 @@ class HDF_GHI_L1(HDF5FileHandler):
 
         proj_dict = {'a': pdict['a'],
                      'lon_0': pdict['ssp_lon'],
-                     'h': pdict['h'],# - pdict['a'],
+                     'h': pdict['h'],
                      'rf': 1 / (pdict['a'] / pdict['b'] - 1),
                      'proj': 'geos',
                      'units': 'm',
                      'sweep': 'x'}
+
         p = Proj(proj_dict)
         o1 = (p(p1[0], p1[1]))
         o2 = (p(p2[0], p2[1]))
