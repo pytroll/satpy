@@ -488,6 +488,9 @@ needs to implement a few methods:
    :meth:`xarray.DataArray.rename` method for more information and its use
    in the example below.
 
+   If the reader should be compatible with opening remote files see
+   :doc:`remote_file_support`.
+
  - the ``get_area_def`` method, that takes as single argument the
    :class:`~satpy.dataset.DataID` for which we want
    the area. It should return a :class:`~pyresample.geometry.AreaDefinition`

@@ -14,6 +14,7 @@ at the pages listed below.
     CONTRIBUTING
     xarray_migration
     custom_reader
+    remote_file_support
     plugins
     satpy_internals
     aux_data
