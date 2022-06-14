@@ -258,7 +258,7 @@ class Test_HDF_AGRI_L1_cal:
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_fy4a_channels_are_loaded_with_right_resolution(self):
+    def test_agri_channels_are_loaded_with_right_resolution(self):
         """Test all channels are loaded with the right resolution."""
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
@@ -267,7 +267,7 @@ class Test_HDF_AGRI_L1_cal:
         for resolution_to_test in RESOLUTION_LIST:
             self._check_keys_for_dsq(available_datasets, resolution_to_test)
 
-    def test_fy4a_all_bands_have_right_units(self):
+    def test_agri_all_bands_have_right_units(self):
         """Test all bands have the right units."""
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
@@ -279,7 +279,7 @@ class Test_HDF_AGRI_L1_cal:
             assert res[band_name].shape == (2, 5)
             self._check_units(band_name, res)
 
-    def test_fy4a_orbital_parameters_are_correct(self):
+    def test_agri_orbital_parameters_are_correct(self):
         """Test orbital parameters are set correctly."""
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
 
@@ -308,7 +308,7 @@ class Test_HDF_AGRI_L1_cal:
             else:
                 assert len(res) == 3
 
-    def test_fy4a_counts_calibration(self):
+    def test_agri_counts_calibration(self):
         """Test loading data at counts calibration."""
         from satpy.tests.utils import make_dsq
         reader = self._create_reader_for_resolutions(*RESOLUTION_LIST)
@@ -326,7 +326,7 @@ class Test_HDF_AGRI_L1_cal:
             assert res[band_name].dtype == np.uint16
             assert res[band_name].attrs['units'] == "1"
 
-    def test_fy4a_geo(self):
+    def test_agri_geo(self):
         """Test loading data for angles."""
         from satpy.tests.utils import make_dsq
         reader = self._create_reader_for_resolutions('GEO')
@@ -350,7 +350,7 @@ class Test_HDF_AGRI_L1_cal:
         return reader
 
     @pytest.mark.parametrize("resolution_to_test", RESOLUTION_LIST)
-    def test_fy4a_for_one_resolution(self, resolution_to_test):
+    def test_agri_for_one_resolution(self, resolution_to_test):
         """Test loading data when only one resolution is available."""
         reader = self._create_reader_for_resolutions(resolution_to_test)
 
