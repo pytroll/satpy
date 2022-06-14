@@ -27,7 +27,7 @@ import logging
 from pyproj import Proj
 
 from satpy.readers._geos_area import get_area_definition
-from satpy.readers.fy4_base import FY4Base, RESOLUTION_LIST_GHI
+from satpy.readers.fy4_base import FY4Base, RESOLUTION_LIST
 
 logger = logging.getLogger(__name__)
 
@@ -89,10 +89,10 @@ class HDF_GHI_L1(FY4Base):
         p3 = (c_lons[2], c_lats[2])
         p4 = (c_lons[3], c_lats[3])
 
-        pdict['coff'] = self._COFF_list[RESOLUTION_LIST_GHI.index(res)]
-        pdict['loff'] = -self._LOFF_list[RESOLUTION_LIST_GHI.index(res)]
-        pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST_GHI.index(res)]
-        pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST_GHI.index(res)]
+        pdict['coff'] = self._COFF_list[RESOLUTION_LIST.index(res)]
+        pdict['loff'] = -self._LOFF_list[RESOLUTION_LIST.index(res)]
+        pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
+        pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
         pdict['a'] = self.file_content['/attr/Semi_major_axis'] * 1E3  # equator radius (m)
         pdict['b'] = self.file_content['/attr/Semi_minor_axis'] * 1E3  # equator radius (m)
         pdict['h'] = self.file_content['/attr/NOMSatHeight'] * 1E3  # the altitude of satellite (m)
@@ -100,9 +100,6 @@ class HDF_GHI_L1(FY4Base):
         pdict['ssp_lon'] = float(self.file_content['/attr/NOMSubSatLon'])
         pdict['nlines'] = self.file_content['/attr/RegLength']
         pdict['ncols'] = self.file_content['/attr/RegWidth']
-
-        pdict['col_step_ang'] = self.file_content['/attr/dSamplingAngle'] * 1e-6
-        pdict['line_step_ang'] = self.file_content['/attr/dSteppingAngle'] * 1e-6
 
         pdict['scandir'] = 'N2S'
 

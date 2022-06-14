@@ -35,8 +35,7 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
 
-RESOLUTION_LIST_AGRI = [500, 1000, 2000, 4000]
-RESOLUTION_LIST_GHI = [250, 500, 1000, 2000]
+RESOLUTION_LIST = [250, 500, 1000, 2000, 4000]
 
 
 class FY4Base(HDF5FileHandler):
@@ -116,7 +115,6 @@ class FY4Base(HDF5FileHandler):
         elif calibration == 'reflectance':
             channel_index = int(file_key[-2:]) - 1
             data = self.calibrate_to_reflectance(data, channel_index, ds_info)
-
         elif calibration == 'brightness_temperature':
             data = self.calibrate_to_bt(data, ds_info, ds_name)
         elif calibration == 'radiance':
@@ -141,7 +139,8 @@ class FY4Base(HDF5FileHandler):
             raise ValueError(f'Unsupported sensor type: {self.sensor}')
 
         num_channel = self.get(cal_coef).shape[0]
-        if num_channel == 1:
+
+        if self.sensor == 'AGRI' and num_channel == 1:
             # only channel_2, resolution = 500 m
             channel_index = 0
         data.attrs['scale_factor'] = self.get(cal_coef)[channel_index, 0].values.item()

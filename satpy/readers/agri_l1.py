@@ -26,7 +26,7 @@ The files read by this reader are described in the official Real Time Data Servi
 import logging
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.fy4_base import FY4Base, RESOLUTION_LIST_AGRI
+from satpy.readers.fy4_base import FY4Base, RESOLUTION_LIST
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +74,10 @@ class HDF_AGRI_L1(FY4Base):
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key['resolution']
         pdict = {}
-        pdict['coff'] = self._COFF_list[RESOLUTION_LIST_AGRI.index(res)]
-        pdict['loff'] = self._LOFF_list[RESOLUTION_LIST_AGRI.index(res)]
-        pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST_AGRI.index(res)]
-        pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST_AGRI.index(res)]
+        pdict['coff'] = self._COFF_list[RESOLUTION_LIST.index(res)]
+        pdict['loff'] = self._LOFF_list[RESOLUTION_LIST.index(res)]
+        pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
+        pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
         pdict['a'] = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
         pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
         pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
