@@ -374,4 +374,3 @@ Arctica-M N1 HDF5 format reader
 
 .. automodule:: satpy.readers.msu_gsa_l1b
     :noindex:
-
