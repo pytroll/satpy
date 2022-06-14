@@ -168,7 +168,6 @@ class FY4_BASE(HDF5FileHandler):
         ds_info['valid_range'] = lut.attrs['valid_range']
         return data
 
-
     @property
     def start_time(self):
         """Get the start time."""
