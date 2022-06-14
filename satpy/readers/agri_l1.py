@@ -26,7 +26,7 @@ The files read by this reader are described in the official Real Time Data Servi
 import logging
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.fy4_base import FY4Base, RESOLUTION_LIST
+from satpy.readers.fy4_base import RESOLUTION_LIST, FY4Base
 
 logger = logging.getLogger(__name__)
 

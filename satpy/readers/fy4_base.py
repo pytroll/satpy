@@ -24,8 +24,8 @@ The files read by this reader are described in the official Real Time Data Servi
 """
 
 import logging
-
 from datetime import datetime
+
 import dask.array as da
 import numpy as np
 import xarray as xr
