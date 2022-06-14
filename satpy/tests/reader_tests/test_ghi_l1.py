@@ -57,7 +57,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     'units': 'NUL',
                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                     'band_names': 'band{}(band number is range from 1 to 14)'
-                    .format(ch).encode('utf-8'),
+                        .format(ch).encode('utf-8'),
                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
                     'valid_range': np.array([0, 1.5]),
                 },
@@ -73,7 +73,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     'units': 'DN',
                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                     'band_names': 'band{}(band number is range from 1 to 7)'
-                    .format(ch).encode('utf-8'),
+                        .format(ch).encode('utf-8'),
                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
                     'valid_range': np.array([0, 4095]),
                 },
@@ -338,8 +338,10 @@ class Test_HDF_GHI_L1_cal:
         res = reader.load(band_names)
         assert len(res) == len(band_names)
         self._check_calibration_and_units(band_names, res)
+        print("\n\n\n")
         for band_name in band_names:
-            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
+            np.testing.assert_allclose(np.array(res[band_name].attrs['area'].area_extent),
+                                       np.array(AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]))
 
     def _check_calibration_and_units(self, band_names, result):
         for band_name in band_names:

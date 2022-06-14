@@ -361,7 +361,8 @@ class Test_HDF_AGRI_L1_cal:
         assert len(res) == len(band_names)
         self._check_calibration_and_units(band_names, res)
         for band_name in band_names:
-            assert res[band_name].attrs['area'].area_extent == AREA_EXTENTS_BY_RESOLUTION[resolution_to_test]
+            np.testing.assert_allclose(res[band_name].attrs['area'].area_extent,
+                                       AREA_EXTENTS_BY_RESOLUTION[resolution_to_test])
 
     def _check_calibration_and_units(self, band_names, result):
         for index, band_name in enumerate(band_names):
