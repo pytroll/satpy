@@ -34,6 +34,7 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 
 N_TOT_IR_CHANS_LL = 6
 
+
 class MERSI2L1B(HDF5FileHandler):
     """MERSI-2 L1B file reader."""
 
@@ -72,7 +73,6 @@ class MERSI2L1B(HDF5FileHandler):
         except ValueError:
             # numpy array but has more than one element
             return slope[cal_index], intercept[cal_index]
-        return slope, intercept
 
     def _get_coefficients(self, cal_key, cal_index):
         coeffs = self[cal_key][cal_index]
@@ -114,7 +114,7 @@ class MERSI2L1B(HDF5FileHandler):
             data = data.where(data != 0)
             coeffs = self._get_coefficients(ds_info['calibration_key'],
                                             ds_info['calibration_index'])
-            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2
+            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data ** 2
         elif dataset_id.get('calibration') == "brightness_temperature":
             calibration_index = ds_info['calibration_index']
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
