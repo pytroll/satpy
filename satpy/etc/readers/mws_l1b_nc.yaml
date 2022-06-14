@@ -8,10 +8,12 @@ reader:
   data_identification_keys:
     name:
       required: true
+    frequency_quadruple_sideband:
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyQuadrupleSideBand
     frequency_double_sideband:
-      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyDoubleSideBand
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyDoubleSideBand
     frequency_range:
-      type: !!python/name:satpy.readers.aapp_mhs_amsub_l1c.FrequencyRange
+      type: !!python/name:satpy.readers.pmw_channels_definitions.FrequencyRange
     resolution:
     polarization:
       enum:
@@ -42,7 +44,6 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
-
     '2':
         name: '2'
         frequency_range:
@@ -216,7 +217,7 @@ datasets:
     '13':
         #57.290344±0.3222±0.048
         name: '13'
-        frequency_quadrouble_sideband:
+        frequency_quadruple_sideband:
            central: 57.290344
            side: 0.3222
            sideside: 0.048
@@ -224,6 +225,186 @@ datasets:
            unit: GHz
         polarization: 'QH'
         resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '14':
+        #57.290344±0.3222±0.022
+        name: '14'
+        frequency_quadruple_sideband:
+           central: 57.290344
+           side: 0.3222
+           sideside: 0.022
+           bandwidth: 0.016
+           unit: GHz
+        polarization: 'QH'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '15':
+        #57.290344±0.3222±0.010
+        name: '15'
+        frequency_quadruple_sideband:
+           central: 57.290344
+           side: 0.3222
+           sideside: 0.010
+           bandwidth: 0.008
+           unit: GHz
+        polarization: 'QH'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '16':
+        #57.290344±0.3222±0.0045
+        name: '16'
+        frequency_quadruple_sideband:
+           central: 57.290344
+           side: 0.3222
+           sideside: 0.0045
+           bandwidth: 0.004
+           unit: GHz
+        polarization: 'QH'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '17':
+        name: '17'
+        frequency_range:
+           central: 89.0
+           bandwidth: 4.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '18':
+        name: '18'
+        # FIXME! Is this a souble side band or what? MWS-18; 164–167; 2 x 1350; QH
+        frequency_range:
+           central: 166.0
+           bandwidth: 2.700
+           unit: GHz
+        polarization: 'QH'
+        resolution: 17000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '19':
+        name: '19'
+        frequency_double_sideband:
+           central: 183.311
+           side: 7.0
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '20':
+        name: '20'
+        frequency_double_sideband:
+           central: 183.311
+           side: 4.5
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '21':
+        name: '21'
+        frequency_double_sideband:
+           central: 183.311
+           side: 3.0
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '22':
+        name: '22'
+        frequency_double_sideband:
+           central: 183.311
+           side: 1.8
+           bandwidth: 1.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '23':
+        name: '23'
+        frequency_double_sideband:
+           central: 183.311
+           side: 1.0
+           bandwidth: 0.5
+           unit: GHz
+        polarization: 'QV'
+        resolution: 20000
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+        coordinates:
+            - mws_lon
+            - mws_lat
+        file_type: mws_l1b_nc
+    '24':
+        name: '24'
+        frequency_range:
+           central: 229.
+           bandwidth: 2.0
+           unit: GHz
+        polarization: 'QV'
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature

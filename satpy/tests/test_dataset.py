@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2021 Satpy developers
+# Copyright (c) 2015-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -24,6 +24,7 @@ import numpy as np
 import pytest
 
 from satpy.dataset.dataid import DataID, DataQuery, ModifierTuple, WavelengthRange, minimal_default_keys_config
+from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, FrequencyQuadrupleSideBand, FrequencyRange
 from satpy.tests.utils import make_cid, make_dataid, make_dsq
 
 
@@ -688,10 +689,70 @@ class TestIDQueryInteractions(unittest.TestCase):
         assert res[0].name == "HRV"
 
 
+def test_frequency_quadruple_side_band_class_method_convert():
+    """Test the frequency double side band object: test the class method convert."""
+    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+
+    res = frq_dsb.convert(57.37)
+    assert res == 57.37
+
+    res = frq_dsb.convert({'central': 57.0, 'side': 0.322, 'sideside': 0.05, 'bandwidth': 0.036})
+    assert res == FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+
+
+def test_frequency_quadruple_side_band_channel_str():
+    """Test the frequency quadruple side band object: test the band description."""
+    frq_dsb1 = FrequencyQuadrupleSideBand(57.0, 0.322, 0.05, 0.036)
+    frq_dsb2 = FrequencyQuadrupleSideBand(57000, 322, 50, 36, 'MHz')
+
+    assert str(frq_dsb1) == "57.0 GHz (0.322_0.05_0.036 GHz)"
+    assert str(frq_dsb2) == "57000 MHz (322_50_36 MHz)"
+
+
+def test_frequency_quadruple_side_band_channel_equality():
+    """Test the frequency quadruple side band object: check if two bands are 'equal'."""
+    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    assert frq_dsb is not None
+    assert 57 != frq_dsb
+    assert 57.372 == frq_dsb
+    assert 56.646 == frq_dsb
+    assert 56.71 == frq_dsb
+
+    assert frq_dsb != FrequencyQuadrupleSideBand(57, 0.322, 0.1, 0.040)
+
+    frq_dsb = None
+    assert FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036) != frq_dsb
+    assert frq_dsb < FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.04)
+
+
+def test_frequency_quadruple_side_band_channel_distances():
+    """Test the frequency quadruple side band object: get the distance between two bands."""
+    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    mydist = frq_dsb.distance(57.372)
+    assert mydist == 0.0
+
+    mydist = frq_dsb.distance(57)
+    assert mydist == np.inf
+
+
+def test_frequency_quadruple_side_band_channel_containment():
+    """Test the frequency quadruple side band object: check if one band contains another."""
+    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+
+    assert 57 not in frq_dsb
+    assert 57.373 in frq_dsb
+
+    with pytest.raises(NotImplementedError):
+        assert frq_dsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)
+
+    frq_dsb = None
+    assert (frq_dsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)) is False
+
+    assert '57' not in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)
+
+
 def test_frequency_double_side_band_class_method_convert():
     """Test the frequency double side band object: test the class method convert."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
-
     frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
 
     res = frq_dsb.convert(185)
@@ -703,8 +764,6 @@ def test_frequency_double_side_band_class_method_convert():
 
 def test_frequency_double_side_band_channel_str():
     """Test the frequency double side band object: test the band description."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
-
     frq_dsb1 = FrequencyDoubleSideBand(183, 7, 2)
     frq_dsb2 = FrequencyDoubleSideBand(183000, 7000, 2000, 'MHz')
 
@@ -714,8 +773,6 @@ def test_frequency_double_side_band_channel_str():
 
 def test_frequency_double_side_band_channel_equality():
     """Test the frequency double side band object: check if two bands are 'equal'."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
-
     frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
     assert frq_dsb is not None
     assert 183 != frq_dsb
@@ -735,8 +792,6 @@ def test_frequency_double_side_band_channel_equality():
 
 def test_frequency_double_side_band_channel_distances():
     """Test the frequency double side band object: get the distance between two bands."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
-
     frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
     mydist = frq_dsb.distance(175.5)
     assert mydist == 0.5
@@ -762,8 +817,6 @@ def test_frequency_double_side_band_channel_distances():
 
 def test_frequency_double_side_band_channel_containment():
     """Test the frequency double side band object: check if one band contains another."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand
-
     frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
 
     assert 175.5 in frq_dsb
@@ -781,8 +834,6 @@ def test_frequency_double_side_band_channel_containment():
 
 def test_frequency_range_class_method_convert():
     """Test the frequency range object: test the class method convert."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
-
     frq_dsb = FrequencyRange(89, 2)
 
     res = frq_dsb.convert(89)
@@ -794,8 +845,6 @@ def test_frequency_range_class_method_convert():
 
 def test_frequency_range_channel_equality():
     """Test the frequency range object: check if two bands are 'equal'."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
-
     frqr = FrequencyRange(2, 1)
     assert frqr is not None
     assert 1.7 == frqr
@@ -807,8 +856,6 @@ def test_frequency_range_channel_equality():
 
 def test_frequency_range_channel_containment():
     """Test the frequency range object: channel containment."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
-
     frqr = FrequencyRange(2, 1)
     assert 1.7 in frqr
     assert 2.8 not in frqr
@@ -824,8 +871,6 @@ def test_frequency_range_channel_containment():
 
 def test_frequency_range_channel_distances():
     """Test the frequency range object: derive distances between bands."""
-    from satpy.readers.aapp_mhs_amsub_l1c import FrequencyRange
-
     frqr = FrequencyRange(190.0, 2)
 
     mydist = frqr.distance(FrequencyRange(190, 2))
@@ -840,8 +885,6 @@ def test_frequency_range_channel_distances():
 
 def test_wavelength_range():
     """Test the wavelength range object."""
-    from satpy.dataset.dataid import WavelengthRange
-
     wr = WavelengthRange(1, 2, 3)
     assert 1.2 == wr
     assert .9 != wr
@@ -873,8 +916,6 @@ def test_wavelength_range():
 
 def test_wavelength_range_cf_roundtrip():
     """Test the wavelength range object roundtrip to cf."""
-    from satpy.dataset.dataid import WavelengthRange
-
     wr = WavelengthRange(1, 2, 3)
 
     assert WavelengthRange.from_cf(wr.to_cf()) == wr
