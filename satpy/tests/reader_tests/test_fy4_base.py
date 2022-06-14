@@ -24,7 +24,9 @@ from satpy.readers.fy4_base import FY4Base
 
 class Test_FY4Base:
     """Tests for the FengYun4 base class for the components missed by AGRI/GHI tests."""
+
     def setup(self):
+        """Initialise the tests."""
         self.fy4 = FY4Base
         self.fy4.sensor = 'Bad'
 
