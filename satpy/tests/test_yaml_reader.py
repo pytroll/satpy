@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019, 2021 Satpy developers
+# Copyright (c) 2015-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -30,8 +30,8 @@ import xarray as xr
 import satpy.readers.yaml_reader as yr
 from satpy.dataset import DataQuery
 from satpy.dataset.dataid import ModifierTuple
-from satpy.readers.aapp_mhs_amsub_l1c import FrequencyDoubleSideBand, FrequencyRange
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.pmw_channels_definitions import FrequencyDoubleSideBand, FrequencyRange
 from satpy.tests.utils import make_dataid
 
 MHS_YAML_READER_DICT = {
