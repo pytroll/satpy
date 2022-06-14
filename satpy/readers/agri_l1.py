@@ -26,13 +26,18 @@ The files read by this reader are described in the official Real Time Data Servi
 import logging
 
 from satpy.readers._geos_area import get_area_definition, get_area_extent
-from satpy.readers.fy4_base import FY4_BASE, RESOLUTION_LIST_AGRI
+from satpy.readers.fy4_base import FY4Base, RESOLUTION_LIST_AGRI
 
 logger = logging.getLogger(__name__)
 
 
-class HDF_AGRI_L1(FY4_BASE):
+class HDF_AGRI_L1(FY4Base):
     """AGRI l1 file handler."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init filehandler."""
+        super(HDF_AGRI_L1, self).__init__(filename, filename_info, filetype_info)
+        self.sensor = 'AGRI'
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
@@ -42,7 +47,6 @@ class HDF_AGRI_L1(FY4_BASE):
         data = self.get(file_key)
         if data.ndim >= 2:
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
-        print(type(self))
         data = self.calibrate(data, ds_info, ds_name, file_key)
 
         self.adjust_attrs(data, ds_info)

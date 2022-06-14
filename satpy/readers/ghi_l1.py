@@ -27,13 +27,18 @@ import logging
 from pyproj import Proj
 
 from satpy.readers._geos_area import get_area_definition
-from satpy.readers.fy4_base import FY4_BASE, RESOLUTION_LIST_GHI
+from satpy.readers.fy4_base import FY4Base, RESOLUTION_LIST_GHI
 
 logger = logging.getLogger(__name__)
 
 
-class HDF_GHI_L1(FY4_BASE):
-    """AGRI l1 file handler."""
+class HDF_GHI_L1(FY4Base):
+    """GHI l1 file handler."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        """Init filehandler."""
+        super(HDF_GHI_L1, self).__init__(filename, filename_info, filetype_info)
+        self.sensor = 'GHI'
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""

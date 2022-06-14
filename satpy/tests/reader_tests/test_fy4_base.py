@@ -227,11 +227,13 @@ class Test_HDF_AGRI_L1_cal:
     def setup(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
+        from satpy.readers.fy4_base import FY4Base
         from satpy.readers.agri_l1 import HDF_AGRI_L1
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(HDF_AGRI_L1, '__bases__', (FakeHDF5FileHandler2,))
-        self.fake_handler = self.p.start()
+        self.fy4 = mock.patch.object(FY4Base, '__bases__', (FakeHDF5FileHandler2,))
+        self.p = mock.patch.object(HDF_AGRI_L1.__class__, (self.fy4,))
+        self.fake_handler = self.fy4.start()
         self.p.is_local = True
 
         self.expected = {
@@ -253,7 +255,7 @@ class Test_HDF_AGRI_L1_cal:
 
     def teardown(self):
         """Stop wrapping the HDF5 file handler."""
-        self.p.stop()
+        self.fy4.stop()
 
     def test_fy4a_channels_are_loaded_with_right_resolution(self):
         """Test all channels are loaded with the right resolution."""

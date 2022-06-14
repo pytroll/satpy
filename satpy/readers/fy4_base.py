@@ -39,15 +39,15 @@ RESOLUTION_LIST_AGRI = [500, 1000, 2000, 4000]
 RESOLUTION_LIST_GHI = [250, 500, 1000, 2000]
 
 
-class FY4_BASE(HDF5FileHandler):
+class FY4Base(HDF5FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init filehandler."""
-        super(FY4_BASE, self).__init__(filename, filename_info, filetype_info)
+        super(FY4Base, self).__init__(filename, filename_info, filetype_info)
 
         self.sensor = filename_info['instrument']
 
-        # info of 500 m, 1 km, 2 km and 4 km data
+        # info of 250m, 500m, 1km, 2km and 4km data
         self._COFF_list = [21982.5, 10991.5, 5495.5, 2747.5, 1373.5]
         self._CFAC_list = [163730198.0, 81865099.0, 40932549.0, 20466274.0, 10233137.0]
         self._LOFF_list = [21982.5, 10991.5, 5495.5, 2747.5, 1373.5]
