@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Base reader for the Level_1 HDF format data from the AGRI and GHI instruments aboard the
-FY-4A and FY-4B satellites.
+"""Base reader for the L1 HDF data from the AGRI and GHI instruments aboard the FengYun-4A/B satellites.
 
 The files read by this reader are described in the official Real Time Data Service:
 

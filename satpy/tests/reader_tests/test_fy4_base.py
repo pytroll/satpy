@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The agri_l1 reader tests package."""
+"""The fy4_base reader tests package."""
 
 import pytest
 
@@ -23,6 +23,7 @@ from satpy.readers.fy4_base import FY4Base
 
 
 class Test_FY4Base:
+    """Tests for the FengYun4 base class for the components missed by AGRI/GHI tests."""
     def setup(self):
         self.fy4 = FY4Base
         self.fy4.sensor = 'Bad'
