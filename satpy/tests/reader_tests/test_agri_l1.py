@@ -25,7 +25,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.readers.agri_l1 import RESOLUTION_LIST
+from satpy.readers.fy4_base import RESOLUTION_LIST_AGRI as RESOLUTION_LIST
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 ALL_BAND_NAMES = ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
