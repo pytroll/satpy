@@ -38,7 +38,7 @@ RESOLUTION_LIST = [250, 500, 1000, 2000, 4000]
 
 
 class FY4Base(HDF5FileHandler):
-
+    """The base class for the FengYun4 AGRI and GHI readers."""
     def __init__(self, filename, filename_info, filetype_info):
         """Init filehandler."""
         super(FY4Base, self).__init__(filename, filename_info, filetype_info)
