@@ -367,10 +367,10 @@ class ParallaxCorrection:
         # - the x-shift is a function of y and the y-shift is a function of x,
         #   so a cloud that was rectangular at the start may no longer be
         #   rectangular at the end
-        br = BucketResampler(self.base_area,
-                             da.array(shifted_lon), da.array(shifted_lat))
-        inv_lat_diff = br.get_abs_max(lat_diff)
-        inv_lon_diff = br.get_abs_max(lon_diff)
+        bur = BucketResampler(self.base_area,
+                              da.array(shifted_lon), da.array(shifted_lat))
+        inv_lat_diff = bur.get_abs_max(lat_diff)
+        inv_lon_diff = bur.get_abs_max(lon_diff)
 
         inv_lon = base_lon - inv_lon_diff
         inv_lat = base_lat - inv_lat_diff
@@ -387,7 +387,7 @@ class ParallaxCorrection:
             self.diagnostics["lat_diff"] = lat_diff
             self.diagnostics["shifted_area"] = shifted_area
             self.diagnostics["count"] = xr.DataArray(
-                br.get_count(), dims=("y", "x"), attrs={"area": self.base_area})
+                bur.get_count(), dims=("y", "x"), attrs={"area": self.base_area})
         return (inv_lon, inv_lat)
 
 
