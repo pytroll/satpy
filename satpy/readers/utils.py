@@ -198,10 +198,10 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename):
+def unzip_file(filename, prefix=None):
     """Unzip the file if file is bzipped = ending with 'bz2'."""
     if os.fspath(filename).endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp()
+        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # try pbzip2
         pbzip = which('pbzip2')
