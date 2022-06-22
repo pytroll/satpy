@@ -916,21 +916,23 @@ class RatioSharpenedRGB(GenericCompositor):
                                     'the same size. Must resample first.')
 
         new_attrs = {}
+        optional_datasets = tuple() if optional_datasets is None else optional_datasets
         datasets = self.match_data_arrays(datasets + optional_datasets)
-        colors = ['red', 'green', 'blue']
-        low_res_idx = colors.index(self.high_resolution_band)
         r = datasets[0]
         g = datasets[1]
         b = datasets[2]
-        if optional_datasets:
+        if optional_datasets and self.high_resolution_band is not None:
             LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_band))
             high_res = datasets[3]
             if 'rows_per_scan' in high_res.attrs:
                 new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
+            colors = ['red', 'green', 'blue']
+            low_res_idx = colors.index(self.high_resolution_band)
         else:
             LOG.debug("No sharpening band specified for ratio sharpening")
             high_res = None
+            low_res_idx = 0
 
         rgb = da.map_blocks(
             _ratio_sharpened_rgb,
