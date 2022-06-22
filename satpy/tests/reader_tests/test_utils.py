@@ -280,7 +280,7 @@ class TestHelpers(unittest.TestCase):
 
         filename = 'tester.DAT.bz2'
         whichstr = 'satpy.readers.utils.which'
-        # no bz2 installed
+        # no pbzip2 installed
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
             new_fname = hf.unzip_file(filename)
@@ -288,7 +288,7 @@ class TestHelpers(unittest.TestCase):
             self.assertTrue(os.path.exists(new_fname))
             if os.path.exists(new_fname):
                 os.remove(new_fname)
-        # bz2 installed
+        # pbzip2 installed
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = '/usr/bin/pbzip2'
             new_fname = hf.unzip_file(filename)
