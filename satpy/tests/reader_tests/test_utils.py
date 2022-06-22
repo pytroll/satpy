@@ -288,7 +288,7 @@ class TestHelpers(unittest.TestCase):
             new_fname = hf.unzip_file(filename, prefix=segmentstr)
             self.assertTrue(bz2_mock.read.called)
             self.assertTrue(os.path.exists(new_fname))
-            self.assertEqual(new_fname[5:7], segmentstr)
+            self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
             if os.path.exists(new_fname):
                 os.remove(new_fname)
         # pbzip2 installed without prefix
@@ -297,7 +297,7 @@ class TestHelpers(unittest.TestCase):
             new_fname = hf.unzip_file(filename)
             self.assertTrue(mock_popen.called)
             self.assertTrue(os.path.exists(new_fname))
-            self.assertNotEqual(new_fname[5:7], segmentstr)
+            self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
             if os.path.exists(new_fname):
                 os.remove(new_fname)
 
