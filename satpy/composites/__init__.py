@@ -976,9 +976,9 @@ def _ratio_sharpened_rgb(red, green, blue, high_res=None, low_resolution_index=0
         # we don't need ridiculously high ratios, they just make bright pixels
         np.clip(ratio, 0, 1.5, out=ratio)
 
-        red = high_res if low_resolution_index == 0 else red
-        green = high_res if low_resolution_index == 1 else green
-        blue = high_res if low_resolution_index == 2 else blue
+        red = high_res if low_resolution_index == 0 else red * ratio
+        green = high_res if low_resolution_index == 1 else green * ratio
+        blue = high_res if low_resolution_index == 2 else blue * ratio
 
     # combine the masks
     mask = np.isnan(red) | np.isnan(green) | np.isnan(blue)
