@@ -199,7 +199,16 @@ def get_sub_area(area, xslice, yslice):
 
 
 def unzip_file(filename, prefix=None):
-    """Unzip the file if file is bzipped = ending with 'bz2'."""
+    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+
+    Args:
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
     if os.fspath(filename).endswith('bz2'):
         fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
