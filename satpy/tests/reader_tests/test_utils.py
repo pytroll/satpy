@@ -266,7 +266,7 @@ class TestHelpers(unittest.TestCase):
 
     @mock.patch('satpy.readers.utils.bz2.BZ2File')
     @mock.patch('satpy.readers.utils.Popen')
-    def test_unzip_file_pbzip2(self, mock_popen, mock_bz2):
+    def test_unzip_file(self, mock_popen, mock_bz2):
         """Test the bz2 file unzipping techniques."""
         process_mock = mock.Mock()
         attrs = {'communicate.return_value': (b'output', b'error'),
