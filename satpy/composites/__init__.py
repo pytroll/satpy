@@ -941,6 +941,7 @@ class RatioSharpenedRGB(GenericCompositor):
             low_resolution_index=low_res_idx,
             new_axis=[0],
             meta=np.array((), dtype=r.dtype),
+            dtype=r.dtype,
             chunks=((3,),) + r.chunks,
         )
 
