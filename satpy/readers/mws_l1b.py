@@ -25,7 +25,9 @@ Documentation: https://www.eumetsat.int/media/44139
 """
 
 import logging
+from datetime import datetime
 
+import dask.array as da
 import numpy as np
 from netCDF4 import default_fillvals
 
@@ -38,24 +40,26 @@ logger = logging.getLogger(__name__)
 # parameter name and values are the paths to the variable inside the netcdf
 
 AUX_DATA = {
-    'subsatellite_latitude': 'state/platform/subsatellite_latitude',
-    'subsatellite_longitude': 'state/platform/subsatellite_longitude',
-    'platform_altitude': 'state/platform/platform_altitude',
-    'subsolar_latitude': 'state/celestial/subsolar_latitude',
-    'subsolar_longitude': 'state/celestial/subsolar_longitude',
-    'earth_sun_distance': 'state/celestial/earth_sun_distance',
-    'sun_satellite_distance': 'state/celestial/sun_satellite_distance',
-    'time': 'time',
-    'swath_number': 'data/swath_number',
-    'swath_direction': 'data/swath_direction',
+    'scantime_utc': 'data/navigation/mws_scantime_utc',
+    'solar_azimuth': 'data/navigation/mws_solar_azimuth_angle',
+    'solar_zenith': 'data/navigation/mws_solar_zenith_angle',
+    'satellite_azimuth': 'data/navigation/mws_satellite_azimuth_angle',
+    'satellite_zenith': 'data/navigation/mws_satellite_zenith_angle',
+    'surface_type': 'data/navigation/mws_surface_type',
+    'terrain_elevation': 'data/navigation/mws_terrain_elevation',
     'mws_lat': 'data/navigation/mws_lat',
     'mws_lon': 'data/navigation/mws_lon',
 }
 
 MWS_CHANNEL_NAMES_TO_NUMBER = {'1': 1, '2': 2, '3': 3, '4': 4,
-                               '5': 5, '6': 6, '7': 7, '8': 8}
+                               '5': 5, '6': 6, '7': 7, '8': 8,
+                               '9': 9, '10': 10, '11': 11, '12': 12,
+                               '13': 13, '14': 14, '15': 15, '16': 16,
+                               '17': 17, '18': 18, '19': 19, '20': 20,
+                               '21': 21, '22': 22, '23': 23, '24': 24}
 
-MWS_CHANNEL_NAMES = ['1', '2', '3', '4', '5', '6']
+MWS_CHANNEL_NAMES = list(MWS_CHANNEL_NAMES_TO_NUMBER.keys())
+MWS_CHANNELS = set(MWS_CHANNEL_NAMES_TO_NUMBER.keys())
 
 
 def get_channel_index_from_name(chname):
@@ -84,9 +88,6 @@ class MWSL1BFile(NetCDF4FileHandler):
 
     """
 
-    # FIXME!
-    #
-    # After launch: translate to Metop-X instead?
     _platform_name_translate = {
         "SGA1": "Metop-SG-A1",
         "SGA2": "Metop-SG-A2",
@@ -109,24 +110,56 @@ class MWSL1BFile(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return self.filename_info['start_time']
+        return datetime.strptime(self['/attr/sensing_start_time_utc'],
+                                 '%Y-%m-%d %H:%M:%S.%f')
 
     @property
     def end_time(self):
         """Get end time."""
-        return self.filename_info['end_time']
+        return datetime.strptime(self['/attr/sensing_end_time_utc'],
+                                 '%Y-%m-%d %H:%M:%S.%f')
 
-    def get_dataset(self, key, info=None):
+    @property
+    def sensor(self):
+        """Get the sensor name."""
+        return self['/attr/instrument']
+
+    @property
+    def platform_name(self):
+        """Get the platform name."""
+        return self._platform_name_translate.get(self['/attr/spacecraft'])
+
+    @property
+    def sub_satellite_longitude_start(self):
+        """Get the longitude of sub-satellite point at start of the product."""
+        return self['status/satellite/subsat_longitude_start'].data.item()
+
+    @property
+    def sub_satellite_latitude_start(self):
+        """Get the latitude of sub-satellite point at start of the product."""
+        return self['status/satellite/subsat_latitude_start'].data.item()
+
+    @property
+    def sub_satellite_longitude_end(self):
+        """Get the longitude of sub-satellite point at end of the product."""
+        return self['status/satellite/subsat_longitude_end'].data.item()
+
+    @property
+    def sub_satellite_latitude_end(self):
+        """Get the latitude of sub-satellite point at end of the product."""
+        return self['status/satellite/subsat_latitude_end'].data.item()
+
+    def get_dataset(self, dataset_id, info=None):
         """Load a dataset."""
-        logger.debug('Reading {} from {}'.format(key['name'], self.filename))
+        logger.debug('Reading {} from {}'.format(dataset_id['name'], self.filename))
 
-        if _get_aux_data_name_from_dsname(key['name']) is not None:
-            return self._get_dataset_aux_data(key['name'], info=info)
-        elif any(lb in key['name'] for lb in {"1", "2", "3", "4"}):
-            return self._get_dataset_channel(key, info=info)
+        if _get_aux_data_name_from_dsname(dataset_id['name']) is not None:
+            return self._get_dataset_aux_data(dataset_id['name'], info=info)
+        elif any(lb in dataset_id['name'] for lb in MWS_CHANNELS):
+            return self._get_dataset_channel(dataset_id, info=info)
         else:
             raise ValueError("Unknown dataset key, not a channel, quality or auxiliary data: "
-                             f"{key['name']:s}")
+                             f"{dataset_id['name']:s}")
 
     def _standardize_dims(self, variable):
         """Standardize dims to y, x."""
@@ -166,17 +199,32 @@ class MWSL1BFile(NetCDF4FileHandler):
         # Manage the attributes of the dataset
         data.attrs.setdefault('units', None)
         data.attrs.update(info)
-        # variable.attrs.update(self._get_global_attributes()) # FIXME! See VII reader
+
+        i = getattr(data, 'attrs', {})
+        i.update(info)
+        i.update({
+            "platform_name": self.platform_name,
+            "sensor": self.sensor,
+            "orbital_parameters": {'sub_satellite_latitude_start': self.sub_satellite_latitude_start,
+                                   'sub_satellite_longitude_start': self.sub_satellite_longitude_start,
+                                   'sub_satellite_latitude_end': self.sub_satellite_latitude_end,
+                                   'sub_satellite_longitude_end': self.sub_satellite_longitude_end},
+        })
+        i.update(key.to_dict())
+        data.attrs.update(i)
 
         return data
 
     def _get_dataset_aux_data(self, dsname, info=None):
         """Get the auxiliary data arrays using the index map."""
-        # Geolocation:
-        if dsname in ['mws_lat', 'mws_lon']:
+        # Geolocation and navigation data:
+        if dsname in ['mws_lat', 'mws_lon',
+                      'solar_azimuth', 'solar_zenith',
+                      'satellite_azimuth', 'satellite_zenith',
+                      'surface_type', 'terrain_elevation']:
             var_key = AUX_DATA.get(dsname)
         else:
-            raise NotImplementedError("Only lons and lats supported - no other auxillary data yet...")
+            raise NotImplementedError("Dataset %s not supported..." % dsname)
 
         try:
             variable = self[var_key]
@@ -185,10 +233,13 @@ class MWSL1BFile(NetCDF4FileHandler):
             return None
 
         # Scale the data:
-        variable.data = variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset']
+        missing_value = variable.attrs['missing_value']
+        if 'scale_factor' in variable.attrs and 'add_offset' in variable.attrs:
+            variable.data = da.where(variable.data == missing_value, np.nan,
+                                     variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset'])
 
         # Manage the attributes of the dataset
         variable.attrs.setdefault('units', None)
-        variable.attrs.update(info)
-        # variable.attrs.update(self._get_global_attributes()) # FIXME! See VII reader
+        if info:
+            variable.attrs.update(info)
         return variable

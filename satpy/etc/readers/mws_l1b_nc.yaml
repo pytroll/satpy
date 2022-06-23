@@ -1,6 +1,8 @@
 reader:
   name: mws_l1b_nc
-  description: EPS-SG l1b Reader for reading the MWS (Microwave Sounder) level-1 data
+  short_name: MWS L1B RAD NetCDF4
+  long_name: EPS-SG MWS L1B Radiance (NetCDF4)
+  description: Reader for the EPS-SG l1b MWS (Microwave Sounder) level-1 files in netCDF4.
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [mws,]
   default_channels: []
@@ -36,7 +38,7 @@ datasets:
            bandwidth: 0.270
            unit: GHz
         polarization: 'QH'
-        resolution: 40000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -51,7 +53,7 @@ datasets:
            bandwidth: 0.180
            unit: GHz
         polarization: 'QH'
-        resolution: 40000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -66,7 +68,7 @@ datasets:
            bandwidth: 0.180
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -81,7 +83,7 @@ datasets:
            bandwidth: 0.400
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -97,7 +99,7 @@ datasets:
            bandwidth: 0.140
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -113,7 +115,7 @@ datasets:
            bandwidth: 0.170
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -129,7 +131,7 @@ datasets:
            bandwidth: 0.142
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -144,7 +146,7 @@ datasets:
            bandwidth: 0.400
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -159,7 +161,7 @@ datasets:
            bandwidth: 0.400
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -174,7 +176,7 @@ datasets:
            bandwidth: 0.330
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -189,7 +191,7 @@ datasets:
            bandwidth: 0.330
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -206,7 +208,7 @@ datasets:
            bandwidth: 0.078
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -224,7 +226,7 @@ datasets:
            bandwidth: 0.036
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -242,7 +244,7 @@ datasets:
            bandwidth: 0.016
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -260,7 +262,7 @@ datasets:
            bandwidth: 0.008
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -278,7 +280,7 @@ datasets:
            bandwidth: 0.004
            unit: GHz
         polarization: 'QH'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -325,7 +327,7 @@ datasets:
            bandwidth: 2.0
            unit: GHz
         polarization: 'QV'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -341,7 +343,7 @@ datasets:
            bandwidth: 2.0
            unit: GHz
         polarization: 'QV'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -357,7 +359,7 @@ datasets:
            bandwidth: 1.0
            unit: GHz
         polarization: 'QV'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -373,7 +375,7 @@ datasets:
            bandwidth: 1.0
            unit: GHz
         polarization: 'QV'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -389,7 +391,7 @@ datasets:
            bandwidth: 0.5
            unit: GHz
         polarization: 'QV'
-        resolution: 20000
+        resolution: 17000
         calibration:
           brightness_temperature:
             standard_name: toa_brightness_temperature
@@ -413,20 +415,70 @@ datasets:
             - mws_lat
         file_type: mws_l1b_nc
 
+# --- Coordinates ---
 
     mws_lat:
         name: mws_lat
-        resolution: 40000
+        resolution: 17000
         file_type: mws_l1b_nc
         standard_name: latitude
         units: degrees_north
 
     mws_lon:
         name: mws_lon
-        resolution: 40000
+        resolution: 17000
         file_type: mws_l1b_nc
         standard_name: longitude
         units: degrees_east
+
+# --- Navigation data ---
+
+    solar_azimuth:
+        name: solar_azimuth
+        standard_name: solar_azimuth_angle
+        file_type: mws_l1b_nc
+        #file_key: data/navigation/mws_solar_azimuth_angle
+        coordinates:
+            - mws_lon
+            - mws_lat
+    solar_zenith:
+        name: solar_zenith
+        standard_name: solar_zenith_angle
+        file_type: mws_l1b_nc
+        coordinates:
+            - mws_lon
+            - mws_lat
+    satellite_azimuth:
+        name: satellite_azimuth
+        standard_name: satellite_azimuth_angle
+        file_type: mws_l1b_nc
+        coordinates:
+            - mws_lon
+            - mws_lat
+    satellite_zenith:
+        name: satellite_zenith
+        standard_name: satellite_zenith_angle
+        file_type: mws_l1b_nc
+        coordinates:
+            - mws_lon
+            - mws_lat
+
+# --- Land surface data ---
+    surface_type:
+        name: surface_type
+        standard_name: surface_type
+        file_type: mws_l1b_nc
+        coordinates:
+            - mws_lon
+            - mws_lat
+    terrain_elevation:
+        name: terrain_elevation
+        standard_name: terrain_elevation
+        file_type: mws_l1b_nc
+        coordinates:
+            - mws_lon
+            - mws_lat
+
 
 file_types:
     mws_l1b_nc:
