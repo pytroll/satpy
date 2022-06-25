@@ -41,4 +41,4 @@ def jma_true_color_reproduction(img, **kwargs):
         output = da.dot(img_data.T, ccm.T)
         return output.T
 
-    apply_enhancement(img.data, func, pass_dask=True)
+    apply_enhancement(img.data, func, pass_dask=True, use_map_blocks=False)
