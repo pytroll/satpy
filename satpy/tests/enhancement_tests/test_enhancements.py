@@ -64,6 +64,33 @@ class TestEnhancementStretch:
         self.rgb = xr.DataArray(rgb_data, dims=('bands', 'y', 'x'),
                                 coords={'bands': ['R', 'G', 'B']})
 
+    @pytest.mark.parametrize(
+        ("pass_dask", "use_map_blocks", "exp_call_cls"),
+        [
+            (False, False, xr.DataArray),
+            (False, True, xr.DataArray),  # no map_blocks
+            (True, False, da.Array),
+            (True, True, np.ndarray),
+        ],
+    )
+    @pytest.mark.parametrize("input_data_name", ["ch1", "ch2", "rgb"])
+    def test_apply_enhancement(self, input_data_name, pass_dask, use_map_blocks, exp_call_cls):
+        """Test the 'apply_enhancement' utility function."""
+        from satpy.enhancements import apply_enhancement
+
+        def _enh_func(img):
+            def _calc_func(data):
+                assert isinstance(data, exp_call_cls)
+                return data
+
+            return apply_enhancement(img.data, _calc_func, pass_dask=pass_dask, use_map_blocks=use_map_blocks)
+
+        in_data = getattr(self, input_data_name)
+        exp_data = in_data.values
+        if "bands" not in in_data.coords:
+            exp_data = exp_data[np.newaxis, :, :]
+        run_and_check_enhancement(_enh_func, in_data, exp_data)
+
     def test_cira_stretch(self):
         """Test applying the cira_stretch."""
         from satpy.enhancements import cira_stretch

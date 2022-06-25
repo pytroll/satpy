@@ -75,35 +75,65 @@ def apply_enhancement(
             has no effect.
 
     """
-    attrs = data.attrs
     bands = data.coords['bands'].values
     if exclude is None:
         exclude = ['A'] if 'A' in bands else []
 
     if separate:
-        data_arrs = []
-        for idx, band_name in enumerate(bands):
-            band_data = data.sel(bands=[band_name])
-            if band_name in exclude:
-                # don't modify alpha
-                data_arrs.append(band_data)
-                continue
+        return _enhance_separate_bands(
+            func,
+            data,
+            bands,
+            exclude,
+            pass_dask,
+            use_map_blocks,
+        )
 
-            if pass_dask:
-                dims = band_data.dims
-                coords = band_data.coords
-                d_arr = func(band_data.data, index=idx)
-                band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-            else:
-                band_data = func(band_data, index=idx)
+    return _enhance_whole_array(
+        func,
+        data,
+        bands,
+        exclude,
+        pass_dask,
+        use_map_blocks,
+    )
+
+
+def _enhance_separate_bands(func, data, bands, exclude, pass_dask, use_map_blocks):
+    attrs = data.attrs
+    data_arrs = []
+    for idx, band_name in enumerate(bands):
+        band_data = data.sel(bands=[band_name])
+        if band_name in exclude:
+            # don't modify alpha
             data_arrs.append(band_data)
-            # we assume that the func can add attrs
-            attrs.update(band_data.attrs)
+            continue
 
-        data.data = xr.concat(data_arrs, dim='bands').data
-        data.attrs = attrs
-        return data
+        if pass_dask:
+            dims = band_data.dims
+            coords = band_data.coords
+            if use_map_blocks:
+                d_arr = da.map_blocks(func,
+                                      band_data.data,
+                                      meta=np.array((), dtype=band_data.dtype),
+                                      dtype=band_data.dtype,
+                                      chunks=band_data.chunks)
+            else:
+                d_arr = func(band_data.data, index=idx)
+            band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
+        else:
+            band_data = func(band_data, index=idx)
+        data_arrs.append(band_data)
+        # we assume that the func can add attrs
+        attrs.update(band_data.attrs)
 
+    data.data = xr.concat(data_arrs, dim='bands').data
+    data.attrs = attrs
+    return data
+
+
+def _enhance_whole_array(func, data, bands, exclude, pass_dask, use_map_blocks):
+    attrs = data.attrs
     band_data = data.sel(bands=[b for b in bands
                                 if b not in exclude])
     if pass_dask:
