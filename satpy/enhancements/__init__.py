@@ -49,8 +49,14 @@ def invert(img, *args):
     return img.invert(*args)
 
 
-def apply_enhancement(data, func, exclude=None, separate=False,
-                      pass_dask=False):
+def apply_enhancement(
+        data,
+        func,
+        exclude=None,
+        separate=False,
+        pass_dask=False,
+        use_map_blocks=True,
+):
     """Apply `func` to the provided data.
 
     Args:
@@ -60,7 +66,13 @@ def apply_enhancement(data, func, exclude=None, separate=False,
                             in the calculations.
         separate (bool): Apply `func` one band at a time. Default is False.
         pass_dask (bool): Pass the underlying dask array instead of the
-                          xarray.DataArray.
+            xarray.DataArray.
+        use_map_blocks (bool): If this option and ``pass_dask`` are ``True``,
+            run the provided function using :func:`dask.array.core.map_blocks`.
+            This means dask will call the provided function with a single chunk
+            as a numpy array. If ``False`` the function is passed the
+            underlying dask array directly. If ``pass_dask`` is ``False`` this
+            has no effect.
 
     """
     attrs = data.attrs
@@ -97,7 +109,14 @@ def apply_enhancement(data, func, exclude=None, separate=False,
     if pass_dask:
         dims = band_data.dims
         coords = band_data.coords
-        d_arr = func(band_data.data)
+        if use_map_blocks:
+            d_arr = da.map_blocks(func,
+                                  band_data.data,
+                                  meta=np.array((), dtype=band_data.dtype),
+                                  dtype=band_data.dtype,
+                                  chunks=band_data.chunks)
+        else:
+            d_arr = func(band_data.data)
         band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
     else:
         band_data = func(band_data)
@@ -185,15 +204,14 @@ def piecewise_linear_stretch(
         xp = np.asarray(xp) / reference_scale_factor
         fp = np.asarray(fp) / reference_scale_factor
 
-    def func(band_data, xp, fp, index=None):
+    def func(band_data, xp, fp):
         # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
-        band_data = xr.DataArray(da.clip(band_data.data.map_blocks(np.interp, xp=xp, fp=fp), 0, 1),
-                                 coords=band_data.coords, dims=band_data.dims, name=band_data.name,
-                                 attrs=band_data.attrs)
-        return band_data
+        interp_data = np.interp(band_data, xp=xp, fp=fp)
+        interp_data = np.clip(interp_data, 0, 1, out=interp_data)
+        return interp_data
 
     func_with_kwargs = partial(func, xp=xp, fp=fp)
-    return apply_enhancement(img.data, func_with_kwargs, separate=True)
+    return apply_enhancement(img.data, func_with_kwargs, separate=False, pass_dask=True)
 
 
 def cira_stretch(img, **kwargs):
