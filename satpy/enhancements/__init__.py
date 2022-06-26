@@ -109,20 +109,7 @@ def _enhance_separate_bands(func, data, bands, exclude, pass_dask, use_map_block
             data_arrs.append(band_data)
             continue
 
-        if pass_dask:
-            dims = band_data.dims
-            coords = band_data.coords
-            if use_map_blocks:
-                d_arr = da.map_blocks(func,
-                                      band_data.data,
-                                      meta=np.array((), dtype=band_data.dtype),
-                                      dtype=band_data.dtype,
-                                      chunks=band_data.chunks)
-            else:
-                d_arr = func(band_data.data, index=idx)
-            band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-        else:
-            band_data = func(band_data, index=idx)
+        band_data = _call_enh_func(func, band_data, pass_dask, use_map_blocks, {"index": idx})
         data_arrs.append(band_data)
         # we assume that the func can add attrs
         attrs.update(band_data.attrs)
@@ -136,20 +123,7 @@ def _enhance_whole_array(func, data, bands, exclude, pass_dask, use_map_blocks):
     attrs = data.attrs
     band_data = data.sel(bands=[b for b in bands
                                 if b not in exclude])
-    if pass_dask:
-        dims = band_data.dims
-        coords = band_data.coords
-        if use_map_blocks:
-            d_arr = da.map_blocks(func,
-                                  band_data.data,
-                                  meta=np.array((), dtype=band_data.dtype),
-                                  dtype=band_data.dtype,
-                                  chunks=band_data.chunks)
-        else:
-            d_arr = func(band_data.data)
-        band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-    else:
-        band_data = func(band_data)
+    band_data = _call_enh_func(func, band_data, pass_dask, use_map_blocks, {})
 
     attrs.update(band_data.attrs)
     # combine the new data with the excluded data
@@ -157,8 +131,26 @@ def _enhance_whole_array(func, data, bands, exclude, pass_dask, use_map_blocks):
                          dim='bands')
     data.data = new_data.sel(bands=bands).data
     data.attrs = attrs
-
     return data
+
+
+def _call_enh_func(func, band_data_arr, pass_dask, use_map_blocks, extra_kwargs):
+    if pass_dask:
+        dims = band_data_arr.dims
+        coords = band_data_arr.coords
+        if use_map_blocks:
+            d_arr = da.map_blocks(func,
+                                  band_data_arr.data,
+                                  meta=np.array((), dtype=band_data_arr.dtype),
+                                  dtype=band_data_arr.dtype,
+                                  chunks=band_data_arr.chunks,
+                                  **extra_kwargs)
+        else:
+            d_arr = func(band_data_arr.data, **extra_kwargs)
+        band_data_arr = xr.DataArray(d_arr, dims=dims, coords=coords)
+    else:
+        band_data_arr = func(band_data_arr, **extra_kwargs)
+    return band_data_arr
 
 
 def crefl_scaling(img, **kwargs):
