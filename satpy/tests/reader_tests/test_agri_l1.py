@@ -223,7 +223,7 @@ def _create_filenames_from_resolutions(*resolutions):
 class Test_HDF_AGRI_L1_cal:
     """Test VIRR L1B Reader."""
 
-    yaml_file = "agri_l1.yaml"
+    yaml_file = "agri_fy4a_l1.yaml"
 
     def setup(self):
         """Wrap HDF5 file handler with our own fake handler."""

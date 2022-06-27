@@ -177,7 +177,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             '/attr/End Line Number': np.array(1),
             '/attr/Observing Beginning Date': '2019-06-03', '/attr/Observing Beginning Time': '00:30:01.807',
             '/attr/Observing Ending Date': '2019-06-03', '/attr/Observing Ending Time': '00:34:07.572',
-            '/attr/Satellite Name': 'FY4A', '/attr/Sensor Identification Code': 'AGRI', '/attr/Sensor Name': 'AGRI',
+            '/attr/Satellite Name': 'FY4B', '/attr/Sensor Identification Code': 'GHI', '/attr/Sensor Name': 'GHI',
         }
 
         data = {}
@@ -200,8 +200,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 def _create_filenames_from_resolutions(*resolutions):
     """Create filenames from the given resolutions."""
     if 'GEO' in resolutions:
-        return ["FY4A-_GHI---_N_REGX_1330E_L1-_GEO-_MULT_NOM_20220613145300_20220613145359_2000M_V0001.HDF"]
-    pattern = ("FY4A-_GHI---_N_REGX_1330E_L1-_FDI-_MULT_NOM_20220613145300_20220613145359_"
+        return ["FY4B-_GHI---_N_REGX_1330E_L1-_GEO-_MULT_NOM_20220613145300_20220613145359_2000M_V0001.HDF"]
+    pattern = ("FY4B-_GHI---_N_REGX_1330E_L1-_FDI-_MULT_NOM_20220613145300_20220613145359_"
                "{resolution:04d}M_V0001.HDF")
     return [pattern.format(resolution=resolution) for resolution in resolutions]
 
