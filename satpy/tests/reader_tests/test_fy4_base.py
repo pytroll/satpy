@@ -17,8 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The fy4_base reader tests package."""
 
-import pytest
 from unittest import mock
+
+import pytest
+
 from satpy.readers.fy4_base import FY4Base
 from satpy.tests.reader_tests.test_agri_l1 import FakeHDF5FileHandler2
 
