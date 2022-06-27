@@ -111,6 +111,7 @@ class FY4Base(HDF5FileHandler):
 
     @cached_property
     def reflectance_coeffs(self):
+        """Retrieve the reflectance calibration coefficients from the HDF file."""
         # using the corresponding SCALE and OFFSET
         if self.PLATFORM_ID == 'FY-4A':
             cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
