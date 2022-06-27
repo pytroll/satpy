@@ -83,9 +83,14 @@ class HDF_AGRI_L1(FY4Base):
         pdict['loff'] = self._LOFF_list[RESOLUTION_LIST.index(res)]
         pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
         pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
-        pdict['a'] = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
+        if self.PLATFORM_ID == 'FY-4A':
+            pdict['a'] = self.file_content['/attr/dEA'] * 1e3 # equator radius (m)
+        else:
+            pdict['a'] = self.file_content['/attr/dEA'] # equator radius (m)
         pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
         pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
+        if self.PLATFORM_ID == 'FY-4B':
+            pdict['h'] = pdict['h'] - pdict['a']
 
         pdict['ssp_lon'] = self.file_content['/attr/NOMCenterLon']
         pdict['nlines'] = self.file_content['/attr/RegLength']
@@ -99,18 +104,8 @@ class HDF_AGRI_L1(FY4Base):
 
         pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
 
-        if key['name'] in b500:
-            pdict['a_name'] = self.filename_info['observation_type'] + '_500m'
-            pdict['p_id'] = 'FY-4A, 500m'
-        elif key['name'] in b1000:
-            pdict['a_name'] = self.filename_info['observation_type'] + '_1000m'
-            pdict['p_id'] = 'FY-4A, 1000m'
-        elif key['name'] in b2000:
-            pdict['a_name'] = self.filename_info['observation_type'] + '_2000m'
-            pdict['p_id'] = 'FY-4A, 2000m'
-        else:
-            pdict['a_name'] = self.filename_info['observation_type'] + '_4000m'
-            pdict['p_id'] = 'FY-4A, 4000m'
+        pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}'
+        pdict['p_id'] = f'{self.PLATFORM_ID}, {res}m'
 
         pdict['coff'] = pdict['coff'] + 0.5
         pdict['nlines'] = pdict['nlines'] - 1
