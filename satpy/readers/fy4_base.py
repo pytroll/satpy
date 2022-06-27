@@ -31,6 +31,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy._compat import cached_property
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,10 @@ class FY4Base(HDF5FileHandler):
                                'FY4B': 'FY-4B',
                                'FY4C': 'FY-4C'}
 
+        try:
+            self.PLATFORM_ID = self.PLATFORM_NAMES[filename_info['platform_id']]
+        except KeyError:
+            raise KeyError(f"Unsupported platform ID: {filename_info['platform_id']}")
         self.CHANS_ID = 'NOMChannel'
         self.SAT_ID = 'NOMSatellite'
         self.SUN_ID = 'NOMSun'
@@ -104,6 +109,17 @@ class FY4Base(HDF5FileHandler):
     def _getitem(block, lut):
         return lut[block]
 
+    @cached_property
+    def reflectance_coeffs(self):
+        # using the corresponding SCALE and OFFSET
+        if self.PLATFORM_ID == 'FY-4A':
+            cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
+        elif self.PLATFORM_ID == 'FY-4B':
+            cal_coef = 'Calibration/CALIBRATION_COEF(SCALE+OFFSET)'
+        else:
+            raise KeyError(f"Unsupported platform ID for calibration: {self.PLATFORM_ID}")
+        return self.get(cal_coef).values
+
     def calibrate(self, data, ds_info, ds_name, file_key):
         """Calibrate the data."""
         # Check if calibration is present, if not assume dataset is an angle
@@ -131,20 +147,17 @@ class FY4Base(HDF5FileHandler):
         """Calibrate to reflectance [%]."""
         logger.debug("Calibrating to reflectances")
         # using the corresponding SCALE and OFFSET
-        if self.sensor == 'AGRI':
-            cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
-        elif self.sensor == 'GHI':
-            cal_coef = 'Calibration/CALIBRATION_COEF(SCALE+OFFSET)'
-        else:
-            raise ValueError(f'Unsupported sensor type: {self.sensor}')
+        if self.sensor != 'AGRI' and self.sensor != 'GHI':
+            ValueError(f'Unsupported sensor type: {self.sensor}')
 
-        num_channel = self.get(cal_coef).shape[0]
+        coeffs = self.reflectance_coeffs
+        num_channel = coeffs.shape[0]
 
         if self.sensor == 'AGRI' and num_channel == 1:
             # only channel_2, resolution = 500 m
             channel_index = 0
-        data.attrs['scale_factor'] = self.get(cal_coef)[channel_index, 0].values.item()
-        data.attrs['add_offset'] = self.get(cal_coef)[channel_index, 1].values.item()
+        data.attrs['scale_factor'] = coeffs[channel_index, 0].item()
+        data.attrs['add_offset'] = coeffs[channel_index, 1].item()
         data = self.scale(data, data.attrs['scale_factor'], data.attrs['add_offset'])
         data *= 100
         ds_info['valid_range'] = (data.attrs['valid_range'] * data.attrs['scale_factor'] + data.attrs['add_offset'])
