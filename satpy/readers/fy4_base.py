@@ -30,8 +30,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy._compat import cached_property
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
 
