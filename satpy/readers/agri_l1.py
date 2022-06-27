@@ -84,9 +84,9 @@ class HDF_AGRI_L1(FY4Base):
         pdict['cfac'] = self._CFAC_list[RESOLUTION_LIST.index(res)]
         pdict['lfac'] = self._LFAC_list[RESOLUTION_LIST.index(res)]
         if self.PLATFORM_ID == 'FY-4A':
-            pdict['a'] = self.file_content['/attr/dEA'] * 1e3 # equator radius (m)
+            pdict['a'] = self.file_content['/attr/dEA'] * 1e3  # equator radius (m)
         else:
-            pdict['a'] = self.file_content['/attr/dEA'] # equator radius (m)
+            pdict['a'] = self.file_content['/attr/dEA']  # equator radius (m)
         pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
         pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
         if self.PLATFORM_ID == 'FY-4B':
