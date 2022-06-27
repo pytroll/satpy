@@ -98,10 +98,6 @@ class HDF_AGRI_L1(FY4Base):
 
         pdict['scandir'] = 'S2N'
 
-        b500 = ['C02']
-        b1000 = ['C01', 'C03']
-        b2000 = ['C04', 'C05', 'C06', 'C07']
-
         pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
 
         pdict['a_name'] = f'{self.filename_info["observation_type"]}_{res}'
