@@ -44,6 +44,11 @@ class HDF_AGRI_L1(FY4Base):
         ds_name = dataset_id['name']
         logger.debug('Reading in get_dataset %s.', ds_name)
         file_key = ds_info.get('file_key', ds_name)
+        if self.PLATFORM_ID == 'FY-4B':
+            if self.CHANS_ID in file_key:
+                file_key = f'Data/{file_key}'
+            elif self.SUN_ID in file_key or self.SAT_ID in file_key:
+                file_key = f'Navigation/{file_key}'
         data = self.get(file_key)
         if data.ndim >= 2:
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
