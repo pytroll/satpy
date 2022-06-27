@@ -39,12 +39,18 @@ CHANNELS_BY_RESOLUTION = {500: ["C02"],
 
 RESOLUTION_LIST = [500, 1000, 2000, 4000]
 
-AREA_EXTENTS_BY_RESOLUTION = {
+AREA_EXTENTS_BY_RESOLUTION = {'FY4A': {
     500:  (-5495771.007913081, 5495271.006001793, -5493771.000267932, 5495771.007913081),
     1000: (-5495521.074086424, 5494521.070251633, -5491521.058747265, 5495521.074086424),
     2000: (-5495021.206414789, 5493021.198696349, -5487021.175541028, 5495021.206414789),
     4000: (-5494021.20255557, 5490021.187118688, -5478021.140808046, 5494021.20255557)
-}
+},
+    'FY4B': {
+    500:  (-5494791.496459, 5494291.583663, -5492791.845275, 5494791.496459),
+    1000: (-5494541.607178, 5493541.781574, -5490542.304762, 5494541.607178),
+    2000: (-5494041.828598, 5492042.177341, -5486043.22357, 5494041.828598),
+    4000: (-5493042.002969, 5489042.700455, -5477044.792913, 5493042.002969)
+}}
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -135,8 +141,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                                                            [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
                                                                            [dim_0, dim_1], file_type)
+            data['Data/NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
+                                                                                [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
                                                                          [dim_0, dim_1], file_type)
+            data['Calibration/CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
+                                                                                     [dim_0, dim_1], file_type)
         return data
 
     def _get_500m_data(self, file_type):
@@ -172,6 +182,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         dim_1 = 5
         data = {'NOMSunAzimuth': self.make_test_data('NUL', 'NUL', 'GEO',
                                                      [dim_0, dim_1], file_type)}
+        data['Navigation/NOMSunAzimuth'] = self.make_test_data('NUL', 'NUL', 'GEO',
+                                                               [dim_0, dim_1], file_type)
         return data
 
     def get_test_content(self, filename, filename_info, filetype_info):
@@ -211,11 +223,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         return test_content
 
 
-def _create_filenames_from_resolutions(*resolutions):
+def _create_filenames_from_resolutions(satname, *resolutions):
     """Create filenames from the given resolutions."""
     if 'GEO' in resolutions:
-        return ["FY4A-_AGRI--_N_REGC_1047E_L1-_GEO-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF"]
-    pattern = ("FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
+        return [f"{satname}-_AGRI--_N_REGC_1047E_L1-_GEO-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF"]
+    pattern = (f"{satname}-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
                "{resolution:04d}M_V0001.HDF")
     return [pattern.format(resolution=resolution) for resolution in resolutions]
 
@@ -236,6 +248,7 @@ class Test_HDF_AGRI_L1_cal:
         self.p = mock.patch.object(HDF_AGRI_L1.__class__, (self.fy4,))
         self.fake_handler = self.fy4.start()
         self.p.is_local = True
+        self.satname = 'FY4A'
 
         self.expected = {
                     1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
@@ -326,9 +339,11 @@ class Test_HDF_AGRI_L1_cal:
             assert res[band_name].dtype == np.uint16
             assert res[band_name].attrs['units'] == "1"
 
-    def test_agri_geo(self):
+    @pytest.mark.parametrize("satname", ['FY4A', 'FY4B'])
+    def test_agri_geo(self, satname):
         """Test loading data for angles."""
         from satpy.tests.utils import make_dsq
+        self.satname = satname
         reader = self._create_reader_for_resolutions('GEO')
         band_name = 'solar_azimuth_angle'
         ds_ids = [make_dsq(name=band_name)]
@@ -340,7 +355,7 @@ class Test_HDF_AGRI_L1_cal:
 
     def _create_reader_for_resolutions(self, *resolutions):
         from satpy.readers import load_reader
-        filenames = _create_filenames_from_resolutions(*resolutions)
+        filenames = _create_filenames_from_resolutions(self.satname, *resolutions)
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
         assert len(filenames) == len(files)
@@ -350,8 +365,10 @@ class Test_HDF_AGRI_L1_cal:
         return reader
 
     @pytest.mark.parametrize("resolution_to_test", RESOLUTION_LIST)
-    def test_agri_for_one_resolution(self, resolution_to_test):
+    @pytest.mark.parametrize("satname", ['FY4A', 'FY4B'])
+    def test_agri_for_one_resolution(self, resolution_to_test, satname):
         """Test loading data when only one resolution is available."""
+        self.satname = satname
         reader = self._create_reader_for_resolutions(resolution_to_test)
 
         available_datasets = reader.available_dataset_ids
@@ -362,7 +379,7 @@ class Test_HDF_AGRI_L1_cal:
         self._check_calibration_and_units(band_names, res)
         for band_name in band_names:
             np.testing.assert_allclose(res[band_name].attrs['area'].area_extent,
-                                       AREA_EXTENTS_BY_RESOLUTION[resolution_to_test])
+                                       AREA_EXTENTS_BY_RESOLUTION[satname][resolution_to_test])
 
     def _check_calibration_and_units(self, band_names, result):
         for index, band_name in enumerate(band_names):

@@ -18,8 +18,9 @@
 """The fy4_base reader tests package."""
 
 import pytest
-
+from unittest import mock
 from satpy.readers.fy4_base import FY4Base
+from satpy.tests.reader_tests.test_agri_l1 import FakeHDF5FileHandler2
 
 
 class Test_FY4Base:
@@ -27,17 +28,31 @@ class Test_FY4Base:
 
     def setup(self):
         """Initialise the tests."""
-        self.fy4 = FY4Base
-        self.fy4.sensor = 'Bad'
+        self.p = mock.patch.object(FY4Base, '__bases__', (FakeHDF5FileHandler2,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+        self.file_type = {'file_type': 'agri_l1_0500m'}
+
+    def teardown(self):
+        """Stop wrapping the HDF5 file handler."""
+        self.p.stop()
 
     def test_badsensor(self):
         """Test case where we pass a bad sensor name, must be GHI or AGRI."""
+        fy4 = FY4Base(None, {'platform_id': 'FY4A', 'instrument': 'FCI'}, self.file_type)
         with pytest.raises(ValueError):
-            self.fy4.calibrate_to_reflectance(self.fy4, None, None, None)
+            fy4.calibrate_to_reflectance(None, None, None)
         with pytest.raises(ValueError):
-            self.fy4.calibrate_to_bt(self.fy4, None, None, None)
+            fy4.calibrate_to_bt(None, None, None)
 
     def test_badcalibration(self):
         """Test case where we pass a bad calibration type, radiance is not supported."""
+        fy4 = FY4Base(None, {'platform_id': 'FY4A', 'instrument': 'AGRI'}, self.file_type)
         with pytest.raises(NotImplementedError):
-            self.fy4.calibrate(self.fy4, None, {'calibration': 'radiance'}, None, None)
+            fy4.calibrate(None, {'calibration': 'radiance'}, None, None)
+
+    def test_badplatform(self):
+        """Test case where we pass a bad calibration type, radiance is not supported."""
+        with pytest.raises(KeyError):
+            FY4Base(None, {'platform_id': 'FY3D', 'instrument': 'AGRI'}, self.file_type)
