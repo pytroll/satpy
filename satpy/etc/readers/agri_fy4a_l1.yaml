@@ -3,7 +3,7 @@
 #  - http://fy4.nsmc.org.cn/data/en/data/realtime.html
 
 reader:
-  name: agri_l1
+  name: agri_fy4a_l1
   description: FY-4A AGRI instrument HDF5 reader
   sensors: [agri]
   default_channels:
