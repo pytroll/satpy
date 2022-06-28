@@ -301,6 +301,12 @@ the base Satpy installation.
     * - Arctica-M (N1) MSU-GS/A data in HDF5 format
       - `msu_gsa_l1b`
       - Beta
+    * - EPS-SG ICI level-1b netCDF format
+      - `ici_l1b_nc`
+      - Beta
+    * - EPS-SG MWI level-1b netCDF format
+      - `mwi_l1b_nc`
+      - Beta
 
 Indices and tables
 ==================
