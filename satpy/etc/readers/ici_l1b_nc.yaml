@@ -155,7 +155,7 @@ datasets:
     name: '1'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_183
-    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    coordinates: [lon_pixels_horn_1, lat_pixels_horn_1]
     n_183: 0
     chan_index: 0
     frequency_double_sideband:
@@ -176,7 +176,7 @@ datasets:
     name: '2'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_183
-    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    coordinates: [lon_pixels_horn_1, lat_pixels_horn_1]
     n_183: 1
     chan_index: 1
     frequency_double_sideband:
@@ -197,7 +197,7 @@ datasets:
     name: '3'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_183
-    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    coordinates: [lon_pixels_horn_1, lat_pixels_horn_1]
     n_183: 2
     chan_index: 2
     frequency_double_sideband:
@@ -218,7 +218,7 @@ datasets:
     name: '4'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_243
-    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+    coordinates: [lon_pixels_horn_2, lat_pixels_horn_2]
     n_243: 0
     chan_index: 3
     frequency_double_sideband:
@@ -239,7 +239,7 @@ datasets:
     name: '5'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_243
-    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+    coordinates: [lon_pixels_horn_3, lat_pixels_horn_3]
     n_243: 1
     chan_index: 4
     frequency_double_sideband:
@@ -260,7 +260,7 @@ datasets:
     name: '6'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_325
-    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    coordinates: [lon_pixels_horn_4, lat_pixels_horn_4]
     n_325: 0
     chan_index: 5
     frequency_double_sideband:
@@ -281,7 +281,7 @@ datasets:
     name: '7'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_325
-    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    coordinates: [lon_pixels_horn_4, lat_pixels_horn_4]
     n_325: 1
     chan_index: 6
     frequency_double_sideband:
@@ -302,7 +302,7 @@ datasets:
     name: '8'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_325
-    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    coordinates: [lon_pixels_horn_4, lat_pixels_horn_4]
     n_325: 2
     chan_index: 6
     frequency_double_sideband:
@@ -323,7 +323,7 @@ datasets:
     name: '9'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_448
-    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    coordinates: [lon_pixels_horn_5, lat_pixels_horn_5]
     n_448: 0
     chan_index: 8
     frequency_double_sideband:
@@ -344,7 +344,7 @@ datasets:
     name: '10'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_448
-    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    coordinates: [lon_pixels_horn_5, lat_pixels_horn_5]
     n_448: 1
     chan_index: 9
     frequency_double_sideband:
@@ -365,7 +365,7 @@ datasets:
     name: '11'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_448
-    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    coordinates: [lon_pixels_horn_5, lat_pixels_horn_5]
     n_448: 2
     chan_index: 10
     frequency_double_sideband:
@@ -386,7 +386,7 @@ datasets:
     name: '12'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_664
-    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+    coordinates: [lon_pixels_horn_6, lat_pixels_horn_6]
     n_664: 0
     chan_index: 11
     frequency_double_sideband:
@@ -407,7 +407,7 @@ datasets:
     name: '13'
     file_type: nc_ici_l1b_rad
     file_key: data/measurement_data/ici_radiance_664
-    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+    coordinates: [lon_pixels_horn_7, lat_pixels_horn_7]
     n_664: 1
     chan_index: 12
     frequency_double_sideband:
@@ -431,7 +431,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_zenith
     n_horns: 0
-    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    coordinates: [lon_pixels_horn_1, lat_pixels_horn_1]
 
   solar_zenith_horn_2:
     name: solar_zenith_horn_2
@@ -439,7 +439,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_zenith
     n_horns: 1
-    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+    coordinates: [lon_pixels_horn_2, lat_pixels_horn_2]
 
   solar_zenith_horn_3:
     name: solar_zenith_horn_3
@@ -447,7 +447,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_zenith
     n_horns: 2
-    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+    coordinates: [lon_pixels_horn_3, lat_pixels_horn_3]
 
   solar_zenith_horn_4:
     name: solar_zenith_horn_4
@@ -455,7 +455,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_zenith
     n_horns: 3
-    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    coordinates: [lon_pixels_horn_4, lat_pixels_horn_4]
 
   solar_zenith_horn_5:
     name: solar_zenith_horn_5
@@ -463,7 +463,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_zenith
     n_horns: 4
-    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    coordinates: [lon_pixels_horn_5, lat_pixels_horn_5]
 
   solar_zenith_horn_6:
     name: solar_zenith_horn_6
@@ -471,7 +471,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_zenith
     n_horns: 5
-    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+    coordinates: [lon_pixels_horn_6, lat_pixels_horn_6]
 
   solar_zenith_horn_7:
     name: solar_zenith_horn_7
@@ -479,7 +479,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_zenith
     n_horns: 6
-    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+    coordinates: [lon_pixels_horn_7, lat_pixels_horn_7]
 
   solar_azimuth_horn_1:
     name: solar_azimuth_horn_1
@@ -487,7 +487,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_azimuth
     n_horns: 0
-    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    coordinates: [lon_pixels_horn_1, lat_pixels_horn_1]
 
   solar_azimuth_horn_2:
     name: solar_azimuth_horn_2
@@ -495,7 +495,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_azimuth
     n_horns: 1
-    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+    coordinates: [lon_pixels_horn_2, lat_pixels_horn_2]
 
   solar_azimuth_horn_3:
     name: solar_azimuth_horn_3
@@ -503,7 +503,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_azimuth
     n_horns: 2
-    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+    coordinates: [lon_pixels_horn_3, lat_pixels_horn_3]
 
   solar_azimuth_horn_4:
     name: solar_azimuth_horn_4
@@ -511,7 +511,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_azimuth
     n_horns: 3
-    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    coordinates: [lon_pixels_horn_4, lat_pixels_horn_4]
 
   solar_azimuth_horn_5:
     name: solar_azimuth_horn_5
@@ -519,7 +519,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_azimuth
     n_horns: 4
-    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    coordinates: [lon_pixels_horn_5, lat_pixels_horn_5]
 
   solar_azimuth_horn_6:
     name: solar_azimuth_horn_6
@@ -527,7 +527,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_azimuth
     n_horns: 5
-    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+    coordinates: [lon_pixels_horn_6, lat_pixels_horn_6]
 
   solar_azimuth_horn_7:
     name: solar_azimuth_horn_7
@@ -535,7 +535,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: solar_azimuth
     n_horns: 6
-    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+    coordinates: [lon_pixels_horn_7, lat_pixels_horn_7]
 
   observation_zenith_horn_1:
     name: observation_zenith_horn_1
@@ -543,7 +543,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_zenith
     n_horns: 0
-    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    coordinates: [lon_pixels_horn_1, lat_pixels_horn_1]
 
   observation_zenith_horn_2:
     name: observation_zenith_horn_2
@@ -551,7 +551,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_zenith
     n_horns: 1
-    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+    coordinates: [lon_pixels_horn_2, lat_pixels_horn_2]
 
   observation_zenith_horn_3:
     name: observation_zenith_horn_3
@@ -559,7 +559,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_zenith
     n_horns: 2
-    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+    coordinates: [lon_pixels_horn_3, lat_pixels_horn_3]
 
   observation_zenith_horn_4:
     name: observation_zenith_horn_4
@@ -567,7 +567,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_zenith
     n_horns: 3
-    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    coordinates: [lon_pixels_horn_4, lat_pixels_horn_4]
 
   observation_zenith_horn_5:
     name: observation_zenith_horn_5
@@ -575,7 +575,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_zenith
     n_horns: 4
-    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    coordinates: [lon_pixels_horn_5, lat_pixels_horn_5]
 
   observation_zenith_horn_6:
     name: observation_zenith_horn_6
@@ -583,7 +583,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_zenith
     n_horns: 5
-    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+    coordinates: [lon_pixels_horn_6, lat_pixels_horn_6]
 
   observation_zenith_horn_7:
     name: observation_zenith_horn_7
@@ -591,7 +591,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_zenith
     n_horns: 6
-    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+    coordinates: [lon_pixels_horn_7, lat_pixels_horn_7]
 
   observation_azimuth_horn_1:
     name: observation_azimuth_horn_1
@@ -599,7 +599,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_azimuth
     n_horns: 0
-    coordinates: [lat_pixels_horn_1, lon_pixels_horn_1]
+    coordinates: [lon_pixels_horn_1, lat_pixels_horn_1]
 
   observation_azimuth_horn_2:
     name: observation_azimuth_horn_2
@@ -607,7 +607,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_azimuth
     n_horns: 1
-    coordinates: [lat_pixels_horn_2, lon_pixels_horn_2]
+    coordinates: [lon_pixels_horn_2, lat_pixels_horn_2]
 
   observation_azimuth_horn_3:
     name: observation_azimuth_horn_3
@@ -615,7 +615,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_azimuth
     n_horns: 2
-    coordinates: [lat_pixels_horn_3, lon_pixels_horn_3]
+    coordinates: [lon_pixels_horn_3, lat_pixels_horn_3]
 
   observation_azimuth_horn_4:
     name: observation_azimuth_horn_4
@@ -623,7 +623,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_azimuth
     n_horns: 3
-    coordinates: [lat_pixels_horn_4, lon_pixels_horn_4]
+    coordinates: [lon_pixels_horn_4, lat_pixels_horn_4]
 
   observation_azimuth_horn_5:
     name: observation_azimuth_horn_5
@@ -631,7 +631,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_azimuth
     n_horns: 4
-    coordinates: [lat_pixels_horn_5, lon_pixels_horn_5]
+    coordinates: [lon_pixels_horn_5, lat_pixels_horn_5]
 
   observation_azimuth_horn_6:
     name: observation_azimuth_horn_6
@@ -639,7 +639,7 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: bservation_azimuth
     n_horns: 5
-    coordinates: [lat_pixels_horn_6, lon_pixels_horn_6]
+    coordinates: [lon_pixels_horn_6, lat_pixels_horn_6]
 
   observation_azimuth_horn_7:
     name: observation_azimuth_horn_5
@@ -647,4 +647,4 @@ datasets:
     file_type: nc_ici_l1b_rad
     file_key: observation_azimuth
     n_horns: 6
-    coordinates: [lat_pixels_horn_7, lon_pixels_horn_7]
+    coordinates: [lon_pixels_horn_7, lat_pixels_horn_7]
