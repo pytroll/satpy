@@ -3,7 +3,7 @@ reader:
   short_name: SLSTR l2
   long_name: Sentinel-3 SLSTR Level 2 data in netCDF format
   description: NC Reader for Sentinel-3 SLSTR Level 2 data
-  status: "?"
+  status: defunct
   supports_fsspec: false
   sensors: [slstr_l2]
   default_channels: []
