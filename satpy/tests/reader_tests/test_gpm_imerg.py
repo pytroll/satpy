@@ -18,12 +18,12 @@
 
 
 import os
-import h5py
 import unittest
 from datetime import datetime
 from unittest import mock
 
 import dask.array as da
+import h5py
 import numpy as np
 import xarray as xr
 
