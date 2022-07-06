@@ -317,4 +317,6 @@ class GRIBFileHandler(BaseFileHandler):
             data[data == fill] = np.nan
             data = da.from_array(data, chunks=CHUNK_SIZE)
 
+        data = da.roll(data, data.shape[1]/2, 1)
+
         return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
