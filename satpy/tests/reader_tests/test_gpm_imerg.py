@@ -55,7 +55,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         selection = {
             'Grid/IRprecipitation':
             xr.DataArray(
-                da.ones((1, num_rows, num_cols), chunks=1024,
+                da.ones((1, num_cols, num_rows), chunks=1024,
                         dtype=np.float32),
                 attrs={
                     '_FillValue': -9999.9,
