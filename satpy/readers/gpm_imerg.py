@@ -26,8 +26,8 @@ References:
 import logging
 from datetime import datetime
 
-import h5py
 import dask.array as da
+import h5py
 from pyresample.geometry import AreaDefinition
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
