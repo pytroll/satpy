@@ -18,6 +18,7 @@
 
 
 import os
+import h5py
 import unittest
 from datetime import datetime
 from unittest import mock
@@ -61,6 +62,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     '_FillValue': -9999.9,
                     'units': 'mm/hr',
                     'Units': 'mm/hr',
+                    'badval': h5py.h5r.Reference,
+                    'badvals': np.array([[h5py.h5r.Reference]])
                 },
                 dims=('time', 'lon', 'lat')),
         }

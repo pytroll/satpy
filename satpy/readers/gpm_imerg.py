@@ -28,6 +28,7 @@ from datetime import datetime
 
 import h5py
 import dask.array as da
+import numpy as np
 from pyresample.geometry import AreaDefinition
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -82,6 +83,9 @@ class Hdf5IMERG(HDF5FileHandler):
             val = data.attrs[key]
             if isinstance(val, h5py.h5r.Reference):
                 del data.attrs[key]
+            if isinstance(val, np.ndarray):
+                if isinstance(val[0][0], h5py.h5r.Reference):
+                    del data.attrs[key]
         return data
 
     def get_area_def(self, dsid):
