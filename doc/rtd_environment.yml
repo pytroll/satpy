@@ -8,8 +8,6 @@ dependencies:
   - dask
   - defusedxml
   - donfig
-  # 2.19.1 seems to cause library linking issues
-  - eccodes>=2.20
   - graphviz
   - numpy
   - pillow
@@ -17,7 +15,6 @@ dependencies:
   - pyresample
   - pytest
   - pytest-lazy-fixture
-  - python-eccodes
   - python-geotiepoints
   - rasterio
   - rioxarray
