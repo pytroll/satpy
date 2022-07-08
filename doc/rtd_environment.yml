@@ -16,8 +16,6 @@ dependencies:
   - pytest
   - pytest-lazy-fixture
   - python-geotiepoints
-  - rasterio
-  - rioxarray
   - setuptools
   - setuptools_scm
   - setuptools_scm_git_archive
