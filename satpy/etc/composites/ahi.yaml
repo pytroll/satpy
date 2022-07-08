@@ -345,6 +345,15 @@ composites:
     prerequisites:
       - name: B14
 
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color_raw
+      - night_ir
+
   true_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: true_color_with_night_ir
@@ -358,6 +367,14 @@ composites:
     prerequisites:
       - true_color
       - night_ir_with_background_hires
+
+  night_ir:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir
+    prerequisites:
+      - name: B07
+      - name: B13
+      - name: B15
 
   night_ir_alpha:
     compositor: !!python/name:satpy.composites.GenericCompositor
