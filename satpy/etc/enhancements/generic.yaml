@@ -887,6 +887,17 @@ enhancements:
       args:
       - [true, true, true, true]
 
+  night_ir:
+    standard_name: night_ir
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: linear, cutoffs: [0.02, 0.02]}
+    - name: inverse
+      method: !!python/name:satpy.enhancements.invert
+      args:
+      - [true, true, true]
+
   night_ir_with_background:
     standard_name: night_ir_with_background
     operations:
