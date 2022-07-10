@@ -26,6 +26,7 @@ import dask.array as da
 import numpy as np
 import numpy.testing
 import pyresample.geometry
+import pytest
 import xarray as xr
 from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
 from pyproj import CRS
@@ -423,10 +424,10 @@ class TestHelpers(unittest.TestCase):
             hf.get_user_calibration_factors('IR108', radcor_dict)
 
 
-class TestSunEarthDistanceCorrection(unittest.TestCase):
+class TestSunEarthDistanceCorrection:
     """Tests for applying Sun-Earth distance correction to reflectance."""
 
-    def setUp(self):
+    def setup_method(self):
         """Create input / output arrays for the tests."""
         self.test_date = datetime(2020, 8, 15, 13, 0, 40)
 
@@ -434,11 +435,13 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
                                 attrs={'start_time': self.test_date,
                                        'scheduled_time': self.test_date})
 
-        corr_refl = xr.DataArray(da.from_array([10.50514689, 21.01029379,
-                                                42.02058758, 1.05051469,
-                                                102.95043957, 52.52573447]),
-                                 attrs={'start_time': self.test_date,
-                                        'scheduled_time': self.test_date})
+        corr_refl = xr.DataArray(da.from_array([
+            10.25484833, 20.50969667,
+            41.01939333, 1.02548483,
+            100.49751367, 51.27424167]),
+            attrs={'start_time': self.test_date,
+                   'scheduled_time': self.test_date},
+        )
         self.raw_refl = raw_refl
         self.corr_refl = corr_refl
 
@@ -448,37 +451,37 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
         tmp_array = self.raw_refl.copy()
         del tmp_array.attrs['scheduled_time']
         utc_time = hf.get_array_date(tmp_array, None)
-        self.assertEqual(utc_time, self.test_date)
+        assert utc_time == self.test_date
 
         # Now check correct time is returned with 'scheduled_time'
         tmp_array = self.raw_refl.copy()
         del tmp_array.attrs['start_time']
         utc_time = hf.get_array_date(tmp_array, None)
-        self.assertEqual(utc_time, self.test_date)
+        assert utc_time == self.test_date
 
         # Now check correct time is returned with utc_date passed
         tmp_array = self.raw_refl.copy()
         new_test_date = datetime(2019, 2, 1, 15, 2, 12)
         utc_time = hf.get_array_date(tmp_array, new_test_date)
-        self.assertEqual(utc_time, new_test_date)
+        assert utc_time == new_test_date
 
         # Finally, ensure error is raised if no datetime is available
         tmp_array = self.raw_refl.copy()
         del tmp_array.attrs['scheduled_time']
         del tmp_array.attrs['start_time']
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             hf.get_array_date(tmp_array, None)
 
     def test_apply_sunearth_corr(self):
         """Test the correction of reflectances with sun-earth distance."""
         out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
         np.testing.assert_allclose(out_refl, self.corr_refl)
-        self.assertTrue(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert out_refl.attrs['sun_earth_distance_correction_applied']
         assert isinstance(out_refl.data, da.Array)
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
         out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
         np.testing.assert_allclose(out_refl, self.raw_refl)
-        self.assertFalse(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert not out_refl.attrs['sun_earth_distance_correction_applied']
         assert isinstance(out_refl.data, da.Array)
