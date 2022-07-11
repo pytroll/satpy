@@ -36,7 +36,8 @@ AVAILABLE_HKM_PRODUCT_NAMES = [str(x) for x in range(3, 8)]
 AVAILABLE_QKM_PRODUCT_NAMES = ['1', '2']
 SCAN_LEN_5KM = 6  # 3 scans of 5km data
 SCAN_WIDTH_5KM = 270
-SCALE_FACTOR = 1
+SCALE_FACTOR = 0.5
+ADD_OFFSET = -0.5
 RES_TO_REPEAT_FACTOR = {
     250: 20,
     500: 10,
@@ -74,7 +75,7 @@ def _generate_angle_data(resolution: int) -> np.ndarray:
 
 def _generate_visible_data(resolution: int, num_bands: int, dtype=np.uint16) -> np.ndarray:
     shape = _shape_for_resolution(resolution)
-    data = np.zeros((num_bands, shape[0], shape[1]), dtype=dtype)
+    data = np.ones((num_bands, shape[0], shape[1]), dtype=dtype)
 
     # add fill value to every band
     data[:, -1, -1] = 65535
@@ -118,7 +119,8 @@ def _get_angles_variable_info(resolution: int) -> dict:
             'dim_labels': [
                 f'{dim_factor}*nscans:MODIS_SWATH_Type_L1B',
                 '1KM_geo_dim:MODIS_SWATH_Type_L1B'],
-            'scale_factor': 0.01
+            'scale_factor': 0.01,
+            'add_offset': -0.01,
         },
     }
     angles_info = {}
@@ -146,8 +148,8 @@ def _get_visible_variable_info(var_name: str, resolution: int, bands: list[str])
                                row_dim_name,
                                col_dim_name],
                 'valid_range': (0, 32767),
-                'reflectance_scales': (1,) * num_bands,
-                'reflectance_offsets': (0,) * num_bands,
+                'reflectance_scales': (2.0,) * num_bands,
+                'reflectance_offsets': (-0.5,) * num_bands,
                 'band_names': ",".join(bands),
             },
         },
@@ -264,6 +266,7 @@ def _add_variable_to_file(h, var_name, var_info):
         dim_count += 1
     v.setfillvalue(var_info['fill_value'])
     v.scale_factor = var_info['attrs'].get('scale_factor', SCALE_FACTOR)
+    v.add_offset = var_info['attrs'].get('add_offset', ADD_OFFSET)
     for attr_key, attr_val in var_info['attrs'].items():
         if attr_key == 'dim_labels':
             continue
@@ -405,7 +408,7 @@ def modis_l1b_nasa_1km_mod03_files(modis_l1b_nasa_mod021km_file, modis_l1b_nasa_
 
 def _get_basic_variable_info(var_name: str, resolution: int) -> dict:
     shape = _shape_for_resolution(resolution)
-    data = np.zeros((shape[0], shape[1]), dtype=np.uint16)
+    data = np.ones((shape[0], shape[1]), dtype=np.uint16)
     row_dim_name = f'Cell_Along_Swath_{resolution}m:modl2'
     col_dim_name = f'Cell_Across_Swath_{resolution}m:modl2'
     return {
@@ -418,8 +421,8 @@ def _get_basic_variable_info(var_name: str, resolution: int) -> dict:
                 'dim_labels': [row_dim_name,
                                col_dim_name],
                 'valid_range': (0, 32767),
-                'scale_factor': 1.,
-                'add_offset': 0.,
+                'scale_factor': 2.0,
+                'add_offset': -1.0,
             },
         },
     }
@@ -457,8 +460,8 @@ def _get_cloud_mask_variable_info(var_name: str, resolution: int) -> dict:
                                col_dim_name,
                                'Quality_Dimension:mod35'],
                 'valid_range': (0, -1),
-                'scale_factor': 1.,
-                'add_offset': 0.,
+                'scale_factor': 2.,
+                'add_offset': -0.5,
             },
         },
     }
@@ -479,8 +482,8 @@ def _get_mask_byte1_variable_info() -> dict:
                 'dim_labels': [row_dim_name,
                                col_dim_name],
                 'valid_range': (0, 4),
-                'scale_factor': 1.,
-                'add_offset': 0.,
+                'scale_factor': 2,
+                'add_offset': -1,
             },
 
         },
@@ -493,8 +496,8 @@ def _get_mask_byte1_variable_info() -> dict:
                 'dim_labels': [row_dim_name,
                                col_dim_name],
                 'valid_range': (0, 4),
-                'scale_factor': 1.,
-                'add_offset': 0.,
+                'scale_factor': 2,
+                'add_offset': -1,
             },
         },
         "MODIS_Snow_Ice_Flag": {
@@ -506,8 +509,8 @@ def _get_mask_byte1_variable_info() -> dict:
                 'dim_labels': [row_dim_name,
                                col_dim_name],
                 'valid_range': (0, 2),
-                'scale_factor': 1.,
-                'add_offset': 0.,
+                'scale_factor': 2,
+                'add_offset': -1,
             },
         },
     }
