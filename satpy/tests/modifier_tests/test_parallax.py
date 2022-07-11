@@ -32,6 +32,15 @@ from pyresample import create_area_def
 from ...writers import get_enhanced_image
 
 
+@pytest.fixture
+def fake_tle():
+    """Produce fake Two Line Element (TLE) object from pyorbital."""
+    return pyorbital.tlefile.Tle(
+        "Meteosat-42",
+        line1="1 40732U 15034A   22011.84285506  .00000004  00000+0  00000+0 0 9995",
+        line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
+
+
 def _get_fake_areas(center, sizes, resolution, code=4326):
     """Get multiple square areas with the same center.
 
@@ -414,7 +423,7 @@ class TestParallaxCorrectionClass:
         corrector = ParallaxCorrection(area)
         corrector(sc["CTH_constant"])
 
-    def test_correct_area_no_orbital_parameters(self, caplog):
+    def test_correct_area_no_orbital_parameters(self, caplog, fake_tle):
         """Test ParallaxCorrection when CTH has no orbital parameters.
 
         Some CTH products, such as NWCSAF-GEO, do not include information
@@ -439,10 +448,7 @@ class TestParallaxCorrectionClass:
                     "start_time": datetime.datetime(3021, 11, 30, 12, 24, 17),
                     "end_time": datetime.datetime(3021, 11, 30, 12, 27, 22)})
         with unittest.mock.patch("pyorbital.tlefile.read") as plr:
-            plr.return_value = pyorbital.tlefile.Tle(
-                    "Meteosat-42",
-                    line1="1 40732U 15034A   22011.84285506  .00000004  00000+0  00000+0 0  9995",
-                    line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
+            plr.return_value = fake_tle
             with caplog.at_level(logging.WARNING):
                 new_area = corrector(sc["CTH_clear"])
         assert "Orbital parameters missing from metadata." in caplog.text
@@ -734,7 +740,7 @@ class TestParallaxCorrectionSceneLoad:
                 "area": area})
         return sc
 
-    def test_double_load(self, fake_scene, conf_file):
+    def test_double_load(self, fake_scene, conf_file, fake_tle):
         """Test that loading corrected and uncorrected works correctly.
 
         When the modifier ``__call__`` method fails to call
@@ -745,10 +751,12 @@ class TestParallaxCorrectionSceneLoad:
         confirms that there is no such object identity.
         """
         with unittest.mock.patch(
-                "satpy.composites.config_loader.config_search_paths") as sccc:
+                "satpy.composites.config_loader.config_search_paths") as sccc, \
+             unittest.mock.patch("pyorbital.tlefile.read") as plr:
             sccc.return_value = [os.fspath(conf_file)]
+            plr.return_value = fake_tle
             fake_scene.load(["parallax_corrected_VIS006", "VIS006"])
-        assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
+            assert fake_scene["VIS006"] is not fake_scene["parallax_corrected_VIS006"]
         assert fake_scene["VIS006"].data is not fake_scene["parallax_corrected_VIS006"].data
 
     @pytest.mark.xfail(reason="awaiting pyresample fixes")
