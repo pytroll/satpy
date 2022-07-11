@@ -83,9 +83,8 @@ class Hdf5IMERG(HDF5FileHandler):
             val = data.attrs[key]
             if isinstance(val, h5py.h5r.Reference):
                 del data.attrs[key]
-            if isinstance(val, np.ndarray):
-                if isinstance(val[0][0], h5py.h5r.Reference):
-                    del data.attrs[key]
+            if isinstance(val, np.ndarray) and isinstance(val[0][0], h5py.h5r.Reference):
+                del data.attrs[key]
         return data
 
     def get_area_def(self, dsid):
