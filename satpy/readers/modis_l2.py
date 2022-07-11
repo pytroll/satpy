@@ -189,7 +189,6 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
                               in zip(dataset.shape, quality_assurance.shape)]
         quality_assurance = np.tile(quality_assurance, duplication_factor)
         # Replace unassured data by NaN value
-        # dataset[np.where(quality_assurance == 0)] = dataset.attrs["_FillValue"]
         dataset = dataset.where(quality_assurance != 0, dataset.attrs["_FillValue"])
         return dataset
 
