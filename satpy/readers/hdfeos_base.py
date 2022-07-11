@@ -231,9 +231,9 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         # don't scale category products, even though scale_factor may equal 1
         # we still need to convert integers to floats
         if scale_factor is not None and not is_category:
-            data = data * np.float32(scale_factor)
             if add_offset is not None and add_offset != 0:
-                data = data + add_offset
+                data = data - add_offset
+            data = data * np.float32(scale_factor)
 
         if good_mask is not None:
             data = data.where(good_mask, new_fill)
