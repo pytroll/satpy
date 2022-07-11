@@ -357,7 +357,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                 filetype_info)
 
         self.is_zipped = False
-        self._unzipped = unzip_file(self.filename)
+        self._unzipped = unzip_file(self.filename, prefix=str(filename_info['segment']).zfill(2))
         # Assume file is not zipped
         if self._unzipped:
             # But if it is, set the filename to point to unzipped temp file

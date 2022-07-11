@@ -91,10 +91,10 @@ FAKE_ERROR_LINE_INFO: InfoDict = {}
 FAKE_SPARE_INFO: InfoDict = {'blocklength': 0}
 
 
-def _new_unzip(fname):
+def _new_unzip(fname, prefix=''):
     """Fake unzipping."""
     if fname[-3:] == 'bz2':
-        return fname[:-4]
+        return prefix + fname[:-4]
     return fname
 
 
@@ -558,6 +558,7 @@ def _create_fake_file_handler(in_fname, filename_info=None, filetype_info=None, 
         fh_kwargs = {}
     fh = AHIHSDFileHandler(in_fname, filename_info, filetype_info, **fh_kwargs)
 
-    # Check that the filename is altered for bz2 format files
+    # Check that the filename is altered and 2 digit segment prefix added for bz2 format files
     assert in_fname != fh.filename
+    assert str(filename_info['segment']).zfill(2) == fh.filename[0:2]
     return fh

@@ -266,7 +266,7 @@ class TestHelpers(unittest.TestCase):
 
     @mock.patch('satpy.readers.utils.bz2.BZ2File')
     @mock.patch('satpy.readers.utils.Popen')
-    def test_unzip_file_pbzip2(self, mock_popen, mock_bz2):
+    def test_unzip_file(self, mock_popen, mock_bz2):
         """Test the bz2 file unzipping techniques."""
         process_mock = mock.Mock()
         attrs = {'communicate.return_value': (b'output', b'error'),
@@ -280,20 +280,24 @@ class TestHelpers(unittest.TestCase):
 
         filename = 'tester.DAT.bz2'
         whichstr = 'satpy.readers.utils.which'
-        # no bz2 installed
+        segment = 3
+        segmentstr = str(segment).zfill(2)
+        # no pbzip2 installed with prefix
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
-            new_fname = hf.unzip_file(filename)
+            new_fname = hf.unzip_file(filename, prefix=segmentstr)
             self.assertTrue(bz2_mock.read.called)
             self.assertTrue(os.path.exists(new_fname))
+            self.assertEqual(os.path.split(new_fname)[1][0:2], segmentstr)
             if os.path.exists(new_fname):
                 os.remove(new_fname)
-        # bz2 installed
+        # pbzip2 installed without prefix
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = '/usr/bin/pbzip2'
             new_fname = hf.unzip_file(filename)
             self.assertTrue(mock_popen.called)
             self.assertTrue(os.path.exists(new_fname))
+            self.assertNotEqual(os.path.split(new_fname)[1][0:2], segmentstr)
             if os.path.exists(new_fname):
                 os.remove(new_fname)
 
