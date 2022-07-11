@@ -6,7 +6,7 @@ reader:
     Reader for FCI L1c data in NetCDF4 format.
     Used to read Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) L1c data.
-  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.GEOVariableSegmentYAMLReader
   sensors: [ fci ]
 
 # Source: MTG FCI L1 Product User Guide [FCIL1PUG]

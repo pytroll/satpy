@@ -105,6 +105,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from functools import cached_property
 
 import numpy as np
 import xarray as xr
@@ -203,6 +204,26 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Get end time."""
         return self.filename_info['end_time']
 
+    def get_segment_position_info(self):
+        """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
+
+        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
+        """
+        segment_position_info = {
+            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
+                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
+                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
+                    self['data/vis_04/measured/start_position_row'].item() + 1,
+                    'segment_width': 11136},
+            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
+                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
+                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
+                    self['data/ir_105/measured/start_position_row'].item() + 1,
+                    'segment_width': 5568}
+        }
+
+        return segment_position_info
+
     def get_dataset(self, key, info=None):
         """Load a dataset."""
         logger.debug('Reading {} from {}'.format(key['name'], self.filename))
@@ -287,7 +308,35 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         # remove attributes from original file which don't apply anymore
         res.attrs.pop('long_name')
 
+        res.attrs.update(self.orbital_param)
+
         return res
+
+    @cached_property
+    def orbital_param(self):
+        """Compute the orbital parameters for the current chunk."""
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
+
+        nominal_and_proj_subsat_lon = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        nominal_and_proj_subsat_lat = 0
+        nominal_and_proj_sat_alt = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+
+        orb_param_dict = {
+            'orbital_parameters': {
+                'satellite_actual_longitude': actual_subsat_lon,
+                'satellite_actual_latitude': actual_subsat_lat,
+                'satellite_actual_altitude': actual_sat_alt,
+                'satellite_nominal_longitude': nominal_and_proj_subsat_lon,
+                'satellite_nominal_latitude': nominal_and_proj_subsat_lat,
+                'satellite_nominal_altitude': nominal_and_proj_sat_alt,
+                'projection_longitude': nominal_and_proj_subsat_lon,
+                'projection_latitude': nominal_and_proj_subsat_lat,
+                'projection_altitude': nominal_and_proj_sat_alt,
+            }}
+
+        return orb_param_dict
 
     def _get_dataset_quality(self, dsname):
         """Load a quality field for an FCI channel."""

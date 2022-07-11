@@ -531,7 +531,7 @@ class SEVIRICalibrationAlgorithm:
         """Calibrate to reflectance.
 
         This uses the method described in Conversion from radiances to
-        reflectances for SEVIRI warm channels: https://tinyurl.com/y67zhphm
+        reflectances for SEVIRI warm channels: https://www-cdn.eumetsat.int/files/2020-04/pdf_msg_seviri_rad2refl.pdf
         """
         reflectance = np.pi * data * 100.0 / solar_irradiance
         return apply_earthsun_distance_correction(reflectance, self._scan_time)

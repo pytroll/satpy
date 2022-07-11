@@ -26,6 +26,7 @@ import logging
 import os
 import warnings
 from typing import Mapping, Optional
+from urllib.parse import urlparse
 
 import numpy as np
 import xarray as xr
@@ -457,10 +458,11 @@ def _check_yaml_configs(configs, key):
     diagnostic = {}
     for i in configs:
         for fname in i:
+            msg = 'ok'
+            res = None
             with open(fname, 'r', encoding='utf-8') as stream:
                 try:
                     res = yaml.load(stream, Loader=UnsafeLoader)
-                    msg = 'ok'
                 except yaml.YAMLError as err:
                     stream.seek(0)
                     res = yaml.load(stream, Loader=BaseLoader)
@@ -599,3 +601,85 @@ def get_chunk_pixel_size():
     else:
         array_size = CHUNK_SIZE ** 2
     return array_size
+
+
+def convert_remote_files_to_fsspec(filenames, storage_options=None):
+    """Check filenames for transfer protocols, convert to FSFile objects if possible."""
+    if storage_options is None:
+        storage_options = {}
+    if isinstance(filenames, dict):
+        return _check_file_protocols_for_dicts(filenames, storage_options)
+    return _check_file_protocols(filenames, storage_options)
+
+
+def _check_file_protocols_for_dicts(filenames, storage_options):
+    res = {}
+    for reader, files in filenames.items():
+        opts = storage_options.get(reader, {})
+        res[reader] = _check_file_protocols(files, opts)
+    return res
+
+
+def _check_file_protocols(filenames, storage_options):
+    local_files, remote_files, fs_files = _sort_files_to_local_remote_and_fsfiles(filenames)
+
+    if remote_files:
+        return local_files + fs_files + _filenames_to_fsfile(remote_files, storage_options)
+
+    return local_files + fs_files
+
+
+def _sort_files_to_local_remote_and_fsfiles(filenames):
+    from satpy.readers import FSFile
+
+    local_files = []
+    remote_files = []
+    fs_files = []
+    for f in filenames:
+        if isinstance(f, FSFile):
+            fs_files.append(f)
+        elif urlparse(f).scheme in ('', 'file') or "\\" in f:
+            local_files.append(f)
+        else:
+            remote_files.append(f)
+    return local_files, remote_files, fs_files
+
+
+def _filenames_to_fsfile(filenames, storage_options):
+    import fsspec
+
+    from satpy.readers import FSFile
+
+    if filenames:
+        fsspec_files = fsspec.open_files(filenames, **storage_options)
+        return [FSFile(f) for f in fsspec_files]
+    return []
+
+
+def get_storage_options_from_reader_kwargs(reader_kwargs):
+    """Read and clean storage options from reader_kwargs."""
+    if reader_kwargs is None:
+        return None, None
+    storage_options = reader_kwargs.pop('storage_options', None)
+    storage_opt_dict = _get_storage_dictionary_options(reader_kwargs)
+    storage_options = _merge_storage_options(storage_options, storage_opt_dict)
+
+    return storage_options, reader_kwargs
+
+
+def _get_storage_dictionary_options(reader_kwargs):
+    storage_opt_dict = {}
+    for k, v in reader_kwargs.items():
+        if isinstance(v, dict):
+            storage_opt_dict[k] = v.pop('storage_options', None)
+
+    return storage_opt_dict
+
+
+def _merge_storage_options(storage_options, storage_opt_dict):
+    if storage_opt_dict:
+        if storage_options:
+            storage_opt_dict['storage_options'] = storage_options
+        storage_options = storage_opt_dict
+
+    return storage_options
