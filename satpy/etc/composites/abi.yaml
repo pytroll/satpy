@@ -284,8 +284,8 @@ composites:
   natural_color_raw_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_color_with_night_ir
-    lim_low: 90
-    lim_high: 100
+    lim_low: 80
+    lim_high: 90
     prerequisites:
       - natural_color_raw
       - night_ir
