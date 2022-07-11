@@ -769,11 +769,13 @@ class TestParallaxCorrectionSceneLoad:
             sccc.return_value = [os.fspath(conf_file)]
             fake_scene.load(["parallax_corrected_VIS006"])
 
-    def test_enhanced_image(self, fake_scene, conf_file):
+    def test_enhanced_image(self, fake_scene, conf_file, fake_tle):
         """Test that image enhancement is the same."""
         with unittest.mock.patch(
-                "satpy.composites.config_loader.config_search_paths") as sccc:
+                "satpy.composites.config_loader.config_search_paths") as sccc, \
+             unittest.mock.patch("pyorbital.tlefile.read") as plr:
             sccc.return_value = [os.fspath(conf_file)]
+            plr.return_value = fake_tle
             fake_scene.load(["parallax_corrected_VIS006", "VIS006"])
         im1 = get_enhanced_image(fake_scene["VIS006"])
         im2 = get_enhanced_image(fake_scene["parallax_corrected_VIS006"])
