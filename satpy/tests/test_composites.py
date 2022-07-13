@@ -29,6 +29,8 @@ import pytest
 import xarray as xr
 from pyresample import AreaDefinition
 
+import satpy
+
 
 class TestMatchDataArrays(unittest.TestCase):
     """Test the utility method 'match_data_arrays'."""
@@ -1025,7 +1027,6 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
-        import satpy
         from satpy.composites import StaticImageCompositor
 
         satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
@@ -1600,3 +1601,41 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, np.nan, np.nan, 7]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
+
+
+def test_bad_sensor_yaml_configs(tmp_path):
+    """Test composite YAML file with no sensor isn't loaded.
+
+    But the bad YAML also shouldn't crash composite configuration loading.
+
+    """
+    from satpy.composites.config_loader import load_compositor_configs_for_sensors
+
+    comp_dir = tmp_path / "composites"
+    comp_dir.mkdir()
+    comp_yaml = comp_dir / "fake_sensor.yaml"
+    with satpy.config.set(config_path=[tmp_path]):
+        _create_fake_composite_config(comp_yaml)
+
+        # no sensor_name in YAML, quietly ignored
+        comps, _ = load_compositor_configs_for_sensors(["fake_sensor"])
+        assert "fake_sensor" in comps
+        assert "fake_composite" not in comps["fake_sensor"]
+
+
+def _create_fake_composite_config(yaml_filename: str):
+    import yaml
+
+    from satpy.composites import StaticImageCompositor
+
+    with open(yaml_filename, "w") as comp_file:
+        yaml.dump({
+            "composites": {
+                "fake_composite": {
+                    "compositor": StaticImageCompositor,
+                    "url": "http://example.com/image.png",
+                },
+            },
+        },
+            comp_file,
+        )
