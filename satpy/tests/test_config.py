@@ -16,13 +16,22 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test objects and functions in the satpy.config module."""
+from __future__ import annotations
 
+import contextlib
 import os
 import sys
 import unittest
+from pathlib import Path
+from typing import Callable, Iterator
 from unittest import mock
 
+import pkg_resources
 import pytest
+
+import satpy
+from satpy import DatasetDict
+from satpy.composites.config_loader import load_compositor_configs_for_sensors
 
 
 class TestBuiltinAreas(unittest.TestCase):
@@ -95,25 +104,96 @@ class TestBuiltinAreas(unittest.TestCase):
             _ = CRS.from_dict(proj_dict)
 
 
-class TestPluginsConfigs(unittest.TestCase):
+@contextlib.contextmanager
+def fake_plugin_etc_path(
+        tmp_path: Path,
+        entry_point_names: dict[str, list[str]],
+) -> Iterator[Path]:
+    """Create a fake satpy plugin entry point.
+
+    This mocks the necessary methods to trick Satpy into thinking a plugin
+    package is installed and has made a satpy plugin available.
+
+    """
+    etc_path, entry_points = _get_entry_point_list(tmp_path, entry_point_names)
+    fake_iter_entry_points = _create_fake_iter_entry_points(entry_points)
+    with mock.patch('satpy._config.pkg_resources.iter_entry_points', fake_iter_entry_points):
+        yield etc_path
+
+
+def _get_entry_point_list(
+        tmp_path: Path,
+        entry_point_names: dict[str, list[str]]
+) -> tuple[Path, dict[str, list[pkg_resources.EntryPoint]]]:
+    dist_obj = pkg_resources.Distribution.from_filename('satpy_plugin-0.0.0-py3.8.egg')
+    etc_path = tmp_path / "satpy_plugin" / "etc"
+    etc_path.mkdir(parents=True, exist_ok=True)
+    entry_points: dict[str, list[pkg_resources.EntryPoint]] = {}
+    for entry_point_name, entry_point_values in entry_point_names.items():
+        entry_points[entry_point_name] = []
+        for entry_point_value in entry_point_values:
+            ep = pkg_resources.EntryPoint.parse(entry_point_value)
+            ep.dist = dist_obj
+            ep.dist.module_path = tmp_path  # type: ignore
+            entry_points[entry_point_name].append(ep)
+    return etc_path, entry_points
+
+
+def _create_fake_iter_entry_points(entry_points: dict[str, list[pkg_resources.EntryPoint]]) -> Callable[[str], list]:
+    def _fake_iter_entry_points(desired_entry_point_name: str) -> list:
+        return entry_points.get(desired_entry_point_name, [])
+    return _fake_iter_entry_points
+
+
+@pytest.fixture
+def fake_composite_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
+    """Create a fake plugin entry point with a fake compositor YAML configuration file."""
+    with fake_plugin_etc_path(tmp_path, {"satpy.composites": ["example_comp = satpy_plugin"]}) as plugin_etc_path:
+        comps_dir = os.path.join(plugin_etc_path, "composites")
+        os.makedirs(comps_dir, exist_ok=True)
+        comps_filename = os.path.join(comps_dir, "fake_sensor.yaml")
+        _write_fake_composite_yaml(comps_filename)
+        yield plugin_etc_path
+
+
+def _write_fake_composite_yaml(yaml_filename: str) -> None:
+    with open(yaml_filename, "w") as comps_file:
+        comps_file.write("""
+    sensor_name: visir/fake_sensor
+
+    composites:
+        fake_composite:
+            compositor: !!python/name:satpy.composites.GenericCompositor
+            prerequisites:
+            - 3.9
+            - 10.8
+            - 12.0
+            standard_name: fake composite
+
+    """)
+
+
+class TestPluginsConfigs:
     """Test that plugins are working."""
 
-    @mock.patch('satpy._config.pkg_resources.iter_entry_points')
-    def test_get_plugin_configs(self, iter_entry_points):
+    def test_get_plugin_configs(self, fake_composite_plugin_etc_path):
         """Check that the plugin configs are looked for."""
-        import pkg_resources
-        ep = pkg_resources.EntryPoint.parse('example_composites = satpy_cpe')
-        ep.dist = pkg_resources.Distribution.from_filename('satpy_cpe-0.0.0-py3.8.egg')
-        ep.dist.module_path = os.path.join(os.path.sep + 'bla', 'bla')
-        iter_entry_points.return_value = [ep]
-
-        import satpy
         from satpy._config import get_entry_points_config_dirs
 
-        # don't let user env vars affect results
         with satpy.config.set(config_path=[]):
             dirs = get_entry_points_config_dirs('satpy.composites')
-            self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])
+            assert dirs == [str(fake_composite_plugin_etc_path)]
+
+    def test_load_entry_point_composite(self, fake_composite_plugin_etc_path):
+        """Test that composites can be loaded from plugin entry points."""
+        with satpy.config.set(config_path=[]):
+            compositors, _ = load_compositor_configs_for_sensors(["fake_sensor"])
+            assert "fake_sensor" in compositors
+            comp_dict = DatasetDict(compositors["fake_sensor"])
+            assert "fake_composite" in comp_dict
+            comp_obj = comp_dict["fake_composite"]
+            assert comp_obj.attrs["name"] == "fake_composite"
+            assert comp_obj.attrs["prerequisites"] == [3.9, 10.8, 12.0]
 
 
 class TestConfigObject:
