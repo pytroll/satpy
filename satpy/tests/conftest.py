@@ -38,3 +38,10 @@ def reset_satpy_config(tmpdir):
     }
     with satpy.config.set(test_config):
         yield
+
+
+@pytest.fixture(autouse=True)
+def clear_function_caches():
+    """Clear out global function-level caches that may cause conflicts between tests."""
+    from satpy.composites.config_loader import load_compositor_configs_for_sensor
+    load_compositor_configs_for_sensor.cache_clear()
