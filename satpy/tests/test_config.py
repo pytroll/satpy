@@ -173,6 +173,29 @@ def _write_fake_composite_yaml(yaml_filename: str) -> None:
     """)
 
 
+@pytest.fixture
+def fake_reader_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
+    """Create a fake plugin entry point with a fake reader YAML configuration file."""
+    with fake_plugin_etc_path(tmp_path, {"satpy.readers": ["example_reader = satpy_plugin"]}) as plugin_etc_path:
+        comps_dir = os.path.join(plugin_etc_path, "readers")
+        os.makedirs(comps_dir, exist_ok=True)
+        comps_filename = os.path.join(comps_dir, "fake_reader.yaml")
+        _write_fake_reader_yaml(comps_filename)
+        yield plugin_etc_path
+
+
+def _write_fake_reader_yaml(yaml_filename: str) -> None:
+    reader_name = os.path.splitext(os.path.basename(yaml_filename))[0]
+    with open(yaml_filename, "w") as comps_file:
+        comps_file.write(f"""
+reader:
+    name: {reader_name}
+    sensors: [fake_sensor]
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+datasets: {{}}
+""")
+
+
 class TestPluginsConfigs:
     """Test that plugins are working."""
 
@@ -194,6 +217,22 @@ class TestPluginsConfigs:
             comp_obj = comp_dict["fake_composite"]
             assert comp_obj.attrs["name"] == "fake_composite"
             assert comp_obj.attrs["prerequisites"] == [3.9, 10.8, 12.0]
+
+    @pytest.mark.parametrize("specified_reader", [None, "fake_reader"])
+    def test_plugin_reader_configs(self, fake_reader_plugin_etc_path, specified_reader):
+        """Test that readers can be loaded from plugin entry points."""
+        from satpy.readers import configs_for_reader
+        reader_yaml_path = fake_reader_plugin_etc_path / "readers" / "fake_reader.yaml"
+        with satpy.config.set(config_path=[]):
+            configs = list(configs_for_reader(reader=specified_reader))
+        assert any(str(reader_yaml_path) in config_list for config_list in configs)
+
+    def test_plugin_reader_available_readers(self, fake_reader_plugin_etc_path):
+        """Test that readers can be loaded from plugin entry points."""
+        from satpy.readers import available_readers
+        with satpy.config.set(config_path=[]):
+            readers = available_readers()
+        assert "fake_reader" in readers
 
 
 class TestConfigObject:
