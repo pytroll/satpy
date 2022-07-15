@@ -39,7 +39,7 @@ from trollimage.xrimage import XRImage
 from trollsift import parser
 
 from satpy import CHUNK_SIZE
-from satpy._config import config_search_paths, glob_config
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
@@ -111,13 +111,17 @@ def configs_for_writer(writer=None):
         # given a config filename or writer name
         config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
     else:
-        writer_configs = glob_config(os.path.join('writers', '*.yaml'))
+        paths = get_entry_points_config_dirs('satpy.writers')
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'), search_dirs=paths)
         config_files = set(writer_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
+        paths = get_entry_points_config_dirs('satpy.writers')
         writer_configs = config_search_paths(
-            os.path.join("writers", config_basename))
+            os.path.join("writers", config_basename),
+            search_dirs=paths,
+        )
 
         if not writer_configs:
             LOG.warning("No writer configs found for '%s'", writer)

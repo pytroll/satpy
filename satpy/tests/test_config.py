@@ -148,12 +148,12 @@ def _create_fake_iter_entry_points(entry_points: dict[str, list[pkg_resources.En
 @pytest.fixture
 def fake_composite_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake compositor YAML configuration file."""
-    with fake_plugin_etc_path(tmp_path, {"satpy.composites": ["example_comp = satpy_plugin"]}) as plugin_etc_path:
-        comps_dir = os.path.join(plugin_etc_path, "composites")
-        os.makedirs(comps_dir, exist_ok=True)
-        comps_filename = os.path.join(comps_dir, "fake_sensor.yaml")
-        _write_fake_composite_yaml(comps_filename)
-        yield plugin_etc_path
+    yield from _create_yamlbased_plugin(
+        tmp_path,
+        "composites",
+        "fake_sensor.yaml",
+        _write_fake_composite_yaml,
+    )
 
 
 def _write_fake_composite_yaml(yaml_filename: str) -> None:
@@ -176,12 +176,12 @@ def _write_fake_composite_yaml(yaml_filename: str) -> None:
 @pytest.fixture
 def fake_reader_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
     """Create a fake plugin entry point with a fake reader YAML configuration file."""
-    with fake_plugin_etc_path(tmp_path, {"satpy.readers": ["example_reader = satpy_plugin"]}) as plugin_etc_path:
-        comps_dir = os.path.join(plugin_etc_path, "readers")
-        os.makedirs(comps_dir, exist_ok=True)
-        comps_filename = os.path.join(comps_dir, "fake_reader.yaml")
-        _write_fake_reader_yaml(comps_filename)
-        yield plugin_etc_path
+    yield from _create_yamlbased_plugin(
+        tmp_path,
+        "readers",
+        "fake_reader.yaml",
+        _write_fake_reader_yaml,
+    )
 
 
 def _write_fake_reader_yaml(yaml_filename: str) -> None:
@@ -194,6 +194,42 @@ reader:
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 datasets: {{}}
 """)
+
+
+@pytest.fixture
+def fake_writer_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
+    """Create a fake plugin entry point with a fake writer YAML configuration file."""
+    yield from _create_yamlbased_plugin(
+        tmp_path,
+        "writers",
+        "fake_writer.yaml",
+        _write_fake_writer_yaml,
+    )
+
+
+def _write_fake_writer_yaml(yaml_filename: str) -> None:
+    writer_name = os.path.splitext(os.path.basename(yaml_filename))[0]
+    with open(yaml_filename, "w") as comps_file:
+        comps_file.write(f"""
+writer:
+    name: {writer_name}
+    writer: !!python/name:satpy.writers.Writer
+""")
+
+
+def _create_yamlbased_plugin(
+        tmp_path: Path,
+        component_type: str,
+        yaml_name: str,
+        yaml_func: Callable[[str], None]
+) -> Iterator[Path]:
+    entry_point_dict = {f"satpy.{component_type}": [f"example_{component_type} = satpy_plugin"]}
+    with fake_plugin_etc_path(tmp_path, entry_point_dict) as plugin_etc_path:
+        comps_dir = os.path.join(plugin_etc_path, component_type)
+        os.makedirs(comps_dir, exist_ok=True)
+        comps_filename = os.path.join(comps_dir, yaml_name)
+        yaml_func(comps_filename)
+        yield plugin_etc_path
 
 
 class TestPluginsConfigs:
@@ -223,16 +259,36 @@ class TestPluginsConfigs:
         """Test that readers can be loaded from plugin entry points."""
         from satpy.readers import configs_for_reader
         reader_yaml_path = fake_reader_plugin_etc_path / "readers" / "fake_reader.yaml"
-        with satpy.config.set(config_path=[]):
-            configs = list(configs_for_reader(reader=specified_reader))
-        assert any(str(reader_yaml_path) in config_list for config_list in configs)
+        self._get_and_check_reader_writer_configs(specified_reader, configs_for_reader, reader_yaml_path)
 
     def test_plugin_reader_available_readers(self, fake_reader_plugin_etc_path):
         """Test that readers can be loaded from plugin entry points."""
         from satpy.readers import available_readers
+        self._check_available_component(available_readers, "fake_reader")
+
+    @pytest.mark.parametrize("specified_writer", [None, "fake_writer"])
+    def test_plugin_writer_configs(self, fake_writer_plugin_etc_path, specified_writer):
+        """Test that writers can be loaded from plugin entry points."""
+        from satpy.writers import configs_for_writer
+        writer_yaml_path = fake_writer_plugin_etc_path / "writers" / "fake_writer.yaml"
+        self._get_and_check_reader_writer_configs(specified_writer, configs_for_writer, writer_yaml_path)
+
+    def test_plugin_writer_available_writers(self, fake_writer_plugin_etc_path):
+        """Test that readers can be loaded from plugin entry points."""
+        from satpy.writers import available_writers
+        self._check_available_component(available_writers, "fake_writer")
+
+    @staticmethod
+    def _get_and_check_reader_writer_configs(specified_component, configs_func, exp_yaml):
         with satpy.config.set(config_path=[]):
-            readers = available_readers()
-        assert "fake_reader" in readers
+            configs = list(configs_func(specified_component))
+        assert any(str(exp_yaml) in config_list for config_list in configs)
+
+    @staticmethod
+    def _check_available_component(available_func, exp_component):
+        with satpy.config.set(config_path=[]):
+            available_components = available_func()
+        assert exp_component in available_components
 
 
 class TestConfigObject:
