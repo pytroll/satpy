@@ -1110,7 +1110,8 @@ class Enhancer(object):
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(config_fn)
+            paths = get_entry_points_config_dirs('satpy.enhancements')
+            self.enhancement_config_file = config_search_paths(config_fn, search_dirs=paths)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -1129,9 +1130,10 @@ class Enhancer(object):
             # one single sensor
             sensor = [sensor]
 
+        paths = get_entry_points_config_dirs('satpy.enhancements')
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".yaml")
-            config_files = config_search_paths(config_fn)
+            config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:

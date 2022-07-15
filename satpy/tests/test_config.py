@@ -217,6 +217,51 @@ writer:
 """)
 
 
+@pytest.fixture
+def fake_enh_plugin_etc_path(tmp_path: Path) -> Iterator[Path]:
+    """Create a fake plugin entry point with a fake enhancement YAML configure files.
+
+    This creates a ``fake_sensor.yaml`` and ``generic.yaml`` enhancement configuration.
+
+    """
+    yield from _create_yamlbased_plugin(
+        tmp_path,
+        "enhancements",
+        "fake_sensor.yaml",
+        _write_fake_enh_yamls,
+    )
+
+
+def _write_fake_enh_yamls(yaml_filename: str) -> None:
+    with open(yaml_filename, "w") as comps_file:
+        comps_file.write("""
+enhancements:
+    some_custom_plugin_enh:
+        name: fake_name
+        operations:
+        - name: stretch
+          method: !!python/name:satpy.enhancements.stretch
+          kwargs:
+            stretch: crude
+            min_stretch: -100.0
+            max_stretch: 0.0
+""")
+
+    generic_filename = os.path.join(os.path.dirname(yaml_filename), "generic.yaml")
+    with open(generic_filename, "w") as comps_file:
+        comps_file.write("""
+enhancements:
+    default:
+        operations:
+        - name: stretch
+          method: !!python/name:satpy.enhancements.stretch
+          kwargs:
+            stretch: crude
+            min_stretch: -1.0
+            max_stretch: 1.0
+""")
+
+
 def _create_yamlbased_plugin(
         tmp_path: Path,
         component_type: str,
@@ -289,6 +334,38 @@ class TestPluginsConfigs:
         with satpy.config.set(config_path=[]):
             available_components = available_func()
         assert exp_component in available_components
+
+    @pytest.mark.parametrize(
+        ("sensor_name", "exp_result"),
+        [
+            ("fake_sensor", 1.0),  # uses the sensor specific entry
+            ("fake_sensor2", 0.5),  # uses the generic.yaml default
+        ]
+    )
+    def test_plugin_enhancements_generic_sensor(self, fake_enh_plugin_etc_path, sensor_name, exp_result):
+        """Test that enhancements from a plugin are available."""
+        import dask.array as da
+        import numpy as np
+        import xarray as xr
+        from trollimage.xrimage import XRImage
+
+        from satpy.writers import Enhancer
+
+        data_arr = xr.DataArray(
+            da.zeros((10, 10), dtype=np.float32),
+            dims=("y", "x"),
+            attrs={
+                "sensor": {sensor_name},
+                "name": "fake_name",
+            })
+        img = XRImage(data_arr)
+
+        enh = Enhancer()
+        enh.add_sensor_enhancements(data_arr.attrs["sensor"])
+        enh.apply(img, **img.data.attrs)
+
+        res_data = img.data.values
+        np.testing.assert_allclose(res_data, exp_result)
 
 
 class TestConfigObject:
