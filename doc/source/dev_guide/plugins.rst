@@ -89,21 +89,82 @@ automatically discovered by Satpy.
 
 A ``pyproject.toml`` file is typically placed in the root of a project
 repository and at the same level as the package (ex. ``satpy_myplugin/``
-directory). An example for a package called ``satpy_myplugin`` with
+directory). An example for a package called ``satpy-myplugin`` with
 custom composites is shown below.
 
 .. code:: toml
 
-    TODO
+    [project]
+    name = "satpy-myplugin"
+    description = "Example Satpy plugin package definition."
+    version = "1.0.0"
+    readme = "README.md"
+    license = {text = "MIT"}
+    requires-python = ">=3.8"
+    dependencies = [
+        "satpy",
+    ]
+
+    [tool.setuptools]
+    packages = ["satpy_myplugin"]
+
+    [build-system]
+    requires = ["setuptools", "wheel"]
+    build-backend = "setuptools.build_meta"
+
+    [project.entry-points."satpy.composites"]
+    example_composites = "satpy_myplugin"
 
 Other custom components like readers and writers can be defined in the same
-package by using additional entry points named TODO.
+package by using additional entry points named ``satpy.readers`` for readers,
+``satpy.writers`` for writers, and ``satpy.enhancements`` for enhancements.
+
+Note the difference between the usage of the package name (``satpy-myplugin``)
+which includes a hyphen and the package directory (``satpy_myplugin``) which uses
+an underscore. Your package name does not need to have a separator (hyphen) in
+it, but is used here due to the common practice of naming plugins this way.
+Package directories can't use hyphens as this would be a syntax error when
+trying to import the package. Underscores can't be used in package names as
+this is not allowed by PyPI.
+
+The first ``project`` section in this TOML file specifies metadata about the
+package. This is most important if you plan on distributing your package on
+PyPI or similar package repository. We specify that our package depends on
+``satpy`` so if someone installs it Satpy will automatically be installed.
+The second ``tools.setuptools`` section
+tells the package building (via ``setuptools``) what directory the Python
+code is in. The third section, ``build-system``, says what tool(s) should be
+used for building the package and what extra requirements are needed during
+this build process.
+
+The last section, ``project.entry-points."satpy.composites"`` is the only
+section specific to this package being a Satpy plugin. At the time of writing
+the ``example_composites = "satpy_myplugin"`` portion is not actually used
+by Satpy. Instead Satpy will assume that a package that defines the
+``satpy.composites`` (or any of the other component types) entry point will
+have a ``etc/`` directory in the root of the package structure. Even so,
+for future compatibility, it is best to use the name of the package directory
+on the right-hand side of the ``=``.
+
+.. warning::
+
+    Due to some limitations in setuptools you must also define a ``setup.py``
+    file in addition to ``pyproject.toml`` if you'd like to use "editable"
+    installations (``pip install -e .``). Once
+    `this setuptools issue <https://github.com/pypa/setuptools/issues/2816>`_
+    is resolved this won't be needed. For now this minimal ``setup.py`` will
+    work:
+
+    .. code-block:: python
+
+        from setuptools import setup
+        setup()
 
 **Alternative: setup.py**
 
 If you are more comfortable creating a ``setup.py``-based python package you
 can use ``setup.py`` instead of ``pyproject.toml``. When used for custom
-composites, in a package called ``satpy_cp`` it would look something like
+composites, in a package called ``satpy-myplugin`` it would look something like
 this:
 
 .. code:: python
@@ -112,11 +173,19 @@ this:
     import os
 
     setup(
-        name='satpy_cpe',
+        name='satpy-myplugin',
         entry_points={
             'satpy.composites': [
-                'example_composites = satpy_cpe',
+                'example_composites = satpy_myplugin',
             ],
         },
-        package_data={'satpy_cpe': [os.path.join('etc', 'composites/*.yaml')]},
+        package_data={'satpy_myplugin': [os.path.join('etc', 'composites/*.yaml')]},
+        install_requires=["satpy"],
     )
+
+Note the difference between the usage of the package name (``satpy-plugin``)
+which includes a hyphen and the package directory (``satpy_plugin``) which uses
+an underscore. Your package name does not need to have a separator (hyphen) in
+it, but is used here due to the common practice of naming plugins this way.
+See the ``pyproject.toml`` information above for more information on what each
+of these values means.
