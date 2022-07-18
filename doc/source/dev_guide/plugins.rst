@@ -189,3 +189,19 @@ an underscore. Your package name does not need to have a separator (hyphen) in
 it, but is used here due to the common practice of naming plugins this way.
 See the ``pyproject.toml`` information above for more information on what each
 of these values means.
+
+Licenses
+--------
+
+Disclaimer: We are not lawyers.
+
+Satpy source code is under the GPLv3 license. This license requires any
+derivative works to also be GPLv3. It is our understanding that importing
+a Python module could be considered "linking" that source code to your own
+and would therefore require your code to be GPLv3 licensed. It is currently
+only possible to make a Satpy-compatible plugin without importing Satpy if it
+contains only enhancements. Writers and compositors are possible without
+subclassing, but are likely difficult to implement. Readers are even more
+difficult to implement without using Satpy's base classes and utilities.
+It is also our understanding that if your custom Satpy plugin code is not
+publicly released then it does not need to be GPLv3.
