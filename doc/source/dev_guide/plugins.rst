@@ -99,7 +99,7 @@ custom composites is shown below.
     description = "Example Satpy plugin package definition."
     version = "1.0.0"
     readme = "README.md"
-    license = {text = "MIT"}
+    license = {text = "GPL-3.0-or-later"}
     requires-python = ">=3.8"
     dependencies = [
         "satpy",
