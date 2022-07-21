@@ -377,6 +377,14 @@ composites:
       - name: B15
       - name: B13
 
+  cloudtop:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: cloudtop
+    prerequisites:
+      - name: B07
+      - name: B13
+      - name: B15
+
   night_ir_with_background:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: night_ir_with_background
