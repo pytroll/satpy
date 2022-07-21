@@ -382,7 +382,7 @@ composites:
     standard_name: cloudtop
     prerequisites:
       - name: B07
-      - name: B13
+      - name: B14
       - name: B15
 
   night_ir_with_background:
