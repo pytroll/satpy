@@ -352,7 +352,7 @@ composites:
     lim_high: 90
     prerequisites:
       - natural_color_raw
-      - night_ir
+      - cloudtop
 
   true_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
@@ -367,14 +367,6 @@ composites:
     prerequisites:
       - true_color
       - night_ir_with_background_hires
-
-  night_ir:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    standard_name: night_ir
-    prerequisites:
-      - name: B07
-      - name: B13
-      - name: B15
 
   night_ir_alpha:
     compositor: !!python/name:satpy.composites.GenericCompositor
