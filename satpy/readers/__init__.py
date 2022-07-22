@@ -398,7 +398,7 @@ def available_readers(as_dict=False):
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None,
                            filter_parameters=None, reader_kwargs=None,
-                           missing_ok=False, fs=None):
+                           missing_ok=False, fs=None, use_fsfile=None):
     """Find files matching the provided parameters.
 
     Use `start_time` and/or `end_time` to limit found filenames by the times
@@ -409,9 +409,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
     Files may be either on-disk or on a remote file system.  By default,
     files are searched for locally.  Users can search on remote filesystems by
-    passing an instance of an implementation of
-    `fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class
-    implementing a ``glob`` method works).
+    passing an instance of an implementation of :class:`fsspec.spec.AbstractFileSystem`
+    (strictly speaking, any object of a class implementing a ``glob`` method works).
+    Which for example can be generated with the conveniance function :func:`fsspec.filesystem`.
 
     If locating files on a local file system, the returned dictionary
     can be passed directly to the `Scene` object through the `filenames`
@@ -440,25 +440,26 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         start_time (datetime): Limit used files by starting time.
         end_time (datetime): Limit used files by ending time.
         base_dir (str): The directory to search for files containing the
-                        data to load. Defaults to the current directory.
+            data to load. Defaults to the current directory.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         sensor (str or list): Limit used files by provided sensors.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
-                                  automatically added to this dictionary. Shortcut for
-                                  `reader_kwargs['filter_parameters']`.
-        reader_kwargs (dict): Keyword arguments to pass to specific reader
-                              instances to further configure file searching.
-        missing_ok (bool): If False (default), raise ValueError if no files
-                            are found.  If True, return empty dictionary if no
-                            files are found.
-        fs (FileSystem): Optional, instance of implementation of
-                         fsspec.spec.AbstractFileSystem (strictly speaking,
-                         any object of a class implementing ``.glob`` is
-                         enough).  Defaults to searching the local filesystem.
+            automatically added to this dictionary. Shortcut for `reader_kwargs['filter_parameters']`.
+        reader_kwargs (dict): Keyword arguments to pass to specific reader instances to further
+            configure file searching.
+        missing_ok (bool): If False (default), raise ValueError if no files are found.  If True,
+            return empty dictionary if no files are found.
+        fs (:class:`fsspec.spec.AbstractFileSystem`, optional): Instance of implementation of
+            :class:`fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class implementing ``.glob`` is
+            enough).  Defaults to searching the local filesystem.
+        use_fsfile (bool, optional): Only used if filesystem is passed to `fs` in which case it defaults to
+            True and will return :class:`FSFile` objects. Set to False to return file strings.
 
-    Returns: Dictionary mapping reader name string to list of filenames
+    Returns:
+        dict: Dictionary mapping reader name string to list of string filenames or :class:`FSFile` objects.
 
     """
+    use_fsfile = True if ((use_fsfile is None or use_fsfile) and fs is not None) else use_fsfile
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
@@ -474,7 +475,10 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                 base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
         sensor_supported = sensor_supported or this_sensor_supported
         if loadables:
-            reader_files[reader_instance.name] = list(loadables)
+            if use_fsfile:
+                reader_files[reader_instance.name] = [FSFile(fn, fs=fs) for fn in loadables]
+            else:
+                reader_files[reader_instance.name] = list(loadables)
 
     if sensor and not sensor_supported:
         raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
