@@ -250,7 +250,10 @@ class ParallaxCorrection:
         self.diagnostics.clear()
         return self.corrected_area(cth_dataset)
 
-    def corrected_area(self, cth_dataset):
+    def corrected_area(self, cth_dataset,
+                       cth_resampler="nearest",
+                       cth_radius_of_influence=50000,
+                       lonlat_chunks=1024):
         """Return the parallax corrected SwathDefinition.
 
         Using the cloud top heights provided in ``cth_dataset``, calculate the
@@ -268,6 +271,13 @@ class ParallaxCorrection:
                 and they must contain satellite orbital parameters.  The
                 dimensions must be ``(y, x)``.  For best performance, this
                 should be a dask-based :class:`~xarray.DataArray`.
+            cth_resampler (string, optional): Resampler to use when resampling the
+                (cloud top) height to the base area.  Defaults to "nearest".
+            cth_radius_of_influence (number, optional): Radius of influence to use when
+                resampling the (cloud top) height to the base area.  Defaults
+                to 50000.
+            lonlat_chunks (int, optional): Chunking to use when calculating lon/lats.
+                Probably the default (1024) should be fine.
 
         Returns:
             :class:`~pyresample.geometry.SwathDefinition` describing parallax
@@ -279,9 +289,12 @@ class ParallaxCorrection:
         (sat_lon, sat_lat, sat_alt_m) = _get_satpos_from_cth(cth_dataset)
         self._check_overlap(cth_dataset)
 
-        cth_dataset = self._prepare_cth_dataset(cth_dataset)
+        cth_dataset = self._prepare_cth_dataset(
+                cth_dataset, resampler=cth_resampler,
+                radius_of_influence=cth_radius_of_influence,
+                lonlat_chunks=lonlat_chunks)
 
-        (base_lon, base_lat) = self.base_area.get_lonlats(chunks=1024)
+        (base_lon, base_lat) = self.base_area.get_lonlats(chunks=lonlat_chunks)
         # calculate the shift/error due to the parallax effect
         (shifted_lon, shifted_lat) = forward_parallax(
                 sat_lon, sat_lat, sat_alt_m,
@@ -312,7 +325,9 @@ class ParallaxCorrection:
             xr.DataArray(lon, dims=("y", "x")),
             xr.DataArray(lat, dims=("y", "x")))
 
-    def _prepare_cth_dataset(self, cth_dataset):
+    def _prepare_cth_dataset(
+            self, cth_dataset, resampler="nearest", radius_of_influence=50000,
+            lonlat_chunks=1024):
         """Prepare CTH dataset.
 
         Set cloud top height to zero wherever lat/lon are valid but CTH is
@@ -323,13 +338,16 @@ class ParallaxCorrection:
         # NB: 0 may be below the surface... could be a problem for high
         # resolution imagery in mountainous or high elevation terrain
         # NB: how tolerant of xarray & dask is this?
-        cth_dataset = resample_dataset(
-                cth_dataset, self.base_area, resampler="nearest",
-                radius_of_influence=50000)
-        (pixel_lon, pixel_lat) = cth_dataset.attrs["area"].get_lonlats(chunks=1024)
-        cth_dataset = cth_dataset.where(np.isfinite(pixel_lon) & np.isfinite(pixel_lat))
-        cth_dataset = cth_dataset.where(cth_dataset.notnull(), 0)
-        return cth_dataset
+        resampled_cth_dataset = resample_dataset(
+                cth_dataset, self.base_area, resampler=resampler,
+                radius_of_influence=radius_of_influence)
+        (pixel_lon, pixel_lat) = resampled_cth_dataset.attrs["area"].get_lonlats(
+                chunks=lonlat_chunks)
+        masked_resampled_cth_dataset = resampled_cth_dataset.where(
+                np.isfinite(pixel_lon) & np.isfinite(pixel_lat))
+        masked_resampled_cth_dataset = masked_resampled_cth_dataset.where(
+                masked_resampled_cth_dataset.notnull(), 0)
+        return masked_resampled_cth_dataset
 
     def _check_overlap(self, cth_dataset):
         """Ensure cth_dataset is usable for parallax correction.
