@@ -55,13 +55,14 @@ A plugin package should consist of three main parts:
    YAML files should be in ``readers/``, ``composites/``, ``enhancements/``,
    and ``writers/`` directories. These YAML files must follow the Satpy naming
    conventions for each component. For example, composites and enhancements
-   allow for sensor-specific configuration files. Satpy will collect all
-   available YAML files from all installed plugins and merge them with those
-   builtin to Satpy. The Satpy builtins will be used as a "base" configuration
-   with all external YAML files applied after.
+   allow for sensor-specific configuration files. Other directories can be
+   added in this ``etc`` directory and will be ignored by Satpy. Satpy will
+   collect all available YAML files from all installed plugins and merge them
+   with those builtin to Satpy. The Satpy builtins will be used as a "base"
+   configuration with all external YAML files applied after.
 3. ``mypkg/``: The python package with any custom python code. This code should
-   be based on Satpy's base classes for each component or use utilities
-   available from Satpy whenever possible.
+   be based on or at least compatible with Satpy's base classes for each
+   component or use utilities available from Satpy whenever possible.
 
    * readers: :class:`~satpy.readers.yaml_reader.FileYAMLReader` for any
      reader subclasses and
@@ -81,11 +82,11 @@ A plugin package should consist of three main parts:
 pyproject.toml
 --------------
 
-A ``pyproject.toml`` file can be used to define the metadata and configuration
-for a python package. With this file it is possible to use package building
-tools to make an installable package. By using a special feature called
-"entry points" we can configure our package to its satpy features are
-automatically discovered by Satpy.
+We recommend using a ``pyproject.toml`` file can be used to define the
+metadata and configuration for a python package. With this file it is possible
+to use package building tools to make an installable package. By using a
+special feature called "entry points" we can configure our package to its
+satpy features are automatically discovered by Satpy.
 
 A ``pyproject.toml`` file is typically placed in the root of a project
 repository and at the same level as the package (ex. ``satpy_myplugin/``
@@ -140,7 +141,8 @@ this build process.
 The last section, ``project.entry-points."satpy.composites"`` is the only
 section specific to this package being a Satpy plugin. At the time of writing
 the ``example_composites = "satpy_myplugin"`` portion is not actually used
-by Satpy. Instead Satpy will assume that a package that defines the
+by Satpy but is required to properly define the entry point in the plugin
+package. Instead Satpy will assume that a package that defines the
 ``satpy.composites`` (or any of the other component types) entry point will
 have a ``etc/`` directory in the root of the package structure. Even so,
 for future compatibility, it is best to use the name of the package directory
@@ -196,10 +198,11 @@ Licenses
 Disclaimer: We are not lawyers.
 
 Satpy source code is under the GPLv3 license. This license requires any
-derivative works to also be GPLv3. It is our understanding that importing
-a Python module could be considered "linking" that source code to your own
-and would therefore require your code to be GPLv3 licensed. It is currently
-only possible to make a Satpy-compatible plugin without importing Satpy if it
+derivative works to also be GPLv3 or GPLv3 compatible. It is our understanding
+that importing a Python module could be considered "linking" that source code
+to your own (thus being a derivative work) and would therefore require your
+code to be licensed with a GPLv3-compatible license. It is currently only
+possible to make a Satpy-compatible plugin without importing Satpy if it
 contains only enhancements. Writers and compositors are possible without
 subclassing, but are likely difficult to implement. Readers are even more
 difficult to implement without using Satpy's base classes and utilities.
