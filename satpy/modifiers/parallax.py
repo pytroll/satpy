@@ -167,7 +167,7 @@ def _calculate_parallax_distance(height, elevation):
 
 
 class ParallaxCorrection:
-    """Class for parallax corrections.
+    """Parallax correction calculations.
 
     This class contains higher-level functionality to wrap the parallax
     correction calculations in :func:`forward_parallax`.  The class is
