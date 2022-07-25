@@ -88,6 +88,15 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
 
     This function assumes a spherical Earth.
 
+    .. note::
+
+        Be careful with units!  Heights may be either in m or km, and may
+        refer to either the Earth's surface on the Earth's centre.  Cloud top
+        height is usually reported in metres above the Earth's surface, rarely in
+        km.  Satellite altitude may be reported in either m or km, but orbital
+        parameters may be in relation the the Earths centre.  The Earth radius
+        from pyresample is reported in km.
+
     Args:
         sat_lon (number): Satellite longitude in geodetic coordinates [°]
         sat_lat (number): Satellite latitude in geodetic coordinates [°]
@@ -104,13 +113,6 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
             New geolocation ``(lon, lat)`` for the longitude and
             latitude that were to be corrected, in geodetic coordinates. [°]
     """
-    # Be careful with units here.  Heights may be either in m or km, and may
-    # refer to either the Earth's surface on the Earth's centre.  Cloud top
-    # height is usually reported in metres above the Earth's surface, rarely in
-    # km.  Satellite altitude may be reported in either m or km, but orbital
-    # parameters may be in relation the the Earths centre.  The Earth radius
-    # from pyresample is reported in km.
-
     elevation = _get_satellite_elevation(sat_lon, sat_lat, sat_alt, lon, lat)
     parallax_distance = _calculate_parallax_distance(height, elevation)
     shifted_xyz = _get_parallax_shift_xyz(
