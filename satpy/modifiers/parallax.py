@@ -98,20 +98,20 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
         from pyresample is reported in km.
 
     Args:
-        sat_lon (number): Satellite longitude in geodetic coordinates [°]
-        sat_lat (number): Satellite latitude in geodetic coordinates [°]
+        sat_lon (number): Satellite longitude in geodetic coordinates [degrees]
+        sat_lat (number): Satellite latitude in geodetic coordinates [degrees]
         sat_alt (number): Satellite altitude above the Earth surface [m]
         lon (array or number): Longitudes of pixel or pixels to be corrected,
-            in geodetic coordinates [°]
+            in geodetic coordinates [degrees]
         lat (array or number): Latitudes of pixel/pixels to be corrected, in
-            geodetic coordinates [°]
+            geodetic coordinates [degrees]
         height (array or number): Heights of pixels on which the correction
             will be based.  Typically this is the cloud top height. [m]
 
     Returns:
         tuple[float, float]: New geolocation
             New geolocation ``(lon, lat)`` for the longitude and
-            latitude that were to be corrected, in geodetic coordinates. [°]
+            latitude that were to be corrected, in geodetic coordinates. [degrees]
     """
     elevation = _get_satellite_elevation(sat_lon, sat_lat, sat_alt, lon, lat)
     parallax_distance = _calculate_parallax_distance(height, elevation)
