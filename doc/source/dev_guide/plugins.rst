@@ -82,7 +82,9 @@ A plugin package should consist of three main parts:
 pyproject.toml
 --------------
 
-We recommend using a ``pyproject.toml`` file can be used to define the
+We recommend using a
+`pyproject.toml <https://pip.pypa.io/en/stable/reference/build-system/pyproject-toml/>`_
+file can be used to define the
 metadata and configuration for a python package. With this file it is possible
 to use package building tools to make an installable package. By using a
 special feature called "entry points" we can configure our package to its
@@ -115,6 +117,12 @@ custom composites is shown below.
 
     [project.entry-points."satpy.composites"]
     example_composites = "satpy_myplugin"
+
+This definition uses
+`setuptools <https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html>`_
+to build the resulting package (under ``build-system``). There are other
+alternative tools (like `poetry <https://python-poetry.org/docs/pyproject/>`_)
+that can be used.
 
 Other custom components like readers and writers can be defined in the same
 package by using additional entry points named ``satpy.readers`` for readers,
