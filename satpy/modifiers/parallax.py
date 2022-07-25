@@ -21,7 +21,7 @@ as cloud top height.
 The geolocation of (geostationary) satellite imagery is calculated by
 agencies or in satpy readers with the assumption of a clear view from
 the satellite to the geoid.  When a cloud blocks the view of the Earth
-surface on the surface is above sea level, the geolocation is not accurate
+surface or the surface is above sea level, the geolocation is not accurate
 for the cloud or mountain top.  This module contains routines to correct
 imagery such that pixels are shifted or interpolated to correct for this
 parallax effect.
