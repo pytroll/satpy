@@ -81,6 +81,7 @@ extras_require = {
     # Other
     'geoviews': ['geoviews'],
     'overlays': ['pycoast', 'pydecorate'],
+    'satpos_from_tle': ['skyfield', 'astropy'],
     'tests': test_requires,
 }
 all_extras = []
