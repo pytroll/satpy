@@ -62,7 +62,7 @@ Parallax correction
 
     The Satpy parallax correction is experimental and subject to change.
 
-Since early 2022, Satpy has included a
+Since version 0.37 (mid 2022), Satpy has included a
 modifier for parallax correction, implemented in the
 :class:`~satpy.modifiers.parallax.ParallaxCorrectionModifier` class.
 This modifier is important for some applications, but not applied
