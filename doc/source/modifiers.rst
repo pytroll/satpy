@@ -95,6 +95,26 @@ cloud is shifted toward the observer, it may occupy less pixels than before,
 because pixels closer to the observer have a smaller surface area.  It can
 also be deformed (a "rectangular" cloud may get the shape of a parallelogram).
 
+.. figure:: https://figshare.com/ndownloader/files/36422616/preview/36422616/preview.jpg
+   :width: 512
+   :height: 512
+   :alt: Satellite image without parallax correction.
+
+   SEVIRI view of southern Sweden, 2021-11-30 12:15Z, without parallax correction.
+   This is the ``natural_color`` composite as built into Satpy.
+
+
+.. figure:: https://figshare.com/ndownloader/files/36422613/preview/36422613/preview.jpg
+   :width: 512
+   :height: 512
+   :alt: Satellite image with parallax correction.
+
+   The same satellite view with parallax correction.  The most obvious change
+   are the gaps left behind by the parallax correction, shown as black pixels.
+   Otherwise it shows that clouds have "moved" south-south-west in the direction
+   of the satellite.  To view the images side-by-side or alternating, look at
+   `the figshare page <https://figshare.com/articles/figure/20211130121510-Meteosat-11-seviri-sswe-parallax_corrected_natural_color_jpg/20377203>`_
+
 The parallax correction is currently experimental and subject to change.
 Although it is covered by tests, there may be cases that yield unexpected
 or incorrect results.  It does not yet perform any checks that the
