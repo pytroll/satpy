@@ -29,6 +29,8 @@ import xarray as xr
 from pyproj import Geod
 from pyresample import create_area_def
 
+import satpy.resample
+
 from ...writers import get_enhanced_image
 
 
@@ -476,9 +478,15 @@ class TestParallaxCorrectionModifier:
                 name="parallax_corrected_dataset",
                 prerequisites=[fake_bt, cth_clear],
                 optional_prerequisites=[],
-                search_radius=25_000)
+                cth_radius_of_influence=48_000,
+                dataset_radius_of_influence=49_000)
         res = modif([fake_bt, cth_clear], optional_datasets=[])
         np.testing.assert_allclose(res, fake_bt)
+        with unittest.mock.patch("satpy.modifiers.parallax.resample_dataset") as smp:
+            smp.side_effect = satpy.resample.resample_dataset
+            modif([fake_bt, cth_clear], optional_datasets=[])
+            assert smp.call_args_list[0].kwargs["radius_of_influence"] == 48_000
+            assert smp.call_args_list[1].kwargs["radius_of_influence"] == 49_000
 
     def test_parallax_modifier_interface_with_cloud(self):
         """Test the modifier interface with a cloud.

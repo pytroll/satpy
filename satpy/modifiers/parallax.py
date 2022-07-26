@@ -236,7 +236,7 @@ class ParallaxCorrection:
         self.debug_mode = debug_mode
         self.diagnostics = {}
 
-    def __call__(self, cth_dataset):
+    def __call__(self, cth_dataset, **kwargs):
         """Apply parallax correction to dataset.
 
         Args:
@@ -248,7 +248,7 @@ class ParallaxCorrection:
                 lat/lon coordinates.
         """
         self.diagnostics.clear()
-        return self.corrected_area(cth_dataset)
+        return self.corrected_area(cth_dataset, **kwargs)
 
     def corrected_area(self, cth_dataset,
                        cth_resampler="nearest",
@@ -429,6 +429,7 @@ class ParallaxCorrectionModifier(ModifierBase):
             modifier: !!python/name:satpy.modifiers.parallax.ParallaxCorrectionModifier
             prerequisites:
               - "ctth_alti"
+            dataset_radius_of_influence: 50000
 
         composites:
 
@@ -443,6 +444,26 @@ class ParallaxCorrectionModifier(ModifierBase):
 
         sc = Scene({"seviri_l1b_hrit": files_l1b, "nwcsaf-geo": files_l2})
         sc.load(["parallax_corrected_VIS006"])
+
+    The modifier takes optional global parameters, all of which are optional.
+    They affect various steps in the algorithm.  Setting them may impact
+    performance::
+
+    cth_resampler
+        Resampler to use when resampling (cloud top) height to the base area.
+        Defaults to "nearest".
+    cth_radius_of_influence
+        Radius of influence to use when resampling the (cloud top) height to
+        the base area.  Defaults to 50000.
+    lonlat_chunks
+        Chunk size to use when obtaining longitudes and latitudes from the area
+        definition.  Defaults to 1024.  If you set this to None, then parallax
+        correction will involve premature calculation.  Changing this may or
+        may not make parallax correction slower or faster.
+    dataset_radius_of_influence
+        Radius of influence to use when resampling the dataset onto the
+        swathdefinition describing the parallax-corrected area.  Defaults to
+        50000.  This always uses nearest neighbour resampling.
 
     Alternately, you can use the lower-level API directly with the
     :class:`ParallaxCorrection` class, which may be more efficient if multiple
@@ -462,10 +483,16 @@ class ParallaxCorrectionModifier(ModifierBase):
         (to_be_corrected, cth) = projectables
         base_area = to_be_corrected.attrs["area"]
         corrector = self._get_corrector(base_area)
-        plax_corr_area = corrector(cth)
+        plax_corr_area = corrector(
+                cth,
+                cth_resampler=self.attrs.get("cth_resampler", "nearest"),
+                cth_radius_of_influence=self.attrs.get("cth_radius_of_influence", 50_000),
+                lonlat_chunks=self.attrs.get("lonlat_chunks", 1024),
+                )
         res = resample_dataset(
                 to_be_corrected, plax_corr_area,
-                radius_of_influence=50000, fill_value=np.nan)
+                radius_of_influence=self.attrs.get("dataset_radius_of_influence", 50_000),
+                fill_value=np.nan)
         res.attrs["area"] = to_be_corrected.attrs["area"]
         self.apply_modifier_info(to_be_corrected, res)
 
