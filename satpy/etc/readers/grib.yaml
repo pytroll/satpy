@@ -1,6 +1,10 @@
 reader:
-  description: GRIB2 file reader
   name: grib
+  short_name: GRIB2
+  long_name: GRIB2 format
+  description: GRIB2 file reader
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [unknown]
   data_identification_keys:

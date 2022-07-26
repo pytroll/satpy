@@ -1,6 +1,10 @@
 reader:
-  description: CSPP Geo and GEOCAT file reader
   name: geocat
+  short_name: CSPP Geo/GEOCAT
+  long_name: GEOstationary Cloud Algorithm Test-bed
+  description: CSPP Geo and GEOCAT file reader
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [abi, ahi, goes_imager]
 

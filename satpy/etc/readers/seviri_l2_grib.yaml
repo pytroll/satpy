@@ -1,8 +1,10 @@
 reader:
   name: seviri_l2_grib
   short_name: SEVIRI L2 GRIB
-  long_name: MSG SEVIRI L2 (GRIB)
+  long_name: MSG (Meteosat 8 to 11) Level 2 products in GRIB2 format
   description: Reader for EUMETSAT MSG SEVIRI L2 files in GRIB format.
+  status: Nominal
+  supports_fsspec: false
   sensors: [seviri]
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
 
