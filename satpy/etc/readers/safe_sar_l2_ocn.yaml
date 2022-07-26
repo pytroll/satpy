@@ -3,7 +3,7 @@ reader:
   short_name: SAR l2 OCN
   long_name: SAR Level 2 OCN data in SAFE format
   description: SAFE Reader for SAR L2 OCN data
-  status: defunct
+  status: Defunct
   supports_fsspec: false
   sensors: [sar-c]
   default_channels: []

@@ -8,7 +8,7 @@ reader:
     Facility (CMSAF) in its CLoud property dAtAset using SEVIRI (CLAAS)
     dataset, edition 2, doi:10.5676/EUM_SAF_CM/CLAAS/V002.  Information on
     CMSAF and its products can be found at https://www.cmsaf.eu/.
-  status: beta
+  status: Beta
   supports_fsspec: false
   sensors: [seviri]
   doi: doi:10.5676/EUM_SAF_CM/CLAAS/V002.
