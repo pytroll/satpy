@@ -3,7 +3,7 @@ reader:
   short_name: MODIS l2
   long_name: MODIS Level 2 (mod35) data in HDF-EOS format
   description: MODIS HDF-EOS L2 Reader
-  status: "?"
+  status: Beta
   supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [modis]

@@ -4,7 +4,7 @@ reader:
   long_name: MSG SEVIRI Level 1b NetCDF4
   description: >
     NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
-  status: HRV channel not supported
+  status: Beta, HRV channel not supported
   supports_fsspec: true
   sensors: [seviri]
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader

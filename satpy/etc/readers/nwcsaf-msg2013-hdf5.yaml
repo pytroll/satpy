@@ -3,7 +3,7 @@ reader:
   short_name: NWCSAF Geo
   long_name: NWCSAF GEO 2013 products in HDF5 format (limited to SEVIRI)
   description: HDF5 reader for the NWCSAF/Geo Seviri 2013 format
-  status: defunct
+  status: Defunct
   supports_fsspec: false
   sensors: [seviri]
   default_channels: []
