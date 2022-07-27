@@ -319,7 +319,7 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
 def get_satpos(
         data_arr: xr.DataArray,
         preference: Optional[str] = None,
-        maybe_attempt_tle: bool = False
+        use_tle: bool = False
 ) -> tuple[float, float, float]:
     """Get satellite position from dataset attributes.
 
@@ -338,9 +338,11 @@ def get_satpos(
             preference is not available then the original preference list is
             used. A warning is issued when projection values have to be used because
             nothing else is available and it wasn't provided as the ``preference``.
-        maybe_attempt_tle: If true, try to obtain position via satellite name
+        use_tle: If true, try to obtain position via satellite name
             and TLE if it can't be determined otherwise.  This requires pyorbital, skyfield,
             and astropy to be installed and may need network access to obtain the TLE.
+            Note that even if ``use_tle`` is true, the TLE will not be used if
+            the dataset metadata contain the satellite position directly.
 
     Returns:
         Geodetic longitude, latitude, altitude [km]
@@ -355,7 +357,7 @@ def get_satpos(
         lon, lat = _get_sat_lonlat(data_arr, lonlat_prefixes)
         alt = _get_sat_altitude(data_arr, alt_prefixes)
     except KeyError:
-        if maybe_attempt_tle:
+        if use_tle:
             logger.warning(
                     "Orbital parameters missing from metadata.  "
                     "Calculating from TLE using skyfield and astropy.")

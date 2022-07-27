@@ -52,8 +52,9 @@ on those modifiers can be found in the linked API documentation.
       - Modifies solar channels to filter out the visual impact of rayleigh
         scattering.
 
-A complete list can be found in the ``etc/composites`` source code and
-in the :mod:`~satpy.modifiers` module documentation.
+A complete list can be found in the `etc/composites
+<https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_
+source code and in the :mod:`~satpy.modifiers` module documentation.
 
 Parallax correction
 -------------------
@@ -122,7 +123,3 @@ provided (cloud top) height covers the area of the dataset for which
 the parallax correction shall be applied.
 
 .. versionadded:: 0.37
-
-A complete list can be found in the `etc/composites
-<https://github.com/pytroll/satpy/tree/main/satpy/etc/composites>`_
-source code and in the :mod:`~satpy.modifiers` module documentation.

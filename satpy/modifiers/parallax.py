@@ -517,5 +517,5 @@ def _get_satpos_from_cth(cth_dataset):
     platform name using pyorbital and skyfield.
     """
     (sat_lon, sat_lat, sat_alt_km) = get_satpos(
-            cth_dataset, maybe_attempt_tle=True)
+            cth_dataset, use_tle=True)
     return (sat_lon, sat_lat, sat_alt_km * 1000)
