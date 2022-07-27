@@ -67,19 +67,13 @@ class IncompleteHeightWarning(UserWarning):
 def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
     """Calculate forward parallax effect.
 
-    Calculate the forward parallax effect.  When a satellite instrument
-    observes the Earth, the geolocation assumes it sees the Earth surface
-    at the geoid (elevation zero).  In reality, the field of view may
-    stop short of the geoid as it observes, for example, a cloud or
-    elevated ground.  This function calculates the forward parallax
-    effect.  If the view of a pixel at location (lat, lon) is blocked
-    by a cloud at height h, we calculate the location of this blocking.
+    Satellite geolocation generally assumes an unobstructed view of a smooth
+    Earth surface.  In reality, this view may be obstructed by clouds or
+    mountains.
 
-    Calculate parallax correction based on satellite position and
-    (cloud top) height coordinates in geodetic (unprojected) coordinates.
-    This function calculates the latitude and longitude belonging to the
-    cloud top, based on the location of the satellite and the location
-    of the cloud.
+    If the view of a pixel at location (lat, lon) is blocked by a cloud
+    at height h, this function calculates the (lat, lon) coordinates
+    of the cloud above/in front of the invisible surface.
 
     For scenes that are only partly cloudy, the user might set the cloud top
     height for clear-sky pixels to NaN.  This function will return a corrected
