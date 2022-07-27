@@ -92,7 +92,7 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
 
         Be careful with units!  Heights may be either in m or km, and may
         refer to either the Earth's surface on the Earth's centre.  Cloud top
-        height is usually reported in metres above the Earth's surface, rarely in
+        height is usually reported in meters above the Earth's surface, rarely in
         km.  Satellite altitude may be reported in either m or km, but orbital
         parameters may be in relation the the Earths centre.  The Earth radius
         from pyresample is reported in km.
@@ -126,7 +126,23 @@ def _get_parallax_shift_xyz(sat_lon, sat_lat, sat_alt, lon, lat, parallax_distan
     """Calculate the parallax shift in cartesian coordinates.
 
     From satellite position and cloud position, get the parallax shift in
-    cartesian coordinates.
+    cartesian coordinates:
+
+    Args:
+        sat_lon (number): Satellite longitude in geodetic coordinates [degrees]
+        sat_lat (number): Satellite latitude in geodetic coordinates [degrees]
+        sat_alt (number): Satellite altitude above the Earth surface [m]
+        lon (array or number): Longitudes of pixel or pixels to be corrected,
+            in geodetic coordinates [degrees]
+        lat (array or number): Latitudes of pixel/pixels to be corrected, in
+            geodetic coordinates [degrees]
+        parallax_distance (number): Cloud to ground distance with parallax
+            effect [m].
+
+    Returns:
+        Parallax shift in cartesian coordinates.  If the input parameters
+        ``sat_alt`` and ``parallax_distance`` are in meter, then the returned
+        coordinates will also be in meter.
     """
     sat_xyz = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
     cth_xyz = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS*1e3  # km → m
@@ -266,7 +282,7 @@ class ParallaxCorrection:
 
         Args:
             cth_dataset (:class:`~xarray.DataArray`): Cloud top height in
-                metres.  The variable attributes must contain an ``area``
+                meters.  The variable attributes must contain an ``area``
                 attribute describing the geolocation in a pyresample-aware way,
                 and they must contain satellite orbital parameters.  The
                 dimensions must be ``(y, x)``.  For best performance, this
@@ -510,7 +526,7 @@ class ParallaxCorrectionModifier(ModifierBase):
 
 
 def _get_satpos_from_cth(cth_dataset):
-    """Obtain satellite position from CTH dataset, height in metre.
+    """Obtain satellite position from CTH dataset, height in meter.
 
     From a CTH dataset, obtain the satellite position lon, lat, altitude/m,
     either directly from orbital parameters, or, when missing, from the
