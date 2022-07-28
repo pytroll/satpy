@@ -46,6 +46,7 @@ import numpy as np
 import xarray as xr
 from pyorbital.orbital import A as EARTH_RADIUS
 from pyorbital.orbital import get_observer_look
+from pyproj import Geod
 from pyresample.bucket import BucketResampler
 from pyresample.geometry import SwathDefinition
 
@@ -64,8 +65,8 @@ class IncompleteHeightWarning(UserWarning):
     """Raised when heights only partially overlap with area to be corrected."""
 
 
-def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
-    """Calculate forward parallax effect.
+def get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height):
+    """Calculate parallax corrected lon/lats.
 
     Satellite geolocation generally assumes an unobstructed view of a smooth
     Earth surface.  In reality, this view may be obstructed by clouds or
@@ -84,12 +85,13 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
 
     .. note::
 
-        Be careful with units!  Heights may be either in m or km, and may
-        refer to either the Earth's surface on the Earth's centre.  Cloud top
-        height is usually reported in meters above the Earth's surface, rarely in
-        km.  Satellite altitude may be reported in either m or km, but orbital
-        parameters may be in relation the the Earths centre.  The Earth radius
-        from pyresample is reported in km.
+        Be careful with units!  This code expects ``sat_alt`` and
+        ``height`` to be in meter above the Earth's surface.  You may
+        have to convert your input correspondingly.  Cloud Top Height
+        is usually reported in meters above the Earth's surface, rarely
+        in km.  Satellite altitude may be reported in either m or km, but
+        orbital parameters are usually in relation the the Earth's centre.
+        The Earth radius from pyresample is reported in km.
 
     Args:
         sat_lon (number): Satellite longitude in geodetic coordinates [degrees]
@@ -103,17 +105,34 @@ def forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height):
             will be based.  Typically this is the cloud top height. [m]
 
     Returns:
-        tuple[float, float]: New geolocation
-            New geolocation ``(lon, lat)`` for the longitude and
-            latitude that were to be corrected, in geodetic coordinates. [degrees]
+        tuple[float, float]: Corrected geolocation
+            Corrected geolocation ``(lon, lat)`` in geodetic coordinates for
+            the pixel(s) to be corrected, in geodetic coordinates. [degrees]
     """
     elevation = _get_satellite_elevation(sat_lon, sat_lat, sat_alt, lon, lat)
-    parallax_distance = _calculate_parallax_distance(height, elevation)
+    parallax_distance = _calculate_slant_cloud_distance(height, elevation)
     shifted_xyz = _get_parallax_shift_xyz(
             sat_lon, sat_lat, sat_alt, lon, lat, parallax_distance)
 
     return xyz2lonlat(
         shifted_xyz[..., 0], shifted_xyz[..., 1], shifted_xyz[..., 2])
+
+
+def get_surface_parallax_displacement(
+        sat_lon, sat_lat, sat_alt, lon, lat, height):
+    """Calculate surface parallax displacement.
+
+    Calculate the displacement due to parallax error.  Input parameters are
+    identical to :func:`get_parallax_corrected_lonlats`.
+
+    Returns:
+        number or array: parallax displacement in meter
+    """
+    (corr_lon, corr_lat) = get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height)
+    # Get parallax displacement
+    geod = Geod(ellps="sphere")
+    _, _, parallax_dist = geod.inv(corr_lon, corr_lat, lon, lat)
+    return parallax_dist
 
 
 def _get_parallax_shift_xyz(sat_lon, sat_lat, sat_alt, lon, lat, parallax_distance):
@@ -130,13 +149,11 @@ def _get_parallax_shift_xyz(sat_lon, sat_lat, sat_alt, lon, lat, parallax_distan
             in geodetic coordinates [degrees]
         lat (array or number): Latitudes of pixel/pixels to be corrected, in
             geodetic coordinates [degrees]
-        parallax_distance (number): Cloud to ground distance with parallax
+        parallax_distance (array or number): Cloud to ground distance with parallax
             effect [m].
 
     Returns:
-        Parallax shift in cartesian coordinates.  If the input parameters
-        ``sat_alt`` and ``parallax_distance`` are in meter, then the returned
-        coordinates will also be in meter.
+        Parallax shift in cartesian coordinates in meter.
     """
     sat_xyz = np.hstack(lonlat2xyz(sat_lon, sat_lat)) * sat_alt
     cth_xyz = np.stack(lonlat2xyz(lon, lat), axis=-1) * EARTH_RADIUS*1e3  # km → m
@@ -159,11 +176,11 @@ def _get_satellite_elevation(sat_lon, sat_lat, sat_alt, lon, lat):
     return elevation
 
 
-def _calculate_parallax_distance(height, elevation):
-    """Calculate cloud to ground distance with parallax effect.
+def _calculate_slant_cloud_distance(height, elevation):
+    """Calculate slant cloud to ground distance.
 
     From (cloud top) height and satellite elevation, calculate the
-    cloud-to-ground distance taking the parallax effect into consideration.
+    slant cloud-to-ground distance along the line of sight of the satellite.
     """
     if np.isscalar(elevation) and elevation == 0:
         raise NotImplementedError(
@@ -180,7 +197,7 @@ class ParallaxCorrection:
     """Parallax correction calculations.
 
     This class contains higher-level functionality to wrap the parallax
-    correction calculations in :func:`forward_parallax`.  The class is
+    correction calculations in :func:`get_parallax_corrected_lonlats`.  The class is
     initialised using a base area, which is the area for which a corrected
     geolocation will be calculated.  The resulting object is a callable.
     Calling the object with an array of (cloud top) heights returns a
@@ -197,10 +214,12 @@ class ParallaxCorrection:
     A note on the algorithm and the implementation.  Parallax correction
     is inherently an inverse problem.  The reported geolocation in
     satellite data files is the true location plus the parallax error.
-    Therefore, this class first calculates the parallax error (using
-    :func:`forward_parallax`), which gives a shifted longitude and
+    Therefore, this class first calculates the true geolocation (using
+    :func:`get_parallax_corrected_lonlats`), which gives a shifted longitude and
     shifted latitude on an irregular grid.  The difference between
     the original and the shifted grid is the parallax error or shift.
+    The magnitude of this error can be estimated with
+    :func:`get_surface_parallax_displacement`.
     With this difference, we need to invert the parallax correction to
     calculate the corrected geolocation.  Due to parallax correction,
     high clouds shift a lot, low clouds shift a little, and cloud-free
@@ -306,11 +325,11 @@ class ParallaxCorrection:
 
         (base_lon, base_lat) = self.base_area.get_lonlats(chunks=lonlat_chunks)
         # calculate the shift/error due to the parallax effect
-        (shifted_lon, shifted_lat) = forward_parallax(
+        (corrected_lon, corrected_lat) = get_parallax_corrected_lonlats(
                 sat_lon, sat_lat, sat_alt_m,
                 base_lon, base_lat, cth_dataset.data)
 
-        shifted_area = self._get_swathdef_from_lon_lat(shifted_lon, shifted_lat)
+        shifted_area = self._get_swathdef_from_lon_lat(corrected_lon, corrected_lat)
 
         # But we are not actually moving pixels, rather we want a
         # coordinate transformation. With this transformation we approximately
@@ -375,13 +394,14 @@ class ParallaxCorrection:
     def _get_corrected_lon_lat(self, base_lon, base_lat, shifted_area):
         """Calculate the corrected lon/lat based from the shifted area.
 
-        After calculating the shifted area based on :func:`forward_parallax`,
+        After calculating the shifted area based on
+        :func:`get_parallax_corrected_lonlats`,
         we invert the parallax error and estimate where those pixels came from.
         For details on the algorithm, see the class docstring.
         """
-        (shifted_lon, shifted_lat) = shifted_area.get_lonlats(chunks=1024)
-        lon_diff = shifted_lon - base_lon
-        lat_diff = shifted_lat - base_lat
+        (corrected_lon, corrected_lat) = shifted_area.get_lonlats(chunks=1024)
+        lon_diff = corrected_lon - base_lon
+        lat_diff = corrected_lat - base_lat
         # We use the bucket resampler here, because parallax correction
         # inevitably means there will be 2 source pixels ending up in the same
         # destination pixel.  We want to choose the biggest shift (max abs in
@@ -398,15 +418,15 @@ class ParallaxCorrection:
         #   so a cloud that was rectangular at the start may no longer be
         #   rectangular at the end
         bur = BucketResampler(self.base_area,
-                              da.array(shifted_lon), da.array(shifted_lat))
+                              da.array(corrected_lon), da.array(corrected_lat))
         inv_lat_diff = bur.get_abs_max(lat_diff)
         inv_lon_diff = bur.get_abs_max(lon_diff)
 
         inv_lon = base_lon - inv_lon_diff
         inv_lat = base_lat - inv_lat_diff
         if self.debug_mode:
-            self.diagnostics["shifted_lon"] = shifted_lon
-            self.diagnostics["shifted_lat"] = shifted_lat
+            self.diagnostics["corrected_lon"] = corrected_lon
+            self.diagnostics["corrected_lat"] = corrected_lat
             self.diagnostics["inv_lon"] = inv_lon
             self.diagnostics["inv_lat"] = inv_lat
             self.diagnostics["inv_lon_diff"] = inv_lon_diff
@@ -426,7 +446,7 @@ class ParallaxCorrectionModifier(ModifierBase):
 
     Apply parallax correction as a modifier.  Uses the
     :class:`ParallaxCorrection` class, which in turn uses the
-    :func:`forward_parallax` function.  See the documentation there for
+    :func:`get_parallax_corrected_lonlats` function.  See the documentation there for
     details on the behaviour.
 
     To use this, add to ``composites/visir.yaml`` within ``SATPY_CONFIG_PATH``

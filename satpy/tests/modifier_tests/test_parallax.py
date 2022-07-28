@@ -80,25 +80,25 @@ def _get_attrs(lat, lon, height=35_000):
 class TestForwardParallax:
     """Test the forward parallax function with various inputs."""
 
-    def test_forward_parallax_ssp(self):
+    def test_get_parallax_corrected_lonlats_ssp(self):
         """Test that at SSP, parallax correction does nothing."""
-        from ...modifiers.parallax import forward_parallax
+        from ...modifiers.parallax import get_parallax_corrected_lonlats
         sat_lat = sat_lon = lon = lat = 0.
         height = 5000.  # m
         sat_alt = 30_000_000.  # m
-        corr_lon, corr_lat = forward_parallax(
+        corr_lon, corr_lat = get_parallax_corrected_lonlats(
             sat_lon, sat_lat, sat_alt, lon, lat, height)
         assert corr_lon == corr_lat == 0
 
-    def test_forward_parallax_clearsky(self):
+    def test_get_parallax_corrected_lonlats_clearsky(self):
         """Test parallax correction for clearsky case (returns NaN)."""
-        from ...modifiers.parallax import forward_parallax
+        from ...modifiers.parallax import get_parallax_corrected_lonlats
         sat_lat = sat_lon = 0
         lat = np.linspace(-20, 20, 25).reshape(5, 5)
         lon = np.linspace(-20, 20, 25).reshape(5, 5).T
         height = np.full((5, 5), np.nan)  # no CTH --> clearsky
         sat_alt = 35_000_000.  # m above surface
-        (corr_lon, corr_lat) = forward_parallax(
+        (corr_lon, corr_lat) = get_parallax_corrected_lonlats(
             sat_lon, sat_lat, sat_alt, lon, lat, height)
         # clearsky becomes NaN
         assert np.isnan(corr_lon).all()
@@ -106,16 +106,16 @@ class TestForwardParallax:
 
     @pytest.mark.parametrize("lat,lon", [(0, 0), (0, 40), (0, 179.9)])
     @pytest.mark.parametrize("resolution", [0.01, 0.5, 10])
-    def test_forward_parallax_cloudy_ssp(self, lat, lon, resolution):
+    def test_get_parallax_corrected_lonlats_cloudy_ssp(self, lat, lon, resolution):
         """Test parallax correction for fully cloudy scene at SSP."""
-        from ...modifiers.parallax import forward_parallax
+        from ...modifiers.parallax import get_parallax_corrected_lonlats
 
         N = 5
         lats = np.linspace(lat-N*resolution, lat+N*resolution, 25).reshape(N, N)
         lons = np.linspace(lon-N*resolution, lon+N*resolution, 25).reshape(N, N).T
         height = np.full((N, N), 10_000)  # constant high clouds at 10 km
         sat_alt = 35_000_000.  # satellite at 35 Mm
-        (corr_lon, corr_lat) = forward_parallax(
+        (corr_lon, corr_lat) = get_parallax_corrected_lonlats(
             lon, lat, sat_alt, lons, lats, height)
         # confirm movements behave as expected
         geod = Geod(ellps="sphere")
@@ -137,15 +137,15 @@ class TestForwardParallax:
         assert (np.diff(np.diag(corr_delta)[:N//2+1]) < 0).all()
         assert (np.diff(np.diag(corr_delta)[N//2:]) > 0).all()
 
-    def test_forward_parallax_cloudy_slant(self):
+    def test_get_parallax_corrected_lonlats_cloudy_slant(self):
         """Test parallax correction for fully cloudy scene (not SSP)."""
-        from ...modifiers.parallax import forward_parallax
+        from ...modifiers.parallax import get_parallax_corrected_lonlats
         sat_lat = sat_lon = 0
         lat = np.linspace(-20, 20, 25).reshape(5, 5)
         lon = np.linspace(-20, 20, 25).reshape(5, 5).T
         height = np.full((5, 5), 10_000)  # constant high clouds at 10 km
         sat_alt = 35_000_000.  # satellite at 35 Mm
-        (corr_lon, corr_lat) = forward_parallax(
+        (corr_lon, corr_lat) = get_parallax_corrected_lonlats(
             sat_lon, sat_lat, sat_alt, lon, lat, height)
         # reference value from Simon Proud
         np.testing.assert_allclose(
@@ -153,9 +153,9 @@ class TestForwardParallax:
         np.testing.assert_allclose(
             corr_lon[4, 4], 19.960, rtol=5e-4)
 
-    def test_forward_parallax_mixed(self):
+    def test_get_parallax_corrected_lonlats_mixed(self):
         """Test parallax correction for mixed cloudy case."""
-        from ...modifiers.parallax import forward_parallax
+        from ...modifiers.parallax import get_parallax_corrected_lonlats
 
         sat_lon = sat_lat = 0
         sat_alt = 35_785_831.0  # m
@@ -167,7 +167,7 @@ class TestForwardParallax:
             [np.nan, 7000., 8000., 9000., np.nan],
             [np.nan, 7000., 7000., 7000., np.nan],
             [np.nan, 4000., 3000., np.nan, np.nan]])
-        (corrected_lon, corrected_lat) = forward_parallax(
+        (corrected_lon, corrected_lat) = get_parallax_corrected_lonlats(
             sat_lon, sat_lat, sat_alt, lon, lat, alt)
         assert corrected_lon.shape == lon.shape
         assert corrected_lat.shape == lat.shape
@@ -178,19 +178,27 @@ class TestForwardParallax:
         assert np.isfinite(corrected_lon[~np.isnan(alt)]).all()
         assert np.isfinite(corrected_lat[~np.isnan(alt)]).all()
 
-    def test_forward_parallax_horizon(self):
+    def test_get_parallax_corrected_lonlats_horizon(self):
         """Test that exception is raised if satellites exactly at the horizon.
 
         Test the rather unlikely case of a satellite elevation of exactly 0
         """
-        from ...modifiers.parallax import forward_parallax
+        from ...modifiers.parallax import get_parallax_corrected_lonlats
         sat_lat = sat_lon = lon = lat = 0.
         height = 5000.
         sat_alt = 30_000_000.
         with unittest.mock.patch("satpy.modifiers.parallax.get_observer_look") as smpg:
             smpg.return_value = (0, 0)
             with pytest.raises(NotImplementedError):
-                forward_parallax(sat_lon, sat_lat, sat_alt, lon, lat, height)
+                get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height)
+
+    def test_get_surface_parallax_displacement(self):
+        """Test surface parallax displacement."""
+        from ...modifiers.parallax import get_surface_parallax_displacement
+
+        val = get_surface_parallax_displacement(
+                0, 0, 36_000_000, 0, 10, 10_000)
+        np.testing.assert_allclose(val, 2141.2404451757875)
 
 
 class TestParallaxCorrectionClass:

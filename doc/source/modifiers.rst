@@ -122,4 +122,7 @@ or incorrect results.  It does not yet perform any checks that the
 provided (cloud top) height covers the area of the dataset for which
 the parallax correction shall be applied.
 
+For more general background information and web routines related to the
+parallax effect, see also `this collection at the CIMSS website <https://cimss.ssec.wisc.edu/goes/webapps/parallax/>_`.
+
 .. versionadded:: 0.37
