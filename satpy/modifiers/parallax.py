@@ -90,7 +90,7 @@ def get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height):
         have to convert your input correspondingly.  Cloud Top Height
         is usually reported in meters above the Earth's surface, rarely
         in km.  Satellite altitude may be reported in either m or km, but
-        orbital parameters are usually in relation the the Earth's centre.
+        orbital parameters are usually in relation to the Earth's centre.
         The Earth radius from pyresample is reported in km.
 
     Args:
@@ -107,7 +107,7 @@ def get_parallax_corrected_lonlats(sat_lon, sat_lat, sat_alt, lon, lat, height):
     Returns:
         tuple[float, float]: Corrected geolocation
             Corrected geolocation ``(lon, lat)`` in geodetic coordinates for
-            the pixel(s) to be corrected, in geodetic coordinates. [degrees]
+            the pixel(s) to be corrected. [degrees]
     """
     elevation = _get_satellite_elevation(sat_lon, sat_lat, sat_alt, lon, lat)
     parallax_distance = _calculate_slant_cloud_distance(height, elevation)
