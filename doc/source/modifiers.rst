@@ -116,6 +116,16 @@ also be deformed (a "rectangular" cloud may get the shape of a parallelogram).
    of the satellite.  To view the images side-by-side or alternating, look at
    `the figshare page <https://figshare.com/articles/figure/20211130121510-Meteosat-11-seviri-sswe-parallax_corrected_natural_color_jpg/20377203>`_
 
+The utility function :func:`~satpy.modifiers.parallax.get_surface_parallax_displacement` allows to calculate the magnitude of the parallax error.  For a cloud with a cloud top height of 10 km:
+
+.. figure:: https://figshare.com/ndownloader/files/36462435/preview/36462435/preview.jpg
+   :width: 512
+   :height: 512
+   :alt: Figure showing magnitude of parallax effect.
+
+   Magnitude of the parallax error for a fictitious cloud with a cloud top
+   height of 10 km for the GOES-East (GOES-16) full disc.
+
 The parallax correction is currently experimental and subject to change.
 Although it is covered by tests, there may be cases that yield unexpected
 or incorrect results.  It does not yet perform any checks that the
