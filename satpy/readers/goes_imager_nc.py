@@ -733,9 +733,9 @@ class GOESNCBaseFileHandler(BaseFileHandler):
     def start_time(self):
         """Start timestamp of the dataset."""
         dt = self.nc['time'].dt
-        return datetime(year=dt.year, month=dt.month, day=dt.day,
-                        hour=dt.hour, minute=dt.minute,
-                        second=dt.second, microsecond=dt.microsecond)
+        return datetime(year=int(dt.year), month=int(dt.month), day=int(dt.day),
+                        hour=int(dt.hour), minute=int(dt.minute),
+                        second=int(dt.second), microsecond=int(dt.microsecond))
 
     @property
     def end_time(self):
@@ -944,10 +944,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             # Attributes only available for full disc images. YAML reader
             # doesn't like it if satellite_* is present but None
             data.attrs.update(
-                {'satellite_longitude': self.meta['lon0'],
-                 'satellite_latitude': self.meta['lat0'],
-                 'satellite_altitude': ALTITUDE,
-                 'nadir_row': self.meta['nadir_row'],
+                {'nadir_row': self.meta['nadir_row'],
                  'nadir_col': self.meta['nadir_col'],
                  'area_def_uniform_sampling': self.meta['area_def_uni']}
             )

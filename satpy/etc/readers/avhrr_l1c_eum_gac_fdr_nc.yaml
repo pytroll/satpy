@@ -3,6 +3,8 @@ reader:
     short_name: EUMETSAT_GAC_FDR
     long_name: EUMETCSAT GAC FDR NetCDF4
     description: NetCDF4 reader for EUMETCSAT GAC FDR AVHRR L1c
+    status: Defunct
+    supports_fsspec: false
     sensors: [avhrr-3, avhrr-2, avhrr-1]
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 

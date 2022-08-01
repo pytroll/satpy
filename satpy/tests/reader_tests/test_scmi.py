@@ -123,6 +123,11 @@ class TestSCMIFileHandler(unittest.TestCase):
         self.assertNotIn('_FillValue', res.attrs)
         self.assertEqual(res.attrs['standard_name'],
                          'toa_bidirectional_reflectance')
+        assert 'orbital_parameters' in res.attrs
+        orb_params = res.attrs['orbital_parameters']
+        assert orb_params['projection_longitude'] == -90.0
+        assert orb_params['projection_latitude'] == 0.0
+        assert orb_params['projection_altitude'] == 35785831.0
 
 
 class TestSCMIFileHandlerArea(unittest.TestCase):

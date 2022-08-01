@@ -500,6 +500,15 @@ composites:
       - natural_color
       - night_ir_with_background
 
+  natural_color_raw_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    lim_low: 80
+    lim_high: 90
+    prerequisites:
+      - natural_color
+      - cloudtop
+
   natural_color_with_night_ir_hires:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_color_with_night_ir_hires
@@ -539,7 +548,7 @@ composites:
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
-    standard_name: night_ir_with_background_hires
+    standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
       - _night_background_hires

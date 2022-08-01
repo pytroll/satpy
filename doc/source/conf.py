@@ -26,6 +26,7 @@ from pkg_resources import get_distribution
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
+from reader_table import generate_reader_table  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -74,6 +75,10 @@ autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4'
                         'pyorbital', 'pyspectral', 'rasterio', 'trollimage',
                         'zarr']
 autoclass_content = 'both'  # append class __init__ docstring to the class docstring
+
+# auto generate reader table from reader config files
+with open("reader_table.rst", mode="w") as f:
+    f.write(generate_reader_table())
 
 # -- General configuration -----------------------------------------------------
 
@@ -185,7 +190,14 @@ html_static_path = ['_static']
 
 html_css_files = [
     'theme_overrides.css',  # override wide tables in RTD theme
+    'https://cdn.datatables.net/1.10.23/css/jquery.dataTables.min.css',
 ]
+
+html_js_files = [
+    'https://cdn.datatables.net/1.10.23/js/jquery.dataTables.min.js',
+    'main.js',
+]
+
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -264,18 +276,19 @@ intersphinx_mapping = {
     'dask': ('https://docs.dask.org/en/latest', None),
     'geoviews': ('http://geoviews.org', None),
     'jobqueue': ('https://jobqueue.dask.org/en/latest', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
     'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
     'pyorbital': ('https://pyorbital.readthedocs.io/en/stable', None),
     'pyproj': ('https://pyproj4.github.io/pyproj/dev', None),
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
     'pytest': ('https://docs.pytest.org/en/stable/', None),
     'python': ('https://docs.python.org/3', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
+    'scipy': ('http://scipy.github.io/devdocs', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
     'donfig': ('https://donfig.readthedocs.io/en/latest', None),
     'pooch': ('https://www.fatiando.org/pooch/latest/', None),
+    'fsspec': ('https://filesystem-spec.readthedocs.io/en/latest/', None),
 }

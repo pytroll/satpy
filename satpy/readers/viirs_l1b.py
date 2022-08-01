@@ -70,11 +70,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Get sensor name."""
-        res = self['/attr/instrument']
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+        return self['/attr/instrument'].lower()
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
         """Adjust scaling factors."""
@@ -100,7 +96,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Get shape."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id['name']))
+        var_path = self._dataset_name_to_var_path(ds_id['name'], ds_info)
         return self.get(var_path + '/shape', 1)
 
     @property
@@ -174,12 +170,12 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
+        var_path = self._dataset_name_to_var_path(dataset_id['name'], ds_info)
         shape = self.get_shape(dataset_id, ds_info)
         file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
 
         # Get extra metadata
-        if '/dimension/number_of_scans' in self:
+        if self._is_scan_based_array(shape):
             rows_per_scan = int(shape[0] / self['/dimension/number_of_scans'])
             ds_info.setdefault('rows_per_scan', rows_per_scan)
 
@@ -198,9 +194,12 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         i.update(dataset_id.to_dict())
         return i
 
+    def _is_scan_based_array(self, shape):
+        return '/dimension/number_of_scans' in self and isinstance(shape, tuple) and shape
+
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
+        var_path = self._dataset_name_to_var_path(dataset_id['name'], ds_info)
         metadata = self.get_metadata(dataset_id, ds_info)
 
         valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)
@@ -240,3 +239,27 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         if 'number_of_lines' in data.dims:
             data = data.rename({'number_of_lines': 'y', 'number_of_pixels': 'x'})
         return data
+
+    def available_datasets(self, configured_datasets=None):
+        """Generate dataset info and their availablity.
+
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for details.
+
+        """
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
+                continue
+            ft_matches = self.file_type_matches(ds_info['file_type'])
+            var_path = self._dataset_name_to_var_path(ds_info['name'], ds_info)
+            is_in_file = var_path in self
+            yield ft_matches and is_in_file, ds_info
+
+    @staticmethod
+    def _dataset_name_to_var_path(dataset_name: str, ds_info: dict) -> str:
+        return ds_info.get('file_key', 'observation_data/{}'.format(dataset_name))

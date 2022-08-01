@@ -1,6 +1,10 @@
 reader:
     name: avhrr_l1b_gaclac
+    short_name: AVHRR l1b gaclac
+    long_name: Tiros-N, NOAA 7 to 19 AVHRR data in GAC and LAC format
     description: AAPP l1b Reader for AVHRR
+    status: Nominal
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3, avhrr-2, avhrr-1]
 
