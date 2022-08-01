@@ -32,15 +32,17 @@ def generate_area_def_list():
     area_list = []
 
     template = ("{area_name}\n"
-                "----------\n"
-                ".. raw:: html\n"
+                "{n:->{header_title_length}}\n\n"
+                ".. raw:: html\n\n"
                 "     {content}\n\n")
 
     area_file = get_area_file()[0]
     for aname in [list(_read_yaml_area_file_content(area_file).keys())[0]]:
         area = get_area_def(aname)
         if hasattr(area, "_repr_html_"):
-            area_list.append(template.format(area_name=aname, content=area._repr_html_()))
+            content = "\n".join([x.rjust(len(x) + 5) for x in area._repr_html_().split("\n")])
+            area_list.append(template.format(area_name=aname, n="", header_title_length=len(aname),
+                                             content=content))
         else:
             pass
 
