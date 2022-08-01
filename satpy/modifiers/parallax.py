@@ -477,7 +477,7 @@ class ParallaxCorrectionModifier(ModifierBase):
 
     The modifier takes optional global parameters, all of which are optional.
     They affect various steps in the algorithm.  Setting them may impact
-    performance::
+    performance:
 
     cth_resampler
         Resampler to use when resampling (cloud top) height to the base area.
