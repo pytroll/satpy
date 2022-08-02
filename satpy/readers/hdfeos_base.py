@@ -19,13 +19,14 @@
 
 from __future__ import annotations
 
-import re
 import logging
-
+import re
+from ast import literal_eval
+from contextlib import suppress
 from datetime import datetime
-import xarray as xr
-import numpy as np
 
+import numpy as np
+import xarray as xr
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
@@ -44,6 +45,7 @@ def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
 
 def _interpolate_with_angles(clons, clats, csatz, src_resolution, dst_resolution):
     from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
+
     # (src_res, dst_res, is satz not None) -> interp function
     interpolation_functions = {
         (5000, 1000): modis_5km_to_1km,
@@ -58,9 +60,8 @@ def _interpolate_no_angles(clons, clats, src_resolution, dst_resolution):
     interpolation_functions = {}
 
     try:
-        from geotiepoints.simple_modis_interpolator import (
-            modis_1km_to_250m as simple_1km_to_250m,
-            modis_1km_to_500m as simple_1km_to_500m)
+        from geotiepoints.simple_modis_interpolator import modis_1km_to_250m as simple_1km_to_250m
+        from geotiepoints.simple_modis_interpolator import modis_1km_to_500m as simple_1km_to_500m
     except ImportError:
         raise NotImplementedError(
             f"Interpolation from {src_resolution}m to {dst_resolution}m "
@@ -90,7 +91,7 @@ def _find_and_run_interpolation(interpolation_functions, src_resolution, dst_res
 class HDFEOSBaseFileReader(BaseFileHandler):
     """Base file handler for HDF EOS data for both L1b and L2 products."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the base reader."""
         BaseFileHandler.__init__(self, filename, filename_info, filetype_info)
         try:
@@ -113,49 +114,48 @@ class HDFEOSBaseFileReader(BaseFileHandler):
                 metadata.update(self.read_mda(str_val))
         return metadata
 
-    @staticmethod
-    def read_mda(attribute):
+    @classmethod
+    def read_mda(cls, attribute):
         """Read the EOS metadata."""
-        lines = attribute.split('\n')
-        mda = {}
-        current_dict = mda
-        path = []
-        prev_line = None
+        line_iterator = iter(attribute.split('\n'))
+        return cls._read_mda(line_iterator)
+
+    @classmethod
+    def _read_mda(cls, lines, element=None):
+        current_dict = {}
+
         for line in lines:
             if not line:
                 continue
             if line == 'END':
-                break
-            if prev_line:
-                line = prev_line + line
-            key, val = line.split('=')
-            key = key.strip()
-            val = val.strip()
-            try:
-                val = eval(val)
-            except NameError:
-                pass
-            except SyntaxError:
-                prev_line = line
-                continue
-            prev_line = None
+                return current_dict
+
+            key, val = cls._split_line(line, lines)
+
             if key in ['GROUP', 'OBJECT']:
-                new_dict = {}
-                path.append(val)
-                current_dict[val] = new_dict
-                current_dict = new_dict
+                current_dict[val] = cls._read_mda(lines, val)
             elif key in ['END_GROUP', 'END_OBJECT']:
-                if val != path[-1]:
-                    raise SyntaxError
-                path = path[:-1]
-                current_dict = mda
-                for item in path:
-                    current_dict = current_dict[item]
+                if val != element:
+                    raise SyntaxError("Non-matching end-tag")
+                return current_dict
             elif key in ['CLASS', 'NUM_VAL']:
                 pass
             else:
                 current_dict[key] = val
-        return mda
+        logger.warning("Malformed EOS metadata, missing an END.")
+        return current_dict
+
+    @classmethod
+    def _split_line(cls, line, lines):
+        key, val = line.split('=')
+        key = key.strip()
+        val = val.strip()
+        try:
+            with suppress(ValueError):
+                val = literal_eval(val)
+        except SyntaxError:
+            key, val = cls._split_line(line + next(lines), lines)
+        return key, val
 
     @property
     def metadata_platform_name(self):
@@ -225,15 +225,26 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         return data
 
     def _scale_and_mask_data_array(self, data, is_category=False):
+        """Unscale byte data and mask invalid/fill values.
+
+        MODIS requires unscaling the in-file bytes in an unexpected way::
+
+            data = (byte_value - add_offset) * scale_factor
+
+        See the below L1B User's Guide Appendix C for more information:
+
+        https://mcst.gsfc.nasa.gov/sites/default/files/file_attachments/M1054E_PUG_2017_0901_V6.2.2_Terra_V6.2.1_Aqua.pdf
+
+        """
         good_mask, new_fill = self._get_good_data_mask(data, is_category=is_category)
         scale_factor = data.attrs.pop('scale_factor', None)
         add_offset = data.attrs.pop('add_offset', None)
         # don't scale category products, even though scale_factor may equal 1
         # we still need to convert integers to floats
         if scale_factor is not None and not is_category:
-            data = data * np.float32(scale_factor)
             if add_offset is not None and add_offset != 0:
-                data = data + add_offset
+                data = data - add_offset
+            data = data * np.float32(scale_factor)
 
         if good_mask is not None:
             data = data.where(good_mask, new_fill)
@@ -291,9 +302,9 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         'solar_zenith_angle': ('SolarZenith', 'Solar_Zenith'),
     }
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialize the geographical reader."""
-        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info, **kwargs)
         self.cache = {}
 
     @staticmethod

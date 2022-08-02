@@ -40,12 +40,14 @@ For more information:
 
 """
 
-from datetime import datetime
-from satpy.readers.hdf5_utils import HDF5FileHandler
-from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
-import numpy as np
-import dask.array as da
 import logging
+from datetime import datetime
+
+import dask.array as da
+import numpy as np
+from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
+
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -101,27 +103,9 @@ class VIRR_L1B(HDF5FileHandler):
                 data = data.where((data >= valid_range[0]) &
                                   (data <= valid_range[1]))
             if 'Emissive' in file_key:
-                slope = self._correct_slope(self[self.l1b_prefix + 'Emissive_Radiance_Scales'].
-                                            data[:, band_index][:, np.newaxis])
-                intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
-                # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
-                # to SI units m^-1, mW*m^-3*str^-1.
-                wave_number = self['/attr/' + self.wave_number][band_index] * 100
-                bt_data = rad2temp(wave_number, (data.data * slope + intercept) * 1e-5)
-                if isinstance(bt_data, np.ndarray):
-                    # old versions of pyspectral produce numpy arrays
-                    data.data = da.from_array(bt_data, chunks=data.data.chunks)
-                else:
-                    # new versions of pyspectral can do dask arrays
-                    data.data = bt_data
+                self._calibrate_emissive(data, band_index)
             elif 'RefSB' in file_key:
-                if self.platform_id == 'FY3B':
-                    coeffs = da.from_array(FY3B_REF_COEFFS, chunks=-1)
-                else:
-                    coeffs = self['/attr/RefSB_Cal_Coefficients']
-                slope = self._correct_slope(coeffs[0::2])
-                intercept = coeffs[1::2]
-                data = data * slope[band_index] + intercept[band_index]
+                data = self._calibrate_reflective(data, band_index)
         else:
             slope = self._correct_slope(self[file_key + '/attr/Slope'])
             intercept = self[file_key + '/attr/Intercept']
@@ -144,6 +128,31 @@ class VIRR_L1B(HDF5FileHandler):
         else:
             data.attrs.update({'units': '1'})
         return data
+
+    def _calibrate_reflective(self, data, band_index):
+        if self.platform_id == 'FY3B':
+            coeffs = da.from_array(FY3B_REF_COEFFS, chunks=-1)
+        else:
+            coeffs = self['/attr/RefSB_Cal_Coefficients']
+        slope = self._correct_slope(coeffs[0::2])
+        intercept = coeffs[1::2]
+        data = data * slope[band_index] + intercept[band_index]
+        return data
+
+    def _calibrate_emissive(self, data, band_index):
+        slope = self._correct_slope(self[self.l1b_prefix + 'Emissive_Radiance_Scales'].
+                                    data[:, band_index][:, np.newaxis])
+        intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
+        # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
+        # to SI units m^-1, mW*m^-3*str^-1.
+        wave_number = self['/attr/' + self.wave_number][band_index] * 100
+        bt_data = rad2temp(wave_number, (data.data * slope + intercept) * 1e-5)
+        if isinstance(bt_data, np.ndarray):
+            # old versions of pyspectral produce numpy arrays
+            data.data = da.from_array(bt_data, chunks=data.data.chunks)
+        else:
+            # new versions of pyspectral can do dask arrays
+            data.data = bt_data
 
     def _correct_slope(self, slope):
         # 0 slope is invalid. Note: slope can be a scalar or array.

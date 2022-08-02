@@ -15,13 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+# type: ignore
 """Interface to CALIOP L2 HDF4 cloud products."""
 
 import logging
 import os.path
 import re
-
 from datetime import datetime
+
 from pyhdf.SD import SD, SDC
 
 from satpy.dataset import Dataset

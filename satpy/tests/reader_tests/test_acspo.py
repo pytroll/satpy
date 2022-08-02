@@ -19,11 +19,13 @@
 
 import os
 from datetime import datetime, timedelta
+from unittest import mock
+
 import numpy as np
+import pytest
+
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-from unittest import mock
-import pytest
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -149,3 +151,4 @@ class TestACSPOReader:
         for d in datasets.values():
             assert d.shape == DEFAULT_FILE_SHAPE
             assert d.dims == ("y", "x")
+            assert d.attrs["sensor"] == "viirs"

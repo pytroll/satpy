@@ -120,8 +120,8 @@ class SAFEMSIXMLMetadata(BaseFileHandler):
         self.tile = filename_info['dtile_number']
         self.platform_name = PLATFORMS[filename_info['fmission_id']]
         self.mask_saturated = mask_saturated
-        import geotiepoints  # noqa
         import bottleneck  # noqa
+        import geotiepoints  # noqa
 
     @property
     def end_time(self):

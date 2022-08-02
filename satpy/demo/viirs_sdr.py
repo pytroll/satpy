@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Demo data download for VIIRS SDR HDF5 files."""
 
-import os
 import logging
+import os
 
 from satpy import config
 from satpy.demo.utils import download_url

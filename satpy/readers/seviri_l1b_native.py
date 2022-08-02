@@ -27,33 +27,43 @@ References:
 
 import logging
 from datetime import datetime
-import numpy as np
 
-import xarray as xr
 import dask.array as da
-
-from satpy import CHUNK_SIZE
-
+import numpy as np
+import xarray as xr
 from pyresample import geometry
 
+from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
+from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.eum_base import (
-    recarray2dict, get_service_mode, time_cds_short
-)
 from satpy.readers.seviri_base import (
-    SEVIRICalibrationHandler, CHANNEL_NAMES, SATNUM, dec10216,
-    VISIR_NUM_COLUMNS, VISIR_NUM_LINES, HRV_NUM_COLUMNS, HRV_NUM_LINES,
-    create_coef_dict, pad_data_horizontally, pad_data_vertically,
-    add_scanline_acq_time, get_cds_time, OrbitPolynomialFinder, get_satpos,
-    NoValidOrbitParams
+    CHANNEL_NAMES,
+    HRV_NUM_COLUMNS,
+    HRV_NUM_LINES,
+    SATNUM,
+    VISIR_NUM_COLUMNS,
+    VISIR_NUM_LINES,
+    NoValidOrbitParams,
+    OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
+    add_scanline_acq_time,
+    calculate_area_extent,
+    create_coef_dict,
+    dec10216,
+    get_cds_time,
+    get_satpos,
+    pad_data_horizontally,
+    pad_data_vertically,
 )
 from satpy.readers.seviri_l1b_native_hdr import (
-    GSDTRecords, get_native_header, native_trailer,
-    DEFAULT_15_SECONDARY_PRODUCT_HEADER
+    DEFAULT_15_SECONDARY_PRODUCT_HEADER,
+    GSDTRecords,
+    get_native_header,
+    native_trailer,
 )
 from satpy.readers.utils import reduce_mda
-from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 
 logger = logging.getLogger('native_msg')
 
@@ -126,19 +136,6 @@ class NativeMSGFileHandler(BaseFileHandler):
         """Read the repeat cycle end time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-
-    @staticmethod
-    def _calculate_area_extent(center_point, north, east, south, west,
-                               we_offset, ns_offset, column_step, line_step):
-        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
-        # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
-
-        ll_c = (center_point - east + 0.5 + we_offset) * column_step
-        ll_l = (north - center_point + 0.5 + ns_offset) * line_step
-        ur_c = (center_point - west - 0.5 + we_offset) * column_step
-        ur_l = (south - center_point - 0.5 + ns_offset) * line_step
-
-        return (ll_c, ll_l, ur_c, ur_l)
 
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels."""
@@ -412,8 +409,19 @@ class NativeMSGFileHandler(BaseFileHandler):
 
             nlines = north_bound - south_bound + 1
             ncolumns = west_bound - east_bound + 1
-            aex = self._calculate_area_extent(center_point, north_bound, east_bound, south_bound, west_bound,
-                                              we_offset, ns_offset, column_step, line_step)
+
+            area_dict = {'center_point': center_point,
+                         'east': east_bound,
+                         'west': west_bound,
+                         'south': south_bound,
+                         'north': north_bound,
+                         'column_step': column_step,
+                         'line_step': line_step,
+                         'column_offset': we_offset,
+                         'line_offset': ns_offset
+                         }
+
+            aex = calculate_area_extent(area_dict)
 
             aex_data['area_extent'].append(aex)
             aex_data['nlines'].append(nlines)

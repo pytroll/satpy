@@ -23,15 +23,16 @@ of writing.
 
 """
 import logging
-import numpy as np
-import xarray as xr
-import dask.array as da
-from pyresample import geometry
 from datetime import datetime, timedelta
+
+import dask.array as da
+import numpy as np
+import pygrib
+import xarray as xr
+from pyresample import geometry
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-import pygrib
 
 LOG = logging.getLogger(__name__)
 

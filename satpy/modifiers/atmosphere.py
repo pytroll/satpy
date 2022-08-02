@@ -18,23 +18,20 @@
 """Modifiers related to atmospheric corrections or adjustments."""
 
 import logging
-from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 
 from satpy.modifiers import ModifierBase
-from satpy.modifiers._angles import get_angles, get_satellite_zenith_angle
 from satpy.modifiers._crefl import ReflectanceCorrector  # noqa
+from satpy.modifiers.angles import get_angles, get_satellite_zenith_angle
 
 logger = logging.getLogger(__name__)
 
 
 class PSPRayleighReflectance(ModifierBase):
     """Pyspectral-based rayleigh corrector for visible channels."""
-
-    _rayleigh_cache = WeakValueDictionary()
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the corrected reflectance when removing Rayleigh scattering.
@@ -45,16 +42,15 @@ class PSPRayleighReflectance(ModifierBase):
         if not optional_datasets or len(optional_datasets) != 4:
             vis, red = self.match_data_arrays(projectables)
             sata, satz, suna, sunz = get_angles(vis)
-            red.data = da.rechunk(red.data, vis.data.chunks)
         else:
             vis, red, sata, satz, suna, sunz = self.match_data_arrays(
                 projectables + optional_datasets)
-            sata, satz, suna, sunz = optional_datasets
-            # get the dask array underneath
-            sata = sata.data
-            satz = satz.data
-            suna = suna.data
-            sunz = sunz.data
+
+        # get the dask array underneath
+        sata = sata.data
+        satz = satz.data
+        suna = suna.data
+        sunz = sunz.data
 
         # First make sure the two azimuth angles are in the range 0-360:
         sata = sata % 360.
@@ -65,18 +61,12 @@ class PSPRayleighReflectance(ModifierBase):
 
         atmosphere = self.attrs.get('atmosphere', 'us-standard')
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
-        rayleigh_key = (vis.attrs['platform_name'],
-                        vis.attrs['sensor'], atmosphere, aerosol_type)
         logger.info("Removing Rayleigh scattering with atmosphere '%s' and "
                     "aerosol type '%s' for '%s'",
                     atmosphere, aerosol_type, vis.attrs['name'])
-        if rayleigh_key not in self._rayleigh_cache:
-            corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
-                                 atmosphere=atmosphere,
-                                 aerosol_type=aerosol_type)
-            self._rayleigh_cache[rayleigh_key] = corrector
-        else:
-            corrector = self._rayleigh_cache[rayleigh_key]
+        corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
+                             atmosphere=atmosphere,
+                             aerosol_type=aerosol_type)
 
         try:
             refl_cor_band = corrector.get_reflectance(sunz, satz, ssadiff,
@@ -118,6 +108,7 @@ class PSPAtmosphericalCorrection(ModifierBase):
             satz = optional_datasets[0]
         else:
             satz = get_satellite_zenith_angle(band)
+        satz = satz.data  # get dask array underneath
 
         logger.info('Correction for limb cooling')
         corrector = AtmosphericalCorrection(band.attrs['platform_name'],

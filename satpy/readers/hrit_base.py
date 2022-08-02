@@ -29,19 +29,20 @@ temporary directory for reading.
 """
 
 import logging
-from datetime import timedelta
-from tempfile import gettempdir
 import os
+from datetime import timedelta
 from io import BytesIO
-from subprocess import Popen, PIPE
-
-import numpy as np
-import xarray as xr
+from subprocess import PIPE, Popen  # nosec B404
+from tempfile import gettempdir
 
 import dask.array as da
+import numpy as np
+import xarray as xr
 from pyresample import geometry
-from satpy.readers.file_handlers import BaseFileHandler
+
+import satpy.readers.utils as utils
 from satpy.readers.eum_base import time_cds_short
+from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import dec10216
 
 logger = logging.getLogger('hrit_base')
@@ -74,8 +75,6 @@ timestamp_record = np.dtype([('cds_p_field', 'u1'),
 ancillary_text = np.dtype([('ancillary', '|S1')])
 
 key_header = np.dtype([('key', '|S1')])
-
-base_variable_length_headers = {}
 
 base_text_headers = {image_data_function: 'image_data_function',
                      annotation_header: 'annotation_header',
@@ -134,7 +133,7 @@ def decompress(infile, outdir='.'):
     cwd = os.getcwd()
     os.chdir(outdir)
 
-    p = Popen([cmd, infile], stdout=PIPE)
+    p = Popen([cmd, infile], stdout=PIPE)  # nosec B603
     stdout = BytesIO(p.communicate()[0])
     status = p.returncode
     os.chdir(cwd)
@@ -148,6 +147,18 @@ def decompress(infile, outdir='.'):
         raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
 
     return os.path.join(outdir, outfile.decode('utf-8'))
+
+
+def get_header_id(fp):
+    """Return the HRIT header common data."""
+    data = fp.read(common_hdr.itemsize)
+    return np.frombuffer(data, dtype=common_hdr, count=1)[0]
+
+
+def get_header_content(fp, header_dtype, count=1):
+    """Return the content of the HRIT header."""
+    data = fp.read(header_dtype.itemsize*count)
+    return np.frombuffer(data, dtype=header_dtype, count=count)
 
 
 class HRITFileHandler(BaseFileHandler):
@@ -177,17 +188,15 @@ class HRITFileHandler(BaseFileHandler):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
 
-        with open(self.filename) as fp:
+        with utils.generic_open(self.filename, mode='rb') as fp:
             total_header_length = 16
             while fp.tell() < total_header_length:
-                hdr_id = np.fromfile(fp, dtype=common_hdr, count=1)[0]
+                hdr_id = get_header_id(fp)
                 the_type = hdr_map[hdr_id['hdr_id']]
                 if the_type in variable_length_headers:
                     field_length = int((hdr_id['record_length'] - 3) /
                                        the_type.itemsize)
-                    current_hdr = np.fromfile(fp,
-                                              dtype=the_type,
-                                              count=field_length)
+                    current_hdr = get_header_content(fp, the_type, field_length)
                     key = variable_length_headers[the_type]
                     if key in self.mda:
                         if not isinstance(self.mda[key], list):
@@ -200,14 +209,10 @@ class HRITFileHandler(BaseFileHandler):
                                        the_type.itemsize)
                     char = list(the_type.fields.values())[0][0].char
                     new_type = np.dtype(char + str(field_length))
-                    current_hdr = np.fromfile(fp,
-                                              dtype=new_type,
-                                              count=1)[0]
+                    current_hdr = get_header_content(fp, new_type)[0]
                     self.mda[text_headers[the_type]] = current_hdr
                 else:
-                    current_hdr = np.fromfile(fp,
-                                              dtype=the_type,
-                                              count=1)[0]
+                    current_hdr = get_header_content(fp, the_type)[0]
                     self.mda.update(
                         dict(zip(current_hdr.dtype.names, current_hdr)))
 
@@ -313,6 +318,33 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
+    def _memmap_data(self, shape, dtype):
+        # For reading the image data, unzip_context is faster than generic_open
+        with utils.unzip_context(self.filename) as fn:
+            return np.memmap(fn, mode='r',
+                             offset=self.mda['total_header_length'],
+                             dtype=dtype,
+                             shape=shape)
+
+    def _read_file_or_file_like(self, shape, dtype):
+        # filename is likely to be a file-like object, already in memory
+        with utils.generic_open(self.filename, mode="rb") as fp:
+            no_elements = np.prod(shape)
+            fp.seek(self.mda['total_header_length'])
+            return np.frombuffer(
+                fp.read(np.dtype(dtype).itemsize * no_elements),
+                dtype=np.dtype(dtype),
+                count=no_elements.item()
+            ).reshape(shape)
+
+    def _read_or_memmap_data(self, shape, dtype):
+        # check, if 'filename' is a file on disk,
+        #  or a file like obj, possibly residing already in memory
+        try:
+            return self._memmap_data(shape, dtype)
+        except (FileNotFoundError, AttributeError):
+            return self._read_file_or_file_like(shape, dtype)
+
     def read_band(self, key, info):
         """Read the data."""
         shape = int(np.ceil(self.mda['data_field_length'] / 8.))
@@ -322,10 +354,7 @@ class HRITFileHandler(BaseFileHandler):
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
-        data = np.memmap(self.filename, mode='r',
-                         offset=self.mda['total_header_length'],
-                         dtype=dtype,
-                         shape=shape)
+        data = self._read_or_memmap_data(shape, dtype)
         data = da.from_array(data, chunks=shape[0])
         if self.mda['number_of_bits_per_pixel'] == 10:
             data = dec10216(data)

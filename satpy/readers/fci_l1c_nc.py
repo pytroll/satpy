@@ -63,6 +63,9 @@ geolocation calculations.
 The reading routine supports channel data in counts, radiances, and (depending
 on channel) brightness temperatures or reflectances. The brightness temperature and reflectance calculation is based on the formulas indicated in
 `PUG`_.
+Radiance datasets are returned in units of radiance per unit wavenumber (mW m-2 sr-1 (cm-1)-1). Radiances can be
+converted to units of radiance per unit wavelength (W m-2 um-1 sr-1) by multiplying with the
+`radiance_unit_conversion_coefficient` dataset attribute.
 
 For each channel, it also supports a number of auxiliary datasets, such as the pixel quality,
 the index map and the related geometric and acquisition parameters: time,
@@ -79,20 +82,36 @@ All auxiliary data can be obtained by prepending the channel name such as
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
     `DataID`.
 
+.. note::
+
+    For reading compressed data, a decompression library is
+    needed. Either install the FCIDECOMP library (see `PUG`_), or the
+    ``hdf5plugin`` package with::
+
+        pip install hdf5plugin
+
+    or::
+
+        conda install hdf5plugin -c conda-forge
+
+    If you use ``hdf5plugin``, make sure to add the line ``import hdf5plugin``
+    at the top of your script.
+
 .. _PUG: https://www-cdn.eumetsat.int/files/2020-07/pdf_mtg_fci_l1_pug.pdf
 .. _EUMETSAT: https://www.eumetsat.int/mtg-flexible-combined-imager  # noqa: E501
 .. _test data release: https://www.eumetsat.int/simulated-mtg-fci-l1c-enhanced-non-nominal-datasets
 """
 
-from __future__ import (division, absolute_import, print_function,
-                        unicode_literals)
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+from functools import cached_property
+
 import numpy as np
 import xarray as xr
-
-from pyresample import geometry
 from netCDF4 import default_fillvals
+from pyresample import geometry
+
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
@@ -120,8 +139,8 @@ def _get_aux_data_name_from_dsname(dsname):
     aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
     if len(aux_data_name) > 0:
         return aux_data_name[0]
-    else:
-        return None
+
+    return None
 
 
 def _get_channel_name_from_dsname(dsname):
@@ -185,6 +204,26 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Get end time."""
         return self.filename_info['end_time']
 
+    def get_segment_position_info(self):
+        """Get the vertical position and size information of the chunk (aka segment) for both 1km and 2km grids.
+
+        This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
+        """
+        segment_position_info = {
+            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
+                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
+                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
+                    self['data/vis_04/measured/start_position_row'].item() + 1,
+                    'segment_width': 11136},
+            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
+                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
+                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
+                    self['data/ir_105/measured/start_position_row'].item() + 1,
+                    'segment_width': 5568}
+        }
+
+        return segment_position_info
+
     def get_dataset(self, key, info=None):
         """Load a dataset."""
         logger.debug('Reading {} from {}'.format(key['name'], self.filename))
@@ -230,7 +269,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         res = self.calibrate(data, key)
 
         # pre-calibration units no longer apply
-        info.pop("units")
         attrs.pop("units")
 
         # For each channel, the effective_radiance contains in the
@@ -270,7 +308,35 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         # remove attributes from original file which don't apply anymore
         res.attrs.pop('long_name')
 
+        res.attrs.update(self.orbital_param)
+
         return res
+
+    @cached_property
+    def orbital_param(self):
+        """Compute the orbital parameters for the current chunk."""
+        actual_subsat_lon = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_longitude')))
+        actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
+        actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
+
+        nominal_and_proj_subsat_lon = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        nominal_and_proj_subsat_lat = 0
+        nominal_and_proj_sat_alt = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+
+        orb_param_dict = {
+            'orbital_parameters': {
+                'satellite_actual_longitude': actual_subsat_lon,
+                'satellite_actual_latitude': actual_subsat_lat,
+                'satellite_actual_altitude': actual_sat_alt,
+                'satellite_nominal_longitude': nominal_and_proj_subsat_lon,
+                'satellite_nominal_latitude': nominal_and_proj_subsat_lat,
+                'satellite_nominal_altitude': nominal_and_proj_sat_alt,
+                'projection_longitude': nominal_and_proj_subsat_lon,
+                'projection_latitude': nominal_and_proj_subsat_lat,
+                'projection_altitude': nominal_and_proj_sat_alt,
+            }}
+
+        return orb_param_dict
 
     def _get_dataset_quality(self, dsname):
         """Load a quality field for an FCI channel."""
@@ -305,10 +371,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         """Get the auxiliary data arrays using the index map."""
         # get index map
         index_map = self._get_dataset_index_map(_get_channel_name_from_dsname(dsname))
-        # index map indexing starts from 1
-        index_map -= 1
+        # subtract minimum of index variable (index_offset)
+        index_map -= np.min(self['index'])
 
-        # get lut values from 1-d vector
+        # get lut values from 1-d vector variable
         lut = self._get_aux_data_lut_vector(_get_aux_data_name_from_dsname(dsname))
 
         # assign lut values based on index map indices
@@ -347,6 +413,17 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         extents = {}
         for coord in "xy":
             coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
+
+            # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
+            if coord == "x" and coord_radian.scale_factor > 0:
+                coord_radian.attrs['scale_factor'] *= -1
+
+            # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
+            if type(coord_radian.scale_factor) is np.float32:
+                coord_radian.attrs['scale_factor'] = coord_radian.attrs['scale_factor'].astype('float64')
+            if type(coord_radian.add_offset) is np.float32:
+                coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
+
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
 
             # FCI defines pixels by centroids (see PUG), while pyresample
@@ -438,16 +515,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key['calibration'] == "counts":
-            # from package description, this just means not applying add_offset
-            # and scale_factor
-            data.attrs["units"] = "1"
-        elif key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
+        if key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
             data = self.calibrate_counts_to_physical_quantity(data, key)
-        else:
+        elif key['calibration'] != "counts":
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance' or 'radiance', got "
+                "'brightness_temperature', 'reflectance', 'radiance' or 'counts', got "
                 + key['calibration'] + ".")
 
         return data
@@ -467,7 +540,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
     def calibrate_counts_to_rad(self, data, key):
         """Calibrate counts to radiances."""
-        radiance_units = data.attrs["units"]
         if key['name'] == 'ir_38':
             data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
                             (data * data.attrs.get("warm_scale_factor", 1) +
@@ -479,8 +551,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             data = (data * data.attrs.get("scale_factor", 1) +
                     data.attrs.get("add_offset", 0))
 
-        data.attrs["units"] = radiance_units
-
+        measured = self.get_channel_measured_group_path(key['name'])
+        data.attrs.update({'radiance_unit_conversion_coefficient': self[measured +
+                                                                        '/radiance_unit_conversion_coefficient']})
         return data
 
     def calibrate_rad_to_bt(self, radiance, key):
@@ -512,7 +585,6 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         denom = a * np.log(1 + (c1 * vc ** 3) / radiance)
 
         res = nom / denom - b / a
-        res.attrs["units"] = "K"
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
@@ -530,6 +602,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
 
+        # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
+        if sun_earth_distance < 0.9 or sun_earth_distance > 1.1:
+            logger.info('The variable state/celestial/earth_sun_distance contains unexpected values'
+                        '(mean value is {} AU). Defaulting to 1 AU for reflectance calculation.'
+                        ''.format(sun_earth_distance))
+            sun_earth_distance = 1
+
         res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
-        res.attrs["units"] = "%"
         return res

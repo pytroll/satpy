@@ -179,8 +179,8 @@ Output:
 
 """
 import itertools
-import logging
 import json
+import logging
 
 import xarray as xr
 

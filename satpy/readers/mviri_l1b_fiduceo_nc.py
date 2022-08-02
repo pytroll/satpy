@@ -153,7 +153,7 @@ References
 """
 
 import abc
-from functools import lru_cache
+import functools
 import warnings
 
 import dask.array as da
@@ -161,11 +161,7 @@ import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
-from satpy.readers._geos_area import (
-    sampling_to_lfac_cfac,
-    get_area_definition,
-    get_area_extent
-)
+from satpy.readers._geos_area import get_area_definition, get_area_extent, sampling_to_lfac_cfac
 from satpy.readers.file_handlers import BaseFileHandler
 
 EQUATOR_RADIUS = 6378140.0
@@ -569,6 +565,13 @@ class FiduceoMviriBase(BaseFileHandler):
         self.projection_longitude = float(filename_info['projection_longitude'])
         self.calib_coefs = self._get_calib_coefs()
 
+        self._get_angles = functools.lru_cache(maxsize=8)(
+            self._get_angles_uncached
+        )
+        self._get_acq_time = functools.lru_cache(maxsize=3)(
+            self._get_acq_time_uncached
+        )
+
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
         name = dataset_id['name']
@@ -609,8 +612,7 @@ class FiduceoMviriBase(BaseFileHandler):
         ds['acq_time'] = self._get_acq_time(resolution)
         return ds
 
-    @lru_cache(maxsize=8)  # 4 angle datasets with two resolutions each
-    def _get_angles(self, name, resolution):
+    def _get_angles_uncached(self, name, resolution):
         """Get angle dataset.
 
         Files provide angles (solar/satellite zenith & azimuth) at a coarser
@@ -693,8 +695,7 @@ class FiduceoMviriBase(BaseFileHandler):
 
         return coefs
 
-    @lru_cache(maxsize=3)  # Three channels
-    def _get_acq_time(self, resolution):
+    def _get_acq_time_uncached(self, resolution):
         """Get scanline acquisition time for the given resolution.
 
         Note that the acquisition time does not increase monotonically

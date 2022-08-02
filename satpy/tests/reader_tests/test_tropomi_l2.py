@@ -20,12 +20,13 @@
 
 import os
 import unittest
-from unittest import mock
 from datetime import datetime
+from unittest import mock
+
 import numpy as np
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 import xarray as xr
 
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (3246, 450)
@@ -40,7 +41,6 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        from xarray import DataArray
         dt_s = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
         dt_e = filename_info.get('end_time', datetime(2016, 1, 1, 12, 0, 0))
 
@@ -67,15 +67,7 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
                     continue
                 file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
 
-            # convert to xarrays
-            for key, val in file_content.items():
-                if isinstance(val, np.ndarray):
-                    if 1 < val.ndim <= 2:
-                        file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel'))
-                    elif val.ndim > 2:
-                        file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel', 'corner'))
-                    else:
-                        file_content[key] = DataArray(val)
+            self._convert_data_content_to_dataarrays(file_content)
             file_content['PRODUCT/latitude'].attrs['_FillValue'] = -999.0
             file_content['PRODUCT/longitude'].attrs['_FillValue'] = -999.0
             file_content['PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'].attrs['_FillValue'] = -999.0
@@ -90,6 +82,18 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
                                       "'tropomi_l2' are not supported.")
 
         return file_content
+
+    def _convert_data_content_to_dataarrays(self, file_content):
+        """Convert data content to xarray's dataarrays."""
+        from xarray import DataArray
+        for key, val in file_content.items():
+            if isinstance(val, np.ndarray):
+                if 1 < val.ndim <= 2:
+                    file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel'))
+                elif val.ndim > 2:
+                    file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel', 'corner'))
+                else:
+                    file_content[key] = DataArray(val)
 
 
 class TestTROPOMIL2Reader(unittest.TestCase):

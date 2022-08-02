@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2017 Satpy developers
+# Copyright (c) 2010-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -16,27 +16,27 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Scene object to hold satellite data."""
+from __future__ import annotations
 
 import logging
 import os
 import warnings
+from typing import Callable
+
+import numpy as np
+import xarray as xr
+from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
+from xarray import DataArray
 
 from satpy.composites import IncompatibleAreas
-from satpy.composites.config_loader import CompositorLoader
-from satpy.dataset import (DataQuery, DataID, dataset_walker,
-                           replace_anc, combine_metadata)
-from satpy.node import MissingDependencies, ReaderNode, CompositorNode, Node
+from satpy.composites.config_loader import load_compositor_configs_for_sensors
+from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
+from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
-from satpy.dataset import DatasetDict
-from satpy.resample import (resample_dataset,
-                            prepare_resampler, get_area_def)
+from satpy.resample import get_area_def, prepare_resampler, resample_dataset
+from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
-from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
-
-import xarray as xr
-from xarray import DataArray
-import numpy as np
 
 LOG = logging.getLogger(__name__)
 
@@ -73,13 +73,28 @@ class Scene:
                  reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
-        To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
-        then the available readers will be searched for a Reader that can support the provided files. This can take
-        a considerable amount of time so it is recommended that `reader` always be provided. Note without `filenames`
-        the Scene is created with no Readers available requiring Datasets to be added manually::
+        To load data `filenames` and preferably `reader` must be specified::
+
+            scn = Scene(filenames=glob('/path/to/viirs/sdr/files/*'), reader='viirs_sdr')
+
+
+        If ``filenames`` is provided without ``reader`` then the available readers
+        will be searched for a Reader that can support the provided files. This
+        can take a considerable amount of time so it is recommended that
+        ``reader`` always be provided. Note without ``filenames`` the Scene is
+        created with no Readers available requiring Datasets to be added
+        manually::
 
             scn = Scene()
             scn['my_dataset'] = Dataset(my_data_array, **my_info)
+
+        Further, notice that it is also possible to load a combination of files
+        or sets of files each requiring their specific reader. For that
+        ``filenames`` needs to be a `dict` (see parameters list below), e.g.::
+
+            scn = Scene(filenames={'nwcsaf-pps_nc': glob('/path/to/nwc/saf/pps/files/*'),
+                                   'modis_l1b': glob('/path/to/modis/lvl1/files/*')})
+
 
         Args:
             filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
@@ -93,27 +108,34 @@ class Scene:
                 sub-dictionaries to pass different arguments to different
                 reader instances.
 
+                Keyword arguments for remote file access are also given in this dictionary.
+                See `documentation <https://satpy.readthedocs.io/en/stable/remote_reading.html>`_
+                for usage examples.
+
         """
         self.attrs = dict()
+
+        storage_options, cleaned_reader_kwargs = get_storage_options_from_reader_kwargs(reader_kwargs)
+
         if filter_parameters:
-            if reader_kwargs is None:
-                reader_kwargs = {}
+            if cleaned_reader_kwargs is None:
+                cleaned_reader_kwargs = {}
             else:
-                reader_kwargs = reader_kwargs.copy()
-            reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
+                cleaned_reader_kwargs = cleaned_reader_kwargs.copy()
+            cleaned_reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
+        if filenames:
+            filenames = convert_remote_files_to_fsspec(filenames, storage_options)
+
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
-                                                      reader_kwargs=reader_kwargs)
-        self.attrs.update(self._compute_metadata_from_readers())
+                                                      reader_kwargs=cleaned_reader_kwargs)
         self._datasets = DatasetDict()
-        self._composite_loader = CompositorLoader()
-        comps, mods = self._composite_loader.load_compositors(self.attrs['sensor'])
         self._wishlist = set()
-        self._dependency_tree = DependencyTree(self._readers, comps, mods)
+        self._dependency_tree = DependencyTree(self._readers)
         self._resamplers = {}
 
     @property
@@ -123,31 +145,6 @@ class Scene:
 
     def _ipython_key_completions_(self):
         return [x['name'] for x in self._datasets.keys()]
-
-    def _compute_metadata_from_readers(self):
-        """Determine pieces of metadata from the readers loaded."""
-        mda = {'sensor': self._get_sensor_names()}
-
-        # overwrite the request start/end times with actual loaded data limits
-        if self._readers:
-            mda['start_time'] = min(x.start_time
-                                    for x in self._readers.values())
-            mda['end_time'] = max(x.end_time
-                                  for x in self._readers.values())
-        return mda
-
-    def _get_sensor_names(self):
-        """Join the sensors from all loaded readers."""
-        # if the user didn't tell us what sensors to work with, let's figure it
-        # out
-        if not self.attrs.get('sensor'):
-            # reader finder could return multiple readers
-            return set([sensor for reader_instance in self._readers.values()
-                        for sensor in reader_instance.sensor_names])
-        elif not isinstance(self.attrs['sensor'], (set, tuple, list)):
-            return set([self.attrs['sensor']])
-        else:
-            return set(self.attrs['sensor'])
 
     def _create_reader_instances(self,
                                  filenames=None,
@@ -159,14 +156,70 @@ class Scene:
                             reader_kwargs=reader_kwargs)
 
     @property
+    def sensor_names(self) -> set[str]:
+        """Return sensor names for the data currently contained in this Scene.
+
+        Sensor information is collected from data contained in the Scene
+        whether loaded from a reader or generated as a composite with
+        :meth:`load` or added manually using ``scn["name"] = data_arr``).
+        Sensor information is also collected from any loaded readers.
+        In some rare cases this may mean that the reader includes sensor
+        information for data that isn't actually loaded or even available.
+
+        """
+        contained_sensor_names = self._contained_sensor_names()
+        reader_sensor_names = set([sensor for reader_instance in self._readers.values()
+                                   for sensor in reader_instance.sensor_names])
+        return contained_sensor_names | reader_sensor_names
+
+    def _contained_sensor_names(self) -> set[str]:
+        sensor_names = set()
+        for data_arr in self.values():
+            if "sensor" not in data_arr.attrs:
+                continue
+            if isinstance(data_arr.attrs["sensor"], str):
+                sensor_names.add(data_arr.attrs["sensor"])
+            elif isinstance(data_arr.attrs["sensor"], set):
+                sensor_names.update(data_arr.attrs["sensor"])
+            else:
+                raise TypeError("Unexpected type in sensor collection")
+        return sensor_names
+
+    @property
     def start_time(self):
-        """Return the start time of the file."""
-        return self.attrs['start_time']
+        """Return the start time of the contained data.
+
+        If no data is currently contained in the Scene then loaded readers
+        will be consulted.
+
+        """
+        start_times = [data_arr.attrs['start_time'] for data_arr in self.values()
+                       if 'start_time' in data_arr.attrs]
+        if not start_times:
+            start_times = self._reader_times('start_time')
+        if not start_times:
+            return None
+        return min(start_times)
 
     @property
     def end_time(self):
-        """Return the end time of the file."""
-        return self.attrs['end_time']
+        """Return the end time of the file.
+
+        If no data is currently contained in the Scene then loaded readers
+        will be consulted. If no readers are loaded then the
+        :attr:`Scene.start_time` is returned.
+
+        """
+        end_times = [data_arr.attrs['end_time'] for data_arr in self.values()
+                     if 'end_time' in data_arr.attrs]
+        if not end_times:
+            end_times = self._reader_times('end_time')
+        if not end_times:
+            return self.start_time
+        return max(end_times)
+
+    def _reader_times(self, time_prop_name):
+        return [getattr(reader, time_prop_name) for reader in self._readers.values()]
 
     @property
     def missing_datasets(self):
@@ -190,6 +243,47 @@ class Scene:
         if datasets is None:
             datasets = list(self.values())
 
+        areas = self._gather_all_areas(datasets)
+
+        if isinstance(areas[0], AreaDefinition):
+            first_crs = areas[0].crs
+            if not all(ad.crs == first_crs for ad in areas[1:]):
+                raise ValueError("Can't compare areas with different "
+                                 "projections.")
+            return self._compare_area_defs(compare_func, areas)
+        return self._compare_swath_defs(compare_func, areas)
+
+    @staticmethod
+    def _compare_area_defs(compare_func: Callable, area_defs: list[AreaDefinition]) -> list[AreaDefinition]:
+        def _key_func(area_def: AreaDefinition) -> tuple:
+            """Get comparable version of area based on resolution.
+
+            Pixel size x is the primary comparison parameter followed by
+            the y dimension pixel size. The extent of the area and the
+            name (area_id) of the area are also used to act as
+            "tiebreakers" between areas of the same resolution.
+
+            """
+            pixel_size_x_inverse = 1. / abs(area_def.pixel_size_x)
+            pixel_size_y_inverse = 1. / abs(area_def.pixel_size_y)
+            area_id = area_def.area_id
+            return pixel_size_x_inverse, pixel_size_y_inverse, area_def.area_extent, area_id
+        return compare_func(area_defs, key=_key_func)
+
+    @staticmethod
+    def _compare_swath_defs(compare_func: Callable, swath_defs: list[SwathDefinition]) -> list[SwathDefinition]:
+        def _key_func(swath_def: SwathDefinition) -> tuple:
+            attrs = getattr(swath_def.lons, "attrs", {})
+            lon_ds_name = attrs.get("name")
+            return swath_def.shape[1], swath_def.shape[0], lon_ds_name
+        return compare_func(swath_defs, key=_key_func)
+
+    def _gather_all_areas(self, datasets):
+        """Gather all areas from datasets.
+
+        They have to be of the same type, and at least one dataset should have
+        an area.
+        """
         areas = []
         for ds in datasets:
             if isinstance(ds, BaseDefinition):
@@ -199,28 +293,13 @@ class Scene:
                 ds = self[ds]
             area = ds.attrs.get('area')
             areas.append(area)
-
         areas = [x for x in areas if x is not None]
         if not areas:
             raise ValueError("No dataset areas available")
-
         if not all(isinstance(x, type(areas[0]))
                    for x in areas[1:]):
             raise ValueError("Can't compare areas of different types")
-        elif isinstance(areas[0], AreaDefinition):
-            first_crs = areas[0].crs
-            if not all(ad.crs == first_crs for ad in areas[1:]):
-                raise ValueError("Can't compare areas with different "
-                                 "projections.")
-
-            def key_func(ds):
-                return 1. / abs(ds.pixel_size_x)
-        else:
-            def key_func(ds):
-                return ds.shape
-
-        # find the highest/lowest area among the provided
-        return compare_func(areas, key=key_func)
+        return areas
 
     def finest_area(self, datasets=None):
         """Get highest resolution area for the provided datasets.
@@ -236,6 +315,8 @@ class Scene:
 
     def max_area(self, datasets=None):
         """Get highest resolution area for the provided datasets. Deprecated.
+
+        Deprecated.  Use :meth:`finest_area` instead.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
@@ -262,6 +343,8 @@ class Scene:
 
     def min_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets. Deprecated.
+
+        Deprecated.  Use :meth:`coarsest_area` instead.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
@@ -395,10 +478,10 @@ class Scene:
         """Create new dependency tree and check what composites we know about."""
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
-        sensor_comps, mods = self._composite_loader.load_compositors(self.attrs['sensor'])
+        sensor_comps, mods = load_compositor_configs_for_sensors(self.sensor_names)
         # recreate the dependency tree so it doesn't interfere with the user's
         # wishlist from self._dependency_tree
-        dep_tree = DependencyTree(self._readers, sensor_comps, mods, available_only=True)
+        dep_tree = DependencyTree(self._readers, sensor_comps, mods, available_only=available_only)
         # ignore inline compositor dependencies starting with '_'
         comps = (comp for comp_dict in sensor_comps.values()
                  for comp in comp_dict.keys() if not comp['name'].startswith('_'))
@@ -758,15 +841,7 @@ class Scene:
         """
         new_datasets = {}
         datasets = list(new_scn._datasets.values())
-        if isinstance(destination_area, str):
-            destination_area = get_area_def(destination_area)
-        if hasattr(destination_area, 'freeze'):
-            try:
-                finest_area = new_scn.finest_area()
-                destination_area = destination_area.freeze(finest_area)
-            except ValueError:
-                raise ValueError("No dataset areas available to freeze "
-                                 "DynamicAreaDefinition.")
+        destination_area = self._get_finalized_destination_area(destination_area, new_scn)
 
         resamplers = {}
         reductions = {}
@@ -788,34 +863,9 @@ class Scene:
                 continue
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
-            try:
-                if reduce_data:
-                    key = source_area
-                    try:
-                        (slice_x, slice_y), source_area = reductions[key]
-                    except KeyError:
-                        if resample_kwargs.get('resampler') == 'gradient_search':
-                            factor = resample_kwargs.get('shape_divisible_by', 2)
-                        else:
-                            factor = None
-                        try:
-                            slice_x, slice_y = source_area.get_area_slices(
-                                destination_area, shape_divisible_by=factor)
-                        except TypeError:
-                            slice_x, slice_y = source_area.get_area_slices(
-                                destination_area)
-                        source_area = source_area[slice_y, slice_x]
-                        reductions[key] = (slice_x, slice_y), source_area
-                    dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
-                else:
-                    LOG.debug("Data reduction disabled by the user")
-            except NotImplementedError:
-                LOG.info("Not reducing data before resampling.")
-            if source_area not in resamplers:
-                key, resampler = prepare_resampler(
-                    source_area, destination_area, **resample_kwargs)
-                resamplers[source_area] = resampler
-                self._resamplers[key] = resampler
+            dataset, source_area = self._reduce_data(dataset, source_area, destination_area,
+                                                     reduce_data, reductions, resample_kwargs)
+            self._prepare_resampler(source_area, destination_area, resamplers, resample_kwargs)
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
             res = resample_dataset(dataset, destination_area, **kwargs)
@@ -824,6 +874,51 @@ class Scene:
                 new_scn._datasets[ds_id] = res
             if parent_dataset is not None:
                 replace_anc(res, pres)
+
+    def _get_finalized_destination_area(self, destination_area, new_scn):
+        if isinstance(destination_area, str):
+            destination_area = get_area_def(destination_area)
+        if hasattr(destination_area, 'freeze'):
+            try:
+                finest_area = new_scn.finest_area()
+                destination_area = destination_area.freeze(finest_area)
+            except ValueError:
+                raise ValueError("No dataset areas available to freeze "
+                                 "DynamicAreaDefinition.")
+        return destination_area
+
+    def _prepare_resampler(self, source_area, destination_area, resamplers, resample_kwargs):
+        if source_area not in resamplers:
+            key, resampler = prepare_resampler(
+                source_area, destination_area, **resample_kwargs)
+            resamplers[source_area] = resampler
+            self._resamplers[key] = resampler
+
+    def _reduce_data(self, dataset, source_area, destination_area, reduce_data, reductions, resample_kwargs):
+        try:
+            if reduce_data:
+                key = source_area
+                try:
+                    (slice_x, slice_y), source_area = reductions[key]
+                except KeyError:
+                    if resample_kwargs.get('resampler') == 'gradient_search':
+                        factor = resample_kwargs.get('shape_divisible_by', 2)
+                    else:
+                        factor = None
+                    try:
+                        slice_x, slice_y = source_area.get_area_slices(
+                            destination_area, shape_divisible_by=factor)
+                    except TypeError:
+                        slice_x, slice_y = source_area.get_area_slices(
+                            destination_area)
+                    source_area = source_area[slice_y, slice_x]
+                    reductions[key] = (slice_x, slice_y), source_area
+                dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
+            else:
+                LOG.debug("Data reduction disabled by the user")
+        except NotImplementedError:
+            LOG.info("Not reducing data before resampling.")
+        return dataset, source_area
 
     def resample(self, destination=None, datasets=None, generate=True,
                  unload=True, resampler=None, reduce_data=True,
@@ -862,7 +957,8 @@ class Scene:
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
-        new_scn.generate_possible_composites(generate, unload)
+        if generate:
+            new_scn.generate_possible_composites(unload)
 
         return new_scn
 
@@ -887,8 +983,8 @@ class Scene:
         .. _pycoast: https://pycoast.readthedocs.io/
 
         """
-        from satpy.writers import get_enhanced_image
         from satpy.utils import in_ipynb
+        from satpy.writers import get_enhanced_image
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
         if not in_ipynb():
             img.show()
@@ -1096,6 +1192,47 @@ class Scene:
                                           **kwargs)
         return writer.save_datasets(dataarrays, compute=compute, **save_kwargs)
 
+    def compute(self, **kwargs):
+        """Call `compute` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.compute` for more details.
+        Note that this will convert the contents of the DataArray to numpy arrays which
+        may not work with all parts of Satpy which may expect dask arrays.
+        """
+        from dask import compute
+        new_scn = self.copy()
+        datasets = compute(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def persist(self, **kwargs):
+        """Call `persist` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.persist` for more details.
+        """
+        from dask import persist
+        new_scn = self.copy()
+        datasets = persist(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def chunk(self, **kwargs):
+        """Call `chunk` on all Scene  data arrays.
+
+        See :meth:`xarray.DataArray.chunk` for more details.
+        """
+        new_scn = self.copy()
+        for k in new_scn._datasets.keys():
+            new_scn[k] = new_scn[k].chunk(**kwargs)
+
+        return new_scn
+
     @staticmethod
     def _get_writer_by_ext(extension):
         """Find the writer matching the ``extension``.
@@ -1211,10 +1348,13 @@ class Scene:
         self._wishlist |= needed_datasets
 
         self._read_datasets_from_storage(**kwargs)
-        self.generate_possible_composites(generate, unload)
+        if generate:
+            self.generate_possible_composites(unload)
 
     def _update_dependency_tree(self, needed_datasets, query):
         try:
+            comps, mods = load_compositor_configs_for_sensors(self.sensor_names)
+            self._dependency_tree.update_compositors_and_modifiers(comps, mods)
             self._dependency_tree.populate_with_keys(needed_datasets, query)
         except MissingDependencies as err:
             raise KeyError(str(err))
@@ -1265,13 +1405,15 @@ class Scene:
             loaded_datasets.update(new_datasets)
         return loaded_datasets
 
-    def generate_possible_composites(self, generate, unload):
-        """See what we can generate and do it."""
-        if generate:
-            keepables = self._generate_composites_from_loaded_datasets()
-        else:
-            # don't lose datasets we loaded to try to generate composites
-            keepables = set(self._datasets.keys()) | self._wishlist
+    def generate_possible_composites(self, unload):
+        """See which composites can be generated and generate them.
+
+        Args:
+            unload (bool): if the dependencies of the composites
+                           should be unloaded after successful generation.
+        """
+        keepables = self._generate_composites_from_loaded_datasets()
+
         if self.missing_datasets:
             self._remove_failed_datasets(keepables)
         if unload:
@@ -1298,7 +1440,7 @@ class Scene:
             self._generate_composite(node, keepables)
         return keepables
 
-    def _generate_composite(self, comp_node: Node, keepables: set):
+    def _generate_composite(self, comp_node: CompositorNode, keepables: set):
         """Collect all composite prereqs and create the specified composite.
 
         Args:
