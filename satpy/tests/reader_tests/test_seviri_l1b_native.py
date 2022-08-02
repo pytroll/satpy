@@ -1019,11 +1019,21 @@ class TestNativeMSGCalibration(TestFileHandlerCalibrationBase):
                 }
             }
         }
+        trailer = {
+            '15TRAILER': {
+                'ImageProductionStats': {
+                    'ActualScanningSummary': {
+                        'ForwardScanStart': self.scan_time
+                    }
+                }
+            }
+        }
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
                         return_value=None):
             fh = NativeMSGFileHandler()
             fh.header = header
+            fh.trailer = trailer
             fh.platform_id = self.platform_id
             return fh
 
@@ -1097,12 +1107,21 @@ class TestNativeMSGDataset:
                 },
                 'ImageAcquisition': {
                     'PlannedAcquisitionTime': {
-                        'TrueRepeatCycleStart': datetime(
-                            2006, 1, 1, 12, 15, 9, 304888
-                        )
+                        'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 0, 0),
+                        'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0),
                     }
                 }
             },
+        }
+        trailer = {
+            '15TRAILER': {
+                'ImageProductionStats': {
+                    'ActualScanningSummary': {
+                        'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888)
+                    }
+                }
+            }
         }
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
         mda = {
@@ -1146,6 +1165,7 @@ class TestNativeMSGDataset:
                         return_value=None):
             fh = NativeMSGFileHandler()
             fh.header = header
+            fh.trailer = trailer
             fh.mda = mda
             fh.dask_array = da.from_array(data)
             fh.platform_id = 324
@@ -1192,7 +1212,9 @@ class TestNativeMSGDataset:
                 'sensor': 'seviri',
                 'units': '1',
                 'wavelength': (1, 2, 3),
-                'standard_name': 'counts'
+                'standard_name': 'counts',
+                'nominal_start_time': datetime(2006, 1, 1, 12, 15, 0),
+                'nominal_end_time': datetime(2006, 1, 1, 12, 30, 0),
             }
         )
         expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
@@ -1201,6 +1223,8 @@ class TestNativeMSGDataset:
                                       np.datetime64('1958-01-02 00:00:04')])
         xr.testing.assert_equal(dataset, expected)
         assert 'raw_metadata' not in dataset.attrs
+        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 9, 304888)
+        assert file_handler.end_time == datetime(2006, 1, 1, 12, 27, 9, 304888)
         assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
 
     def test_get_dataset_with_raw_metadata(self, file_handler):
