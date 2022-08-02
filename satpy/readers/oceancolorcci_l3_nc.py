@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Reader for files produced by ESA's Ocean Color CCI project.
+
 This reader currently supports the lat/lon gridded products and does not yet support the
 products on a sinusoidal grid. The products on each of the composite periods (1, 5 and 8 day plus monthly)
 are supported and both the merged product files (OC_PRODUCTS) and single product (RRS, CHLOR_A, IOP, K_490) are
@@ -87,10 +88,10 @@ class OCCCIFileHandler(NetCDF4FileHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition based on information in file.
+
         There is no area definition in the file itself, so we have to compute it
         from the metadata, which specifies the area extent and pixel resolution.
         """
-
         proj_param = 'EPSG:4326'
 
         lon_res = float(self['/attr/geospatial_lon_resolution'])
