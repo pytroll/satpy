@@ -37,11 +37,12 @@ enhancements:
     standard_name: true_color_with_night_fires
     sensor: abi
     operations:
-      - name: linear_stretch
+      - name: stretch
         method: !!python/name:satpy.enhancements.stretch
-      - name: sqrt
-        method: !!python/name:satpy.enhancements.gamma
-        kwargs: { gamma: 2.0 }
+        kwargs:
+          stretch: crude
+          min_stretch: [0., 0., 0.]
+          max_stretch: [1., 1., 1.]
 
 
   cira_fire_temperature:
