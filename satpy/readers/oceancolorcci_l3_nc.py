@@ -16,7 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Reader for files produced by ESA's Ocean Color CCI project."""
+"""Reader for files produced by ESA's Ocean Color CCI project.
+This reader currently supports the lat/lon gridded products and does not yet support the
+products on a sinusoidal grid. The products on each of the composite periods (1, 5 and 8 day plus monthly)
+are supported and both the merged product files (OC_PRODUCTS) and single product (RRS, CHLOR_A, IOP, K_490) are
+supported.
+"""
 import logging
 from datetime import datetime
 
