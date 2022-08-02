@@ -16,43 +16,44 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared objects of the various reader classes."""
+from __future__ import annotations
 
 import logging
 import os
+import pickle  # nosec B403
 import warnings
 from datetime import datetime, timedelta
 from functools import total_ordering
-import pickle
 
 import yaml
 
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
-from satpy._config import config_search_paths, glob_config
-from .yaml_reader import (AbstractYAMLReader,
-                          load_yaml_configs as load_yaml_reader_configs)
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
+
+from .yaml_reader import AbstractYAMLReader
+from .yaml_reader import load_yaml_configs as load_yaml_reader_configs
 
 LOG = logging.getLogger(__name__)
 
 
 # Old Name -> New Name
 PENDING_OLD_READER_NAMES = {'fci_l1c_fdhsi': 'fci_l1c_nc'}
-OLD_READER_NAMES = {}
+OLD_READER_NAMES: dict[str, str] = {}
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
-                group_keys=None, reader_kwargs=None):
+                group_keys=None, reader_kwargs=None,
+                missing="pass"):
     """Group series of files by file pattern information.
 
     By default this will group files by their filename ``start_time``
     assuming it exists in the pattern. By passing the individual
     dictionaries returned by this function to the Scene classes'
     ``filenames``, a series `Scene` objects can be easily created.
-
-    .. versionadded:: 0.12
 
     Args:
         files_to_sort (iterable): File paths to sort in to group
@@ -76,6 +77,16 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             behaviour without doing so is undefined.
         reader_kwargs (dict): Additional keyword arguments to pass to reader
             creation.
+        missing (str): Parameter to control the behavior in the scenario where
+            multiple readers were passed, but at least one group does not have
+            files associated with every reader.  Valid values are ``"pass"``
+            (the default), ``"skip"``, and ``"raise"``.  If set to ``"pass"``,
+            groups are passed as-is.  Some groups may have zero files for some
+            readers.  If set to ``"skip"``, groups for which one or more
+            readers have zero files are skipped (meaning that some files may
+            not be associated to any group).  If set to ``"raise"``, raise a
+            `FileNotFoundError` in case there are any groups for which one or
+            more readers have no files associated.
 
     Returns:
         List of dictionaries mapping 'reader' to a list of filenames.
@@ -99,7 +110,9 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     file_groups = _get_sorted_file_groups(file_keys, time_threshold)
 
-    return [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
+    groups = [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
+
+    return list(_filter_groups(groups, missing=missing))
 
 
 def _assign_files_to_readers(files_to_sort, reader_names,
@@ -231,6 +244,62 @@ def _get_sorted_file_groups(all_file_keys, time_threshold):
     return file_groups
 
 
+def _filter_groups(groups, missing="pass"):
+    """Filter multi-reader group-files behavior.
+
+    Helper for `group_files`.  When `group_files` is called with multiple
+    readers, make sure that the desired behaviour for missing files is
+    enforced: if missing is ``"raise"``, raise an exception if at least one
+    group has at least one reader without files; if it is ``"skip"``, remove
+    those.  If it is ``"pass"``, do nothing.  Yields groups to be kept.
+
+    Args:
+        groups (List[Mapping[str, List[str]]]):
+            groups as found by `group_files`.
+        missing (str):
+            String controlling behaviour, see documentation above.
+
+    Yields:
+        ``Mapping[str:, List[str]]``: groups to be retained
+    """
+    if missing == "pass":
+        yield from groups
+        return
+    if missing not in ("raise", "skip"):
+        raise ValueError("Invalid value for ``missing`` argument.  Expected "
+                         f"'raise', 'skip', or 'pass', got '{missing!s}'")
+    for (i, grp) in enumerate(groups):
+        readers_without_files = _get_keys_with_empty_values(grp)
+        if readers_without_files:
+            if missing == "raise":
+                raise FileNotFoundError(
+                        f"when grouping files, group at index {i:d} "
+                        "had no files for readers: " +
+                        ", ".join(readers_without_files))
+        else:
+            yield grp
+
+
+def _get_keys_with_empty_values(grp):
+    """Find mapping keys where values have length zero.
+
+    Helper for `_filter_groups`, which is in turn a helper for `group_files`.
+    Given a mapping key -> Collection[Any], return the keys where the length of the
+    collection is zero.
+
+    Args:
+        grp (Mapping[Any, Collection[Any]]): dictionary to check
+
+    Returns:
+        set of keys
+    """
+    empty = set()
+    for (k, v) in grp.items():
+        if len(v) == 0:  # explicit check to ensure failure if not a collection
+            empty.add(k)
+    return empty
+
+
 def read_reader_config(config_files, loader=UnsafeLoader):
     """Read the reader `config_files` and return the extracted reader metadata."""
     reader_config = load_yaml_reader_configs(*config_files, loader=loader)
@@ -259,14 +328,17 @@ def configs_for_reader(reader=None):
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
-        reader_configs = glob_config(os.path.join('readers', '*.yaml'))
+        paths = get_entry_points_config_dirs('satpy.readers')
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'), search_dirs=paths)
         config_files = set(reader_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         reader_name = os.path.splitext(config_basename)[0]
+        paths = get_entry_points_config_dirs('satpy.readers')
         reader_configs = config_search_paths(
-            os.path.join("readers", config_basename))
+            os.path.join("readers", config_basename),
+            search_dirs=paths, check_exists=True)
 
         if not reader_configs:
             # either the reader they asked for does not exist
@@ -401,25 +473,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     reader_kwargs['filter_parameters'] = filter_parameters
 
     for reader_configs in configs_for_reader(reader):
-        try:
-            reader_instance = load_reader(reader_configs, **reader_kwargs)
-        except (KeyError, IOError, yaml.YAMLError) as err:
-            LOG.info('Cannot use %s', str(reader_configs))
-            LOG.debug(str(err))
-            if reader and (isinstance(reader, str) or len(reader) == 1):
-                # if it is a single reader then give a more usable error
-                raise
-            continue
-
-        if not reader_instance.supports_sensor(sensor):
-            continue
-        elif sensor is not None:
-            # sensor was specified and a reader supports it
-            sensor_supported = True
-        loadables = reader_instance.select_files_from_directory(base_dir, fs)
-        if loadables:
-            loadables = list(
-                reader_instance.filter_selected_filenames(loadables))
+        (reader_instance, loadables, this_sensor_supported) = _get_loadables_for_reader_config(
+                base_dir, reader, sensor, reader_configs, reader_kwargs, fs)
+        sensor_supported = sensor_supported or this_sensor_supported
         if loadables:
             reader_files[reader_instance.name] = list(loadables)
 
@@ -429,6 +485,44 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     if not (reader_files or missing_ok):
         raise ValueError("No supported files found")
     return reader_files
+
+
+def _get_loadables_for_reader_config(base_dir, reader, sensor, reader_configs,
+                                     reader_kwargs, fs):
+    """Get loadables for reader configs.
+
+    Helper for find_files_and_readers.
+
+    Args:
+        base_dir: as for `find_files_and_readers`
+        reader: as for `find_files_and_readers`
+        sensor: as for `find_files_and_readers`
+        reader_configs: reader metadata such as returned by
+            `configs_for_reader`.
+        reader_kwargs: Keyword arguments to be passed to reader.
+        fs (FileSystem): as for `find_files_and_readers`
+    """
+    sensor_supported = False
+    try:
+        reader_instance = load_reader(reader_configs, **reader_kwargs)
+    except (KeyError, IOError, yaml.YAMLError) as err:
+        LOG.info('Cannot use %s', str(reader_configs))
+        LOG.debug(str(err))
+        if reader and (isinstance(reader, str) or len(reader) == 1):
+            # if it is a single reader then give a more usable error
+            raise
+        return (None, [], False)
+
+    if not reader_instance.supports_sensor(sensor):
+        return (reader_instance, [], False)
+    if sensor is not None:
+        # sensor was specified and a reader supports it
+        sensor_supported = True
+    loadables = reader_instance.select_files_from_directory(base_dir, fs)
+    if loadables:
+        loadables = list(
+            reader_instance.filter_selected_filenames(loadables))
+    return (reader_instance, loadables, sensor_supported)
 
 
 def load_readers(filenames=None, reader=None, reader_kwargs=None):
@@ -449,27 +543,10 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
 
     """
     reader_instances = {}
-    if not filenames and not reader:
-        # used for an empty Scene
+    if _early_exit(filenames, reader):
         return {}
-    elif reader and filenames is not None and not filenames:
-        # user made a mistake in their glob pattern
-        raise ValueError("'filenames' was provided but is empty.")
-    elif not filenames:
-        LOG.warning("'filenames' required to create readers and load data")
-        return {}
-    elif reader is None and isinstance(filenames, dict):
-        # filenames is a dictionary of reader_name -> filenames
-        reader = list(filenames.keys())
-        remaining_filenames = set(f for fl in filenames.values() for f in fl)
-    elif reader and isinstance(filenames, dict):
-        # filenames is a dictionary of reader_name -> filenames
-        # but they only want one of the readers
-        filenames = filenames[reader]
-        remaining_filenames = set(filenames or [])
-    else:
-        remaining_filenames = set(filenames or [])
 
+    reader, filenames, remaining_filenames = _get_reader_and_filenames(reader, filenames)
     (reader_kwargs, reader_kwargs_without_filter) = _get_reader_kwargs(reader, reader_kwargs)
 
     for idx, reader_configs in enumerate(configs_for_reader(reader)):
@@ -500,15 +577,51 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None):
         if not remaining_filenames:
             break
 
+    _check_remaining_files(remaining_filenames)
+    _check_reader_instances(reader_instances)
+    return reader_instances
+
+
+def _early_exit(filenames, reader):
+    if not filenames and not reader:
+        # used for an empty Scene
+        return True
+    if reader and filenames is not None and not filenames:
+        # user made a mistake in their glob pattern
+        raise ValueError("'filenames' was provided but is empty.")
+    if not filenames:
+        LOG.warning("'filenames' required to create readers and load data")
+        return True
+    return False
+
+
+def _get_reader_and_filenames(reader, filenames):
+    if reader is None and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        reader = list(filenames.keys())
+        remaining_filenames = set(f for fl in filenames.values() for f in fl)
+    elif reader and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        # but they only want one of the readers
+        filenames = filenames[reader]
+        remaining_filenames = set(filenames or [])
+    else:
+        remaining_filenames = set(filenames or [])
+    return reader, filenames, remaining_filenames
+
+
+def _check_remaining_files(remaining_filenames):
     if remaining_filenames:
         LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
+
+
+def _check_reader_instances(reader_instances):
     if not reader_instances:
         raise ValueError("No supported files found")
-    elif not any(list(r.available_dataset_ids) for r in reader_instances.values()):
+    if not any(list(r.available_dataset_ids) for r in reader_instances.values()):
         raise ValueError("No dataset could be loaded. Either missing "
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
-    return reader_instances
 
 
 def _get_reader_kwargs(reader, reader_kwargs):
@@ -537,7 +650,10 @@ def _get_reader_kwargs(reader, reader_kwargs):
 class FSFile(os.PathLike):
     """Implementation of a PathLike file object, that can be opened.
 
-    This is made to be used in conjuction with fsspec or s3fs. For example::
+    Giving the filenames to :class:`Scene` with valid transfer protocols will automatically
+    use this class so manual usage of this class is needed mainly for fine-grained control.
+
+    This class is made to be used in conjuction with fsspec or s3fs. For example::
 
         from satpy import Scene
 
@@ -585,15 +701,15 @@ class FSFile(os.PathLike):
         """Representation of the object."""
         return '<FSFile "' + str(self._file) + '">'
 
-    def open(self):
+    def open(self, *args, **kwargs):
         """Open the file.
 
         This is read-only.
         """
         try:
-            return self._fs.open(self._file)
+            return self._fs.open(self._file, *args, **kwargs)
         except AttributeError:
-            return open(self._file)
+            return open(self._file, *args, **kwargs)
 
     def __lt__(self, other):
         """Implement ordering.
@@ -629,7 +745,7 @@ class FSFile(os.PathLike):
         try:
             fshash = hash(self._fs)
         except TypeError:  # fsspec < 0.8.8 for CachingFileSystem
-            fshash = hash(pickle.dumps(self._fs))
+            fshash = hash(pickle.dumps(self._fs))  # nosec B403
         return hash(self._file) ^ fshash
 
 

@@ -19,9 +19,10 @@
 import os
 import unittest
 from unittest import mock
-import numpy as np
-from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
+import numpy as np
+
+from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)

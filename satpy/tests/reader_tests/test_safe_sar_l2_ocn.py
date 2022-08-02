@@ -18,8 +18,10 @@
 """Module for testing the satpy.readers.safe_sar_l2_ocn module."""
 import unittest
 import unittest.mock as mock
+
 import numpy as np
 import xarray as xr
+
 from satpy.tests.utils import make_dataid
 
 

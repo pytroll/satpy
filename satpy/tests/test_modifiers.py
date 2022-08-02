@@ -16,92 +16,152 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for modifiers in modifiers/__init__.py."""
-
+import contextlib
 import unittest
+import warnings
+from copy import deepcopy
+from datetime import datetime, timedelta
+from glob import glob
+from typing import Optional, Union
 from unittest import mock
-from datetime import datetime
 
 import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+from pytest_lazyfixture import lazy_fixture
+
+import satpy
+from satpy.utils import PerformanceWarning
 
 
-class TestSunZenithCorrector(unittest.TestCase):
+def _sunz_area_def():
+    """Get fake area for testing sunz generation."""
+    area = AreaDefinition('test', 'test', 'test',
+                          {'proj': 'merc'}, 2, 2,
+                          (-2000, -2000, 2000, 2000))
+    return area
+
+
+def _sunz_bigger_area_def():
+    """Get area that is twice the size of 'sunz_area_def'."""
+    bigger_area = AreaDefinition('test', 'test', 'test',
+                                 {'proj': 'merc'}, 4, 4,
+                                 (-2000, -2000, 2000, 2000))
+    return bigger_area
+
+
+def _sunz_stacked_area_def():
+    """Get fake stacked area for testing sunz generation."""
+    area1 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, 0, 2000, 2000))
+    area2 = AreaDefinition('test', 'test', 'test',
+                           {'proj': 'merc'}, 2, 1,
+                           (-2000, -2000, 2000, 0))
+    return StackedAreaDefinition(area1, area2)
+
+
+def _shared_sunz_attrs(area_def):
+    attrs = {'area': area_def,
+             'start_time': datetime(2018, 1, 1, 18),
+             'modifiers': tuple(),
+             'name': 'test_vis'}
+    return attrs
+
+
+def _get_ds1(attrs):
+    ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 1], 'x': [0, 1]})
+    return ds1
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds1_stacked():
+    """Generate fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_stacked_area_def())
+    return _get_ds1(attrs)
+
+
+@pytest.fixture(scope="session")
+def sunz_ds2():
+    """Generate larger fake dataset for sunz tests."""
+    attrs = _shared_sunz_attrs(_sunz_bigger_area_def())
+    ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
+                       attrs=attrs, dims=('y', 'x'),
+                       coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
+    return ds2
+
+
+@pytest.fixture(scope="session")
+def sunz_sza():
+    """Generate fake solar zenith angle data array for testing."""
+    sza = xr.DataArray(
+        np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
+                                           chunks=2))),
+        attrs={'area': _sunz_area_def()},
+        dims=('y', 'x'),
+        coords={'y': [0, 1], 'x': [0, 1]},
+    )
+    return sza
+
+
+class TestSunZenithCorrector:
     """Test case for the zenith corrector."""
 
-    def setUp(self):
-        """Create test data."""
-        from pyresample.geometry import AreaDefinition
-        area = AreaDefinition('test', 'test', 'test',
-                              {'proj': 'merc'}, 2, 2,
-                              (-2000, -2000, 2000, 2000))
-        bigger_area = AreaDefinition('test', 'test', 'test',
-                                     {'proj': 'merc'}, 4, 4,
-                                     (-2000, -2000, 2000, 2000))
-        attrs = {'area': area,
-                 'start_time': datetime(2018, 1, 1, 18),
-                 'modifiers': tuple(),
-                 'name': 'test_vis'}
-        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 1], 'x': [0, 1]})
-        self.ds1 = ds1
-        ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
-                           attrs=attrs, dims=('y', 'x'),
-                           coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
-        ds2.attrs['area'] = bigger_area
-        self.ds2 = ds2
-        self.sza = xr.DataArray(
-            np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
-                                               chunks=2))),
-            attrs={'area': area},
-            dims=('y', 'x'),
-            coords={'y': [0, 1], 'x': [0, 1]},
-        )
-
-    def test_basic_default_not_provided(self):
+    def test_basic_default_not_provided(self, sunz_ds1):
         """Test default limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertIn('y', res.coords)
-        self.assertIn('x', res.coords)
-        ds1 = self.ds1.copy().drop_vars(('y', 'x'))
+        assert 'y' in res.coords
+        assert 'x' in res.coords
+        ds1 = sunz_ds1.copy().drop_vars(('y', 'x'))
         res = comp((ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
-        self.assertNotIn('y', res.coords)
-        self.assertNotIn('x', res.coords)
+        assert 'y' not in res.coords
+        assert 'x' not in res.coords
 
-    def test_basic_lims_not_provided(self):
+    def test_basic_lims_not_provided(self, sunz_ds1):
         """Test custom limits when SZA isn't provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1,), test_attr='test')
+        res = comp((sunz_ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_basic_default_provided(self):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_default_provided(self, data_arr, sunz_sza):
         """Test default limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
 
-    def test_basic_lims_provided(self):
+    @pytest.mark.parametrize("data_arr", [lazy_fixture("sunz_ds1"), lazy_fixture("sunz_ds1_stacked")])
+    def test_basic_lims_provided(self, data_arr, sunz_sza):
         """Test custom limits when SZA is provided."""
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
-        res = comp((self.ds1, self.sza), test_attr='test')
+        res = comp((data_arr, sunz_sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
-    def test_imcompatible_areas(self):
+    def test_imcompatible_areas(self, sunz_ds2, sunz_sza):
         """Test sunz correction on incompatible areas."""
         from satpy.composites import IncompatibleAreas
         from satpy.modifiers.geometry import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         with pytest.raises(IncompatibleAreas):
-            comp((self.ds2, self.sza), test_attr='test')
+            comp((sunz_ds2, sunz_sza), test_attr='test')
 
 
 class TestNIRReflectance(unittest.TestCase):
@@ -341,94 +401,329 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
     """Test the pyspectral-based atmospheric correction modifier."""
 
-    def setUp(self):
-        """Patch in-class imports."""
-        self.orbital = mock.MagicMock()
-        modules = {
-            'pyspectral.atm_correction_ir': mock.MagicMock(),
-            'pyorbital.orbital': self.orbital,
-        }
-        self.module_patcher = mock.patch.dict('sys.modules', modules)
-        self.module_patcher.start()
-
-    def tearDown(self):
-        """Unpatch in-class imports."""
-        self.module_patcher.stop()
-
-    @mock.patch('satpy.modifiers.PSPAtmosphericalCorrection.apply_modifier_info')
-    @mock.patch('satpy.modifiers.atmosphere.get_satpos')
-    def test_call(self, get_satpos, *mocks):
+    def test_call(self):
         """Test atmospherical correction."""
+        from pyresample.geometry import SwathDefinition
+
         from satpy.modifiers import PSPAtmosphericalCorrection
 
         # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        self.orbital.get_observer_look.return_value = 0, 0
-        area = mock.MagicMock()
-        area.get_lonlats.return_value = 'lons', 'lats'
-        band = mock.MagicMock(attrs={'area': area,
-                                     'start_time': 'start_time',
-                                     'name': 'name',
-                                     'platform_name': 'platform',
-                                     'sensor': 'sensor'}, dims=['y'])
-
-        # Perform atmospherical correction
-        psp = PSPAtmosphericalCorrection(name='dummy')
-        psp(projectables=[band])
-
-        # Check arguments of get_orbserver_look() call, especially the altitude
-        # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_with(
-            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
-
-
-class TestPSPRayleighReflectance(unittest.TestCase):
-    """Test the pyspectral-based rayleigh correction modifier."""
-
-    def setUp(self):
-        """Patch in-class imports."""
-        self.astronomy = mock.MagicMock()
-        self.orbital = mock.MagicMock()
-        modules = {
-            'pyorbital.astronomy': self.astronomy,
-            'pyorbital.orbital': self.orbital,
-        }
-        self.module_patcher = mock.patch.dict('sys.modules', modules)
-        self.module_patcher.start()
-
-    def tearDown(self):
-        """Unpatch in-class imports."""
-        self.module_patcher.stop()
-
-    @mock.patch('satpy.modifiers.atmosphere.get_satpos')
-    def test_get_angles(self, get_satpos):
-        """Test sun and satellite angle calculation."""
-        from satpy.modifiers import PSPRayleighReflectance
-
-        # Patch methods
-        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
-        self.orbital.get_observer_look.return_value = 0, 0
-        self.astronomy.get_alt_az.return_value = 0, 0
-        area = mock.MagicMock()
         lons = np.zeros((5, 5))
         lons[1, 1] = np.inf
         lons = da.from_array(lons, chunks=5)
         lats = np.zeros((5, 5))
         lats[1, 1] = np.inf
         lats = da.from_array(lats, chunks=5)
-        area.get_lonlats.return_value = (lons, lats)
-        vis = mock.MagicMock(attrs={'area': area,
-                                    'start_time': 'start_time'})
+        area = SwathDefinition(lons, lats)
+        stime = datetime(2020, 1, 1, 12, 0, 0)
+        orb_params = {
+            "satellite_actual_altitude": 12345678,
+            "nadir_longitude": 0.0,
+            "nadir_latitude": 0.0,
+        }
+        band = xr.DataArray(da.zeros((5, 5)),
+                            attrs={'area': area,
+                                   'start_time': stime,
+                                   'name': 'name',
+                                   'platform_name': 'platform',
+                                   'sensor': 'sensor',
+                                   'orbital_parameters': orb_params},
+                            dims=('y', 'x'))
 
-        # Compute angles
-        psp = PSPRayleighReflectance(name='dummy')
-        psp.get_angles(vis)
+        # Perform atmospherical correction
+        psp = PSPAtmosphericalCorrection(name='dummy')
+        res = psp(projectables=[band])
+        res.compute()
 
+
+def _angle_cache_area_def():
+    area = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 5,
+        (-2500, -2500, 2500, 2500),
+    )
+    return area
+
+
+def _angle_cache_stacked_area_def():
+    area1 = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 2,
+        (2500, 500, 7500, 2500),
+    )
+    area2 = AreaDefinition(
+        "test", "", "",
+        {"proj": "merc"},
+        5, 3,
+        (2500, -2500, 7500, 500),
+    )
+    return StackedAreaDefinition(area1, area2)
+
+
+def _get_angle_test_data(area_def: Optional[Union[AreaDefinition, StackedAreaDefinition]] = None,
+                         chunks: Optional[Union[int, tuple]] = 2,
+                         shape: tuple = (5, 5),
+                         dims: tuple = None,
+                         ) -> xr.DataArray:
+    if area_def is None:
+        area_def = _angle_cache_area_def()
+    orb_params = {
+        "satellite_nominal_altitude": 12345678,
+        "satellite_nominal_longitude": 10.0,
+        "satellite_nominal_latitude": 0.0,
+    }
+    stime = datetime(2020, 1, 1, 12, 0, 0)
+    data = da.zeros(shape, chunks=chunks)
+    vis = xr.DataArray(data,
+                       dims=dims,
+                       attrs={
+                           'area': area_def,
+                           'start_time': stime,
+                           'orbital_parameters': orb_params,
+                       })
+    return vis
+
+
+def _get_stacked_angle_test_data():
+    return _get_angle_test_data(area_def=_angle_cache_stacked_area_def(),
+                                chunks=(5, (2, 2, 1)))
+
+
+def _get_angle_test_data_rgb():
+    return _get_angle_test_data(shape=(5, 5, 3), chunks=((2, 2, 1), (2, 2, 1), (1, 1, 1)),
+                                dims=("y", "x", "bands"))
+
+
+def _get_angle_test_data_rgb_nodims():
+    return _get_angle_test_data(shape=(3, 5, 5), chunks=((1, 1, 1), (2, 2, 1), (2, 2, 1)))
+
+
+def _get_angle_test_data_odd_chunks():
+    return _get_angle_test_data(chunks=((2, 1, 2), (1, 1, 2, 1)))
+
+
+def _similar_sat_pos_datetime(orig_data, lon_offset=0.04):
+    # change data slightly
+    new_data = orig_data.copy()
+    old_lon = new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"]
+    new_data.attrs["orbital_parameters"]["satellite_nominal_longitude"] = old_lon + lon_offset
+    new_data.attrs["start_time"] = new_data.attrs["start_time"] + timedelta(hours=36)
+    return new_data
+
+
+def _diff_sat_pos_datetime(orig_data):
+    return _similar_sat_pos_datetime(orig_data, lon_offset=0.05)
+
+
+def _glob_reversed(pat):
+    """Behave like glob but force results to be in the wrong order."""
+    return sorted(glob(pat), reverse=True)
+
+
+@contextlib.contextmanager
+def _mock_glob_if(mock_glob):
+    if mock_glob:
+        with mock.patch("satpy.modifiers.angles.glob", _glob_reversed):
+            yield
+    else:
+        yield
+
+
+def _assert_allclose_if(expect_equal, arr1, arr2):
+    if not expect_equal:
+        pytest.raises(AssertionError, np.testing.assert_allclose, arr1, arr2)
+    else:
+        np.testing.assert_allclose(arr1, arr2)
+
+
+class TestAngleGeneration:
+    """Test the angle generation utility functions."""
+
+    @pytest.mark.parametrize(
+        ("input_func", "exp_calls"),
+        [
+            (_get_angle_test_data, 9),
+            (_get_stacked_angle_test_data, 3),
+            (_get_angle_test_data_rgb, 9),
+            (_get_angle_test_data_rgb_nodims, 9),
+        ],
+    )
+    def test_get_angles(self, input_func, exp_calls):
+        """Test sun and satellite angle calculation."""
+        from satpy.modifiers.angles import get_angles
+        data = input_func()
+
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol:
+            angles = get_angles(data)
+            assert all(isinstance(x, xr.DataArray) for x in angles)
+            da.compute(angles)
+
+        # get_observer_look should have been called once per array chunk
+        assert gol.call_count == exp_calls
         # Check arguments of get_orbserver_look() call, especially the altitude
         # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_once()
-        args = self.orbital.get_observer_look.call_args[0]
-        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, 'start_time'))
-        self.assertIsInstance(args[4], da.Array)
-        self.assertIsInstance(args[5], da.Array)
-        self.assertEqual(args[6], 0)
+        args = gol.call_args[0]
+        assert args[:4] == (10.0, 0.0, 12345.678, data.attrs["start_time"])
+
+    @pytest.mark.parametrize("forced_preference", ["actual", "nadir"])
+    def test_get_angles_satpos_preference(self, forced_preference):
+        """Test that 'actual' satellite position is used for generating sensor angles."""
+        from satpy.modifiers.angles import get_angles
+
+        input_data1 = _get_angle_test_data()
+        # add additional satellite position metadata
+        input_data1.attrs["orbital_parameters"]["nadir_longitude"] = 9.0
+        input_data1.attrs["orbital_parameters"]["nadir_latitude"] = 0.01
+        input_data1.attrs["orbital_parameters"]["satellite_actual_longitude"] = 9.5
+        input_data1.attrs["orbital_parameters"]["satellite_actual_latitude"] = 0.005
+        input_data1.attrs["orbital_parameters"]["satellite_actual_altitude"] = 12345679
+        input_data2 = input_data1.copy(deep=True)
+        input_data2.attrs = deepcopy(input_data1.attrs)
+        input_data2.attrs["orbital_parameters"]["nadir_longitude"] = 9.1
+        input_data2.attrs["orbital_parameters"]["nadir_latitude"] = 0.02
+        input_data2.attrs["orbital_parameters"]["satellite_actual_longitude"] = 9.5
+        input_data2.attrs["orbital_parameters"]["satellite_actual_latitude"] = 0.005
+        input_data2.attrs["orbital_parameters"]["satellite_actual_altitude"] = 12345679
+
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
+                satpy.config.set(sensor_angles_position_preference=forced_preference):
+            angles1 = get_angles(input_data1)
+            da.compute(angles1)
+            angles2 = get_angles(input_data2)
+            da.compute(angles2)
+
+        # get_observer_look should have been called once per array chunk
+        assert gol.call_count == input_data1.data.blocks.size * 2
+        if forced_preference == "actual":
+            exp_call = mock.call(9.5, 0.005, 12345.679, input_data1.attrs["start_time"], mock.ANY, mock.ANY, 0)
+            all_same_calls = [exp_call] * gol.call_count
+            gol.assert_has_calls(all_same_calls)
+            # the dask arrays should have the same name to prove they are the same computation
+            for angle_arr1, angle_arr2 in zip(angles1, angles2):
+                assert angle_arr1.data.name == angle_arr2.data.name
+        else:
+            # nadir 1
+            gol.assert_any_call(9.0, 0.01, 12345.679, input_data1.attrs["start_time"], mock.ANY, mock.ANY, 0)
+            # nadir 2
+            gol.assert_any_call(9.1, 0.02, 12345.679, input_data1.attrs["start_time"], mock.ANY, mock.ANY, 0)
+
+    @pytest.mark.parametrize("force_bad_glob", [False, True])
+    @pytest.mark.parametrize(
+        ("input2_func", "exp_equal_sun", "exp_num_zarr"),
+        [
+            (lambda x: x, True, 4),
+            (_similar_sat_pos_datetime, False, 4),
+            (_diff_sat_pos_datetime, False, 6),
+        ]
+    )
+    @pytest.mark.parametrize(
+        ("input_func", "num_normalized_chunks", "exp_zarr_chunks"),
+        [
+            (_get_angle_test_data, 9, ((2, 2, 1), (2, 2, 1))),
+            (_get_stacked_angle_test_data, 3, ((5,), (2, 2, 1))),
+            (_get_angle_test_data_odd_chunks, 9, ((2, 1, 2), (1, 1, 2, 1))),
+            (_get_angle_test_data_rgb, 9, ((2, 2, 1), (2, 2, 1))),
+            (_get_angle_test_data_rgb_nodims, 9, ((2, 2, 1), (2, 2, 1))),
+        ])
+    def test_cache_get_angles(
+            self,
+            input_func, num_normalized_chunks, exp_zarr_chunks,
+            input2_func, exp_equal_sun, exp_num_zarr,
+            force_bad_glob, tmp_path):
+        """Test get_angles when caching is enabled."""
+        from satpy.modifiers.angles import STATIC_EARTH_INERTIAL_DATETIME, get_angles
+
+        # Patch methods
+        data = input_func()
+        additional_cache = exp_num_zarr > 4
+
+        # Compute angles
+        from pyorbital.orbital import get_observer_look
+        with mock.patch("satpy.modifiers.angles.get_observer_look", wraps=get_observer_look) as gol, \
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=str(tmp_path)), \
+                warnings.catch_warnings(record=True) as caught_warnings:
+            res = get_angles(data)
+            self._check_cached_result(res, exp_zarr_chunks)
+
+            # call again, should be cached
+            new_data = input2_func(data)
+            with _mock_glob_if(force_bad_glob):
+                res2 = get_angles(new_data)
+            self._check_cached_result(res2, exp_zarr_chunks)
+
+            res_numpy, res2_numpy = da.compute(res, res2)
+            for r1, r2 in zip(res_numpy[:2], res2_numpy[:2]):
+                _assert_allclose_if(not additional_cache, r1, r2)
+            for r1, r2 in zip(res_numpy[2:], res2_numpy[2:]):
+                _assert_allclose_if(exp_equal_sun, r1, r2)
+
+            self._check_cache_and_clear(tmp_path, exp_num_zarr)
+
+        if "odd_chunks" in input_func.__name__:
+            assert any(w.category is PerformanceWarning for w in caught_warnings)
+        else:
+            assert not any(w.category is PerformanceWarning for w in caught_warnings)
+        assert gol.call_count == num_normalized_chunks * (int(additional_cache) + 1)
+        args = gol.call_args_list[0][0]
+        assert args[:4] == (10.0, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
+        exp_sat_lon = 10.1 if additional_cache else 10.0
+        args = gol.call_args_list[-1][0]
+        assert args[:4] == (exp_sat_lon, 0.0, 12345.678, STATIC_EARTH_INERTIAL_DATETIME)
+
+    @staticmethod
+    def _check_cached_result(results, exp_zarr_chunks):
+        assert all(isinstance(x, xr.DataArray) for x in results)
+        # output chunks should be consistent
+        for angle_data_arr in results:
+            assert angle_data_arr.chunks == exp_zarr_chunks
+
+    @staticmethod
+    def _check_cache_and_clear(tmp_path, exp_num_zarr):
+        from satpy.modifiers.angles import _get_sensor_angles_from_sat_pos, _get_valid_lonlats
+        zarr_dirs = glob(str(tmp_path / "*.zarr"))
+        assert len(zarr_dirs) == exp_num_zarr  # two for lon/lat, one for sata, one for satz
+
+        _get_valid_lonlats.cache_clear()
+        _get_sensor_angles_from_sat_pos.cache_clear()
+        zarr_dirs = glob(str(tmp_path / "*.zarr"))
+        assert len(zarr_dirs) == 0
+
+    def test_cached_no_chunks_fails(self, tmp_path):
+        """Test that trying to pass non-dask arrays and no chunks fails."""
+        from satpy.modifiers.angles import _sanitize_args_with_chunks, cache_to_zarr_if
+
+        @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
+        def _fake_func(data, tuple_arg, chunks):
+            return da.from_array(data)
+
+        data = list(range(5))
+        with pytest.raises(RuntimeError), \
+                satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
+            _fake_func(data, (1, 2, 3), 5)
+
+    def test_cached_result_numpy_fails(self, tmp_path):
+        """Test that trying to cache with non-dask arrays fails."""
+        from satpy.modifiers.angles import _sanitize_args_with_chunks, cache_to_zarr_if
+
+        @cache_to_zarr_if("cache_lonlats", sanitize_args_func=_sanitize_args_with_chunks)
+        def _fake_func(shape, chunks):
+            return np.zeros(shape)
+
+        with pytest.raises(ValueError), \
+                satpy.config.set(cache_lonlats=True, cache_dir=str(tmp_path)):
+            _fake_func((5, 5), ((5,), (5,)))
+
+    def test_no_cache_dir_fails(self, tmp_path):
+        """Test that 'cache_dir' not being set fails."""
+        from satpy.modifiers.angles import _get_sensor_angles_from_sat_pos, get_angles
+        data = _get_angle_test_data()
+        with pytest.raises(RuntimeError), \
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=None):
+            get_angles(data)
+        with pytest.raises(RuntimeError), \
+                satpy.config.set(cache_lonlats=True, cache_sensor_angles=True, cache_dir=None):
+            _get_sensor_angles_from_sat_pos.cache_clear()

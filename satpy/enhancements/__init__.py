@@ -16,16 +16,20 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Enhancements."""
 
-import numpy as np
-import xarray as xr
-import dask
-import dask.array as da
-from trollimage.xrimage import XRImage
-from numbers import Number
 import logging
+import os
 import warnings
 from functools import partial
+from numbers import Number
+
+import dask
+import dask.array as da
+import numpy as np
+import xarray as xr
+from trollimage.xrimage import XRImage
+
 from satpy._compat import ArrayLike
+from satpy._config import get_config_path
 
 LOG = logging.getLogger(__name__)
 
@@ -87,23 +91,23 @@ def apply_enhancement(data, func, exclude=None, separate=False,
         data.data = xr.concat(data_arrs, dim='bands').data
         data.attrs = attrs
         return data
-    else:
-        band_data = data.sel(bands=[b for b in bands
-                                    if b not in exclude])
-        if pass_dask:
-            dims = band_data.dims
-            coords = band_data.coords
-            d_arr = func(band_data.data)
-            band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
-        else:
-            band_data = func(band_data)
 
-        attrs.update(band_data.attrs)
-        # combine the new data with the excluded data
-        new_data = xr.concat([band_data, data.sel(bands=exclude)],
-                             dim='bands')
-        data.data = new_data.sel(bands=bands).data
-        data.attrs = attrs
+    band_data = data.sel(bands=[b for b in bands
+                                if b not in exclude])
+    if pass_dask:
+        dims = band_data.dims
+        coords = band_data.coords
+        d_arr = func(band_data.data)
+        band_data = xr.DataArray(d_arr, dims=dims, coords=coords)
+    else:
+        band_data = func(band_data)
+
+    attrs.update(band_data.attrs)
+    # combine the new data with the excluded data
+    new_data = xr.concat([band_data, data.sel(bands=exclude)],
+                         dim='bands')
+    data.data = new_data.sel(bands=bands).data
+    data.attrs = attrs
 
     return data
 
@@ -352,10 +356,21 @@ def create_colormap(palette):
 
     **From a file**
 
-    Colormaps can be loaded from ``.npy`` files as 2D raw arrays with rows for
-    each color. The filename to load can be provided with the ``filename`` key
-    in the provided palette information. The colormap is interpreted as 1 of 4
-    different "colormap modes": ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
+    Colormaps can be loaded from ``.npy``, ``.npz``, or comma-separated text
+    files. Numpy (npy/npz) files should be 2D arrays with rows for each color.
+    Comma-separated files should have a row for each color with each column
+    representing a single value/channel. The filename to load can be provided
+    with the ``filename`` key in the provided palette information. A filename
+    ending with ``.npy`` or ``.npz`` is read as a numpy file with
+    :func:`numpy.load`. All other extensions are
+    read as a comma-separated file. For ``.npz`` files the data must be stored
+    as a positional list where the first element represents the colormap to
+    use. See :func:`numpy.savez` for more information. The path to the
+    colormap can be relative if it is stored in a directory specified by
+    :ref:`config_path_setting`. Otherwise it should be an absolute path.
+
+    The colormap is interpreted as 1 of 4 different "colormap modes":
+    ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
     colormap mode can be forced with the ``colormap_mode`` key in the provided
     palette information. If it is not provided then a default will be chosen
     based on the number of columns in the array (3: RGB, 4: VRGB, 5: VRGBA).
@@ -411,52 +426,18 @@ def create_colormap(palette):
     information.
 
     """
-    from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
     # are colors between 0-255 or 0-1
     color_scale = palette.get('color_scale', 255)
     if fname:
-        data = np.load(fname)
-        cols = data.shape[1]
-        default_modes = {
-            3: 'RGB',
-            4: 'VRGB',
-            5: 'VRGBA'
-        }
-        default_mode = default_modes.get(cols)
-        mode = palette.setdefault('colormap_mode', default_mode)
-        if mode is None or len(mode) != cols:
-            raise ValueError(
-                "Unexpected colormap shape for mode '{}'".format(mode))
-
-        rows = data.shape[0]
-        if mode[0] == 'V':
-            colors = data[:, 1:]
-            if color_scale != 1:
-                colors = data[:, 1:] / float(color_scale)
-            values = data[:, 0]
-        else:
-            colors = data
-            if color_scale != 1:
-                colors = colors / float(color_scale)
-            values = np.arange(rows) / float(rows - 1)
-        cmap = Colormap(*zip(values, colors))
+        cmap = _create_colormap_from_file(fname, palette, color_scale)
     elif isinstance(colors, (tuple, list)):
-        cmap = []
-        values = palette.get('values', None)
-        for idx, color in enumerate(colors):
-            if values is not None:
-                value = values[idx]
-            else:
-                value = idx / float(len(colors) - 1)
-            if color_scale != 1:
-                color = tuple(elem / float(color_scale) for elem in color)
-            cmap.append((value, tuple(color)))
-        cmap = Colormap(*cmap)
+        cmap = _create_colormap_from_sequence(colors, palette, color_scale)
     elif isinstance(colors, str):
-        from trollimage import colormap
         import copy
+
+        from trollimage import colormap
         cmap = copy.copy(getattr(colormap, colors))
     else:
         raise ValueError("Unknown colormap format: {}".format(palette))
@@ -469,6 +450,64 @@ def create_colormap(palette):
         raise ValueError("Both 'min_value' and 'max_value' must be specified")
 
     return cmap
+
+
+def _create_colormap_from_sequence(colors, palette, color_scale):
+    from trollimage.colormap import Colormap
+    cmap = []
+    values = palette.get('values', None)
+    for idx, color in enumerate(colors):
+        if values is not None:
+            value = values[idx]
+        else:
+            value = idx / float(len(colors) - 1)
+        if color_scale != 1:
+            color = tuple(elem / float(color_scale) for elem in color)
+        cmap.append((value, tuple(color)))
+    return Colormap(*cmap)
+
+
+def _create_colormap_from_file(filename, palette, color_scale):
+    from trollimage.colormap import Colormap
+    data = _read_colormap_data_from_file(filename)
+    cols = data.shape[1]
+    default_modes = {
+        3: 'RGB',
+        4: 'VRGB',
+        5: 'VRGBA'
+    }
+    default_mode = default_modes.get(cols)
+    mode = palette.setdefault('colormap_mode', default_mode)
+    if mode is None or len(mode) != cols:
+        raise ValueError(
+            "Unexpected colormap shape for mode '{}'".format(mode))
+    rows = data.shape[0]
+    if mode[0] == 'V':
+        colors = data[:, 1:]
+        if color_scale != 1:
+            colors = data[:, 1:] / float(color_scale)
+        values = data[:, 0]
+    else:
+        colors = data
+        if color_scale != 1:
+            colors = colors / float(color_scale)
+        values = np.arange(rows) / float(rows - 1)
+    return Colormap(*zip(values, colors))
+
+
+def _read_colormap_data_from_file(filename):
+    if not os.path.exists(filename):
+        filename = get_config_path(filename)
+    ext = os.path.splitext(filename)[1]
+    if ext in (".npy", ".npz"):
+        file_content = np.load(filename)
+        if ext == ".npz":
+            # .npz is a collection
+            # assume position list-like and get the first element
+            file_content = file_content["arr_0"]
+        return file_content
+    # CSV
+    return np.loadtxt(filename, delimiter=",")
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):

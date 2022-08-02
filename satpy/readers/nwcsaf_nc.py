@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2020 Satpy developers
+# Copyright (c) 2017-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -22,6 +22,7 @@ References:
 
 """
 
+import functools
 import logging
 import os
 from datetime import datetime
@@ -29,9 +30,9 @@ from datetime import datetime
 import dask.array as da
 import numpy as np
 import xarray as xr
-
-from pyresample.geometry import AreaDefinition
 from pyproj import CRS
+from pyresample.geometry import AreaDefinition
+
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
@@ -89,6 +90,7 @@ class NcNWCSAF(BaseFileHandler):
         self.pps = False
         self.platform_name = None
         self.sensor = None
+        self.file_key_prefix = filetype_info.get("file_key_prefix", "")
 
         try:
             # NWCSAF/Geo:
@@ -101,6 +103,10 @@ class NcNWCSAF(BaseFileHandler):
             kwrgs = {'platform_name': self.nc.attrs['platform']}
 
         self.set_platform_and_sensor(**kwrgs)
+
+        self.upsample_geolocation = functools.lru_cache(maxsize=1)(
+            self._upsample_geolocation_uncached
+        )
 
     def set_platform_and_sensor(self, **kwargs):
         """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
@@ -130,22 +136,37 @@ class NcNWCSAF(BaseFileHandler):
             logger.debug('Get the data set from cache: %s.', dsid_name)
             return self.cache[dsid_name]
         if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc:
-            dsid_name = dsid_name + '_reduced'
+            # Get full resolution lon,lat from the reduced (tie points) grid
+            lon, lat = self.upsample_geolocation()
+            if dsid_name == "lon":
+                return lon
+            else:
+                return lat
 
         logger.debug('Reading %s.', dsid_name)
-        variable = self.nc[dsid_name]
+        file_key = self._get_filekeys(dsid_name, info)
+        variable = self.nc[file_key]
         variable = self.remove_timedim(variable)
-        variable = self.scale_dataset(dsid, variable, info)
-
-        if dsid_name.endswith('_reduced'):
-            # Get full resolution lon,lat from the reduced (tie points) grid
-            self.upsample_geolocation(dsid, info)
-
-            return self.cache[dsid['name']]
+        variable = self.scale_dataset(variable, info)
 
         return variable
 
-    def scale_dataset(self, dsid, variable, info):
+    def _get_varname_in_file(self, info, info_type="file_key"):
+        if isinstance(info[info_type], list):
+            for key in info[info_type]:
+                file_key = self.file_key_prefix + key
+                if file_key in self.nc:
+                    return file_key
+        return self.file_key_prefix + info[info_type]
+
+    def _get_filekeys(self, dsid_name, info):
+        try:
+            file_key = self._get_varname_in_file(info, info_type="file_key")
+        except KeyError:
+            file_key = dsid_name
+        return file_key
+
+    def scale_dataset(self, variable, info):
         """Scale the data set, applying the attributes from the netCDF file.
 
         The scale and offset attributes will then be removed from the resulting variable.
@@ -155,21 +176,7 @@ class NcNWCSAF(BaseFileHandler):
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
-            if '_FillValue' in variable.attrs:
-                variable = variable.where(
-                    variable != variable.attrs['_FillValue'])
-                variable.attrs['_FillValue'] = np.nan
-            if 'valid_range' in variable.attrs:
-                variable = variable.where(
-                    variable <= variable.attrs['valid_range'][1])
-                variable = variable.where(
-                    variable >= variable.attrs['valid_range'][0])
-            if 'valid_max' in variable.attrs:
-                variable = variable.where(
-                    variable <= variable.attrs['valid_max'])
-            if 'valid_min' in variable.attrs:
-                variable = variable.where(
-                    variable >= variable.attrs['valid_min'])
+            variable = self._mask_variable(variable)
         attrs = variable.attrs.copy()
         variable = variable * scale + offset
         variable.attrs = attrs
@@ -193,49 +200,72 @@ class NcNWCSAF(BaseFileHandler):
             pass
 
         if 'palette_meanings' in variable.attrs:
-            if 'scale_offset_dataset' in info:
-                so_dataset = self.nc[info['scale_offset_dataset']]
-                scale = so_dataset.attrs['scale_factor']
-                offset = so_dataset.attrs['add_offset']
-            else:
-                scale = 1
-                offset = 0
-
-            variable.attrs['palette_meanings'] = [int(val)
-                                                  for val in variable.attrs['palette_meanings'].split()]
-            if variable.attrs['palette_meanings'][0] == 1:
-                variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
-                variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
-                                        coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
-
-            val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
-            variable.attrs['palette_meanings'] = val * scale + offset
-            variable = variable[idx]
+            variable = self._prepare_variable_for_palette(variable, info)
 
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
-        if self.sw_version == 'NWC/PPS version v2014' and dsid['name'] == 'ctth_alti':
-            # pps 2014 valid range and palette don't match
-            variable.attrs['valid_range'] = (0., 9000.)
-        if self.sw_version == 'NWC/PPS version v2014' and dsid['name'] == 'ctth_alti_pal':
-            # pps 2014 palette has the nodata color (black) first
-            variable = variable[1:, :]
-        if self.sw_version == 'NWC/GEO version v2016' and dsid['name'] == 'ctth_alti':
-            # Geo 2016/18 valid range and palette don't match
-            # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
-            # This now fixed by the scaling of the valid range above.
-            pass
+        variable = self._adjust_variable_for_legacy_software(variable)
 
         return variable
 
-    def upsample_geolocation(self, dsid, info):
+    @staticmethod
+    def _mask_variable(variable):
+        if '_FillValue' in variable.attrs:
+            variable = variable.where(
+                variable != variable.attrs['_FillValue'])
+            variable.attrs['_FillValue'] = np.nan
+        if 'valid_range' in variable.attrs:
+            variable = variable.where(
+                variable <= variable.attrs['valid_range'][1])
+            variable = variable.where(
+                variable >= variable.attrs['valid_range'][0])
+        if 'valid_max' in variable.attrs:
+            variable = variable.where(
+                variable <= variable.attrs['valid_max'])
+        if 'valid_min' in variable.attrs:
+            variable = variable.where(
+                variable >= variable.attrs['valid_min'])
+        return variable
+
+    def _prepare_variable_for_palette(self, variable, info):
+        try:
+            so_dataset = self.nc[self._get_varname_in_file(info, info_type='scale_offset_dataset')]
+        except KeyError:
+            scale = 1
+            offset = 0
+        else:
+            scale = so_dataset.attrs['scale_factor']
+            offset = so_dataset.attrs['add_offset']
+        variable.attrs['palette_meanings'] = [int(val)
+                                              for val in variable.attrs['palette_meanings'].split()]
+        if variable.attrs['palette_meanings'][0] == 1:
+            variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+            variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
+                                    coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
+        val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
+        variable.attrs['palette_meanings'] = val * scale + offset
+        variable = variable[idx]
+        return variable
+
+    def _adjust_variable_for_legacy_software(self, variable):
+        if self.sw_version == 'NWC/PPS version v2014' and variable.attrs.get('standard_name') == 'cloud_top_altitude':
+            # pps 2014 valid range and palette don't match
+            variable.attrs['valid_range'] = (0., 9000.)
+        if (self.sw_version == 'NWC/PPS version v2014' and
+                variable.attrs.get('long_name') == 'RGB Palette for ctth_alti'):
+            # pps 2014 palette has the nodata color (black) first
+            variable = variable[1:, :]
+        return variable
+
+    def _upsample_geolocation_uncached(self):
         """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
+
         # Read the fields needed:
         col_indices = self.nc['nx_reduced'].values
         row_indices = self.nc['ny_reduced'].values
-        lat_reduced = self.scale_dataset(dsid, self.nc['lat_reduced'], info)
-        lon_reduced = self.scale_dataset(dsid, self.nc['lon_reduced'], info)
+        lat_reduced = self.scale_dataset(self.nc['lat_reduced'], {})
+        lon_reduced = self.scale_dataset(self.nc['lon_reduced'], {})
 
         shape = (self.nc['y'].shape[0], self.nc['x'].shape[0])
         cols_full = np.arange(shape[1])
@@ -247,10 +277,9 @@ class NcNWCSAF(BaseFileHandler):
                                        (rows_full, cols_full))
 
         lons, lats = satint.interpolate()
-        self.cache['lon'] = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
-        self.cache['lat'] = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
-
-        return
+        lon = xr.DataArray(lons, attrs=lon_reduced.attrs, dims=['y', 'x'])
+        lat = xr.DataArray(lats, attrs=lat_reduced.attrs, dims=['y', 'x'])
+        return lon, lat
 
     def get_area_def(self, dsid):
         """Get the area definition of the datasets in the file.
