@@ -12,20 +12,24 @@ reader:
 file_types:
     occci_allprods_geo:
         file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
-        file_patterns: ['ESACCI-OC-{processing_level:3s}-OC_PRODUCTS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc']
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-OC_PRODUCTS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-OC_PRODUCTS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
     occci_chlorprods_geo:
         file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
-        file_patterns: ['ESACCI-OC-{processing_level:3s}-CHLOR_A-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc']
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-CHLOR_A-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-CHLOR_A-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
     occci_iopprods_geo:
         file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
-        file_patterns: ['ESACCI-OC-{processing_level:3s}-IOP-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc']
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-IOP-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-IOP-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
     occci_k490prods_geo:
       file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
-      file_patterns: [ 'ESACCI-OC-{processing_level:3s}-K_490-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc' ]
+      file_patterns: ['ESACCI-OC-{processing_level:3s}-K_490-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                      'ESACCI-OC-{processing_level:3s}-K_490-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc']
     occci_rrsprods_geo:
         file_reader: !!python/name:satpy.readers.oceancolorcci_l3_nc.OCCCIFileHandler
-        file_patterns: ['ESACCI-OC-{processing_level:3s}-RRS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc']
-
+        file_patterns: ['ESACCI-OC-{processing_level:3s}-RRS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m}-fv{version}.nc',
+                        'ESACCI-OC-{processing_level:3s}-RRS-{sensors}-{composite_period_1}_{composite_period_2}_{spatial_res}_GEO_PML_{algorithm}-{start_time:%Y%m%d}-fv{version}.nc',]
 datasets:
   longitude:
     name: longitude
@@ -419,8 +423,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_iopprods_geo]
     nc_key: 'atot_665'
 
-  Rrs_412:
-    name: Rrs_412
+  rrs_412:
+    name: rrs_412
     wavelength: 0.412
     standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 412 nm.
     units: "sr-1"
@@ -428,8 +432,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_412'
 
-  Rrs_412_bias:
-    name: Rrs_412_bias
+  rrs_412_bias:
+    name: rrs_412_bias
     wavelength: 0.412
     standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 412 nm.
     units: "sr-1"
@@ -437,8 +441,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_412_bias'
 
-  Rrs_412_rmsd:
-    name: Rrs_412_rmsd
+  rrs_412_rmsd:
+    name: rrs_412_rmsd
     wavelength: 0.412
     standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 412 nm.
     units: "sr-1"
@@ -446,8 +450,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_412_rmsd'
 
-  Rrs_443:
-    name: Rrs_443
+  rrs_443:
+    name: rrs_443
     wavelength: 0.443
     standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 443 nm.
     units: "sr-1"
@@ -455,8 +459,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_443'
 
-  Rrs_443_bias:
-    name: Rrs_443_bias
+  rrs_443_bias:
+    name: rrs_443_bias
     wavelength: 0.443
     standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 443 nm.
     units: "sr-1"
@@ -464,8 +468,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_443_bias'
 
-  Rrs_443_rmsd:
-    name: Rrs_443_rmsd
+  rrs_443_rmsd:
+    name: rrs_443_rmsd
     wavelength: 0.443
     standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 443 nm.
     units: "sr-1"
@@ -473,8 +477,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_443_rmsd'
 
-  Rrs_490:
-    name: Rrs_490
+  rrs_490:
+    name: rrs_490
     wavelength: 0.490
     standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 490 nm.
     units: "sr-1"
@@ -482,8 +486,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_490'
 
-  Rrs_490_bias:
-    name: Rrs_490_bias
+  rrs_490_bias:
+    name: rrs_490_bias
     wavelength: 0.490
     standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 490 nm.
     units: "sr-1"
@@ -491,8 +495,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_490_bias'
 
-  Rrs_490_rmsd:
-    name: Rrs_490_rmsd
+  rrs_490_rmsd:
+    name: rrs_490_rmsd
     wavelength: 0.490
     standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 490 nm.
     units: "sr-1"
@@ -500,8 +504,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_490_rmsd'
 
-  Rrs_510:
-    name: Rrs_510
+  rrs_510:
+    name: rrs_510
     wavelength: 0.510
     standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 510 nm.
     units: "sr-1"
@@ -509,8 +513,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_510'
 
-  Rrs_510_bias:
-    name: Rrs_510_bias
+  rrs_510_bias:
+    name: rrs_510_bias
     wavelength: 0.510
     standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 510 nm.
     units: "sr-1"
@@ -518,8 +522,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_510_bias'
 
-  Rrs_510_rmsd:
-    name: Rrs_510_rmsd
+  rrs_510_rmsd:
+    name: rrs_510_rmsd
     wavelength: 0.510
     standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 510 nm.
     units: "sr-1"
@@ -527,8 +531,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_510_rmsd'
 
-  Rrs_560:
-    name: Rrs_560
+  rrs_560:
+    name: rrs_560
     wavelength: 0.560
     standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 560 nm.
     units: "sr-1"
@@ -536,8 +540,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_560'
 
-  Rrs_560_bias:
-    name: Rrs_560_bias
+  rrs_560_bias:
+    name: rrs_560_bias
     wavelength: 0.560
     standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 560 nm.
     units: "sr-1"
@@ -545,8 +549,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_560_bias'
 
-  Rrs_560_rmsd:
-    name: Rrs_560_rmsd
+  rrs_560_rmsd:
+    name: rrs_560_rmsd
     wavelength: 0.560
     standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 560 nm.
     units: "sr-1"
@@ -554,8 +558,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_560_rmsd'
 
-  Rrs_665:
-    name: Rrs_665
+  rrs_665:
+    name: rrs_665
     wavelength: 0.665
     standard_name: Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 665 nm.
     units: "sr-1"
@@ -563,8 +567,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_665'
 
-  Rrs_665_bias:
-    name: Rrs_665_bias
+  rrs_665_bias:
+    name: rrs_665_bias
     wavelength: 0.665
     standard_name: Bias of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 665 nm.
     units: "sr-1"
@@ -572,8 +576,8 @@ datasets:
     file_type: [occci_allprods_geo, occci_rrsprods_geo]
     nc_key: 'Rrs_665_bias'
 
-  Rrs_665_rmsd:
-    name: Rrs_665_rmsd
+  rrs_665_rmsd:
+    name: rrs_665_rmsd
     wavelength: 0.665
     standard_name: Root-mean-square-difference of Sea surface reflectance defined as the ratio of water-leaving radiance to surface irradiance at 665 nm.
     units: "sr-1"
