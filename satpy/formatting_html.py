@@ -50,7 +50,7 @@ def scene_repr(scene):
 
     TODO:
         - streamline loading and combining of css styles. Move _load_static_files function into pyresample
-        - display combined numer of datasets, area name, projection, extent, sensor after object type?
+        - display combined numer of datasets, area name, projection, extent, sensor, start/end time after object type?
         - drop "unecessary" attributes from the datasets?
         - make the area show as tabbed display (attribtues/ map each in tab)?
         - only show resolution and dimensions (number of pixels) for each section if the area definition extent,
