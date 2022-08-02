@@ -32,6 +32,7 @@ from satpy.composites import IncompatibleAreas
 from satpy.composites.config_loader import load_compositor_configs_for_sensors
 from satpy.dataset import DataID, DataQuery, DatasetDict, combine_metadata, dataset_walker, replace_anc
 from satpy.dependency_tree import DependencyTree
+from satpy.formatting_html import scene_repr
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
@@ -516,6 +517,10 @@ class Scene:
         """Generate a nice print out for the scene."""
         res = (str(proj) for proj in self._datasets.values())
         return "\n".join(res)
+
+    def _repr_html_(self):
+        """Html representation of Scene for notebooks."""
+        return scene_repr(self)
 
     def __iter__(self):
         """Iterate over the datasets."""
