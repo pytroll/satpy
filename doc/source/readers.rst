@@ -371,10 +371,10 @@ Arctica-M N1 HDF5 format reader
 
 
 netcdf based readers
-------------------
+--------------------
 
 ESA Ocean Color CCI L3S reader
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.oceancolorcci_l3_nc
     :noindex:
