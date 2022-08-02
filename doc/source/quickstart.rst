@@ -178,7 +178,7 @@ Assigning additional custom metadata is also possible.
     >>> from satpy.dataset import combine_metadata
     >>> scene['new_band'] = scene['VIS008'] / scene['VIS006']
     >>> scene['new_band'].attrs = combine_metadata(scene['VIS008'], scene['VIS006'])
-    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want' 
+    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want'
 
 Generating composites
 =====================
