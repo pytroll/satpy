@@ -143,10 +143,10 @@ The 'area' attribute of the DataArray, if present, can be converted to latitude 
 Visualizing data
 ================
 
-To visualize loaded data in a pop-up window:                                                        
-                                                                                                    
+To visualize loaded data in a pop-up window:
+
     >>> global_scene.show(0.8)
-                                                                                                    
+
 Alternatively if working in a Jupyter notebook the scene can be converted to
 a `geoviews <https://geoviews.org>`_ object using the
 :meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
