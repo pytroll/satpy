@@ -80,7 +80,7 @@ extras_require = {
     'doc': ['sphinx', 'sphinx_rtd_theme', 'sphinxcontrib-apidoc'],
     # Other
     'geoviews': ['geoviews'],
-    'hvplot': ['hvplot'],
+    'hvplot': ['hvplot', 'geoviews', 'cartopy'],
     'overlays': ['pycoast', 'pydecorate'],
     'tests': test_requires,
 }
