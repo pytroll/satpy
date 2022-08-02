@@ -26,6 +26,7 @@ from pkg_resources import get_distribution
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
+from area_def_list import generate_area_def_list  # noqa: E402
 from reader_table import generate_reader_table  # noqa: E402
 
 # The version info for the project you're documenting, acts as replacement for
@@ -79,6 +80,9 @@ autoclass_content = 'both'  # append class __init__ docstring to the class docst
 # auto generate reader table from reader config files
 with open("reader_table.rst", mode="w") as f:
     f.write(generate_reader_table())
+
+with open("area_def_list.rst", mode="w") as f:
+    f.write(generate_area_def_list())
 
 # -- General configuration -----------------------------------------------------
 

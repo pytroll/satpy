@@ -19,6 +19,7 @@
 """Module for autogenerating a list and overview of available area definitions ."""
 
 from pyresample.area_config import _read_yaml_area_file_content
+from pyresample.formatting_html import area_repr
 
 from satpy.resample import get_area_def, get_area_file
 
@@ -34,13 +35,14 @@ def generate_area_def_list():
     template = ("{area_name}\n"
                 "{n:->{header_title_length}}\n\n"
                 ".. raw:: html\n\n"
-                "     {content}\n\n")
+                "{content}\n\n"
+                "     <hr>\n\n")
 
     area_file = get_area_file()[0]
-    for aname in [list(_read_yaml_area_file_content(area_file).keys())[0]]:
+    for aname in list(_read_yaml_area_file_content(area_file).keys()):
         area = get_area_def(aname)
         if hasattr(area, "_repr_html_"):
-            content = "\n".join([x.rjust(len(x) + 5) for x in area._repr_html_().split("\n")])
+            content = "\n".join([x.rjust(len(x) + 5) for x in area_repr(area, include_header=False).split("\n")])
             area_list.append(template.format(area_name=aname, n="", header_title_length=len(aname),
                                              content=content))
         else:
