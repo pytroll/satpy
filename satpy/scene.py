@@ -316,6 +316,8 @@ class Scene:
     def max_area(self, datasets=None):
         """Get highest resolution area for the provided datasets. Deprecated.
 
+        Deprecated.  Use :meth:`finest_area` instead.
+
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
@@ -341,6 +343,8 @@ class Scene:
 
     def min_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets. Deprecated.
+
+        Deprecated.  Use :meth:`coarsest_area` instead.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
