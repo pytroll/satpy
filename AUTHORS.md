@@ -68,6 +68,7 @@ The following people have made contributions to this project:
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
+- [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
 - [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
 - [Johan Strandgren (strandgren)](https://github.com/strandgren)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
