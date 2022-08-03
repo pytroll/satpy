@@ -143,11 +143,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
         elif calibration == 'radiance':
             raise NotImplementedError("Calibration to radiance is not supported.")
         # Apply range limits, but not for counts or we convert to float!
-        if calibration != 'counts':
+        if calibration != 'counts' and calibration is not None:
             data = data.where((data >= min(data.attrs['valid_range'])) &
                               (data <= max(data.attrs['valid_range'])))
         else:
             data.attrs['_FillValue'] = data.attrs['FillValue'].item()
+        if calibration is None:
+            data = data.where(data != data.attrs['FillValue'].item())
         return data
 
     def calibrate_to_reflectance(self, data, channel_index, ds_info):
