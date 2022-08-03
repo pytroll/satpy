@@ -954,3 +954,10 @@ enhancements:
           stretch: crude
           min_stretch: [ 0,  0,   0]
           max_stretch: [50, 50, 100]
+
+  low_level_moisture:
+    name: low_level_moisture
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.35, max_stretch: 0.85}

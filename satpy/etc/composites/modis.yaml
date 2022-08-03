@@ -154,3 +154,11 @@ composites:
       - 3.75
     - 10.8
     standard_name: night_fog
+
+  low_level_moisture:
+    description: Based on work by Pieter Groenemeijer and Hans-Peter Roesli
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - name: '17'
+    - name: '2'
+    standard_name: low_level_moisture

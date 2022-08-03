@@ -11,3 +11,11 @@ composites:
       - name: 'cloud_state'
     lut: [.nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan]
     standard_name: binary_cloud_mask
+
+  low_level_moisture:
+    description: Based on work by Pieter Groenemeijer and Hans-Peter Roesli
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - name: vis_09
+    - name: vis_08
+    standard_name: low_level_moisture
