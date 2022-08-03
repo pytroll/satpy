@@ -16,17 +16,19 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test generic writer functions."""
 
+from __future__ import annotations
+
 import os
 import shutil
 import unittest
 import warnings
-
-import pytest
-import numpy as np
-import xarray as xr
-import dask.array as da
-from trollimage.colormap import greys
 from unittest import mock
+
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
+from trollimage.colormap import greys
 
 
 class TestWritersModule(unittest.TestCase):
@@ -43,6 +45,7 @@ class TestWritersModule(unittest.TestCase):
     def test_to_image_2d(self, mock_geoimage):
         """Conversion to image."""
         from satpy.writers import to_image
+
         # 2D
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
@@ -115,7 +118,7 @@ class TestEnhancer(unittest.TestCase):
 
 class _BaseCustomEnhancementConfigTests:
 
-    TEST_CONFIGS = {}
+    TEST_CONFIGS: dict[str, str] = {}
 
     @classmethod
     def setup_class(cls):
@@ -194,8 +197,9 @@ enhancements:
 
     def test_multisensor_choice(self):
         """Test that a DataArray with two sensors works."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            'name': 'test1',
@@ -216,8 +220,9 @@ enhancements:
 
     def test_multisensor_exact(self):
         """Test that a DataArray with two sensors can match exactly."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs={
                            'name': 'my_comp',
@@ -280,8 +285,9 @@ enhancements:
 
     def test_enhance_empty_config(self):
         """Test Enhancer doesn't fail with empty enhancement file."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor='test_empty', mode='L'),
                        dims=['y', 'x'])
@@ -293,8 +299,9 @@ enhancements:
 
     def test_enhance_with_sensor_no_entry(self):
         """Test enhancing an image that has no configuration sections."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor='test_sensor2', mode='L'),
                        dims=['y', 'x'])
@@ -307,8 +314,9 @@ enhancements:
 
     def test_no_enhance(self):
         """Test turning off enhancements."""
-        from satpy.writers import get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
@@ -328,8 +336,9 @@ enhancements:
 
     def test_writer_custom_enhance(self):
         """Test using custom enhancements with writer."""
-        from satpy.writers import Enhancer
         from xarray import DataArray
+
+        from satpy.writers import Enhancer
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
@@ -341,8 +350,9 @@ enhancements:
 
     def test_enhance_with_sensor_entry(self):
         """Test enhancing an image with a configuration section."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
@@ -368,8 +378,9 @@ enhancements:
 
     def test_enhance_with_sensor_entry2(self):
         """Test enhancing an image with a more detailed configuration section."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', units='kelvin',
                                   sensor='test_sensor', mode='L'),
@@ -715,8 +726,8 @@ class TestOverlays(unittest.TestCase):
 
     def setUp(self):
         """Create test data and mock pycoast/pydecorate."""
-        from trollimage.xrimage import XRImage
         from pyresample.geometry import AreaDefinition
+        from trollimage.xrimage import XRImage
 
         proj_dict = {'proj': 'lcc', 'datum': 'WGS84', 'ellps': 'WGS84',
                      'lon_0': -95., 'lat_0': 25, 'lat_1': 25,
@@ -773,8 +784,9 @@ class TestOverlays(unittest.TestCase):
 
     def test_add_overlay_basic_rgb(self):
         """Test basic add_overlay usage with RGB data."""
-        from satpy.writers import add_overlay, _burn_overlay
         from pycoast import ContourWriterAGG
+
+        from satpy.writers import _burn_overlay, add_overlay
         coast_dir = '/path/to/coast/data'
         with mock.patch.object(self.orig_rgb_img, "apply_pil") as apply_pil:
             apply_pil.return_value = self.orig_rgb_img

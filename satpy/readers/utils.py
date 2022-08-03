@@ -25,19 +25,15 @@ import tempfile
 import warnings
 from contextlib import closing
 from io import BytesIO
-from subprocess import Popen, PIPE
+from shutil import which
+from subprocess import PIPE, Popen  # nosec
 
 import numpy as np
 import pyproj
 import xarray as xr
 from pyresample.geometry import AreaDefinition
-from satpy import CHUNK_SIZE
 
-try:
-    from shutil import which
-except ImportError:
-    # python 2 - won't be used, but needed for mocking in tests
-    which = None
+from satpy import CHUNK_SIZE
 
 LOGGER = logging.getLogger(__name__)
 
@@ -108,12 +104,13 @@ def get_geostationary_angle_extent(geos_area):
     return xmax, ymax
 
 
-def get_geostationary_mask(area):
+def get_geostationary_mask(area, chunks=None):
     """Compute a mask of the earth's shape as seen by a geostationary satellite.
 
     Args:
         area (pyresample.geometry.AreaDefinition) : Corresponding area
                                                     definition
+        chunks (int or tuple): Chunk size for the 2D array that is generated.
 
     Returns:
         Boolean mask, True inside the earth's shape, False outside.
@@ -126,7 +123,7 @@ def get_geostationary_mask(area):
     ymax *= h
 
     # Compute projection coordinates at the centre of each pixel
-    x, y = area.get_proj_coords(chunks=CHUNK_SIZE)
+    x, y = area.get_proj_coords(chunks=chunks or CHUNK_SIZE)
 
     # Compute mask of the earth's elliptical shape
     return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
@@ -201,10 +198,19 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename):
-    """Unzip the file if file is bzipped = ending with 'bz2'."""
-    if filename.endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp()
+def unzip_file(filename, prefix=None):
+    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+
+    Args:
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    if os.fspath(filename).endswith('bz2'):
+        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # try pbzip2
         pbzip = which('pbzip2')
@@ -220,7 +226,7 @@ def unzip_file(filename):
                 runner = [pbzip,
                           '-dc',
                           filename]
-            p = Popen(runner, stdout=PIPE, stderr=PIPE)
+            p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
             stdout = BytesIO(p.communicate()[0])
             status = p.returncode
             if status != 0:
@@ -283,6 +289,32 @@ class unzip_context():
         """Remove temporary file."""
         if self.unzipped_filename is not None:
             os.remove(self.unzipped_filename)
+
+
+class generic_open():
+    """Context manager for opening either a regular file or a bzip2 file."""
+
+    def __init__(self, filename, *args, **kwargs):
+        """Keep filename and mode."""
+        self.filename = filename
+        self.open_args = args
+        self.open_kwargs = kwargs
+
+    def __enter__(self):
+        """Return a file-like object."""
+        if os.fspath(self.filename).endswith('.bz2'):
+            self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
+        else:
+            if hasattr(self.filename, "open"):
+                self.fp = self.filename.open(*self.open_args, **self.open_kwargs)
+            else:
+                self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
+
+        return self.fp
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Close the file handler."""
+        self.fp.close()
 
 
 def bbox(img):

@@ -38,18 +38,28 @@ follows:
     H-000-MSG4__-MSG4________-_________-EPI______-201903011200-__
 
 Each image is decomposed into 24 segments (files) for the high-resolution-visible (HRV) channel and 8 segments for other
-visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
+visible (VIS) and infrared (IR) channels. Additionally, there is one prologue and one epilogue file for the entire scan
 which contain global metadata valid for all channels.
 
 Reader Arguments
 ----------------
-Some arguments can be provided to the reader to change it's behaviour. These are
+Some arguments can be provided to the reader to change its behaviour. These are
 provided through the `Scene` instantiation, eg::
 
   Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
 
 To see the full list of arguments that can be provided, look into the documentation
 of :class:`HRITMSGFileHandler`.
+
+Compression
+-----------
+
+This reader accepts compressed HRIT files, ending in ``C_`` as other HRIT readers, see
+:class:`satpy.readers.hrit_base.HRITFileHandler`.
+
+This reader also accepts bzipped file with the extension ``.bz2`` for the prologue,
+epilogue, and segment files.
+
 
 Example
 -------
@@ -77,9 +87,6 @@ Output:
       * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
       * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
     Attributes:
-        satellite_longitude:      0.0
-        satellite_latitude:       0.0
-        satellite_altitude:       35785831.0
         orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
         platform_name:            Meteosat-11
         georef_offset_corrected:  True
@@ -100,9 +107,80 @@ Output:
         modifiers:                ()
         ancillary_variables:      []
 
+The `filenames` argument can either be a list of strings, see the example above, or a list of
+:class:`satpy.readers.FSFile` objects. FSFiles can be used in conjunction with `fsspec`_,
+e.g. to handle in-memory data:
+
+.. code-block:: python
+
+    import glob
+
+    from fsspec.implementations.memory import MemoryFile, MemoryFileSystem
+    from satpy import Scene
+    from satpy.readers import FSFile
+
+    # In this example, we will make use of `MemoryFile`s in a `MemoryFileSystem`.
+    memory_fs = MemoryFileSystem()
+
+    # Usually, the data already resides in memory.
+    # For explanatory reasons, we will load the files found with glob in memory,
+    #  and load the scene with FSFiles.
+    filenames = glob.glob('data/H-000-MSG4__-MSG4________-*201903011200*')
+    fs_files = []
+    for fn in filenames:
+        with open(fn, 'rb') as fh:
+            fs_files.append(MemoryFile(
+                fs=memory_fs,
+                path="{}{}".format(memory_fs.root_marker, fn),
+                data=fh.read()
+            ))
+            fs_files[-1].commit()  # commit the file to the filesystem
+    fs_files = [FSFile(open_file) for open_file in filenames]  # wrap MemoryFiles as FSFiles
+    # similar to the example above, we pass a list of FSFiles to the `Scene`
+    scn = Scene(filenames=fs_files, reader='seviri_l1b_hrit')
+    scn.load(['VIS006', 'IR_108'])
+    print(scn['IR_108'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+        acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
+      * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
+      * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
+    Attributes:
+        orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
+        platform_name:            Meteosat-11
+        georef_offset_corrected:  True
+        standard_name:            brightness_temperature
+        raw_metadata:             {'file_type': 0, 'total_header_length': 6198, '...
+        wavelength:               (9.8, 10.8, 11.8)
+        units:                    K
+        sensor:                   seviri
+        platform_name:            Meteosat-11
+        start_time:               2019-03-01 12:00:09.716000
+        end_time:                 2019-03-01 12:12:42.946000
+        area:                     Area ID: some_area_name\\nDescription: On-the-fl...
+        name:                     IR_108
+        resolution:               3000.403165817
+        calibration:              brightness_temperature
+        polarization:             None
+        level:                    None
+        modifiers:                ()
+        ancillary_variables:      []
+
+
+References:
+    - `MSG Level 1.5 Image Data Format Description`_
+
 .. _MSG Level 1.5 Image Data Format Description:
     https://www-cdn.eumetsat.int/files/2020-05/pdf_ten_05105_msg_img_data.pdf
-
+.. _fsspec:
+    https://filesystem-spec.readthedocs.io
 """
 
 from __future__ import division
@@ -114,24 +192,34 @@ from datetime import datetime
 import dask.array as da
 import numpy as np
 import xarray as xr
-
 from pyresample import geometry
+
+import satpy.readers.utils as utils
 from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
-import satpy.readers.utils as utils
-from satpy.readers.eum_base import recarray2dict, time_cds_short, get_service_mode
-from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
-                                     annotation_header, base_hdr_map,
-                                     image_data_function)
-from satpy.readers.seviri_base import (
-    CHANNEL_NAMES, SATNUM, SEVIRICalibrationHandler, get_cds_time,
-    HRV_NUM_COLUMNS, pad_data_horizontally, create_coef_dict,
-    OrbitPolynomialFinder, get_satpos, NoValidOrbitParams,
-    add_scanline_acq_time
+from satpy.readers._geos_area import get_area_definition, get_area_extent, get_geos_area_naming
+from satpy.readers.eum_base import get_service_mode, recarray2dict, time_cds_short
+from satpy.readers.hrit_base import (
+    HRITFileHandler,
+    ancillary_text,
+    annotation_header,
+    base_hdr_map,
+    image_data_function,
 )
-from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
-                                                 impf_configuration)
-from satpy.readers._geos_area import get_area_extent, get_area_definition, get_geos_area_naming
+from satpy.readers.seviri_base import (
+    CHANNEL_NAMES,
+    HRV_NUM_COLUMNS,
+    SATNUM,
+    NoValidOrbitParams,
+    OrbitPolynomialFinder,
+    SEVIRICalibrationHandler,
+    add_scanline_acq_time,
+    create_coef_dict,
+    get_cds_time,
+    get_satpos,
+    pad_data_horizontally,
+)
+from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
 
 logger = logging.getLogger('hrit_msg')
 
@@ -213,17 +301,13 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
-        with utils.unzip_context(filename) as fn:
-            if fn is not None:
-                self.filename = fn
-
-            super(HRITMSGPrologueFileHandler, self).__init__(self.filename, filename_info,
-                                                             filetype_info,
-                                                             (msg_hdr_map,
-                                                              msg_variable_length_headers,
-                                                              msg_text_headers))
-            self.prologue = {}
-            self.read_prologue()
+        super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
+                                                         filetype_info,
+                                                         (msg_hdr_map,
+                                                          msg_variable_length_headers,
+                                                          msg_text_headers))
+        self.prologue = {}
+        self.read_prologue()
 
         service = filename_info['service']
         if service == '':
@@ -233,13 +317,13 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_prologue(self):
         """Read the prologue metadata."""
-        with open(self.filename, "rb") as fp_:
+        with utils.generic_open(self.filename, mode="rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=hrit_prologue, count=1)
+            data = np.frombuffer(fp_.read(hrit_prologue.itemsize), dtype=hrit_prologue, count=1)
             self.prologue.update(recarray2dict(data))
             try:
-                impf = np.fromfile(fp_, dtype=impf_configuration, count=1)[0]
-            except IndexError:
+                impf = np.frombuffer(fp_.read(impf_configuration.itemsize), dtype=impf_configuration, count=1)[0]
+            except ValueError:
                 logger.info('No IMPF configuration field found in prologue.')
             else:
                 self.prologue.update(recarray2dict(impf))
@@ -290,16 +374,13 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
                  ext_calib_coefs=None, include_raw_metadata=False,
                  mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
-        with utils.unzip_context(filename) as fn:
-            if fn is not None:
-                self.filename = fn
-            super(HRITMSGEpilogueFileHandler, self).__init__(self.filename, filename_info,
-                                                             filetype_info,
-                                                             (msg_hdr_map,
-                                                              msg_variable_length_headers,
-                                                              msg_text_headers))
-            self.epilogue = {}
-            self.read_epilogue()
+        super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
+                                                         filetype_info,
+                                                         (msg_hdr_map,
+                                                          msg_variable_length_headers,
+                                                          msg_text_headers))
+        self.epilogue = {}
+        self.read_epilogue()
 
         service = filename_info['service']
         if service == '':
@@ -309,9 +390,9 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_epilogue(self):
         """Read the epilogue metadata."""
-        with open(self.filename, "rb") as fp_:
+        with utils.generic_open(self.filename, mode="rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
-            data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
+            data = np.frombuffer(fp_.read(hrit_epilogue.itemsize), dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
 
     def reduce(self, max_size):
@@ -625,11 +706,6 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'seviri'
-        res.attrs['satellite_longitude'] = self.mda[
-            'projection_parameters']['SSP_longitude']
-        res.attrs['satellite_latitude'] = self.mda[
-            'projection_parameters']['SSP_latitude']
-        res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
         res.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
             'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],

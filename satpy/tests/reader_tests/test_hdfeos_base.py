@@ -19,7 +19,6 @@
 
 import unittest
 
-
 nrt_mda = '''GROUP                  = INVENTORYMETADATA
   GROUPTYPE            = MASTERGROUP
 

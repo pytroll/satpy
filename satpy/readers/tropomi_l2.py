@@ -29,12 +29,14 @@ http://www.tropomi.eu/data-products/level-2-products
 
 """
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import dask.array as da
+
 from satpy import CHUNK_SIZE
+from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 logger = logging.getLogger(__name__)
 
@@ -113,21 +115,25 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                 # then we should keep it going down the chain
                 yield is_avail, ds_info
 
-        # This is where we dynamically add new datasets
-        # We will sift through all groups and variables, looking for data matching
-        # the geolocation bounds
+        yield from self._iterate_over_dataset_contents(handled_variables, lat_shape)
 
-        # Iterate over dataset contents
+    def _iterate_over_dataset_contents(self, handled_variables, shape):
+        """Iterate over dataset contents.
+
+        This is where we dynamically add new datasets
+        We will sift through all groups and variables, looking for data matching
+        the geolocation bounds
+        """
         for var_name, val in self.file_content.items():
             # Only evaluate variables
             if isinstance(val, netCDF4.Variable):
                 logger.debug("Evaluating new variable: %s", var_name)
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))
-                if (lat_shape == var_shape[:len(lat_shape)]):
+                if shape == var_shape[:len(shape)]:
                     logger.debug("Found valid additional dataset: %s", var_name)
                     # Skip anything we have already configured
-                    if (var_name in handled_variables):
+                    if var_name in handled_variables:
                         logger.debug("Already handled, skipping: %s", var_name)
                         continue
                     handled_variables.add(var_name)

@@ -18,23 +18,19 @@
 """The HRIT msg reader tests package."""
 
 import unittest
-from unittest import mock
 from datetime import datetime
+from unittest import mock
 
 import numpy as np
-from numpy import testing as npt
 import pytest
 import xarray as xr
+from numpy import testing as npt
 
-from satpy.readers.seviri_l1b_hrit import (
-    HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
-)
-from satpy.tests.utils import make_dataid, assert_attrs_equal
-from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
-from satpy.tests.reader_tests.test_seviri_l1b_calibration import (
-    TestFileHandlerCalibrationBase
-)
 import satpy.tests.reader_tests.test_seviri_l1b_hrit_setup as setup
+from satpy.readers.seviri_l1b_hrit import HRITMSGEpilogueFileHandler, HRITMSGFileHandler, HRITMSGPrologueFileHandler
+from satpy.tests.reader_tests.test_seviri_base import ORBIT_POLYNOMIALS_INVALID
+from satpy.tests.reader_tests.test_seviri_l1b_calibration import TestFileHandlerCalibrationBase
+from satpy.tests.utils import assert_attrs_equal, make_dataid
 
 
 class TestHRITMSGBase(unittest.TestCase):

@@ -17,19 +17,21 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Benchmark AHI HSD operations.."""
 
+from __future__ import annotations
+
 import os
 
 from pyspectral.rayleigh import check_and_download as download_luts
 from pyspectral.rsr_reader import check_and_download as download_rsr
 
-from benchmarks.utils import get_filenames, GeoBenchmarks
+from benchmarks.utils import GeoBenchmarks, get_filenames
 
 
 class HimawariHSD(GeoBenchmarks):
     """Benchmark Himawari HSD reading."""
 
     timeout = 600
-    data_files = []
+    data_files: list[str] = []
     subdir = os.path.join("ahi_hsd", "20210417_0500_typhoon_surigae")
     reader = 'ahi_hsd'
 

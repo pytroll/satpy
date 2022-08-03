@@ -29,10 +29,12 @@ References:
 
 import logging
 from datetime import datetime
-import numpy as np
-from satpy.readers.hdf5_utils import HDF5FileHandler
-from pyresample.geometry import AreaDefinition
+
 import h5py
+import numpy as np
+from pyresample.geometry import AreaDefinition
+
+from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
 

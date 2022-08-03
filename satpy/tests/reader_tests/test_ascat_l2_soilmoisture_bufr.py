@@ -21,6 +21,7 @@ import os
 import sys
 import unittest
 from datetime import datetime
+
 import numpy as np
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
@@ -128,6 +129,7 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
     def setUp(self):
         """Create temporary file to perform tests with."""
         import tempfile
+
         from satpy.readers.ascat_l2_soilmoisture_bufr import AscatSoilMoistureBufr
         self.base_dir = tempfile.mkdtemp()
         self.fname = save_test_data(self.base_dir)
@@ -149,12 +151,9 @@ class TesitAscatL2SoilmoistureBufr(unittest.TestCase):
         from satpy import Scene
         fname = os.path.join(self.base_dir, FILENAME)
         scn = Scene(reader='ascat_l2_soilmoisture_bufr', filenames=[fname])
-        self.assertTrue('start_time' in scn.attrs)
-        self.assertTrue('end_time' in scn.attrs)
-        self.assertTrue('sensor' in scn.attrs)
-        self.assertTrue('scatterometer' in scn.attrs['sensor'])
-        self.assertTrue(datetime(2020, 12, 21, 9, 33, 0) == scn.attrs['start_time'])
-        self.assertTrue(datetime(2020, 12, 21, 9, 33, 59) == scn.attrs['end_time'])
+        self.assertTrue('scatterometer' in scn.sensor_names)
+        self.assertTrue(datetime(2020, 12, 21, 9, 33, 0) == scn.start_time)
+        self.assertTrue(datetime(2020, 12, 21, 9, 33, 59) == scn.end_time)
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):

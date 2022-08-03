@@ -18,12 +18,12 @@
 """Module for testing the satpy.readers.clavrx module."""
 
 import os
-import pytest
+from unittest import mock
+
 import numpy as np
+import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
-
-from unittest import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)

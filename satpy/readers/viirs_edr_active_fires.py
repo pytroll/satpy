@@ -21,10 +21,11 @@ This module implements readers for VIIRS Active Fires NetCDF and
 ASCII files.
 """
 
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.readers.file_handlers import BaseFileHandler
 import dask.dataframe as dd
 import xarray as xr
+
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
 # map platform attributes to Oscar standard name
 PLATFORM_MAP = {
@@ -74,7 +75,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             data.attrs['units'] = 'K'
 
         data.attrs["platform_name"] = PLATFORM_MAP.get(self.filename_info['satellite_name'].upper(), "unknown")
-        data.attrs["sensor"] = "VIIRS"
+        data.attrs["sensor"] = self.sensor_name
 
         return data
 
@@ -91,7 +92,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
     @property
     def sensor_name(self):
         """Name of sensor for this file."""
-        return self["sensor"]
+        return self["sensor"].lower()
 
     @property
     def platform_name(self):

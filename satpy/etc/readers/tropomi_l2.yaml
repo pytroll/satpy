@@ -1,6 +1,10 @@
 reader:
-    description: TROPOMI Level 2 NetCDF reader
     name: tropomi_l2
+    short_name: TROPOMI l2
+    long_name: TROPOMI Level 2 data in NetCDF4 format
+    description: TROPOMI Level 2 NetCDF reader
+    status: Beta
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [tropomi]
 
@@ -67,4 +71,3 @@ datasets:
         file_type: tropomi_l2
         file_key: 'PRODUCT/time_utc'
         standard_name: time_utc
-

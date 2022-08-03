@@ -1,6 +1,10 @@
 reader:
-  description: HDF5 reader for the NWCSAF/Geo Seviri 2013 format
   name: nwcsaf-msg2013-hdf5
+  short_name: NWCSAF Geo
+  long_name: NWCSAF GEO 2013 products in HDF5 format (limited to SEVIRI)
+  description: HDF5 reader for the NWCSAF/Geo Seviri 2013 format
+  status: Defunct
+  supports_fsspec: false
   sensors: [seviri]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -187,4 +191,3 @@ datasets:
     resolution: 3000
     file_type: h5_nwcsaf_ctth
     file_key: CTTH_QUALITY
-

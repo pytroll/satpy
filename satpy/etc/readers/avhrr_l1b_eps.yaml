@@ -1,6 +1,10 @@
 reader:
     name: avhrr_l1b_eps
+    short_name: AVHRR l1b eps
+    long_name: Metop A to C AVHRR in native level 1 format
     description: EPS Reader for AVHRR
+    status: Nominal
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3]
     default_channels: [1, 2, 3a, 3b, 4, 5]

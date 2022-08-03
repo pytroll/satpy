@@ -29,13 +29,13 @@ from datetime import datetime, timedelta
 
 import dask.array as da
 import numpy as np
-
 import pygac.utils
 import xarray as xr
 from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
 from pygac.lac_klm import LACKLMReader
 from pygac.lac_pod import LACPODReader
+
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 

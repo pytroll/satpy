@@ -208,8 +208,8 @@ class TestGLML2Reader(unittest.TestCase):
     @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Create a fake reader to test."""
-        from satpy.readers import load_reader
         from satpy._config import config_search_paths
+        from satpy.readers import load_reader
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         fake_dataset = setup_fake_dataset()
         xr_.open_dataset.return_value = fake_dataset

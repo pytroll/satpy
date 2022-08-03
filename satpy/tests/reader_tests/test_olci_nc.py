@@ -26,10 +26,10 @@ class TestOLCIReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
-        from satpy.readers.olci_nc import (NCOLCIBase, NCOLCICal, NCOLCIGeo,
-                                           NCOLCIChannelBase, NCOLCI1B, NCOLCI2)
-        from satpy.tests.utils import make_dataid
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI1B, NCOLCI2, NCOLCIBase, NCOLCICal, NCOLCIChannelBase, NCOLCIGeo
+        from satpy.tests.utils import make_dataid
 
         cal_data = xr.Dataset(
             {
@@ -95,10 +95,11 @@ class TestOLCIReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
-        from satpy.readers.olci_nc import NCOLCI2
-        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI2
+        from satpy.tests.utils import make_dataid
         mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
                                                            np.array([1 << x for x in range(30)]).reshape(5, 6))},
                                                  coords={'rows': np.arange(5),
@@ -112,10 +113,11 @@ class TestOLCIReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_olci_angles(self, mocked_dataset):
         """Test reading datasets."""
-        from satpy.readers.olci_nc import NCOLCIAngles
-        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCIAngles
+        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
@@ -144,10 +146,11 @@ class TestOLCIReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_olci_meteo(self, mocked_dataset):
         """Test reading datasets."""
-        from satpy.readers.olci_nc import NCOLCIMeteo
-        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCIMeteo
+        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
@@ -180,8 +183,10 @@ class TestBitFlags(unittest.TestCase):
 
     def test_bitflags(self):
         """Test the BitFlags class."""
-        import numpy as np
         from functools import reduce
+
+        import numpy as np
+
         from satpy.readers.olci_nc import BitFlags
         flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
                      'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',

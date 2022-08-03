@@ -63,12 +63,15 @@ class NC_ABI_L1B(NC_ABI_BASE):
             res *= 100
             res.attrs['units'] = '%'
 
-        res.attrs.update({'platform_name': self.platform_name,
-                          'sensor': self.sensor})
+        self._adjust_attrs(res, key)
+        return res
 
+    def _adjust_attrs(self, data, key):
+        data.attrs.update({'platform_name': self.platform_name,
+                          'sensor': self.sensor})
         # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
-        res.attrs['orbital_parameters'] = {
+        data.attrs['orbital_parameters'] = {
             'projection_longitude': float(projection.attrs['longitude_of_projection_origin']),
             'projection_latitude': float(projection.attrs['latitude_of_projection_origin']),
             'projection_altitude': float(projection.attrs['perspective_point_height']),
@@ -77,30 +80,28 @@ class NC_ABI_L1B(NC_ABI_BASE):
             'satellite_nominal_altitude': float(self['nominal_satellite_height']) * 1000.,
             'yaw_flip': bool(self['yaw_flip_flag']),
         }
-
-        res.attrs.update(key.to_dict())
+        data.attrs.update(key.to_dict())
         # remove attributes that could be confusing later
         # if calibration type is raw counts, we leave them in
         if key['calibration'] != 'counts':
-            res.attrs.pop('_FillValue', None)
-            res.attrs.pop('scale_factor', None)
-            res.attrs.pop('add_offset', None)
-        res.attrs.pop('_Unsigned', None)
-        res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
+            data.attrs.pop('_FillValue', None)
+            data.attrs.pop('scale_factor', None)
+            data.attrs.pop('add_offset', None)
+        data.attrs.pop('_Unsigned', None)
+        data.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
         # although we could compute these, we'd have to update in calibration
-        res.attrs.pop('valid_range', None)
+        data.attrs.pop('valid_range', None)
         # add in information from the filename that may be useful to the user
         for attr in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname', 'suffix'):
             if attr in self.filename_info:
-                res.attrs[attr] = self.filename_info[attr]
+                data.attrs[attr] = self.filename_info[attr]
         # copy global attributes to metadata
         for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
-            res.attrs[attr] = self.nc.attrs.get(attr)
+            data.attrs[attr] = self.nc.attrs.get(attr)
         # only include these if they are present
         for attr in ('fusion_args',):
             if attr in self.nc.attrs:
-                res.attrs[attr] = self.nc.attrs[attr]
-        return res
+                data.attrs[attr] = self.nc.attrs[attr]
 
     def _rad_calibrate(self, data):
         """Calibrate any channel to radiances.

@@ -25,9 +25,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 from satpy.readers.agri_l1 import RESOLUTION_LIST
-
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 ALL_BAND_NAMES = ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
                   "C08", "C09", "C10", "C11", "C12", "C13", "C14"]
@@ -35,7 +34,8 @@ ALL_BAND_NAMES = ["C01", "C02", "C03", "C04", "C05", "C06", "C07",
 CHANNELS_BY_RESOLUTION = {500: ["C02"],
                           1000: ["C01", "C02", "C03"],
                           2000: ["C01", "C02", "C03", "C04", "C05", "C06", "C07"],
-                          4000: ALL_BAND_NAMES
+                          4000: ALL_BAND_NAMES,
+                          'GEO': 'solar_azimuth_angle'
                           }
 
 AREA_EXTENTS_BY_RESOLUTION = {
@@ -55,30 +55,43 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             data = xr.DataArray(
                                 da.from_array((np.arange(10.) + 1.) / 10., [dims[0] * dims[1]]),
                                 attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': -65535.0,
+                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                                    'FillValue': np.array(-65535.0),
                                     'units': 'NUL',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                                     'band_names': 'band{}(band number is range from 1 to 14)'
                                                   .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                                    'valid_range': [0, 1.5],
+                                    'valid_range': np.array([0, 1.5]),
                                 },
-                                dims=('_const'))
+                                dims='_const')
 
         elif prefix == 'NOM':
             data = xr.DataArray(
                                 da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1,
                                               [dim for dim in dims]),
                                 attrs={
-                                    'Slope': 1., 'Intercept': 0.,
-                                    'FillValue': 65535,
+                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                                    'FillValue': np.array(65535),
                                     'units': 'DN',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                                     'band_names': 'band{}(band number is range from 1 to 14)'
                                                   .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
-                                    'valid_range': [0, 4095],
+                                    'valid_range': np.array([0, 4095]),
+                                },
+                                dims=('_RegLength', '_RegWidth'))
+
+        elif prefix == 'GEO':
+            data = xr.DataArray(
+                                da.from_array(np.arange(10, dtype=np.float32).reshape((2, 5)) + 1,
+                                              [dim for dim in dims]),
+                                attrs={
+                                    'Slope': np.array(1.), 'Intercept': np.array(0.),
+                                    'FillValue': np.array(65535.),
+                                    'units': 'NUL',
+                                    'band_names': 'NUL',
+                                    'valid_range': np.array([0., 360.]),
                                 },
                                 dims=('_RegLength', '_RegWidth'))
 
@@ -153,6 +166,13 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
         return data
 
+    def _get_geo_data(self, file_type):
+        dim_0 = 2
+        dim_1 = 5
+        data = {'NOMSunAzimuth': self.make_test_data('NUL', 'NUL', 'GEO',
+                                                     [dim_0, dim_1], file_type)}
+        return data
+
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         global_attrs = {
@@ -180,6 +200,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             data = self._get_2km_data('2000')
         elif self.filetype_info['file_type'] == 'agri_l1_4000m':
             data = self._get_4km_data('4000')
+        elif self.filetype_info['file_type'] == 'agri_l1_4000m_geo':
+            data = self._get_geo_data('4000')
 
         test_content = {}
         test_content.update(global_attrs)
@@ -190,6 +212,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 def _create_filenames_from_resolutions(*resolutions):
     """Create filenames from the given resolutions."""
+    if 'GEO' in resolutions:
+        return ["FY4A-_AGRI--_N_REGC_1047E_L1-_GEO-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF"]
     pattern = ("FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_"
                "{resolution:04d}M_V0001.HDF")
     return [pattern.format(resolution=resolution) for resolution in resolutions]
@@ -202,8 +226,8 @@ class Test_HDF_AGRI_L1_cal:
 
     def setup(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.agri_l1 import HDF_AGRI_L1
         from satpy._config import config_search_paths
+        from satpy.readers.agri_l1 import HDF_AGRI_L1
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(HDF_AGRI_L1, '__bases__', (FakeHDF5FileHandler2,))
@@ -269,8 +293,8 @@ class Test_HDF_AGRI_L1_cal:
 
     @staticmethod
     def _check_keys_for_dsq(available_datasets, resolution_to_test):
-        from satpy.tests.utils import make_dsq
         from satpy.dataset.data_dict import get_key
+        from satpy.tests.utils import make_dsq
 
         band_names = CHANNELS_BY_RESOLUTION[resolution_to_test]
         for band_name in band_names:
@@ -298,6 +322,18 @@ class Test_HDF_AGRI_L1_cal:
             assert res[band_name].attrs['calibration'] == "counts"
             assert res[band_name].dtype == np.uint16
             assert res[band_name].attrs['units'] == "1"
+
+    def test_fy4a_geo(self):
+        """Test loading data for angles."""
+        from satpy.tests.utils import make_dsq
+        reader = self._create_reader_for_resolutions('GEO')
+        band_name = 'solar_azimuth_angle'
+        ds_ids = [make_dsq(name=band_name)]
+        res = reader.load(ds_ids)
+        assert len(res) == 1
+
+        assert res[band_name].shape == (2, 5)
+        assert res[band_name].dtype == np.float32
 
     def _create_reader_for_resolutions(self, *resolutions):
         from satpy.readers import load_reader
@@ -344,8 +380,8 @@ class Test_HDF_AGRI_L1_cal:
 
     @staticmethod
     def _assert_which_channels_are_loaded(available_datasets, band_names, resolution_to_test):
-        from satpy.tests.utils import make_dsq
         from satpy.dataset.data_dict import get_key
+        from satpy.tests.utils import make_dsq
 
         other_resolutions = RESOLUTION_LIST.copy()
         other_resolutions.remove(resolution_to_test)

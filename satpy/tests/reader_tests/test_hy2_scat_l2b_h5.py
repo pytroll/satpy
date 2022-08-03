@@ -18,13 +18,14 @@
 """Module for testing the satpy.readers.hy2_scat_l2b_h5 module."""
 
 import os
-import numpy as np
-import xarray as xr
-import dask.array as da
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-
 import unittest
 from unittest import mock
+
+import dask.array as da
+import numpy as np
+import xarray as xr
+
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -367,8 +368,8 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
 
     def setUp(self):
         """Wrap HDF5 file handler with our own fake handler."""
-        from satpy.readers.hy2_scat_l2b_h5 import HY2SCATL2BH5FileHandler
         from satpy._config import config_search_paths
+        from satpy.readers.hy2_scat_l2b_h5 import HY2SCATL2BH5FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(HY2SCATL2BH5FileHandler, '__bases__', (FakeHDF5FileHandler2,))
