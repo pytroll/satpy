@@ -296,6 +296,39 @@ class TestDifferenceCompositor(unittest.TestCase):
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
 
 
+@pytest.fixture
+def fake_area():
+    """Return a fake 2×2 area."""
+    from pyresample.geometry import create_area_def
+    return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
+
+
+@pytest.fixture
+def fake_dataset_pair(fake_area):
+    """Return a fake pair of 2×2 datasets."""
+    ds1 = xr.DataArray(
+            da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds2 = xr.DataArray(
+            da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    return (ds1, ds2)
+
+
+def test_ratio_compositor(fake_dataset_pair):
+    """Test the ratio compositor."""
+    from satpy.composites import RatioCompositor
+    comp = RatioCompositor(name="ratio", standard_name="channel_ratio")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 2)
+
+
+def test_sum_compositor(fake_dataset_pair):
+    """Test the sum compositor."""
+    from satpy.composites import SumCompositor
+    comp = SumCompositor(name="sum", standard_name="channel_sum")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 12)
+
+
 class TestDayNightCompositor(unittest.TestCase):
     """Test DayNightCompositor."""
 
