@@ -152,12 +152,12 @@ class NativeMSGFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Get general start time for this file."""
-        return self.observation_start_time
+        return self.nominal_start_time
 
     @property
     def end_time(self):
         """Get the general end time for this file."""
-        return self.observation_end_time
+        return self.nominal_end_time
 
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels."""
