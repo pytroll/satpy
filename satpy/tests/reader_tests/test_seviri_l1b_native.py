@@ -1226,14 +1226,18 @@ class TestNativeMSGDataset:
                     'projection_latitude': 0.0,
                     'projection_altitude': 35785831.0
                 },
+                'time_parameters': {
+                    'nominal_start_time': datetime(2006, 1, 1, 12, 15, 0),
+                    'nominal_end_time': datetime(2006, 1, 1, 12, 30, 0),
+                    'observation_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                    'observation_end_time': datetime(2006, 1, 1, 12, 27, 9, 304888),
+                },
                 'georef_offset_corrected': True,
                 'platform_name': 'MSG-3',
                 'sensor': 'seviri',
                 'units': '1',
                 'wavelength': (1, 2, 3),
                 'standard_name': 'counts',
-                'nominal_start_time': datetime(2006, 1, 1, 12, 15, 0),
-                'nominal_end_time': datetime(2006, 1, 1, 12, 30, 0),
             }
         )
         expected['acq_time'] = ('y', [np.datetime64('1958-01-02 00:00:01'),
