@@ -1095,6 +1095,49 @@ class TestNativeMSGDataset:
     @pytest.fixture
     def file_handler(self):
         """Create a file handler for testing."""
+        trailer = {
+            '15TRAILER': {
+                'ImageProductionStats': {
+                    'ActualScanningSummary': {
+                        'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888)
+                    }
+                }
+            }
+        }
+        mda = {
+            'channel_list': ['VIS006', 'IR_108'],
+            'number_of_lines': 4,
+            'number_of_columns': 4,
+            'is_full_disk': True,
+            'platform_name': 'MSG-3',
+            'offset_corrected': True,
+            'projection_parameters': {
+                'ssp_longitude': 0.0,
+                'h': 35785831.0,
+                'a': 6378169.0,
+                'b': 6356583.8
+            }
+        }
+        header = self._fake_header()
+        data = self._fake_data()
+        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
+                        return_value=None):
+            fh = NativeMSGFileHandler()
+            fh.header = header
+            fh.trailer = trailer
+            fh.mda = mda
+            fh.dask_array = da.from_array(data)
+            fh.platform_id = 324
+            fh.fill_disk = False
+            fh.calib_mode = 'NOMINAL'
+            fh.ext_calib_coefs = {}
+            fh.include_raw_metadata = False
+            fh.mda_max_array_size = 100
+        return fh
+
+    @staticmethod
+    def _fake_header():
         header = {
             '15_DATA_HEADER': {
                 'SatelliteStatus': {
@@ -1113,31 +1156,11 @@ class TestNativeMSGDataset:
                 }
             },
         }
-        trailer = {
-            '15TRAILER': {
-                'ImageProductionStats': {
-                    'ActualScanningSummary': {
-                        'ForwardScanStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
-                        'ForwardScanEnd': datetime(2006, 1, 1, 12, 27, 9, 304888)
-                    }
-                }
-            }
-        }
         header['15_DATA_HEADER'].update(TEST_HEADER_CALIB)
-        mda = {
-            'channel_list': ['VIS006', 'IR_108'],
-            'number_of_lines': 4,
-            'number_of_columns': 4,
-            'is_full_disk': True,
-            'platform_name': 'MSG-3',
-            'offset_corrected': True,
-            'projection_parameters': {
-                'ssp_longitude': 0.0,
-                'h': 35785831.0,
-                'a': 6378169.0,
-                'b': 6356583.8
-            }
-        }
+        return header
+
+    @staticmethod
+    def _fake_data():
         num_visir_cols = 5  # will be divided by 1.25 -> 4 columns
         visir_rec = [
             ('line_data', np.uint8, (num_visir_cols,)),
@@ -1161,20 +1184,7 @@ class TestNativeMSGDataset:
              [(vis006_line4,), (ir108_line4,)]],
             dtype=[('visir', visir_rec)]
         )
-        with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler.__init__',
-                        return_value=None):
-            fh = NativeMSGFileHandler()
-            fh.header = header
-            fh.trailer = trailer
-            fh.mda = mda
-            fh.dask_array = da.from_array(data)
-            fh.platform_id = 324
-            fh.fill_disk = False
-            fh.calib_mode = 'NOMINAL'
-            fh.ext_calib_coefs = {}
-            fh.include_raw_metadata = False
-            fh.mda_max_array_size = 100
-            return fh
+        return data
 
     def test_get_dataset(self, file_handler):
         """Test getting the dataset."""
@@ -1189,6 +1199,15 @@ class TestNativeMSGDataset:
             'standard_name': 'counts'
         }
         dataset = file_handler.get_dataset(dataset_id, dataset_info)
+        expected = self._exp_data_array()
+        xr.testing.assert_equal(dataset, expected)
+        assert 'raw_metadata' not in dataset.attrs
+        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 9, 304888)
+        assert file_handler.end_time == datetime(2006, 1, 1, 12, 27, 9, 304888)
+        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+
+    @staticmethod
+    def _exp_data_array():
         expected = xr.DataArray(
             np.array([[4., 32., 193., 5.],
                       [24., 112., 514., 266.],
@@ -1221,11 +1240,7 @@ class TestNativeMSGDataset:
                                       np.datetime64('1958-01-02 00:00:02'),
                                       np.datetime64('1958-01-02 00:00:03'),
                                       np.datetime64('1958-01-02 00:00:04')])
-        xr.testing.assert_equal(dataset, expected)
-        assert 'raw_metadata' not in dataset.attrs
-        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 9, 304888)
-        assert file_handler.end_time == datetime(2006, 1, 1, 12, 27, 9, 304888)
-        assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
+        return expected
 
     def test_get_dataset_with_raw_metadata(self, file_handler):
         """Test provision of raw metadata."""
