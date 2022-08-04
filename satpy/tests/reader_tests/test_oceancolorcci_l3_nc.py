@@ -87,6 +87,7 @@ ds_dict = {'adg_490': 'adg_490',
 
 ds_list_all = ['adg_490', 'water_class10', 'seawifs_nobs_sum', 'kd_490', 'atot_665']
 ds_list_iop = ['adg_490', 'water_class10', 'seawifs_nobs_sum', 'atot_665']
+ds_list_kd = ['kd_490', 'water_class10', 'seawifs_nobs_sum']
 
 
 @pytest.fixture
@@ -174,11 +175,11 @@ class TestOCCCIReader:
     def test_bad_fname(self, fake_dataset, fake_file_dict):
         """Test case where an incorrect composite period is given."""
         reader = self._create_reader_for_resolutions([fake_file_dict['bad_month']])
-        with pytest.raises(ValueError):
-            res = reader.load([ds_list_all[0]])
-        print(res)
-        print(res[ds_list_all[0]].attrs['composite_period'])
-        return
+        res = reader.load([ds_list_all[0]])
+        assert len(res) == 0
+        reader = self._create_reader_for_resolutions([fake_file_dict['bad_day']])
+        res = reader.load([ds_list_all[0]])
+        assert len(res) == 0
 
     def test_get_dataset_monthly_allprods(self, fake_dataset, fake_file_dict):
         """Test dataset loading."""
@@ -203,6 +204,30 @@ class TestOCCCIReader:
             np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
             assert res[curds].attrs['sensor'] == 'merged'
             assert res[curds].attrs['composite_period'] == '8-day'
+
+    def test_get_dataset_1d_kprods(self, fake_dataset, fake_file_dict):
+        """Test dataset loading."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['k490_1d']])
+        # Check how many datasets are available. This file contains all of them.
+        assert len(list(reader.available_dataset_names)) == 25
+        res = reader.load(ds_list_kd)
+        assert len(res) == len(ds_list_kd)
+        for curds in ds_list_kd:
+            np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
+            assert res[curds].attrs['sensor'] == 'merged'
+            assert res[curds].attrs['composite_period'] == 'daily'
+
+    def test_get_dataset_5d_allprods(self, fake_dataset, fake_file_dict):
+        """Test dataset loading."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_5d']])
+        # Check how many datasets are available. This file contains all of them.
+        assert len(list(reader.available_dataset_names)) == 94
+        res = reader.load(ds_list_all)
+        assert len(res) == len(ds_list_all)
+        for curds in ds_list_all:
+            np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
+            assert res[curds].attrs['sensor'] == 'merged'
+            assert res[curds].attrs['composite_period'] == '5-day'
 
     def test_start_time(self, fake_file_dict):
         """Test start time property."""

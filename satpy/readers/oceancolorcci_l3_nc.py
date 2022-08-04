@@ -67,7 +67,6 @@ class OCCCIFileHandler(NetCDF4FileHandler):
         elif comp1 == '8D':
             return '8-day'
         else:
-            print("HI", comp1, comp2)
             raise ValueError(f"Unknown data compositing period: {comp1}_{comp2}")
 
     def _update_attrs(self, dataset, dataset_info):
