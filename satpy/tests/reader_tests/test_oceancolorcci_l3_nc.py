@@ -19,183 +19,197 @@
 """Module for testing the satpy.readers.oceancolorcci_l3_nc module."""
 
 import os
-import unittest
 from datetime import datetime
-from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
-
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-
-DEFAULT_FILE_DTYPE = np.uint16
-DEFAULT_FILE_SHAPE = (3246, 450)
-DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
-                              dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
-DEFAULT_BOUND_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1] * 4,
-                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE+(4,))
+from pyresample.geometry import AreaDefinition
 
 
-class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler."""
-
-    def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content."""
-        dt_s = filename_info.get('start_time', datetime(2016, 1, 1, 12, 0, 0))
-        dt_e = filename_info.get('end_time', datetime(2016, 1, 1, 12, 0, 0))
-
-        if filetype_info['file_type'] == 'tropomi_l2':
-            file_content = {
-                '/attr/time_coverage_start': dt_s.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
-                '/attr/time_coverage_end': dt_e.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
-                '/attr/platform_shortname': 'S5P',
-                '/attr/sensor': 'TROPOMI',
-            }
-
-            file_content['PRODUCT/latitude'] = DEFAULT_FILE_DATA
-            file_content['PRODUCT/longitude'] = DEFAULT_FILE_DATA
-            file_content['PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'] = DEFAULT_BOUND_DATA
-            file_content['PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'] = DEFAULT_BOUND_DATA
-
-            if 'NO2' in filename:
-                file_content['PRODUCT/nitrogen_dioxide_total_column'] = DEFAULT_FILE_DATA
-            if 'SO2' in filename:
-                file_content['PRODUCT/sulfurdioxide_total_vertical_column'] = DEFAULT_FILE_DATA
-
-            for k in list(file_content.keys()):
-                if not k.startswith('PRODUCT'):
-                    continue
-                file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
-
-            self._convert_data_content_to_dataarrays(file_content)
-            file_content['PRODUCT/latitude'].attrs['_FillValue'] = -999.0
-            file_content['PRODUCT/longitude'].attrs['_FillValue'] = -999.0
-            file_content['PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'].attrs['_FillValue'] = -999.0
-            file_content['PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'].attrs['_FillValue'] = -999.0
-            if 'NO2' in filename:
-                file_content['PRODUCT/nitrogen_dioxide_total_column'].attrs['_FillValue'] = -999.0
-            if 'SO2' in filename:
-                file_content['PRODUCT/sulfurdioxide_total_vertical_column'].attrs['_FillValue'] = -999.0
-
-        else:
-            raise NotImplementedError("Test data for file types other than "
-                                      "'tropomi_l2' are not supported.")
-
-        return file_content
-
-    def _convert_data_content_to_dataarrays(self, file_content):
-        """Convert data content to xarray's dataarrays."""
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                if 1 < val.ndim <= 2:
-                    file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel'))
-                elif val.ndim > 2:
-                    file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel', 'corner'))
-                else:
-                    file_content[key] = DataArray(val)
+@pytest.fixture()
+def fake_dataset():
+    """Create a CLAAS-like test dataset."""
+    adg = xr.DataArray(
+        [[1.0, 0.47, 4.5, 1.2], [0.2, 0, 1.3, 1.3]],
+        dims=("y", "x")
+    )
+    atot = xr.DataArray(
+        [[0.001, 0.08, 23.4, 0.1], [2.1, 1.2, 4.7, 306.]],
+        dims=("y", "x")
+    )
+    kd = xr.DataArray(
+        [[0.8, 0.01, 5.34, 1.23], [0.4, 1.0, 3.2, 1.23]],
+        dims=("y", "x")
+    )
+    nobs = xr.DataArray(
+        [[5, 118, 5, 100], [0, 15, 0, 1]],
+        dims=("y", "x"),
+        attrs={'_FillValue': 0}
+    )
+    nobs_filt = xr.DataArray(
+        [[5, 118, 5, 100], [np.nan, 15, np.nan, 1]],
+        dims=("y", "x"),
+        attrs={'_FillValue': 0}
+    )
+    watcls = xr.DataArray(
+        [[12.2, 0.01, 6.754, 5.33], [12.5, 101.5, 103.5, 204.]],
+        dims=("y", "x")
+    )
+    attrs = {
+        "geospatial_lon_resolution": "90",
+        "geospatial_lat_resolution": "90",
+        "geospatial_lon_min": -180.,
+        "geospatial_lon_max": 180.,
+        "geospatial_lat_min": -90.,
+        "geospatial_lat_max": 90.,
+        "time_coverage_start": "202108010000Z",
+        "time_coverage_end": "202108312359Z",
+    }
+    return xr.Dataset(
+        {
+            "adg_490": adg,
+            "water_class10": watcls,
+            "SeaWiFS_nobs_sum": nobs,
+            "test_nobs": nobs_filt,
+            "kd_490": kd,
+            "atot_665": atot,
+        },
+        attrs=attrs
+    )
 
 
-class TestOCCCIReader(unittest.TestCase):
-    """Test Ocean Color CCI L3 Reader."""
+ds_dict = {'adg_490': 'adg_490',
+           'water_class10': 'water_class10',
+           'seawifs_nobs_sum': 'test_nobs',
+           'kd_490': 'kd_490',
+           'atot_665': 'atot_665'}
 
-    yaml_file = "oceancolorcci_l3_nc.yaml"
+ds_list_all = ['adg_490', 'water_class10', 'seawifs_nobs_sum', 'kd_490', 'atot_665']
+ds_list_iop = ['adg_490', 'water_class10', 'seawifs_nobs_sum', 'atot_665']
 
-    def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler."""
+
+@pytest.fixture
+def fake_file_dict(fake_dataset, tmp_path):
+    """Write a fake dataset to file."""
+    fdict = {}
+    filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-10M_MONTHLY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
+    fake_dataset.to_netcdf(filename)
+    fdict['bad_month'] = filename
+
+    filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-2D_DAILY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
+    fake_dataset.to_netcdf(filename)
+    fdict['bad_day'] = filename
+
+    filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-1M_MONTHLY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
+    fake_dataset.to_netcdf(filename)
+    fdict['ocprod_1m'] = filename
+
+    filename = tmp_path / "ESACCI-OC-L3S-OC_PRODUCTS-MERGED-5D_DAILY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc"
+    fake_dataset.to_netcdf(filename)
+    fdict['ocprod_5d'] = filename
+
+    filename = tmp_path / "ESACCI-OC-L3S-IOP-MERGED-8D_DAILY_4km_GEO_PML_RRS-20211117-fv5.0.nc"
+    fake_dataset.to_netcdf(filename)
+    fdict['iop_8d'] = filename
+
+    filename = tmp_path / "ESACCI-OC-L3S-IOP-MERGED-1D_DAILY_4km_GEO_PML_OCx-202112-fv5.0.nc"
+    fake_dataset.to_netcdf(filename)
+    fdict['iop_1d'] = filename
+
+    filename = tmp_path / "ESACCI-OC-L3S-K_490-MERGED-1D_DAILY_4km_GEO_PML_RRS-20210113-fv5.0.nc"
+    fake_dataset.to_netcdf(filename)
+    fdict['k490_1d'] = filename
+
+    yield fdict
+
+
+class TestOCCCIReader:
+    """Test the Ocean Color reader."""
+
+    def setup(self):
+        """Set up the reader tests."""
         from satpy._config import config_search_paths
-        from satpy.readers.oceancolorcci_l3_nc import OCCCIFileHandler
+
+        self.yaml_file = "oceancolorcci_l3_nc.yaml"
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
-        self.p = mock.patch.object(OCCCIFileHandler, '__bases__', (FakeNetCDF4FileHandlerTL2,))
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
 
-    def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler."""
-        self.p.stop()
-
-    def test_init(self):
-        """Test basic initialization of this reader."""
+    def _create_reader_for_resolutions(self, filename):
         from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        loadables = r.select_files_from_pathnames([
-            'ESACCI-OC-L3S-OC_PRODUCTS-MERGED-1M_MONTHLY_4km_GEO_PML_OCx_QAA-202112-fv5.0.nc',
-        ])
-        self.assertEqual(len(loadables), 1)
-        r.create_filehandlers(loadables)
-        # make sure we have some files
-        self.assertTrue(r.file_handlers)
+        reader = load_reader(self.reader_configs)
+        files = reader.select_files_from_pathnames(filename)
+        assert len(filename) == len(files)
+        reader.create_filehandlers(files)
+        # Make sure we have some files
+        assert reader.file_handlers
+        return reader
 
-    def test_load_no2(self):
-        """Load NO2 dataset."""
-        from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.tropomi_l2.netCDF4.Variable', xr.DataArray):
-            loadables = r.select_files_from_pathnames([
-                'S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc',
-            ])
-            r.create_filehandlers(loadables)
-        ds = r.load(['nitrogen_dioxide_total_column'])
-        self.assertEqual(len(ds), 1)
-        for d in ds.values():
-            self.assertEqual(d.attrs['platform_shortname'], 'S5P')
-            self.assertEqual(d.attrs['sensor'], 'tropomi')
-            self.assertIn('area', d.attrs)
-            self.assertIsNotNone(d.attrs['area'])
-            self.assertIn('y', d.dims)
-            self.assertIn('x', d.dims)
+    @pytest.fixture
+    def area_exp(self):
+        """Get expected area definition."""
+        proj_dict = {'datum': 'WGS84', 'no_defs': 'None', 'proj': 'longlat', 'type': 'crs'}
 
-    def test_load_so2(self):
-        """Load SO2 dataset."""
-        from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.tropomi_l2.netCDF4.Variable', xr.DataArray):
-            loadables = r.select_files_from_pathnames([
-                'S5P_OFFL_L2__SO2____20181224T055107_20181224T073237_06198_01_010105_20181230T150634.nc',
-            ])
-            r.create_filehandlers(loadables)
-        ds = r.load(['sulfurdioxide_total_vertical_column'])
-        self.assertEqual(len(ds), 1)
-        for d in ds.values():
-            self.assertEqual(d.attrs['platform_shortname'], 'S5P')
-            self.assertIn('area', d.attrs)
-            self.assertIsNotNone(d.attrs['area'])
-            self.assertIn('y', d.dims)
-            self.assertIn('x', d.dims)
+        return AreaDefinition(
+            area_id="gridded_occci",
+            description="Full globe gridded area",
+            proj_id="longlat",
+            projection=proj_dict,
+            area_extent=(-180., -90., 180., 90.),
+            width=4,
+            height=2,
+        )
 
-    def test_load_bounds(self):
-        """Load bounds dataset."""
-        from satpy.readers import load_reader
-        r = load_reader(self.reader_configs)
-        with mock.patch('satpy.readers.tropomi_l2.netCDF4.Variable', xr.DataArray):
-            loadables = r.select_files_from_pathnames([
-                'S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc',
-            ])
-            r.create_filehandlers(loadables)
-        keys = ['latitude_bounds', 'longitude_bounds']
-        ds = r.load(keys)
-        self.assertEqual(len(ds), 2)
-        for key in keys:
-            self.assertEqual(ds[key].attrs['platform_shortname'], 'S5P')
-            self.assertIn('y', ds[key].dims)
-            self.assertIn('x', ds[key].dims)
-            self.assertIn('corner', ds[key].dims)
-            # check assembled bounds
-            left = np.vstack([ds[key][:, :, 0], ds[key][-1:, :, 3]])
-            right = np.vstack([ds[key][:, -1:, 1], ds[key][-1:, -1:, 2]])
-            dest = np.hstack([left, right])
-            dest = xr.DataArray(dest,
-                                dims=('y', 'x')
-                                )
-            dest.attrs = ds[key].attrs
-            self.assertEqual(dest.attrs['platform_shortname'], 'S5P')
-            self.assertIn('y', dest.dims)
-            self.assertIn('x', dest.dims)
-            self.assertEqual(DEFAULT_FILE_SHAPE[0] + 1, dest.shape[0])
-            self.assertEqual(DEFAULT_FILE_SHAPE[1] + 1, dest.shape[1])
-            self.assertIsNone(np.testing.assert_array_equal(dest[:-1, :-1], ds[key][:, :, 0]))
-            self.assertIsNone(np.testing.assert_array_equal(dest[-1, :-1], ds[key][-1, :, 3]))
-            self.assertIsNone(np.testing.assert_array_equal(dest[:, -1],
-                              np.append(ds[key][:, -1, 1], ds[key][-1:, -1:, 2]))
-                              )
+    def test_get_area_def(self, area_exp, fake_file_dict):
+        """Test area definition."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_1m']])
+        res = reader.load([ds_list_all[0]])
+        area = res[ds_list_all[0]].attrs['area']
+
+        assert area.area_id == area_exp.area_id
+        assert area.area_extent == area_exp.area_extent
+        assert area.width == area_exp.width
+        assert area.height == area_exp.height
+        assert area.proj_dict == area_exp.proj_dict
+
+    def test_bad_fname(self, fake_dataset, fake_file_dict):
+        """Test case where an incorrect composite period is given."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['bad_month']])
+        with pytest.raises(ValueError):
+            res = reader.load([ds_list_all[0]])
+        print(res)
+        print(res[ds_list_all[0]].attrs['composite_period'])
+        return
+
+    def test_get_dataset_monthly_allprods(self, fake_dataset, fake_file_dict):
+        """Test dataset loading."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['ocprod_1m']])
+        # Check how many datasets are available. This file contains all of them.
+        assert len(list(reader.available_dataset_names)) == 94
+        res = reader.load(ds_list_all)
+        assert len(res) == len(ds_list_all)
+        for curds in ds_list_all:
+            np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
+            assert res[curds].attrs['sensor'] == 'merged'
+            assert res[curds].attrs['composite_period'] == 'monthly'
+
+    def test_get_dataset_8d_iopprods(self, fake_dataset, fake_file_dict):
+        """Test dataset loading."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['iop_8d']])
+        # Check how many datasets are available. This file contains all of them.
+        assert len(list(reader.available_dataset_names)) == 70
+        res = reader.load(ds_list_iop)
+        assert len(res) == len(ds_list_iop)
+        for curds in ds_list_iop:
+            np.testing.assert_allclose(res[curds].values, fake_dataset[ds_dict[curds]].values)
+            assert res[curds].attrs['sensor'] == 'merged'
+            assert res[curds].attrs['composite_period'] == '8-day'
+
+    def test_start_time(self, fake_file_dict):
+        """Test start time property."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['k490_1d']])
+        assert reader.start_time == datetime(2021, 8, 1, 0, 0, 0)
+
+    def test_end_time(self, fake_file_dict):
+        """Test end time property."""
+        reader = self._create_reader_for_resolutions([fake_file_dict['iop_8d']])
+        assert reader.end_time == datetime(2021, 8, 31, 23, 59, 0)

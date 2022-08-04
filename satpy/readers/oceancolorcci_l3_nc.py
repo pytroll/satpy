@@ -58,7 +58,7 @@ class OCCCIFileHandler(NetCDF4FileHandler):
         """Determine composite period from filename information."""
         comp1 = self.filename_info['composite_period_1']
         comp2 = self.filename_info['composite_period_2']
-        if comp2 == 'MONTHLY':
+        if comp2 == 'MONTHLY' and comp1 == "1M":
             return 'monthly'
         elif comp1 == '1D':
             return 'daily'
@@ -67,6 +67,7 @@ class OCCCIFileHandler(NetCDF4FileHandler):
         elif comp1 == '8D':
             return '8-day'
         else:
+            print("HI", comp1, comp2)
             raise ValueError(f"Unknown data compositing period: {comp1}_{comp2}")
 
     def _update_attrs(self, dataset, dataset_info):
