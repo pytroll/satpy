@@ -646,7 +646,7 @@ class NativeMSGFileHandler(BaseFileHandler):
         orbit_polynomial = poly_finder.get_orbit_polynomial(self.start_time)
         return get_satpos(
             orbit_polynomial=orbit_polynomial,
-            time=self.start_time,
+            time=self.observation_start_time,
             semi_major_axis=self.mda['projection_parameters']['a'],
             semi_minor_axis=self.mda['projection_parameters']['b']
         )

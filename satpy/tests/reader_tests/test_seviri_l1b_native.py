@@ -1202,8 +1202,8 @@ class TestNativeMSGDataset:
         expected = self._exp_data_array()
         xr.testing.assert_equal(dataset, expected)
         assert 'raw_metadata' not in dataset.attrs
-        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 9, 304888)
-        assert file_handler.end_time == datetime(2006, 1, 1, 12, 27, 9, 304888)
+        assert file_handler.start_time == datetime(2006, 1, 1, 12, 15, 0)
+        assert file_handler.end_time == datetime(2006, 1, 1, 12, 30, 0)
         assert_attrs_equal(dataset.attrs, expected.attrs, tolerance=1e-4)
 
     @staticmethod
