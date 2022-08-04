@@ -235,10 +235,16 @@ class HDF_AGRI_L1(HDF5FileHandler):
     def start_time(self):
         """Get the start time."""
         start_time = self['/attr/Observing Beginning Date'] + 'T' + self['/attr/Observing Beginning Time'] + 'Z'
-        return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
 
     @property
     def end_time(self):
         """Get the end time."""
         end_time = self['/attr/Observing Ending Date'] + 'T' + self['/attr/Observing Ending Time'] + 'Z'
-        return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%SZ')
