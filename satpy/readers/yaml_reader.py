@@ -832,7 +832,7 @@ class FileYAMLReader(AbstractYAMLReader, DataDownloadMixin):
         """Get the area for *dsid*."""
         try:
             return self._load_area_def(dsid, file_handlers, **kwargs)
-        except (NotImplementedError, ValueError):
+        except NotImplementedError:
             if any(x is None for x in coords):
                 logger.warning(
                     "Failed to load coordinates for '{}'".format(dsid))

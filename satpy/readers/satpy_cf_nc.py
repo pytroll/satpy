@@ -183,11 +183,11 @@ import json
 import logging
 
 import xarray as xr
+from pyresample import AreaDefinition
 
 from satpy import CHUNK_SIZE
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.file_handlers import BaseFileHandler
-from pyresample import AreaDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -300,8 +300,11 @@ class SatpyCFFileHandler(BaseFileHandler):
 
     def get_area_def(self, dataset_id):
         """Get area definition from CF complient netcdf."""
-        area = AreaDefinition.from_cf(self.filename)
-        return area
+        try:
+            area = AreaDefinition.from_cf(self.filename)
+            return area
+        except NotImplementedError:
+            logger.warning("Failed to load AreaDefinition. Falling back to SwathDefinition.")
 
 
 def _str2dict(val):
