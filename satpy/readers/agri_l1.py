@@ -143,7 +143,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         elif calibration == 'radiance':
             raise NotImplementedError("Calibration to radiance is not supported.")
         # Apply range limits, but not for counts or we convert to float!
-        if calibration != 'counts' and calibration is not None:
+        if calibration not in ['counts', None]:
             data = data.where((data >= min(data.attrs['valid_range'])) &
                               (data <= max(data.attrs['valid_range'])))
         else:
