@@ -19,17 +19,17 @@
 
 import os
 import unittest
-import pytest
 from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
+import pytest
 import xarray as xr
+from pyresample import AreaDefinition
 
 from satpy import Scene
 from satpy.dataset.dataid import WavelengthRange
 from satpy.readers.satpy_cf_nc import SatpyCFFileHandler
-from pyresample import AreaDefinition
 
 
 class TestCFReader(unittest.TestCase):
