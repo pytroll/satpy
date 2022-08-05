@@ -27,7 +27,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from satpy.enhancements import create_colormap
+from satpy.enhancements import create_colormap, on_dask_array, on_separate_bands, using_map_blocks
 
 
 def run_and_check_enhancement(func, data, expected, **kwargs):
@@ -45,6 +45,11 @@ def run_and_check_enhancement(func, data, expected, **kwargs):
     assert old_keys == new_keys
 
     np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
+
+
+def identical_decorator(func):
+    """Decorate but do nothing."""
+    return func
 
 
 class TestEnhancementStretch:
@@ -65,25 +70,22 @@ class TestEnhancementStretch:
                                 coords={'bands': ['R', 'G', 'B']})
 
     @pytest.mark.parametrize(
-        ("pass_dask", "use_map_blocks", "exp_call_cls"),
+        ("decorator", "exp_call_cls"),
         [
-            (False, False, xr.DataArray),
-            (False, True, xr.DataArray),  # no map_blocks
-            (True, False, da.Array),
-            (True, True, np.ndarray),
+            (identical_decorator, xr.DataArray),
+            (on_dask_array, da.Array),
+            (using_map_blocks, np.ndarray),
         ],
     )
     @pytest.mark.parametrize("input_data_name", ["ch1", "ch2", "rgb"])
-    def test_apply_enhancement(self, input_data_name, pass_dask, use_map_blocks, exp_call_cls):
+    def test_apply_enhancement(self, input_data_name, decorator, exp_call_cls):
         """Test the 'apply_enhancement' utility function."""
-        from satpy.enhancements import apply_enhancement
-
         def _enh_func(img):
             def _calc_func(data):
                 assert isinstance(data, exp_call_cls)
                 return data
-
-            return apply_enhancement(img.data, _calc_func, pass_dask=pass_dask, use_map_blocks=use_map_blocks)
+            decorated_func = decorator(_calc_func)
+            return decorated_func(img.data)
 
         in_data = getattr(self, input_data_name)
         exp_data = in_data.values
@@ -444,3 +446,41 @@ class TestColormapLoading:
         assert cmap.values.shape[0] == 4
         assert cmap.values[0] == 2
         assert cmap.values[-1] == 8
+
+
+def test_on_separate_bands():
+    """Test the `on_separate_bands` decorator."""
+    def func(array, index, gain=2):
+        return xr.DataArray(np.ones(array.shape, dtype=array.dtype) * index * gain,
+                            coords=array.coords, dims=array.dims, attrs=array.attrs)
+
+    separate_func = on_separate_bands(func)
+    arr = xr.DataArray(np.zeros((3, 10, 10)), dims=['bands', 'y', 'x'], coords={"bands": ["R", "G", "B"]})
+    assert separate_func(arr).shape == arr.shape
+    assert all(separate_func(arr, gain=1).values[:, 0, 0] == [0, 1, 2])
+
+
+def test_using_map_blocks():
+    """Test the `using_map_blocks` decorator."""
+    def func(np_array, block_info=None):
+        value = block_info[0]['chunk-location'][-1]
+        return np.ones(np_array.shape) * value
+
+    map_blocked_func = using_map_blocks(func)
+    arr = xr.DataArray(da.zeros((3, 10, 10), dtype=int, chunks=5), dims=['bands', 'y', 'x'])
+    res = map_blocked_func(arr)
+    assert res.shape == arr.shape
+    assert res[0, 0, 0].compute() != res[0, 9, 9].compute()
+
+
+def test_on_dask_array():
+    """Test the `on_dask_array` decorator."""
+    def func(dask_array):
+        if not isinstance(dask_array, da.core.Array):
+            pytest.fail("Array is not a dask array")
+        return dask_array
+
+    dask_func = on_dask_array(func)
+    arr = xr.DataArray(da.zeros((3, 10, 10), dtype=int, chunks=5), dims=['bands', 'y', 'x'])
+    res = dask_func(arr)
+    assert res.shape == arr.shape
