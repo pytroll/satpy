@@ -226,7 +226,7 @@ class Test_HDF_AGRI_L1_cal:
 
     yaml_file = "agri_l1.yaml"
 
-    def setup(self):
+    def setup_method(self):
         """Wrap HDF5 file handler with our own fake handler."""
         from satpy._config import config_search_paths
         from satpy.readers.agri_l1 import HDF_AGRI_L1
@@ -253,17 +253,16 @@ class Test_HDF_AGRI_L1_cal:
                     14: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
                     }
 
-    def teardown(self):
+    def teardown_method(self):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_times_correct(self):
         """Test that the reader handles the two possible time formats correctly."""
         reader = self._create_reader_for_resolutions(1000)
-        timestamp_ms = reader.start_time.timestamp()
+        np.testing.assert_almost_equal(reader.start_time.microsecond, 807000)
         reader = self._create_reader_for_resolutions(2000)
-        timestamp_noms = reader.start_time.timestamp()
-        np.testing.assert_almost_equal(timestamp_ms - timestamp_noms, 0.807)
+        np.testing.assert_almost_equal(reader.start_time.microsecond, 0)
 
     def test_fy4a_channels_are_loaded_with_right_resolution(self):
         """Test all channels are loaded with the right resolution."""
