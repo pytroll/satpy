@@ -1,0 +1,16 @@
+reader:
+    name: mimicTPW2_comp
+    short_name: MIMIC TPW v2
+    long_name: MIMIC Total Precipitable Water Product Reader in netCDF format
+    description:  NetCDF4 reader for the MIMIC TPW Version 2.0 product
+    status: Beta
+    supports_fsspec: false
+    sensors: [mimic]
+    reader:  !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    mimicTPW2_comp:
+        file_reader:  !!python/name:satpy.readers.mimic_TPW2_nc.MimicTPW2FileHandler
+        file_patterns: ['comp{start_time:%Y%m%d.%H%M%S}.nc']
+        sensor: ['mimic']
+        platform_name: ['microwave']

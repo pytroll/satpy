@@ -1,0 +1,65 @@
+reader:
+  name: gpm_imerg
+  short_name: GPM/IMERG l3
+  long_name: GPM IMERG level 3 precipitation data in HDF5 format
+  description: HDF5 reader for the GPM/IMERG data
+  status: Nominal
+  supports_fsspec: false
+  sensors: [multiple]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    gpm_imerg_h5:
+        file_reader: !!python/name:satpy.readers.gpm_imerg.Hdf5IMERG
+        file_patterns: ['3B-HHR.MS.MRG.3IMERG.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence:4s}.{version_id:4s}.HDF5',
+                        '3B-HHR-E.MS.MRG.3IMERG.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence:4s}.{version_id:4s}.RT-H5',
+                        '3B-HHR-L.MS.MRG.3IMERG.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence:4s}.{version_id:4s}.RT-H5']
+datasets:
+  HQobservationTime:
+    name: HQobservationTime
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+    units: minutes
+  HQprecipitation:
+    name: HQprecipitation
+    resolution: 3000
+    file_type: gpm_imerg_h5
+    units: mm/hr
+  HQprecipSource:
+    name: HQprecipSource
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+  IRkalmanFilterWeight:
+    name: IRkalmanFilterWeight
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+  IRprecipitation:
+    name: IRprecipitation
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+    units: mm/hr
+  precipitationCal:
+    name: precipitationCal
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+    units: mm/hr
+  precipitationQualityIndex:
+    name: precipitationQualityIndex
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+  precipitationUncal:
+    name: precipitationUncal
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+    units: mm/hr
+  probabilityLiquidPrecipitation:
+    name: probabilityLiquidPrecipitation
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+    units: "%"
+  randomError:
+    name: randomError
+    resolution: 0.1
+    file_type: gpm_imerg_h5
+    units: mm/hr

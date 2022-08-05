@@ -15,12 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-import urllib2
-import h5py
+"""Fetch avhrr calibration coefficients."""
 import datetime as dt
 import os.path
 import sys
+
+import h5py
+import urllib2
 
 BASE_URL = "http://www.star.nesdis.noaa.gov/smcd/spb/fwu/homepage/" + \
            "AVHRR/Op_Cal_AVHRR/"
@@ -49,12 +50,14 @@ URLS = {
      "ch2": BASE_URL + "N19_AVHRR_Libya_ch2.txt"}
 }
 
+
 def get_page(url):
-    '''Retrieve the given page.'''
+    """Retrieve the given page."""
     return urllib2.urlopen(url).read()
 
+
 def get_coeffs(page):
-    '''Parse coefficients from the page.'''
+    """Parse coefficients from the page."""
     coeffs = {}
     coeffs['datetime'] = []
     coeffs['slope1'] = []
@@ -99,27 +102,29 @@ def get_coeffs(page):
 
     return coeffs
 
+
 def get_all_coeffs():
-    '''Get all available calibration coefficients for the satellites.'''
+    """Get all available calibration coefficients for the satellites."""
     coeffs = {}
 
-    for platform in URLS.keys():
+    for platform in URLS:
         if platform not in coeffs:
             coeffs[platform] = {}
         for chan in URLS[platform].keys():
             url = URLS[platform][chan]
-            print url
+            print(url)
             page = get_page(url)
             coeffs[platform][chan] = get_coeffs(page)
 
     return coeffs
 
+
 def save_coeffs(coeffs, out_dir=''):
-    '''Save calibration coefficients to HDF5 files.'''
+    """Save calibration coefficients to HDF5 files."""
     for platform in coeffs.keys():
         fname = os.path.join(out_dir, "%s_calibration_data.h5" % platform)
         fid = h5py.File(fname, 'w')
-        
+
         for chan in coeffs[platform].keys():
             fid.create_group(chan)
             fid[chan]['datetime'] = coeffs[platform][chan]['datetime']
@@ -129,13 +134,15 @@ def save_coeffs(coeffs, out_dir=''):
             fid[chan]['intercept2'] = coeffs[platform][chan]['intercept2']
 
         fid.close()
-        print "Calibration coefficients saved for %s" % platform
+        print("Calibration coefficients saved for %s" % platform)
+
 
 def main():
-    '''Create calibration coefficient files for AVHRR'''
+    """Create calibration coefficient files for AVHRR."""
     out_dir = sys.argv[1]
     coeffs = get_all_coeffs()
     save_coeffs(coeffs, out_dir=out_dir)
+
 
 if __name__ == "__main__":
     main()

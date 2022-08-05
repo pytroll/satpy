@@ -1,0 +1,25 @@
+enhancements:
+  airmass:
+    # matches ABI
+    standard_name: airmass
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-26.2, -43.2, 243.9]
+          max_stretch: [0.6, 6.7, 208.5]
+
+  true_color_reproduction:
+    standard_name: true_color_reproduction
+    operations:
+      - name: color
+        method: !!python/name:satpy.enhancements.ahi.jma_true_color_reproduction
+      - name: cira_stretch
+        method: !!python/name:satpy.enhancements.cira_stretch
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0.08, 0.08, 0.08]
+          max_stretch: [.93, .90, .90]

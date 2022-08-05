@@ -23,16 +23,18 @@ of writing.
 
 """
 import logging
-import numpy as np
-import xarray as xr
-import dask.array as da
-from pyproj import Proj
-from pyresample import geometry
 from datetime import datetime
 
-from satpy import DatasetID, CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
+import dask.array as da
+import numpy as np
 import pygrib
+import xarray as xr
+from pyproj import Proj
+from pyresample import geometry
+
+from satpy import CHUNK_SIZE
+from satpy.dataset import DataQuery
+from satpy.readers.file_handlers import BaseFileHandler
 
 LOG = logging.getLogger(__name__)
 
@@ -43,8 +45,10 @@ CF_UNITS = {
 
 
 class GRIBFileHandler(BaseFileHandler):
+    """Generic GRIB file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Open grib file and do initial message parsing."""
         super(GRIBFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         self._msg_datasets = {}
@@ -73,8 +77,9 @@ class GRIBFileHandler(BaseFileHandler):
     def _analyze_messages(self, grib_file):
         grib_file.seek(0)
         for idx, msg in enumerate(grib_file):
-            msg_id = DatasetID(name=msg['shortName'],
-                               level=msg['level'])
+            msg_id = DataQuery(name=msg['shortName'],
+                               level=msg['level'],
+                               modifiers=tuple())
             ds_info = {
                 'message': idx + 1,
                 'name': msg['shortName'],
@@ -90,16 +95,16 @@ class GRIBFileHandler(BaseFileHandler):
             id_keys = [keys[k]['id_key'] for k in ordered_keys]
             msg_info = dict(zip(ordered_keys, id_vals))
             ds_info = dict(zip(id_keys, id_vals))
-            msg_id = DatasetID(**ds_info)
+            msg_id = DataQuery(**ds_info)
             ds_info = msg_id.to_dict()
             ds_info.update(msg_info)
             ds_info['file_type'] = self.filetype_info['file_type']
             self._msg_datasets[msg_id] = ds_info
 
     @staticmethod
-    def _convert_datetime(msg, date_key, time_key, format="%Y%m%d%H%M"):
+    def _convert_datetime(msg, date_key, time_key, date_format="%Y%m%d%H%M"):
         date_str = "{:d}{:04d}".format(msg[date_key], msg[time_key])
-        return datetime.strptime(date_str, format)
+        return datetime.strptime(date_str, date_format)
 
     @property
     def start_time(self):
@@ -120,7 +125,7 @@ class GRIBFileHandler(BaseFileHandler):
         return self._end_time
 
     def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file"""
+        """Automatically determine datasets provided by this file."""
         # previously configured or provided datasets
         # we can't provide any additional information
         for is_avail, ds_info in (configured_datasets or []):
@@ -139,62 +144,100 @@ class GRIBFileHandler(BaseFileHandler):
                 msg = self._idx(**{k: ds_info[k] for k in msg_keys})[0]
             return msg
 
-    def _area_def_from_msg(self, msg):
-        proj_params = msg.projparams.copy()
+    @staticmethod
+    def _correct_cyl_minmax_xy(proj_params, min_lon, min_lat, max_lon, max_lat):
+        proj = Proj(**proj_params)
+        min_x, min_y = proj(min_lon, min_lat)
+        max_x, max_y = proj(max_lon, max_lat)
+        if max_x <= min_x:
+            # wrap around
+            # make 180 longitude the prime meridian
+            # assuming we are going from 0 to 360 longitude
+            proj_params['pm'] = 180
+            proj = Proj(**proj_params)
+            # recompute x/y extents with this new projection
+            min_x, min_y = proj(min_lon, min_lat)
+            max_x, max_y = proj(max_lon, max_lat)
+        return proj_params, (min_x, min_y, max_x, max_y)
+
+    @staticmethod
+    def _get_cyl_minmax_lonlat(lons, lats):
+        min_lon = lons[0]
+        max_lon = lons[-1]
+        min_lat = lats[0]
+        max_lat = lats[-1]
+        if min_lat > max_lat:
+            # lats aren't in the order we thought they were, flip them
+            min_lat, max_lat = max_lat, min_lat
+        return min_lon, min_lat, max_lon, max_lat
+
+    def _get_cyl_area_info(self, msg, proj_params):
+        proj_params['proj'] = 'eqc'
+        lons = msg['distinctLongitudes']
+        lats = msg['distinctLatitudes']
+        shape = (lats.shape[0], lons.shape[0])
+        minmax_lonlat = self._get_cyl_minmax_lonlat(lons, lats)
+        proj_params, minmax_xy = self._correct_cyl_minmax_xy(proj_params, *minmax_lonlat)
+        extents = self._get_extents(*minmax_xy, shape)
+        return proj_params, shape, extents
+
+    @staticmethod
+    def _get_extents(min_x, min_y, max_x, max_y, shape):
+        half_x = abs((max_x - min_x) / (shape[1] - 1)) / 2.
+        half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
+        return min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y
+
+    @staticmethod
+    def _get_corner_xy(proj_params, lons, lats, scans_positively):
+        proj = Proj(**proj_params)
+        x, y = proj(lons, lats)
+        if scans_positively:
+            min_x, min_y = x[0], y[0]
+            max_x, max_y = x[3], y[3]
+        else:
+            min_x, min_y = x[2], y[2]
+            max_x, max_y = x[1], y[1]
+        return min_x, min_y, max_x, max_y
+
+    @staticmethod
+    def _get_corner_lonlat(proj_params, lons, lats):
+        # take the corner points only
+        lons = lons[([0, 0, -1, -1], [0, -1, 0, -1])]
+        lats = lats[([0, 0, -1, -1], [0, -1, 0, -1])]
+        # if we have longitudes over 180, assume 0-360
+        if (lons > 180).any():
+            # make 180 longitude the prime meridian
+            proj_params['pm'] = 180
+        return proj_params, lons, lats
+
+    def _get_area_info(self, msg, proj_params):
+        lats, lons = msg.latlons()
+        shape = lats.shape
+        scans_positively = (msg.valid_key('jScansPositively') and
+                            msg['jScansPositively'] == 1)
+        proj_params, lons, lats = self._get_corner_lonlat(
+            proj_params, lons, lats)
+        minmax_xy = self._get_corner_xy(proj_params, lons, lats, scans_positively)
+        extents = self._get_extents(*minmax_xy, shape)
+        return proj_params, shape, extents
+
+    @staticmethod
+    def _correct_proj_params_over_prime_meridian(proj_params):
         # correct for longitudes over 180
         for lon_param in ['lon_0', 'lon_1', 'lon_2']:
             if proj_params.get(lon_param, 0) > 180:
                 proj_params[lon_param] -= 360
+        return proj_params
 
-        if proj_params['proj'] == 'cyl':
-            proj_params['proj'] = 'eqc'
-            proj = Proj(**proj_params)
-            lons = msg['distinctLongitudes']
-            lats = msg['distinctLatitudes']
-            min_lon = lons[0]
-            max_lon = lons[-1]
-            min_lat = lats[0]
-            max_lat = lats[-1]
-            if min_lat > max_lat:
-                # lats aren't in the order we thought they were, flip them
-                # we also need to flip the data in the data loading section
-                min_lat, max_lat = max_lat, min_lat
-            shape = (lats.shape[0], lons.shape[0])
-            min_x, min_y = proj(min_lon, min_lat)
-            max_x, max_y = proj(max_lon, max_lat)
-            if max_x < min_x and 'over' not in proj_params:
-                # wrap around
-                proj_params['over'] = True
-                proj = Proj(**proj_params)
-                max_x, max_y = proj(max_lon, max_lat)
-            pixel_size_x = (max_x - min_x) / (shape[1] - 1)
-            pixel_size_y = (max_y - min_y) / (shape[0] - 1)
-            extents = (
-                min_x - pixel_size_x / 2.,
-                min_y - pixel_size_y / 2.,
-                max_x + pixel_size_x / 2.,
-                max_y + pixel_size_y / 2.,
-            )
+    def _area_def_from_msg(self, msg):
+        proj_params = msg.projparams.copy()
+        proj_params = self._correct_proj_params_over_prime_meridian(proj_params)
+
+        if proj_params['proj'] in ('cyl', 'eqc'):
+            # eqc projection that goes from 0 to 360
+            proj_params, shape, extents = self._get_cyl_area_info(msg, proj_params)
         else:
-            lats, lons = msg.latlons()
-            shape = lats.shape
-            # take the corner points only
-            lons = lons[([0, 0, -1, -1], [0, -1, 0, -1])]
-            lats = lats[([0, 0, -1, -1], [0, -1, 0, -1])]
-            # correct for longitudes over 180
-            lons[lons > 180] -= 360
-
-            proj = Proj(**proj_params)
-            x, y = proj(lons, lats)
-            if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
-                min_x, min_y = x[0], y[0]
-                max_x, max_y = x[3], y[3]
-            else:
-                min_x, min_y = x[2], y[2]
-                max_x, max_y = x[1], y[1]
-            half_x = abs((max_x - min_x) / (shape[1] - 1)) / 2.
-            half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
-            extents = (min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y)
+            proj_params, shape, extents = self._get_area_info(msg, proj_params)
 
         return geometry.AreaDefinition(
             'on-the-fly grib area',
@@ -219,6 +262,7 @@ class GRIBFileHandler(BaseFileHandler):
             raise RuntimeError("Unknown GRIB projection information")
 
     def get_metadata(self, msg, ds_info):
+        """Get metadata."""
         model_time = self._convert_datetime(msg, 'dataDate',
                                             'dataTime')
         start_time = self._convert_datetime(msg, 'validityDate',
@@ -228,25 +272,33 @@ class GRIBFileHandler(BaseFileHandler):
             center_description = msg['centreDescription']
         except (RuntimeError, KeyError):
             center_description = None
+
+        key_dicts = {
+            'shortName': 'shortName',
+            'long_name': 'name',
+            'pressureUnits': 'pressureUnits',
+            'typeOfLevel': 'typeOfLevel',
+            'standard_name': 'cfName',
+            'units': 'units',
+            'modelName': 'modelName',
+            'valid_min': 'minimum',
+            'valid_max': 'maximum',
+            'sensor': 'modelName'}
+
         ds_info.update({
             'filename': self.filename,
-            'shortName': msg['shortName'],
-            'long_name': msg['name'],
-            'pressureUnits': msg['pressureUnits'],
-            'typeOfLevel': msg['typeOfLevel'],
-            'standard_name': msg['cfName'],
-            'units': msg['units'],
-            'modelName': msg['modelName'],
             'model_time': model_time,
             'centreDescription': center_description,
-            'valid_min': msg['minimum'],
-            'valid_max': msg['maximum'],
             'start_time': start_time,
             'end_time': end_time,
-            'sensor': msg['modelName'],
-            # National Weather Prediction
-            'platform_name': 'unknown',
-        })
+            'platform_name': 'unknown'})
+
+        for key in key_dicts:
+            if key_dicts[key] in msg.keys():
+                ds_info[key] = msg[key_dicts[key]]
+            else:
+                ds_info[key] = 'unknown'
+
         return ds_info
 
     def get_dataset(self, dataset_id, ds_info):

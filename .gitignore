@@ -33,6 +33,9 @@ htmlcov
 #Translations
 *.mo
 
+#Sphinx
+doc/source/_build/*
+
 #Mr Developer
 .mr.developer.cfg
 
@@ -70,3 +73,5 @@ htmlcov
 # setuptools_scm files
 # this should be generated automatically when installed
 satpy/version.py
+doc/source/api/*.rst
+doc/source/reader_table.rst

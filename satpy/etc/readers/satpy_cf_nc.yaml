@@ -1,0 +1,19 @@
+reader:
+    name: satpy_cf_nc
+    short_name: Satpy CF
+    long_name: Reader for CF conform netCDF files written with Satpy
+    description: Reader for Satpy's NC/CF files
+    status: Nominal
+    supports_fsspec: false
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [many]
+    default_channels: []
+
+#datasets:
+
+file_types:
+    graphic:
+        file_reader: !!python/name:satpy.readers.satpy_cf_nc.SatpyCFFileHandler
+        file_patterns:
+         - '{platform_name}-{sensor}-{resolution_type}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'
+         - '{platform_name}-{sensor}-{start_time:%Y%m%d%H%M%S}-{end_time:%Y%m%d%H%M%S}.nc'

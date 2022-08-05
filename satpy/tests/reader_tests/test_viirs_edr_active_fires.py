@@ -22,26 +22,18 @@ readers.
 
 """
 
-import sys
-import os
-import numpy as np
 import io
+import os
+import unittest
+from unittest import mock
+
 import dask.dataframe as dd
+import numpy as np
 import pandas as pd
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 DEFAULT_FILE_SHAPE = (1, 100)
 
@@ -49,7 +41,7 @@ DEFAULT_LATLON_FILE_DTYPE = np.float32
 DEFAULT_LATLON_FILE_DATA = np.arange(start=43, stop=45, step=0.02,
                                      dtype=DEFAULT_LATLON_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
-DEFAULT_DETECTION_FILE_DTYPE = np.ubyte
+DEFAULT_DETECTION_FILE_DTYPE = np.uint8
 DEFAULT_DETECTION_FILE_DATA = np.arange(start=60, stop=100, step=0.4,
                                         dtype=DEFAULT_DETECTION_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
@@ -98,12 +90,12 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content['satellite_name'] = "npp"
         file_content['sensor'] = 'VIIRS'
 
-        file_content['FP_latitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['FP_longitude'] = DEFAULT_LATLON_FILE_DATA
-        file_content['FP_power'] = DEFAULT_POWER_FILE_DATA
-        file_content['FP_T4'] = DEFAULT_M13_FILE_DATA
-        file_content['FP_T4/attr/units'] = 'kelvins'
-        file_content['FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
+        file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
+        file_content['Fire Pixels/FP_longitude'] = DEFAULT_LATLON_FILE_DATA
+        file_content['Fire Pixels/FP_power'] = DEFAULT_POWER_FILE_DATA
+        file_content['Fire Pixels/FP_T4'] = DEFAULT_M13_FILE_DATA
+        file_content['Fire Pixels/FP_T4/attr/units'] = 'kelvins'
+        file_content['Fire Pixels/FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
 
         attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
         convert_file_content_to_data_array(
@@ -169,7 +161,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeModFiresNetCDF4FileHandler,))
@@ -187,7 +179,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
@@ -203,6 +195,8 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], '%')
+            self.assertEqual(v.attrs['_FillValue'], 255)
+            self.assertTrue(np.issubdtype(v.dtype, DEFAULT_DETECTION_FILE_DTYPE))
 
         datasets = r.load(['T13'])
         self.assertEqual(len(datasets), 1)
@@ -214,7 +208,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
             self.assertEqual(v.attrs['platform_name'], 'NOAA-21')
-            self.assertEqual(v.attrs['sensor'], 'VIIRS')
+            self.assertEqual(v.attrs['sensor'], 'viirs')
 
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
@@ -224,7 +218,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeImgFiresNetCDF4FileHandler,))
@@ -242,7 +236,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
@@ -271,7 +265,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
             self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
-            self.assertEqual(v.attrs['sensor'], 'VIIRS')
+            self.assertEqual(v.attrs['sensor'], 'viirs')
 
 
 @mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
@@ -282,7 +276,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
 
     def setUp(self):
         """Wrap file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeModFiresTextFileHandler,))
@@ -300,7 +294,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
@@ -338,7 +332,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
 
     def setUp(self):
         """Wrap file handler with own fake file handler."""
-        from satpy.config import config_search_paths
+        from satpy._config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeImgFiresTextFileHandler,))
@@ -356,7 +350,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
@@ -386,15 +380,3 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
             self.assertEqual(v.attrs['units'], 'MW')
             self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
-
-
-def suite():
-    """Create test suite for testing viirs active fires."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresNetCDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresText))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresNetCDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresText))
-
-    return mysuite

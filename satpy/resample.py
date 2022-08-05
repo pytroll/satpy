@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy resampling module.
+"""Resampling in Satpy.
 
 Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
@@ -34,13 +34,15 @@ Resampling algorithms
 
     "Resampler", "Description", "Related"
     "nearest", "Nearest Neighbor", :class:`~satpy.resample.KDTreeResampler`
-    "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
+    "ewa", "Elliptical Weighted Averaging", :class:`~pyresample.ewa.DaskEWAResampler`
+    "ewa_legacy", "Elliptical Weighted Averaging (Legacy)", :class:`~pyresample.ewa.LegacyDaskEWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
     "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
     "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.BucketAvg`
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
     "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.BucketFraction`
+    "gradient_search", "Gradient Search Resampling", :class:`~pyresample.gradient.GradientSearchResampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -48,7 +50,7 @@ argument and defaults to ``nearest``:
 .. code-block:: python
 
     >>> scn = Scene(...)
-    >>> euro_scn = global_scene.resample('euro4', resampler='nearest')
+    >>> euro_scn = scn.resample('euro4', resampler='nearest')
 
 .. warning::
 
@@ -70,13 +72,13 @@ when generating composites between bands of different resolutions.
     >>> new_scn = scn.resample(resampler='native')
 
 By default this resamples to the
-:meth:`highest resolution area <satpy.scene.Scene.max_area>` (smallest footprint per
-pixel) shared between the loaded datasets. You can easily specify the lower
+:meth:`highest resolution area <satpy.scene.Scene.finest_area>` (smallest footprint per
+pixel) shared between the loaded datasets. You can easily specify the lowest
 resolution area:
 
 .. code-block:: python
 
-    >>> new_scn = scn.resample(scn.min_area(), resampler='native')
+    >>> new_scn = scn.resample(scn.coarsest_area(), resampler='native')
 
 Providing an area that is neither the minimum or maximum resolution area
 may work, but behavior is currently undefined.
@@ -105,7 +107,7 @@ areas that can be passed to the resample method::
 
     >>> from pyresample.geometry import AreaDefinition
     >>> my_area = AreaDefinition(...)
-    >>> local_scene = global_scene.resample(my_area)
+    >>> local_scene = scn.resample(my_area)
 
 Create dynamic area definition
 ------------------------------
@@ -117,42 +119,57 @@ Examples coming soon...
 Store area definitions
 ----------------------
 
-Area definitions can be added to a custom YAML file (see
-`pyresample's documentation <http://pyresample.readthedocs.io/en/stable/geo_def.html#pyresample-utils>`_
-for more information)
-and loaded using pyresample's utility methods::
+Area definitions can be saved to a custom YAML file (see
+`pyresample's writing to disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#writing-to-disk>`_)
+and loaded using pyresample's utility methods
+(`pyresample's loading from disk <http://pyresample.readthedocs.io/en/stable/geometry_utils.html#loading-from-disk>`_)::
 
-    >>> from pyresample.utils import parse_area_file
-    >>> my_area = parse_area_file('my_areas.yaml', 'my_area')[0]
+    >>> from pyresample import load_area
+    >>> my_area = load_area('my_areas.yaml', 'my_area')
 
-Examples coming soon...
+Or using :func:`satpy.resample.get_area_def`, which will search through all
+``areas.yaml`` files in your ``SATPY_CONFIG_PATH``::
+
+    >>> from satpy.resample import get_area_def
+    >>> area_eurol = get_area_def("eurol")
+
+For examples of area definitions, see the file ``etc/areas.yaml`` that is
+included with Satpy and where all the area definitions shipped with Satpy are
+defined.
 
 """
 import hashlib
 import json
 import os
+import warnings
 from logging import getLogger
 from weakref import WeakValueDictionary
 
-import numpy as np
-import xarray as xr
 import dask
 import dask.array as da
+import numpy as np
+import pyresample
+import xarray as xr
 import zarr
-import six
-
+from packaging import version
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
-from pyresample.kd_tree import XArrayResamplerNN
-from pyresample.bilinear.xarr import XArrayResamplerBilinear
-from pyresample import bucket
+
+try:
+    from pyresample.resampler import BaseResampler as PRBaseResampler
+except ImportError:
+    PRBaseResampler = None
+try:
+    from pyresample.gradient import GradientSearchResampler
+except ImportError:
+    GradientSearchResampler = None
+try:
+    from pyresample.ewa import DaskEWAResampler, LegacyDaskEWAResampler
+except ImportError:
+    DaskEWAResampler = LegacyDaskEWAResampler = None
+
 from satpy import CHUNK_SIZE
-from satpy.config import config_search_paths, get_config_path
-
-# In Python3 os.mkdir raises FileExistsError, in Python2 OSError
-if six.PY2:
-    FileExistsError = OSError
-
+from satpy._config import config_search_paths, get_config_path
 
 LOG = getLogger(__name__)
 
@@ -168,13 +185,15 @@ BIL_COORDINATES = {'bilinear_s': ('x1', ),
                    'out_coords_x': ('x2', ),
                    'out_coords_y': ('y2', )}
 
-resamplers_cache = WeakValueDictionary()
+resamplers_cache: "WeakValueDictionary[tuple, object]" = WeakValueDictionary()
+
+PR_USE_SKIPNA = version.parse(pyresample.__version__) > version.parse("1.17.0")
 
 
 def hash_dict(the_dict, the_hash=None):
     """Calculate a hash for a dictionary."""
     if the_hash is None:
-        the_hash = hashlib.sha1()
+        the_hash = hashlib.sha1()  # nosec
     the_hash.update(json.dumps(the_dict, sort_keys=True).encode('utf-8'))
     return the_hash
 
@@ -194,7 +213,7 @@ def get_area_file():
 def get_area_def(area_name):
     """Get the definition of *area_name* from file.
 
-    The file is defined to use is to be placed in the $PPP_CONFIG_DIR
+    The file is defined to use is to be placed in the $SATPY_CONFIG_PATH
     directory, and its name is defined in satpy's configuration file.
     """
     try:
@@ -223,14 +242,12 @@ def add_xy_coords(data_arr, area, crs=None):
     if 'x' in data_arr.coords and 'y' in data_arr.coords:
         # x/y coords already provided
         return data_arr
-    elif 'x' not in data_arr.dims or 'y' not in data_arr.dims:
+    if 'x' not in data_arr.dims or 'y' not in data_arr.dims:
         # no defined x and y dimensions
         return data_arr
-
-    if hasattr(area, 'get_proj_vectors'):
-        x, y = area.get_proj_vectors()
-    else:
+    if not hasattr(area, 'get_proj_vectors'):
         return data_arr
+    x, y = area.get_proj_vectors()
 
     # convert to DataArrays
     y_attrs = {}
@@ -276,8 +293,11 @@ def add_crs_xy_coords(data_arr, area):
         # default lat/lon projection
         latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
         # otherwise get it from the area definition
-        proj_str = getattr(area, 'proj_str', latlon_proj)
-        crs = CRS.from_string(proj_str)
+        if hasattr(area, 'crs'):
+            crs = area.crs
+        else:
+            proj_str = getattr(area, 'proj_str', latlon_proj)
+            crs = CRS.from_string(proj_str)
         data_arr = data_arr.assign_coords(crs=crs)
 
     # Add x/y coordinates if possible
@@ -414,15 +434,14 @@ class BaseResampler(object):
             else:
                 kwargs['mask'] = data.isnull()
             kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
+
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
-    def _create_cache_filename(self, cache_dir=None, prefix='',
+    def _create_cache_filename(self, cache_dir, prefix='',
                                fmt='.zarr', **kwargs):
         """Create filename for the cached resampling parameters."""
-        cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
-
         return os.path.join(cache_dir, prefix + hash_str + fmt)
 
 
@@ -463,29 +482,18 @@ class KDTreeResampler(BaseResampler):
         where data points are invalid.
 
         """
+        from pyresample.kd_tree import XArrayResamplerNN
         del kwargs
-        source_geo_def = self.source_geo_def
-
         if mask is not None and cache_dir is not None:
             LOG.warning("Mask and cache_dir both provided to nearest "
                         "resampler. Cached parameters are affected by "
                         "masked pixels. Will not cache results.")
             cache_dir = None
-        # TODO: move this to pyresample
-        if radius_of_influence is None:
-            try:
-                radius_of_influence = source_geo_def.lons.resolution * 3
-            except AttributeError:
-                try:
-                    radius_of_influence = max(abs(source_geo_def.pixel_size_x),
-                                              abs(source_geo_def.pixel_size_y)) * 3
-                except AttributeError:
-                    radius_of_influence = 1000
 
-            except TypeError:
-                radius_of_influence = 10000
+        if radius_of_influence is None and not hasattr(self.source_geo_def, 'geocentric_resolution'):
+            radius_of_influence = self._adjust_radius_of_influence(radius_of_influence)
 
-        kwargs = dict(source_geo_def=source_geo_def,
+        kwargs = dict(source_geo_def=self.source_geo_def,
                       target_geo_def=self.target_geo_def,
                       radius_of_influence=radius_of_influence,
                       neighbours=1,
@@ -503,6 +511,22 @@ class KDTreeResampler(BaseResampler):
             self.resampler.get_neighbour_info(mask=mask)
             self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
 
+    def _adjust_radius_of_influence(self, radius_of_influence):
+        """Adjust radius of influence."""
+        warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
+        try:
+            radius_of_influence = self.source_geo_def.lons.resolution * 3
+        except AttributeError:
+            try:
+                radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
+                                          abs(self.source_geo_def.pixel_size_y)) * 3
+            except AttributeError:
+                radius_of_influence = 1000
+
+        except TypeError:
+            radius_of_influence = 10000
+        return radius_of_influence
+
     def _apply_cached_index(self, val, idx_name, persist=False):
         """Reassign resampler index attributes."""
         if isinstance(val, np.ndarray):
@@ -515,6 +539,8 @@ class KDTreeResampler(BaseResampler):
     def _check_numpy_cache(self, cache_dir, mask=None,
                            **kwargs):
         """Check if there's Numpy cache file and convert it to zarr."""
+        if cache_dir is None:
+            return
         fname_np = self._create_cache_filename(cache_dir,
                                                prefix='resample_lut-',
                                                mask=mask, fmt='.npz',
@@ -543,19 +569,20 @@ class KDTreeResampler(BaseResampler):
         cached = {}
         self._check_numpy_cache(cache_dir, mask=mask_name, **kwargs)
 
-        filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
-                                               mask=mask_name, **kwargs)
-        for idx_name in NN_COORDINATES.keys():
+        for idx_name in NN_COORDINATES:
             if mask_name in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
                 try:
+                    filename = self._create_cache_filename(
+                        cache_dir, prefix='nn_lut-',
+                        mask=mask_name, **kwargs)
                     fid = zarr.open(filename, 'r')
                     cache = np.array(fid[idx_name])
                     if idx_name == 'valid_input_index':
                         # valid input index array needs to be boolean
-                        cache = cache.astype(np.bool)
+                        cache = cache.astype(bool)
                 except ValueError:
                     raise IOError
                 cache = self._apply_cached_index(cache, idx_name)
@@ -584,11 +611,13 @@ class KDTreeResampler(BaseResampler):
             zarr_out.to_zarr(filename)
 
             self._index_caches[mask_name] = cache
+            # Delete the kdtree, it's not needed anymore
+            self.resampler.delayed_kdtree = None
 
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
         return {attr_name: getattr(self.resampler, attr_name)
-                for attr_name in NN_COORDINATES.keys()}
+                for attr_name in NN_COORDINATES}
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
@@ -599,7 +628,7 @@ class KDTreeResampler(BaseResampler):
         return update_resampled_coords(data, res, self.target_geo_def)
 
 
-class EWAResampler(BaseResampler):
+class _LegacySatpyEWAResampler(BaseResampler):
     """Resample using an elliptical weighted averaging algorithm.
 
     This algorithm does **not** use caching or any externally provided data
@@ -644,8 +673,11 @@ class EWAResampler(BaseResampler):
     """
 
     def __init__(self, source_geo_def, target_geo_def):
-        """Init EWAResampler."""
-        super(EWAResampler, self).__init__(source_geo_def, target_geo_def)
+        """Init _LegacySatpyEWAResampler."""
+        warnings.warn("A new version of pyresample is available. Please "
+                      "upgrade to get access to a newer 'ewa' and "
+                      "'ewa_legacy' resampler.")
+        super(_LegacySatpyEWAResampler, self).__init__(source_geo_def, target_geo_def)
         self.cache = {}
 
     def resample(self, *args, **kwargs):
@@ -658,7 +690,7 @@ class EWAResampler(BaseResampler):
 
         """
         kwargs.setdefault('mask_area', False)
-        return super(EWAResampler, self).resample(*args, **kwargs)
+        return super(_LegacySatpyEWAResampler, self).resample(*args, **kwargs)
 
     def _call_ll2cr(self, lons, lats, target_geo_def, swath_usage=0):
         """Wrap ll2cr() for handling dask delayed calls better."""
@@ -821,6 +853,11 @@ class BilinearResampler(BaseResampler):
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
+        try:
+            from pyresample.bilinear import XArrayBilinearResampler
+        except ImportError:
+            from pyresample.bilinear import XArrayResamplerBilinear as XArrayBilinearResampler
+
         del kwargs
         del mask
 
@@ -829,10 +866,9 @@ class BilinearResampler(BaseResampler):
                           target_geo_def=self.target_geo_def,
                           radius_of_influence=radius_of_influence,
                           neighbours=32,
-                          epsilon=epsilon,
-                          reduce_data=reduce_data)
+                          epsilon=epsilon)
 
-            self.resampler = XArrayResamplerBilinear(**kwargs)
+            self.resampler = XArrayBilinearResampler(**kwargs)
             try:
                 self.load_bil_info(cache_dir, **kwargs)
                 LOG.debug("Loaded bilinear parameters")
@@ -849,11 +885,10 @@ class BilinearResampler(BaseResampler):
                                                    prefix='bil_lut-',
                                                    **kwargs)
             try:
-                fid = zarr.open(filename, 'r')
-                for val in BIL_COORDINATES.keys():
-                    cache = np.array(fid[val])
-                    setattr(self.resampler, val, cache)
-            except ValueError:
+                self.resampler.load_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
                 raise IOError
         else:
             raise IOError
@@ -868,15 +903,11 @@ class BilinearResampler(BaseResampler):
             if os.path.exists(filename):
                 _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
-            zarr_out = xr.Dataset()
-            for idx_name, coord in BIL_COORDINATES.items():
-                var = getattr(self.resampler, idx_name)
-                if isinstance(var, np.ndarray):
-                    var = da.from_array(var, chunks=CHUNK_SIZE)
-                else:
-                    var = var.rechunk(CHUNK_SIZE)
-                zarr_out[idx_name] = (coord, var)
-            zarr_out.to_zarr(filename)
+            try:
+                self.resampler.save_resampling_info(filename)
+            except AttributeError:
+                warnings.warn("Bilinear resampler can't handle caching, "
+                              "please upgrade Pyresample to 0.17.0 or newer.")
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
@@ -899,7 +930,7 @@ def _move_existing_caches(cache_dir, filename):
     import shutil
     old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
     try:
-        os.mkdir(old_cache_dir)
+        os.makedirs(old_cache_dir)
     except FileExistsError:
         pass
     try:
@@ -917,6 +948,17 @@ def _mean(data, y_size, x_size):
                  int(cols / x_size), int(x_size))
     data_mean = np.nanmean(data.reshape(new_shape), axis=(1, 3))
     return data_mean
+
+
+def _repeat_by_factor(data, block_info=None):
+    if block_info is None:
+        return data
+    out_shape = block_info[None]['chunk-shape']
+    out_data = data
+    for axis, axis_size in enumerate(out_shape):
+        in_size = data.shape[axis]
+        out_data = np.repeat(out_data, int(axis_size / in_size), axis=axis)
+    return out_data
 
 
 class NativeResampler(BaseResampler):
@@ -942,7 +984,7 @@ class NativeResampler(BaseResampler):
                                                      **kwargs)
 
     @staticmethod
-    def aggregate(d, y_size, x_size):
+    def _aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array."""
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
@@ -960,42 +1002,55 @@ class NativeResampler(BaseResampler):
 
         new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
                       tuple(int(x / x_size) for x in d.chunks[1]))
-        return da.core.map_blocks(_mean, d, y_size, x_size, dtype=d.dtype, chunks=new_chunks)
+        return da.core.map_blocks(_mean, d, y_size, x_size,
+                                  meta=np.array((), dtype=d.dtype),
+                                  dtype=d.dtype, chunks=new_chunks)
+
+    @staticmethod
+    def _replicate(d_arr, repeats):
+        """Repeat data pixels by the per-axis factors specified."""
+        # rechunk so new chunks are the same size as old chunks
+        c_size = max(x[0] for x in d_arr.chunks)
+
+        def _calc_chunks(c, c_size):
+            whole_chunks = [c_size] * int(sum(c) // c_size)
+            remaining = sum(c) - sum(whole_chunks)
+            if remaining:
+                whole_chunks += [remaining]
+            return tuple(whole_chunks)
+        new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
+                      for axis, x in enumerate(d_arr.chunks)]
+        d_arr = d_arr.rechunk(new_chunks)
+
+        repeated_chunks = []
+        for axis, axis_chunks in enumerate(d_arr.chunks):
+            factor = repeats[axis]
+            if not factor.is_integer():
+                raise ValueError("Expand factor must be a whole number")
+            repeated_chunks.append(tuple(x * int(factor) for x in axis_chunks))
+        repeated_chunks = tuple(repeated_chunks)
+        d_arr = d_arr.map_blocks(_repeat_by_factor,
+                                 meta=np.array((), dtype=d_arr.dtype),
+                                 dtype=d_arr.dtype,
+                                 chunks=repeated_chunks)
+        return d_arr
 
     @classmethod
-    def expand_reduce(cls, d_arr, repeats):
+    def _expand_reduce(cls, d_arr, repeats):
         """Expand reduce."""
         if not isinstance(d_arr, da.Array):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
         if all(x == 1 for x in repeats.values()):
             return d_arr
-        elif all(x >= 1 for x in repeats.values()):
-            # rechunk so new chunks are the same size as old chunks
-            c_size = max(x[0] for x in d_arr.chunks)
-
-            def _calc_chunks(c, c_size):
-                whole_chunks = [c_size] * int(sum(c) // c_size)
-                remaining = sum(c) - sum(whole_chunks)
-                if remaining:
-                    whole_chunks += [remaining]
-                return tuple(whole_chunks)
-            new_chunks = [_calc_chunks(x, int(c_size // repeats[axis]))
-                          for axis, x in enumerate(d_arr.chunks)]
-            d_arr = d_arr.rechunk(new_chunks)
-
-            for axis, factor in repeats.items():
-                if not factor.is_integer():
-                    raise ValueError("Expand factor must be a whole number")
-                d_arr = da.repeat(d_arr, int(factor), axis=axis)
-            return d_arr
-        elif all(x <= 1 for x in repeats.values()):
+        if all(x >= 1 for x in repeats.values()):
+            return cls._replicate(d_arr, repeats)
+        if all(x <= 1 for x in repeats.values()):
             # reduce
             y_size = 1. / repeats[0]
             x_size = 1. / repeats[1]
-            return cls.aggregate(d_arr, y_size, x_size)
-        else:
-            raise ValueError("Must either expand or reduce in both "
-                             "directions")
+            return cls._aggregate(d_arr, y_size, x_size)
+        raise ValueError("Must either expand or reduce in both "
+                         "directions")
 
     def compute(self, data, expand=True, **kwargs):
         """Resample data with NativeResampler."""
@@ -1026,21 +1081,43 @@ class NativeResampler(BaseResampler):
         repeats[y_axis] = y_repeats
         repeats[x_axis] = x_repeats
 
-        d_arr = self.expand_reduce(data.data, repeats)
+        d_arr = self._expand_reduce(data.data, repeats)
         new_data = xr.DataArray(d_arr, dims=data.dims)
         return update_resampled_coords(data, new_data, target_geo_def)
 
 
+def _get_arg_to_pass_for_skipna_handling(**kwargs):
+    """Determine if skipna can be passed to the compute functions for the average and sum bucket resampler."""
+    # FIXME this can be removed once Pyresample 1.18.0 is a Satpy requirement
+
+    if PR_USE_SKIPNA:
+        if 'mask_all_nan' in kwargs:
+            warnings.warn('Argument mask_all_nan is deprecated. Please use skipna for missing values handling. '
+                          'Continuing with default skipna=True, if not provided differently.', DeprecationWarning)
+            kwargs.pop('mask_all_nan')
+    else:
+        if 'mask_all_nan' in kwargs:
+            warnings.warn('Argument mask_all_nan is deprecated.'
+                          'Please update Pyresample and use skipna for missing values handling.',
+                          DeprecationWarning)
+        kwargs.setdefault('mask_all_nan', False)
+        kwargs.pop('skipna')
+
+    return kwargs
+
+
 class BucketResamplerBase(BaseResampler):
-    """Base class for bucket resampling which implements averaging.
-    """
+    """Base class for bucket resampling which implements averaging."""
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Initialize bucket resampler."""
         super(BucketResamplerBase, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
 
     def precompute(self, **kwargs):
         """Create X and Y indices and store them for later use."""
+        from pyresample import bucket
+
         LOG.debug("Initializing bucket resampler.")
         source_lons, source_lats = self.source_geo_def.get_lonlats(
             chunks=CHUNK_SIZE)
@@ -1059,7 +1136,13 @@ class BucketResamplerBase(BaseResampler):
             data (xarray.DataArray): Data to be resampled
 
         Returns (xarray.DataArray): Data resampled to the target area
+
         """
+        if not PR_USE_SKIPNA and 'skipna' in kwargs:
+            raise ValueError('You are trying to set the skipna argument but you are using an old version of'
+                             ' Pyresample that does not support it.'
+                             'Please update Pyresample to 1.18.0 or higher to be able to use this argument.')
+
         self.precompute(**kwargs)
         attrs = data.attrs.copy()
         data_arr = data.data
@@ -1070,6 +1153,7 @@ class BucketResamplerBase(BaseResampler):
             dims = ('y', 'x')
         else:
             dims = data.dims
+        LOG.debug("Resampling %s", str(data.attrs.get('_satpy_id', 'unknown')))
         result = self.compute(data_arr, **kwargs)
         coords = {}
         if 'bands' in data.coords:
@@ -1098,7 +1182,7 @@ class BucketResamplerBase(BaseResampler):
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
 
-        return result
+        return update_resampled_coords(data, result, self.target_geo_def)
 
 
 class BucketAvg(BucketResamplerBase):
@@ -1110,23 +1194,40 @@ class BucketAvg(BucketResamplerBase):
     Parameters
     ----------
     fill_value : float (default: np.nan)
-        Fill value for missing data
-    mask_all_nans : boolean (default: False)
-        Mask all locations with all-NaN values
+        Fill value to mark missing/invalid values in the input data,
+        as well as in the binned and averaged output data.
+    skipna : boolean (default: True)
+        If True, skips missing values (as marked by NaN or `fill_value`) for the average calculation
+        (similarly to Numpy's `nanmean`). Buckets containing only missing values are set to fill_value.
+        If False, sets the bucket to fill_value if one or more missing values are present in the bucket
+        (similarly to Numpy's `mean`).
+        In both cases, empty buckets are set to `fill_value`.
+
     """
 
-    def compute(self, data, fill_value=np.nan, mask_all_nan=False, **kwargs):
-        """Call the resampling."""
+    def compute(self, data, fill_value=np.nan, skipna=True, **kwargs):
+        """Call the resampling.
+
+        Args:
+            data (numpy.Array, dask.Array): Data to be resampled
+            fill_value (numpy.nan, int): fill_value. Defaults to numpy.nan
+            skipna (boolean): Skip NA's. Default `True`
+
+        Returns:
+            dask.Array
+        """
+        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
+
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_average(data[i, :, :],
                                                  fill_value=fill_value,
-                                                 mask_all_nan=mask_all_nan)
+                                                 **kwargs)
                 results.append(res)
         else:
             res = self.resampler.get_average(data, fill_value=fill_value,
-                                             mask_all_nan=mask_all_nan)
+                                             **kwargs)
             results.append(res)
 
         return da.stack(results)
@@ -1142,21 +1243,27 @@ class BucketSum(BucketResamplerBase):
     ----------
     fill_value : float (default: np.nan)
         Fill value for missing data
-    mask_all_nans : boolean (default: False)
-        Mask all locations with all-NaN values
+    skipna : boolean (default: True)
+        If True, skips NaN values for the sum calculation
+        (similarly to Numpy's `nansum`). Buckets containing only NaN are set to zero.
+        If False, sets the bucket to NaN if one or more NaN values are present in the bucket
+        (similarly to Numpy's `sum`).
+        In both cases, empty buckets are set to 0.
+
     """
 
-    def compute(self, data, mask_all_nan=False, **kwargs):
+    def compute(self, data, skipna=True, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
+        kwargs = _get_arg_to_pass_for_skipna_handling(skipna=skipna, **kwargs)
+
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_sum(data[i, :, :],
-                                             mask_all_nan=mask_all_nan)
+                                             **kwargs)
                 results.append(res)
         else:
-            res = self.resampler.get_sum(data, mask_all_nan=mask_all_nan)
+            res = self.resampler.get_sum(data, **kwargs)
             results.append(res)
 
         return da.stack(results)
@@ -1167,14 +1274,14 @@ class BucketCount(BucketResamplerBase):
 
     This resampler calculates the number of occurences of the input
     data closest to each bin and inside the target area.
+
     """
 
     def compute(self, data, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
         results = []
         if data.ndim == 3:
-            for i in range(data.shape[0]):
+            for _i in range(data.shape[0]):
                 res = self.resampler.get_count()
                 results.append(res)
         else:
@@ -1185,15 +1292,15 @@ class BucketCount(BucketResamplerBase):
 
 
 class BucketFraction(BucketResamplerBase):
-    """Class for bucket resampling to compute category fractions
+    """Class for bucket resampling to compute category fractions.
 
     This resampler calculates the fraction of occurences of the input
     data per category.
+
     """
 
     def compute(self, data, fill_value=np.nan, categories=None, **kwargs):
         """Call the resampling."""
-        LOG.debug("Resampling %s", str(data.name))
         if data.ndim > 2:
             raise ValueError("BucketFraction not implemented for 3D datasets")
 
@@ -1203,29 +1310,45 @@ class BucketFraction(BucketResamplerBase):
         return result
 
 
+# TODO: move this to pyresample.resampler
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
-              "ewa": EWAResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
+              "gradient_search": GradientSearchResampler,
               "bucket_avg": BucketAvg,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
               "bucket_fraction": BucketFraction,
               }
+if DaskEWAResampler is not None:
+    RESAMPLERS['ewa'] = DaskEWAResampler
+    RESAMPLERS['ewa_legacy'] = LegacyDaskEWAResampler
+else:
+    RESAMPLERS['ewa'] = _LegacySatpyEWAResampler
 
 
+# deepcode ignore PythonSameEvalBinaryExpressiontrue: PRBaseResampler is None only on import errors
+if PRBaseResampler is None:
+    PRBaseResampler = BaseResampler
+
+
+# TODO: move this to pyresample
 def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
     """Instantiate and return a resampler."""
     if resampler is None:
         LOG.info("Using default KDTree resampler")
         resampler = 'kd_tree'
 
-    if isinstance(resampler, BaseResampler):
+    if isinstance(resampler, (BaseResampler, PRBaseResampler)):
         raise ValueError("Trying to create a resampler when one already "
                          "exists.")
-    elif isinstance(resampler, str):
-        resampler_class = RESAMPLERS[resampler]
+    if isinstance(resampler, str):
+        resampler_class = RESAMPLERS.get(resampler, None)
+        if resampler_class is None:
+            if resampler == "gradient_search":
+                warnings.warn('Gradient search resampler not available. Maybe missing `shapely`?')
+            raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler
 
@@ -1240,10 +1363,11 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     return key, resampler_instance
 
 
+# TODO: move this to pyresample
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if not isinstance(resampler, BaseResampler):
+    if not isinstance(resampler, (BaseResampler, PRBaseResampler)):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
                                                   destination_area,

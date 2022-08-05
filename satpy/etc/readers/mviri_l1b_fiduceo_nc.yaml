@@ -1,0 +1,136 @@
+# References:
+#    - MFG User Handbook
+#    - FIDUCEO MVIRI FCDR Product User Guide
+
+reader:
+  name: mviri_l1b_fiduceo_nc
+  short_name: FIDUCEO MVIRI FCDR
+  long_name: MFG (Meteosat 2 to 7) MVIRI data in netCDF format (FIDUCEO FCDR)
+  description: >
+    Reader for re-calibrated Level 1.5 Infrared, Water Vapour, and Visible radiances from
+    Meteosat Visible Infra-Red Imager (MVIRI) Fundamental Climate Data Record (FCDR) data.
+    For documentation see: http://doi.org/10.15770/EUM_SEC_CLM_0009 .
+  status: Beta
+  supports_fsspec: false
+  sensors: [mviri]
+  default_channels: [VIS, WV, IR]
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+
+file_types:
+    nc_easy:
+        file_reader: !!python/name:satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriEasyFcdrFileHandler
+        file_patterns: [
+          'FIDUCEO_FCDR_{level}_{sensor}_{platform}-{projection_longitude:f}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_EASY_{processor_version}_{format_version}.nc'
+          # Example: FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_EASY_v2.6_fv3.1.nc
+        ]
+    nc_full:
+        file_reader: !!python/name:satpy.readers.mviri_l1b_fiduceo_nc.FiduceoMviriFullFcdrFileHandler
+        file_patterns: [
+          'FIDUCEO_FCDR_{level}_{sensor}_{platform}-{projection_longitude:f}_{start_time:%Y%m%d%H%M}_{end_time:%Y%m%d%H%M}_FULL_{processor_version}_{format_version}.nc'
+          # Example: FIDUCEO_FCDR_L15_MVIRI_MET7-57.0_201701201000_201701201030_FULL_v2.6_fv3.1.nc
+        ]
+
+datasets:
+  VIS:
+    name: VIS
+    resolution: 2250
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        # Confirmed by EUM: No (1/wavenumber) here. Hence no standard name.
+        units: W m-2 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: [nc_easy, nc_full]
+
+  WV:
+    name: WV
+    resolution: 4500
+    wavelength: [5.7, 6.4, 7.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: [nc_easy, nc_full]
+
+  IR:
+    name: IR
+    resolution: 4500
+    wavelength: [10.5, 11.5, 12.5]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: [nc_easy, nc_full]
+
+  quality_pixel_bitmask:
+    name: quality_pixel_bitmask
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  data_quality_bitmask:
+    name: data_quality_bitmask
+    resolution: 2250
+    file_type: [nc_easy, nc_full]
+
+  u_independent_toa_bidirectional_reflectance:
+    name: u_independent_toa_bidirectional_reflectance
+    long_name: "independent uncertainty per pixel"
+    units: "%"
+    resolution: 2250
+    file_type: [nc_easy]
+
+  u_structured_toa_bidirectional_reflectance:
+    name: u_structured_toa_bidirectional_reflectance
+    long_name: "structured uncertainty per pixel"
+    units: "%"
+    resolution: 2250
+    file_type: [nc_easy]
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    standard_name: solar_zenith_angle
+    long_name: "Solar zenith angle"
+    units: degree
+    resolution: [2250, 4500]
+    file_type: [nc_easy, nc_full]
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    long_name: "Solar azimuth angle"
+    units: degree
+    resolution: [2250, 4500]
+    file_type: [nc_easy, nc_full]
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    long_name: "Satellite zenith angle"
+    units: degree
+    resolution: [2250, 4500]
+    file_type: [nc_easy, nc_full]
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    long_name: "Satellite azimuth angle"
+    units: degree
+    resolution: [2250, 4500]
+    file_type: [nc_easy, nc_full]

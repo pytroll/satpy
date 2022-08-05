@@ -1,0 +1,14 @@
+sensor_name: visir/scatterometer
+
+composites:
+  scat_wind_speed:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: wind_speed_selection
+    standard_name: scat_wind_speed
+
+  soil_moisture:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: surface_soil_moisture
+    standard_name: soil_moisture

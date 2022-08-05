@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2016-2018 Satpy developers
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
 import logging
@@ -22,16 +22,20 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
-
 from pyresample import geometry
-from satpy.readers.file_handlers import BaseFileHandler
+
 from satpy import CHUNK_SIZE
+from satpy._compat import cached_property
+from satpy.readers import open_file_or_filename
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 
 PLATFORM_NAMES = {
     'G16': 'GOES-16',
     'G17': 'GOES-17',
+    'G18': 'GOES-18',
+    'G19': 'GOES-19',
 }
 
 
@@ -41,32 +45,44 @@ class NC_ABI_BASE(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
-        # xarray's default netcdf4 engine
-        try:
-            self.nc = xr.open_dataset(self.filename,
-                                      decode_cf=True,
-                                      mask_and_scale=False,
-                                      chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE},)
-        except ValueError:
-            self.nc = xr.open_dataset(self.filename,
-                                      decode_cf=True,
-                                      mask_and_scale=False,
-                                      chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE},)
 
-        self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
-        self.sensor = 'abi'
 
-        if 'goes_imager_projection' in self.nc:
-            self.nlines = self.nc['y'].size
-            self.ncols = self.nc['x'].size
-        elif 'goes_lat_lon_projection' in self.nc:
-            self.nlines = self.nc['lat'].size
-            self.ncols = self.nc['lon'].size
-            self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
+        self.nlines = self.nc['y'].size
+        self.ncols = self.nc['x'].size
 
         self.coords = {}
+
+    @cached_property
+    def nc(self):
+        """Get the xarray dataset for this file."""
+        f_obj = open_file_or_filename(self.filename)
+        try:
+            nc = xr.open_dataset(f_obj,
+                                 decode_cf=True,
+                                 mask_and_scale=False,
+                                 chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
+        except ValueError:
+            nc = xr.open_dataset(f_obj,
+                                 decode_cf=True,
+                                 mask_and_scale=False,
+                                 chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
+        nc = self._rename_dims(nc)
+        return nc
+
+    @staticmethod
+    def _rename_dims(nc):
+        if 't' in nc.dims or 't' in nc.coords:
+            nc = nc.rename({'t': 'time'})
+        if 'goes_lat_lon_projection' in nc:
+            nc = nc.rename({'lon': 'x', 'lat': 'y'})
+        return nc
+
+    @property
+    def sensor(self):
+        """Get sensor name for current file handler."""
+        return 'abi'
 
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.
@@ -74,34 +90,70 @@ class NC_ABI_BASE(BaseFileHandler):
         Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
         variables which causes inaccurate unscaled data values. This method
         forces the scale factor to a 64-bit float first.
-
         """
         data = self.nc[item]
         attrs = data.attrs
-        factor = data.attrs.get('scale_factor')
-        offset = data.attrs.get('add_offset')
+
+        data = self._adjust_data(data, item)
+
+        data.attrs = attrs
+
+        data = self._adjust_coords(data, item)
+
+        return data
+
+    def _adjust_data(self, data, item):
+        """Adjust data with typing, scaling and filling."""
+        factor = data.attrs.get('scale_factor', 1)
+        offset = data.attrs.get('add_offset', 0)
         fill = data.attrs.get('_FillValue')
+        unsigned = data.attrs.get('_Unsigned', None)
+
+        def is_int(val):
+            return np.issubdtype(val.dtype, np.integer) if hasattr(val, 'dtype') else isinstance(val, int)
+
+        # Ref. GOESR PUG-L1B-vol3, section 5.0.2 Unsigned Integer Processing
+        if unsigned is not None and unsigned.lower() == 'true':
+            # cast the data from int to uint
+            data = data.astype('u%s' % data.dtype.itemsize)
+
+            if fill is not None:
+                fill = fill.astype('u%s' % fill.dtype.itemsize)
         if fill is not None:
-            data = data.where(data != fill)
-        if factor is not None and item in ('x', 'y'):
+            # Some backends (h5netcdf) may return attributes as shape (1,)
+            # arrays rather than shape () scalars, which according to the netcdf
+            # documentation at <URL:https://www.unidata.ucar.edu
+            # /software/netcdf/docs/netcdf_data_set_components.html#attributes>
+            # is correct.
+            if np.ndim(fill) > 0:
+                fill = fill.item()
+            if is_int(data) and is_int(factor) and is_int(offset):
+                new_fill = fill
+            else:
+                new_fill = np.nan
+            data = data.where(data != fill, new_fill)
+        if factor != 1 and item in ('x', 'y'):
             # be more precise with x/y coordinates
-            # set get_area_def for more information
+            # see get_area_def for more information
             data = data * np.round(float(factor), 6) + np.round(float(offset), 6)
-        elif factor is not None:
+        elif factor != 1:
             # make sure the factor is a 64-bit float
             # can't do this in place since data is most likely uint16
             # and we are making it a 64-bit float
-            data = data * float(factor) + offset
-        data.attrs = attrs
+            if not is_int(factor):
+                factor = float(factor)
+            data = data * factor + offset
+        return data
 
-        # handle coordinates (and recursive fun)
+    def _adjust_coords(self, data, item):
+        """Handle coordinates (and recursive fun)."""
         new_coords = {}
         # 'time' dimension causes issues in other processing
         # 'x_image' and 'y_image' are confusing to some users and unnecessary
         # 'x' and 'y' will be overwritten by base class AreaDefinition
         for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
             if coord_name in data.coords:
-                del data.coords[coord_name]
+                data = data.drop_vars(coord_name)
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -109,7 +161,6 @@ class NC_ABI_BASE(BaseFileHandler):
                 self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
         data.coords.update(new_coords)
-
         return data
 
     def get_dataset(self, key, info):
@@ -120,10 +171,9 @@ class NC_ABI_BASE(BaseFileHandler):
         """Get the area definition of the data at hand."""
         if 'goes_imager_projection' in self.nc:
             return self._get_areadef_fixedgrid(key)
-        elif 'goes_lat_lon_projection' in self.nc:
+        if 'goes_lat_lon_projection' in self.nc:
             return self._get_areadef_latlon(key)
-        else:
-            raise ValueError('Unsupported projection found in the dataset')
+        raise ValueError('Unsupported projection found in the dataset')
 
     def _get_areadef_latlon(self, key):
         """Get the area definition of the data at hand."""
@@ -224,9 +274,13 @@ class NC_ABI_BASE(BaseFileHandler):
         """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except (IOError, OSError, AttributeError):
-            pass
+    def spatial_resolution_to_number(self):
+        """Convert the 'spatial_resolution' global attribute to meters."""
+        res = self.nc.attrs['spatial_resolution'].split(' ')[0]
+        if res.endswith('km'):
+            res = int(float(res[:-2]) * 1000)
+        elif res.endswith('m'):
+            res = int(res[:-1])
+        else:
+            raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
+        return res

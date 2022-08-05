@@ -16,23 +16,3 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The enhancements tests package."""
-
-import sys
-
-from satpy.tests.enhancement_tests import (test_enhancements, test_viirs,
-                                           test_abi)
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-
-def suite():
-    """Create test suite for all enhancement tests."""
-    mysuite = unittest.TestSuite()
-    mysuite.addTests(test_enhancements.suite())
-    mysuite.addTests(test_viirs.suite())
-    mysuite.addTests(test_abi.suite())
-
-    return mysuite

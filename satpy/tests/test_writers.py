@@ -14,44 +14,27 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-"""
+"""Test generic writer functions."""
+
+from __future__ import annotations
 
 import os
-import errno
 import shutil
 import unittest
+import warnings
+from unittest import mock
 
+import dask.array as da
 import numpy as np
+import pytest
 import xarray as xr
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
-
-def mkdir_p(path):
-    """Make directories."""
-    if not path or path == '.':
-        return
-
-    # Use for python 2.7 compatibility
-    # When python 2.7 support is dropped just use
-    # `os._makedirs(path, exist_ok=True)`
-    try:
-        os.makedirs(path)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
+from trollimage.colormap import greys
 
 
 class TestWritersModule(unittest.TestCase):
     """Test the writers module."""
 
-    def test_to_image_1D(self):
+    def test_to_image_1d(self):
         """Conversion to image."""
         # 1D
         from satpy.writers import to_image
@@ -59,9 +42,10 @@ class TestWritersModule(unittest.TestCase):
         self.assertRaises(ValueError, to_image, p)
 
     @mock.patch('satpy.writers.XRImage')
-    def test_to_image_2D(self, mock_geoimage):
+    def test_to_image_2d(self, mock_geoimage):
         """Conversion to image."""
         from satpy.writers import to_image
+
         # 2D
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
@@ -74,7 +58,7 @@ class TestWritersModule(unittest.TestCase):
         mock_geoimage.reset_mock()
 
     @mock.patch('satpy.writers.XRImage')
-    def test_to_image_3D(self, mock_geoimage):
+    def test_to_image_3d(self, mock_geoimage):
         """Conversion to image."""
         # 3D
         from satpy.writers import to_image
@@ -120,7 +104,7 @@ class TestEnhancer(unittest.TestCase):
     standard_name: toa_bidirectional_reflectance
     operations:
     - name: stretch
-      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
+      method: !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: linear}
 """])
         self.assertIsNotNone(e.enhancement_tree)
@@ -132,57 +116,17 @@ class TestEnhancer(unittest.TestCase):
             ValueError, Enhancer, enhancement_config_file="is_not_a_valid_filename_?.yaml")
 
 
-class TestEnhancerUserConfigs(unittest.TestCase):
-    """Test `Enhancer` functionality when user's custom configurations are present."""
+class _BaseCustomEnhancementConfigTests:
 
-    ENH_FN = 'test_sensor.yaml'
-    ENH_ENH_FN = os.path.join('enhancements', ENH_FN)
-    ENH_FN2 = 'test_sensor2.yaml'
-    ENH_ENH_FN2 = os.path.join('enhancements', ENH_FN2)
-    ENH_FN3 = 'test_empty.yaml'
-
-    TEST_CONFIGS = {
-        ENH_FN: """
-sensor_name: visir/test_sensor
-enhancements:
-  test1_default:
-    name: test1
-    operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch ''
-      kwargs: {stretch: linear, cutoffs: [0., 0.]}
-
-        """,
-        ENH_ENH_FN: """
-sensor_name: visir/test_sensor
-enhancements:
-  test1_kelvin:
-    name: test1
-    units: kelvin
-    operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch ''
-      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 20}
-
-        """,
-        ENH_FN2: """
-sensor_name: visir/test_sensor2
-
-
-        """,
-        ENH_ENH_FN2: """
-sensor_name: visir/test_sensor2
-
-        """,
-        ENH_FN3: """""",
-    }
+    TEST_CONFIGS: dict[str, str] = {}
 
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         """Create fake user configurations."""
         for fn, content in cls.TEST_CONFIGS.items():
             base_dir = os.path.dirname(fn)
-            mkdir_p(base_dir)
+            if base_dir:
+                os.makedirs(base_dir, exist_ok=True)
             with open(fn, 'w') as f:
                 f.write(content)
 
@@ -199,55 +143,180 @@ sensor_name: visir/test_sensor2
         cls.CustomImageWriter = CustomImageWriter
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         """Remove fake user configurations."""
-        for fn, content in cls.TEST_CONFIGS.items():
+        for fn, _content in cls.TEST_CONFIGS.items():
             base_dir = os.path.dirname(fn)
             if base_dir not in ['.', ''] and os.path.isdir(base_dir):
                 shutil.rmtree(base_dir)
             elif os.path.isfile(fn):
                 os.remove(fn)
 
+
+class TestComplexSensorEnhancerConfigs(_BaseCustomEnhancementConfigTests):
+    """Test enhancement configs that use or expect multiple sensors."""
+
+    ENH_FN = 'test_sensor1.yaml'
+    ENH_FN2 = 'test_sensor2.yaml'
+
+    TEST_CONFIGS = {
+        ENH_FN: """
+enhancements:
+  test1_sensor1_specific:
+    name: test1
+    sensor: test_sensor1
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 200}
+
+        """,
+        ENH_FN2: """
+enhancements:
+  default:
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
+  test1_sensor2_specific:
+    name: test1
+    sensor: test_sensor2
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 50}
+  exact_multisensor_comp:
+    name: my_comp
+    sensor: [test_sensor1, test_sensor2]
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 20}
+            """,
+    }
+
+    def test_multisensor_choice(self):
+        """Test that a DataArray with two sensors works."""
+        from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs={
+                           'name': 'test1',
+                           'sensor': {'test_sensor2', 'test_sensor1'},
+                           'mode': 'L'
+                       },
+                       dims=['y', 'x'])
+        e = Enhancer()
+        assert e.enhancement_tree is not None
+        img = get_enhanced_image(ds, enhance=e)
+        # make sure that both sensor configs were loaded
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN),
+                 os.path.abspath(self.ENH_FN2)})
+        # test_sensor1 config should have been used because it is
+        # alphabetically first
+        np.testing.assert_allclose(img.data.values[0], ds.data / 200.0)
+
+    def test_multisensor_exact(self):
+        """Test that a DataArray with two sensors can match exactly."""
+        from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs={
+                           'name': 'my_comp',
+                           'sensor': {'test_sensor2', 'test_sensor1'},
+                           'mode': 'L'
+                       },
+                       dims=['y', 'x'])
+        e = Enhancer()
+        assert e.enhancement_tree is not None
+        img = get_enhanced_image(ds, enhance=e)
+        # make sure that both sensor configs were loaded
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN),
+                 os.path.abspath(self.ENH_FN2)})
+        # test_sensor1 config should have been used because it is
+        # alphabetically first
+        np.testing.assert_allclose(img.data.values[0], ds.data / 20.0)
+
+
+class TestEnhancerUserConfigs(_BaseCustomEnhancementConfigTests):
+    """Test `Enhancer` functionality when user's custom configurations are present."""
+
+    ENH_FN = 'test_sensor.yaml'
+    ENH_ENH_FN = os.path.join('enhancements', ENH_FN)
+    ENH_FN2 = 'test_sensor2.yaml'
+    ENH_ENH_FN2 = os.path.join('enhancements', ENH_FN2)
+    ENH_FN3 = 'test_empty.yaml'
+
+    TEST_CONFIGS = {
+        ENH_FN: """
+enhancements:
+  test1_default:
+    name: test1
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: linear, cutoffs: [0., 0.]}
+
+        """,
+        ENH_ENH_FN: """
+enhancements:
+  test1_kelvin:
+    name: test1
+    units: kelvin
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 20}
+
+        """,
+        ENH_FN2: """
+
+
+        """,
+        ENH_ENH_FN2: """
+
+        """,
+        ENH_FN3: """""",
+    }
+
     def test_enhance_empty_config(self):
         """Test Enhancer doesn't fail with empty enhancement file."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor='test_empty', mode='L'),
                        dims=['y', 'x'])
         e = Enhancer()
-        self.assertIsNotNone(e.enhancement_tree)
+        assert e.enhancement_tree is not None
         get_enhanced_image(ds, enhance=e)
-        self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {os.path.abspath(self.ENH_FN3)})
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN3)})
 
     def test_enhance_with_sensor_no_entry(self):
         """Test enhancing an image that has no configuration sections."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(sensor='test_sensor2', mode='L'),
                        dims=['y', 'x'])
         e = Enhancer()
-        self.assertIsNotNone(e.enhancement_tree)
+        assert e.enhancement_tree is not None
         get_enhanced_image(ds, enhance=e)
-        self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {os.path.abspath(self.ENH_FN2),
-                             os.path.abspath(self.ENH_ENH_FN2)})
-
-    def test_deprecated_enhance_with_file_specified(self):
-        """Test enhancing an image when config file is specified."""
-        from satpy.writers import get_enhanced_image
-        from xarray import DataArray
-        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
-                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
-                       dims=['y', 'x'])
-        get_enhanced_image(ds, enhancement_config_file=self.ENH_ENH_FN)
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN2),
+                 os.path.abspath(self.ENH_ENH_FN2)})
 
     def test_no_enhance(self):
         """Test turning off enhancements."""
-        from satpy.writers import get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
@@ -267,8 +336,9 @@ sensor_name: visir/test_sensor2
 
     def test_writer_custom_enhance(self):
         """Test using custom enhancements with writer."""
-        from satpy.writers import Enhancer
         from xarray import DataArray
+
+        from satpy.writers import Enhancer
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
@@ -280,19 +350,18 @@ sensor_name: visir/test_sensor2
 
     def test_enhance_with_sensor_entry(self):
         """Test enhancing an image with a configuration section."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
-        import dask.array as da
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
         e = Enhancer()
-        self.assertIsNotNone(e.enhancement_tree)
+        assert e.enhancement_tree is not None
         img = get_enhanced_image(ds, enhance=e)
-        self.assertSetEqual(
-            set(e.sensor_enhancement_configs),
-            {os.path.abspath(self.ENH_FN),
-             os.path.abspath(self.ENH_ENH_FN)})
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN),
+                 os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values,
                                        1.)
 
@@ -300,28 +369,123 @@ sensor_name: visir/test_sensor2
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
         e = Enhancer()
-        self.assertIsNotNone(e.enhancement_tree)
+        assert e.enhancement_tree is not None
         img = get_enhanced_image(ds, enhance=e)
-        self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {os.path.abspath(self.ENH_FN),
-                             os.path.abspath(self.ENH_ENH_FN)})
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN),
+                 os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
 
     def test_enhance_with_sensor_entry2(self):
         """Test enhancing an image with a more detailed configuration section."""
-        from satpy.writers import Enhancer, get_enhanced_image
         from xarray import DataArray
+
+        from satpy.writers import Enhancer, get_enhanced_image
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', units='kelvin',
                                   sensor='test_sensor', mode='L'),
                        dims=['y', 'x'])
         e = Enhancer()
-        self.assertIsNotNone(e.enhancement_tree)
+        assert e.enhancement_tree is not None
         img = get_enhanced_image(ds, enhance=e)
-        self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {os.path.abspath(self.ENH_FN),
-                             os.path.abspath(self.ENH_ENH_FN)})
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN),
+                 os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
+
+
+class TestReaderEnhancerConfigs(_BaseCustomEnhancementConfigTests):
+    """Test enhancement configs that use reader name."""
+
+    ENH_FN = 'test_sensor1.yaml'
+
+    # NOTE: The sections are ordered in a special way so that if 'reader' key
+    #   isn't provided that we'll get the section we didn't want and all tests
+    #   will fail. Otherwise the correct sections get chosen just by the order
+    #   of how they are added to the decision tree.
+    TEST_CONFIGS = {
+        ENH_FN: """
+enhancements:
+  default_reader2:
+    reader: reader2
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 75}
+  default:
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
+  test1_reader2_specific:
+    name: test1
+    reader: reader2
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 50}
+  test1_reader1_specific:
+    name: test1
+    reader: reader1
+    operations:
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 200}
+            """,
+    }
+
+    def _get_test_data_array(self):
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs={
+                           'name': 'test1',
+                           'sensor': 'test_sensor1',
+                           'mode': 'L',
+                       },
+                       dims=['y', 'x'])
+        return ds
+
+    def _get_enhanced_image(self, data_arr):
+        from satpy.writers import Enhancer, get_enhanced_image
+        e = Enhancer()
+        assert e.enhancement_tree is not None
+        img = get_enhanced_image(data_arr, enhance=e)
+        # make sure that both configs were loaded
+        assert (set(e.sensor_enhancement_configs) ==
+                {os.path.abspath(self.ENH_FN)})
+        return img
+
+    def test_no_reader(self):
+        """Test that a DataArray with no 'reader' metadata works."""
+        data_arr = self._get_test_data_array()
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 100.0)
+
+    def test_no_matching_reader(self):
+        """Test that a DataArray with no matching 'reader' works."""
+        data_arr = self._get_test_data_array()
+        data_arr.attrs["reader"] = "reader3"
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 100.0)
+
+    def test_only_reader_matches(self):
+        """Test that a DataArray with only a matching 'reader' works."""
+        data_arr = self._get_test_data_array()
+        data_arr.attrs["reader"] = "reader2"
+        data_arr.attrs["name"] = "not_configured"
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 75.0)
+
+    def test_reader_and_name_match(self):
+        """Test that a DataArray with a matching 'reader' and 'name' works."""
+        data_arr = self._get_test_data_array()
+        data_arr.attrs["reader"] = "reader2"
+        img = self._get_enhanced_image(data_arr)
+        # no reader available, should use default no specified reader
+        np.testing.assert_allclose(img.data.values[0], data_arr.data / 50.0)
 
 
 class TestYAMLFiles(unittest.TestCase):
@@ -337,7 +501,7 @@ class TestYAMLFiles(unittest.TestCase):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
 
-        from satpy.config import glob_config
+        from satpy._config import glob_config
         from satpy.writers import read_writer_config
         for writer_config in glob_config('writers/*.yaml'):
             writer_fn = os.path.basename(writer_config)
@@ -367,12 +531,11 @@ class TestComputeWriterResults(unittest.TestCase):
     """Test compute_writer_results()."""
 
     def setUp(self):
-        """Create temporary directory to save files to and a mock scene"""
+        """Create temporary directory to save files to and a mock scene."""
         import tempfile
         from datetime import datetime
 
         from satpy.scene import Scene
-        import dask.array as da
 
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
@@ -387,19 +550,19 @@ class TestComputeWriterResults(unittest.TestCase):
         self.base_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             shutil.rmtree(self.base_dir, ignore_errors=True)
         except OSError:
             pass
 
     def test_empty(self):
-        """Test empty result list"""
+        """Test empty result list."""
         from satpy.writers import compute_writer_results
         compute_writer_results([])
 
     def test_simple_image(self):
-        """Test writing to PNG file"""
+        """Test writing to PNG file."""
         from satpy.writers import compute_writer_results
         fname = os.path.join(self.base_dir, 'simple_image.png')
         res = self.scn.save_datasets(filename=fname,
@@ -410,7 +573,7 @@ class TestComputeWriterResults(unittest.TestCase):
         self.assertTrue(os.path.isfile(fname))
 
     def test_geotiff(self):
-        """Test writing to mitiff file"""
+        """Test writing to mitiff file."""
         from satpy.writers import compute_writer_results
         fname = os.path.join(self.base_dir, 'geotiff.tif')
         res = self.scn.save_datasets(filename=fname,
@@ -440,7 +603,7 @@ class TestComputeWriterResults(unittest.TestCase):
 #        self.assertTrue(os.path.isfile(fname))
 
     def test_multiple_geotiff(self):
-        """Test writing to mitiff file"""
+        """Test writing to mitiff file."""
         from satpy.writers import compute_writer_results
         fname1 = os.path.join(self.base_dir, 'geotiff1.tif')
         res1 = self.scn.save_datasets(filename=fname1,
@@ -455,7 +618,7 @@ class TestComputeWriterResults(unittest.TestCase):
         self.assertTrue(os.path.isfile(fname2))
 
     def test_multiple_simple(self):
-        """Test writing to geotiff files"""
+        """Test writing to geotiff files."""
         from satpy.writers import compute_writer_results
         fname1 = os.path.join(self.base_dir, 'simple_image1.png')
         res1 = self.scn.save_datasets(filename=fname1,
@@ -470,7 +633,7 @@ class TestComputeWriterResults(unittest.TestCase):
         self.assertTrue(os.path.isfile(fname2))
 
     def test_mixed(self):
-        """Test writing to multiple mixed-type files"""
+        """Test writing to multiple mixed-type files."""
         from satpy.writers import compute_writer_results
         fname1 = os.path.join(self.base_dir, 'simple_image3.png')
         res1 = self.scn.save_datasets(filename=fname1,
@@ -486,31 +649,36 @@ class TestComputeWriterResults(unittest.TestCase):
         self.assertTrue(os.path.isfile(fname2))
 
 
-class TestBaseWriter(unittest.TestCase):
+class TestBaseWriter:
     """Test the base writer class."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up tests."""
         import tempfile
         from datetime import datetime
 
         from satpy.scene import Scene
-        import dask.array as da
 
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
-            attrs={'name': 'test',
-                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+            attrs={
+                'name': 'test',
+                'start_time': datetime(2018, 1, 1, 0, 0, 0),
+                'sensor': 'fake_sensor',
+            }
         )
+        ds2 = ds1.copy()
+        ds2.attrs['sensor'] = {'fake_sensor1', 'fake_sensor2'}
         self.scn = Scene()
         self.scn['test'] = ds1
+        self.scn['test2'] = ds2
 
         # Temp dir
         self.base_dir = tempfile.mkdtemp()
 
-    def tearDown(self):
-        """Remove the temporary directory created for a test"""
+    def teardown_method(self):
+        """Remove the temporary directory created for a test."""
         try:
             shutil.rmtree(self.base_dir, ignore_errors=True)
         except OSError:
@@ -519,29 +687,38 @@ class TestBaseWriter(unittest.TestCase):
     def test_save_dataset_static_filename(self):
         """Test saving a dataset with a static filename specified."""
         self.scn.save_datasets(base_dir=self.base_dir, filename='geotiff.tif')
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, 'geotiff.tif')))
+        assert os.path.isfile(os.path.join(self.base_dir, 'geotiff.tif'))
 
-    def test_save_dataset_dynamic_filename(self):
+    @pytest.mark.parametrize(
+        ('fmt_fn', 'exp_fns'),
+        [
+            ('geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif',
+             ['geotiff_test_20180101_000000.tif', 'geotiff_test2_20180101_000000.tif']),
+            ('geotiff_{name}_{sensor}.tif',
+             ['geotiff_test_fake_sensor.tif', 'geotiff_test2_fake_sensor1-fake_sensor2.tif']),
+        ]
+    )
+    def test_save_dataset_dynamic_filename(self, fmt_fn, exp_fns):
         """Test saving a dataset with a format filename specified."""
-        fmt_fn = 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif'
-        exp_fn = 'geotiff_test_20180101_000000.tif'
         self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+        for exp_fn in exp_fns:
+            exp_path = os.path.join(self.base_dir, exp_fn)
+            assert os.path.isfile(exp_path)
 
     def test_save_dataset_dynamic_filename_with_dir(self):
         """Test saving a dataset with a format filename that includes a directory."""
         fmt_fn = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif')
         exp_fn = os.path.join('20180101', 'geotiff_test_20180101_000000.tif')
         self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+        assert os.path.isfile(os.path.join(self.base_dir, exp_fn))
 
         # change the filename pattern but keep the same directory
         fmt_fn2 = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H}.tif')
         exp_fn2 = os.path.join('20180101', 'geotiff_test_20180101_00.tif')
         self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn2)
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn2)))
+        assert os.path.isfile(os.path.join(self.base_dir, exp_fn2))
         # the original file should still exist
-        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+        assert os.path.isfile(os.path.join(self.base_dir, exp_fn))
 
 
 class TestOverlays(unittest.TestCase):
@@ -549,10 +726,8 @@ class TestOverlays(unittest.TestCase):
 
     def setUp(self):
         """Create test data and mock pycoast/pydecorate."""
-        from trollimage.xrimage import XRImage
         from pyresample.geometry import AreaDefinition
-        import xarray as xr
-        import dask.array as da
+        from trollimage.xrimage import XRImage
 
         proj_dict = {'proj': 'lcc', 'datum': 'WGS84', 'ellps': 'WGS84',
                      'lon_0': -95., 'lat_0': 25, 'lat_1': 25,
@@ -584,29 +759,83 @@ class TestOverlays(unittest.TestCase):
                     'height': 30,
                     'bg': 'black',
                     'bg_opacity': 255,
-                    'line': 'white'}}
+                    'line': 'white'}},
+                {'scale': {
+                    'colormap': greys,
+                    'extend': False,
+                    'width': 1670, 'height': 110,
+                    'tick_marks': 5, 'minor_tick_marks': 1,
+                    'cursor': [0, 0], 'bg':'white',
+                    'title':'TEST TITLE OF SCALE',
+                    'fontsize': 110, 'align': 'cc'
+                }}
             ]
         }
 
-        self.contour_writer = mock.patch('pycoast.ContourWriterAGG')
-        self.dec_writer = mock.patch('pydecorate.DecoratorAGG')
-        self.cw = self.contour_writer.start()
-        self.dw = self.dec_writer.start()
+        import_mock = mock.MagicMock()
+        modules = {'pycoast': import_mock.pycoast,
+                   'pydecorate': import_mock.pydecorate}
+        self.module_patcher = mock.patch.dict('sys.modules', modules)
+        self.module_patcher.start()
 
     def tearDown(self):
         """Turn off pycoast/pydecorate mocking."""
-        self.contour_writer.stop()
-        self.dec_writer.stop()
+        self.module_patcher.stop()
 
     def test_add_overlay_basic_rgb(self):
         """Test basic add_overlay usage with RGB data."""
-        from satpy.writers import add_overlay
-        new_img = add_overlay(self.orig_rgb_img, self.area_def, '')
-        self.assertEqual('RGBA', new_img.mode)
+        from pycoast import ContourWriterAGG
+
+        from satpy.writers import _burn_overlay, add_overlay
+        coast_dir = '/path/to/coast/data'
+        with mock.patch.object(self.orig_rgb_img, "apply_pil") as apply_pil:
+            apply_pil.return_value = self.orig_rgb_img
+            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir, fill_value=0)
+            self.assertEqual(self.orig_rgb_img.mode, new_img.mode)
+            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir)
+            self.assertEqual(self.orig_rgb_img.mode + 'A', new_img.mode)
+
+            with mock.patch.object(self.orig_rgb_img, "convert") as convert:
+                convert.return_value = self.orig_rgb_img
+                overlays = {'coasts': {'outline': 'red'}}
+                new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir,
+                                      overlays=overlays, fill_value=0)
+                pil_args = None
+                pil_kwargs = {'fill_value': 0}
+                fun_args = (self.orig_rgb_img.data.area, ContourWriterAGG.return_value, overlays)
+                fun_kwargs = None
+                apply_pil.assert_called_with(_burn_overlay, self.orig_rgb_img.mode,
+                                             pil_args, pil_kwargs, fun_args, fun_kwargs)
+                ContourWriterAGG.assert_called_with(coast_dir)
+
+                # test legacy call
+
+                grid = {'minor_is_tick': True}
+                color = 'red'
+                expected_overlays = {'coasts': {'outline': color, 'width': 0.5, 'level': 1},
+                                     'borders': {'outline': color, 'width': 0.5, 'level': 1},
+                                     'grid': grid}
+                with warnings.catch_warnings(record=True) as wns:
+                    warnings.simplefilter("always")
+                    new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir,
+                                          color=color, grid=grid, fill_value=0)
+                    assert len(wns) == 1
+                    assert issubclass(wns[0].category, DeprecationWarning)
+                    assert "deprecated" in str(wns[0].message)
+
+                pil_args = None
+                pil_kwargs = {'fill_value': 0}
+                fun_args = (self.orig_rgb_img.data.area, ContourWriterAGG.return_value, expected_overlays)
+                fun_kwargs = None
+                apply_pil.assert_called_with(_burn_overlay, self.orig_rgb_img.mode,
+                                             pil_args, pil_kwargs, fun_args, fun_kwargs)
+                ContourWriterAGG.assert_called_with(coast_dir)
 
     def test_add_overlay_basic_l(self):
         """Test basic add_overlay usage with L data."""
         from satpy.writers import add_overlay
+        new_img = add_overlay(self.orig_l_img, self.area_def, '', fill_value=0)
+        self.assertEqual('RGB', new_img.mode)
         new_img = add_overlay(self.orig_l_img, self.area_def, '')
         self.assertEqual('RGBA', new_img.mode)
 
@@ -621,18 +850,3 @@ class TestOverlays(unittest.TestCase):
         from satpy.writers import add_decorate
         new_img = add_decorate(self.orig_l_img, **self.decorate)
         self.assertEqual('RGBA', new_img.mode)
-
-
-def suite():
-    """The test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestWritersModule))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseWriter))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestOverlays))
-
-    return my_suite

@@ -4,7 +4,7 @@ sensor_name: visir/msi
 modifiers:
 
   rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -17,7 +17,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_marine_clean:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: marine_clean_aerosol
     prerequisites:
@@ -30,7 +30,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_marine_tropical:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: tropical
     aerosol_type: marine_tropical_aerosol
     prerequisites:
@@ -43,7 +43,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_desert:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: tropical
     aerosol_type: desert_aerosol
     prerequisites:
@@ -56,7 +56,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_land:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: continental_average_aerosol
     prerequisites:
@@ -70,7 +70,7 @@ modifiers:
 
 
 composites:
-  natural_color_sun:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: 'B11'
@@ -79,7 +79,7 @@ composites:
     - name: 'B04'
       modifiers: [effective_solar_pathlength_corrected]
     standard_name: natural_color
-    
+
   true_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:

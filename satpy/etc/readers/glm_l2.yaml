@@ -1,0 +1,52 @@
+reader:
+  name: glm_l2
+  short_name: GLM Level 2
+  long_name: GOES-R GLM Level 2
+  description: >
+    NetCDF4 reader for GOES-R series GLM data. Currently only gridded L2 files
+    output from `gltmtools <https://github.com/deeplycloudy/glmtools>`_ are
+    supported.
+  status: Beta
+  supports_fsspec: false
+  sensors: [glm]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
+
+# Typical filenames from Unidata THREDDS server:
+# http://thredds.unidata.ucar.edu/thredds/catalog/satellite/goes/east/
+#     products/GeostationaryLightningMapper/CONUS/current/catalog.html
+# OR_GLM-L2-GLMC-M3_G16_s20191920000000_e20191920001000_c20191920001380.nc
+
+file_types:
+  glm_l2_imagery:
+    file_reader: !!python/name:satpy.readers.glm_l2.NCGriddedGLML2
+    file_patterns: ['{system_environment:s}_{mission_id:3s}-L2-GLM{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+# glm_l2_lcfa - add this with glmtools
+
+datasets:
+  # Additional datasets discovered dynamically in satpy/readers/glm_l2.py
+  flash_extent_density:
+    name: flash_extent_density
+    file_type: glm_l2_imagery
+  group_extent_density:
+    name: group_extent_density
+    file_type: glm_l2_imagery
+  flash_centroid_density:
+    name: flash_centroid_density
+    file_type: glm_l2_imagery
+  group_centroid_density:
+    name: group_centroid_density
+    file_type: glm_l2_imagery
+  average_flash_area:
+    name: average_flash_area
+    file_type: glm_l2_imagery
+  minimum_flash_area:
+    name: minimum_flash_area
+    file_type: glm_l2_imagery
+  average_group_area:
+    name: average_group_area
+    file_type: glm_l2_imagery
+  total_energy:
+    name: total_energy
+    file_type: glm_l2_imagery

@@ -1,45 +1,51 @@
 sensor_name: visir
+composite_identification_keys:
+  name:
+    required: true
+  resolution:
+    transitive: false
 
 modifiers:
   sunz_corrected:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     optional_prerequisites:
     - solar_zenith_angle
 
   effective_solar_pathlength_corrected:
-    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+    modifier: !!python/name:satpy.modifiers.EffectiveSolarPathLengthCorrector
     optional_prerequisites:
       - solar_zenith_angle
 
   co2_corrected:
-    compositor: !!python/name:satpy.composites.CO2Corrector
+    modifier: !!python/name:satpy.modifiers.CO2Corrector
     prerequisites:
     - 10.8
     - 13.4
 
   nir_reflectance:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - 11
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
+    sunz_threshold: 85.0
 
   nir_emissive:
-    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    modifier: !!python/name:satpy.modifiers.NIREmissivePartFromReflectance
     prerequisites:
     - 11
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
-
+    sunz_threshold: 85.0
   atm_correction:
-    compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
+    modifier: !!python/name:satpy.modifiers.PSPAtmosphericalCorrection
     optional_prerequisites:
     - satellite_zenith_angle
 
   rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -52,7 +58,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_marine_tropical:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: tropical
     aerosol_type: marine_tropical_aerosol
     prerequisites:
@@ -65,7 +71,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_desert:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: tropical
     aerosol_type: desert_aerosol
     prerequisites:
@@ -78,7 +84,7 @@ modifiers:
     - solar_zenith_angle
 
   rayleigh_corrected_land:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: continental_average_aerosol
     prerequisites:
@@ -202,15 +208,15 @@ composites:
     - 10.8
     standard_name: green_snow
 
-  natural_color:
+  natural_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 1.63
-    - 0.85
-    - 0.635
+    - wavelength: 1.63
+    - wavelength: 0.85
+    - wavelength: 0.635
     standard_name: natural_color
 
-  natural_color_sun:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 1.63
@@ -235,7 +241,7 @@ composites:
     - 10.8
     standard_name: night_fog
 
-  overview:
+  overview_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 0.6
@@ -243,7 +249,7 @@ composites:
     - 10.8
     standard_name: overview
 
-  overview_sun:
+  overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.6
@@ -292,6 +298,13 @@ composites:
     - cma_extended_pal
     standard_name: cloudmask
 
+  cloudmask_probability:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmaprob
+    - cmaprob_pal
+    standard_name: cloudmask_probability
+
   cloudtype:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
@@ -324,43 +337,43 @@ composites:
   cloud_top_phase:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
-    - cpp_phase
-    - cpp_phase_pal
+    - cmic_phase
+    - cmic_phase_pal
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_reff
-    - cpp_reff_pal
+    - cmic_reff
+    - cmic_reff_pal
     standard_name: cloud_drop_effective_radius
 
   cloud_optical_thickness:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_cot
-    - cpp_cot_pal
+    - cmic_cot
+    - cmic_cot_pal
     standard_name: cloud_optical_thickness
 
   cloud_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_cwp
-    - cpp_cwp_pal
+    - cmic_cwp
+    - cmic_cwp_pal
     standard_name: cloud_water_path
 
   ice_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_iwp
-    - cpp_iwp_pal
+    - cmic_iwp
+    - cmic_iwp_pal
     standard_name: ice_water_path
 
   liquid_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
-    - cpp_lwp
-    - cpp_lwp_pal
+    - cmic_lwp
+    - cmic_lwp_pal
     standard_name: liquid_water_path
 
   night_microphysics:
@@ -392,12 +405,103 @@ composites:
     transition_max: 298.15
     transition_gamma: 3.0
 
-  night_background:
+  natural_enh:
+    compositor: !!python/name:satpy.composites.NaturalEnh
+    standard_name: natural_enh
+    prerequisites:
+    - wavelength: 1.6
+      modifiers: [sunz_corrected]
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - wavelength: 0.6
+      modifiers: [sunz_corrected]
+
+  _night_background:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background
-    filename: BlackMarble_2016_01deg_geo.tif
+    url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_01deg_geo.tif"
+    known_hash: "sha256:146c116962677ae113d9233374715686737ff97141a77cc5da69a9451315a685"  # optional
 
-  night_background_hires:
+  _night_background_hires:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
-    standard_name: night_background_hires
-    filename: BlackMarble_2016_3km_geo.tif
+    standard_name: night_background
+    url: "https://neo.gsfc.nasa.gov/archive/blackmarble/2016/global/BlackMarble_2016_3km_geo.tif"
+    known_hash: "sha256:e915ef2a20d84e2a59e1547d3ad564463ad4bcf22bfa02e0e0b8ed1cd722e9c0"  # optional
+
+  cloud_phase_distinction:
+    description: >
+      Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
+      Cloud Type RGB, for  EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_3958037.html)
+    references:
+      CIRA Quick Guide: https://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DayCloudPhaseDistinction_final_v2.pdf
+      Cloud Type recipe and typical colours: https://www.eumetsat.int/fr/media/45659
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.3
+      - wavelength: 0.64
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - wavelength: 1.6
+        modifiers: [sunz_corrected]
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction_raw:
+    description: >
+      same as cloud_phase_distinction
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.3
+      - wavelength: 0.64
+      - wavelength: 1.6
+    standard_name: cloud_phase_distinction
+
+  cloud_phase:
+    description: >
+      EUMETSAT Cloud Phase RGB product
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Recipe : http://eumetrain.org/RGBguide/recipes/RGB_recipes.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.6
+        modifiers: [sunz_corrected]
+      - wavelength: 2.25
+        modifiers: [sunz_corrected]
+      - wavelength: 0.67
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: cloud_phase
+
+  cloud_phase_raw:
+    description: >
+      same as cloud_phase RGB product, without modifiers
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.6
+      - wavelength: 2.25
+      - wavelength: 0.67
+    standard_name: cloud_phase
+
+  cimss_cloud_type:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB
+    references:
+      EUMETRAIN Quick Guide: http://eumetrain.org/rgb_quick_guides/quick_guides/CloudTypeRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.38
+        modifiers: [sunz_corrected]
+      - wavelength: 0.64
+        modifiers: [sunz_corrected]
+      - wavelength: 1.61
+        modifiers: [sunz_corrected]
+    standard_name: cimss_cloud_type
+
+  cimss_cloud_type_raw:
+    description: >
+      Cloud Type RGB, candidate for standard FCI RGB.  Raw version without sun zenith correction.
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 1.38
+      - wavelength: 0.64
+      - wavelength: 1.61
+    standard_name: cimss_cloud_type

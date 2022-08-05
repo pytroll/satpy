@@ -15,8 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS
-   Also handles GOES 15 data in netCDF format reformated by Eumetsat
+"""Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS.
+
+Also handles GOES 15 data in netCDF format reformated by Eumetsat
 
 GOES Imager netCDF files contain geolocated detector counts. If ordering via
 NOAA CLASS, select 16 bits/pixel. The instrument oversamples the viewed scene
@@ -39,7 +40,7 @@ assignment however cannot be reconstructed properly. This is where an
 approximation has to be applied (see below).
 
 Calibration
-============
+===========
 
 Calibration is performed according to [VIS] and [IR], but with an average
 calibration coefficient applied to all detectors in a certain channel. The
@@ -162,7 +163,6 @@ Channel Diff  Unit
 ======= ===== ====
 
 References:
-
 - [GVAR] https://goes.gsfc.nasa.gov/text/GVARRDL98.pdf
 - [BOOK-N] https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf
 - [BOOK-I] https://goes.gsfc.nasa.gov/text/databook/databook.pdf
@@ -172,7 +172,7 @@ References:
 - [SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
 - [SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 
-Eumetsat formated netCDF data:
+Eumetsat formatted netCDF data:
 
 The main differences are:
 
@@ -185,20 +185,19 @@ The main differences are:
 
 """
 
+import logging
+import re
 from abc import abstractmethod
 from collections import namedtuple
 from datetime import datetime, timedelta
-import logging
-import re
 
 import numpy as np
+import pyresample.geometry
 import xarray as xr
 
-import pyresample.geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.goes_imager_hrit import (SPACECRAFTS, EQUATOR_RADIUS, POLE_RADIUS,
-                                            ALTITUDE)
+from satpy.readers.goes_imager_hrit import ALTITUDE, EQUATOR_RADIUS, POLE_RADIUS, SPACECRAFTS
 from satpy.readers.utils import bbox, get_geostationary_angle_extent
 
 logger = logging.getLogger(__name__)
@@ -564,7 +563,8 @@ SCAN_DURATION = {
 
 
 class GOESNCBaseFileHandler(BaseFileHandler):
-    """File handler for GOES Imager data in netCDF format"""
+    """File handler for GOES Imager data in netCDF format."""
+
     def __init__(self, filename, filename_info, filetype_info, geo_data=None):
         """Initialize the reader."""
         super(GOESNCBaseFileHandler, self).__init__(filename, filename_info,
@@ -588,27 +588,29 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @abstractmethod
     def get_dataset(self, key, info):
-        """Load dataset designated by the given key from file"""
+        """Load dataset designated by the given key from file."""
         raise NotImplementedError
 
     @abstractmethod
     def calibrate(self, data, calibration, channel):
-        """Perform calibration"""
+        """Perform calibration."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def vis_sectors(self):
+        """Get the vis sectors."""
         raise NotImplementedError
 
     @property
     @abstractmethod
     def ir_sectors(self):
+        """Get the ir sectors."""
         raise NotImplementedError
 
     @staticmethod
     def _get_platform_name(ncattr):
-        """Determine name of the platform"""
+        """Determine name of the platform."""
         match = re.match(r'G-(\d+)', ncattr)
         if match:
             return SPACECRAFTS.get(int(match.groups()[0]))
@@ -616,7 +618,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         return None
 
     def _get_sector(self, channel, nlines, ncols):
-        """Determine which sector was scanned"""
+        """Determine which sector was scanned."""
         if self._is_vis(channel):
             margin = 100
             sectors_ref = self.vis_sectors
@@ -633,17 +635,16 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _is_vis(channel):
-        """Determine whether the given channel is a visible channel"""
+        """Determine whether the given channel is a visible channel."""
         if isinstance(channel, str):
             return channel == '00_7'
-        elif isinstance(channel, int):
+        if isinstance(channel, int):
             return channel == 1
-        else:
-            raise ValueError('Invalid channel')
+        raise ValueError('Invalid channel')
 
     @staticmethod
     def _get_earth_mask(lat):
-        """Identify earth/space pixels
+        """Identify earth/space pixels.
 
         Returns:
             Mask (1=earth, 0=space)
@@ -653,7 +654,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _get_nadir_pixel(earth_mask, sector):
-        """Find the nadir pixel
+        """Find the nadir pixel.
 
         Args:
             earth_mask: Mask identifying earth and space pixels
@@ -678,7 +679,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _is_yaw_flip(lat, delta=10):
-        """Determine whether the satellite is yaw-flipped ('upside down')"""
+        """Determine whether the satellite is yaw-flipped ('upside down')."""
         logger.debug('Computing yaw flip flag')
         # In case of yaw-flip the data and coordinates in the netCDF files are
         # also flipped. Just check whether the latitude increases or decrases
@@ -687,7 +688,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         return (lat[crow+delta, ccol] - lat[crow, ccol]).values > 0
 
     def _get_area_def_uniform_sampling(self, lon0, channel):
-        """Get area definition with uniform sampling"""
+        """Get area definition with uniform sampling."""
         logger.debug('Computing area definition')
 
         if lon0 is not None:
@@ -725,20 +726,20 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                 area_extent)
 
             return area_def
-        else:
-            return None
+
+        return None
 
     @property
     def start_time(self):
-        """Start timestamp of the dataset"""
+        """Start timestamp of the dataset."""
         dt = self.nc['time'].dt
-        return datetime(year=dt.year, month=dt.month, day=dt.day,
-                        hour=dt.hour, minute=dt.minute,
-                        second=dt.second, microsecond=dt.microsecond)
+        return datetime(year=int(dt.year), month=int(dt.month), day=int(dt.day),
+                        hour=int(dt.hour), minute=int(dt.minute),
+                        second=int(dt.second), microsecond=int(dt.microsecond))
 
     @property
     def end_time(self):
-        """End timestamp of the dataset"""
+        """End timestamp of the dataset."""
         try:
             return self.start_time + SCAN_DURATION[self.sector]
         except KeyError:
@@ -761,7 +762,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         return 1000. * self.nc['lineRes'].values
 
     def get_shape(self, key, info):
-        """Get the shape of the data
+        """Get the shape of the data.
 
         Returns:
             Number of lines, number of columns
@@ -770,7 +771,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @property
     def meta(self):
-        """Derive metadata from the coordinates"""
+        """Derive metadata from the coordinates."""
         # Use buffered data if available
         if self._meta is None:
             lat = self.geo_data['lat']
@@ -797,7 +798,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         return self._meta
 
     def _counts2radiance(self, counts, coefs, channel):
-        """Convert raw detector counts to radiance"""
+        """Convert raw detector counts to radiance."""
         logger.debug('Converting counts to radiance')
 
         if self._is_vis(channel):
@@ -812,7 +813,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                                        offset=coefs['offset'])
 
     def _calibrate(self, radiance, coefs, channel, calibration):
-        """Convert radiance to reflectance or brightness temperature"""
+        """Convert radiance to reflectance or brightness temperature."""
         if self._is_vis(channel):
             if not calibration == 'reflectance':
                 raise ValueError('Cannot calibrate VIS channel to '
@@ -834,7 +835,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _ircounts2radiance(counts, scale, offset):
-        """Convert IR counts to radiance
+        """Convert IR counts to radiance.
 
         Reference: [IR].
 
@@ -851,7 +852,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _calibrate_ir(radiance, coefs):
-        """Convert IR radiance to brightness temperature
+        """Convert IR radiance to brightness temperature.
 
         Reference: [IR]
 
@@ -880,7 +881,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _viscounts2radiance(counts, slope, offset):
-        """Convert VIS counts to radiance
+        """Convert VIS counts to radiance.
 
         References: [VIS]
 
@@ -896,7 +897,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
     @staticmethod
     def _calibrate_vis(radiance, k):
-        """Convert VIS radiance to reflectance
+        """Convert VIS radiance to reflectance.
 
         Note: Angle of incident radiation and annual variation of the
         earth-sun distance is not taken into account. A value of 100%
@@ -922,7 +923,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         return refl.clip(min=0)
 
     def _update_metadata(self, data, ds_info):
-        """Update metadata of the given DataArray"""
+        """Update metadata of the given DataArray."""
         # Metadata from the dataset definition
         data.attrs.update(ds_info)
 
@@ -943,10 +944,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             # Attributes only available for full disc images. YAML reader
             # doesn't like it if satellite_* is present but None
             data.attrs.update(
-                {'satellite_longitude': self.meta['lon0'],
-                 'satellite_latitude': self.meta['lat0'],
-                 'satellite_altitude': ALTITUDE,
-                 'nadir_row': self.meta['nadir_row'],
+                {'nadir_row': self.meta['nadir_row'],
                  'nadir_col': self.meta['nadir_col'],
                  'area_def_uniform_sampling': self.meta['area_def_uni']}
             )
@@ -957,9 +955,10 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             )
 
     def __del__(self):
+        """Delete."""
         try:
             self.nc.close()
-        except (AttributeError, IOError, OSError):
+        except (AttributeError, OSError):
             pass
 
     def available_datasets(self, configured_datasets=None):
@@ -973,7 +972,6 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         See
         :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
         for details.
-
         """
         res = self.resolution
         # update previously configured datasets
@@ -991,7 +989,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
 
 class GOESNCFileHandler(GOESNCBaseFileHandler):
-    """File handler for GOES Imager data in netCDF format"""
+    """File handler for GOES Imager data in netCDF format."""
 
     vis_sectors = VIS_SECTORS
     ir_sectors = IR_SECTORS
@@ -1002,19 +1000,19 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
                                                 filetype_info)
 
     def get_dataset(self, key, info):
-        """Load dataset designated by the given key from file"""
-        logger.debug('Reading dataset {}'.format(key.name))
+        """Load dataset designated by the given key from file."""
+        logger.debug('Reading dataset {}'.format(key['name']))
 
         # Read data from file and calibrate if necessary
-        if 'longitude' in key.name:
+        if 'longitude' in key['name']:
             data = self.geo_data['lon']
-        elif 'latitude' in key.name:
+        elif 'latitude' in key['name']:
             data = self.geo_data['lat']
         else:
             tic = datetime.now()
             data = self.calibrate(self.nc['data'].isel(time=0),
-                                  calibration=key.calibration,
-                                  channel=key.name)
+                                  calibration=key['calibration'],
+                                  channel=key['name'])
             logger.debug('Calibration time: {}'.format(datetime.now() - tic))
 
         # Mask space pixels
@@ -1029,7 +1027,7 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         return data
 
     def calibrate(self, counts, calibration, channel):
-        """Perform calibration"""
+        """Perform calibration."""
         # Convert 16bit counts from netCDF4 file to the original 10bit
         # GVAR counts by dividing by 32. See [FAQ].
         counts = counts / 32.
@@ -1037,8 +1035,8 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         coefs = CALIB_COEFS[self.platform_name][channel]
         if calibration == 'counts':
             return counts
-        elif calibration in ['radiance', 'reflectance',
-                             'brightness_temperature']:
+        if calibration in ['radiance', 'reflectance',
+                           'brightness_temperature']:
             radiance = self._counts2radiance(counts=counts, coefs=coefs,
                                              channel=channel)
             if calibration == 'radiance':
@@ -1046,13 +1044,12 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
 
             return self._calibrate(radiance=radiance, coefs=coefs,
                                    channel=channel, calibration=calibration)
-        else:
-            raise ValueError('Unsupported calibration for channel {}: {}'
-                             .format(channel, calibration))
+
+        raise ValueError('Unsupported calibration for channel {}: {}'.format(channel, calibration))
 
 
 class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
-    """File handler for GOES Imager data in EUM netCDF format
+    """File handler for GOES Imager data in EUM netCDF format.
 
     TODO: Remove datasets which are not available in the file (counts,
     VIS radiance) via available_datasets()  -> See #434
@@ -1067,13 +1064,13 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
                                                    filetype_info, geo_data)
 
     def get_dataset(self, key, info):
-        """Load dataset designated by the given key from file"""
-        logger.debug('Reading dataset {}'.format(key.name))
+        """Load dataset designated by the given key from file."""
+        logger.debug('Reading dataset {}'.format(key['name']))
 
         tic = datetime.now()
         data = self.calibrate(self.nc['data'].isel(time=0),
-                              calibration=key.calibration,
-                              channel=key.name)
+                              calibration=key['calibration'],
+                              channel=key['name'])
         logger.debug('Calibration time: {}'.format(datetime.now() - tic))
 
         # Mask space pixels
@@ -1089,25 +1086,26 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         return data
 
     def calibrate(self, data, calibration, channel):
-        """Perform calibration"""
+        """Perform calibration."""
         coefs = CALIB_COEFS[self.platform_name][channel]
         is_vis = self._is_vis(channel)
 
         # IR files provide radiances, VIS file provides reflectances
         if is_vis and calibration == 'reflectance':
             return data
-        elif not is_vis and calibration == 'radiance':
+        if not is_vis and calibration == 'radiance':
             return data
-        elif not is_vis and calibration == 'brightness_temperature':
+        if not is_vis and calibration == 'brightness_temperature':
             return self._calibrate(radiance=data, calibration=calibration,
                                    coefs=coefs, channel=channel)
-        else:
-            raise ValueError('Unsupported calibration for channel {}: {}'
-                             .format(channel, calibration))
+
+        raise ValueError('Unsupported calibration for channel {}: {}'
+                         .format(channel, calibration))
 
 
 class GOESEUMGEONCFileHandler(BaseFileHandler):
-    """File handler for GOES Geolocation data in EUM netCDF format"""
+    """File handler for GOES Geolocation data in EUM netCDF format."""
+
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
         super(GOESEUMGEONCFileHandler, self).__init__(filename, filename_info,
@@ -1125,19 +1123,20 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
         self._meta = None
 
     def __getitem__(self, item):
+        """Get item."""
         return getattr(self.nc, item)
 
     def get_dataset(self, key, info):
-        """Load dataset designated by the given key from file"""
-        logger.debug('Reading dataset {}'.format(key.name))
+        """Load dataset designated by the given key from file."""
+        logger.debug('Reading dataset {}'.format(key['name']))
 
         # Read data from file and calibrate if necessary
-        if 'longitude' in key.name:
+        if 'longitude' in key['name']:
             data = self.nc['lon']
-        elif 'latitude' in key.name:
+        elif 'latitude' in key['name']:
             data = self.nc['lat']
         else:
-            raise KeyError("Unknown dataset: {}".format(key.name))
+            raise KeyError("Unknown dataset: {}".format(key['name']))
 
         # Set proper dimension names
         data = data.rename({'xc': 'x', 'yc': 'y'})
@@ -1156,7 +1155,7 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
 
 
 class GOESCoefficientReader(object):
-    """Read GOES Imager calibration coefficients from NOAA reference HTMLs"""
+    """Read GOES Imager calibration coefficients from NOAA reference HTMLs."""
 
     gvar_channels = {
         'GOES-8': {'00_7': 1, '03_9': 2, '06_8': 3, '10_7': 4, '12_0': 5},
@@ -1192,6 +1191,7 @@ class GOESCoefficientReader(object):
     }
 
     def __init__(self, ir_url, vis_url):
+        """Init the coef reader."""
         from bs4 import BeautifulSoup
         self.ir_html = BeautifulSoup(self._load_url_or_file(ir_url),
                                      features="html5lib")
@@ -1206,8 +1206,7 @@ class GOESCoefficientReader(object):
             response = requests.get(url)
             if response.ok:
                 return response.text
-            else:
-                raise requests.HTTPError
+            raise requests.HTTPError
         except (MissingSchema, requests.HTTPError):
             # Not a valid URL, is it a file?
             try:
@@ -1216,6 +1215,7 @@ class GOESCoefficientReader(object):
                 raise ValueError('Invalid URL or file: {}'.format(url))
 
     def get_coefs(self, platform, channel):
+        """Get the coefs."""
         if channel == '00_7':
             return self._get_vis_coefs(platform=platform)
 
@@ -1291,7 +1291,7 @@ class GOESCoefficientReader(object):
         if not headings:
             raise ValueError('Cannot find a coefficient table matching text '
                              '"{}"'.format(heading))
-        elif len(headings) > 1:
+        if len(headings) > 1:
             raise ValueError('Found multiple headings matching text "{}"'
                              .format(heading))
         table = headings[0].next_sibling.next_sibling
@@ -1308,7 +1308,7 @@ class GOESCoefficientReader(object):
         return string.replace('\n', '').replace(' ', '')
 
     def _float(self, string):
-        """Convert string to float
+        """Convert string to float.
 
         Take care of numbers in exponential format
         """
@@ -1325,7 +1325,7 @@ class GOESCoefficientReader(object):
 
 
 def test_coefs(ir_url, vis_url):
-    """Test calibration coefficients against NOAA reference pages
+    """Test calibration coefficients against NOAA reference pages.
 
     Currently the reference pages are:
 
@@ -1341,7 +1341,7 @@ def test_coefs(ir_url, vis_url):
     """
     reader = GOESCoefficientReader(ir_url=ir_url, vis_url=vis_url)
 
-    for platform in CALIB_COEFS.keys():
+    for platform in CALIB_COEFS:
         for channel, coefs in CALIB_COEFS[platform].items():
             coefs_expected = reader.get_coefs(platform=platform,
                                               channel=channel)

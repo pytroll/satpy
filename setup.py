@@ -1,31 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
+# Copyright (c) 2009-2020 Satpy developers
+#
 # This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup file for satpy."""
 
 import os.path
-import sys
 from glob import glob
 
 from setuptools import find_packages, setup
@@ -38,19 +30,19 @@ try:
 except ImportError:
     pass
 
-requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
-            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
-            'dask[array] >=0.17.1', 'pyproj', 'zarr']
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
+            'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
+            'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
+            'pooch', 'pyorbital']
 
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'pycoast', 'pydecorate', 'trollimage']
-
-if sys.version < '3.0':
-    test_requires.append('mock')
-
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
+                 'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
+                 'rioxarray', 'pytest', 'pytest-lazy-fixture', 'defusedxml',
+                 's3fs']
 
 extras_require = {
     # Readers:
+    'avhrr_l1b_gaclac': ['pygac >= 1.3.0'],
     'modis_l1b': ['pyhdf', 'python-geotiepoints >= 1.1.7'],
     'geocat': ['pyhdf'],
     'acspo': ['netCDF4 >= 1.1.8'],
@@ -61,25 +53,36 @@ extras_require = {
     'omps_edr': ['h5py >= 2.7.0'],
     'amsr2_l1b': ['h5py >= 2.7.0'],
     'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
-    'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.8.7'],
-    'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
+    'msi_safe': ['rioxarray', "bottleneck", "python-geotiepoints"],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
-    'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
+    'sar_c': ['python-geotiepoints >= 1.1.7', 'rasterio', 'rioxarray', 'defusedxml'],
     'abi_l1b': ['h5netcdf'],
+    'seviri_l1b_hrit': ['pyorbital >= 1.3.1'],
+    'seviri_l1b_native': ['pyorbital >= 1.3.1'],
+    'seviri_l1b_nc': ['pyorbital >= 1.3.1', 'netCDF4 >= 1.1.8'],
+    'seviri_l2_bufr': ['eccodes-python'],
+    'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
+    'remote_reading': ['fsspec'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
-    'scmi': ['netCDF4 >= 1.1.8'],
+    'awips_tiled': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
-    'mitiff': ['libtiff'],
+    'mitiff': ['pylibtiff'],
+    'ninjo': ['pyninjotiff', 'pint'],
+    # Composites/Modifiers:
+    'rayleigh': ['pyspectral >= 0.10.1'],
+    'angles': ['pyorbital >= 1.3.1'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
-    'doc': ['sphinx'],
+    'doc': ['sphinx', 'sphinx_rtd_theme', 'sphinxcontrib-apidoc'],
     # Other
     'geoviews': ['geoviews'],
+    'overlays': ['pycoast', 'pydecorate'],
+    'satpos_from_tle': ['skyfield', 'astropy'],
+    'tests': test_requires,
 }
 all_extras = []
 for extra_deps in extras_require.values():
@@ -110,8 +113,16 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
     return data_files
 
 
+entry_points = {
+    'console_scripts': [
+        'satpy_retrieve_all_aux_data=satpy.aux_download:retrieve_all_cmd',
+    ],
+}
+
+
 NAME = 'satpy'
-README = open('README.rst', 'r').read()
+with open('README.rst', 'r') as readme:
+    README = readme.read()
 
 setup(name=NAME,
       description='Python package for earth-observing satellite data processing',
@@ -126,23 +137,26 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
-      test_suite='satpy.tests.suite',
       packages=find_packages(),
-      package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
-                              os.path.join('etc', 'areas.yaml'),
-                              os.path.join('etc', 'satpy.cfg'),
-                              os.path.join('etc', 'himawari-8.cfg'),
-                              os.path.join('etc', 'eps_avhrrl1b_6.5.xml'),
-                              os.path.join('etc', 'readers', '*.yaml'),
-                              os.path.join('etc', 'writers', '*.yaml'),
-                              os.path.join('etc', 'composites', '*.yaml'),
-                              os.path.join('etc', 'enhancements', '*.cfg'),
-                              os.path.join('etc', 'enhancements', '*.yaml'),
+      # Always use forward '/', even on Windows
+      # See https://setuptools.readthedocs.io/en/latest/userguide/datafiles.html#data-files-support
+      package_data={'satpy': ['etc/geo_image.cfg',
+                              'etc/areas.yaml',
+                              'etc/satpy.cfg',
+                              'etc/himawari-8.cfg',
+                              'etc/eps_avhrrl1b_6.5.xml',
+                              'etc/readers/*.yaml',
+                              'etc/writers/*.yaml',
+                              'etc/composites/*.yaml',
+                              'etc/enhancements/*.cfg',
+                              'etc/enhancements/*.yaml',
+                              'tests/etc/readers/*.yaml',
+                              'tests/etc/composites/*.yaml',
+                              'tests/etc/writers/*.yaml',
                               ]},
       zip_safe=False,
-      use_scm_version=True,
       install_requires=requires,
-      tests_require=test_requires,
-      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+      python_requires='>=3.8',
       extras_require=extras_require,
+      entry_points=entry_points,
       )

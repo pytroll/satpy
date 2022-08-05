@@ -15,18 +15,23 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Helper functions for area extent calculations."""
+"""Helper functions for satpy readers."""
 
-import logging
-
-from contextlib import closing
-import tempfile
 import bz2
+import logging
 import os
+import shutil
+import tempfile
+import warnings
+from contextlib import closing
+from io import BytesIO
+from shutil import which
+from subprocess import PIPE, Popen  # nosec
+
 import numpy as np
 import pyproj
+import xarray as xr
 from pyresample.geometry import AreaDefinition
-from pyresample.boundary import AreaDefBoundary, Boundary
 
 from satpy import CHUNK_SIZE
 
@@ -45,8 +50,9 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, (np.string_, np.object_)) and value.size == 1:
-        value = np.asscalar(value)
+            issubclass(value.dtype.type, (np.str_, np.string_, np.object_)) \
+            and value.size == 1:
+        value = value.item()
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
             # otherwise python 2 - scalar numpy array of 'str'
@@ -56,14 +62,36 @@ def np2str(value):
         raise ValueError("Array is not a string type or is larger than 1")
 
 
+def _get_geostationary_height(geos_area):
+    params = geos_area.crs.coordinate_operation.params
+    h_param = [p for p in params if 'satellite height' in p.name.lower()][0]
+    return h_param.value
+
+
+def _get_geostationary_reference_longitude(geos_area):
+    params = geos_area.crs.coordinate_operation.params
+    lon_0_params = [p for p in params if 'longitude of natural origin' in p.name.lower()]
+    if not lon_0_params:
+        return 0
+    elif len(lon_0_params) != 1:
+        raise ValueError("Not sure how to get reference longitude "
+                         "information from AreaDefinition.")
+    return lon_0_params[0].value
+
+
+def _get_geostationary_semi_axes(geos_area):
+    from pyresample.utils import proj4_radius_parameters
+    return proj4_radius_parameters(geos_area.crs)
+
+
 def get_geostationary_angle_extent(geos_area):
     """Get the max earth (vs space) viewing angles in x and y."""
     # TODO: take into account sweep_axis_angle parameter
-
-    # get some projection parameters
-    req = float(geos_area.proj_dict['a']) / 1000
-    rp = float(geos_area.proj_dict['b']) / 1000
-    h = float(geos_area.proj_dict['h']) / 1000 + req
+    a, b = _get_geostationary_semi_axes(geos_area)
+    h = _get_geostationary_height(geos_area)
+    req = float(a) / 1000
+    rp = float(b) / 1000
+    h = float(h) / 1000 + req
 
     # compute some constants
     aeq = 1 - req**2 / (h ** 2)
@@ -76,25 +104,26 @@ def get_geostationary_angle_extent(geos_area):
     return xmax, ymax
 
 
-def get_geostationary_mask(area):
+def get_geostationary_mask(area, chunks=None):
     """Compute a mask of the earth's shape as seen by a geostationary satellite.
 
     Args:
         area (pyresample.geometry.AreaDefinition) : Corresponding area
                                                     definition
+        chunks (int or tuple): Chunk size for the 2D array that is generated.
 
     Returns:
         Boolean mask, True inside the earth's shape, False outside.
 
     """
     # Compute projection coordinates at the earth's limb
-    h = area.proj_dict['h']
+    h = _get_geostationary_height(area)
     xmax, ymax = get_geostationary_angle_extent(area)
     xmax *= h
     ymax *= h
 
     # Compute projection coordinates at the centre of each pixel
-    x, y = area.get_proj_coords(chunks=CHUNK_SIZE)
+    x, y = area.get_proj_coords(chunks=chunks or CHUNK_SIZE)
 
     # Compute mask of the earth's elliptical shape
     return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
@@ -102,21 +131,24 @@ def get_geostationary_mask(area):
 
 def _lonlat_from_geos_angle(x, y, geos_area):
     """Get lons and lats from x, y in projection coordinates."""
-    h = float(geos_area.proj_dict['h'] + geos_area.proj_dict['a']) / 1000
-    b__ = (geos_area.proj_dict['a'] / float(geos_area.proj_dict['b'])) ** 2
+    a, b = _get_geostationary_semi_axes(geos_area)
+    h = _get_geostationary_height(geos_area)
+    lon_0 = _get_geostationary_reference_longitude(geos_area)
+    h__ = float(h + a) / 1000
+    b__ = (a / float(b)) ** 2
 
-    sd = np.sqrt((h * np.cos(x) * np.cos(y)) ** 2 -
+    sd = np.sqrt((h__ * np.cos(x) * np.cos(y)) ** 2 -
                  (np.cos(y)**2 + b__ * np.sin(y)**2) *
-                 (h**2 - (float(geos_area.proj_dict['a']) / 1000)**2))
+                 (h__**2 - (float(a) / 1000)**2))
     # sd = 0
 
-    sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
-    s1 = h - sn * np.cos(x) * np.cos(y)
+    sn = (h__ * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
+    s1 = h__ - sn * np.cos(x) * np.cos(y)
     s2 = sn * np.sin(x) * np.cos(y)
     s3 = -sn * np.sin(y)
     sxy = np.sqrt(s1**2 + s2**2)
 
-    lons = np.rad2deg(np.arctan2(s2, s1)) + geos_area.proj_dict.get('lon_0', 0)
+    lons = np.rad2deg(np.arctan2(s2, s1)) + lon_0
     lats = np.rad2deg(-np.arctan2(b__ * s3, sxy))
 
     return lons, lats
@@ -126,51 +158,26 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     """Get the bbox in lon/lats of the valid pixels inside *geos_area*.
 
     Args:
+      geos_area: The geostationary area to analyse.
       nb_points: Number of points on the polygon
 
     """
     xmax, ymax = get_geostationary_angle_extent(geos_area)
+    h = _get_geostationary_height(geos_area)
 
     # generate points around the north hemisphere in satellite projection
     # make it a bit smaller so that we stay inside the valid area
-    x = np.cos(np.linspace(-np.pi, 0, nb_points / 2)) * (xmax - 0.001)
-    y = -np.sin(np.linspace(-np.pi, 0, nb_points / 2)) * (ymax - 0.001)
+    x = np.cos(np.linspace(-np.pi, 0, nb_points // 2)) * (xmax - 0.001)
+    y = -np.sin(np.linspace(-np.pi, 0, nb_points // 2)) * (ymax - 0.001)
 
     # clip the projection coordinates to fit the area extent of geos_area
     ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent) /
-                              float(geos_area.proj_dict['h']))
+                              float(h))
 
     x = np.clip(np.concatenate([x, x[::-1]]), min(ll_x, ur_x), max(ll_x, ur_x))
     y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
 
     return _lonlat_from_geos_angle(x, y, geos_area)
-
-
-def get_area_slices(data_area, area_to_cover):
-    """Compute the slice to read from an *area* based on an *area_to_cover*."""
-    if data_area.proj_dict['proj'] != 'geos':
-        raise NotImplementedError('Only geos supported')
-
-    # Intersection only required for two different projections
-    if area_to_cover.proj_dict['proj'] == data_area.proj_dict['proj']:
-        LOGGER.debug('Projections for data and slice areas are'
-                     ' identical: {}'.format(area_to_cover.proj_dict['proj']))
-        # Get xy coordinates
-        llx, lly, urx, ury = area_to_cover.area_extent
-        x, y = data_area.get_xy_from_proj_coords([llx, urx], [lly, ury])
-
-        return slice(x[0], x[1] + 1), slice(y[1], y[0] + 1)
-
-    data_boundary = Boundary(*get_geostationary_bounding_box(data_area))
-
-    area_boundary = AreaDefBoundary(area_to_cover, 100)
-    intersection = data_boundary.contour_poly.intersection(
-        area_boundary.contour_poly)
-
-    x, y = data_area.get_xy_from_lonlat(np.rad2deg(intersection.lon),
-                                        np.rad2deg(intersection.lat))
-
-    return slice(min(x), max(x) + 1), slice(min(y), max(y) + 1)
 
 
 def get_sub_area(area, xslice, yslice):
@@ -185,17 +192,61 @@ def get_sub_area(area, xslice, yslice):
                         (yslice.start - 0.5) * area.pixel_size_y))
 
     return AreaDefinition(area.area_id, area.name,
-                          area.proj_id, area.proj_dict,
+                          area.proj_id, area.crs,
                           xslice.stop - xslice.start,
                           yslice.stop - yslice.start,
                           new_area_extent)
 
 
-def unzip_file(filename):
-    """Unzip the file if file is bzipped = ending with 'bz2'."""
-    if filename.endswith('bz2'):
+def unzip_file(filename, prefix=None):
+    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+
+    Args:
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    if os.fspath(filename).endswith('bz2'):
+        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
+        LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
+        # try pbzip2
+        pbzip = which('pbzip2')
+        # Run external pbzip2
+        if pbzip is not None:
+            n_thr = os.environ.get('OMP_NUM_THREADS')
+            if n_thr:
+                runner = [pbzip,
+                          '-dc',
+                          '-p'+str(n_thr),
+                          filename]
+            else:
+                runner = [pbzip,
+                          '-dc',
+                          filename]
+            p = Popen(runner, stdout=PIPE, stderr=PIPE)  # nosec
+            stdout = BytesIO(p.communicate()[0])
+            status = p.returncode
+            if status != 0:
+                raise IOError("pbzip2 error '%s', failed, status=%d"
+                              % (filename, status))
+            with closing(os.fdopen(fdn, 'wb')) as ofpt:
+                try:
+                    stdout.seek(0)
+                    shutil.copyfileobj(stdout, ofpt)
+                except IOError:
+                    import traceback
+                    traceback.print_exc()
+                    LOGGER.info("Failed to read bzipped file %s",
+                                str(filename))
+                    os.remove(tmpfilepath)
+                    raise
+            return tmpfilepath
+
+        # Otherwise, fall back to the original method
         bz2file = bz2.BZ2File(filename)
-        fdn, tmpfilepath = tempfile.mkstemp()
         with closing(os.fdopen(fdn, 'wb')) as ofpt:
             try:
                 ofpt.write(bz2file.read())
@@ -205,10 +256,65 @@ def unzip_file(filename):
                 LOGGER.info("Failed to read bzipped file %s", str(filename))
                 os.remove(tmpfilepath)
                 return None
-
         return tmpfilepath
 
     return None
+
+
+class unzip_context():
+    """Context manager for uncompressing a .bz2 file on the fly.
+
+    Uses `unzip_file`. Removes the uncompressed file on exit of the context manager.
+
+    Returns: the filename of the uncompressed file or of the original file if it was not
+    compressed.
+
+    """
+
+    def __init__(self, filename):
+        """Keep original filename."""
+        self.input_filename = filename
+
+    def __enter__(self):
+        """Uncompress file if necessary and return the relevant filename for the file handler."""
+        unzipped = unzip_file(self.input_filename)
+        if unzipped is not None:
+            self.unzipped_filename = unzipped
+            return unzipped
+        else:
+            self.unzipped_filename = None
+            return self.input_filename
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Remove temporary file."""
+        if self.unzipped_filename is not None:
+            os.remove(self.unzipped_filename)
+
+
+class generic_open():
+    """Context manager for opening either a regular file or a bzip2 file."""
+
+    def __init__(self, filename, *args, **kwargs):
+        """Keep filename and mode."""
+        self.filename = filename
+        self.open_args = args
+        self.open_kwargs = kwargs
+
+    def __enter__(self):
+        """Return a file-like object."""
+        if os.fspath(self.filename).endswith('.bz2'):
+            self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
+        else:
+            if hasattr(self.filename, "open"):
+                self.fp = self.filename.open(*self.open_args, **self.open_kwargs)
+            else:
+                self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
+
+        return self.fp
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Close the file handler."""
+        self.fp.close()
 
 
 def bbox(img):
@@ -256,3 +362,68 @@ def reduce_mda(mda, max_size=100):
         elif not (isinstance(val, np.ndarray) and val.size > max_size):
             reduced[key] = val
     return reduced
+
+
+def get_user_calibration_factors(band_name, correction_dict):
+    """Retrieve radiance correction factors from user-supplied dict."""
+    if band_name in correction_dict:
+        try:
+            slope = correction_dict[band_name]['slope']
+            offset = correction_dict[band_name]['offset']
+        except KeyError:
+            raise KeyError("Incorrect correction factor dictionary. You must "
+                           "supply 'slope' and 'offset' keys.")
+    else:
+        # If coefficients not present, warn user and use slope=1, offset=0
+        warnings.warn("WARNING: You have selected radiance correction but "
+                      " have not supplied coefficients for channel " +
+                      band_name)
+        return 1., 0.
+
+    return slope, offset
+
+
+def apply_rad_correction(data, slope, offset):
+    """Apply GSICS-like correction factors to radiance data."""
+    data = (data - offset) / slope
+    return data
+
+
+def get_array_date(scn_data, utc_date=None):
+    """Get start time from a channel data array."""
+    if utc_date is None:
+        try:
+            utc_date = scn_data.attrs['start_time']
+        except KeyError:
+            try:
+                utc_date = scn_data.attrs['scheduled_time']
+            except KeyError:
+                raise KeyError('Scene has no start_time '
+                               'or scheduled_time attribute.')
+    return utc_date
+
+
+def apply_earthsun_distance_correction(reflectance, utc_date=None):
+    """Correct reflectance data to account for changing Earth-Sun distance."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    utc_date = get_array_date(reflectance, utc_date)
+    sun_earth_dist = sun_earth_distance_correction(utc_date)
+
+    reflectance.attrs['sun_earth_distance_correction_applied'] = True
+    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    with xr.set_options(keep_attrs=True):
+        reflectance = reflectance * sun_earth_dist * sun_earth_dist
+    return reflectance
+
+
+def remove_earthsun_distance_correction(reflectance, utc_date=None):
+    """Remove the sun-earth distance correction."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    utc_date = get_array_date(reflectance, utc_date)
+    sun_earth_dist = sun_earth_distance_correction(utc_date)
+
+    reflectance.attrs['sun_earth_distance_correction_applied'] = False
+    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    with xr.set_options(keep_attrs=True):
+        reflectance = reflectance / (sun_earth_dist * sun_earth_dist)
+    return reflectance

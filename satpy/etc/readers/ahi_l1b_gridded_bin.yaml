@@ -1,0 +1,310 @@
+# References:
+#  - Himawari-8/9 Grided data website: http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
+
+reader:
+  name: ahi_l1b_gridded_bin
+  short_name: AHI Gridded
+  long_name: Himawari (8 + 9) AHI Level 1b (gridded)
+  description: Reader for the JMA Himawari AHI Level 1 data in gridded format, downloadable from
+               http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
+  status: Nominal
+  supports_fsspec: false
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [ahi]
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time']
+
+datasets:
+  B01:
+    name: B01
+    sensor: ahi
+    wavelength: [0.45,0.47,0.49]
+    resolution: 0.01
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: vis.01
+
+  B02:
+    name: B02
+    sensor: ahi
+    wavelength: [0.49,0.51,0.53]
+    resolution: 0.01
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: vis.02
+
+  B03:
+    name: B03
+    sensor: ahi
+    wavelength: [0.62,0.64,0.66]
+    resolution: 0.005
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: ext.01
+
+  B04:
+    name: B04
+    sensor: ahi
+    wavelength: [0.83, 0.85, 0.87]
+    resolution: 0.01
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: vis.03
+
+  B05:
+    name: B05
+    sensor: ahi
+    wavelength: [1.5, 1.6, 1.7]
+    resolution: 0.02
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: sir.01
+
+  B06:
+    name: B06
+    sensor: ahi
+    wavelength: [2.2, 2.3, 2.4]
+    resolution: 0.02
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: sir.02
+
+  B07:
+    name: B07
+    sensor: ahi
+    wavelength: [3.7, 3.9, 4.1]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.05
+
+  B08:
+    name: B08
+    sensor: ahi
+    wavelength: [6.0, 6.2, 6.4]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.06
+
+  B09:
+    name: B09
+    sensor: ahi
+    wavelength: [6.7, 6.9, 7.1]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.07
+
+  B10:
+    name: B10
+    sensor: ahi
+    wavelength: [7.1, 7.3, 7.5]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.08
+
+  B11:
+    name: B11
+    sensor: ahi
+    wavelength: [8.4, 8.6, 8.8]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.09
+
+  B12:
+    name: B12
+    sensor: ahi
+    wavelength: [9.4, 9.6, 9.8]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.10
+
+  B13:
+    name: B13
+    sensor: ahi
+    wavelength: [10.2, 10.4, 10.6]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.01
+
+  B14:
+    name: B14
+    sensor: ahi
+    wavelength: [11.0, 11.2, 11.4]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.02
+
+  B15:
+    name: B15
+    sensor: ahi
+    wavelength: [12.2, 12.4, 12.6]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.03
+
+  B16:
+    name: B16
+    sensor: ahi
+    wavelength: [13.1, 13.3, 13.5]
+    resolution: 0.02
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: tir.04
+
+
+file_types:
+  vis.01:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.vis.01.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.vis.01.{area}.geoss.bz2']
+  vis.02:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.vis.02.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.vis.02.{area}.geoss.bz2']
+  ext.01:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.ext.01.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.ext.01.{area}.geoss.bz2']
+  vis.03:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.vis.03.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.vis.03.{area}.geoss.bz2']
+  sir.01:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.sir.01.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.sir.01.{area}.geoss.bz2']
+  sir.02:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.sir.02.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.sir.02.{area}.geoss.bz2']
+  tir.05:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.05.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.05.{area}.geoss.bz2']
+  tir.06:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.06.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.06.{area}.geoss.bz2']
+  tir.07:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.07.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.07.{area}.geoss.bz2']
+  tir.08:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.08.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.08.{area}.geoss.bz2']
+  tir.09:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.09.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.09.{area}.geoss.bz2']
+  tir.10:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.10.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.10.{area}.geoss.bz2']
+  tir.01:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.01.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.01.{area}.geoss.bz2']
+  tir.02:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.02.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.02.{area}.geoss.bz2']
+  tir.03:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.03.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.03.{area}.geoss.bz2']
+  tir.04:
+    file_reader: !!python/name:satpy.readers.ahi_l1b_gridded_bin.AHIGriddedFileHandler
+    file_patterns: ['{start_time:%Y%m%d%H%M}.tir.04.{area}.geoss',
+                    '{start_time:%Y%m%d%H%M}.tir.04.{area}.geoss.bz2']

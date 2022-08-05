@@ -1,0 +1,186 @@
+# References:
+# - MSG Level 1.5 Image Data Format Description
+# - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
+#   Spectral Blackbody Radiance
+
+reader:
+  name: seviri_l1b_icare
+  short_name: SEVIRI L1b ICARE
+  long_name: MSG SEVIRI Level 1b in HDF format from ICARE (Lille)
+  description: >
+    A reader for L1b SEVIRI data that has been retrieved from the ICARE service as HDF.
+  status: Defunct
+  supports_fsspec: false
+  sensors: [seviri]
+  default_channels: [HRV, IR_016, IR_039, IR_087, IR_097, IR_108, IR_120, IR_134, VIS006, VIS008, WV_062, WV_073]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    ICARE_HRV:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_HRV_{version:5s}.hdf']
+
+    ICARE_IR_016:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR016_{version:5s}.hdf']
+
+    ICARE_IR_039:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR039_{version:5s}.hdf']
+
+    ICARE_IR_087:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR087_{version:5s}.hdf']
+
+    ICARE_IR_097:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR097_{version:5s}.hdf']
+
+    ICARE_IR_108:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR108_{version:5s}.hdf']
+
+    ICARE_IR_120:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR120_{version:5s}.hdf']
+
+    ICARE_IR_134:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_IR134_{version:5s}.hdf']
+
+    ICARE_VIS006:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_VIS06_{version:5s}.hdf']
+
+    ICARE_VIS008:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_VIS08_{version:5s}.hdf']
+
+    ICARE_WV_062:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_WV062_{version:5s}.hdf']
+
+    ICARE_WV_073:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_icare.SEVIRI_ICARE
+        file_patterns: ['GEO_L1B-{platform_shortname:4s}_{start_time:%Y-%m-%dT%H-%M-%S}_G_WV073_{version:5s}.hdf']
+
+datasets:
+  HRV:
+    name: HRV
+    resolution: 1000.134348869
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: ICARE_HRV
+
+  IR_016:
+    name: IR_016
+    resolution: 3000.403165817
+    wavelength: [1.5, 1.64, 1.78]
+    calibration:
+      reflectance:
+        standard_name: reflectance
+        units: "%"
+    file_type: ICARE_IR_016
+
+  IR_039:
+    name: IR_039
+    resolution: 3000.403165817
+    wavelength: [3.48, 3.92, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    file_type: ICARE_IR_039
+
+  IR_087:
+    name: IR_087
+    resolution: 3000.403165817
+    wavelength: [8.3, 8.7, 9.1]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    file_type: ICARE_IR_087
+
+  IR_097:
+    name: IR_097
+    resolution: 3000.403165817
+    wavelength: [9.38, 9.66, 9.94]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    file_type: ICARE_IR_097
+
+  IR_108:
+    name: IR_108
+    resolution: 3000.403165817
+    wavelength: [9.8, 10.8, 11.8]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    file_type: ICARE_IR_108
+
+  IR_120:
+    name: IR_120
+    resolution: 3000.403165817
+    wavelength: [11.0, 12.0, 13.0]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    file_type: ICARE_IR_120
+
+  IR_134:
+    name: IR_134
+    resolution: 3000.403165817
+    wavelength: [12.4, 13.4, 14.4]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    file_type: ICARE_IR_134
+
+  VIS006:
+    name: VIS006
+    resolution: 3000.403165817
+    wavelength: [0.56, 0.635, 0.71]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: ICARE_VIS006
+
+  VIS008:
+    name: VIS008
+    resolution: 3000.403165817
+    wavelength: [0.74, 0.81, 0.88]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: ICARE_VIS008
+
+  WV_062:
+    name: WV_062
+    resolution: 3000.403165817
+    wavelength: [5.35, 6.25, 7.15]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: "K"
+    file_type: ICARE_WV_062
+
+  WV_073:
+    name: WV_073
+    resolution: 3000.403165817
+    wavelength: [6.85, 7.35, 7.85]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: "K"
+    file_type: ICARE_WV_073

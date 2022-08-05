@@ -1,0 +1,28 @@
+enhancements:
+  flash_extent_density:
+    name: flash_extent_density
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: ylorrd, min_value: 0, max_value: 20}
+  # Requires C14 from ABI
+  c14_flash_extent_density:
+    standard_name: c14_flash_extent_density
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [1, 1, 1]
+  c14_yellow_lightning:
+    standard_name: c14_yellow_lightning
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0, 0]
+          max_stretch: [1, 1, 1, 1]

@@ -1,0 +1,17 @@
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+version: 2
+# Build documentation in the docs/ directory with Sphinx
+sphinx:
+  configuration: doc/source/conf.py
+  fail_on_warning: true
+
+# Optionally build your docs in additional formats such as PDF and ePub
+formats: all
+
+build:
+  os: "ubuntu-20.04"
+  tools:
+    python: "mambaforge-4.10"
+conda:
+  environment: doc/rtd_environment.yml

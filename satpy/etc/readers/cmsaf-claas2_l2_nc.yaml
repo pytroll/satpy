@@ -1,0 +1,24 @@
+reader:
+  name: cmsaf-claas2_l2_nc
+  short_name: CMSAF CLAAS-2 data
+  long_name: CMSAF CLAAS-2 data for SEVIRI-derived cloud products
+  description: >
+    Reader for Spinning Enhanced Visible and Infrared Imager (SEVIRI)
+    L2 data as produced by the Climate Monitoring Satellite Application
+    Facility (CMSAF) in its CLoud property dAtAset using SEVIRI (CLAAS)
+    dataset, edition 2, doi:10.5676/EUM_SAF_CM/CLAAS/V002.  Information on
+    CMSAF and its products can be found at https://www.cmsaf.eu/.
+  status: Beta
+  supports_fsspec: false
+  sensors: [seviri]
+  doi: doi:10.5676/EUM_SAF_CM/CLAAS/V002.
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+# CMSAF naming convention:
+#   https://www.cmsaf.eu/EN/Products/NamingConvention/Naming_Convention_node.html
+
+file_types:
+    cmsaf-claas2:
+        file_reader: !!python/name:satpy.readers.cmsaf_claas2.CLAAS2
+        file_patterns: ['{product:3s}in{start_time:%Y%m%d%H%M}{version:>03d}05SVMSG{proc_level:2s}MD.nc']

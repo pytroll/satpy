@@ -15,30 +15,34 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit msg reader tests package.
-"""
+"""The hrit msg reader tests package."""
 
-import sys
 import datetime
+import unittest
+from unittest import mock
+
 import numpy as np
+from pyresample.utils import proj4_radius_parameters
 from xarray import DataArray
-from satpy.readers.goes_imager_hrit import (make_gvar_float, make_sgs_time,
-                                            HRITGOESPrologueFileHandler, sgs_time,
-                                            HRITGOESFileHandler, ALTITUDE)
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.readers.goes_imager_hrit import (
+    ALTITUDE,
+    EQUATOR_RADIUS,
+    POLE_RADIUS,
+    HRITGOESFileHandler,
+    HRITGOESPrologueFileHandler,
+    make_gvar_float,
+    make_sgs_time,
+    sgs_time,
+)
+from satpy.tests.utils import make_dataid
 
 
 class TestGVARFloat(unittest.TestCase):
+    """GVAR float tester."""
+
     def test_fun(self):
+        """Test function."""
         test_data = [(-1.0, b"\xbe\xf0\x00\x00"),
                      (-0.1640625, b"\xbf\xd6\x00\x00"),
                      (0.0, b"\x00\x00\x00\x00"),
@@ -52,7 +56,10 @@ class TestGVARFloat(unittest.TestCase):
 
 
 class TestMakeSGSTime(unittest.TestCase):
+    """SGS Time tester."""
+
     def test_fun(self):
+        """Encode the test time."""
         # 2018-129 (may 9th), 21:33:27.999
         tcds = np.array([(32, 24, 18, 146, 19, 50, 121, 153)], dtype=sgs_time)
         expected = datetime.datetime(2018, 5, 9, 21, 33, 27, 999000)
@@ -125,7 +132,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
     def setUp(self, new_fh_init):
-        """Setup the hrit file handler for testing."""
+        """Set up the hrit file handler for testing."""
         blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
         mda = {'projection_parameters': {'SSP_longitude': -123.0},
                'spectral_channel_id': 1,
@@ -137,6 +144,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
         self.reader = HRITGOESFileHandler('filename', {}, {}, self.prologue)
 
     def test_init(self):
+        """Test the init."""
         blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
         mda = {'spectral_channel_id': 1,
                'projection_parameters': {'SSP_longitude': 100.1640625},
@@ -145,8 +153,8 @@ class TestHRITGOESFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset')
     def test_get_dataset(self, base_get_dataset):
-        key = mock.MagicMock()
-        key.calibration = 'reflectance'
+        """Test get_dataset."""
+        key = make_dataid(name="CH1", calibration='reflectance')
         base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
         res = self.reader.get_dataset(key, {})
         expected = np.array([[np.nan, 0.097752, 0.195503, 0.293255, 0.391007],
@@ -162,18 +170,30 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                               'projection_latitude': 0.0,
                               'projection_altitude': ALTITUDE})
 
+    def test_get_area_def(self):
+        """Test getting the area definition."""
+        self.reader.mda.update({
+            'cfac': 10216334,
+            'lfac': 10216334,
+            'coff': 1408.0,
+            'loff': 944.0,
+            'number_of_lines': 464,
+            'number_of_columns': 2816
+        })
+        dsid = make_dataid(name="CH1", calibration='reflectance',
+                           resolution=3000)
+        area = self.reader.get_area_def(dsid)
 
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOESPrologueFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOESFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGVARFloat))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeSGSTime))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
+        a, b = proj4_radius_parameters(area.proj_dict)
+        assert a == EQUATOR_RADIUS
+        assert b == POLE_RADIUS
+        assert area.proj_dict['h'] == ALTITUDE
+        assert area.proj_dict['lon_0'] == 100.1640625
+        assert area.proj_dict['proj'] == 'geos'
+        assert area.proj_dict['units'] == 'm'
+        assert area.width == 2816
+        assert area.height == 464
+        assert area.area_id == 'goes-15_goes_imager_fd_3km'
+        area_extent_exp = (-5639254.900260435, 1925159.4881528523,
+                           5643261.475678028, 3784210.48191544)
+        np.testing.assert_allclose(area.area_extent, area_extent_exp)

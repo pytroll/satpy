@@ -30,7 +30,7 @@ satpy/etc/readers/avhrr_l1b_gaclac.yaml @mraspaud @sfinkens
 satpy/etc/readers/avhrr_l1b_hrpt.yaml @mraspaud
 satpy/etc/readers/clavrx.yaml @djhoese
 satpy/etc/readers/electrol_hrit.yaml @sfinkens @mraspaud
-satpy/etc/readers/fci_l1c_fdhsi.yaml @mraspaud
+satpy/etc/readers/fci_l1c_nc.yaml @ameraner @gerritholl
 satpy/etc/readers/geocat.yaml @djhoese
 satpy/etc/readers/goes-imager_hrit.yaml @sfinkens @mraspaud
 satpy/etc/readers/goes-imager_nc.yaml @sfinkens @mraspaud
@@ -58,7 +58,7 @@ satpy/etc/readers/viirs_l1b.yaml @djhoese
 satpy/etc/readers/virr_l1b.yaml @djhoese @adybbroe
 satpy/etc/writers/cf.yaml @mraspaud
 satpy/etc/writers/ninjotiff.yaml @mraspaud
-satpy/etc/writers/scmi.yaml @djhoese
+satpy/etc/writers/awips_tiled.yaml @djhoese
 satpy/readers/aapp_l1b.py @pnuu @mraspaud @adybbroe
 satpy/readers/abi_l1b.py @djhoese
 satpy/readers/acspo.py @djhoese
@@ -68,7 +68,7 @@ satpy/readers/clavrx.py @djhoese
 satpy/readers/electrol_hrit.py @sfinkens @mraspaud
 satpy/readers/eps_l1b.py @mraspaud @pnuu @adybbroe
 satpy/readers/eum_base.py @sjoro @sfinkens @adybbroe
-satpy/readers/fci_l1c_fdhsi.py @mraspaud
+satpy/readers/fci_l1c_nc.py @ameraner @gerritholl
 satpy/readers/geocat.py @djhoese
 satpy/readers/goes_imager_hrit.py @sfinkens @mraspaud
 satpy/readers/goes_imager_nc.py @sfinkens @mraspaud
@@ -98,6 +98,6 @@ satpy/readers/viirs_l1b.py @djhoese
 satpy/readers/xmlformat.py @mraspaud
 satpy/resample.py @pnuu @djhoese @mraspaud
 satpy/writers/cf_writer.py @mraspaud
-satpy/writers/scmi.py @djhoese
+satpy/writers/awips_tiled.py @djhoese
 utils/coord2area_def.py @mraspaud @adybbroe
 utils/fetch_avhrr_calcoeffs.py @pnuu

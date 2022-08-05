@@ -15,33 +15,26 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The HRIT base reader tests package.
-"""
+"""The HRIT base reader tests package."""
 
-import sys
-from datetime import datetime
 import os
-from tempfile import gettempdir, NamedTemporaryFile
+import unittest
+from datetime import datetime
+from io import BytesIO
+from tempfile import NamedTemporaryFile, gettempdir
+from unittest import mock
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, decompress
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.readers import FSFile
+from satpy.readers.hrit_base import HRITFileHandler, decompress, get_xritdecompress_cmd, get_xritdecompress_outfile
 
 
 class TestHRITDecompress(unittest.TestCase):
     """Test the on-the-fly decompression."""
 
     def test_xrit_cmd(self):
+        """Test running the xrit decompress command."""
         old_env = os.environ.get('XRIT_DECOMPRESS_PATH', None)
 
         os.environ['XRIT_DECOMPRESS_PATH'] = '/path/to/my/bin'
@@ -63,13 +56,14 @@ class TestHRITDecompress(unittest.TestCase):
         self.assertEqual(fname, res)
 
     def test_xrit_outfile(self):
+        """Test the right decompression filename is used."""
         stdout = [b"Decompressed file: bla.__\n"]
         outfile = get_xritdecompress_outfile(stdout)
         self.assertEqual(outfile, b'bla.__')
 
     @mock.patch('satpy.readers.hrit_base.Popen')
     def test_decompress(self, popen):
-
+        """Test decompression works."""
         popen.return_value.returncode = 0
         popen.return_value.communicate.return_value = [b"Decompressed file: bla.__\n"]
 
@@ -87,18 +81,36 @@ class TestHRITDecompress(unittest.TestCase):
         self.assertEqual(res, os.path.join('.', 'bla.__'))
 
 
+def new_get_hd(instance, hdr_info):
+    """Generate some metadata."""
+    instance.mda = {'spectral_channel_id': 1}
+    instance.mda.setdefault('number_of_bits_per_pixel', 10)
+
+    instance.mda['projection_parameters'] = {'a': 6378169.00,
+                                             'b': 6356583.80,
+                                             'h': 35785831.00,
+                                             'SSP_longitude': 0.0}
+    instance.mda['orbital_parameters'] = {}
+    instance.mda['total_header_length'] = 12
+
+
 class TestHRITFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
     @mock.patch('satpy.readers.hrit_base.np.fromfile')
     def setUp(self, fromfile):
-        """Setup the hrit file handler for testing."""
+        """Set up the hrit file handler for testing."""
         m = mock.mock_open()
         fromfile.return_value = np.array([(1, 2)], dtype=[('total_header_length', int),
                                                           ('hdr_id', int)])
 
-        with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen:
+        with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, \
+             mock.patch('satpy.readers.utils.open', m, create=True) as utilopen, \
+             mock.patch.object(HRITFileHandler, '_get_hd', new=new_get_hd):
+
             newopen.return_value.__enter__.return_value.tell.return_value = 1
+            FAKE_DATA_LARGE_ENOUGH_FOR_TESTING = bytes([0]*8192)
+            utilopen.return_value.__enter__.return_value.read.return_value = FAKE_DATA_LARGE_ENOUGH_FOR_TESTING
             self.reader = HRITFileHandler('filename',
                                           {'platform_shortname': 'MSG3',
                                            'start_time': datetime(2016, 3, 3, 0, 0)},
@@ -135,16 +147,20 @@ class TestHRITFileHandler(unittest.TestCase):
         self.assertEqual(131072, y__)
 
     def test_get_area_extent(self):
+        """Test getting the area extent."""
         res = self.reader.get_area_extent((20, 20), (10, 10), (5, 5), 33)
         exp = (-71717.44995740513, -71717.44995740513,
                79266.655216079365, 79266.655216079365)
         self.assertTupleEqual(res, exp)
 
     def test_get_area_def(self):
+        """Test getting an area definition."""
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def('VIS06')
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
@@ -154,7 +170,8 @@ class TestHRITFileHandler(unittest.TestCase):
                           30310525626438.438, 3720765401003.719))
 
     @mock.patch('satpy.readers.hrit_base.np.memmap')
-    def test_read_band(self, memmap):
+    def test_read_band_filepath(self, memmap):
+        """Test reading a single band from a filepath."""
         nbits = self.reader.mda['number_of_bits_per_pixel']
         memmap.return_value = np.random.randint(0, 256,
                                                 size=int((464 * 3712 * nbits) / 8),
@@ -162,17 +179,17 @@ class TestHRITFileHandler(unittest.TestCase):
         res = self.reader.read_band('VIS006', None)
         self.assertEqual(res.compute().shape, (464, 3712))
 
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITDecompress))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
+    @mock.patch('satpy.readers.FSFile.open')
+    def test_read_band_FSFile(self, fsfile_open):
+        """Test reading a single band from a FSFile."""
+        nbits = self.reader.mda['number_of_bits_per_pixel']
+        self.reader.filename = FSFile(self.reader.filename)  # convert str to FSFile
+        fsfile_open.return_value = BytesIO(
+            np.random.randint(
+                0, 256,
+                size=int((464 * 3712 * nbits) / 8) + self.reader.mda['total_header_length'],
+                dtype=np.uint8
+            ).tobytes()
+        )
+        res = self.reader.read_band('VIS006', None)
+        self.assertEqual(res.compute().shape, (464, 3712))

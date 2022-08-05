@@ -1,0 +1,288 @@
+reader:
+  name: iasi_l2_so2_bufr
+  short_name: IASI L2 SO2 BUFR
+  long_name: METOP IASI Level 2 SO2 in BUFR format
+  description: >
+    Reader for IASI L2 files
+  status: Beta
+  supports_fsspec: false
+  sensors: [iasi]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  default_datasets:
+
+file_types:
+  iasi_l2_so2_bufr:
+    file_reader: !!python/name:satpy.readers.iasi_l2_so2_bufr.IASIL2SO2BUFR
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_{level}.bin"]
+
+datasets:
+
+  year:
+    name: year
+    file_type: iasi_l2_so2_bufr
+    units: "year"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#year'
+    fill_value: -1.e+100
+
+  month:
+    name: month
+    file_type: iasi_l2_so2_bufr
+    units: "month"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#month'
+    fill_value: -1.e+100
+
+  day:
+    name: day
+    file_type: iasi_l2_so2_bufr
+    units: "day"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#day'
+    fill_value: -1.e+100
+
+  hour:
+    name: hour
+    file_type: iasi_l2_so2_bufr
+    units: "hour"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#hour'
+    fill_value: -1.e+100
+
+  minute:
+    name: minute
+    file_type: iasi_l2_so2_bufr
+    units: "minute"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#minute'
+    fill_value: -1.e+100
+
+  second:
+    name: second
+    file_type: iasi_l2_so2_bufr
+    units: "second"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#second'
+    fill_value: -1.e+100
+
+  orbit_number:
+    name: orbit_number
+    file_type:  iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#orbitNumber'
+    fill_value: -1.e+100
+
+  scanline_number:
+    name: scanline_number
+    file_type:  iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#scanLineNumber'
+    fill_value: -1.e+100
+
+  latitude:
+    name: latitude
+    file_type: iasi_l2_so2_bufr
+    standard_name: latitude
+    units: "degrees"
+    resolution: 12000
+    key: '#1#latitude'
+    fill_value: -1.e+100
+
+  longitude:
+    name: longitude
+    file_type: iasi_l2_so2_bufr
+    standard_name: longitude
+    units: "degrees"
+    resolution: 12000
+    key: '#1#longitude'
+    fill_value: -1.e+100
+
+  field_of_view_number:
+    name: field_of_view_number
+    file_type:  iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#fieldOfViewNumber'
+    fill_value: -1.e+100
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#satelliteZenithAngle'
+    fill_value: -1.e+100
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#bearingOrAzimuth'
+    fill_value: -1.e+100
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#solarZenithAngle'
+    fill_value: -1.e+100
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#solarAzimuth'
+    fill_value: -1.e+100
+
+  so2_quality_flag:
+    name: so2_quality_flag
+    file_type: iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#generalRetrievalQualityFlagForSo2'
+    fill_value: -1.e+100
+
+  so2_height_1:
+    name: so2_height_1
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#sulphurDioxide'
+    fill_value: -1.e+100
+
+  so2_height_2:
+    name: so2_height_2
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#2#sulphurDioxide'
+    fill_value: -1.e+100
+
+  so2_height_3:
+    name: so2_height_3
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#3#sulphurDioxide'
+    fill_value: -1.e+100
+
+  so2_height_4:
+    name: so2_height_4
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#4#sulphurDioxide'
+    fill_value: -1.e+100
+
+  so2_height_5:
+    name: so2_height_5
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#5#sulphurDioxide'
+    fill_value: -1.e+100
+
+  so2_height_6:
+    name: so2_height_6
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#6#sulphurDioxide'
+    fill_value: -1.e+100
+
+  height_1:
+    name: height_1
+    file_type: iasi_l2_so2_bufr
+    units: "meters"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#height'
+    fill_value: -1.e+100
+
+  height_2:
+    name: height_2
+    file_type: iasi_l2_so2_bufr
+    units: "meters"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#2#height'
+    fill_value: -1.e+100
+
+  height_3:
+    name: height_3
+    file_type: iasi_l2_so2_bufr
+    units: "meters"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#3#height'
+    fill_value: -1.e+100
+
+  height_4:
+    name: height_4
+    file_type: iasi_l2_so2_bufr
+    units: "meters"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#4#height'
+    fill_value: -1.e+100
+
+  height_5:
+    name: height_5
+    file_type: iasi_l2_so2_bufr
+    units: "meters"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#5#height'
+    fill_value: -1.e+100
+
+  height_6:
+    name: height_6
+    file_type: iasi_l2_so2_bufr
+    units: "meters"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#6#height'
+    fill_value: -1.e+100
+
+  height_7:
+    name: height_7
+    file_type: iasi_l2_so2_bufr
+    units: "meters"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#7#height'
+    fill_value: -1.e+100
+
+  brightnessTemperatureRealPart:
+    name: brightnessTemperatureRealPart
+    file_type: iasi_l2_so2_bufr
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+    key: '#1#brightnessTemperatureRealPart'
+    fill_value: -1.e+100
