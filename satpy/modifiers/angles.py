@@ -412,6 +412,12 @@ def _get_sun_azimuth_ndarray(lons: np.ndarray, lats: np.ndarray, start_time: dat
     with ignore_invalid_float_warnings():
         suna = get_alt_az(start_time, lons, lats)[1]
         suna = np.rad2deg(suna)
+
+        # The get_alt_az function returns values in the range -180 to 180 degrees.
+        # Satpy expects values in the 0 - 360 range, which is what is returned for the
+        # satellite azimuth angles.
+        # Here this is corrected so both sun and sat azimuths are in the same range.
+        suna = suna % 360.
     return suna
 
 
