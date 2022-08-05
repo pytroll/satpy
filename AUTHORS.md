@@ -25,13 +25,13 @@ The following people have made contributions to this project:
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
-- [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens)
+- [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens) - Deutscher Wetterdienst
 - [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Blanka Gvozdikova (gvozdikb)](https://github.com/gvozdikb)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
 - [Ulrich Hamann](https://github.com/)
 - [Mitch Herbertson (mherbertson)](https://github.com/mherbertson)
-- [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
+- [Gerrit Holl (gerritholl)](https://github.com/gerritholl) - Deutscher Wetterdienst
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
@@ -42,7 +42,8 @@ The following people have made contributions to this project:
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
-- [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)
+- [Jussi Leinonen (jleinonen)](https://github.com/jleinonen) - meteoswiss
+- [Thomas Leppelt (m4sth0)](https://github.com/m4sth0) - Deutscher Wetterdienst
 - [Lu Liu (yukaribbba)](https://github.com/yukaribbba)
 - [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Aronne Merrelli (aronnem)](https://github.com/aronnem)
@@ -67,6 +68,7 @@ The following people have made contributions to this project:
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Jakub Seidl (seidlj)](https://github.com/seidlj)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
+- [Jean-Luc Shaw (jeanlucshaw)](https://github.com/jeanlucshaw)
 - [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
 - [Johan Strandgren (strandgren)](https://github.com/strandgren)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)

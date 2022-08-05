@@ -21,13 +21,12 @@ import datetime
 import logging
 
 import numpy as np
-import xarray as xr
 
 from satpy import CHUNK_SIZE
 from satpy._compat import cached_property
 from satpy.readers._geos_area import get_area_definition, get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.file_handlers import BaseFileHandler, open_dataset
 from satpy.readers.seviri_base import (
     CHANNEL_NAMES,
     SATNUM,
@@ -62,10 +61,9 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         """Init the file handler."""
         super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.ext_calib_coefs = ext_calib_coefs or {}
-        self.nc = None
         self.mda = {}
         self.reference = datetime.datetime(1958, 1, 1)
-        self._read_file()
+        self.get_metadata()
 
     @property
     def start_time(self):
@@ -77,29 +75,41 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         """Get the end time."""
         return self.deltaEnd
 
-    def _read_file(self):
+    @cached_property
+    def nc(self):
         """Read the file."""
-        if self.nc is None:
+        return open_dataset(self.filename, decode_cf=True, mask_and_scale=False,
+                            chunks=CHUNK_SIZE).rename({'num_columns_vis_ir': 'x',
+                                                      'num_rows_vis_ir': 'y'})
 
-            self.nc = xr.open_dataset(self.filename,
-                                      decode_cf=True,
-                                      mask_and_scale=False,
-                                      chunks=CHUNK_SIZE)
-
+    def get_metadata(self):
+        """Get metadata."""
         # Obtain some area definition attributes
-        equatorial_radius = (self.nc.attrs['equatorial_radius'] * 1000.)
+        equatorial_radius = self.nc.attrs['equatorial_radius'] * 1000.
         polar_radius = (self.nc.attrs['north_polar_radius'] * 1000 + self.nc.attrs['south_polar_radius'] * 1000) * 0.5
         ssp_lon = self.nc.attrs['longitude_of_SSP']
+        self.mda['vis_ir_grid_origin'] = self.nc.attrs['vis_ir_grid_origin']
+        self.mda['vis_ir_column_dir_grid_step'] = self.nc.attrs['vis_ir_column_dir_grid_step'] * 1000.0
+        self.mda['vis_ir_line_dir_grid_step'] = self.nc.attrs['vis_ir_line_dir_grid_step'] * 1000.0
+        # if FSFile is used h5netcdf engine is used which outputs arrays instead of floats for attributes
+        if isinstance(equatorial_radius, np.ndarray):
+            equatorial_radius = equatorial_radius.item()
+            polar_radius = polar_radius.item()
+            ssp_lon = ssp_lon.item()
+            self.mda['vis_ir_column_dir_grid_step'] = self.mda['vis_ir_column_dir_grid_step'].item()
+            self.mda['vis_ir_line_dir_grid_step'] = self.mda['vis_ir_line_dir_grid_step'].item()
+
         self.mda['projection_parameters'] = {'a': equatorial_radius,
                                              'b': polar_radius,
                                              'h': 35785831.00,
                                              'ssp_longitude': ssp_lon}
 
-        self.mda['number_of_lines'] = int(self.nc.dims['num_rows_vis_ir'])
-        self.mda['number_of_columns'] = int(self.nc.dims['num_columns_vis_ir'])
+        self.mda['number_of_lines'] = int(self.nc.dims['y'])
+        self.mda['number_of_columns'] = int(self.nc.dims['x'])
 
-        self.mda['hrv_number_of_lines'] = int(self.nc.dims['num_rows_hrv'])
-        self.mda['hrv_number_of_columns'] = int(self.nc.dims['num_columns_hrv'])
+        # only needed for HRV channel which is not implemented yet
+        # self.mda['hrv_number_of_lines'] = int(self.nc.dims['num_rows_hrv'])
+        # self.mda['hrv_number_of_columns'] = int(self.nc.dims['num_columns_hrv'])
 
         self.deltaSt = self.reference + datetime.timedelta(
             days=int(self.nc.attrs['true_repeat_cycle_start_day']),
@@ -117,19 +127,6 @@ class NCSEVIRIFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
-        channel = dataset_id['name']
-
-        if (channel == 'HRV'):
-            self.nc = self.nc.rename({'num_columns_hrv': 'x', 'num_rows_hrv': 'y'})
-        else:
-            # the first channel of a composite will rename the dimension variable
-            # but the later channels will raise a value error as its already been renamed
-            # we can just ignore these exceptions
-            try:
-                self.nc = self.nc.rename({'num_columns_vis_ir': 'x', 'num_rows_vis_ir': 'y'})
-            except ValueError:
-                pass
-
         dataset = self.nc[dataset_info['nc_key']]
 
         # Correct for the scan line order
@@ -261,7 +258,7 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         # following calculations assume grid origin is south-east corner
         # section 7.2.4 of MSG Level 1.5 Image Data Format Description
         origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
-        grid_origin = self.nc.attrs['vis_ir_grid_origin']
+        grid_origin = self.mda['vis_ir_grid_origin']
         grid_origin = int(grid_origin, 16)
         if grid_origin != 2:
             raise NotImplementedError(
@@ -269,11 +266,11 @@ class NCSEVIRIFileHandler(BaseFileHandler):
                 .format(grid_origin, origins[grid_origin])
             )
 
-        center_point = 3712/2
+        center_point = 3712 / 2
 
-        column_step = self.nc.attrs['vis_ir_column_dir_grid_step'] * 1000.0
+        column_step = self.mda['vis_ir_column_dir_grid_step']
 
-        line_step = self.nc.attrs['vis_ir_line_dir_grid_step'] * 1000.0
+        line_step = self.mda['vis_ir_line_dir_grid_step']
 
         # check for Earth model as this affects the north-south and
         # west-east offsets
@@ -359,5 +356,13 @@ class NCSEVIRIFileHandler(BaseFileHandler):
         return int(self.nc.attrs['type_of_earth_model'], 16)
 
 
-class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
+class NCSEVIRIHRVFileHandler(NCSEVIRIFileHandler, SEVIRICalibrationHandler):
     """HRV filehandler."""
+
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset from file."""
+        return NotImplementedError("Currently the HRV channel is not implemented.")
+
+    def get_area_extent(self, dsid):
+        """Get HRV area extent."""
+        return NotImplementedError

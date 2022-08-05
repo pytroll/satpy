@@ -6,6 +6,8 @@ reader:
     NetCDF4 reader for GOES-R series GLM data. Currently only gridded L2 files
     output from `gltmtools <https://github.com/deeplycloudy/glmtools>`_ are
     supported.
+  status: Beta
+  supports_fsspec: false
   sensors: [glm]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'

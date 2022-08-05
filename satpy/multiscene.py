@@ -78,9 +78,10 @@ def group_datasets_in_scenes(scenes, groups):
             MultiScene. Keys specify the groups, values specify the dataset
             names to be grouped. For example::
 
-            from satpy import DataQuery
-            groups = {DataQuery(name='odd'): ['ds1', 'ds3'],
-                      DataQuery(name='even'): ['ds2', 'ds4']}
+                from satpy import DataQuery
+                groups = {DataQuery(name='odd'): ['ds1', 'ds3'],
+                          DataQuery(name='even'): ['ds2', 'ds4']}
+
     """
     for scene in scenes:
         grp = GroupAliasGenerator(scene, groups)

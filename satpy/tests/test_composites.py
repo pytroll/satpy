@@ -29,6 +29,8 @@ import pytest
 import xarray as xr
 from pyresample import AreaDefinition
 
+import satpy
+
 
 class TestMatchDataArrays(unittest.TestCase):
     """Test the utility method 'match_data_arrays'."""
@@ -292,6 +294,39 @@ class TestDifferenceCompositor(unittest.TestCase):
         self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds2_big))
         # different resolution
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
+
+
+@pytest.fixture
+def fake_area():
+    """Return a fake 2×2 area."""
+    from pyresample.geometry import create_area_def
+    return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
+
+
+@pytest.fixture
+def fake_dataset_pair(fake_area):
+    """Return a fake pair of 2×2 datasets."""
+    ds1 = xr.DataArray(
+            da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds2 = xr.DataArray(
+            da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    return (ds1, ds2)
+
+
+def test_ratio_compositor(fake_dataset_pair):
+    """Test the ratio compositor."""
+    from satpy.composites import RatioCompositor
+    comp = RatioCompositor(name="ratio", standard_name="channel_ratio")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 2)
+
+
+def test_sum_compositor(fake_dataset_pair):
+    """Test the sum compositor."""
+    from satpy.composites import SumCompositor
+    comp = SumCompositor(name="sum", standard_name="channel_sum")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 12)
 
 
 class TestDayNightCompositor(unittest.TestCase):
@@ -1025,7 +1060,6 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
-        import satpy
         from satpy.composites import StaticImageCompositor
 
         satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
@@ -1600,3 +1634,41 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, np.nan, np.nan, 7]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
+
+
+def test_bad_sensor_yaml_configs(tmp_path):
+    """Test composite YAML file with no sensor isn't loaded.
+
+    But the bad YAML also shouldn't crash composite configuration loading.
+
+    """
+    from satpy.composites.config_loader import load_compositor_configs_for_sensors
+
+    comp_dir = tmp_path / "composites"
+    comp_dir.mkdir()
+    comp_yaml = comp_dir / "fake_sensor.yaml"
+    with satpy.config.set(config_path=[tmp_path]):
+        _create_fake_composite_config(comp_yaml)
+
+        # no sensor_name in YAML, quietly ignored
+        comps, _ = load_compositor_configs_for_sensors(["fake_sensor"])
+        assert "fake_sensor" in comps
+        assert "fake_composite" not in comps["fake_sensor"]
+
+
+def _create_fake_composite_config(yaml_filename: str):
+    import yaml
+
+    from satpy.composites import StaticImageCompositor
+
+    with open(yaml_filename, "w") as comp_file:
+        yaml.dump({
+            "composites": {
+                "fake_composite": {
+                    "compositor": StaticImageCompositor,
+                    "url": "http://example.com/image.png",
+                },
+            },
+        },
+            comp_file,
+        )
