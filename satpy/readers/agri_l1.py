@@ -148,7 +148,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
                               (data <= max(data.attrs['valid_range'])))
         else:
             data.attrs['_FillValue'] = data.attrs['FillValue'].item()
-            data = data.where(data != data.attrs['FillValue'].item())
+        if calibration is None:
+            data = data.where(data != data.attrs['_FillValue'])
         return data
 
     def calibrate_to_reflectance(self, data, channel_index, ds_info):
