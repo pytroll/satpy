@@ -303,8 +303,12 @@ class SatpyCFFileHandler(BaseFileHandler):
         try:
             area = AreaDefinition.from_cf(self.filename)
             return area
-        except NotImplementedError:
-            logger.warning("Failed to load AreaDefinition. Falling back to SwathDefinition.")
+        except ValueError:
+            # No CF compliant projection information was found in the netcdf file or
+            # file contains 2D lat/lon arrays. To fall back to generating a SwathDefinition
+            # with the yaml_reader NotImplementedError is raised.
+            logger.warning("Failed to load AreaDefinition from nc file. Falling back to SwathDefinition.")
+            raise NotImplementedError
 
 
 def _str2dict(val):
