@@ -80,14 +80,12 @@ class TestEnhancementStretch:
     @pytest.mark.parametrize("input_data_name", ["ch1", "ch2", "rgb"])
     def test_apply_enhancement(self, input_data_name, decorator, exp_call_cls):
         """Test the 'apply_enhancement' utility function."""
-        from satpy.enhancements import apply_enhancement
-
         def _enh_func(img):
             def _calc_func(data):
                 assert isinstance(data, exp_call_cls)
                 return data
             decorated_func = decorator(_calc_func)
-            return apply_enhancement(img.data, decorated_func)
+            return decorated_func(img.data)
 
         in_data = getattr(self, input_data_name)
         exp_data = in_data.values

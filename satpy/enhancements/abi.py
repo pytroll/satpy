@@ -16,14 +16,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Enhancement functions specific to the ABI sensor."""
 
-from satpy.enhancements import apply_enhancement, using_map_blocks
+from satpy.enhancements import exclude_alpha, using_map_blocks
 
 
 def cimss_true_color_contrast(img, **kwargs):
     """Scale data based on CIMSS True Color recipe for AWIPS."""
-    apply_enhancement(img.data, _cimss_true_color_contrast)
+    _cimss_true_color_contrast(img.data)
 
 
+@exclude_alpha
 @using_map_blocks
 def _cimss_true_color_contrast(img_data):
     """Perform per-chunk enhancement.

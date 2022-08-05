@@ -18,7 +18,7 @@
 import numpy as np
 from trollimage.colormap import Colormap
 
-from satpy.enhancements import apply_enhancement, using_map_blocks
+from satpy.enhancements import exclude_alpha, using_map_blocks
 
 
 def water_detection(img, **kwargs):
@@ -30,11 +30,12 @@ def water_detection(img, **kwargs):
     palette = kwargs['palettes']
     palette['colors'] = tuple(map(tuple, palette['colors']))
 
-    apply_enhancement(img.data, _water_detection)
+    _water_detection(img.data)
     cm = Colormap(*palette['colors'])
     img.palettize(cm)
 
 
+@exclude_alpha
 @using_map_blocks
 def _water_detection(img_data):
     data = np.asarray(img_data)

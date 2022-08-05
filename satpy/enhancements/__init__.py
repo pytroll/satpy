@@ -19,7 +19,8 @@
 import logging
 import os
 import warnings
-from functools import partial, wraps
+from collections import namedtuple
+from functools import wraps
 from numbers import Number
 
 import dask
@@ -49,51 +50,39 @@ def invert(img, *args):
     return img.invert(*args)
 
 
-def apply_enhancement(
-        data,
-        func,
-        exclude=None
-):
-    """Apply `func` to the provided data.
-
-    Args:
-        data (xarray.DataArray): Data to be modified inplace.
-        func (callable): Function to be applied to an xarray
-        exclude (iterable): Bands in the 'bands' dimension to not include
-                            in the calculations. If not provided or None, the
-                            alpha band if present will be excluded. To include
-                            all channels, pass [].
-
-    """
-    bands = data.coords['bands'].values
-    if exclude is None:
+def exclude_alpha(func):
+    """Exclude the alpha channel from the DataArray before further processing."""
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        bands = data.coords['bands'].values
         exclude = ['A'] if 'A' in bands else []
+        band_data = data.sel(bands=[b for b in bands
+                                    if b not in exclude])
+        band_data = func(band_data, **kwargs)
 
-    return _enhance_whole_array(
-        func,
-        data,
-        bands,
-        exclude
-    )
-
-
-def _enhance_whole_array(func, data, bands, exclude):
-    attrs = data.attrs
-    band_data = data.sel(bands=[b for b in bands
-                                if b not in exclude])
-    band_data = func(band_data)
-
-    attrs.update(band_data.attrs)
-    # combine the new data with the excluded data
-    new_data = xr.concat([band_data, data.sel(bands=exclude)],
-                         dim='bands')
-    data.data = new_data.sel(bands=bands).data
-    data.attrs = attrs
-    return data
+        attrs = data.attrs
+        attrs.update(band_data.attrs)
+        # combine the new data with the excluded data
+        new_data = xr.concat([band_data, data.sel(bands=exclude)],
+                             dim='bands')
+        data.data = new_data.sel(bands=bands).data
+        data.attrs = attrs
+        return data
+    return wrapper
 
 
 def on_separate_bands(func):
-    """Apply `func` one band at a time."""
+    """Apply `func` one band of the DataArray at a time.
+
+    If this decorator is to be applied along with `on_dask_array`, this decorator has to be applied first, eg::
+
+        @on_separate_bands
+        @on_dask_array
+        def my_enhancement_function(data):
+            ...
+
+
+    """
     @wraps(func)
     def wrapper(data, **kwargs):
         attrs = data.attrs
@@ -207,10 +196,10 @@ def piecewise_linear_stretch(
         xp = np.asarray(xp) / reference_scale_factor
         fp = np.asarray(fp) / reference_scale_factor
 
-    func_with_kwargs = partial(_piecewise_linear, xp=xp, fp=fp)
-    return apply_enhancement(img.data, func_with_kwargs)
+    return _piecewise_linear(img.data, xp=xp, fp=fp)
 
 
+@exclude_alpha
 @using_map_blocks
 def _piecewise_linear(band_data, xp, fp):
     # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
@@ -225,18 +214,19 @@ def cira_stretch(img, **kwargs):
     Applicable only for visible channels.
     """
     LOG.debug("Applying the cira-stretch")
+    return _cira_stretch(img.data)
 
-    def func(band_data):
-        log_root = np.log10(0.0223)
-        denom = (1.0 - log_root) * 0.75
-        band_data *= 0.01
-        band_data = band_data.clip(np.finfo(float).eps)
-        band_data = np.log10(band_data)
-        band_data -= log_root
-        band_data /= denom
-        return band_data
 
-    return apply_enhancement(img.data, func)
+@exclude_alpha
+def _cira_stretch(band_data):
+    log_root = np.log10(0.0223)
+    denom = (1.0 - log_root) * 0.75
+    band_data *= 0.01
+    band_data = band_data.clip(np.finfo(float).eps)
+    band_data = np.log10(band_data)
+    band_data -= log_root
+    band_data /= denom
+    return band_data
 
 
 def reinhard_to_srgb(img, saturation=1.25, white=100, **kwargs):
@@ -295,12 +285,10 @@ def _lookup_delayed(luts, band_data):
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
-
-    partial_lookup_table = partial(_lookup_table, luts=luts)
-
-    return apply_enhancement(img.data, partial_lookup_table)
+    return _lookup_table(img.data, luts=luts)
 
 
+@exclude_alpha
 @on_separate_bands
 @using_map_blocks
 def _lookup_table(band_data, luts=None, index=-1):
@@ -547,11 +535,10 @@ def three_d_effect(img, **kwargs):
                        [-w, 0, w]])
     mode = kwargs.get('convolve_mode', 'same')
 
-    partial_three_d_effect = partial(_three_d_effect, kernel=kernel, mode=mode)
-
-    return apply_enhancement(img.data, partial_three_d_effect)
+    return _three_d_effect(img.data, kernel=kernel, mode=mode)
 
 
+@exclude_alpha
 @on_separate_bands
 @using_map_blocks
 def _three_d_effect(band_data, kernel=None, mode=None, index=None):
@@ -596,16 +583,20 @@ def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs
     high_factor = threshold_out / (max_in - threshold)
     high_offset = high_factor * max_in
 
-    partial_bt_threshold = partial(_bt_threshold, threshold=threshold,
-                                   high_offset=high_offset, high_factor=high_factor,
-                                   low_offset=low_offset, low_factor=low_factor)
+    Coeffs = namedtuple("Coeffs", "factor offset")
+    high = Coeffs(high_factor, high_offset)
+    low = Coeffs(low_factor, low_offset)
 
-    return apply_enhancement(img.data, partial_bt_threshold)
+    return _bt_threshold(img.data,
+                         threshold=threshold,
+                         high_coeffs=high,
+                         low_coeffs=low)
 
 
+@exclude_alpha
 @using_map_blocks
-def _bt_threshold(band_data, threshold, high_offset, high_factor, low_offset, low_factor):
+def _bt_threshold(band_data, threshold, high_coeffs, low_coeffs):
     # expects dask array to be passed
     return da.where(band_data >= threshold,
-                    high_offset - high_factor * band_data,
-                    low_offset - low_factor * band_data)
+                    high_coeffs.offset - high_coeffs.factor * band_data,
+                    low_coeffs.offset - low_coeffs.factor * band_data)

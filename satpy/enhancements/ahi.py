@@ -18,7 +18,7 @@
 import dask.array as da
 import numpy as np
 
-from satpy.enhancements import apply_enhancement, on_dask_array
+from satpy.enhancements import exclude_alpha, on_dask_array
 
 
 def jma_true_color_reproduction(img, **kwargs):
@@ -31,9 +31,10 @@ def jma_true_color_reproduction(img, **kwargs):
     Colorado State University—CIRA
     https://www.jma.go.jp/jma/jma-eng/satellite/introduction/TCR.html
     """
-    apply_enhancement(img.data, _jma_true_color_reproduction)
+    _jma_true_color_reproduction(img.data)
 
 
+@exclude_alpha
 @on_dask_array
 def _jma_true_color_reproduction(img_data):
     ccm = np.array([
