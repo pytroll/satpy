@@ -19,7 +19,7 @@
 import logging
 import os
 import warnings
-from functools import partial
+from functools import partial, wraps
 from numbers import Number
 
 import dask
@@ -52,10 +52,7 @@ def invert(img, *args):
 def apply_enhancement(
         data,
         func,
-        exclude=None,
-        separate=False,
-        pass_dask=False,
-        use_map_blocks=True,
+        exclude=None
 ):
     """Apply `func` to the provided data.
 
@@ -63,67 +60,28 @@ def apply_enhancement(
         data (xarray.DataArray): Data to be modified inplace.
         func (callable): Function to be applied to an xarray
         exclude (iterable): Bands in the 'bands' dimension to not include
-                            in the calculations.
-        separate (bool): Apply `func` one band at a time. Default is False.
-        pass_dask (bool): Pass the underlying dask array instead of the
-            xarray.DataArray.
-        use_map_blocks (bool): If this option and ``pass_dask`` are ``True``,
-            run the provided function using :func:`dask.array.core.map_blocks`.
-            This means dask will call the provided function with a single chunk
-            as a numpy array. If ``False`` the function is passed the
-            underlying dask array directly. If ``pass_dask`` is ``False`` this
-            has no effect.
+                            in the calculations. If not provided or None, the
+                            alpha band if present will be excluded. To include
+                            all channels, pass [].
 
     """
     bands = data.coords['bands'].values
     if exclude is None:
         exclude = ['A'] if 'A' in bands else []
 
-    if separate:
-        return _enhance_separate_bands(
-            func,
-            data,
-            bands,
-            exclude,
-            pass_dask,
-            use_map_blocks,
-        )
-
     return _enhance_whole_array(
         func,
         data,
         bands,
-        exclude,
-        pass_dask,
-        use_map_blocks,
+        exclude
     )
 
 
-def _enhance_separate_bands(func, data, bands, exclude, pass_dask, use_map_blocks):
-    attrs = data.attrs
-    data_arrs = []
-    for idx, band_name in enumerate(bands):
-        band_data = data.sel(bands=[band_name])
-        if band_name in exclude:
-            # don't modify alpha
-            data_arrs.append(band_data)
-            continue
-
-        band_data = _call_enh_func(func, band_data, pass_dask, use_map_blocks, {"index": idx})
-        data_arrs.append(band_data)
-        # we assume that the func can add attrs
-        attrs.update(band_data.attrs)
-
-    data.data = xr.concat(data_arrs, dim='bands').data
-    data.attrs = attrs
-    return data
-
-
-def _enhance_whole_array(func, data, bands, exclude, pass_dask, use_map_blocks):
+def _enhance_whole_array(func, data, bands, exclude):
     attrs = data.attrs
     band_data = data.sel(bands=[b for b in bands
                                 if b not in exclude])
-    band_data = _call_enh_func(func, band_data, pass_dask, use_map_blocks, {})
+    band_data = func(band_data)
 
     attrs.update(band_data.attrs)
     # combine the new data with the excluded data
@@ -134,23 +92,46 @@ def _enhance_whole_array(func, data, bands, exclude, pass_dask, use_map_blocks):
     return data
 
 
-def _call_enh_func(func, band_data_arr, pass_dask, use_map_blocks, extra_kwargs):
-    if pass_dask:
-        dims = band_data_arr.dims
-        coords = band_data_arr.coords
-        if use_map_blocks:
-            d_arr = da.map_blocks(func,
-                                  band_data_arr.data,
-                                  meta=np.array((), dtype=band_data_arr.dtype),
-                                  dtype=band_data_arr.dtype,
-                                  chunks=band_data_arr.chunks,
-                                  **extra_kwargs)
-        else:
-            d_arr = func(band_data_arr.data, **extra_kwargs)
-        band_data_arr = xr.DataArray(d_arr, dims=dims, coords=coords)
-    else:
-        band_data_arr = func(band_data_arr, **extra_kwargs)
-    return band_data_arr
+def on_separate_bands(func):
+    """Apply `func` one band at a time."""
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        attrs = data.attrs
+        data_arrs = []
+        for idx, band in enumerate(data.coords['bands'].values):
+            band_data = func(data.sel(bands=[band]), index=idx, **kwargs)
+            data_arrs.append(band_data)
+            # we assume that the func can add attrs
+            attrs.update(band_data.attrs)
+        data.data = xr.concat(data_arrs, dim='bands').data
+        data.attrs = attrs
+        return data
+
+    return wrapper
+
+
+def on_dask_array(func):
+    """Pass the underlying dask array to *func* instead of the xarray.DataArray."""
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        dims = data.dims
+        coords = data.coords
+        d_arr = func(data.data, **kwargs)
+        return xr.DataArray(d_arr, dims=dims, coords=coords)
+    return wrapper
+
+
+def using_map_blocks(func):
+    """Run the provided function using :func:`dask.array.core.map_blocks`.
+
+    This means dask will call the provided function with a single chunk
+    as a numpy array.
+    """
+    @wraps(func)
+    def wrapper(data, **kwargs):
+        return da.map_blocks(func, data, meta=np.array((), dtype=data.dtype), dtype=data.dtype, chunks=data.chunks,
+                             **kwargs)
+    return on_dask_array(wrapper)
 
 
 def crefl_scaling(img, **kwargs):
@@ -226,14 +207,16 @@ def piecewise_linear_stretch(
         xp = np.asarray(xp) / reference_scale_factor
         fp = np.asarray(fp) / reference_scale_factor
 
-    def func(band_data, xp, fp):
-        # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
-        interp_data = np.interp(band_data, xp=xp, fp=fp)
-        interp_data = np.clip(interp_data, 0, 1, out=interp_data)
-        return interp_data
+    func_with_kwargs = partial(_piecewise_linear, xp=xp, fp=fp)
+    return apply_enhancement(img.data, func_with_kwargs)
 
-    func_with_kwargs = partial(func, xp=xp, fp=fp)
-    return apply_enhancement(img.data, func_with_kwargs, separate=False, pass_dask=True)
+
+@using_map_blocks
+def _piecewise_linear(band_data, xp, fp):
+    # Interpolate band on [0,1] using "lazy" arrays (put calculations off until the end).
+    interp_data = np.interp(band_data, xp=xp, fp=fp)
+    interp_data = np.clip(interp_data, 0, 1, out=interp_data)
+    return interp_data
 
 
 def cira_stretch(img, **kwargs):
@@ -313,17 +296,22 @@ def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
 
-    def func(band_data, luts=luts, index=-1):
-        # NaN/null values will become 0
-        lut = luts[:, index] if len(luts.shape) == 2 else luts
-        band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
+    partial_lookup_table = partial(_lookup_table, luts=luts)
 
-        new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
-        new_data = da.from_delayed(new_delay, shape=band_data.shape,
-                                   dtype=luts.dtype)
-        return new_data
+    return apply_enhancement(img.data, partial_lookup_table)
 
-    return apply_enhancement(img.data, func, separate=True, pass_dask=True)
+
+@on_separate_bands
+@using_map_blocks
+def _lookup_table(band_data, luts=None, index=-1):
+    # NaN/null values will become 0
+    lut = luts[:, index] if len(luts.shape) == 2 else luts
+    band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
+
+    new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
+    new_data = da.from_delayed(new_delay, shape=band_data.shape,
+                               dtype=luts.dtype)
+    return new_data
 
 
 def colorize(img, **kwargs):
@@ -550,14 +538,6 @@ def _read_colormap_data_from_file(filename):
     return np.loadtxt(filename, delimiter=",")
 
 
-def _three_d_effect_delayed(band_data, kernel, mode):
-    """Kernel for running delayed 3D effect creation."""
-    from scipy.signal import convolve2d
-    band_data = band_data.reshape(band_data.shape[1:])
-    new_data = convolve2d(band_data, kernel, mode=mode)
-    return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
-
-
 def three_d_effect(img, **kwargs):
     """Create 3D effect using convolution."""
     w = kwargs.get('weight', 1)
@@ -567,14 +547,27 @@ def three_d_effect(img, **kwargs):
                        [-w, 0, w]])
     mode = kwargs.get('convolve_mode', 'same')
 
-    def func(band_data, kernel=kernel, mode=mode, index=None):
-        del index
+    partial_three_d_effect = partial(_three_d_effect, kernel=kernel, mode=mode)
 
-        delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
-        new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
-        return new_data
+    return apply_enhancement(img.data, partial_three_d_effect)
 
-    return apply_enhancement(img.data, func, separate=True, pass_dask=True)
+
+@on_separate_bands
+@using_map_blocks
+def _three_d_effect(band_data, kernel=None, mode=None, index=None):
+    del index
+
+    delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
+    new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
+    return new_data
+
+
+def _three_d_effect_delayed(band_data, kernel, mode):
+    """Kernel for running delayed 3D effect creation."""
+    from scipy.signal import convolve2d
+    band_data = band_data.reshape(band_data.shape[1:])
+    new_data = convolve2d(band_data, kernel, mode=mode)
+    return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
 
 
 def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs):
@@ -603,10 +596,16 @@ def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs
     high_factor = threshold_out / (max_in - threshold)
     high_offset = high_factor * max_in
 
-    def _bt_threshold(band_data):
-        # expects dask array to be passed
-        return da.where(band_data >= threshold,
-                        high_offset - high_factor * band_data,
-                        low_offset - low_factor * band_data)
+    partial_bt_threshold = partial(_bt_threshold, threshold=threshold,
+                                   high_offset=high_offset, high_factor=high_factor,
+                                   low_offset=low_offset, low_factor=low_factor)
 
-    return apply_enhancement(img.data, _bt_threshold, pass_dask=True)
+    return apply_enhancement(img.data, partial_bt_threshold)
+
+
+@using_map_blocks
+def _bt_threshold(band_data, threshold, high_offset, high_factor, low_offset, low_factor):
+    # expects dask array to be passed
+    return da.where(band_data >= threshold,
+                    high_offset - high_factor * band_data,
+                    low_offset - low_factor * band_data)
