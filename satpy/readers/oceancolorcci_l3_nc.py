@@ -84,6 +84,10 @@ class OCCCIFileHandler(NetCDF4FileHandler):
         if '_FillValue' in dataset.attrs:
             dataset.data = da.where(dataset.data == dataset.attrs['_FillValue'], np.nan, dataset.data)
         self._update_attrs(dataset, ds_info)
+        if 'lat' in dataset.dims:
+            dataset = dataset.rename({'lat': 'y'})
+        if 'lon' in dataset.dims:
+            dataset = dataset.rename({'lon': 'x'})
         return dataset
 
     def get_area_def(self, dsid):

@@ -32,29 +32,29 @@ def fake_dataset():
     """Create a CLAAS-like test dataset."""
     adg = xr.DataArray(
         [[1.0, 0.47, 4.5, 1.2], [0.2, 0, 1.3, 1.3]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     atot = xr.DataArray(
         [[0.001, 0.08, 23.4, 0.1], [2.1, 1.2, 4.7, 306.]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     kd = xr.DataArray(
         [[0.8, 0.01, 5.34, 1.23], [0.4, 1.0, 3.2, 1.23]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     nobs = xr.DataArray(
         [[5, 118, 5, 100], [0, 15, 0, 1]],
-        dims=("y", "x"),
+        dims=("lat", "lon"),
         attrs={'_FillValue': 0}
     )
     nobs_filt = xr.DataArray(
         [[5, 118, 5, 100], [np.nan, 15, np.nan, 1]],
-        dims=("y", "x"),
+        dims=("lat", "lon"),
         attrs={'_FillValue': 0}
     )
     watcls = xr.DataArray(
         [[12.2, 0.01, 6.754, 5.33], [12.5, 101.5, 103.5, 204.]],
-        dims=("y", "x")
+        dims=("lat", "lon")
     )
     attrs = {
         "geospatial_lon_resolution": "90",
