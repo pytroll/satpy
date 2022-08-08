@@ -122,7 +122,7 @@ class SeviriL2BufrData:
         """Initialize by mocking test data for testing the SEVIRI L2 BUFR reader."""
         import eccodes as ec
 
-        from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
+        from satpy.readers.eum_l2_bufr import EumetsatL2BufrFileHandler
         self.buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(self.buf1, 'unpack', 1)
         # write the bufr test data twice as we want to read in and then concatenate the data in the reader
@@ -138,17 +138,18 @@ class SeviriL2BufrData:
         self.m = mock.mock_open()
         # only our offline product contain MPEF product headers so we get the metadata from there
         if ('BUFRProd' in filename):
-            with mock.patch('satpy.readers.seviri_l2_bufr.np.fromfile') as fromfile:
+            with mock.patch('satpy.readers.eum_l2_bufr.np.fromfile') as fromfile:
                 fromfile.return_value = MPEF_PRODUCT_HEADER
-                with mock.patch('satpy.readers.seviri_l2_bufr.recarray2dict') as recarray2dict:
+                with mock.patch('satpy.readers.eum_l2_bufr.recarray2dict') as recarray2dict:
                     recarray2dict.side_effect = (lambda x: x)
-                    self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO,
-                                                      with_area_definition=with_adef, rectification_longitude=rect_lon)
+                    self.fh = EumetsatL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO,
+                                                        with_area_definition=with_adef,
+                                                        rectification_longitude=rect_lon)
                     self.fh.mpef_header = MPEF_PRODUCT_HEADER
 
         else:
             # No Mpef Header  so we get the metadata from the BUFR messages
-            with mock.patch('satpy.readers.seviri_l2_bufr.open', self.m, create=True):
+            with mock.patch('satpy.readers.eum_l2_bufr.open', self.m, create=True):
                 with mock.patch('eccodes.codes_bufr_new_from_file',
                                 side_effect=[self.buf1, None, self.buf1, None, self.buf1, None]) as ec1:
                     ec1.return_value = ec1.side_effect
@@ -156,13 +157,13 @@ class SeviriL2BufrData:
                         ec2.return_value = 1
                         with mock.patch('eccodes.codes_release') as ec5:
                             ec5.return_value = 1
-                            self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
-                                                              with_area_definition=with_adef,
-                                                              rectification_longitude=rect_lon)
+                            self.fh = EumetsatL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
+                                                                with_area_definition=with_adef,
+                                                                rectification_longitude=rect_lon)
 
     def get_data(self, dataset_info):
         """Read data from mock file."""
-        with mock.patch('satpy.readers.seviri_l2_bufr.open', self.m, create=True):
+        with mock.patch('satpy.readers.eum_l2_bufr.open', self.m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
                             side_effect=[self.buf1, self.buf1, None]) as ec1:
                 ec1.return_value = ec1.side_effect
