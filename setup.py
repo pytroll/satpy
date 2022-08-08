@@ -30,10 +30,10 @@ try:
 except ImportError:
     pass
 
-requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.24.0', 'trollsift',
             'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj>=2.2', 'zarr', 'donfig', 'appdirs',
-            'pooch']
+            'pooch', 'pyorbital']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'pylibtiff',
                  'rasterio', 'geoviews', 'trollimage', 'fsspec', 'bottleneck',
@@ -81,6 +81,7 @@ extras_require = {
     # Other
     'geoviews': ['geoviews'],
     'overlays': ['pycoast', 'pydecorate'],
+    'satpos_from_tle': ['skyfield', 'astropy'],
     'tests': test_requires,
 }
 all_extras = []
@@ -155,7 +156,7 @@ setup(name=NAME,
                               ]},
       zip_safe=False,
       install_requires=requires,
-      python_requires='>=3.7',
+      python_requires='>=3.8',
       extras_require=extras_require,
       entry_points=entry_points,
       )

@@ -74,9 +74,7 @@ the base Satpy installation.
 
 .. _reader_table:
 
-.. list-table:: Satpy Readers
-    :header-rows: 1
-    :widths: 45 25 30
+.. include:: reader_table.rst
 
     * - Description
       - Reader name
@@ -307,6 +305,29 @@ the base Satpy installation.
     * - EPS-SG MWI level-1b netCDF format
       - `mwi_l1b_nc`
       - Beta
+.. note::
+
+    Status description:
+
+    Defunct
+        Most likely the reader is not functional. If it is there is a good chance of
+        bugs and/or performance problems (e.g. not ported to dask/xarray yet). Future
+        development is unclear. Users are encouraged to contribute (see section
+        :doc:`dev_guide/CONTRIBUTING` and/or get help on Slack or by opening a Github issue).
+
+    Alpha
+        This denotes early development status. Reader is functional and implements some
+        or all of the nominal features. There might be bugs. Exactness of results is
+        not be guaranteed. Use at your own risk.
+
+    Beta
+        This denotes final developement status. Reader is functional and implements all
+        nominal features. Results should be dependable but there might be bugs. Users
+        are actively encouraged to test and report bugs.
+
+    Nominal
+        This denotes a finished status. Reader is functional and most likely no new
+        features will be introduced. It has been tested and there are no known bugs.
 
 Indices and tables
 ==================

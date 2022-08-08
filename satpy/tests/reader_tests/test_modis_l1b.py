@@ -159,6 +159,7 @@ class TestModisL1b:
         dataset_name = '1'
         scene.load([dataset_name])
         dataset = scene[dataset_name]
+        assert dataset[0, 0] == 300.0
         assert dataset.shape == _shape_for_resolution(1000)
         assert dataset.attrs['resolution'] == 1000
         _check_shared_metadata(dataset)
@@ -177,6 +178,7 @@ class TestModisL1b:
 
         # check saturation fill values
         data = dataset.values
+        assert dataset[0, 0] == 300.0
         assert np.isnan(data[-1, -1])  # normal fill value
         if mask_saturated:
             assert np.isnan(data[-1, -2])  # saturation
