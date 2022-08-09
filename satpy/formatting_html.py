@@ -21,8 +21,10 @@ from functools import lru_cache
 from html import escape
 from importlib.resources import read_binary
 
-from pyresample.formatting_html import area_repr  # , _icon, collapsible_section, STATIC_FILES
-from xarray.core.formatting_html import datavar_section
+import toolz
+import xarray as xr
+from pyresample._formatting_html import _icon, area_repr, collapsible_section  # , STATIC_FILES
+from xarray.core.formatting_html import _mapping_section, summarize_vars  # , datavar_section
 
 STATIC_FILES = {"html": [("xarray.static.html", "icons-svg-inline.html")],
                 "css": [("pyresample.static.css", "style.css"), ("xarray.static.css", "style.css")]
@@ -37,6 +39,55 @@ def _load_static_files():
     html = "\n".join([read_binary(package, resource).decode("utf-8") for package, resource in STATIC_FILES["html"]])
 
     return [html, css]
+
+
+@toolz.curry
+def attr(attr_name, ds):
+    """Get attribute."""
+    return ds.attrs.get(attr_name)
+
+
+def sensor_section(platform_name, sensor_name, datasets):
+    """Generate sensor section."""
+    by_area = toolz.groupby(lambda x: x.attrs.get("area").proj_dict.get("proj"), datasets)
+
+    sensor_name = sensor_name.upper()
+    icon = _icon("icon-satellite")
+
+    section_name = (f"<div>"
+                    f"<a href='https://space.oscar.wmo.int/satellites/view/{platform_name}'>{platform_name}</a>/"
+                    f"<a href='https://space.oscar.wmo.int/instruments/view/{sensor_name}'>{sensor_name}</a>"
+                    "</div>")
+
+    section_details = ""
+    for proj, ds in by_area.items():
+        section_details += resolution_section(proj, ds)
+
+    html = collapsible_section(section_name, details=section_details, icon=icon)
+    # html += "</div>"
+    return html
+
+
+def resolution_section(projection, datasets):
+    """Generate resolution section."""
+    def resolution(dataset):
+        area = dataset.attrs.get("area")
+        resolution_str = "/".join([str(round(x, 1)) for x in area.resolution])
+        return resolution_str
+
+    by_resolution = toolz.groupby(resolution, datasets)
+
+    # html = f"<div>{projection}</div>"
+    # modify area representation
+    html = area_repr(datasets[0].attrs.get("area"), include_header=False)
+    #
+    for res, ds in by_resolution.items():
+        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in ds if i.attrs.get('area') is not None}
+        dss = xr.merge(ds_dict.values())
+        html += xarray_dataset_repr(dss, "Resolution (x/y): {}".format(res))
+
+    html += "</div>"
+    return html
 
 
 def scene_repr(scene):
@@ -68,6 +119,7 @@ def scene_repr(scene):
               "</div>"
               "</div>"
               )
+    # insert number of different sensors, area defs (projections), resolutions, area_extents? after object type
 
     html = (
            f"{icons_svg}<style>{css_style}</style>"
@@ -77,6 +129,36 @@ def scene_repr(scene):
 
     html += f"{header}"
 
+    dslist = list(scene._datasets.values())
+    # scn_by_sensor = toolz.groupby(attr("sensor"), dslist)
+    scn_by_sensor = toolz.groupby(lambda x: (x.attrs.get("platform_name"), x.attrs.get("sensor")), dslist)
+
+    # when more than one platform/sensor collapse section
+
+    for (platform, sensor), dss in scn_by_sensor.items():
+        html += sensor_section(platform, sensor, dss)  # simple(scene)
+
+    html += "</div>"
+
+    return html
+
+
+def xarray_dataset_repr(dataset, ds_name):
+    """Wrap xarray dataset representation html."""
+    data_variables = _mapping_section(mapping=dataset, name=ds_name, details_func=summarize_vars,
+                                      max_items_collapse=15, expand_option_name="display_expand_data_vars")
+
+    ds_list = ("<div class='xr-wrap' style='display:none'>"
+               f"<ul class='xr-sections'>"
+               f"<li class='xr-section-item'>{data_variables}</li>"
+               "</ul></div>")
+
+    return ds_list
+
+
+def simple(scene):
+    """Generate old scene repr."""
+    html = ""
     html += "<div class='pyresample-area-sections'>"
 
     for _, dss in scene.iter_by_area():
@@ -85,14 +167,8 @@ def scene_repr(scene):
 
         ds_names = [x.name for x in dss]
         scn_ds = scene.to_xarray_dataset(ds_names)
-        ds_list = ("<div class='xr-wrap' style='display:none'>"
-                   f"<ul class='xr-sections'>"
-                   f"<li class='xr-section-item'>{datavar_section(scn_ds.data_vars)}</li>"
-                   "</ul></div>")
-
-        html += ds_list  # collapsible_section("Channels", details=ds_list, icon=icon)
+        html += xarray_dataset_repr(scn_ds, "Data Variables")
+        # collapsible_section("Channels", details=ds_list, icon=icon)
         html += "<hr>"
-
-    html += "</div>"
 
     return html
