@@ -1,0 +1,50 @@
+reader:
+  name: fci_l2_bufr
+  short_name: FCI l2 BUFR
+  long_name: MTGi Level 2 products in BUFR format
+  description: FCI L2 BUFR Product Reader
+  status: Alpha, AMV BUFR products not supported yet
+  supports_fsspec: false
+  sensors: [fci]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+
+file_types:
+  fci_l2_bufr_asr:
+    file_reader: !!python/name:satpy.readers.eum_l2_bufr.EumetsatL2BufrFileHandler
+    file_patterns:
+      - '{pflag}_{location_indicator},{data_designator},{spacecraft_name}+ASR_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.bin'
+
+datasets:
+
+  latitude:
+    name: latitude
+    key: 'latitude'
+    resolution: [32000]
+    file_type: [fci_l2_bufr_asr]
+    standard_name: latitude
+    units: degree_north
+    fill_value: -1.e+100
+
+  longitude:
+    name: longitude
+    key: 'longitude'
+    resolution: [32000]
+    file_type: [fci_l2_bufr_asr]
+    standard_name: longitude
+    units: degree_east
+    fill_value: -1.e+100
+
+  # ---- ASR products ------------
+  ir105all:
+    name: ir105all
+    key: '#49#brightnessTemperature'
+    resolution: 32000
+    wavelength: [9.800, 10.500, 11.200]
+    standard_name: toa_brightness_temperature
+    units: K
+    file_type: fci_l2_bufr_asr
+    coordinates:
+       - longitude
+       - latitude
+    fill_value: -1.e+100
