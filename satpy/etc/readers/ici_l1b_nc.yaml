@@ -4,6 +4,7 @@ reader:
   long_name: EPS-SG ICI L1B Radiance (NetCDF4)
   description: >
     Reader for EUMETSAT EPS-SG Ice Cloud Imager Level 1B Radiance files in NetCDF4.
+  status: Beta
   sensors: [ici]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
@@ -149,6 +150,18 @@ datasets:
     orthorect_data: data/navigation_data/delta_latitude
     standard_name: latitude
     n_horns: 6
+
+  longitude_ssp:
+    name: longitude_ssp
+    file_type: nc_ici_l1b_rad
+    file_key: data/navigation_data/longitude_ssp
+    standard_name: longitude
+
+  latitude_ssp:
+    name: latitude_ssp
+    file_type: nc_ici_l1b_rad
+    file_key: data/navigation_data/latitude_ssp
+    standard_name: latitude
 
 # --- Measurement data ---
   '1':
@@ -424,6 +437,14 @@ datasets:
         standard_name: toa_brightness_temperature
         units: K
 
+  # --- Navigation data ---
+  time_start_scan_utc:
+    name: time_start_scan_utc
+    standard_name: time_start_scan_utc
+    file_type: nc_ici_l1b_rad
+    file_key: data/navigation_data/time_start_scan_utc
+    coordinates: [longitude_ssp, latitude_ssp]
+
   # --- Geometric data ---
   solar_zenith_horn_1:
     name: solar_zenith_horn_1
@@ -637,7 +658,7 @@ datasets:
     name: observation_azimuth_horn_6
     standard_name: sensor_azimuth_angle
     file_type: nc_ici_l1b_rad
-    file_key: bservation_azimuth
+    file_key: observation_azimuth
     n_horns: 5
     coordinates: [lon_pixels_horn_6, lat_pixels_horn_6]
 

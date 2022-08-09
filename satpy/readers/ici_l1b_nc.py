@@ -351,8 +351,10 @@ class IciL1bNCFileHandler(NetCDF4FileHandler):
     @staticmethod
     def _standardize_dims(variable):
         """Standardize dims to y, x."""
-        if 'n_scan' in variable.dims and 'n_samples' in variable.dims:
-            variable = variable.rename({'n_samples': 'x', 'n_scan': 'y'})
+        if 'n_scan' in variable.dims:
+            variable = variable.rename({'n_scan': 'y'})
+        if 'n_samples' in variable.dims:
+            variable = variable.rename({'n_samples': 'x'})
         if variable.dims[0] == 'x':
             variable = variable.transpose('y', 'x')
         return variable
