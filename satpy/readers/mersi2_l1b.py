@@ -181,6 +181,11 @@ class MERSI2L1B(HDF5FileHandler):
         else:
             # new versions of pyspectral can do dask arrays
             data.data = bt_data
+
+        # Some BT bands seem to have 0 in the first 10 columns
+        # and it is an invalid measurement, so let's mask
+        data = data.where(data != 0)
+
         # additional corrections from the file
         if self.sensor_name == 'mersi-2':
             corr_coeff_a = float(self['/attr/TBB_Trans_Coefficient_A'][calibration_index])
@@ -193,7 +198,4 @@ class MERSI2L1B(HDF5FileHandler):
 
         if corr_coeff_a != 0:
             data = (data - corr_coeff_b) / corr_coeff_a
-        # Some BT bands seem to have 0 in the first 10 columns
-        # and it is an invalid Kelvin measurement, so let's mask
-        data = data.where(data != 0)
         return data
