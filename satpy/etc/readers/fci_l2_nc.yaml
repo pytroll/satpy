@@ -1,8 +1,10 @@
 reader:
   name: fci_l2_nc
   short_name: FCI L2 NetCDF4
-  long_name: MTG FCI L2 (NetCDF4)
+  long_name: MTG FCI L2 data in netCDF4 format
   description: Reader for EUMETSAT MTG FCI L2 files in NetCDF4 format.
+  status: Alpha
+  supports_fsspec: false
   sensors: [fci]
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
 

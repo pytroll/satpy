@@ -1,6 +1,10 @@
 reader:
-  description: NOAA Level 2 Product (L2P) ACSPO SST File Reader
   name: acspo
+  short_name: ACSPO SST
+  long_name: NOAA Level 2 ACSPO SST data in netCDF4 format
+  description: NOAA Level 2 Product (L2P) ACSPO SST File Reader
+  status: Nominal
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [viirs,modis,avhrr]
   default_datasets:

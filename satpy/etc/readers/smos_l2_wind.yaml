@@ -1,6 +1,10 @@
 reader:
-    description: SMOS Level 2 Wind NetCDF reader
     name: smos_l2_wind
+    short_name: SMOS l2
+    long_name: SMOS level 2 wind data in NetCDF4 format
+    description: SMOS Level 2 Wind NetCDF reader
+    status: Beta
+    supports_fsspec: false
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [smos]
 

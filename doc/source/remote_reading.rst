@@ -148,26 +148,3 @@ Resources
 See :class:`~satpy.readers.FSFile` for direct usage of `fsspec` with Satpy, and
 `fsspec documentation <https://filesystem-spec.readthedocs.io/en/latest/index.html>`_ for more details on connection options
 and detailes.
-
-
-Supported readers
-=================
-
-.. _reader_table:
-
-.. list-table:: Satpy Readers capable of reading remote files using `fsspec`
-    :header-rows: 1
-    :widths: 70 30
-
-    * - Description
-      - Reader name
-    * - MSG (Meteosat 8 to 11) SEVIRI data in HRIT format
-      - `seviri_l1b_hrit`
-    * - GOES-R imager data in netcdf format
-      - `abi_l1b`
-    * - NOAA GOES-R ABI L2+ products in netcdf format
-      - `abi_l2_nc`
-    * - Sentinel-3 A and B OLCI Level 1B data in netCDF4 format
-      - `olci_l1b`
-    * - Sentinel-3 A and B OLCI Level 2 data in netCDF4 format
-      - `olci_l2`
