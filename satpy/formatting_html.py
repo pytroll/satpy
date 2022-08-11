@@ -85,14 +85,23 @@ body.vscode-dark {
   padding-bottom: 4px;
 }
 
+.satpy-scene-section-summary > span {
+  float: right;
+}
+
 .satpy-scene-section-in:checked + label > span {
   display: none;
 }
 
 .satpy-scene-section-inline-preview {
-  grid-column: 4 / -1
+  grid-column: 4 / -1;
+  padding-left: 3px;
   padding-top: 4px;
   padding-bottom: 4px;
+}
+
+.satpy-scene-section-in:checked ~ .satpy-scene-section-inline-preview {
+  display: none;
 }
 
 .satpy-scene-section-details,
@@ -443,7 +452,7 @@ def collapsible_section_satpy(name, inline_details="", details="", n_items=None,
     data_id = "section-" + str(uuid.uuid4())
 
     has_items = n_items is not None and n_items
-    n_items_span = "" if n_items is None else f" <span>({n_items})</span>"
+    n_items_span = "" if n_items is None else f" <span>{n_items}</span>"
     enabled = "" if enabled and has_items else "disabled"
     collapsed = "" if collapsed or not has_items else "checked"
     tip = " title='Expand/collapse section'" if enabled else ""
@@ -461,9 +470,12 @@ def collapsible_section_satpy(name, inline_details="", details="", n_items=None,
             )
 
 
-def sensor_section(platform_name, sensor_name, datasets, number_of_platforms):
+def sensor_section(platform_name, sensor_name, datasets):
     """Generate sensor section."""
     by_area = toolz.groupby(lambda x: x.attrs.get("area").proj_dict.get("proj"), datasets)
+    n_areas = len(list(by_area.keys()))
+    n_datasets = len(datasets)
+    inline_details = f"Area(s) with {n_datasets} channels"
 
     sensor_name = sensor_name.upper()
     icon = _icon("icon-satellite")
@@ -476,7 +488,8 @@ def sensor_section(platform_name, sensor_name, datasets, number_of_platforms):
     for proj, ds in by_area.items():
         section_details += resolution_section(proj, ds)
 
-    html = collapsible_section_satpy(section_name, details=section_details, n_items=number_of_platforms, icon=icon)
+    html = collapsible_section_satpy(section_name, details=section_details,
+                                     inline_details=inline_details, n_items=n_areas, icon=icon)
 
     return html
 
@@ -572,11 +585,10 @@ def scene_repr(scene):
 
     dslist = list(scene._datasets.values())
     scn_by_sensor = toolz.groupby(lambda x: (x.attrs.get("platform_name"), x.attrs.get("sensor")), dslist)
-    n_platforms = len(list(scn_by_sensor.keys()))
 
     # when more than one platform/sensor collapse section
     for (platform, sensor), dss in scn_by_sensor.items():
-        html += sensor_section(platform, sensor, dss, n_platforms)
+        html += sensor_section(platform, sensor, dss)
 
     html += "</ul></div>"
 
