@@ -61,6 +61,7 @@ body.vscode-dark {
   display: grid;
   grid-template-columns: 20px 20px 150px auto 20px 20px;
   width: 1000px;
+  margin-top: 0px;
 }
 
 .satpy-section-name {
@@ -82,7 +83,7 @@ body.vscode-dark {
 .satpy-scene-section-summary {
   grid-column: 1 / 4;
   padding-top: 4px;
-  padding-bottom: 4px;
+  padding-bottom: 0px;
 }
 
 .satpy-scene-section-summary > span {
@@ -97,7 +98,7 @@ body.vscode-dark {
   grid-column: 4 / -1;
   padding-left: 3px;
   padding-top: 4px;
-  padding-bottom: 4px;
+  padding-bottom: 0px;
 }
 
 .satpy-scene-section-in:checked ~ .satpy-scene-section-inline-preview {
@@ -130,6 +131,10 @@ body.vscode-dark {
 }
 
 /*show hide css for area def section */
+.satpy-area-attrs {
+  margin-bottom: 5px;
+}
+
 .satpy-area-attrs,
 .satpy-area-map {
   display: none;
