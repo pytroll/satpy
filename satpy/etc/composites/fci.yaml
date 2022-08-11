@@ -19,3 +19,11 @@ composites:
     - name: vis_09
     - name: vis_08
     standard_name: low_level_moisture
+
+  colorized_low_level_moisture:
+    description: Based on work by Pieter Groenemeijer and Hans-Peter Roesli
+    compositor: !!python/name:satpy.composites.RatioCompositor
+    prerequisites:
+    - name: vis_08
+    - name: vis_09
+    standard_name: colorized_low_level_moisture
