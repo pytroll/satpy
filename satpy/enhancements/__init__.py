@@ -534,13 +534,12 @@ def three_d_effect(img, **kwargs):
                        [-w, 1, w],
                        [-w, 0, w]])
     mode = kwargs.get('convolve_mode', 'same')
-
     return _three_d_effect(img.data, kernel=kernel, mode=mode)
 
 
 @exclude_alpha
 @on_separate_bands
-@using_map_blocks
+@on_dask_array
 def _three_d_effect(band_data, kernel=None, mode=None, index=None):
     del index
 
