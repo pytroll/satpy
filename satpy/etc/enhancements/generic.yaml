@@ -984,7 +984,7 @@ enhancements:
               - 1.50
               - 1.55
               - 1.60
-            - colors:
+              colors:
             # colors obtained from Pieter Groenemeijer 2022-08-04,
             # personal communication (email) to Gerrit Holl:
             # #f8d385,#9bac51,#5f912d,#036533,#044739,#01473a,#150f3f,#3a093c,#680f41
