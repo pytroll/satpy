@@ -317,6 +317,25 @@ def _geo_dask_to_data_array(arr: da.Array) -> xr.DataArray:
     return xr.DataArray(arr, dims=('y', 'x'))
 
 
+def compute_relative_azimuth(sat_azi: xr.DataArray, sun_azi: xr.DataArray) -> xr.DataArray:
+    """Compute the relative azimuth angle.
+
+    Args:
+        sat_azi: DataArray for the satellite azimuth angles, typically in 0-360 degree range.
+        sun_azi: DataArray for the solar azimuth angles, should be in same range as sat_azi.
+    Returns:
+        A DataArray containing the relative azimuth angle in the 0-180 degree range.
+
+    NOTE: Relative azimuth is defined such that:
+    Relative azimuth is 0 when sun and satellite are aligned on one side of a pixel (back scatter).
+    Relative azimuth is 180 when sun and satellite are directly opposite each other (forward scatter).
+    """
+    ssadiff = da.absolute(sun_azi - sat_azi)
+    ssadiff = da.minimum(ssadiff, 360 - ssadiff)
+
+    return ssadiff
+
+
 def get_angles(data_arr: xr.DataArray) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray, xr.DataArray]:
     """Get sun and satellite azimuth and zenith angles.
 
