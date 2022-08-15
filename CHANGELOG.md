@@ -1,3 +1,20 @@
+## Version 0.37.1 (2022/08/15)
+
+### Issues Closed
+
+* [Issue 2173](https://github.com/pytroll/satpy/issues/2173) - MetopC script fails after update to SatPy 0.37 ([PR 2174](https://github.com/pytroll/satpy/pull/2174) by [@mraspaud](https://github.com/mraspaud))
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 2174](https://github.com/pytroll/satpy/pull/2174) - Fix 3d effect enhancement ([2173](https://github.com/pytroll/satpy/issues/2173))
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.37.0 (2022/08/05)
 
 ### Issues Closed
