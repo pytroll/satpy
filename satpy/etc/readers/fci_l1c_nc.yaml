@@ -16,9 +16,15 @@ reader:
 file_types:
   fci_l1c_fdhsi:
     file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
-    file_patterns: [ '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-FDHSI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc' ]
+    file_patterns:
+     - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-1C-RRAD-FDHSI-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc'
     expected_segments: 40
 
+  fci_l1c_af:
+    file_reader: !!python/name:satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler
+    file_patterns:
+     - '{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}-{data_source}-1C-RRAD-3KM-{coverage}-{subsetting}-{component1}-x-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility_or_tool}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{erraneous_count_in_repeat_cycle:>04d}.nc'
+    expected_segments: 1
 
 datasets:
   vis_04:
@@ -223,7 +229,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-    file_type: fci_l1c_fdhsi
+    file_type: [fci_l1c_fdhsi, fci_l1c_af]
 
   ir_97:
     name: ir_97
@@ -363,7 +369,7 @@ datasets:
     name: ir_87_pixel_quality
     sensor: fci
     resolution: 2000
-    file_type: fci_l1c_fdhsi
+    file_type: [fci_l1c_fdhsi, fci_l1c_af]
 
   ir_97_pixel_quality:
     name: ir_97_pixel_quality

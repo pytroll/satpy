@@ -210,16 +210,21 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
         """
         segment_position_info = {
-            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
-                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
-                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
-                    self['data/vis_04/measured/start_position_row'].item() + 1,
-                    'segment_width': 11136},
-            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
-                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
-                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
-                    self['data/ir_105/measured/start_position_row'].item() + 1,
-                    'segment_width': 5568}
+            # '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
+            #         'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
+            #         'segment_height': self['data/vis_04/measured/end_position_row'].item() -
+            #         self['data/vis_04/measured/start_position_row'].item() + 1,
+            #         'segment_width': 11136},
+            # '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
+            #         'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
+            #         'segment_height': self['data/ir_105/measured/end_position_row'].item() -
+            #         self['data/ir_105/measured/start_position_row'].item() + 1,
+            #         'segment_width': 5568},
+            '3km': {'start_position_row': self['data/ir_87/measured/start_position_row'].item(),
+                    'end_position_row': self['data/ir_87/measured/end_position_row'].item(),
+                    'segment_height': self['data/ir_87/measured/end_position_row'].item() -
+                    self['data/ir_87/measured/start_position_row'].item() + 1,
+                    'segment_width': 3712}
         }
 
         return segment_position_info
@@ -319,7 +324,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
 
-        nominal_and_proj_subsat_lon = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        nominal_and_proj_subsat_lon = 0  # float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         nominal_and_proj_subsat_lat = 0
         nominal_and_proj_sat_alt = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
 
@@ -478,7 +483,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
         rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
-        lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        lon_0 = 0  # float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
