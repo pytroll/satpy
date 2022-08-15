@@ -63,10 +63,11 @@ class TestEnhancementStretch:
         crefl_data /= 5.605
         crefl_data[0, 0] = np.nan  # one bad value for testing
         crefl_data[0, 1] = 0.
-        self.ch1 = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
-        self.ch2 = xr.DataArray(crefl_data, dims=('y', 'x'), attrs={'test': 'test'})
+        self.ch1 = xr.DataArray(da.from_array(data, chunks=2), dims=('y', 'x'), attrs={'test': 'test'})
+        self.ch2 = xr.DataArray(da.from_array(crefl_data, chunks=2), dims=('y', 'x'), attrs={'test': 'test'})
         rgb_data = np.stack([data, data, data])
-        self.rgb = xr.DataArray(rgb_data, dims=('bands', 'y', 'x'),
+        self.rgb = xr.DataArray(da.from_array(rgb_data, chunks=(3, 2, 2)),
+                                dims=('bands', 'y', 'x'),
                                 coords={'bands': ['R', 'G', 'B']})
 
     @pytest.mark.parametrize(
