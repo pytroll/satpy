@@ -138,9 +138,10 @@ def _get_entry_points_and_etc_paths(
             parts = [part.strip() for part in entry_point_value.split("=")]
             ep_name = parts[0]
             ep_value = parts[1]
+            ep_module = ep_value.split(":")[0].strip()
             ep = EntryPoint(name=ep_name, group=ep_group, value=ep_value)
             entry_points[ep_group].append(ep)
-            entry_point_module_paths[ep.module] = module_path  # type: ignore
+            entry_point_module_paths[ep_module] = module_path
     return etc_path, entry_points, entry_point_module_paths
 
 
