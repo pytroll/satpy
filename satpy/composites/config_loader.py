@@ -209,6 +209,8 @@ def _load_config(composite_configs):
 
     comp_config_helper = _CompositeConfigHelper(sensor_compositors, id_keys)
     configured_composites = conf.get('composites', {})
+    if any("viirs.yaml" in config for config in composite_configs):
+        print(configured_composites)
     comp_config_helper.parse_config(configured_composites, composite_configs)
     return sensor_compositors, sensor_modifiers, id_keys
 
@@ -275,6 +277,8 @@ def load_compositor_configs_for_sensor(sensor_name: str) -> tuple[dict[str, dict
     composite_configs = config_search_paths(
         os.path.join("composites", config_filename),
         search_dirs=paths, check_exists=True)
+    print(paths)
+    print(composite_configs)
     if not composite_configs:
         logger.debug("No composite config found called %s",
                      config_filename)

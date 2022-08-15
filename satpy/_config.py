@@ -23,9 +23,10 @@ import logging
 import os
 import sys
 from collections import OrderedDict
+from importlib.metadata import entry_points
+from importlib.resources import files as impr_files  # type: ignore
 
 import appdirs
-import pkg_resources
 from donfig import Config
 
 LOG = logging.getLogger(__name__)
@@ -109,9 +110,8 @@ def get_config_path_safe():
 def get_entry_points_config_dirs(name, include_config_path=True):
     """Get the config directories for all entry points of given name."""
     dirs = []
-    for entry_point in pkg_resources.iter_entry_points(name):
-        package_name = entry_point.module_name.split('.', 1)[0]
-        new_dir = os.path.join(entry_point.dist.module_path, package_name, 'etc')
+    for entry_point in entry_points().get(name, []):
+        new_dir = str(impr_files(entry_point.module) / "etc")
         if not dirs or dirs[-1] != new_dir:
             dirs.append(new_dir)
     if include_config_path:
