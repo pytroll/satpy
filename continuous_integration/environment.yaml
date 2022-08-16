@@ -11,12 +11,13 @@ dependencies:
   - Cython
   - sphinx
   - cartopy
+  - panel>=0.12.7
   - pillow
   - matplotlib
   - scipy
   - pyyaml
   - pyproj
-  - pyresample
+  - pyresample>=1.24
   - coveralls
   - coverage
   - codecov
@@ -26,7 +27,9 @@ dependencies:
   - h5netcdf
   - gdal
   - rasterio
+  - bottleneck
   - rioxarray
+  - defusedxml
   - imageio
   - pyhdf
   - mock
@@ -39,11 +42,15 @@ dependencies:
   - geoviews
   - pytest
   - pytest-cov
+  - pytest-lazy-fixture
   - fsspec
+  - s3fs
   - pylibtiff
   - python-geotiepoints
   - pooch
   - pip
+  - skyfield
+  - astropy
   - pip:
     - trollsift
     - trollimage

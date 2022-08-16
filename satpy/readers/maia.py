@@ -27,13 +27,13 @@ Documentation reference:
 """
 import logging
 
+import dask.array as da
 import h5py
 import numpy as np
 from xarray import DataArray
-import dask.array as da
 
-from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
 

@@ -179,6 +179,7 @@ Output:
 
 """
 import itertools
+import json
 import logging
 
 import xarray as xr
@@ -291,4 +292,13 @@ class SatpyCFFileHandler(BaseFileHandler):
         if name != ds_id['name']:
             data = data.rename(ds_id['name'])
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
+        if "orbital_parameters" in data.attrs:
+            data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])
         return data
+
+
+def _str2dict(val):
+    """Convert string to dictionary."""
+    if isinstance(val, str):
+        val = json.loads(val)
+    return val

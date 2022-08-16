@@ -25,7 +25,7 @@ dask operations, so it should be relatively performant.
 For more information on this format, the reader can refer to the
 `Compact VIIRS SDR Product Format User Guide` that can be found on this EARS_ page.
 
-.. _EARS: https://www.eumetsat.int/website/home/Data/RegionalDataServiceEARS/EARSVIIRS/index.html
+.. _EARS: https://www.eumetsat.int/media/45988
 
 """
 
@@ -37,6 +37,7 @@ import dask.array as da
 import h5py
 import numpy as np
 import xarray as xr
+
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str

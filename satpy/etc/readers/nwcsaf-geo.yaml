@@ -1,6 +1,10 @@
 reader:
-  description: NetCDF4 reader for the NWCSAF GEO 2016/2018 format
   name: nwcsaf-geo
+  short_name: NWCSAF GEO
+  long_name: NWCSAF GEO 2016 products in netCDF4 format (limited to SEVIRI)
+  description: NetCDF4 reader for the NWCSAF GEO 2016/2018 format
+  status: Alpha
+  supports_fsspec: false
   sensors: [seviri, abi, ahi]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -8,27 +12,36 @@ reader:
 file_types:
     nc_nwcsaf_cma:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
-        file_patterns: ['S_NWC_CMA_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+        file_patterns: ['S_NWC_CMA_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc',
+                        'S_NWC_CMA_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z_PLAX.nc']
 
     nc_nwcsaf_ct:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
-        file_patterns: ['S_NWC_CT_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+        file_patterns: ['S_NWC_CT_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc',
+                        'S_NWC_CT_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z_PLAX.nc']
 
     nc_nwcsaf_ctth:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
-        file_patterns: ['S_NWC_CTTH_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+        file_patterns: ['S_NWC_CTTH_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc',
+                        'S_NWC_CTTH_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z_PLAX.nc']
 
     nc_nwcsaf_cmic:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
-        file_patterns: ['S_NWC_CMIC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+        file_patterns: ['S_NWC_CMIC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc',
+                        'S_NWC_CMIC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z_PLAX.nc']
 
     nc_nwcsaf_pc:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
-        file_patterns: ['S_NWC_PC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+        file_patterns: ['S_NWC_PC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc',
+                        'S_NWC_PC_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z_PLAX.nc']
 
     nc_nwcsaf_crr:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
         file_patterns: ['S_NWC_CRR_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+
+    nc_nwcsaf_crr-ph:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_CRR-Ph_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_ishai:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
@@ -347,6 +360,48 @@ datasets:
     name: crr_quality
     resolution: 3000
     file_type: nc_nwcsaf_crr
+
+# ---- CRR-Ph products ------------
+
+  crrph_intensity:
+    name: crrph_intensity
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
+
+  crrph_pal:
+    name: crrph_intensity_pal
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
+
+  crrph_accum:
+    name: crrph_accum
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
+
+  crrph_iqf:
+    name: crrph_iqf
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
+
+  crrph_iqf_pal:
+    name: crrph_iqf_pal
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
+
+  crrph_status_flag:
+    name: crrph_status
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
+
+  crrph_conditions:
+    name: crrph_conditions
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
+
+  crrph_quality:
+    name: crrph_quality
+    resolution: 3000
+    file_type: nc_nwcsaf_crr-ph
 
 # ----iSHAI  products ------------
 

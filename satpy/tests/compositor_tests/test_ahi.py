@@ -25,17 +25,17 @@ class TestAHIComposites(unittest.TestCase):
 
     def test_load_composite_yaml(self):
         """Test loading the yaml for this sensor."""
-        from satpy.composites.config_loader import CompositorLoader
-        cl = CompositorLoader()
-        cl.load_sensor_composites('abi')
+        from satpy.composites.config_loader import load_compositor_configs_for_sensors
+        load_compositor_configs_for_sensors(['ahi'])
 
     def test_corrected_green(self):
         """Test adjusting the 'green' band."""
-        import xarray as xr
         import dask.array as da
         import numpy as np
-        from satpy.composites.ahi import GreenCorrector
+        import xarray as xr
         from pyresample.geometry import AreaDefinition
+
+        from satpy.composites.ahi import GreenCorrector
         rows = 5
         cols = 10
         area = AreaDefinition(

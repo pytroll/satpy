@@ -17,11 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Functions and utilities for downloading ancillary data."""
 
-import os
 import logging
-import satpy
+import os
 
 import pooch
+
+import satpy
 
 logger = logging.getLogger(__name__)
 
@@ -192,17 +193,28 @@ def _find_registerable_files_compositors(sensors=None):
     Compositor objects should register files when they are initialized.
 
     """
-    from satpy.composites.config_loader import CompositorLoader
-    composite_loader = CompositorLoader()
+    from satpy.composites.config_loader import all_composite_sensors, load_compositor_configs_for_sensors
     if sensors is None:
-        sensors = composite_loader.all_composite_sensors()
+        sensors = all_composite_sensors()
     if sensors:
-        composite_loader.load_compositors(sensors)
+        mods = load_compositor_configs_for_sensors(sensors)[1]
+        _register_modifier_files(mods)
+
+
+def _register_modifier_files(modifiers):
+    for mod_sensor_dict in modifiers.values():
+        for mod_name, (mod_cls, mod_props) in mod_sensor_dict.items():
+            try:
+                mod_cls(**mod_props)
+            except (ValueError, RuntimeError):
+                logger.error("Could not initialize modifier '%s' for "
+                             "auxiliary download registration.", mod_name)
 
 
 def _find_registerable_files_readers(readers=None):
     """Load all readers so that files are registered."""
     import yaml
+
     from satpy.readers import configs_for_reader, load_reader
     for reader_configs in configs_for_reader(reader=readers):
         try:
@@ -263,9 +275,9 @@ class DataDownloadMixin:
             ... other metadata ...
             data_files:
               - url: "https://example.com/my_data_file.dat"
-              - url: "https://raw.githubusercontent.com/pytroll/satpy/master/README.rst"
+              - url: "https://raw.githubusercontent.com/pytroll/satpy/main/README.rst"
                 known_hash: "sha256:5891286b63e7745de08c4b0ac204ad44cfdb9ab770309debaba90308305fa759"
-              - url: "https://raw.githubusercontent.com/pytroll/satpy/master/RELEASING.md"
+              - url: "https://raw.githubusercontent.com/pytroll/satpy/main/RELEASING.md"
                 filename: "satpy_releasing.md"
 
     In this example we register two files that might be downloaded.
@@ -296,6 +308,8 @@ class DataDownloadMixin:
         'reader': 'readers',
         'writer': 'writers',
         'composit': 'composites',
+        'modifi': 'modifiers',
+        'corr': 'modifiers',
     }
 
     @property

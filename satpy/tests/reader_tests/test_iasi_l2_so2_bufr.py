@@ -19,8 +19,9 @@
 
 import os
 import sys
-import numpy as np
 import unittest
+
+import numpy as np
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
 
@@ -335,6 +336,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
     def setUp(self):
         """Create temporary file to perform tests with."""
         import tempfile
+
         from satpy.readers.iasi_l2_so2_bufr import IASIL2SO2BUFR
 
         self.base_dir = tempfile.mkdtemp()
@@ -361,10 +363,10 @@ class TestIasiL2So2Bufr(unittest.TestCase):
 
         scn = Scene(reader='iasi_l2_so2_bufr', filenames=[fname])
 
-        self.assertTrue('start_time' in scn.attrs)
-        self.assertTrue('end_time' in scn.attrs)
-        self.assertTrue('sensor' in scn.attrs)
-        self.assertTrue('iasi' in scn.attrs['sensor'])
+        assert scn.start_time is not None
+        assert scn.end_time is not None
+        assert scn.sensor_names
+        assert 'iasi' in scn.sensor_names
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):

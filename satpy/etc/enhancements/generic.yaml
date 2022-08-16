@@ -24,18 +24,16 @@ enhancements:
     name: true_color_crefl
     standard_name: true_color
     operations:
-    - name: crefl_scaling
-      method: !!python/name:satpy.enhancements.crefl_scaling
-      kwargs:
-#      Polar2Grid's scaling: "Preferred".
-       idx: [0., 25., 55., 100., 255.]
-       sc: [0., 90., 140., 175., 255.]
-#       Ralph's new scaling: Looks darker.
-#       idx: [0., 30., 60., 120., 190., 255.]
-#       sc: [0., 100., 128., 188., 223., 255.]
-#       Ralph's old scaling: Looks lighter.
-#       idx: [0., 30., 60., 120., 190., 255.]
-#       sc: [0, 110, 160, 210, 240, 255]
+      - name: reflectance_range
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0., max_stretch: 100.}
+      - name: linear interpolation
+        method: !!python/name:satpy.enhancements.piecewise_linear_stretch
+        kwargs:
+        # Polar2Grid's "Preferred" scaling
+         xp: [0., 25., 55., 100., 255.]
+         fp: [0., 90., 140., 175., 255.]
+         reference_scale_factor: 255
   overview_default:
     standard_name: overview
     operations:
@@ -919,3 +917,40 @@ enhancements:
         stretch: crude
         min_stretch: [26.2,  27.4, 243.9]
         max_stretch: [ 0.6, -26.2, 208.5]
+  # SEADAS Cholorphyll A - MODIS or VIIRS
+  chlor_a_default:
+    name: chlor_a
+    reader: seadas_l2
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: log
+          base: "10"
+          factor: 21.0
+          min_stretch: 0.0
+          max_stretch: 20.0
+
+  cimss_cloud_type:
+    standard_name: cimss_cloud_type
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0.0, 0.0, 0.0]
+          max_stretch: [10.0, 80.0, 80.0]
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs:
+          gamma: [1.5, 0.75, 1.0]
+
+  cloud_phase:
+    standard_name: cloud_phase
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [ 0,  0,   0]
+          max_stretch: [50, 50, 100]

@@ -23,6 +23,7 @@ For now, this includes enhancement configuration utilities.
 import logging
 import os
 import warnings
+from typing import Optional
 
 import dask.array as da
 import numpy as np
@@ -32,18 +33,17 @@ import yaml
 try:
     from yaml import UnsafeLoader
 except ImportError:
-    from yaml import Loader as UnsafeLoader
-
-from satpy._config import config_search_paths, glob_config
-from satpy.utils import recursive_dict_update
-from satpy import CHUNK_SIZE
-from satpy.plugin_base import Plugin
-from satpy.resample import get_area_def
-from satpy.aux_download import DataDownloadMixin
-
-from trollsift import parser
+    from yaml import Loader as UnsafeLoader  # type: ignore
 
 from trollimage.xrimage import XRImage
+from trollsift import parser
+
+from satpy import CHUNK_SIZE
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
+from satpy.aux_download import DataDownloadMixin
+from satpy.plugin_base import Plugin
+from satpy.resample import get_area_def
+from satpy.utils import recursive_dict_update
 
 LOG = logging.getLogger(__name__)
 
@@ -111,13 +111,17 @@ def configs_for_writer(writer=None):
         # given a config filename or writer name
         config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
     else:
-        writer_configs = glob_config(os.path.join('writers', '*.yaml'))
+        paths = get_entry_points_config_dirs('satpy.writers')
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'), search_dirs=paths)
         config_files = set(writer_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
+        paths = get_entry_points_config_dirs('satpy.writers')
         writer_configs = config_search_paths(
-            os.path.join("writers", config_basename))
+            os.path.join("writers", config_basename),
+            search_dirs=paths,
+        )
 
         if not writer_configs:
             LOG.warning("No writer configs found for '%s'", writer)
@@ -156,15 +160,14 @@ def _determine_mode(dataset):
 
     if dataset.ndim == 2:
         return "L"
-    elif dataset.shape[0] == 2:
+    if dataset.shape[0] == 2:
         return "LA"
-    elif dataset.shape[0] == 3:
+    if dataset.shape[0] == 3:
         return "RGB"
-    elif dataset.shape[0] == 4:
+    if dataset.shape[0] == 4:
         return "RGBA"
-    else:
-        raise RuntimeError("Can't determine 'mode' of dataset: %s" %
-                           str(dataset))
+    raise RuntimeError("Can't determine 'mode' of dataset: %s" %
+                       str(dataset))
 
 
 def _burn_overlay(img, image_metadata, area, cw_, overlays):
@@ -240,34 +243,39 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
                            "overlays/decorations to non-RGB data.")
 
     if overlays is None:
-        overlays = dict()
-        # fill with sensible defaults
-        general_params = {'outline': color or (0, 0, 0),
-                          'width': width or 0.5}
-        for key, val in general_params.items():
-            if val is not None:
-                overlays.setdefault('coasts', {}).setdefault(key, val)
-                overlays.setdefault('borders', {}).setdefault(key, val)
-        if level_coast is None:
-            level_coast = 1
-        overlays.setdefault('coasts', {}).setdefault('level', level_coast)
-        if level_borders is None:
-            level_borders = 1
-        overlays.setdefault('borders', {}).setdefault('level', level_borders)
-
-        if grid is not None:
-            if 'major_lonlat' in grid and grid['major_lonlat']:
-                major_lonlat = grid.pop('major_lonlat')
-                minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
-                grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
-            for key, val in grid.items():
-                overlays.setdefault('grid', {}).setdefault(key, val)
+        overlays = _create_overlays_dict(color, width, grid, level_coast, level_borders)
 
     cw_ = ContourWriterAGG(coast_dir)
     new_image = orig_img.apply_pil(_burn_overlay, res_mode,
                                    None, {'fill_value': fill_value},
                                    (area, cw_, overlays), None)
     return new_image
+
+
+def _create_overlays_dict(color, width, grid, level_coast, level_borders):
+    """Fill in the overlays dict."""
+    overlays = dict()
+    # fill with sensible defaults
+    general_params = {'outline': color or (0, 0, 0),
+                      'width': width or 0.5}
+    for key, val in general_params.items():
+        if val is not None:
+            overlays.setdefault('coasts', {}).setdefault(key, val)
+            overlays.setdefault('borders', {}).setdefault(key, val)
+    if level_coast is None:
+        level_coast = 1
+    overlays.setdefault('coasts', {}).setdefault('level', level_coast)
+    if level_borders is None:
+        level_borders = 1
+    overlays.setdefault('borders', {}).setdefault('level', level_borders)
+    if grid is not None:
+        if 'major_lonlat' in grid and grid['major_lonlat']:
+            major_lonlat = grid.pop('major_lonlat')
+            minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
+            grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
+        for key, val in grid.items():
+            overlays.setdefault('grid', {}).setdefault(key, val)
+    return overlays
 
 
 def add_text(orig, dc, img, text):
@@ -480,8 +488,7 @@ def to_image(dataset):
     dataset = dataset.squeeze()
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
-    else:
-        return XRImage(dataset)
+    return XRImage(dataset)
 
 
 def split_results(results):
@@ -810,7 +817,13 @@ class ImageWriter(Writer):
                                  decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
-    def save_image(self, img, filename=None, compute=True, **kwargs):
+    def save_image(
+            self,
+            img: XRImage,
+            filename: Optional[str] = None,
+            compute: bool = True,
+            **kwargs
+    ):
         """Save Image object to a given ``filename``.
 
         Args:
@@ -1033,10 +1046,12 @@ class EnhancementDecisionTree(DecisionTree):
         """Init the decision tree."""
         match_keys = kwargs.pop("match_keys",
                                 ("name",
+                                 "reader",
                                  "platform_name",
                                  "sensor",
                                  "standard_name",
-                                 "units",))
+                                 "units",
+                                 ))
         self.prefix = kwargs.pop("config_section", "enhancements")
         multival_keys = kwargs.pop("multival_keys", ["sensor"])
         super(EnhancementDecisionTree, self).__init__(
@@ -1095,7 +1110,8 @@ class Enhancer(object):
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(config_fn)
+            paths = get_entry_points_config_dirs('satpy.enhancements')
+            self.enhancement_config_file = config_search_paths(config_fn, search_dirs=paths)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -1114,9 +1130,10 @@ class Enhancer(object):
             # one single sensor
             sensor = [sensor]
 
+        paths = get_entry_points_config_dirs('satpy.enhancements')
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".yaml")
-            config_files = config_search_paths(config_fn)
+            config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:

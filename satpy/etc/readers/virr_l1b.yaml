@@ -1,6 +1,10 @@
 reader:
-  description: reader for VIRR data
   name: virr_l1b
+  short_name: VIRR
+  long_name: VIRR data in HDF5 format
+  description: reader for VIRR data
+  status: Beta
+  supports_fsspec: false
   sensors: [virr]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 

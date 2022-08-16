@@ -32,11 +32,13 @@ More information, data and credits at
 http://tropic.ssec.wisc.edu/real-time/mtpw2/credits.html
 """
 
+import logging
+
 import numpy as np
 import xarray as xr
-from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 from pyresample.geometry import AreaDefinition
-import logging
+
+from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 logger = logging.getLogger(__name__)
 
