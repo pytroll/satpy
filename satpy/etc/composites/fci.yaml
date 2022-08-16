@@ -11,3 +11,14 @@ composites:
       - name: 'cloud_state'
     lut: [.nan, 0, 1, 1, 1, 1, 1, 1, 0, .nan]
     standard_name: binary_cloud_mask
+
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: vis_06
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: vis_05
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: vis_04
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
