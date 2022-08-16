@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Composite classes for the AHI instrument."""
+"""Composite classes for spectral adjustments."""
 
 import logging
 
@@ -26,7 +26,35 @@ LOG = logging.getLogger(__name__)
 
 
 class GreenCorrector(GenericCompositor):
-    """Corrector of the AHI green band to compensate for the deficit of chlorophyll signal."""
+    """Corrector of the FCI or AHI green band.
+
+    The green band in FCI and AHI deliberately misses the chlorophyll peak
+    in order to focus on aerosol and ash rather than on vegetation.  This
+    makes true colour RGBs look like all the forests have burnt down, which
+    they haven't yet.  To make them look a bit greener, this corrector allows
+    to simulate the green band as a fraction of two or more other channels.
+
+    To be used, the composite takes two re more input channels and a parameter
+    ``fractions`` that should be a list of floats with the same length as the
+    number of channels.
+
+    For example, to simulate an FCI corrected green composite, one could use
+    a combination of 93% from the green band (vis_05) and 7% from the
+    near-infrared 0.8 µm band (vis_08)::
+
+      corrected_green:
+        compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+        fractions: [0.93, 0.07]
+        prerequisites:
+          - name: vis_05
+            modifiers: [sunz_corrected, rayleigh_corrected]
+          - name: vis_08
+            modifiers: [sunz_corrected, rayleigh_corrected]
+        standard_name: toa_bidirectional_reflectance
+
+    Other examples can be found in the ``fci.yaml`` and ``ahi.yaml`` composite
+    files in the satpy distribution.
+    """
 
     def __init__(self, *args, fractions=(0.85, 0.15), **kwargs):
         """Set default keyword argument values."""

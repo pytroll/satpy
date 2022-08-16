@@ -8,7 +8,7 @@ composites:
       the signal comes rather from aerosols and ash rather than vegetation.  An effect
       is that vegetation in a true colour RGB looks rather brown than green.  Mixing in
       some part of the NIR 0.8 channel reduced this effect.
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
     fractions: [0.93, 0.07]
     prerequisites:
       - name: vis_05
