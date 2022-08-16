@@ -27,6 +27,13 @@ import pytest
 from satpy.dataset.data_dict import get_key
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
+try:
+    import fsspec.implementations.local
+except ImportError:
+    has_fsspec = False
+else:
+    has_fsspec = True
+
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
 os.environ.pop("SATPY_CONFIG_PATH", None)
@@ -620,6 +627,49 @@ class TestFindFilesAndReaders(unittest.TestCase):
         test_reader = sorted(OLD_READER_NAMES.keys())[0]
         with self.assertRaises(ValueError):
             get_valid_reader_names([test_reader])
+
+
+@pytest.mark.skipif(not has_fsspec, reason="fsspec not available")
+def test_fsspec_fsfile(tmp_path):
+    """Test that iff an fsspec instance is passed, fsfile is returned.
+    """
+    p = (tmp_path /
+         "OR_ABI-L1b-RadF-M3C01_G16_s19000010000000_e19000010001000"
+         "_c20152950029000.nc")
+    p.touch()
+    from satpy.readers import find_files_and_readers, FSFile
+    lfs = fsspec.implementations.local.LocalFileSystem()
+    ri = find_files_and_readers(
+            base_dir=p.parent,
+            fs=fsspec.implementations.local.LocalFileSystem(),
+            reader="abi_l1b",
+            use_fsfile=True)
+
+    assert ri.keys() == {"abi_l1b"}
+    assert len(ri["abi_l1b"]) == 1
+    assert isinstance(ri["abi_l1b"][0], FSFile)
+    assert os.path.normpath(str(ri["abi_l1b"][0])) == os.path.normpath(str(p))
+
+    ri = find_files_and_readers(
+            base_dir=tmp_path,
+            fs=lfs,
+            reader="abi_l1b",
+            use_fsfile=False)
+    assert not isinstance(ri["abi_l1b"][0], FSFile)
+
+    ri = find_files_and_readers(
+            base_dir=p.parent,
+            fs=fsspec.implementations.local.LocalFileSystem(),
+            reader="abi_l1b",
+            use_fsfile=True,
+            fs_open_args={"mode": "rt", "encoding": "ascii"})
+    assert ri["abi_l1b"][0]._file.encoding == "ascii"
+
+    with pytest.raises(ValueError, match="no file system passed"):
+        find_files_and_readers(
+                base_dir=tmp_path,
+                reader="abi_l1b",
+                use_fsfile=True)
 
 
 class TestYAMLFiles(unittest.TestCase):
