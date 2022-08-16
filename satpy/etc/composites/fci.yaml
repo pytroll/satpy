@@ -20,10 +20,24 @@ composites:
     - name: vis_08
     standard_name: low_level_moisture
 
+  day_low_level_moisture:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: low_level_moisture
+    standard_name: low_level_moisture
+
   colorized_low_level_moisture:
     description: Based on work by Pieter Groenemeijer and Hans-Peter Roesli
     compositor: !!python/name:satpy.composites.RatioCompositor
     prerequisites:
     - name: vis_08
     - name: vis_09
+    standard_name: colorized_low_level_moisture
+
+  day_colorized_low_level_moisture:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    day_night: day_only
+    prerequisites:
+    - name: colorized_low_level_moisture
     standard_name: colorized_low_level_moisture
