@@ -1,6 +1,10 @@
 reader:
-  description: SEVIRI L2 BUFR Product Reader
   name: seviri_l2_bufr
+  short_name: SEVIRI l2 BUFR
+  long_name: MSG (Meteosat 8 to 11) Level 2 products in BUFR format
+  description: SEVIRI L2 BUFR Product Reader
+  status: Alpha, AMV BUFR products not supported yet
+  supports_fsspec: false
   sensors: [seviri]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader

@@ -487,6 +487,18 @@ class HRITMSGFileHandler(HRITFileHandler):
         self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
+    def nominal_start_time(self):
+        """Get the start time."""
+        return self.prologue['ImageAcquisition'][
+            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
+
+    @property
+    def nominal_end_time(self):
+        """Get the end time."""
+        return self.prologue['ImageAcquisition'][
+            'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+
+    @property
     def start_time(self):
         """Get the start time."""
         return self.epilogue['ImageProductionStats'][
@@ -706,6 +718,8 @@ class HRITMSGFileHandler(HRITFileHandler):
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'seviri'
+        res.attrs['nominal_start_time'] = self.nominal_start_time
+        res.attrs['nominal_end_time'] = self.nominal_end_time
         res.attrs['orbital_parameters'] = {
             'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
             'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],

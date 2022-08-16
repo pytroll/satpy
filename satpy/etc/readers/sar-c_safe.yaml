@@ -1,6 +1,10 @@
 reader:
-  description: SAFE Reader for SAR-C data
   name: sar-c_safe
+  short_name: SAR-C
+  long_name: Sentinel-1 A and B SAR-C data in SAFE format
+  description: SAFE Reader for SAR-C data
+  status: Nominal
+  supports_fsspec: false
   sensors: [sar-c]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

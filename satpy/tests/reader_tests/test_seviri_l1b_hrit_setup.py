@@ -121,7 +121,8 @@ def get_fake_prologue(projection_longitude, orbit_polynomials):
          },
          'ImageAcquisition': {
             'PlannedAcquisitionTime': {
-                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888)
+                'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888),
+                'PlannedRepeatCycleEnd': datetime(2006, 1, 1, 12, 30, 0, 0)
             }
          }
     }
@@ -220,5 +221,7 @@ def get_attrs_exp(projection_longitude=0.0):
                                'satellite_actual_longitude': -3.55117540817073,
                                'satellite_actual_latitude': -0.5711243456528018,
                                'satellite_actual_altitude': 35783296.150123544},
-        'georef_offset_corrected': True
+        'georef_offset_corrected': True,
+        'nominal_start_time': datetime(2006, 1, 1, 12, 15, 9, 304888),
+        'nominal_end_time': datetime(2006, 1, 1, 12, 30, 0, 0)
     }

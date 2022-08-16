@@ -54,9 +54,9 @@ class TestSAFEGRD(unittest.TestCase):
 
     def test_instantiate(self):
         """Test initialization of file handlers."""
-        assert(self.test_fh._polarization == 'vv')
-        assert(self.test_fh.calibration == self.calfh)
-        assert(self.test_fh.noise == self.noisefh)
+        assert self.test_fh._polarization == 'vv'
+        assert self.test_fh.calibration == self.calfh
+        assert self.test_fh.noise == self.noisefh
         self.mocked_rio_open.assert_called()
 
     @mock.patch('rioxarray.open_rasterio')

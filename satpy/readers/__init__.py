@@ -32,7 +32,7 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader  # type: ignore
 
-from satpy._config import config_search_paths, glob_config
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 
 from .yaml_reader import AbstractYAMLReader
 from .yaml_reader import load_yaml_configs as load_yaml_reader_configs
@@ -328,14 +328,17 @@ def configs_for_reader(reader=None):
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
-        reader_configs = glob_config(os.path.join('readers', '*.yaml'))
+        paths = get_entry_points_config_dirs('satpy.readers')
+        reader_configs = glob_config(os.path.join('readers', '*.yaml'), search_dirs=paths)
         config_files = set(reader_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
         reader_name = os.path.splitext(config_basename)[0]
+        paths = get_entry_points_config_dirs('satpy.readers')
         reader_configs = config_search_paths(
-            os.path.join("readers", config_basename))
+            os.path.join("readers", config_basename),
+            search_dirs=paths, check_exists=True)
 
         if not reader_configs:
             # either the reader they asked for does not exist
