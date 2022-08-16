@@ -2,6 +2,20 @@ sensor_name: visir/fci
 
 
 composites:
+  corrected_green:
+    description: >
+      The FCI green band at 0.51 µm deliberately misses the chlorophyl band, such that
+      the signal comes rather from aerosols and ash rather than vegetation.  An effect
+      is that vegetation in a true colour RGB looks rather brown than green.  Mixing in
+      some part of the NIR 0.8 channel reduced this effect.
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    fractions: [0.93, 0.07]
+    prerequisites:
+      - name: vis_05
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: vis_08
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: toa_bidirectional_reflectance
 
   binary_cloud_mask:
     # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
@@ -17,8 +31,7 @@ composites:
     prerequisites:
       - name: vis_06
         modifiers: [sunz_corrected, rayleigh_corrected]
-      - name: vis_05
-        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: corrected_green
       - name: vis_04
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
