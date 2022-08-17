@@ -107,6 +107,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 from functools import cached_property
 
+import dask.array as da
 import numpy as np
 import xarray as xr
 from netCDF4 import default_fillvals
@@ -115,7 +116,7 @@ from pyresample import geometry
 from satpy.readers._geos_area import get_geos_area_naming
 from satpy.readers.eum_base import get_service_mode
 
-from .netcdf_utils import NetCDF4FileHandler
+from .netcdf_utils import NetCDF4FsspecFileHandler
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,7 @@ def _get_channel_name_from_dsname(dsname):
     return channel_name
 
 
-class FCIL1cNCFileHandler(NetCDF4FileHandler):
+class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
     """Class implementing the MTG FCI L1c Filehandler.
 
     This class implements the Meteosat Third Generation (MTG) Flexible
@@ -210,15 +211,15 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
         """
         segment_position_info = {
-            '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
-                    'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
-                    'segment_height': self['data/vis_04/measured/end_position_row'].item() -
-                    self['data/vis_04/measured/start_position_row'].item() + 1,
+            '1km': {'start_position_row': _get_array_item(self['data/vis_04/measured/start_position_row']),
+                    'end_position_row': _get_array_item(self['data/vis_04/measured/end_position_row']),
+                    'segment_height': _get_array_item(self['data/vis_04/measured/end_position_row']) -
+                    _get_array_item(self['data/vis_04/measured/start_position_row']) + 1,
                     'segment_width': 11136},
-            '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
-                    'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
-                    'segment_height': self['data/ir_105/measured/end_position_row'].item() -
-                    self['data/ir_105/measured/start_position_row'].item() + 1,
+            '2km': {'start_position_row': _get_array_item(self['data/ir_105/measured/start_position_row']),
+                    'end_position_row': _get_array_item(self['data/ir_105/measured/end_position_row']),
+                    'segment_height': _get_array_item(self['data/ir_105/measured/end_position_row']) -
+                    _get_array_item(self['data/ir_105/measured/start_position_row']) + 1,
                     'segment_width': 5568}
         }
 
@@ -251,8 +252,11 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         measured = self.get_channel_measured_group_path(key['name'])
         data = self[measured + "/effective_radiance"]
 
-        attrs = data.attrs.copy()
+        attrs = dict(data.attrs.items()).copy()
         info = info.copy()
+
+        data = xr.DataArray(
+            da.array(data), dims=data.dimensions, attrs=attrs, name=data.name)
 
         fv = attrs.pop(
             "FillValue",
@@ -343,6 +347,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
+        attrs = dict(data.attrs.items()).copy()
+        data = xr.DataArray(
+            da.array(data), dims=data.dimensions, attrs=attrs, name=data.name)
         return data
 
     def _get_dataset_index_map(self, dsname):
@@ -359,7 +366,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         lut = self[AUX_DATA[aux_data_name]]
 
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
-        lut = lut.where(lut != fv)
+        lut = da.where(lut != fv, lut, np.nan)
 
         return lut
 
@@ -415,16 +422,16 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
 
             # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
-            if coord == "x" and coord_radian.scale_factor > 0:
+            if coord == "x" and coord_radian.attrs['scale_factor'] > 0:
                 coord_radian.attrs['scale_factor'] *= -1
 
             # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
-            if type(coord_radian.scale_factor) is np.float32:
+            if type(coord_radian.attrs['scale_factor']) is np.float32:
                 coord_radian.attrs['scale_factor'] = coord_radian.attrs['scale_factor'].astype('float64')
-            if type(coord_radian.add_offset) is np.float32:
+            if type(coord_radian.attrs['add_offset']) is np.float32:
                 coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
 
-            coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
+            coord_radian_num = coord_radian[:] * coord_radian.attrs['scale_factor'] + coord_radian.attrs['add_offset']
 
             # FCI defines pixels by centroids (see PUG), while pyresample
             # defines corners as lower left corner of lower left pixel, upper right corner of upper right pixel
@@ -438,9 +445,9 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
             # The values of y go from negative (South) to positive (North) and the scale factor of y is positive.
 
             # South-West corner (x positive, y negative)
-            first_coord_radian = coord_radian_num[0] - coord_radian.scale_factor / 2
+            first_coord_radian = coord_radian_num[0] - coord_radian.attrs['scale_factor'] / 2
             # North-East corner (x negative, y positive)
-            last_coord_radian = coord_radian_num[-1] + coord_radian.scale_factor / 2
+            last_coord_radian = coord_radian_num[-1] + coord_radian.attrs['scale_factor'] / 2
 
             # convert to arc length in m
             first_coord = first_coord_radian * h  # arc length in m
@@ -479,7 +486,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
         rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
-        sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
+        sweep = str(self["data/mtg_geos_projection"].attrs['sweep_angle_axis'].astype(str))
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
@@ -563,10 +570,8 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         measured = self.get_channel_measured_group_path(key['name'])
 
         vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
-
         a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
         b = self[measured + "/radiance_to_bt_conversion_coefficient_b"]
-
         c1 = self[measured + "/radiance_to_bt_conversion_constant_c1"]
         c2 = self[measured + "/radiance_to_bt_conversion_constant_c2"]
 
@@ -581,10 +586,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
                         measured))
                 return radiance * np.nan
 
-        nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc ** 3) / radiance)
+        nom = _get_array_item(c2) * _get_array_item(vc)
+        denom = _get_array_item(a) * np.log(1 + (_get_array_item(c1) * _get_array_item(vc) ** 3) / radiance)
 
-        res = nom / denom - b / a
+        res = nom / denom - _get_array_item(b) / _get_array_item(a)
         return res
 
     def calibrate_rad_to_refl(self, radiance, key):
@@ -611,3 +616,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         res = 100 * radiance * np.pi * sun_earth_distance ** 2 / cesi
         return res
+
+
+def _get_array_item(itm):
+    return itm.__array__().item()

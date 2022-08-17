@@ -20,11 +20,13 @@
 import logging
 
 import dask.array as da
+import h5netcdf
 import netCDF4
 import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
+from satpy.readers import open_file_or_filename
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import np2str
 
@@ -97,7 +99,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.file_content = {}
         self.cached_file_content = {}
         try:
-            file_handle = netCDF4.Dataset(self.filename, 'r')
+            file_handle = self._get_file_handle()
         except IOError:
             LOG.exception(
                 'Failed reading file %s. Possibly corrupted file', self.filename)
@@ -113,9 +115,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.collect_cache_vars(
                     [varname for (varname, var)
                         in self.file_content.items()
-                        if isinstance(var, netCDF4.Variable)
-                        and isinstance(var.dtype, np.dtype)  # vlen may be str
-                        and var.size * var.dtype.itemsize < cache_var_size],
+                        if self._check_variable_type(var, cache_var_size)],
                     file_handle)
         if cache_handle:
             self.file_handle = file_handle
@@ -124,6 +124,14 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
+
+    def _get_file_handle(self):
+        return netCDF4.Dataset(self.filename, 'r')
+
+    def _check_variable_type(self, var, cache_var_size):
+        return (isinstance(var, netCDF4.Variable)
+                and isinstance(var.dtype, np.dtype)  # vlen may be str
+                and var.size * var.dtype.itemsize < cache_var_size)
 
     def __del__(self):
         """Delete the file handler."""
@@ -136,26 +144,32 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _collect_global_attrs(self, obj):
         """Collect all the global attributes for the provided file object."""
         global_attrs = {}
-        for key in obj.ncattrs():
+        for key in self._get_object_attrs(obj):
             fc_key = f"/attr/{key}"
             value = self._get_attr_value(obj, key)
             self.file_content[fc_key] = global_attrs[key] = value
         self.file_content["/attrs"] = global_attrs
 
+    def _get_object_attrs(self, obj):
+        return obj.ncattrs()
+
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""
-        for key in obj.ncattrs():
+        for key in self._get_object_attrs(obj):
             fc_key = f"{name}/attr/{key}"
             value = self._get_attr_value(obj, key)
             self.file_content[fc_key] = value
 
     def _get_attr_value(self, obj, key):
-        value = getattr(obj, key)
+        value = self._get_attr(obj, key)
         try:
             value = np2str(value)
         except ValueError:
             pass
         return value
+
+    def _get_attr(self, obj, key):
+        return getattr(obj, key)
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
@@ -210,8 +224,14 @@ class NetCDF4FileHandler(BaseFileHandler):
         """
         for var_name in cache_vars:
             v = self.file_content[var_name]
-            self.cached_file_content[var_name] = xr.DataArray(
+            try:
+                arr = xr.DataArray(
                     v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
+            except ValueError:
+                # Handle scalars for h5netcdf backend
+                arr = xr.DataArray(
+                    v.__array__(), dims=v.dimensions, attrs=v.__dict__, name=v.name)
+            self.cached_file_content[var_name] = arr
 
     def __getitem__(self, key):
         """Get item for given key."""
@@ -287,3 +307,22 @@ class NetCDF4FileHandler(BaseFileHandler):
             return self[item]
         else:
             return default
+
+
+class NetCDF4FsspecFileHandler(NetCDF4FileHandler):
+    """NetCDF4 file handler using fsspec to read files remotely."""
+
+    def _get_file_handle(self):
+        f_obj = open_file_or_filename(self.filename)
+        return h5netcdf.File(f_obj, 'r')
+
+    def _check_variable_type(self, var, cache_var_size):
+        return (isinstance(var, h5netcdf.Variable)
+                and isinstance(var.dtype, np.dtype)  # vlen may be str
+                and np.prod(var.shape) * var.dtype.itemsize < cache_var_size)
+
+    def _get_object_attrs(self, obj):
+        return obj.attrs
+
+    def _get_attr(self, obj, key):
+        return obj.attrs[key]
