@@ -254,7 +254,6 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
 
         attrs = dict(data.attrs.items()).copy()
         info = info.copy()
-
         data = xr.DataArray(
             da.array(data), dims=data.dimensions, attrs=attrs, name=data.name)
 
@@ -357,16 +356,21 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         grp_path = self.get_channel_measured_group_path(_get_channel_name_from_dsname(dsname))
         dv_path = grp_path + "/index_map"
         data = self[dv_path]
-
+        attrs = dict(data.attrs.items()).copy()
+        data = xr.DataArray(
+            da.array(data), dims=data.dimensions, attrs=attrs, name=data.name)
         data = data.where(data != data.attrs.get('_FillValue', 65535))
         return data
 
     def _get_aux_data_lut_vector(self, aux_data_name):
         """Load the lut vector of an auxiliary variable."""
         lut = self[AUX_DATA[aux_data_name]]
+        attrs = dict(lut.attrs.items()).copy()
+        lut = xr.DataArray(
+            da.array(lut), dims=lut.dimensions, attrs=attrs, name=lut.name)
 
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
-        lut = da.where(lut != fv, lut, np.nan)
+        lut = lut.where(lut != fv)
 
         return lut
 
