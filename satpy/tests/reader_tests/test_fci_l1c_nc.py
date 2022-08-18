@@ -30,6 +30,35 @@ import xarray as xr
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 
+class FakeH5Variable:
+    """Class for faking h5netcdf.Variable class."""
+
+    def __init__(self, dims, data, name, attrs=None):
+        """Initialize the class."""
+        self.dimensions = dims
+        self._data = data
+        self.name = name
+        self.dtype = data.dtype
+        self.attrs = attrs or {}
+
+    def __array__(self):
+        """Get the array data.."""
+        return self._data.__array__()
+
+    def __getitem__(self, key):
+        """Get item for the key."""
+        return self._data[key]
+
+    def __eq__(self, other):
+        """Check for equality."""
+        if isinstance(other, type(self)):
+            return (np.all(np.equal(self.dimensions, other.dimensions)) &
+                    np.all(np.equal(self._data, other._data)) &
+                    self.dtype == other.dtype &
+                    self.attrs == other.attrs)
+        return np.all(np.equal(self._data, other))
+
+
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
@@ -39,18 +68,19 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         from pyspectral.blackbody import K_BOLTZMANN as k
         xrda = xr.DataArray
         data = {}
-        data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xrda(955)
-        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1)
-        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(0.4)
-        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(1e11 * 2 * h * c ** 2)
-        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(1e2 * h * c / k)
+        data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = FakeH5Variable((), xrda(955), "name")
+        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = FakeH5Variable((), xrda(1), "name")
+        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = FakeH5Variable((), xrda(0.4), "name")
+        data[meas + "/radiance_to_bt_conversion_constant_c1"] = FakeH5Variable((), xrda(1e11 * 2 * h * c ** 2), "name")
+        data[meas + "/radiance_to_bt_conversion_constant_c2"] = FakeH5Variable((), xrda(1e2 * h * c / k), "name")
         return data
 
     def _get_test_calib_for_channel_vis(self, chroot, meas):
         xrda = xr.DataArray
         data = {}
-        data["state/celestial/earth_sun_distance"] = xrda(da.repeat(da.array([149597870.7]), 6000))
-        data[meas + "/channel_effective_solar_irradiance"] = xrda(50)
+        data["state/celestial/earth_sun_distance"] = FakeH5Variable(
+            ('x'), xrda(da.repeat(da.array([149597870.7]), 6000)), "name")
+        data[meas + "/channel_effective_solar_irradiance"] = FakeH5Variable((), xrda(50), "name")
         return data
 
     def _get_test_content_for_channel(self, pat, ch):
@@ -81,9 +111,10 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         if ch == 38:
             fire_line = da.ones((1, ncols), dtype="uint16", chunks=1024) * 5000
             data_without_fires = da.ones((nrows - 1, ncols), dtype="uint16", chunks=1024)
-            d = xrda(
-                da.concatenate([fire_line, data_without_fires], axis=0),
-                dims=("y", "x"),
+            d = FakeH5Variable(
+                ("y", "x"),
+                xrda(da.concatenate([fire_line, data_without_fires], axis=0)),
+                "name",
                 attrs={
                     "valid_range": [0, 8191],
                     "warm_scale_factor": 2,
@@ -92,9 +123,10 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 }
             )
         else:
-            d = xrda(
-                da.ones((nrows, ncols), dtype="uint16", chunks=1024),
-                dims=("y", "x"),
+            d = FakeH5Variable(
+                ("y", "x"),
+                xrda(da.ones((nrows, ncols), dtype="uint16", chunks=1024)),
+                "name",
                 attrs={
                     "valid_range": [0, 4095],
                     "warm_scale_factor": 1,
@@ -104,35 +136,39 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             )
 
         data[ch_path] = d
-        data[x.format(ch_str)] = xrda(
-            da.arange(1, ncols + 1, dtype="uint16"),
-            dims=("x",),
+        data[x.format(ch_str)] = FakeH5Variable(
+            ("x",),
+            xrda(da.arange(1, ncols + 1, dtype="uint16")),
+            "name",
             attrs={
                 "scale_factor": -5.58877772833e-05,
                 "add_offset": 0.155619515845,
             }
         )
-        data[y.format(ch_str)] = xrda(
-            da.arange(1, nrows + 1, dtype="uint16"),
-            dims=("y",),
+        data[y.format(ch_str)] = FakeH5Variable(
+            ("y",),
+            xrda(da.arange(1, nrows + 1, dtype="uint16")),
+            "name",
             attrs={
                 "scale_factor": -5.58877772833e-05,
                 "add_offset": 0.155619515845,
             }
         )
-        data[qual.format(ch_str)] = xrda(
-            da.arange(nrows * ncols, dtype="uint8").reshape(nrows, ncols) % 128,
-            dims=("y", "x"))
+        data[qual.format(ch_str)] = FakeH5Variable(
+            ("y", "x"),
+            xrda(da.arange(nrows * ncols, dtype="uint8").reshape(nrows, ncols) % 128),
+            "name")
         # add dummy data for index map starting from 100
-        data[index_map.format(ch_str)] = xrda(
-            (da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 6000) + 100,
-            dims=("y", "x"))
+        data[index_map.format(ch_str)] = FakeH5Variable(
+            ("y", "x"),
+            xrda((da.arange(nrows * ncols, dtype="uint16").reshape(nrows, ncols) % 6000) + 100),
+            "name")
 
-        data[rad_conv_coeff.format(ch_str)] = xrda(1234.56)
-        data[pos.format(ch_str, "start", "row")] = xrda(0)
-        data[pos.format(ch_str, "start", "column")] = xrda(0)
-        data[pos.format(ch_str, "end", "row")] = xrda(nrows)
-        data[pos.format(ch_str, "end", "column")] = xrda(ncols)
+        data[rad_conv_coeff.format(ch_str)] = FakeH5Variable((), xrda(1234.56), "name")
+        data[pos.format(ch_str, "start", "row")] = FakeH5Variable((), xrda(0), "name")
+        data[pos.format(ch_str, "start", "column")] = FakeH5Variable((), xrda(0), "name")
+        data[pos.format(ch_str, "end", "row")] = FakeH5Variable((), xrda(nrows), "name")
+        data[pos.format(ch_str, "end", "column")] = FakeH5Variable((), xrda(ncols), "name")
         if pat.startswith("ir") or pat.startswith("wv"):
             data.update(self._get_test_calib_for_channel_ir(chroot.format(ch_str),
                                                             meas.format(ch_str)))
@@ -161,7 +197,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         proj = "data/mtg_geos_projection"
 
         attrs = {
-            "sweep_angle_axis": "y",
+            "sweep_angle_axis": np.array("y"),
             "perspective_point_height": "35786400.0",
             "semi_major_axis": "6378137.0",
             "longitude_of_projection_origin": "0.0",
@@ -188,12 +224,12 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             # skip population of earth_sun_distance as this is already defined for reflectance calculation
             if key == 'earth_sun_distance':
                 continue
-            data[value] = xrda(da.arange(indices_dim, dtype="float32"), dims=("index"))
+            data[value] = FakeH5Variable(("index"), xrda(da.arange(indices_dim, dtype="float32")), "name")
 
         # compute the last data entry to simulate the FCI caching
-        data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
+        # data[list(AUX_DATA.values())[-1]] = data[list(AUX_DATA.values())[-1]].compute()
 
-        data['index'] = xrda(da.arange(indices_dim, dtype="uint16")+100, dims=("index"))
+        data['index'] = FakeH5Variable(("index"), xrda(da.arange(indices_dim, dtype="uint16")+100), "name")
         return data
 
     def _get_global_attributes(self):
