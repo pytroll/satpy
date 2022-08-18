@@ -255,7 +255,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         attrs = dict(data.attrs.items()).copy()
         info = info.copy()
         data = xr.DataArray(
-            da.array(data), dims=data.dimensions, attrs=attrs, name=data.name)
+            da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
 
         fv = attrs.pop(
             "FillValue",
@@ -348,7 +348,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = self[dv_path]
         attrs = dict(data.attrs.items()).copy()
         data = xr.DataArray(
-            da.array(data), dims=data.dimensions, attrs=attrs, name=data.name)
+            da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
         return data
 
     def _get_dataset_index_map(self, dsname):
@@ -358,7 +358,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         data = self[dv_path]
         attrs = dict(data.attrs.items()).copy()
         data = xr.DataArray(
-            da.array(data), dims=data.dimensions, attrs=attrs, name=data.name)
+            da.from_array(data), dims=data.dimensions, attrs=attrs, name=data.name)
         data = data.where(data != data.attrs.get('_FillValue', 65535))
         return data
 
@@ -367,7 +367,7 @@ class FCIL1cNCFileHandler(NetCDF4FsspecFileHandler):
         lut = self[AUX_DATA[aux_data_name]]
         attrs = dict(lut.attrs.items()).copy()
         lut = xr.DataArray(
-            da.array(lut), dims=lut.dimensions, attrs=attrs, name=lut.name)
+            da.from_array(lut), dims=lut.dimensions, attrs=attrs, name=lut.name)
 
         fv = default_fillvals.get(lut.dtype.str[1:], np.nan)
         lut = lut.where(lut != fv)
