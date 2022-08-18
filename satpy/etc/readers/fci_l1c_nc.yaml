@@ -7,7 +7,7 @@ reader:
     Used to read Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) L1c data.
   status: Beta for FDHSI, HRFI not supported yet
-  supports_fsspec: false
+  supports_fsspec: true
   reader: !!python/name:satpy.readers.yaml_reader.GEOVariableSegmentYAMLReader
   sensors: [ fci ]
 
