@@ -18,6 +18,16 @@ composites:
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  corrected_green_raw:
+    description: >
+      Alternative to corrected_green, but without solar zenith or rayleigh correction.
+    compositor: !!python/name:satpy.composites.spectral.GreenCorrector
+    fractions: [0.93, 0.07]
+    prerequisites:
+      - name: vis_05
+      - name: vis_08
+    standard_name: toa_bidirectional_reflectance
+
   binary_cloud_mask:
     # This will set all clear pixels to '0', all pixles with cloudy features (meteorological/dust/ash clouds) to '1' and
     # missing/undefined pixels to 'nan'. This can be used for the the official EUMETSAT cloud mask product (CLM).
@@ -40,3 +50,14 @@ composites:
       - name: vis_04
         modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
+
+  true_color_raw_with_corrected_green:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      FCI true color without solar zenith or rayleigh corrections, but with the
+      corrected green composite.
+    prerequisites:
+      - name: vis_06
+      - name: corrected_green_raw
+      - name: vis_04
+    standard_name: true_color_raw
