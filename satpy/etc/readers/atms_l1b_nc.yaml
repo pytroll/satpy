@@ -1,12 +1,13 @@
 reader:
   name: atms_l1b_nc
   short_name: ATMS L1B NetCDF4
-  long_name: JPSS ATMS L1B (NetCDF4)
+  long_name: S-NPP and JPSS-1 ATMS L1B (NetCDF4)
   description: >
-    Reader for JPSS Advanced Technology Microwave Sounder Level 1B files in NetCDF4.
+    Reader for the S-NPP and JPSS-1 Advanced Technology Microwave Sounder Level 1B files in NetCDF4.
   status: Beta
   sensors: [atms]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  supports_fsspec: false
 
   data_identification_keys:
     name:
@@ -29,7 +30,6 @@ file_types:
     file_reader: !!python/name:satpy.readers.atms_l1b_nc.AtmsL1bNCFileHandler
     file_patterns: ['{project_name:s}.{platform_name:s}.ATMS.{start_time:%Y%m%dT%H%M}.m{duration:2d}.g{granule_number:3d}.L1B.std.{version:s}.{producer:1s}.{creation_timestamp:d}.nc']
     antenna_temperature: antenna_temp
-    orthorect: True
 
 datasets:
 

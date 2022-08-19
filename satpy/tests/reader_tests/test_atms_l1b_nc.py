@@ -133,18 +133,6 @@ class TestAtsmsL1bNCFileHandler:
         data = reader._drop_coords(data)
         assert coords not in data.coords
 
-    @pytest.mark.parametrize("channel_name,expect", (
-        ("1", 100.),
-        ("2", 101.),
-        ("22", 121.)
-    ))
-    def test_get_channel_data(self, reader, channel_name, expect):
-        """Test get channel data."""
-        np.testing.assert_array_equal(
-            reader._get_channel_data(channel_name),
-            np.full((2, 3), expect),
-        )
-
     @pytest.mark.parametrize("param,expect", (
         ("start_time", datetime(2000, 1, 2, 3, 4, 5)),
         ("end_time", datetime(2000, 1, 2, 4, 5, 6)),
@@ -165,23 +153,24 @@ class TestAtsmsL1bNCFileHandler:
         data = reader._merge_attributes(data, dataset_info)
         assert data.attrs[param] == expect
 
-    def test_get_dataset_return_none_if_data_not_exist(self, reader):
-        """Test get dataset return none if data does not exist."""
-        dataset_id = {"name": "non_existing_data"}
-        dataset_info = None
-        dataset = reader.get_dataset(dataset_id, dataset_info)
-        assert dataset is None
-
-    @pytest.mark.parametrize("dataset_id,expect", (
-        ({"name": "1"}, 100.),
-        ({"name": "sat_azi"}, 3.),
+    @pytest.mark.parametrize("param,expect", (
+        ("1", 100.),
+        ("sat_azi", 3.),
     ))
-    def test_get_dataset(self, reader, dataset_id, expect):
-        """Tes get dataset handles channel data."""
+    def test_select_dataset(self, reader, param, expect):
+        """Test select dataset."""
+        np.testing.assert_array_equal(
+            reader._select_dataset(param),
+            np.full((2, 3), expect),
+        )
+
+    def test_get_dataset(self, reader):
+        """Test get dataset."""
+        dataset_id = {"name": "1"}
         dataset = reader.get_dataset(dataset_id, {})
         np.testing.assert_array_equal(
             dataset,
-            np.full((2, 3), expect),
+            np.full((2, 3), 100.),
         )
         assert dataset.dims == ("y", "x")
         assert dataset.attrs["sensor"] == "ATMS"

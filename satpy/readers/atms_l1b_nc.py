@@ -32,30 +32,6 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler
 logger = logging.getLogger(__name__)
 
 DATE_FMT = '%Y-%m-%dT%H:%M:%SZ'
-ATMS_CHANNEL_NAME_TO_INDEX = {
-    "1": 0,
-    "2": 1,
-    "3": 2,
-    "4": 3,
-    "5": 4,
-    "6": 5,
-    "7": 6,
-    "8": 7,
-    "9": 8,
-    "10": 9,
-    "11": 10,
-    "12": 11,
-    "13": 12,
-    "14": 13,
-    "15": 14,
-    "16": 15,
-    "17": 16,
-    "18": 17,
-    "19": 18,
-    "20": 19,
-    "21": 20,
-    "22": 21,
-}
 
 
 class AtmsL1bNCFileHandler(NetCDF4FileHandler):
@@ -66,7 +42,6 @@ class AtmsL1bNCFileHandler(NetCDF4FileHandler):
         super().__init__(
             filename, filename_info, filetype_info, auto_maskandscale=True,
         )
-        self.channel_name_to_index = ATMS_CHANNEL_NAME_TO_INDEX
 
     @property
     def start_time(self):
@@ -131,23 +106,19 @@ class AtmsL1bNCFileHandler(NetCDF4FileHandler):
         dataset.attrs.update(self.attrs)
         return dataset
 
-    def _get_channel_data(self, channel_name):
-        """Get channel data."""
-        idx = self.channel_name_to_index.get(channel_name)
-        return self.antenna_temperature[:, :, idx]
+    def _select_dataset(self, name):
+        """Select dataset."""
+        try:
+            idx = int(name) - 1
+            return self.antenna_temperature[:, :, idx]
+        except ValueError:
+            return self[name]
 
     def get_dataset(self, dataset_id, ds_info):
-        """Get dataset using file_key in dataset_info."""
-        param = dataset_id['name']
-        logger.debug(f'Reading in file to get dataset with key {param}.')
-        try:
-            dataset = (
-                self[param] if param not in self.channel_name_to_index
-                else self._get_channel_data(param)
-            )
-        except KeyError:
-            logger.warning(f'Could not find {param} in NetCDF file, no valid Dataset created')  # noqa: E501
-            return None
+        """Get dataset."""
+        name = dataset_id['name']
+        logger.debug(f'Reading in file to get dataset with name {name}.')
+        dataset = self._select_dataset(name)
         dataset = self._merge_attributes(dataset, ds_info)
         dataset = self._drop_coords(dataset)
         return self._standardize_dims(dataset)
