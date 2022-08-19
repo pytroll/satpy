@@ -35,6 +35,7 @@ from io import BytesIO
 from subprocess import PIPE, Popen  # nosec B404
 from tempfile import gettempdir
 
+import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
@@ -347,13 +348,27 @@ class HRITFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-        shape = int(np.ceil(self.mda['data_field_length'] / 8.))
-        if self.mda['number_of_bits_per_pixel'] == 16:
-            dtype = '>u2'
-            shape //= 2
-        elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
-            dtype = np.uint8
-        shape = (shape, )
+        input_shape = int(np.ceil(self.mda['data_field_length'] / 8.))
+        bpp = self.mda['number_of_bits_per_pixel']
+        if bpp == 16:
+            input_dtype = '>u2'
+            output_dtype = '>u2'
+            input_shape //= 2
+        elif bpp == 10:
+            input_dtype = np.uint8
+            output_dtype = np.uint16
+        elif bpp == 8:
+            input_dtype = np.uint8
+            output_dtype = np.uint8
+        else:
+            raise ValueError(f"Illegal number of bits per pixel: {bpp}")
+        input_shape = (input_shape, )
+        return da.from_delayed(self._read_data(input_shape, input_dtype),
+                               shape=(self.mda['number_of_lines'], self.mda['number_of_columns']),
+                               dtype=output_dtype)
+
+    @dask.delayed
+    def _read_data(self, shape, dtype):
         data = self._read_or_memmap_data(shape, dtype)
         data = da.from_array(data, chunks=shape[0])
         if self.mda['number_of_bits_per_pixel'] == 10:
