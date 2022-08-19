@@ -97,8 +97,9 @@ class TestHRITFileHandler:
     """Test the HRITFileHandler."""
 
     @mock.patch('satpy.readers.hrit_base.np.fromfile')
-    def setup(self, fromfile):
+    def setup_method(self, method, fromfile):
         """Set up the hrit file handler for testing."""
+        del method
         m = mock.mock_open()
         fromfile.return_value = np.array([(1, 2)], dtype=[('total_header_length', int),
                                                           ('hdr_id', int)])
