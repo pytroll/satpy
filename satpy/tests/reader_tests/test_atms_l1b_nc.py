@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2020 Satpy developers
+# Copyright (c) 2022 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,11 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The atms_l1b_nc reader tests package.
-"""
+"""The atms_l1b_nc reader tests package."""
 
 from datetime import datetime
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -80,7 +78,7 @@ class TestAtsmsL1bNCFileHandler:
     def test_start_time(self, reader):
         """Test start time."""
         assert reader.start_time == datetime(2000, 1, 2, 3, 4, 5)
-    
+
     def test_end_time(self, reader):
         """Test end time."""
         assert reader.end_time == datetime(2000, 1, 2, 4, 5, 6)
@@ -116,11 +114,11 @@ class TestAtsmsL1bNCFileHandler:
     ))
     def test_standardize_dims(self, reader, dims):
         """Test standardize dims."""
-        variable = xr.DataArray(
+        data = xr.DataArray(
             np.arange(6).reshape(2, 3),
             dims=dims,
         )
-        standardized = reader._standardize_dims(variable)
+        standardized = reader._standardize_dims(data)
         assert standardized.dims == ("y", "x")
 
     def test_drop_coords(self, reader):
@@ -158,14 +156,14 @@ class TestAtsmsL1bNCFileHandler:
     ))
     def test_merge_attributes(self, reader, param, expect):
         """Test merge attributes."""
-        variable = data = xr.DataArray(
+        data = xr.DataArray(
             np.ones(10),
             dims=("y"),
             attrs={"type": "test_data"},
         )
         dataset_info = {"name": "test"}
-        variable = reader._merge_attributes(variable, dataset_info)
-        assert variable.attrs[param] == expect
+        data = reader._merge_attributes(data, dataset_info)
+        assert data.attrs[param] == expect
 
     def test_get_dataset_return_none_if_data_not_exist(self, reader):
         """Test get dataset return none if data does not exist."""

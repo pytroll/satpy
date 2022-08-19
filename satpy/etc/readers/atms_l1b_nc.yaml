@@ -361,7 +361,7 @@ datasets:
     standard_name: solar_azimuth_angle
     coordinates: [lon, lat]
     file_type: atms_l1b_nc
-    
+
   sol_zen:
     name: sol_zen
     standard_name: solar_zenith_angle
@@ -373,7 +373,7 @@ datasets:
     standard_name: satellite_azimuth_angle
     coordinates: [lon, lat]
     file_type: atms_l1b_nc
-    
+
   sat_zen:
     name: sat_zen
     standard_name: satellite_zenith_angle

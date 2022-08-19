@@ -19,7 +19,8 @@
 
 The format is explained in the `ATMS L1B Product User Guide`_
 
-.. _`ATMS L1B Product User Guide`: https://docserver.gesdisc.eosdis.nasa.gov/public/project/Sounder/ATMS_V3_L1B_Product_User_Guide.pdf
+.. _`ATMS L1B Product User Guide`:
+  https://docserver.gesdisc.eosdis.nasa.gov/public/project/Sounder/ATMS_V3_L1B_Product_User_Guide.pdf
 
 """
 
@@ -27,7 +28,6 @@ import logging
 from datetime import datetime
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-
 
 logger = logging.getLogger(__name__)
 
