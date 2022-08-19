@@ -188,13 +188,24 @@ class TestHRITFileHandler:
         assert res.compute().shape == (464, 3712)
 
     def test_read_band_FSFile(self, tmp_path):
-        """Test reading a single band from a filepath."""
+        """Test reading a single band from an FSFile."""
         import fsspec
         filename = tmp_path / "some_hrit_file"
         self.stub_hrit_file(filename)
 
         fs_file = fsspec.open(filename)
         self.reader.filename = FSFile(fs_file)
+
+        res = self.reader.read_band('VIS006', None)
+        assert res.compute().shape == (464, 3712)
+
+    def test_read_band_bzipped2_filepath(self, tmp_path):
+        """Test reading a single band from a bzipped file."""
+        import bz2
+        filename = tmp_path / "some_hrit_file.bz2"
+        self.stub_hrit_file(filename, open_fun=bz2.open)
+
+        self.reader.filename = filename
 
         res = self.reader.read_band('VIS006', None)
         assert res.compute().shape == (464, 3712)

@@ -321,10 +321,10 @@ class HRITFileHandler(BaseFileHandler):
     def _memmap_data(self, shape, dtype):
         # For reading the image data, unzip_context is faster than generic_open
         with utils.unzip_context(self.filename) as fn:
-            return np.memmap(fn, mode='r',
-                             offset=self.mda['total_header_length'],
-                             dtype=dtype,
-                             shape=shape)
+            return np.fromfile(fn,
+                               offset=self.mda['total_header_length'],
+                               dtype=dtype,
+                               count=np.prod(shape))
 
     def _read_file_or_file_like(self, shape, dtype):
         # filename is likely to be a file-like object, already in memory
