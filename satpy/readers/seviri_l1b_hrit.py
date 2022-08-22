@@ -217,8 +217,8 @@ from satpy.readers.seviri_base import (
     create_coef_dict,
     get_cds_time,
     get_satpos,
-    pad_data_horizontally,
     mask_bad_quality,
+    pad_data_horizontally,
 )
 from satpy.readers.seviri_l1b_native_hdr import hrit_epilogue, hrit_prologue, impf_configuration
 
