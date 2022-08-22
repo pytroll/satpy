@@ -719,7 +719,7 @@ class TestGroupFiles(unittest.TestCase):
 
         # without files it's going to be an empty result
         assert group_files([]) == []
-        groups = group_files(self.g16_files)
+        groups = group_files(self.g16_files, reader='abi_l1b')
         self.assertEqual(6, len(groups))
 
     def test_unknown_files(self):
