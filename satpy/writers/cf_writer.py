@@ -822,9 +822,6 @@ class CFWriter(Writer):
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
 
-        # Add header attributes needed for satpy_cf_reader
-        root.attrs["instrument"] = datasets[0].attrs["sensor"]
-
         _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
         if 'history' in root.attrs:
             if isinstance(root.attrs['history'], list):
