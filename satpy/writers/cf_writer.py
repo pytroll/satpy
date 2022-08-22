@@ -822,14 +822,6 @@ class CFWriter(Writer):
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
 
-        _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
-        if 'history' in root.attrs:
-            if isinstance(root.attrs['history'], list):
-                root.attrs['history'] = ''.join(root.attrs['history'])
-            root.attrs['history'] += '\n' + _history_create
-        else:
-            root.attrs['history'] = _history_create
-
         _set_history(root)
 
         # Remove satpy-specific kwargs
