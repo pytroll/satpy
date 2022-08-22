@@ -1,6 +1,10 @@
 reader:
-  description: H5 reader for MSG-GS/A data
   name: msu_gsa_l1b
+  short_name: MSU-GS/A
+  long_name: Arctica-M (N1) MSU-GS/A data in HDF5 format
+  description: H5 reader for MSG-GS/A data
+  status: Beta
+  supports_fsspec: false
   sensors: [msu_gsa]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

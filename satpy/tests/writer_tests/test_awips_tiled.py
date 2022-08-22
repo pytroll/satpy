@@ -73,6 +73,9 @@ def _check_required_common_attributes(ds):
         assert 'grid_mapping' in data_arr.attrs
         assert data_arr.attrs['grid_mapping'] in ds
         assert 'units' in data_arr.attrs
+        if data_arr.name != "DQF":
+            assert data_arr.dtype == np.int16
+            assert data_arr.attrs["_Unsigned"] == "true"
 
 
 def _check_scaled_x_coordinate_variable(ds, masked_ds):

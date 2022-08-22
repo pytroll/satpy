@@ -447,6 +447,34 @@ class TestFCIL1cNCReaderGoodData(TestFCIL1cNCReader):
             else:
                 numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
 
+    def test_orbital_parameters_attr(self, reader_configs):
+        """Test the orbital parameter attribute."""
+        from satpy.tests.utils import make_dataid
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = _get_reader_with_filehandlers(filenames, reader_configs)
+        res = reader.load(
+            [make_dataid(name=name) for name in
+             self._chans["solar"] + self._chans["terran"]], pad_data=False)
+
+        for ch in self._chans["solar"] + self._chans["terran"]:
+            assert res[ch].attrs["orbital_parameters"] == {
+                'satellite_actual_longitude': np.mean(np.arange(6000)),
+                'satellite_actual_latitude': np.mean(np.arange(6000)),
+                'satellite_actual_altitude': np.mean(np.arange(6000)),
+                'satellite_nominal_longitude': 0.0,
+                'satellite_nominal_latitude': 0,
+                'satellite_nominal_altitude': 35786400.0,
+                'projection_longitude': 0.0,
+                'projection_latitude': 0,
+                'projection_altitude': 35786400.0,
+            }
+
     def test_load_index_map(self, reader_configs):
         """Test loading of index_map."""
         filenames = [

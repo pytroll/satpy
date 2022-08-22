@@ -1,6 +1,10 @@
 reader:
-  description: Generic MTG LI L2 product reader
   name: li_l2
+  short_name: MTG LI l2
+  long_name: MTG (Meteosat > 12) Lightning Imager (LI) Level 2 data in netCDF4 format
+  description: Generic MTG LI L2 product reader
+  status: Alpha
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [li]
   default_datasets:
