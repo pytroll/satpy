@@ -308,77 +308,96 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    @contextmanager
-    def decompress(self, filename):
-        """Decompress context manager."""
-        if self.mda['compression_flag_for_data'] == 1:
-            try:
-                new_filename = decompress(filename, gettempdir())
-            except IOError as err:
-                logger.error("Unpacking failed: %s", str(err))
-                raise
-            yield new_filename
-            os.remove(new_filename)
-        else:
-            yield filename
-
-    def _memmap_data(self, shape, dtype):
-        # For reading the image data, unzip_context is faster than generic_open
-        with utils.unzip_context(self.filename) as fn:
-            with self.decompress(fn) as fn:
-                return np.fromfile(fn,
-                                   offset=self.mda['total_header_length'],
-                                   dtype=dtype,
-                                   count=np.prod(shape))
-
-    def _read_file_or_file_like(self, shape, dtype):
-        # filename is likely to be a file-like object, already in memory
-        with utils.generic_open(self.filename, mode="rb") as fp:
-            no_elements = np.prod(shape)
-            fp.seek(self.mda['total_header_length'])
-            return np.frombuffer(
-                fp.read(np.dtype(dtype).itemsize * no_elements),
-                dtype=np.dtype(dtype),
-                count=no_elements.item()
-            ).reshape(shape)
-
-    def _read_or_memmap_data(self, shape, dtype):
-        # check, if 'filename' is a file on disk,
-        #  or a file like obj, possibly residing already in memory
-        try:
-            return self._memmap_data(shape, dtype)
-        except (FileNotFoundError, AttributeError):
-            return self._read_file_or_file_like(shape, dtype)
-
     def read_band(self, key, info):
         """Read the data."""
+        output_dtype, output_shape = self._get_output_info()
+        return da.from_delayed(_read_data(self.filename, self.mda),
+                               shape=output_shape,
+                               dtype=output_dtype)
+
+    def _get_output_info(self):
         bpp = self.mda['number_of_bits_per_pixel']
-        lines = self.mda['number_of_lines']
-        cols = self.mda['number_of_columns']
-        total_bits = int(lines) * int(cols) * int(bpp)
-        input_shape = int(np.ceil(total_bits / 8.))
-        if bpp == 16:
-            input_dtype = '>u2'
-            output_dtype = '>u2'
-            input_shape //= 2
-        elif bpp == 10:
-            input_dtype = np.uint8
+        if bpp in [10, 16]:
             output_dtype = np.uint16
         elif bpp == 8:
-            input_dtype = np.uint8
             output_dtype = np.uint8
         else:
             raise ValueError(f"Illegal number of bits per pixel: {bpp}")
-        input_shape = (input_shape, )
-        return da.from_delayed(self._read_data(input_shape, input_dtype),
-                               shape=(self.mda['number_of_lines'], self.mda['number_of_columns']),
-                               dtype=output_dtype)
+        output_shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
+        return output_dtype, output_shape
 
-    @dask.delayed
-    def _read_data(self, shape, dtype):
-        data = self._read_or_memmap_data(shape, dtype)
-        if self.mda['number_of_bits_per_pixel'] == 10:
-            data = dec10216(data)
-        data = data.reshape((self.mda['number_of_lines'],
-                             self.mda['number_of_columns']))
-        return data
+
+@contextmanager
+def decompressed(filename, mda):
+    """Decompress context manager."""
+    if mda['compression_flag_for_data'] == 1:
+        try:
+            new_filename = decompress(filename, gettempdir())
+        except IOError as err:
+            logger.error("Unpacking failed: %s", str(err))
+            raise
+        yield new_filename
+        os.remove(new_filename)
+    else:
+        yield filename
+
+
+@dask.delayed
+def _read_data(filename, mda):
+
+    data = _read_data_from_file(filename, mda)
+    if mda['number_of_bits_per_pixel'] == 10:
+        data = dec10216(data)
+    data = data.reshape((mda['number_of_lines'],
+                         mda['number_of_columns']))
+    return data
+
+
+def _read_data_from_file(filename, mda):
+    # check, if 'filename' is a file on disk,
+    #  or a file like obj, possibly residing already in memory
+    try:
+        return _read_data_from_disk(filename, mda)
+    except (FileNotFoundError, AttributeError):
+        return _read_file_like(filename, mda)
+
+
+def _read_data_from_disk(filename, mda):
+    # For reading the image data, unzip_context is faster than generic_open
+    dtype, shape = _get_input_info(mda)
+    with utils.unzip_context(filename) as fn:
+        with decompressed(fn, mda) as fn:
+            return np.fromfile(fn,
+                               offset=mda['total_header_length'],
+                               dtype=dtype,
+                               count=np.prod(shape))
+
+
+def _read_file_like(filename, mda):
+    # filename is likely to be a file-like object, already in memory
+    dtype, shape = _get_input_info(mda)
+    with utils.generic_open(filename, mode="rb") as fp:
+        no_elements = np.prod(shape)
+        fp.seek(mda['total_header_length'])
+        return np.frombuffer(
+            fp.read(np.dtype(dtype).itemsize * no_elements),
+            dtype=np.dtype(dtype),
+            count=no_elements.item()
+        ).reshape(shape)
+
+
+def _get_input_info(mda):
+    bpp = mda['number_of_bits_per_pixel']
+    lines = mda['number_of_lines']
+    cols = mda['number_of_columns']
+    total_bits = int(lines) * int(cols) * int(bpp)
+    input_shape = int(np.ceil(total_bits / 8.))
+    if bpp == 16:
+        input_dtype = '>u2'
+        input_shape //= 2
+    elif bpp in [8, 10]:
+        input_dtype = np.uint8
+    else:
+        raise ValueError(f"Illegal number of bits per pixel: {bpp}")
+    input_shape = (input_shape,)
+    return input_dtype, input_shape
