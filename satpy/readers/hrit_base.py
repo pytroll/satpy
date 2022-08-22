@@ -30,6 +30,7 @@ temporary directory for reading.
 
 import logging
 import os
+from contextlib import contextmanager
 from datetime import timedelta
 from io import BytesIO
 from subprocess import PIPE, Popen  # nosec B404
@@ -171,16 +172,8 @@ class HRITFileHandler(BaseFileHandler):
                                               filetype_info)
 
         self.mda = {}
-        self._get_hd(hdr_info)
-
-        if self.mda.get('compression_flag_for_data'):
-            logger.debug('Unpacking %s', filename)
-            try:
-                self.filename = decompress(filename, gettempdir())
-            except IOError as err:
-                logger.warning("Unpacking failed: %s", str(err))
-            self.mda = {}
-            self._get_hd(hdr_info)
+        self.hdr_info = hdr_info
+        self._get_hd(self.hdr_info)
 
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
@@ -227,10 +220,6 @@ class HRITFileHandler(BaseFileHandler):
                                              # FIXME: find a reasonable SSP
                                              'SSP_longitude': 0.0}
         self.mda['orbital_parameters'] = {}
-
-    def get_shape(self, dsid, ds_info):
-        """Get shape."""
-        return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
 
     @property
     def start_time(self):
@@ -319,13 +308,28 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
+    @contextmanager
+    def decompress(self, filename):
+        """Decompress context manager."""
+        if self.mda['compression_flag_for_data'] == 1:
+            try:
+                new_filename = decompress(filename, gettempdir())
+            except IOError as err:
+                logger.error("Unpacking failed: %s", str(err))
+                raise
+            yield new_filename
+            os.remove(new_filename)
+        else:
+            yield filename
+
     def _memmap_data(self, shape, dtype):
         # For reading the image data, unzip_context is faster than generic_open
         with utils.unzip_context(self.filename) as fn:
-            return np.fromfile(fn,
-                               offset=self.mda['total_header_length'],
-                               dtype=dtype,
-                               count=np.prod(shape))
+            with self.decompress(fn) as fn:
+                return np.fromfile(fn,
+                                   offset=self.mda['total_header_length'],
+                                   dtype=dtype,
+                                   count=np.prod(shape))
 
     def _read_file_or_file_like(self, shape, dtype):
         # filename is likely to be a file-like object, already in memory
@@ -348,8 +352,11 @@ class HRITFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-        input_shape = int(np.ceil(self.mda['data_field_length'] / 8.))
         bpp = self.mda['number_of_bits_per_pixel']
+        lines = self.mda['number_of_lines']
+        cols = self.mda['number_of_columns']
+        total_bits = int(lines) * int(cols) * int(bpp)
+        input_shape = int(np.ceil(total_bits / 8.))
         if bpp == 16:
             input_dtype = '>u2'
             output_dtype = '>u2'
@@ -370,7 +377,6 @@ class HRITFileHandler(BaseFileHandler):
     @dask.delayed
     def _read_data(self, shape, dtype):
         data = self._read_or_memmap_data(shape, dtype)
-        data = da.from_array(data, chunks=shape[0])
         if self.mda['number_of_bits_per_pixel'] == 10:
             data = dec10216(data)
         data = data.reshape((self.mda['number_of_lines'],
