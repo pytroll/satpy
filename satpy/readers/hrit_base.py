@@ -30,7 +30,7 @@ temporary directory for reading.
 
 import logging
 import os
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import timedelta
 from io import BytesIO
 from subprocess import PIPE, Popen  # nosec B404
@@ -159,7 +159,7 @@ def get_header_id(fp):
 
 def get_header_content(fp, header_dtype, count=1):
     """Return the content of the HRIT header."""
-    data = fp.read(header_dtype.itemsize*count)
+    data = fp.read(header_dtype.itemsize * count)
     return np.frombuffer(data, dtype=header_dtype, count=count)
 
 
@@ -322,82 +322,89 @@ class HRITFileHandler(BaseFileHandler):
         elif bpp == 8:
             output_dtype = np.uint8
         else:
-            raise ValueError(f"Illegal number of bits per pixel: {bpp}")
+            raise ValueError(f"Unexpected number of bits per pixel: {bpp}")
         output_shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
         return output_dtype, output_shape
 
 
-@contextmanager
-def decompressed(filename, mda):
-    """Decompress context manager."""
-    if mda['compression_flag_for_data'] == 1:
-        try:
-            new_filename = decompress(filename, gettempdir())
-        except IOError as err:
-            logger.error("Unpacking failed: %s", str(err))
-            raise
-        yield new_filename
-        os.remove(new_filename)
-    else:
-        yield filename
-
-
 @dask.delayed
 def _read_data(filename, mda):
-
-    data = _read_data_from_file(filename, mda)
-    if mda['number_of_bits_per_pixel'] == 10:
-        data = dec10216(data)
-    data = data.reshape((mda['number_of_lines'],
-                         mda['number_of_columns']))
-    return data
+    return HRITSegment(filename, mda).read_data()
 
 
-def _read_data_from_file(filename, mda):
-    # check, if 'filename' is a file on disk,
-    #  or a file like obj, possibly residing already in memory
+@contextmanager
+def decompressed(filename):
+    """Decompress context manager."""
     try:
-        return _read_data_from_disk(filename, mda)
-    except (FileNotFoundError, AttributeError):
-        return _read_file_like(filename, mda)
+        new_filename = decompress(filename, gettempdir())
+    except IOError as err:
+        logger.error("Unpacking failed: %s", str(err))
+        raise
+    yield new_filename
+    os.remove(new_filename)
 
 
-def _read_data_from_disk(filename, mda):
-    # For reading the image data, unzip_context is faster than generic_open
-    dtype, shape = _get_input_info(mda)
-    with utils.unzip_context(filename) as fn:
-        with decompressed(fn, mda) as fn:
-            return np.fromfile(fn,
-                               offset=mda['total_header_length'],
-                               dtype=dtype,
-                               count=np.prod(shape))
+class HRITSegment:
+    """An HRIT segment with data."""
 
+    def __init__(self, filename, mda):
+        """Set up the segment."""
+        self.filename = filename
+        self.mda = mda
+        self.lines = mda['number_of_lines']
+        self.cols = mda['number_of_columns']
+        self.bpp = mda['number_of_bits_per_pixel']
+        self.compressed = mda['compression_flag_for_data'] == 1
+        self.offset = mda['total_header_length']
+        self.zipped = os.fspath(filename).endswith('.bz2')
 
-def _read_file_like(filename, mda):
-    # filename is likely to be a file-like object, already in memory
-    dtype, shape = _get_input_info(mda)
-    with utils.generic_open(filename, mode="rb") as fp:
-        no_elements = np.prod(shape)
-        fp.seek(mda['total_header_length'])
-        return np.frombuffer(
-            fp.read(np.dtype(dtype).itemsize * no_elements),
-            dtype=np.dtype(dtype),
-            count=no_elements.item()
-        ).reshape(shape)
+    def read_data(self):
+        """Read the data."""
+        data = self._read_data_from_file()
+        if self.bpp == 10:
+            data = dec10216(data)
+        data = data.reshape((self.lines, self.cols))
+        return data
 
+    def _read_data_from_file(self):
+        # check, if 'filename' is a file on disk,
+        #  or a file like obj, possibly residing already in memory
+        try:
+            return self._read_data_from_disk()
+        except (FileNotFoundError, AttributeError):
+            return self._read_file_like()
 
-def _get_input_info(mda):
-    bpp = mda['number_of_bits_per_pixel']
-    lines = mda['number_of_lines']
-    cols = mda['number_of_columns']
-    total_bits = int(lines) * int(cols) * int(bpp)
-    input_shape = int(np.ceil(total_bits / 8.))
-    if bpp == 16:
-        input_dtype = '>u2'
-        input_shape //= 2
-    elif bpp in [8, 10]:
-        input_dtype = np.uint8
-    else:
-        raise ValueError(f"Illegal number of bits per pixel: {bpp}")
-    input_shape = (input_shape,)
-    return input_dtype, input_shape
+    def _read_data_from_disk(self):
+        # For reading the image data, unzip_context is faster than generic_open
+        dtype, shape = self._get_input_info()
+        with utils.unzip_context(self.filename) as fn:
+            with decompressed(fn) if self.compressed else nullcontext(fn) as filename:
+                return np.fromfile(filename,
+                                   offset=self.offset,
+                                   dtype=dtype,
+                                   count=np.prod(shape))
+
+    def _read_file_like(self):
+        # filename is likely to be a file-like object, already in memory
+        dtype, shape = self._get_input_info()
+        with utils.generic_open(self.filename, mode="rb") as fp:
+            no_elements = np.prod(shape)
+            fp.seek(self.offset)
+            return np.frombuffer(
+                fp.read(np.dtype(dtype).itemsize * no_elements),
+                dtype=np.dtype(dtype),
+                count=no_elements.item()
+            ).reshape(shape)
+
+    def _get_input_info(self):
+        total_bits = int(self.lines) * int(self.cols) * int(self.bpp)
+        input_shape = int(np.ceil(total_bits / 8.))
+        if self.bpp == 16:
+            input_dtype = '>u2'
+            input_shape //= 2
+        elif self.bpp in [8, 10]:
+            input_dtype = np.uint8
+        else:
+            raise ValueError(f"Unexpected number of bits per pixel: {self.bpp}")
+        input_shape = (input_shape,)
+        return input_dtype, input_shape
