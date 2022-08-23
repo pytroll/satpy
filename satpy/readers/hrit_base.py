@@ -188,7 +188,7 @@ class HRITFileHandler(BaseFileHandler):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
 
-        with utils.generic_open(self.filename) as fp:
+        with utils.generic_open(self.filename, mode='rb') as fp:
             total_header_length = 16
             while fp.tell() < total_header_length:
                 hdr_id = get_header_id(fp)
@@ -318,6 +318,33 @@ class HRITFileHandler(BaseFileHandler):
         self.area = area
         return area
 
+    def _memmap_data(self, shape, dtype):
+        # For reading the image data, unzip_context is faster than generic_open
+        with utils.unzip_context(self.filename) as fn:
+            return np.memmap(fn, mode='r',
+                             offset=self.mda['total_header_length'],
+                             dtype=dtype,
+                             shape=shape)
+
+    def _read_file_or_file_like(self, shape, dtype):
+        # filename is likely to be a file-like object, already in memory
+        with utils.generic_open(self.filename, mode="rb") as fp:
+            no_elements = np.prod(shape)
+            fp.seek(self.mda['total_header_length'])
+            return np.frombuffer(
+                fp.read(np.dtype(dtype).itemsize * no_elements),
+                dtype=np.dtype(dtype),
+                count=no_elements.item()
+            ).reshape(shape)
+
+    def _read_or_memmap_data(self, shape, dtype):
+        # check, if 'filename' is a file on disk,
+        #  or a file like obj, possibly residing already in memory
+        try:
+            return self._memmap_data(shape, dtype)
+        except (FileNotFoundError, AttributeError):
+            return self._read_file_or_file_like(shape, dtype)
+
     def read_band(self, key, info):
         """Read the data."""
         shape = int(np.ceil(self.mda['data_field_length'] / 8.))
@@ -327,13 +354,8 @@ class HRITFileHandler(BaseFileHandler):
         elif self.mda['number_of_bits_per_pixel'] in [8, 10]:
             dtype = np.uint8
         shape = (shape, )
-        # For reading the image data, unzip_context is faster than generic_open
-        with utils.unzip_context(self.filename) as fn:
-            data = np.memmap(fn, mode='r',
-                             offset=self.mda['total_header_length'],
-                             dtype=dtype,
-                             shape=shape)
-            data = da.from_array(data, chunks=shape[0])
+        data = self._read_or_memmap_data(shape, dtype)
+        data = da.from_array(data, chunks=shape[0])
         if self.mda['number_of_bits_per_pixel'] == 10:
             data = dec10216(data)
         data = data.reshape((self.mda['number_of_lines'],

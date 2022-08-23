@@ -198,10 +198,19 @@ def get_sub_area(area, xslice, yslice):
                           new_area_extent)
 
 
-def unzip_file(filename):
-    """Unzip the file if file is bzipped = ending with 'bz2'."""
-    if filename.endswith('bz2'):
-        fdn, tmpfilepath = tempfile.mkstemp()
+def unzip_file(filename, prefix=None):
+    """Unzip the file ending with 'bz2'. Initially with pbzip2 if installed or bz2.
+
+    Args:
+        prefix (str, optional): If file is one of many segments of data, prefix random filename
+        for correct sorting. This is normally the segment number.
+
+    Returns:
+        Temporary filename path for decompressed file or None.
+
+    """
+    if os.fspath(filename).endswith('bz2'):
+        fdn, tmpfilepath = tempfile.mkstemp(prefix=prefix)
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # try pbzip2
         pbzip = which('pbzip2')
@@ -293,10 +302,13 @@ class generic_open():
 
     def __enter__(self):
         """Return a file-like object."""
-        if self.filename.endswith('.bz2'):
+        if os.fspath(self.filename).endswith('.bz2'):
             self.fp = bz2.open(self.filename, *self.open_args, **self.open_kwargs)
         else:
-            self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
+            if hasattr(self.filename, "open"):
+                self.fp = self.filename.open(*self.open_args, **self.open_kwargs)
+            else:
+                self.fp = open(self.filename, *self.open_args, **self.open_kwargs)
 
         return self.fp
 

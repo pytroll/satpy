@@ -151,3 +151,4 @@ class TestACSPOReader:
         for d in datasets.values():
             assert d.shape == DEFAULT_FILE_SHAPE
             assert d.dims == ("y", "x")
+            assert d.attrs["sensor"] == "viirs"

@@ -27,6 +27,9 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample import AreaDefinition
+
+import satpy
 
 
 class TestMatchDataArrays(unittest.TestCase):
@@ -135,6 +138,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
                  'start_time': datetime(2018, 1, 1, 18),
                  'modifiers': tuple(),
                  'resolution': 1000,
+                 'calibration': 'reflectance',
+                 'units': '%',
                  'name': 'test_vis'}
         ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
                            attrs=attrs, dims=('y', 'x'),
@@ -229,6 +234,13 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         np.testing.assert_allclose(res[1], np.array([[3, 3], [3, 3]], dtype=np.float64))
         np.testing.assert_allclose(res[2], np.array([[4, 4], [4, 4]], dtype=np.float64))
 
+    def test_no_units(self):
+        """Test that the computed RGB has no units attribute."""
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color')
+        res = comp((self.ds1, self.ds2, self.ds3))
+        assert "units" not in res.attrs
+
 
 class TestDifferenceCompositor(unittest.TestCase):
     """Test case for the difference compositor."""
@@ -284,6 +296,39 @@ class TestDifferenceCompositor(unittest.TestCase):
         self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
 
 
+@pytest.fixture
+def fake_area():
+    """Return a fake 2×2 area."""
+    from pyresample.geometry import create_area_def
+    return create_area_def("skierffe", 4087, area_extent=[-5_000, -5_000, 5_000, 5_000], shape=(2, 2))
+
+
+@pytest.fixture
+def fake_dataset_pair(fake_area):
+    """Return a fake pair of 2×2 datasets."""
+    ds1 = xr.DataArray(
+            da.full((2, 2), 8, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    ds2 = xr.DataArray(
+            da.full((2, 2), 4, chunks=2, dtype=np.float32), attrs={"area": fake_area})
+    return (ds1, ds2)
+
+
+def test_ratio_compositor(fake_dataset_pair):
+    """Test the ratio compositor."""
+    from satpy.composites import RatioCompositor
+    comp = RatioCompositor(name="ratio", standard_name="channel_ratio")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 2)
+
+
+def test_sum_compositor(fake_dataset_pair):
+    """Test the sum compositor."""
+    from satpy.composites import SumCompositor
+    comp = SumCompositor(name="sum", standard_name="channel_sum")
+    res = comp(fake_dataset_pair)
+    np.testing.assert_allclose(res.values, 12)
+
+
 class TestDayNightCompositor(unittest.TestCase):
     """Test DayNightCompositor."""
 
@@ -315,12 +360,12 @@ class TestDayNightCompositor(unittest.TestCase):
         self.sza = xr.DataArray(sza, dims=('y', 'x'))
 
         # fake area
-        my_area = mock.MagicMock()
-        lons = np.array([[-95., -94.], [-93., -92.]])
-        lons = da.from_array(lons, lons.shape)
-        lats = np.array([[40., 41.], [42., 43.]])
-        lats = da.from_array(lats, lats.shape)
-        my_area.get_lonlats.return_value = (lons, lats)
+        my_area = AreaDefinition(
+            "test", "", "",
+            "+proj=longlat",
+            2, 2,
+            (-95.0, 40.0, -92.0, 43.0),
+        )
         self.data_a.attrs['area'] = my_area
         self.data_b.attrs['area'] = my_area
         # not used except to check that it matches the data arrays
@@ -448,16 +493,25 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.data, 0.0, atol=1e-9)
 
 
-class TestSandwichCompositor(unittest.TestCase):
+class TestSandwichCompositor:
     """Test sandwich compositor."""
 
+    # Test RGB and RGBA
+    @pytest.mark.parametrize(
+        "input_shape,bands",
+        [
+            ((3, 2, 2), ['R', 'G', 'B']),
+            ((4, 2, 2), ['R', 'G', 'B', 'A'])
+        ]
+    )
     @mock.patch('satpy.composites.enhance2dataset')
-    def test_compositor(self, e2d):
+    def test_compositor(self, e2d, input_shape, bands):
         """Test luminance sharpening compositor."""
         from satpy.composites import SandwichCompositor
 
-        rgb_arr = da.from_array(np.random.random((3, 2, 2)), chunks=2)
-        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'])
+        rgb_arr = da.from_array(np.random.random(input_shape), chunks=2)
+        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'],
+                           coords={'bands': bands})
         lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=['y', 'x'])
 
@@ -467,9 +521,15 @@ class TestSandwichCompositor(unittest.TestCase):
 
         res = comp([lum, rgb])
 
-        for i in range(3):
-            np.testing.assert_allclose(res.data[i, :, :],
-                                       rgb_arr[i, :, :] * lum_arr / 100.)
+        for band in rgb:
+            if band.bands != 'A':
+                # Check compositor has modified this band
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
+                                           band.to_numpy() * lum_arr / 100.)
+            else:
+                # Check Alpha band remains intact
+                np.testing.assert_allclose(res.loc[band.bands].to_numpy(),
+                                           band.to_numpy())
         # make sure the compositor doesn't modify the input data
         np.testing.assert_allclose(lum.values, lum_arr.compute())
 
@@ -1000,7 +1060,6 @@ class TestStaticImageCompositor(unittest.TestCase):
     @mock.patch('satpy.Scene')
     def test_call(self, Scene, register, retrieve):  # noqa
         """Test the static compositing."""
-        import satpy
         from satpy.composites import StaticImageCompositor
 
         satpy.config.set(data_dir=os.path.join(os.path.sep, 'path', 'to', 'image'))
@@ -1575,3 +1634,41 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, np.nan, np.nan, 7]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
+
+
+def test_bad_sensor_yaml_configs(tmp_path):
+    """Test composite YAML file with no sensor isn't loaded.
+
+    But the bad YAML also shouldn't crash composite configuration loading.
+
+    """
+    from satpy.composites.config_loader import load_compositor_configs_for_sensors
+
+    comp_dir = tmp_path / "composites"
+    comp_dir.mkdir()
+    comp_yaml = comp_dir / "fake_sensor.yaml"
+    with satpy.config.set(config_path=[tmp_path]):
+        _create_fake_composite_config(comp_yaml)
+
+        # no sensor_name in YAML, quietly ignored
+        comps, _ = load_compositor_configs_for_sensors(["fake_sensor"])
+        assert "fake_sensor" in comps
+        assert "fake_composite" not in comps["fake_sensor"]
+
+
+def _create_fake_composite_config(yaml_filename: str):
+    import yaml
+
+    from satpy.composites import StaticImageCompositor
+
+    with open(yaml_filename, "w") as comp_file:
+        yaml.dump({
+            "composites": {
+                "fake_composite": {
+                    "compositor": StaticImageCompositor,
+                    "url": "http://example.com/image.png",
+                },
+            },
+        },
+            comp_file,
+        )

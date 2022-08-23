@@ -96,6 +96,16 @@ class FciL2CommonFunctions(object):
 
         return variable
 
+    def _slice_dataset(self, variable, dataset_info, dimensions):
+        """Slice data if dimension layers have been provided in yaml-file."""
+        slice_dict = {dim: dataset_info[dim_id] for (dim, dim_id) in dimensions.items()
+                      if dim_id in dataset_info.keys() and dim in variable.dims}
+        for dim, dim_ind in slice_dict.items():
+            logger.debug(f"Extracting {dimensions[dim]}-index {dim_ind} from dimension '{dim}'.")
+        variable = variable.sel(slice_dict)
+
+        return variable
+
     @staticmethod
     def _mask_data(variable, fill_value):
         """Set fill_values, as defined in yaml-file, to NaN.
@@ -142,6 +152,7 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self.nlines = self.nc['y'].size
         self.ncols = self.nc['x'].size
         self._projection = self.nc['mtg_geos_projection']
+        self.multi_dims = {'maximum_number_of_layers': 'layer', 'number_of_vis_channels': 'vis_channel_id'}
 
     def get_area_def(self, key):
         """Return the area definition."""
@@ -166,16 +177,11 @@ class FciL2NCFileHandler(FciL2CommonFunctions, BaseFileHandler):
         if var_key not in ['product_quality', 'product_completeness', 'product_timeliness']:
             self._area_def = self._compute_area_def(dataset_id)
 
-        # If the variable has 3 dimensions, select the required layer
-        if variable.ndim == 3:
-            if par_name == 'retrieved_cloud_optical_thickness':
-                variable = self.get_total_cot(variable)
+        if any(dim_id in dataset_info.keys() for dim_id in self.multi_dims.values()):
+            variable = self._slice_dataset(variable, dataset_info, self.multi_dims)
 
-            else:
-                # Extract data from layer defined in yaml-file
-                layer = dataset_info['layer']
-                logger.debug('Selecting the layer %d.', layer)
-                variable = variable.sel(maximum_number_of_layers=layer)
+        if par_name == 'retrieved_cloud_optical_thickness':
+            variable = self.get_total_cot(variable)
 
         if dataset_info['file_type'] == 'nc_fci_test_clm':
             variable = self._decode_clm_test_data(variable, dataset_info)
@@ -305,7 +311,7 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         self.nlines = self.nc['number_of_FoR_rows'].size
         self.ncols = self.nc['number_of_FoR_cols'].size
         self.with_adef = with_area_definition
-        self.asr_dims = {
+        self.multi_dims = {
             'number_of_categories': 'category_id', 'number_of_channels': 'channel_id',
             'number_of_vis_channels': 'vis_channel_id', 'number_of_ir_channels': 'ir_channel_id',
             'number_test': 'test_id',
@@ -329,8 +335,8 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
             logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
             return None
 
-        if any(dim_id in dataset_info.keys() for dim_id in self.asr_dims.values()):
-            variable = self._slice_dataset(variable, dataset_info)
+        if any(dim_id in dataset_info.keys() for dim_id in self.multi_dims.values()):
+            variable = self._slice_dataset(variable, dataset_info, self.multi_dims)
 
         if self.with_adef and var_key not in ['longitude', 'latitude',
                                               'product_quality', 'product_completeness', 'product_timeliness']:
@@ -396,13 +402,3 @@ class FciL2NCSegmentFileHandler(FciL2CommonFunctions, BaseFileHandler):
         area_extent = tuple([ll_x, ll_y, ur_x, ur_y])
 
         return area_extent
-
-    def _slice_dataset(self, variable, dataset_info):
-        """Slice data if dimension layers have been provided in yaml-file."""
-        slice_dict = {dim: dataset_info[dim_id] for (dim, dim_id) in self.asr_dims.items()
-                      if dim_id in dataset_info.keys() and dim in variable.dims}
-        for dim, dim_ind in slice_dict.items():
-            logger.debug(f"Extracting {self.asr_dims[dim]}-layer {dim_ind} from dimension '{dim}'.")
-        variable = variable.sel(slice_dict)
-
-        return variable

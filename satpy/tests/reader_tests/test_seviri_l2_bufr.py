@@ -79,6 +79,17 @@ AREA_DEF = geometry.AreaDefinition(
     (-5570248.6866, -5567248.2834, 5567248.2834, 5570248.6866)
 )
 
+AREA_DEF_FES = geometry.AreaDefinition(
+    'msg_seviri_res_48km',
+    'MSG SEVIRI Full Earth Scanning service area definition with 48 km resolution',
+    "",
+    {'a': 6378169., 'b': 6356583.8, 'lon_0': 0.0,
+     'h': 35785831., 'proj': 'geos', 'units': 'm'},
+    232,
+    232,
+    (-5570248.6866, -5567248.2834, 5567248.2834, 5570248.6866)
+)
+
 AREA_DEF_EXT = geometry.AreaDefinition(
     'msg_seviri_iodc_9km_ext',
     'MSG SEVIRI Indian Ocean Data Coverage service area definition with 9 km resolution '
@@ -107,7 +118,7 @@ class SeviriL2BufrData:
     """Mock SEVIRI L2 BUFR data."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
-    def __init__(self, filename, with_adef=False):
+    def __init__(self, filename, with_adef=False, rect_lon='default'):
         """Initialize by mocking test data for testing the SEVIRI L2 BUFR reader."""
         import eccodes as ec
 
@@ -132,7 +143,7 @@ class SeviriL2BufrData:
                 with mock.patch('satpy.readers.seviri_l2_bufr.recarray2dict') as recarray2dict:
                     recarray2dict.side_effect = (lambda x: x)
                     self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO,
-                                                      with_area_definition=with_adef)
+                                                      with_area_definition=with_adef, rectification_longitude=rect_lon)
                     self.fh.mpef_header = MPEF_PRODUCT_HEADER
 
         else:
@@ -146,7 +157,8 @@ class SeviriL2BufrData:
                         with mock.patch('eccodes.codes_release') as ec5:
                             ec5.return_value = 1
                             self.fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO,
-                                                              with_area_definition=with_adef)
+                                                              with_area_definition=with_adef,
+                                                              rectification_longitude=rect_lon)
 
     def get_data(self, dataset_info):
         """Read data from mock file."""
@@ -232,3 +244,14 @@ class TestSeviriL2BufrReader:
         bufr_obj.fh.seg_size = 3
         ad_ext = bufr_obj.fh._construct_area_def(make_dataid(name='dummmy', resolution=9000))
         assert ad_ext == AREA_DEF_EXT
+
+    def test_data_with_rect_lon(self, input_file):
+        """Test data loaded with AreaDefinition and user defined rectification longitude."""
+        bufr_obj = SeviriL2BufrData(input_file, with_adef=True, rect_lon=0.0)
+        np.testing.assert_equal(bufr_obj.fh.ssp_lon, 0.0)
+        _ = bufr_obj.get_data(DATASET_INFO_LAT)  # We need to load the lat/lon data in order to
+        _ = bufr_obj.get_data(DATASET_INFO_LON)  # populate the file handler with these data
+        _ = bufr_obj.get_data(DATASET_INFO)  # We need to lead the data in order to create the AreaDefinition
+
+        ad = bufr_obj.fh.get_area_def(None)
+        assert ad == AREA_DEF_FES

@@ -37,6 +37,8 @@ try:
 except ImportError:
     from yaml import Loader as UnsafeLoader  # type: ignore
 
+from functools import cached_property
+
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
@@ -1173,8 +1175,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                     fh.filename_info['segment'] = fh.filename_info.get('count_in_repeat_cycle', 1)
         return created_fhs
 
-    @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True):
+    def _load_dataset(self, dsid, ds_info, file_handlers, dim='y', pad_data=True):
         """Load only a piece of the dataset."""
         if not pad_data:
             return FileYAMLReader._load_dataset(dsid, ds_info,
@@ -1187,28 +1188,14 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
-        padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
-
-        empty_segment = xr.full_like(projectable, np.nan)
+        filetype = file_handlers[0].filetype_info['file_type']
+        self.empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
-                if padding_fci_scene:
-                    slice_list[i] = _get_empty_segment_with_height(empty_segment,
-                                                                   _get_FCI_L1c_FDHSI_chunk_height(
-                                                                       empty_segment.shape[1], i + 1),
-                                                                   dim=dim)
-                else:
-                    slice_list[i] = empty_segment
+                slice_list[i] = self._get_empty_segment(dim=dim, idx=i, filetype=filetype)
 
         while expected_segments > counter:
-            if padding_fci_scene:
-                slice_list.append(_get_empty_segment_with_height(empty_segment,
-                                                                 _get_FCI_L1c_FDHSI_chunk_height(
-                                                                     empty_segment.shape[1], counter + 1),
-                                                                 dim=dim))
-            else:
-                slice_list.append(empty_segment)
-
+            slice_list.append(self._get_empty_segment(dim=dim, idx=counter, filetype=filetype))
             counter += 1
 
         if dim not in slice_list[0].dims:
@@ -1221,25 +1208,102 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         res.attrs = combined_info
         return res
 
+    def _get_empty_segment(self, **kwargs):
+        return self.empty_segment
+
     def _load_area_def(self, dsid, file_handlers, pad_data=True):
         """Load the area definition of *dsid* with padding."""
         if not pad_data:
             return _load_area_def(dsid, file_handlers)
-        return _load_area_def_with_padding(dsid, file_handlers)
+        return self._load_area_def_with_padding(dsid, file_handlers)
 
+    def _load_area_def_with_padding(self, dsid, file_handlers):
+        """Load the area definition of *dsid* with padding."""
+        # Pad missing segments between the first available and expected
+        area_defs = self._pad_later_segments_area(file_handlers, dsid)
 
-def _load_area_def_with_padding(dsid, file_handlers):
-    """Load the area definition of *dsid* with padding."""
-    # Pad missing segments between the first available and expected
-    area_defs = _pad_later_segments_area(file_handlers, dsid)
+        # Add missing start segments
+        area_defs = self._pad_earlier_segments_area(file_handlers, dsid, area_defs)
 
-    # Add missing start segments
-    area_defs = _pad_earlier_segments_area(file_handlers, dsid, area_defs)
+        # Stack the area definitions
+        area_def = _stack_area_defs(area_defs)
 
-    # Stack the area definitions
-    area_def = _stack_area_defs(area_defs)
+        return area_def
 
-    return area_def
+    def _pad_later_segments_area(self, file_handlers, dsid):
+        """Pad area definitions for missing segments that are later in sequence than the first available."""
+        expected_segments = file_handlers[0].filetype_info['expected_segments']
+        filetype = file_handlers[0].filetype_info['file_type']
+        available_segments = [int(fh.filename_info.get('segment', 1)) for
+                              fh in file_handlers]
+
+        area_defs = self._get_segments_areadef_with_later_padded(file_handlers, filetype, dsid, available_segments,
+                                                                 expected_segments)
+
+        return area_defs
+
+    def _get_segments_areadef_with_later_padded(self, file_handlers, filetype, dsid, available_segments,
+                                                expected_segments):
+        seg_size = None
+        area_defs = {}
+        for segment in range(available_segments[0], expected_segments + 1):
+            try:
+                idx = available_segments.index(segment)
+                fh = file_handlers[idx]
+                area = fh.get_area_def(dsid)
+            except ValueError:
+                area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type='later')
+
+            area_defs[segment] = area
+            seg_size = area.shape
+        return area_defs
+
+    def _pad_earlier_segments_area(self, file_handlers, dsid, area_defs):
+        """Pad area definitions for missing segments that are earlier in sequence than the first available."""
+        available_segments = [int(fh.filename_info.get('segment', 1)) for
+                              fh in file_handlers]
+        area = file_handlers[0].get_area_def(dsid)
+        seg_size = area.shape
+        filetype = file_handlers[0].filetype_info['file_type']
+
+        for segment in range(available_segments[0] - 1, 0, -1):
+            area = self._get_new_areadef_for_padded_segment(area, filetype, seg_size, segment, padding_type='earlier')
+            area_defs[segment] = area
+            seg_size = area.shape
+
+        return area_defs
+
+    def _get_new_areadef_for_padded_segment(self, area, filetype, seg_size, segment, padding_type):
+        logger.debug("Padding to full disk with segment nr. %d", segment)
+        new_height_px, new_ll_y, new_ur_y = self._get_y_area_extents_for_padded_segment(area, filetype, padding_type,
+                                                                                        seg_size, segment)
+
+        fill_extent = (area.area_extent[0], new_ll_y,
+                       area.area_extent[2], new_ur_y)
+        area = AreaDefinition('fill', 'fill', 'fill', area.crs,
+                              seg_size[1], new_height_px,
+                              fill_extent)
+        return area
+
+    def _get_y_area_extents_for_padded_segment(self, area, filetype, padding_type, seg_size, segment):
+        new_height_proj_coord, new_height_px = self._get_new_areadef_heights(area, seg_size,
+                                                                             segment_n=segment,
+                                                                             filetype=filetype)
+        if padding_type == 'later':
+            new_ll_y = area.area_extent[1] + new_height_proj_coord
+            new_ur_y = area.area_extent[1]
+        elif padding_type == 'earlier':
+            new_ll_y = area.area_extent[3]
+            new_ur_y = area.area_extent[3] - new_height_proj_coord
+        else:
+            raise ValueError("Padding type not recognised.")
+        return new_height_px, new_ll_y, new_ur_y
+
+    def _get_new_areadef_heights(self, previous_area, previous_seg_size, **kwargs):
+        new_height_px = previous_seg_size[0]
+        new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
+
+        return new_height_proj_coord, new_height_px
 
 
 def _stack_area_defs(area_def_dict):
@@ -1252,66 +1316,6 @@ def _stack_area_defs(area_def_dict):
     area_def = area_def.squeeze()
 
     return area_def
-
-
-def _pad_later_segments_area(file_handlers, dsid):
-    """Pad area definitions for missing segments that are later in sequence than the first available."""
-    seg_size = None
-    expected_segments = file_handlers[0].filetype_info['expected_segments']
-    available_segments = [int(fh.filename_info.get('segment', 1)) for
-                          fh in file_handlers]
-    area_defs = {}
-    padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
-
-    for segment in range(available_segments[0], expected_segments + 1):
-        try:
-            idx = available_segments.index(segment)
-            fh = file_handlers[idx]
-            area = fh.get_area_def(dsid)
-        except ValueError:
-            logger.debug("Padding to full disk with segment nr. %d", segment)
-
-            new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment,
-                                                                            padding_fci_scene)
-            new_ll_y = area.area_extent[1] + new_height_proj_coord
-            new_ur_y = area.area_extent[1]
-            fill_extent = (area.area_extent[0], new_ll_y,
-                           area.area_extent[2], new_ur_y)
-            area = AreaDefinition('fill', 'fill', 'fill', area.crs,
-                                  seg_size[1], new_height_px,
-                                  fill_extent)
-
-        area_defs[segment] = area
-        seg_size = area.shape
-
-    return area_defs
-
-
-def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
-    """Pad area definitions for missing segments that are earlier in sequence than the first available."""
-    available_segments = [int(fh.filename_info.get('segment', 1)) for
-                          fh in file_handlers]
-    area = file_handlers[0].get_area_def(dsid)
-    seg_size = area.shape
-    padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
-
-    for segment in range(available_segments[0] - 1, 0, -1):
-        logger.debug("Padding segment %d to full disk.",
-                     segment)
-
-        new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment, padding_fci_scene)
-        new_ll_y = area.area_extent[3]
-        new_ur_y = area.area_extent[3] - new_height_proj_coord
-        fill_extent = (area.area_extent[0], new_ll_y,
-                       area.area_extent[2], new_ur_y)
-        area = AreaDefinition('fill', 'fill', 'fill',
-                              area.crs,
-                              seg_size[1], new_height_px,
-                              fill_extent)
-        area_defs[segment] = area
-        seg_size = area.shape
-
-    return area_defs
 
 
 def _find_missing_segments(file_handlers, ds_info, dsid):
@@ -1348,21 +1352,6 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     return counter, expected_segments, slice_list, failure, projectable
 
 
-def _get_new_areadef_heights(previous_area, previous_seg_size, segment_n, padding_fci_scene):
-    """Get the area definition heights in projection coordinates and pixels for the new padded segment."""
-    if padding_fci_scene:
-        # retrieve the chunk/segment pixel height
-        new_height_px = _get_FCI_L1c_FDHSI_chunk_height(previous_seg_size[1], segment_n)
-        # scale the previous vertical area extent using the new pixel height
-        new_height_proj_coord = (previous_area.area_extent[1] - previous_area.area_extent[3]) * new_height_px / \
-            previous_seg_size[0]
-    else:
-        # all other cases have constant segment size, so reuse the previous segment heights
-        new_height_px = previous_seg_size[0]
-        new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
-    return new_height_proj_coord, new_height_px
-
-
 def _get_empty_segment_with_height(empty_segment, new_height, dim):
     """Get a new empty segment with the specified height."""
     if empty_segment.shape[0] > new_height:
@@ -1374,22 +1363,172 @@ def _get_empty_segment_with_height(empty_segment, new_height, dim):
     return empty_segment
 
 
-def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):
-    """Get the height in pixels of a FCI L1c FDHSI chunk given the chunk width and number (starting from 1)."""
-    if chunk_width == 11136:
-        # 1km resolution case
-        if chunk_n in [3, 5, 8, 10, 13, 15, 18, 20, 23, 25, 28, 30, 33, 35, 38, 40]:
-            chunk_height = 279
-        else:
-            chunk_height = 278
-    elif chunk_width == 5568:
-        # 2km resolution case
-        if chunk_n in [5, 10, 15, 20, 25, 30, 35, 40]:
-            chunk_height = 140
-        else:
-            chunk_height = 139
-    else:
-        raise ValueError("FCI L1c FDHSI chunk width {} not recognized. Must be either 5568 or 11136.".format(
-            chunk_width))
+class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
+    """GEOVariableSegmentYAMLReader for handling chunked/segmented GEO products with segments of variable height.
 
-    return chunk_height
+    This YAMLReader overrides parts of the GEOSegmentYAMLReader to account for formats where the segments can
+    have variable heights. It computes the sizes of the padded segments using the information available in the
+    file(handlers), so that gaps of any size can be filled as needed.
+
+    This implementation was motivated by the FCI L1c format, where the segments (called chunks in the FCI world)
+    can have variable heights. It is however generic, so that any future reader can use it. The requirement
+    for the reader is to have a method called `get_segment_position_info`, returning a dictionary containing
+    the positioning info for each chunk (see example in
+    :func:`satpy.readers.fci_l1c_nc.FCIL1cNCFileHandler.get_segment_position_info`).
+
+    For more information on please see the documentation of :func:`satpy.readers.yaml_reader.GEOSegmentYAMLReader`.
+    """
+
+    def create_filehandlers(self, filenames, fh_kwargs=None):
+        """Create file handler objects and collect the location information."""
+        created_fhs = super().create_filehandlers(filenames, fh_kwargs=fh_kwargs)
+        self._extract_segment_location_dicts(created_fhs)
+        return created_fhs
+
+    def _extract_segment_location_dicts(self, created_fhs):
+        self.segment_infos = dict()
+        for filetype, filetype_fhs in created_fhs.items():
+            self._initialise_segment_infos(filetype, filetype_fhs)
+            self._collect_segment_position_infos(filetype, filetype_fhs)
+        return
+
+    def _collect_segment_position_infos(self, filetype, filetype_fhs):
+        # collect the segment positioning infos for all available segments
+        for fh in filetype_fhs:
+            chk_infos = fh.get_segment_position_info()
+            chk_infos.update({'segment_nr': fh.filename_info['segment'] - 1})
+            self.segment_infos[filetype]['available_segment_infos'].append(chk_infos)
+
+    def _initialise_segment_infos(self, filetype, filetype_fhs):
+        # initialise the segment info for this filetype
+        exp_segment_nr = filetype_fhs[0].filetype_info['expected_segments']
+        width_to_grid_type = _get_width_to_grid_type(filetype_fhs[0].get_segment_position_info())
+        self.segment_infos.update({filetype: {'available_segment_infos': [],
+                                              'expected_segments': exp_segment_nr,
+                                              'width_to_grid_type': width_to_grid_type}})
+
+    def _get_empty_segment(self, dim=None, idx=None, filetype=None):
+        grid_type = self.segment_infos[filetype]['width_to_grid_type'][self.empty_segment.shape[1]]
+        segment_height = self.segment_heights[filetype][grid_type][idx]
+        return _get_empty_segment_with_height(self.empty_segment, segment_height, dim=dim)
+
+    @cached_property
+    def segment_heights(self):
+        """Compute optimal padded segment heights (in number of pixels) based on the location of available segments."""
+        segment_heights = dict()
+        for filetype, filetype_seginfos in self.segment_infos.items():
+            filetype_seg_heights = {'1km': _compute_optimal_missing_segment_heights(filetype_seginfos, '1km', 11136),
+                                    '2km': _compute_optimal_missing_segment_heights(filetype_seginfos, '2km', 5568)}
+            segment_heights.update({filetype: filetype_seg_heights})
+        return segment_heights
+
+    def _get_new_areadef_heights(self, previous_area, previous_seg_size, segment_n=None, filetype=None):
+        # retrieve the segment height in number of pixels
+        grid_type = self.segment_infos[filetype]['width_to_grid_type'][previous_seg_size[1]]
+        new_height_px = self.segment_heights[filetype][grid_type][segment_n - 1]
+        # scale the previous vertical area extent using the new pixel height
+        prev_area_extent = previous_area.area_extent[1] - previous_area.area_extent[3]
+        new_height_proj_coord = prev_area_extent * new_height_px / previous_seg_size[0]
+
+        return new_height_proj_coord, new_height_px
+
+
+def _get_width_to_grid_type(seg_info):
+    width_to_grid_type = dict()
+    for grid_type, grid_type_seg_info in seg_info.items():
+        width_to_grid_type.update({grid_type_seg_info['segment_width']: grid_type})
+    return width_to_grid_type
+
+
+def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vertical_size):
+    # initialise positioning arrays
+    segment_start_rows, segment_end_rows, segment_heights = _init_positioning_arrays_for_variable_padding(
+        seg_infos['available_segment_infos'], grid_type, seg_infos['expected_segments'])
+
+    # populate start row of first segment and end row of last segment with known values
+    segment_start_rows[0] = 1
+    segment_end_rows[seg_infos['expected_segments'] - 1] = expected_vertical_size
+
+    # find missing segments and group contiguous missing segments together
+    missing_segments = np.where(segment_heights == 0)[0]
+    groups_missing_segments = np.split(missing_segments, np.where(np.diff(missing_segments) > 1)[0] + 1)
+
+    for group in groups_missing_segments:
+        _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group)
+
+    return segment_heights.astype('int')
+
+
+def _compute_positioning_data_for_missing_group(segment_start_rows, segment_end_rows, segment_heights, group):
+    _populate_group_start_end_row_using_neighbour_segments(group, segment_end_rows, segment_start_rows)
+    proposed_sizes_missing_segments = _compute_proposed_sizes_of_missing_segments_in_group(group, segment_end_rows,
+                                                                                           segment_start_rows)
+    _populate_start_end_rows_of_missing_segments_with_proposed_sizes(group, proposed_sizes_missing_segments,
+                                                                     segment_start_rows, segment_end_rows,
+                                                                     segment_heights)
+
+
+def _populate_start_end_rows_of_missing_segments_with_proposed_sizes(group, proposed_sizes_missing_segments,
+                                                                     segment_start_rows, segment_end_rows,
+                                                                     segment_heights):
+    for n in range(len(group)):
+        # start of first and end of last missing segment have been populated already
+        if n != 0:
+            segment_start_rows[group[n]] = segment_start_rows[group[n - 1]] + proposed_sizes_missing_segments[n] + 1
+        if n != len(group) - 1:
+            segment_end_rows[group[n]] = segment_start_rows[group[n]] + proposed_sizes_missing_segments[n]
+        segment_heights[group[n]] = proposed_sizes_missing_segments[n]
+
+
+def _compute_proposed_sizes_of_missing_segments_in_group(group, segment_end_rows, segment_start_rows):
+    size_group_gap = segment_end_rows[group[-1]] - segment_start_rows[group[0]] + 1
+    proposed_sizes_missing_segments = split_integer_in_most_equal_parts(size_group_gap, len(group))
+    return proposed_sizes_missing_segments
+
+
+def _populate_group_start_end_row_using_neighbour_segments(group, segment_end_rows, segment_start_rows):
+    # if group is at the start/end of the full-disk, we know the start/end value already
+    if segment_start_rows[group[0]] == 0:
+        _populate_group_start_row_using_previous_segment(group, segment_end_rows, segment_start_rows)
+    if segment_end_rows[group[-1]] == 0:
+        _populate_group_end_row_using_later_segment(group, segment_end_rows, segment_start_rows)
+
+
+def _populate_group_end_row_using_later_segment(group, segment_end_rows, segment_start_rows):
+    segment_end_rows[group[-1]] = segment_start_rows[group[-1] + 1] - 1
+
+
+def _populate_group_start_row_using_previous_segment(group, segment_end_rows, segment_start_rows):
+    segment_start_rows[group[0]] = segment_end_rows[group[0] - 1] + 1
+
+
+def _init_positioning_arrays_for_variable_padding(chk_infos, grid_type, exp_segment_nr):
+    segment_heights = np.zeros(exp_segment_nr)
+    segment_start_rows = np.zeros(exp_segment_nr)
+    segment_end_rows = np.zeros(exp_segment_nr)
+
+    _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                           segment_heights)
+    return segment_start_rows, segment_end_rows, segment_heights
+
+
+def _populate_positioning_arrays_with_available_chunk_info(chk_infos, grid_type, segment_start_rows, segment_end_rows,
+                                                           segment_heights):
+    for chk_info in chk_infos:
+        current_fh_segment_nr = chk_info['segment_nr']
+        segment_heights[current_fh_segment_nr] = chk_info[grid_type]['segment_height']
+        segment_start_rows[current_fh_segment_nr] = chk_info[grid_type]['start_position_row']
+        segment_end_rows[current_fh_segment_nr] = chk_info[grid_type]['end_position_row']
+
+
+def split_integer_in_most_equal_parts(x, n):
+    """Split an integer number x in n parts that are as equally-sizes as possible."""
+    if x % n == 0:
+        return np.repeat(x // n, n).astype('int')
+    else:
+        # split the remainder amount over the last remainder parts
+        remainder = int(x % n)
+        mod = int(x // n)
+        ar = np.repeat(mod, n)
+        ar[-remainder:] = mod + 1
+        return ar.astype('int')
