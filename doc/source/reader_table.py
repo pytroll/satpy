@@ -18,12 +18,9 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for autogenerating reader table from config files."""
 
-from satpy.readers import available_readers
+from yaml import BaseLoader
 
-try:
-    from yaml import BaseLoader
-except ImportError:
-    from yaml import BaseLoader  # type: ignore
+from satpy.readers import available_readers
 
 
 def rst_table_row(columns=None):

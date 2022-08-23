@@ -26,11 +26,7 @@ from datetime import datetime, timedelta
 from functools import total_ordering
 
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
+from yaml import UnsafeLoader
 
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 
