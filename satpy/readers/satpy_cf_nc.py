@@ -307,7 +307,7 @@ class SatpyCFFileHandler(BaseFileHandler):
             # No CF compliant projection information was found in the netcdf file or
             # file contains 2D lat/lon arrays. To fall back to generating a SwathDefinition
             # with the yaml_reader NotImplementedError is raised.
-            logger.info("No AreaDefinition to load from nc file. Falling back to SwathDefinition.")
+            logger.debug("No AreaDefinition to load from nc file. Falling back to SwathDefinition.")
             raise NotImplementedError
 
 
