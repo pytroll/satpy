@@ -44,7 +44,12 @@ def run_and_check_enhancement(func, data, expected, **kwargs):
     new_keys = set(img.data.attrs.keys()) - {"enhancement_history"}
     assert old_keys == new_keys
 
-    np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
+    res_data_arr = img.data
+    assert isinstance(res_data_arr, xr.DataArray)
+    assert isinstance(res_data_arr.data, da.Array)
+    res_data = res_data_arr.data.compute()  # mimics what xrimage geotiff writing does
+    assert not isinstance(res_data, da.Array)
+    np.testing.assert_allclose(res_data, expected, atol=1.e-6, rtol=0)
 
 
 def identical_decorator(func):
