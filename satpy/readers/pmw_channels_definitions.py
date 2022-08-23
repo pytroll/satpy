@@ -75,8 +75,9 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
             and band width frq) or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is
-            a tuple equal to self, False otherwise.
+            True if other is a scalar and min <= other <= max, or if other is a
+            tuple equal to self, or if other is a number contained by self.
+            False otherwise.
 
         """
         if other is None:
@@ -144,7 +145,20 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
         return False
 
     def distance(self, value):
-        """Get the distance from value."""
+        """Get the distance to the quadruple side band.
+
+        Determining the distance in frequency space between two quadruple side
+        bands can be quite ambiguous, as such bands are in effect a set of
+        4 narrow bands. To keep it as simple as possible we have until further
+        decided to define the distance between such two bands by calculating
+        the distances between the outermost left-sides of the two bands and the
+        distances of the outermost right sides and then minimising those two.
+
+        If the frequency entered is a single value the distance will be the
+        minimum of the distances to the two outermost sides of the quadruple
+        side band.
+
+        """
         left_left = self.central - self.side - self.sideside
         right_right = self.central + self.side + self.sideside
 
@@ -155,7 +169,8 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
                 return min(left_side_dist, right_side_dist)
             except AttributeError:
                 if isinstance(value, (tuple, list)):
-                    raise NotImplementedError('Distance to a quadruple side band frequency not supported for this type')
+                    msg = 'Distance to a quadruple side band frequency not supported for this type'
+                    raise NotImplementedError(msg)
 
                 left_side_dist = abs(value - left_left)
                 right_side_dist = abs(value - right_right)
@@ -214,8 +229,9 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
             other (tuple or scalar): (central frq, side band frq and band width frq) or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is
-            a tuple equal to self, False otherwise.
+            True if other is a scalar and min <= other <= max, or if other is a
+            tuple equal to self, or if other is a number contained by self.
+            False otherwise.
 
         """
         if other is None:
@@ -335,14 +351,15 @@ class FrequencyRange(FrequencyRangeBase):
     """
 
     def __eq__(self, other):
-        """Return if two channel frequencies are equal.
+        """Check wether two channel frequencies are equal.
 
         Args:
             other (tuple or scalar): (central frq, band width frq) or scalar frq
 
         Return:
-            True if other is a scalar and min <= other <= max, or if other is
-            a tuple equal to self, False otherwise.
+            True if other is a scalar and min <= other <= max, or if other is a
+            tuple equal to self, or if other is a number contained by self.
+            False otherwise.
 
         """
         if other is None:

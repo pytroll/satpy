@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # Copyright (c) 2022 Pytroll Developers
 
 # This program is free software: you can redistribute it and/or modify
@@ -62,15 +60,13 @@ def get_channel_index_from_name(chname):
     chindex = MWS_CHANNEL_NAMES_TO_NUMBER.get(chname, 0) - 1
     if 0 <= chindex < 24:
         return chindex
-    raise AttributeError("Channel name %s not supported: " % chname)
+    raise AttributeError("Channel name {ch} not supported: ".format(ch=chname))
 
 
 def _get_aux_data_name_from_dsname(dsname):
     aux_data_name = [key for key in AUX_DATA.keys() if key in dsname]
     if len(aux_data_name) > 0:
         return aux_data_name[0]
-
-    return None
 
 
 class MWSL1BFile(NetCDF4FileHandler):
