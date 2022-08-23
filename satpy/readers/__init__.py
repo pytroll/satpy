@@ -370,7 +370,7 @@ def get_valid_reader_names(reader):
     return new_readers
 
 
-def available_readers(as_dict=False):
+def available_readers(as_dict=False, yaml_loader=UnsafeLoader):
     """Available readers based on current configuration.
 
     Args:
@@ -385,7 +385,7 @@ def available_readers(as_dict=False):
     readers = []
     for reader_configs in configs_for_reader():
         try:
-            reader_info = read_reader_config(reader_configs)
+            reader_info = read_reader_config(reader_configs, loader=yaml_loader)
         except (KeyError, IOError, yaml.YAMLError):
             LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
