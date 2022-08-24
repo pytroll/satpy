@@ -19,10 +19,13 @@ This module tests the reading of the MWS l1b netCDF format data as per version v
 
 """
 
+import logging
 from datetime import datetime
+from unittest.mock import patch
 
 import numpy as np
 import pytest
+import xarray as xr
 from netCDF4 import Dataset
 
 from satpy.readers.mws_l1b import MWSL1BFile, get_channel_index_from_name
@@ -81,6 +84,7 @@ class MWSL1BFakeFileWriter:
         with Dataset(self.file_path, 'w') as dataset:
             self._write_attributes(dataset)
             self._write_status_group(dataset)
+            self._write_quality_group(dataset)
             data_group = dataset.createGroup('data')
             self._write_navigation_data_group(data_group)
 
@@ -115,6 +119,16 @@ class MWSL1BFakeFileWriter:
             'subsat_longitude_end', "f4"
         )
         subsat_longitude_end[:] = 2.47
+
+    @staticmethod
+    def _write_quality_group(dataset):
+        """Write the quality group."""
+        group = dataset.createGroup('quality')
+        group.overall_quality_flag = 0
+        duration_of_product = group.createVariable(
+            'duration_of_product', "f4"
+        )
+        duration_of_product[:] = 1000.
 
     @staticmethod
     def _write_navigation_data_group(dataset):
@@ -183,6 +197,59 @@ class TestMwsL1bNCFileHandler:
     def test_sub_satellite_latitude_end(self, reader):
         """Test getting the latitude of sub-satellite point at end of the product."""
         np.testing.assert_allclose(reader.sub_satellite_latitude_end, 60.0)
+
+    def test_get_dataset_raise_exception_if_data_not_exist(self, reader):
+        """Test get dataset return none if data does not exist."""
+        dataset_id = {'name': 'unknown'}
+        dataset_info = {'file_key': 'non/existing/data'}
+
+        with pytest.raises(ValueError) as exec_info:
+            _ = reader.get_dataset(dataset_id, dataset_info)
+
+        assert str(exec_info.value) == 'Unknown dataset key, not a channel, quality or auxiliary data: unknown'
+
+    def test_get_dataset_logs_debug_message(self, caplog, fake_file, reader):
+        """Test get dataset return none if data does not exist."""
+        dataset_id = {'name': 'mws_lon'}
+        dataset_info = {'file_key': 'data/navigation_data/mws_lon'}
+
+        with caplog.at_level(logging.DEBUG):
+            _ = reader.get_dataset(dataset_id, dataset_info)
+
+        log_output = "Reading mws_lon from {filename}".format(filename=str(fake_file))
+        assert log_output in caplog.text
+
+    @staticmethod
+    def test_drop_coords(reader):
+        """Test drop coordinates."""
+        coords = "dummy"
+        data = xr.DataArray(
+            np.ones(10),
+            dims=('y'),
+            coords={coords: 0},
+        )
+        assert coords in data.coords
+        data = reader._drop_coords(data)
+        assert coords not in data.coords
+
+    @patch(
+        'satpy.readers.mws_l1b.MWSL1BFile._get_global_attributes',
+        return_value={"mocked_global_attributes": True},
+    )
+    def test_manage_attributes(self, mock, reader):
+        """Test manage attributes."""
+        variable = xr.DataArray(
+            np.ones(N_SCANS),
+            attrs={"season": "summer"},
+        )
+        dataset_info = {'name': '1', 'units': 'K'}
+        variable = reader._manage_attributes(variable, dataset_info)
+        assert variable.attrs == {
+            'season': 'summer',
+            'units': 'K',
+            'name': '1',
+            'mocked_global_attributes': True,
+        }
 
 
 @pytest.mark.parametrize("name, index", [('1', 0), ('2', 1), ('24', 23)])

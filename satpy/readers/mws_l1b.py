@@ -145,19 +145,40 @@ class MWSL1BFile(NetCDF4FileHandler):
         logger.debug('Reading {} from {}'.format(dataset_id['name'], self.filename))
 
         if _get_aux_data_name_from_dsname(dataset_id['name']) is not None:
-            return self._get_dataset_aux_data(dataset_id['name'], info=info)
+            variable = self._get_dataset_aux_data(dataset_id['name'], info=info)
         elif any(lb in dataset_id['name'] for lb in MWS_CHANNELS):
-            return self._get_dataset_channel(dataset_id, info=info)
+            variable = self._get_dataset_channel(dataset_id, info=info)
         else:
             raise ValueError("Unknown dataset key, not a channel, quality or auxiliary data: "
                              f"{dataset_id['name']:s}")
 
-    def _standardize_dims(self, variable):
+        variable = self._manage_attributes(variable, info)
+        variable = self._drop_coords(variable)
+        variable = self._standardize_dims(variable)
+        return variable
+
+    @staticmethod
+    def _standardize_dims(variable):
         """Standardize dims to y, x."""
         if 'n_scans' in variable.dims:
             variable = variable.rename({'n_fovs': 'x', 'n_scans': 'y'})
         if variable.dims[0] == 'x':
             variable = variable.transpose('y', 'x')
+        return variable
+
+    @staticmethod
+    def _drop_coords(variable):
+        """Drop coords that are not in dims."""
+        for coord in variable.coords:
+            if coord not in variable.dims:
+                variable = variable.drop_vars(coord)
+        return variable
+
+    def _manage_attributes(self, variable, dataset_info):
+        """Manage attributes of the dataset."""
+        variable.attrs.setdefault('units', None)
+        variable.attrs.update(dataset_info)
+        variable.attrs.update(self._get_global_attributes())
         return variable
 
     def _get_dataset_channel(self, key, info=None):
@@ -224,13 +245,41 @@ class MWSL1BFile(NetCDF4FileHandler):
             return None
 
         # Scale the data:
-        missing_value = variable.attrs['missing_value']
         if 'scale_factor' in variable.attrs and 'add_offset' in variable.attrs:
-            variable.data = da.where(variable.data == missing_value, np.nan,
-                                     variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset'])
+            if 'missing_value' in variable.attrs:
+                missing_value = variable.attrs['missing_value']
+                variable.data = da.where(variable.data == missing_value, np.nan,
+                                         variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset'])
+            else:
+                variable.data = variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset']
 
-        # Manage the attributes of the dataset
-        variable.attrs.setdefault('units', None)
-        if info:
-            variable.attrs.update(info)
         return variable
+
+    def _get_global_attributes(self):
+        """Create a dictionary of global attributes."""
+        return {
+            'filename': self.filename,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'spacecraft_name': self.platform_name,
+            'sensor': self.sensor,
+            'filename_start_time': self.filename_info['sensing_start_time'],
+            'filename_end_time': self.filename_info['sensing_end_time'],
+            'platform_name': self.platform_name,
+            'quality_group': self._get_quality_attributes(),
+        }
+
+    def _get_quality_attributes(self):
+        """Get quality attributes."""
+        quality_group = self['quality']
+        quality_dict = {}
+        for key in quality_group:
+            # Add the values (as Numpy array) of each variable in the group
+            # where possible
+            try:
+                quality_dict[key] = quality_group[key].values
+            except ValueError:
+                quality_dict[key] = None
+        # Add the attributes of the quality group
+        quality_dict.update(quality_group.attrs)
+        return quality_dict
