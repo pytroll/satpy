@@ -25,7 +25,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 import xarray as xr
-from pyresample import AreaDefinition
+from pyresample import AreaDefinition, SwathDefinition
 
 from satpy import Scene
 from satpy.dataset.dataid import WavelengthRange
@@ -122,8 +122,8 @@ class TestCFReader(unittest.TestCase):
             self.scene[key] = scene_dict[key]
             self.scene[key].attrs.update(common_attrs)
 
-    def test_write_and_read(self):
-        """Save a file with cf_writer and read the data again."""
+    def test_write_and_read_with_area_definition(self):
+        """Save a dataset with an area definition to file with cf_writer and read the data again."""
         filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
             datetime.utcnow().strftime('%Y%j%H%M%S'))
         try:
@@ -148,6 +148,69 @@ class TestCFReader(unittest.TestCase):
             assert expected_area.area_id == actual_area.area_id
             assert expected_area.description == actual_area.description
             assert expected_area.proj_dict == actual_area.proj_dict
+        finally:
+            with suppress(PermissionError):
+                os.remove(filename)
+
+    def _dataset_for_swath_definition_testing(self):
+        data_visir = np.array([[1, 2], [3, 4]])
+        y_visir = [1, 2]
+        x_visir = [1, 2]
+        lat = 33.0 * np.array([[1, 2], [3, 4]])
+        lon = -13.0 * np.array([[1, 2], [3, 4]])
+
+        lat = xr.DataArray(lat,
+                           dims=('y', 'x'),
+                           coords={'y': y_visir, 'x': x_visir},
+                           attrs={'name': 'lat',
+                                  'standard_name': 'latitude',
+                                  'modifiers': np.array([])})
+        lon = xr.DataArray(lon,
+                           dims=('y', 'x'),
+                           coords={'y': y_visir, 'x': x_visir},
+                           attrs={'name': 'lon',
+                                  'standard_name': 'longitude',
+                                  'modifiers': np.array([])})
+
+        area = SwathDefinition(lons=lon, lats=lat)
+
+        vis006 = xr.DataArray(data_visir,
+                              dims=('y', 'x'),
+                              coords={'y': y_visir, 'x': x_visir},
+                              attrs={'name': 'vis006', 'id_tag': 'ch_r06',
+                                     'coordinates': 'lat lon', 'resolution': 1000, 'calibration': 'reflectance',
+                                     'wavelength': WavelengthRange(min=0.58, central=0.63, max=0.68, unit='µm'),
+                                     'area': area
+                                     })
+
+        scene = Scene()
+        scene.attrs['sensor'] = ['avhrr-1', 'avhrr-2', 'avhrr-3']
+        scene['vis006'] = vis006
+        scene['lat'] = lat
+        scene['lon'] = lon
+
+        return scene
+
+    def test_write_and_read_with_swath_definition(self):
+        """Save a dataset with a swath definition to file with cf_writer and read the data again."""
+        scene = self._dataset_for_swath_definition_testing()
+        filename = 'testingcfwriter{:s}-viirs-mband-20201007075915-20201007080744.nc'.format(
+            datetime.utcnow().strftime('%Y%j%H%M%S'))
+        try:
+            scene.save_datasets(writer='cf',
+                                filename=filename,
+                                header_attrs={'instrument': 'avhrr'},
+                                engine='h5netcdf',
+                                flatten_attrs=True,
+                                pretty=True)
+            scn_ = Scene(reader='satpy_cf_nc',
+                         filenames=[filename])
+            scn_.load(['vis006'])
+            expected_area = scene['vis006'].attrs['area']
+            actual_area = scn_['vis006'].attrs['area']
+            assert expected_area.shape == actual_area.shape
+            np.testing.assert_array_equal(expected_area.lons, actual_area.lons)
+            np.testing.assert_array_equal(expected_area.lats, actual_area.lats)
         finally:
             with suppress(PermissionError):
                 os.remove(filename)
