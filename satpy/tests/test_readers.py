@@ -17,7 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test classes and functions in the readers/__init__.py module."""
 
+import builtins
 import os
+import sys
 import unittest
 from contextlib import suppress
 from unittest import mock
@@ -54,6 +56,8 @@ local_id_keys_config = {'name': {
     'type': ModifierTuple,
 },
 }
+
+real_import = builtins.__import__
 
 
 def make_dataid(**items):
@@ -625,6 +629,11 @@ class TestFindFilesAndReaders(unittest.TestCase):
 class TestYAMLFiles(unittest.TestCase):
     """Test and analyze the reader configuration files."""
 
+    def setUp(self):
+        """Set up monkeypatch."""
+        from _pytest.monkeypatch import MonkeyPatch
+        self.monkeypatch = MonkeyPatch()
+
     def test_filename_matches_reader_name(self):
         """Test that every reader filename matches the name in the YAML."""
         import yaml
@@ -661,6 +670,28 @@ class TestYAMLFiles(unittest.TestCase):
         for reader_info in reader_infos:
             self.assertIn('name', reader_info)
         self.assertEqual(reader_infos, sorted(reader_infos, key=lambda reader_info: reader_info['name']))
+
+    def test_available_readers_base_loader(self):
+        """Test the 'available_readers' function for yaml loader type BaseLoader."""
+        import yaml
+
+        from satpy import available_readers
+        from satpy._config import glob_config
+
+        def patched_import_error(name, globals=None, locals=None, fromlist=(), level=0):
+            if name in ('netcdf4', ):
+                raise ImportError(f"Mocked import error {name}")
+            return real_import(name, globals=globals, locals=locals, fromlist=fromlist, level=level)
+
+        self.monkeypatch.delitem(sys.modules, 'netcdf4', raising=False)
+        self.monkeypatch.setattr(builtins, '__import__', patched_import_error)
+
+        with pytest.raises(ImportError):
+            import netcdf4  # noqa: F401
+
+        reader_names = available_readers(yaml_loader=yaml.BaseLoader)
+        self.assertIn('abi_l1b', reader_names)  # needs netcdf4
+        self.assertEqual(len(reader_names), len(list(glob_config('readers/*.yaml'))))
 
 
 class TestGroupFiles(unittest.TestCase):
