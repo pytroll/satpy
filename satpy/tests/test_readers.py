@@ -691,6 +691,7 @@ class TestYAMLFiles(unittest.TestCase):
 
         reader_names = available_readers(yaml_loader=yaml.BaseLoader)
         self.assertIn('abi_l1b', reader_names)  # needs netcdf4
+        self.assertIn('viirs_l1b', reader_names)
         self.assertEqual(len(reader_names), len(list(glob_config('readers/*.yaml'))))
 
 
