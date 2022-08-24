@@ -25,7 +25,7 @@ import numpy as np
 import pytest
 from netCDF4 import Dataset
 
-from satpy.readers.mws_l1b import MWSL1BFile
+from satpy.readers.mws_l1b import MWSL1BFile, get_channel_index_from_name
 
 N_CHANNELS = 24
 N_CHANNELS_OS = 2
@@ -183,3 +183,19 @@ class TestMwsL1bNCFileHandler:
     def test_sub_satellite_latitude_end(self, reader):
         """Test getting the latitude of sub-satellite point at end of the product."""
         np.testing.assert_allclose(reader.sub_satellite_latitude_end, 60.0)
+
+
+@pytest.mark.parametrize("name, index", [('1', 0), ('2', 1), ('24', 23)])
+def test_get_channel_index_from_name(name, index):
+    """Test getting the MWS channel index from the channel name."""
+    ch_idx = get_channel_index_from_name(name)
+    assert ch_idx == index
+
+
+def test_get_channel_index_from_name_throw_exception():
+    """Test that an excpetion is thrown when getting the MWS channel index from an unsupported name."""
+    with pytest.raises(Exception) as excinfo:
+        _ = get_channel_index_from_name('channel 1')
+
+    assert str(excinfo.value) == "Channel name 'channel 1' not supported"
+    assert excinfo.type == AttributeError

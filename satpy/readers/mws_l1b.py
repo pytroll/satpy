@@ -60,7 +60,7 @@ def get_channel_index_from_name(chname):
     chindex = MWS_CHANNEL_NAMES_TO_NUMBER.get(chname, 0) - 1
     if 0 <= chindex < 24:
         return chindex
-    raise AttributeError("Channel name {ch} not supported: ".format(ch=chname))
+    raise AttributeError(f"Channel name '{chname}' not supported")
 
 
 def _get_aux_data_name_from_dsname(dsname):

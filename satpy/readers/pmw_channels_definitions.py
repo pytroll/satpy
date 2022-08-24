@@ -88,10 +88,6 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
             return other in self
         return super().__eq__(other)
 
-    def __ne__(self, other):
-        """Return the opposite of `__eq__`."""
-        return not self == other
-
     def __lt__(self, other):
         """Compare to another frequency."""
         if other is None:
@@ -110,7 +106,7 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
 
     def __str__(self):
         """Format for print out."""
-        return "{0.central} {0.unit} ({0.side}_{0.sideside}_{0.bandwidth} {0.unit})".format(self)
+        return f"central={self.central} {self.unit} ±{self.side} ±{self.sideside} width={self.bandwidth} {self.unit}"
 
     def __contains__(self, other):
         """Check if this quadruple-side-band 'contains' *other*."""
@@ -242,10 +238,6 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
             return other in self
         return super().__eq__(other)
 
-    def __ne__(self, other):
-        """Return the opposite of `__eq__`."""
-        return not self == other
-
     def __lt__(self, other):
         """Compare to another frequency."""
         if other is None:
@@ -264,7 +256,7 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
 
     def __str__(self):
         """Format for print out."""
-        return "{0.central} {0.unit} ({0.side}_{0.bandwidth} {0.unit})".format(self)
+        return f"central={self.central} {self.unit} ±{self.side} width={self.bandwidth} {self.unit}"
 
     def __contains__(self, other):
         """Check if this double-side-band 'contains' *other*."""
@@ -370,10 +362,6 @@ class FrequencyRange(FrequencyRangeBase):
             return self[:2] == other
         return super().__eq__(other)
 
-    def __ne__(self, other):
-        """Return the opposite of `__eq__`."""
-        return not self == other
-
     def __lt__(self, other):
         """Compare to another frequency."""
         if other is None:
@@ -392,7 +380,7 @@ class FrequencyRange(FrequencyRangeBase):
 
     def __str__(self):
         """Format for print out."""
-        return "{0.central} {0.unit} ({0.bandwidth} {0.unit})".format(self)
+        return f"central={self.central} {self.unit} width={self.bandwidth} {self.unit}"
 
     def __contains__(self, other):
         """Check if this range contains *other*."""

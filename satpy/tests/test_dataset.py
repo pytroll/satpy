@@ -705,8 +705,8 @@ def test_frequency_quadruple_side_band_channel_str():
     frq_dsb1 = FrequencyQuadrupleSideBand(57.0, 0.322, 0.05, 0.036)
     frq_dsb2 = FrequencyQuadrupleSideBand(57000, 322, 50, 36, 'MHz')
 
-    assert str(frq_dsb1) == "57.0 GHz (0.322_0.05_0.036 GHz)"
-    assert str(frq_dsb2) == "57000 MHz (322_50_36 MHz)"
+    assert str(frq_dsb1) == "central=57.0 GHz ±0.322 ±0.05 width=0.036 GHz"
+    assert str(frq_dsb2) == "central=57000 MHz ±322 ±50 width=36 MHz"
 
 
 def test_frequency_quadruple_side_band_channel_equality():
@@ -767,8 +767,8 @@ def test_frequency_double_side_band_channel_str():
     frq_dsb1 = FrequencyDoubleSideBand(183, 7, 2)
     frq_dsb2 = FrequencyDoubleSideBand(183000, 7000, 2000, 'MHz')
 
-    assert str(frq_dsb1) == "183 GHz (7_2 GHz)"
-    assert str(frq_dsb2) == "183000 MHz (7000_2000 MHz)"
+    assert str(frq_dsb1) == "central=183 GHz ±7 width=2 GHz"
+    assert str(frq_dsb2) == "central=183000 MHz ±7000 width=2000 MHz"
 
 
 def test_frequency_double_side_band_channel_equality():
@@ -817,30 +817,39 @@ def test_frequency_double_side_band_channel_distances():
 
 def test_frequency_double_side_band_channel_containment():
     """Test the frequency double side band object: check if one band contains another."""
-    frq_dsb = FrequencyDoubleSideBand(183, 7, 2)
+    frq_range = FrequencyDoubleSideBand(183, 7, 2)
 
-    assert 175.5 in frq_dsb
-    assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3)
-    assert frq_dsb not in FrequencyDoubleSideBand(183, 4, 2)
+    assert 175.5 in frq_range
+    assert frq_range in FrequencyDoubleSideBand(183, 6.5, 3)
+    assert frq_range not in FrequencyDoubleSideBand(183, 4, 2)
 
     with pytest.raises(NotImplementedError):
-        assert frq_dsb in FrequencyDoubleSideBand(183, 6.5, 3, 'MHz')
+        assert frq_range in FrequencyDoubleSideBand(183, 6.5, 3, 'MHz')
 
-    frq_dsb = None
-    assert (frq_dsb in FrequencyDoubleSideBand(183, 3, 2)) is False
+    frq_range = None
+    assert (frq_range in FrequencyDoubleSideBand(183, 3, 2)) is False
 
     assert '183' not in FrequencyDoubleSideBand(183, 3, 2)
 
 
 def test_frequency_range_class_method_convert():
     """Test the frequency range object: test the class method convert."""
-    frq_dsb = FrequencyRange(89, 2)
+    frq_range = FrequencyRange(89, 2)
 
-    res = frq_dsb.convert(89)
+    res = frq_range.convert(89)
     assert res == 89
 
-    res = frq_dsb.convert({'central': 89, 'bandwidth': 2})
+    res = frq_range.convert({'central': 89, 'bandwidth': 2})
     assert res == FrequencyRange(89, 2)
+
+
+def test_frequency_range_class_method_str():
+    """Test the frequency range object: test the band description."""
+    frq_range1 = FrequencyRange(89, 2)
+    frq_range2 = FrequencyRange(89000, 2000, 'MHz')
+
+    assert str(frq_range1) == "central=89 GHz width=2 GHz"
+    assert str(frq_range2) == "central=89000 MHz width=2000 MHz"
 
 
 def test_frequency_range_channel_equality():
