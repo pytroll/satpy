@@ -371,11 +371,13 @@ def available_readers(as_dict=False, yaml_loader=UnsafeLoader):
 
     Args:
         as_dict (bool): Optionally return reader information as a dictionary.
-                        Default: False
+                        Default: False.
+        yaml_loader (Optional[Union[yaml.BaseLoader, yaml.FullLoader, yaml.UnsafeLoader]]):
+            The yaml loader type. Default: ``yaml.UnsafeLoader``.
 
-    Returns: List of available reader names. If `as_dict` is `True` then
-             a list of dictionaries including additionally reader information
-             is returned.
+    Returns:
+        Union[list[str], list[dict]]: List of available reader names. If `as_dict` is `True` then
+        a list of dictionaries including additionally reader information is returned.
 
     """
     readers = []
@@ -450,12 +452,12 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         missing_ok (bool): If False (default), raise ValueError if no files
                             are found.  If True, return empty dictionary if no
                             files are found.
-        fs (FileSystem): Optional, instance of implementation of
-                         fsspec.spec.AbstractFileSystem (strictly speaking,
-                         any object of a class implementing ``.glob`` is
-                         enough).  Defaults to searching the local filesystem.
+        fs (:class:`fsspec.spec.AbstractFileSystem`): Optional, instance of implementation of
+            :class:`fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class implementing
+            ``.glob`` is enough).  Defaults to searching the local filesystem.
 
-    Returns: Dictionary mapping reader name string to list of filenames
+    Returns:
+        dict: Dictionary mapping reader name string to list of filenames
 
     """
     reader_files = {}
