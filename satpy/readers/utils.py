@@ -247,17 +247,17 @@ def unzip_file(filename, prefix=None):
             return tmpfilepath
 
         # Otherwise, fall back to the original method
-        bz2file = bz2.BZ2File(filename)
-        with closing(os.fdopen(fdn, 'wb')) as ofpt:
-            try:
-                ofpt.write(bz2file.read())
-            except IOError:
-                import traceback
-                traceback.print_exc()
-                LOGGER.info("Failed to read bzipped file %s", str(filename))
-                os.remove(tmpfilepath)
-                return None
-        return tmpfilepath
+        with closing(bz2.BZ2File(filename)) as bz2file:
+            with closing(os.fdopen(fdn, 'wb')) as ofpt:
+                try:
+                    ofpt.write(bz2file.read())
+                except IOError:
+                    import traceback
+                    traceback.print_exc()
+                    LOGGER.info("Failed to read bzipped file %s", str(filename))
+                    os.remove(tmpfilepath)
+                    return None
+            return tmpfilepath
 
     return None
 
