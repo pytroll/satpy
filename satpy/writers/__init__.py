@@ -29,14 +29,9 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
 from trollimage.xrimage import XRImage
 from trollsift import parser
+from yaml import UnsafeLoader
 
 from satpy import CHUNK_SIZE
 from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
