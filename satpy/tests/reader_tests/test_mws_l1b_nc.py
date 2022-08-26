@@ -91,6 +91,7 @@ class MWSL1BFakeFileWriter:
             self._create_scan_dimensions(data_group)
             self._write_navigation_data_group(data_group)
             self._write_calibration_data_group(data_group)
+            self._write_measurement_data_group(data_group)
 
     @staticmethod
     def _write_attributes(dataset):
@@ -171,12 +172,21 @@ class MWSL1BFakeFileWriter:
 
     @staticmethod
     def _write_calibration_data_group(dataset):
-        """Write the measurement data group."""
+        """Write the calibration data group."""
         group = dataset.createGroup('calibration')
         toa_bt = group.createVariable(
             'mws_toa_brightness_temperature', np.float32, dimensions=('n_scans', 'n_fovs', 'n_channels',)
         )
         toa_bt[:] = 240.0 * np.ones((N_SCANS, N_FOVS, N_CHANNELS))
+
+    @staticmethod
+    def _write_measurement_data_group(dataset):
+        """Write the measurement data group."""
+        group = dataset.createGroup('measurement')
+        counts = group.createVariable(
+            'mws_earth_view_counts', np.int32, dimensions=('n_scans', 'n_fovs', 'n_channels',)
+        )
+        counts[:] = 24100 * np.ones((N_SCANS, N_FOVS, N_CHANNELS), dtype=np.int32)
 
 
 class TestMwsL1bNCFileHandler:
@@ -214,7 +224,19 @@ class TestMwsL1bNCFileHandler:
         """Test getting the latitude of sub-satellite point at end of the product."""
         np.testing.assert_allclose(reader.sub_satellite_latitude_end, 60.0)
 
-    def test_get_dataset_get_channeldata(self, reader):
+    def test_get_dataset_get_channeldata_counts(self, reader):
+        """Test getting channel data."""
+        dataset_id = {'name': '1', 'units': None,
+                      'calibration': 'counts'}
+        dataset_info = {'file_key': 'data/measurement/mws_earth_view_counts'}
+
+        dataset = reader.get_dataset(dataset_id, dataset_info)
+        expected_bt = np.array([[24100, 24100],
+                                [24100, 24100]], dtype=np.int32)
+        count = dataset[10:12, 12:14].data.compute()
+        np.testing.assert_allclose(count, expected_bt)
+
+    def test_get_dataset_get_channeldata_bts(self, reader):
         """Test getting channel data."""
         dataset_id = {'name': '1', 'units': 'K',
                       'calibration': 'brightness_temperature'}
@@ -248,6 +270,29 @@ class TestMwsL1bNCFileHandler:
 
         log_output = "Reading mws_lon from {filename}".format(filename=str(fake_file))
         assert log_output in caplog.text
+
+    def test_get_dataset_aux_data_not_supported(self, reader):
+        """Test get auxillary dataset not supported."""
+        dataset_id = {'name': 'scantime_utc'}
+        dataset_info = {'file_key': 'non/existing'}
+
+        with pytest.raises(NotImplementedError) as exec_info:
+            _ = reader.get_dataset(dataset_id, dataset_info)
+
+        assert str(exec_info.value) == "Dataset 'scantime_utc' not supported!"
+
+    @pytest.mark.parametrize('dims', (
+        ('n_scans', 'n_fovs'),
+        ('x', 'y'),
+    ))
+    def test_standardize_dims(self, reader, dims):
+        """Test standardize dims."""
+        variable = xr.DataArray(
+            np.arange(6).reshape(2, 3),
+            dims=dims,
+        )
+        standardized = reader._standardize_dims(variable)
+        assert standardized.dims == ('y', 'x')
 
     @staticmethod
     def test_drop_coords(reader):

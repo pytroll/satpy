@@ -146,7 +146,7 @@ class MWSL1BFile(NetCDF4FileHandler):
 
         var_key = dataset_info['file_key']
         if _get_aux_data_name_from_dsname(dataset_id['name']) is not None:
-            variable = self._get_dataset_aux_data(dataset_id['name'], info=dataset_info)
+            variable = self._get_dataset_aux_data(dataset_id['name'])
         elif any(lb in dataset_id['name'] for lb in MWS_CHANNELS):
             logger.debug(f'Reading in file to get dataset with key {var_key}.')
             variable = self._get_dataset_channel(dataset_id, dataset_info)
@@ -187,8 +187,8 @@ class MWSL1BFile(NetCDF4FileHandler):
         """Load dataset corresponding to channel measurement.
 
         Load a dataset when the key refers to a measurand, whether uncalibrated
-        (counts) or calibrated in terms of brightness temperature, radiance, or
-        reflectance.
+        (counts) or calibrated in terms of brightness temperature or radiance.
+
         """
         # Get the dataset
         # Get metadata for given dataset
@@ -234,7 +234,7 @@ class MWSL1BFile(NetCDF4FileHandler):
         data.attrs.update(dataset_attrs)
         return data
 
-    def _get_dataset_aux_data(self, dsname, info=None):
+    def _get_dataset_aux_data(self, dsname):
         """Get the auxiliary data arrays using the index map."""
         # Geolocation and navigation data:
         if dsname in ['mws_lat', 'mws_lon',
@@ -243,7 +243,7 @@ class MWSL1BFile(NetCDF4FileHandler):
                       'surface_type', 'terrain_elevation']:
             var_key = AUX_DATA.get(dsname)
         else:
-            raise NotImplementedError("Dataset %s not supported..." % dsname)
+            raise NotImplementedError(f"Dataset '{dsname}' not supported!")
 
         try:
             variable = self[var_key]
