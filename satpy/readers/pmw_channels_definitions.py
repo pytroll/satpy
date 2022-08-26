@@ -119,15 +119,12 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
         central_right_left = self.central + self.side - self.sideside
         central_right_right = self.central + self.side + self.sideside
 
+        four_centrals = [central_left_left, central_left_right,
+                         central_right_left, central_right_right]
         if isinstance(other, numbers.Number):
-            if _is_inside_interval(other, central_left_left, self.bandwidth):
-                return True
-            if _is_inside_interval(other, central_left_right, self.bandwidth):
-                return True
-            if _is_inside_interval(other, central_right_left, self.bandwidth):
-                return True
-            if _is_inside_interval(other, central_right_right, self.bandwidth):
-                return True
+            for central in four_centrals:
+                if _is_inside_interval(other, central, self.bandwidth):
+                    return True
 
             return False
 
@@ -162,7 +159,6 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
             try:
                 left_side_dist = abs(value.central - value.side - value.sideside - left_left)
                 right_side_dist = abs(value.central + value.side + value.sideside - right_right)
-                return min(left_side_dist, right_side_dist)
             except AttributeError:
                 if isinstance(value, (tuple, list)):
                     msg = 'Distance to a quadruple side band frequency not supported for this type'
@@ -170,7 +166,8 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
 
                 left_side_dist = abs(value - left_left)
                 right_side_dist = abs(value - right_right)
-                return min(left_side_dist, right_side_dist)
+
+            return min(left_side_dist, right_side_dist)
         else:
             return np.inf
 
@@ -262,37 +259,44 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
         """Check if this double-side-band 'contains' *other*."""
         if other is None:
             return False
+
+        leftside = self.central - self.side
+        rightside = self.central + self.side
+
         if isinstance(other, numbers.Number):
-            if (self.central + self.side - self.bandwidth/2. <= other
-                    <= self.central + self.side + self.bandwidth/2.):
+            if self._check_band_contains_other((leftside, self.bandwidth), (other, 0)):
                 return True
-            if (self.central - self.side - self.bandwidth/2. <= other
-                    <= self.central - self.side + self.bandwidth/2.):
-                return True
-            return False
+            return self._check_band_contains_other((rightside, self.bandwidth), (other, 0))
 
+        other_leftside, other_rightside, other_bandwidth = 0, 0, 0
         if isinstance(other, (tuple, list)) and len(other) == 3:
-            return ((self.central - self.side - self.bandwidth/2. <=
-                     other[0] - other[1] - other[2]/2. and
-                     self.central - self.side + self.bandwidth/2. >=
-                     other[0] - other[1] + other[2]/2.) or
-                    (self.central + self.side - self.bandwidth/2. <=
-                     other[0] + other[1] - other[2]/2. and
-                     self.central + self.side + self.bandwidth/2. >=
-                     other[0] + other[1] + other[2]/2.))
+            other_leftside = other[0] - other[1]
+            other_rightside = other[0] + other[1]
+            other_bandwidth = other[2]
+        else:
+            with suppress(AttributeError):
+                if self.unit != other.unit:
+                    raise NotImplementedError("Can't compare frequency ranges with different units.")
+                other_leftside = other.central - other.side
+                other_rightside = other.central + other.side
+                other_bandwidth = other.bandwidth
 
-        with suppress(AttributeError):
-            if self.unit != other.unit:
-                raise NotImplementedError("Can't compare frequency ranges with different units.")
-            return ((self.central - self.side - self.bandwidth/2. <=
-                     other.central - other.side - other.bandwidth/2. and
-                     self.central - self.side + self.bandwidth/2. >=
-                     other.central - other.side + other.bandwidth/2.) or
-                    (self.central + self.side - self.bandwidth/2. <=
-                     other.central + other.side - other.bandwidth/2. and
-                     self.central + self.side + self.bandwidth/2. >=
-                     other.central + other.side + other.bandwidth/2.))
+        if self._check_band_contains_other((leftside, self.bandwidth), (other_leftside, other_bandwidth)):
+            return True
+        return self._check_band_contains_other((rightside, self.bandwidth), (other_rightside, other_bandwidth))
 
+    @staticmethod
+    def _check_band_contains_other(band, other_band):
+        """Check that a band contains another band.
+
+        A band is here defined as a tuple of a central frequency and a bandwidth.
+        """
+        central1, width1 = band
+        central_other, width_other = other_band
+
+        if ((central1 - width1/2. <= central_other - width_other/2.) and
+                (central1 + width1/2. >= central_other + width_other/2.)):
+            return True
         return False
 
     def distance(self, value):
@@ -301,14 +305,14 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
             try:
                 left_side_dist = abs(value.central - value.side - (self.central - self.side))
                 right_side_dist = abs(value.central + value.side - (self.central + self.side))
-                return min(left_side_dist, right_side_dist)
             except AttributeError:
                 if isinstance(value, (tuple, list)):
                     return abs((value[0] - value[1]) - (self.central - self.side))
 
                 left_side_dist = abs(value - (self.central - self.side))
                 right_side_dist = abs(value - (self.central + self.side))
-                return min(left_side_dist, right_side_dist)
+
+            return min(left_side_dist, right_side_dist)
         else:
             return np.inf
 
