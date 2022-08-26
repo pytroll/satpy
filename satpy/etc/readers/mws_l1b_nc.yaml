@@ -47,6 +47,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '2':
         name: '2'
         frequency_range:
@@ -62,6 +63,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '3':
         name: '3'
         frequency_range:
@@ -77,6 +79,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '4':
         name: '4'
         frequency_range:
@@ -92,6 +95,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '5':
         name: '5'
         frequency_double_sideband:
@@ -108,6 +112,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '6':
         name: '6'
         frequency_double_sideband:
@@ -124,6 +129,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '7':
         name: '7'
         frequency_double_sideband:
@@ -140,6 +146,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '8':
         name: '8'
         frequency_range:
@@ -155,6 +162,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '9':
         name: '9'
         frequency_range:
@@ -170,6 +178,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '10':
         name: '10'
         frequency_range:
@@ -185,6 +194,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '11':
         name: '11'
         frequency_range:
@@ -200,6 +210,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '12':
         #57.290344±0.217
         name: '12'
@@ -217,6 +228,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '13':
         #57.290344±0.3222±0.048
         name: '13'
@@ -235,6 +247,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '14':
         #57.290344±0.3222±0.022
         name: '14'
@@ -253,6 +266,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '15':
         #57.290344±0.3222±0.010
         name: '15'
@@ -271,6 +285,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '16':
         #57.290344±0.3222±0.0045
         name: '16'
@@ -289,6 +304,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '17':
         name: '17'
         frequency_range:
@@ -304,6 +320,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '18':
         name: '18'
         # FIXME! Is this a souble side band or what? MWS-18; 164–167; 2 x 1350; QH
@@ -320,6 +337,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '19':
         name: '19'
         frequency_double_sideband:
@@ -336,6 +354,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '20':
         name: '20'
         frequency_double_sideband:
@@ -352,6 +371,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '21':
         name: '21'
         frequency_double_sideband:
@@ -368,6 +388,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '22':
         name: '22'
         frequency_double_sideband:
@@ -384,6 +405,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '23':
         name: '23'
         frequency_double_sideband:
@@ -400,6 +422,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
     '24':
         name: '24'
         frequency_range:
@@ -415,6 +438,7 @@ datasets:
             - mws_lon
             - mws_lat
         file_type: mws_l1b_nc
+        file_key: data/calibration/mws_toa_brightness_temperature
 
 # --- Coordinates ---
 
@@ -422,6 +446,7 @@ datasets:
         name: mws_lat
         resolution: 17000
         file_type: mws_l1b_nc
+        file_key: data/navigation/mws_lat
         standard_name: latitude
         units: degrees_north
 
@@ -429,6 +454,7 @@ datasets:
         name: mws_lon
         resolution: 17000
         file_type: mws_l1b_nc
+        file_key: data/navigation/mws_lat
         standard_name: longitude
         units: degrees_east
 
@@ -438,7 +464,7 @@ datasets:
         name: solar_azimuth
         standard_name: solar_azimuth_angle
         file_type: mws_l1b_nc
-        #file_key: data/navigation/mws_solar_azimuth_angle
+        file_key: data/navigation/mws_solar_azimuth_angle
         coordinates:
             - mws_lon
             - mws_lat
@@ -446,6 +472,7 @@ datasets:
         name: solar_zenith
         standard_name: solar_zenith_angle
         file_type: mws_l1b_nc
+        file_key: data/navigation/mws_solar_zenith_angle
         coordinates:
             - mws_lon
             - mws_lat
@@ -453,6 +480,7 @@ datasets:
         name: satellite_azimuth
         standard_name: satellite_azimuth_angle
         file_type: mws_l1b_nc
+        file_key: data/navigation/mws_satellite_azimuth_angle
         coordinates:
             - mws_lon
             - mws_lat
@@ -460,6 +488,7 @@ datasets:
         name: satellite_zenith
         standard_name: satellite_zenith_angle
         file_type: mws_l1b_nc
+        file_key: data/navigation/mws_satellite_zenith_angle
         coordinates:
             - mws_lon
             - mws_lat

@@ -44,10 +44,10 @@ def reader(fake_file):
     return MWSL1BFile(
         filename=fake_file,
         filename_info={
-            'sensing_start_time': (
+            'start_time': (
                 datetime.fromisoformat('2000-01-01T01:00:00')
             ),
-            'sensing_end_time': (
+            'end_time': (
                 datetime.fromisoformat('2000-01-01T02:00:00')
             ),
             'creation_time': (
@@ -59,6 +59,8 @@ def reader(fake_file):
             'latitude': 'data/navigation_data/mws_lat',
             'solar_azimuth': 'data/navigation/mws_solar_azimuth_angle',
             'solar_zenith': 'data/navigation/mws_solar_zenith_angle',
+            'satellite_azimuth': 'data/navigation/mws_satellite_azimuth_angle',
+            'satellite_zenith': 'data/navigation/mws_satellite_zenith_angle',
         }
     )
 
@@ -86,7 +88,9 @@ class MWSL1BFakeFileWriter:
             self._write_status_group(dataset)
             self._write_quality_group(dataset)
             data_group = dataset.createGroup('data')
+            self._create_scan_dimensions(data_group)
             self._write_navigation_data_group(data_group)
+            self._write_calibration_data_group(data_group)
 
     @staticmethod
     def _write_attributes(dataset):
@@ -134,13 +138,6 @@ class MWSL1BFakeFileWriter:
     def _write_navigation_data_group(dataset):
         """Write the navigation data group."""
         group = dataset.createGroup('navigation')
-        group.createDimension('n_schannels', N_CHANNELS)
-        group.createDimension('n_schannels_os', N_CHANNELS_OS)
-        group.createDimension('n_scans', N_SCANS)
-        group.createDimension('n_fovs', N_FOVS)
-        group.createDimension('n_prts', N_PRTS)
-        group.createDimension('n_fovs_cal', N_FOVS_CAL)
-
         dimensions = ('n_scans', 'n_fovs')
         shape = (N_SCANS, N_FOVS)
         longitude = group.createVariable(
@@ -161,6 +158,25 @@ class MWSL1BFakeFileWriter:
             dimensions=dimensions,
         )
         azimuth[:] = 3. * np.ones(shape)
+
+    @staticmethod
+    def _create_scan_dimensions(dataset):
+        """Create the scan/fovs dimensions."""
+        dataset.createDimension('n_channels', N_CHANNELS)
+        dataset.createDimension('n_channels_os', N_CHANNELS_OS)
+        dataset.createDimension('n_scans', N_SCANS)
+        dataset.createDimension('n_fovs', N_FOVS)
+        dataset.createDimension('n_prts', N_PRTS)
+        dataset.createDimension('n_fovs_cal', N_FOVS_CAL)
+
+    @staticmethod
+    def _write_calibration_data_group(dataset):
+        """Write the measurement data group."""
+        group = dataset.createGroup('calibration')
+        toa_bt = group.createVariable(
+            'mws_toa_brightness_temperature', np.float32, dimensions=('n_scans', 'n_fovs', 'n_channels',)
+        )
+        toa_bt[:] = 240.0 * np.ones((N_SCANS, N_FOVS, N_CHANNELS))
 
 
 class TestMwsL1bNCFileHandler:
@@ -198,15 +214,29 @@ class TestMwsL1bNCFileHandler:
         """Test getting the latitude of sub-satellite point at end of the product."""
         np.testing.assert_allclose(reader.sub_satellite_latitude_end, 60.0)
 
-    def test_get_dataset_raise_exception_if_data_not_exist(self, reader):
+    def test_get_dataset_get_channeldata(self, reader):
+        """Test getting channel data."""
+        dataset_id = {'name': '1', 'units': 'K',
+                      'calibration': 'brightness_temperature'}
+        dataset_info = {'file_key': 'data/calibration/mws_toa_brightness_temperature'}
+
+        dataset = reader.get_dataset(dataset_id, dataset_info)
+
+        expected_bt = np.array([[240., 240., 240., 240., 240.],
+                                [240., 240., 240., 240., 240.],
+                                [240., 240., 240., 240., 240.],
+                                [240., 240., 240., 240., 240.],
+                                [240., 240., 240., 240., 240.]], dtype=np.float32)
+
+        toa_bt = dataset[0:5, 0:5].data.compute()
+        np.testing.assert_allclose(toa_bt, expected_bt)
+
+    def test_get_dataset_return_none_if_data_not_exist(self, reader):
         """Test get dataset return none if data does not exist."""
         dataset_id = {'name': 'unknown'}
         dataset_info = {'file_key': 'non/existing/data'}
-
-        with pytest.raises(ValueError) as exec_info:
-            _ = reader.get_dataset(dataset_id, dataset_info)
-
-        assert str(exec_info.value) == 'Unknown dataset key, not a channel, quality or auxiliary data: unknown'
+        dataset = reader.get_dataset(dataset_id, dataset_info)
+        assert dataset is None
 
     def test_get_dataset_logs_debug_message(self, caplog, fake_file, reader):
         """Test get dataset return none if data does not exist."""

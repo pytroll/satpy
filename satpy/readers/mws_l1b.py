@@ -140,19 +140,21 @@ class MWSL1BFile(NetCDF4FileHandler):
         """Get the latitude of sub-satellite point at end of the product."""
         return self['status/satellite/subsat_latitude_end'].data.item()
 
-    def get_dataset(self, dataset_id, info=None):
-        """Load a dataset."""
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset using file_key in dataset_info."""
         logger.debug('Reading {} from {}'.format(dataset_id['name'], self.filename))
 
+        var_key = dataset_info['file_key']
         if _get_aux_data_name_from_dsname(dataset_id['name']) is not None:
-            variable = self._get_dataset_aux_data(dataset_id['name'], info=info)
+            variable = self._get_dataset_aux_data(dataset_id['name'], info=dataset_info)
         elif any(lb in dataset_id['name'] for lb in MWS_CHANNELS):
-            variable = self._get_dataset_channel(dataset_id, info=info)
+            logger.debug(f'Reading in file to get dataset with key {var_key}.')
+            variable = self._get_dataset_channel(dataset_id, dataset_info)
         else:
-            raise ValueError("Unknown dataset key, not a channel, quality or auxiliary data: "
-                             f"{dataset_id['name']:s}")
+            logger.warning(f'Could not find key {var_key} in NetCDF file, no valid Dataset created')  # noqa: E501
+            return None
 
-        variable = self._manage_attributes(variable, info)
+        variable = self._manage_attributes(variable, dataset_info)
         variable = self._drop_coords(variable)
         variable = self._standardize_dims(variable)
         return variable
@@ -181,7 +183,7 @@ class MWSL1BFile(NetCDF4FileHandler):
         variable.attrs.update(self._get_global_attributes())
         return variable
 
-    def _get_dataset_channel(self, key, info=None):
+    def _get_dataset_channel(self, key, dataset_info):
         """Load dataset corresponding to channel measurement.
 
         Load a dataset when the key refers to a measurand, whether uncalibrated
@@ -190,7 +192,7 @@ class MWSL1BFile(NetCDF4FileHandler):
         """
         # Get the dataset
         # Get metadata for given dataset
-        grp_pth = 'data/calibration/mws_toa_brightness_temperature'
+        grp_pth = dataset_info['file_key']
         channel_index = get_channel_index_from_name(key['name'])
 
         data = self[grp_pth][:, :, channel_index]
@@ -200,6 +202,7 @@ class MWSL1BFile(NetCDF4FileHandler):
             "FillValue",
             default_fillvals.get(data.dtype.str[1:], np.nan))
         vr = attrs.get("valid_range", [-np.inf, np.inf])
+
         if key['calibration'] == "counts":
             attrs["_FillValue"] = fv
             nfv = fv
@@ -210,11 +213,11 @@ class MWSL1BFile(NetCDF4FileHandler):
 
         # Manage the attributes of the dataset
         data.attrs.setdefault('units', None)
-        data.attrs.update(info)
+        data.attrs.update(dataset_info)
 
-        i = getattr(data, 'attrs', {})
-        i.update(info)
-        i.update({
+        dataset_attrs = getattr(data, 'attrs', {})
+        dataset_attrs.update(dataset_info)
+        dataset_attrs.update({
             "platform_name": self.platform_name,
             "sensor": self.sensor,
             "orbital_parameters": {'sub_satellite_latitude_start': self.sub_satellite_latitude_start,
@@ -222,9 +225,13 @@ class MWSL1BFile(NetCDF4FileHandler):
                                    'sub_satellite_latitude_end': self.sub_satellite_latitude_end,
                                    'sub_satellite_longitude_end': self.sub_satellite_longitude_end},
         })
-        i.update(key.to_dict())
-        data.attrs.update(i)
 
+        try:
+            dataset_attrs.update(key.to_dict())
+        except AttributeError:
+            dataset_attrs.update(key)
+
+        data.attrs.update(dataset_attrs)
         return data
 
     def _get_dataset_aux_data(self, dsname, info=None):
@@ -263,8 +270,8 @@ class MWSL1BFile(NetCDF4FileHandler):
             'end_time': self.end_time,
             'spacecraft_name': self.platform_name,
             'sensor': self.sensor,
-            'filename_start_time': self.filename_info['sensing_start_time'],
-            'filename_end_time': self.filename_info['sensing_end_time'],
+            'filename_start_time': self.filename_info['start_time'],
+            'filename_end_time': self.filename_info['end_time'],
             'platform_name': self.platform_name,
             'quality_group': self._get_quality_attributes(),
         }
