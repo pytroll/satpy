@@ -253,12 +253,9 @@ class MWSL1BFile(NetCDF4FileHandler):
 
         # Scale the data:
         if 'scale_factor' in variable.attrs and 'add_offset' in variable.attrs:
-            if 'missing_value' in variable.attrs:
-                missing_value = variable.attrs['missing_value']
-                variable.data = da.where(variable.data == missing_value, np.nan,
-                                         variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset'])
-            else:
-                variable.data = variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset']
+            missing_value = variable.attrs['missing_value']
+            variable.data = da.where(variable.data == missing_value, np.nan,
+                                     variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset'])
 
         return variable
 
@@ -287,6 +284,6 @@ class MWSL1BFile(NetCDF4FileHandler):
                 quality_dict[key] = quality_group[key].values
             except ValueError:
                 quality_dict[key] = None
-        # Add the attributes of the quality group
+
         quality_dict.update(quality_group.attrs)
         return quality_dict
