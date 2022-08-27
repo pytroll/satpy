@@ -141,15 +141,19 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
         """Get the distance to the quadruple side band.
 
         Determining the distance in frequency space between two quadruple side
-        bands can be quite ambiguous, as such bands are in effect a set of
-        4 narrow bands. To keep it as simple as possible we have until further
-        decided to define the distance between such two bands by calculating
-        the distances between the outermost left-sides of the two bands and the
-        distances of the outermost right sides and then minimising those two.
+        bands can be quite ambiguous, as such bands are in effect a set of 4
+        narrow bands, two on each side of the main absorption band, and on each
+        side, one on each side of the secondary absorption lines. To keep it as
+        simple as possible we have until further decided to define the distance
+        between such two bands to infinity if they are determined to be equal.
 
-        If the frequency entered is a single value the distance will be the
+        If the frequency entered is a single value, the distance will be the
         minimum of the distances to the two outermost sides of the quadruple
         side band.
+
+        If the frequency entered is a tuple or list and the two quadruple
+        frequency bands are contained in each other (equal) the distance will
+        always be zero.
 
         """
         left_left = self.central - self.side - self.sideside
@@ -300,7 +304,24 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
         return False
 
     def distance(self, value):
-        """Get the distance from value."""
+        """Get the distance to the double side band.
+
+        Determining the distance in frequency space between two double side
+        bands can be quite ambiguous, as such bands are in effect a set of 2
+        narrow bands, one on each side of the absorption line. To keep it
+        as simple as possible we have until further decided to set the
+        distance between such two bands to infitiy if neither of them are
+        contained in the other.
+
+        If the frequency entered is a single value and this frequency falls
+        inside one of the side bands, the distance will be the minimum of the
+        distances to the two outermost sides of the double side band. However,
+        is such a single frequency value falls outside one of the two side
+        bands, the distance will be set to infitiy.
+
+        If the frequency entered is a tuple the distance will either be 0 (if
+        one is containde in the other) or infinity.
+        """
         if self == value:
             try:
                 left_side_dist = abs(value.central - value.side - (self.central - self.side))
