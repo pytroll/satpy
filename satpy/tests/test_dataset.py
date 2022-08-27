@@ -742,7 +742,7 @@ def test_frequency_quadruple_side_band_channel_distances():
     assert mydist == np.inf
 
     mydist = frq_qdsb.distance((57, 0.322, 0.05, 0.018))
-    assert mydist == 0.0
+    assert mydist == np.inf
 
 
 def test_frequency_quadruple_side_band_channel_containment():
