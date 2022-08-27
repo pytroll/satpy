@@ -133,7 +133,7 @@ class MWSL1BFakeFileWriter:
         duration_of_product = group.createVariable(
             'duration_of_product', "f4"
         )
-        duration_of_product[:] = 1000.
+        duration_of_product[:] = 5944.
 
     @staticmethod
     def _write_navigation_data_group(dataset):
@@ -306,6 +306,24 @@ class TestMwsL1bNCFileHandler:
         assert coords in data.coords
         data = reader._drop_coords(data)
         assert coords not in data.coords
+
+    def test_get_global_attributes(self, reader):
+        """Test get global attributes."""
+        attributes = reader._get_global_attributes()
+        assert attributes == {
+            'filename': reader.filename,
+            'start_time': datetime(2000, 1, 2, 3, 4, 5),
+            'end_time': datetime(2000, 1, 2, 4, 5, 6),
+            'spacecraft_name': 'Metop-SG-A1',
+            'sensor': 'MWS',
+            'filename_start_time': datetime(2000, 1, 1, 1, 0),
+            'filename_end_time': datetime(2000, 1, 1, 2, 0),
+            'platform_name': 'Metop-SG-A1',
+            'quality_group': {
+                'duration_of_product': np.array(5944., dtype=np.float32),
+                'overall_quality_flag': 0,
+            }
+        }
 
     @patch(
         'satpy.readers.mws_l1b.MWSL1BFile._get_global_attributes',

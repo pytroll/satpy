@@ -691,62 +691,72 @@ class TestIDQueryInteractions(unittest.TestCase):
 
 def test_frequency_quadruple_side_band_class_method_convert():
     """Test the frequency double side band object: test the class method convert."""
-    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
 
-    res = frq_dsb.convert(57.37)
+    res = frq_qdsb.convert(57.37)
     assert res == 57.37
 
-    res = frq_dsb.convert({'central': 57.0, 'side': 0.322, 'sideside': 0.05, 'bandwidth': 0.036})
+    res = frq_qdsb.convert({'central': 57.0, 'side': 0.322, 'sideside': 0.05, 'bandwidth': 0.036})
     assert res == FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
 
 
 def test_frequency_quadruple_side_band_channel_str():
     """Test the frequency quadruple side band object: test the band description."""
-    frq_dsb1 = FrequencyQuadrupleSideBand(57.0, 0.322, 0.05, 0.036)
-    frq_dsb2 = FrequencyQuadrupleSideBand(57000, 322, 50, 36, 'MHz')
+    frq_qdsb1 = FrequencyQuadrupleSideBand(57.0, 0.322, 0.05, 0.036)
+    frq_qdsb2 = FrequencyQuadrupleSideBand(57000, 322, 50, 36, 'MHz')
 
-    assert str(frq_dsb1) == "central=57.0 GHz ±0.322 ±0.05 width=0.036 GHz"
-    assert str(frq_dsb2) == "central=57000 MHz ±322 ±50 width=36 MHz"
+    assert str(frq_qdsb1) == "central=57.0 GHz ±0.322 ±0.05 width=0.036 GHz"
+    assert str(frq_qdsb2) == "central=57000 MHz ±322 ±50 width=36 MHz"
 
 
 def test_frequency_quadruple_side_band_channel_equality():
     """Test the frequency quadruple side band object: check if two bands are 'equal'."""
-    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
-    assert frq_dsb is not None
-    assert 57 != frq_dsb
-    assert 57.372 == frq_dsb
-    assert 56.646 == frq_dsb
-    assert 56.71 == frq_dsb
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    assert frq_qdsb is not None
+    assert frq_qdsb < FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.04)
+    assert frq_qdsb < FrequencyQuadrupleSideBand(58, 0.322, 0.05, 0.036)
+    assert frq_qdsb < ((58, 0.322, 0.05, 0.036))
 
-    assert frq_dsb != FrequencyQuadrupleSideBand(57, 0.322, 0.1, 0.040)
+    assert 57 != frq_qdsb
+    assert 57.372 == frq_qdsb
+    assert 56.646 == frq_qdsb
+    assert 56.71 == frq_qdsb
 
-    frq_dsb = None
-    assert FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036) != frq_dsb
-    assert frq_dsb < FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.04)
+    assert frq_qdsb != FrequencyQuadrupleSideBand(57, 0.322, 0.1, 0.040)
+
+    frq_qdsb = None
+    assert FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036) != frq_qdsb
+    assert frq_qdsb < FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.04)
 
 
 def test_frequency_quadruple_side_band_channel_distances():
     """Test the frequency quadruple side band object: get the distance between two bands."""
-    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
-    mydist = frq_dsb.distance(57.372)
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    mydist = frq_qdsb.distance(57.372)
     assert mydist == 0.0
 
-    mydist = frq_dsb.distance(57)
+    mydist = frq_qdsb.distance(57.38)
+    np.testing.assert_almost_equal(mydist, 0.008)
+
+    mydist = frq_qdsb.distance(57)
     assert mydist == np.inf
+
+    mydist = frq_qdsb.distance((57, 0.322, 0.05, 0.018))
+    assert mydist == 0.0
 
 
 def test_frequency_quadruple_side_band_channel_containment():
     """Test the frequency quadruple side band object: check if one band contains another."""
-    frq_dsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
 
-    assert 57 not in frq_dsb
-    assert 57.373 in frq_dsb
+    assert 57 not in frq_qdsb
+    assert 57.373 in frq_qdsb
 
     with pytest.raises(NotImplementedError):
-        assert frq_dsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)
+        assert frq_qdsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)
 
-    frq_dsb = None
-    assert (frq_dsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)) is False
+    frq_qdsb = None
+    assert (frq_qdsb in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)) is False
 
     assert '57' not in FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.05)
 
@@ -786,6 +796,7 @@ def test_frequency_double_side_band_channel_equality():
     assert FrequencyDoubleSideBand(183, 7, 2) != frq_dsb
 
     assert frq_dsb < FrequencyDoubleSideBand(183, 7, 2)
+
     assert FrequencyDoubleSideBand(182, 7, 2) < FrequencyDoubleSideBand(183, 7, 2)
     assert FrequencyDoubleSideBand(184, 7, 2) > FrequencyDoubleSideBand(183, 7, 2)
 
