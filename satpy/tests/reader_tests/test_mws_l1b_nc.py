@@ -281,6 +281,21 @@ class TestMwsL1bNCFileHandler:
 
         assert str(exec_info.value) == "Dataset 'scantime_utc' not supported!"
 
+    def test_get_dataset_aux_data_expected_data_missing(self, caplog, reader):
+        """Test get auxillary dataset which is not present but supposed to be in file."""
+        dataset_id = {'name': 'surface_type'}
+        dataset_info = {'file_key': 'non/existing'}
+
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(KeyError) as exec_info:
+                _ = reader.get_dataset(dataset_id, dataset_info)
+
+        assert str(exec_info.value) == "'data/navigation/mws_surface_type'"
+
+        log_output = ("Could not find key data/navigation/mws_surface_type in NetCDF file," +
+                      " no valid Dataset created")
+        assert log_output in caplog.text
+
     @pytest.mark.parametrize('dims', (
         ('n_scans', 'n_fovs'),
         ('x', 'y'),

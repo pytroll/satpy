@@ -248,15 +248,14 @@ class MWSL1BFile(NetCDF4FileHandler):
         try:
             variable = self[var_key]
         except KeyError:
-            logger.warning("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
-            return None
+            logger.exception("Could not find key %s in NetCDF file, no valid Dataset created", var_key)
+            raise
 
         # Scale the data:
         if 'scale_factor' in variable.attrs and 'add_offset' in variable.attrs:
             missing_value = variable.attrs['missing_value']
             variable.data = da.where(variable.data == missing_value, np.nan,
                                      variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset'])
-
         return variable
 
     def _get_global_attributes(self):
