@@ -716,6 +716,9 @@ def test_frequency_quadruple_side_band_channel_equality():
     assert frq_qdsb < FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.04)
     assert frq_qdsb < FrequencyQuadrupleSideBand(58, 0.322, 0.05, 0.036)
     assert frq_qdsb < ((58, 0.322, 0.05, 0.036))
+    assert frq_qdsb > FrequencyQuadrupleSideBand(57, 0.322, 0.04, 0.01)
+    assert frq_qdsb > None
+    assert (frq_qdsb < None) is False
 
     assert 57 != frq_qdsb
     assert 57.372 == frq_qdsb
