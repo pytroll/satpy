@@ -1067,6 +1067,7 @@ class EnhancementDecisionTree(DecisionTree):
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue
+                    LOG.debug(f"Adding enhancement configuration from file: {config_file}")
                     conf = recursive_dict_update(conf, enhancement_section)
             elif isinstance(config_file, dict):
                 conf = recursive_dict_update(conf, config_file)
@@ -1150,11 +1151,11 @@ class Enhancer(object):
         """Apply the enhancements."""
         enh_kwargs = self.enhancement_tree.find_match(**info)
 
-        LOG.debug("Enhancement configuration options: %s" %
-                  (str(enh_kwargs['operations']), ))
+        backup_id = f"<name={info.get('name')}, calibration={info.get('calibration')}>"
+        data_id = info.get("_satpy_id", backup_id)
+        LOG.debug(f"Data for {data_id} will be enhanced with options:\n\t{enh_kwargs['operations']}")
         for operation in enh_kwargs['operations']:
             fun = operation['method']
             args = operation.get('args', [])
             kwargs = operation.get('kwargs', {})
             fun(img, *args, **kwargs)
-        # img.enhance(**enh_kwargs)
