@@ -1,5 +1,6 @@
 $(document).ready( function () {
     $('table.datatable').DataTable( {
-    "paging": false
+    "paging": false,
+    "dom": 'lfitp'
 } );
 } );
