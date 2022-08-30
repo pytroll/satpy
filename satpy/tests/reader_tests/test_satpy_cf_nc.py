@@ -150,7 +150,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='h5netcdf',
                                      flatten_attrs=True,
                                      pretty=True)
@@ -180,7 +179,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='h5netcdf',
                                      flatten_attrs=True,
                                      pretty=True,
@@ -214,7 +212,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='netcdf4',
                                      flatten_attrs=True,
                                      pretty=True)
@@ -245,7 +242,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='netcdf4',
                                      flatten_attrs=True,
                                      pretty=True,
@@ -272,7 +268,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='netcdf4',
                                      flatten_attrs=True,
                                      pretty=True,
@@ -297,7 +292,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='netcdf4',
                                      flatten_attrs=True,
                                      pretty=True,
@@ -320,7 +314,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='netcdf4',
                                      flatten_attrs=True,
                                      pretty=True,
@@ -343,7 +336,6 @@ class TestCFReader(unittest.TestCase):
         try:
             self.scene.save_datasets(writer='cf',
                                      filename=filename,
-                                     header_attrs={'instrument': 'avhrr'},
                                      engine='netcdf4',
                                      flatten_attrs=True,
                                      pretty=True,
@@ -364,8 +356,7 @@ class TestCFReader(unittest.TestCase):
             datetime.utcnow().strftime('%Y%j%H%M%S'))
         try:
             self.scene.save_datasets(writer='cf',
-                                     filename=filename,
-                                     header_attrs={'instrument': 'avhrr'})
+                                     filename=filename)
             scn_ = Scene(reader='satpy_cf_nc',
                          filenames=[filename])
             scn_.load(['image0'])
