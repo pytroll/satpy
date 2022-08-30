@@ -26,22 +26,16 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict, deque
 from contextlib import suppress
 from fnmatch import fnmatch
+from functools import cached_property
 from weakref import WeakValueDictionary
 
 import numpy as np
 import xarray as xr
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
-from functools import cached_property
-
 from pyresample.boundary import AreaDefBoundary, Boundary
 from pyresample.geometry import AreaDefinition, StackedAreaDefinition, SwathDefinition
 from trollsift.parser import globify, parse
+from yaml import UnsafeLoader
 
 from satpy import DatasetDict
 from satpy.aux_download import DataDownloadMixin

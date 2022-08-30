@@ -212,15 +212,15 @@ class SatpyCFFileHandler(BaseFileHandler):
         return self.filename_info.get('end_time', self.start_time)
 
     @property
-    def sensor(self):
-        """Get sensor."""
-        nc = xr.open_dataset(self.filename, engine=self.engine)
-        return nc.attrs['instrument'].replace('/', '-').lower()
-
-    @property
     def sensor_names(self):
         """Get sensor set."""
-        return {self.sensor}
+        sensors = set()
+        for _, ds_info in self.available_datasets():
+            try:
+                sensors.add(ds_info["sensor"])
+            except KeyError:
+                continue
+        return sensors
 
     def available_datasets(self, configured_datasets=None):
         """Add information of available datasets."""

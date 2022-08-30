@@ -143,11 +143,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
         elif calibration == 'radiance':
             raise NotImplementedError("Calibration to radiance is not supported.")
         # Apply range limits, but not for counts or we convert to float!
-        if calibration != 'counts':
+        if calibration not in ['counts', None]:
             data = data.where((data >= min(data.attrs['valid_range'])) &
                               (data <= max(data.attrs['valid_range'])))
         else:
             data.attrs['_FillValue'] = data.attrs['FillValue'].item()
+        if calibration is None:
+            data = data.where(data != data.attrs['_FillValue'])
         return data
 
     def calibrate_to_reflectance(self, data, channel_index, ds_info):
@@ -233,10 +235,16 @@ class HDF_AGRI_L1(HDF5FileHandler):
     def start_time(self):
         """Get the start time."""
         start_time = self['/attr/Observing Beginning Date'] + 'T' + self['/attr/Observing Beginning Time'] + 'Z'
-        return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%SZ')
 
     @property
     def end_time(self):
         """Get the end time."""
         end_time = self['/attr/Observing Ending Date'] + 'T' + self['/attr/Observing Ending Time'] + 'Z'
-        return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        try:
+            return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%SZ')
