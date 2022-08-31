@@ -40,10 +40,6 @@ class FrequencyBandBaseArithmetics:
             return True
         return super().__gt__(other)
 
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
-
     @classmethod
     def convert(cls, frq):
         """Convert `frq` to this type if possible."""
@@ -118,6 +114,10 @@ class FrequencyQuadrupleSideBand(FrequencyBandBaseArithmetics, FrequencyQuadrupl
     def __str__(self):
         """Format for print out."""
         return f"central={self.central} {self.unit} ±{self.side} ±{self.sideside} width={self.bandwidth} {self.unit}"
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
 
     def __contains__(self, other):
         """Check if this quadruple-side-band 'contains' *other*."""
@@ -247,6 +247,10 @@ class FrequencyDoubleSideBand(FrequencyBandBaseArithmetics, FrequencyDoubleSideB
         """Format for print out."""
         return f"central={self.central} {self.unit} ±{self.side} width={self.bandwidth} {self.unit}"
 
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
     def __contains__(self, other):
         """Check if this double-side-band 'contains' *other*."""
         if other is None:
@@ -371,6 +375,10 @@ class FrequencyRange(FrequencyBandBaseArithmetics, FrequencyRangeBase):
     def __str__(self):
         """Format for print out."""
         return f"central={self.central} {self.unit} width={self.bandwidth} {self.unit}"
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
 
     def __contains__(self, other):
         """Check if this range contains *other*."""
