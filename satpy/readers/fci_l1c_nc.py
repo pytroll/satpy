@@ -105,6 +105,7 @@ All auxiliary data can be obtained by prepending the channel name such as
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
+import warnings
 from functools import cached_property
 
 import numpy as np
@@ -209,28 +210,52 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         This is used in the GEOVariableSegmentYAMLReader to compute optimal chunk sizes for missing chunks.
         """
-        segment_position_info = {
-            # '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
-            #         'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
-            #         'segment_height': self['data/vis_04/measured/end_position_row'].item() -
-            #         self['data/vis_04/measured/start_position_row'].item() + 1,
-            #         'segment_width': 11136},
-            # '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
-            #         'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
-            #         'segment_height': self['data/ir_105/measured/end_position_row'].item() -
-            #         self['data/ir_105/measured/start_position_row'].item() + 1,
-            #         'segment_width': 5568},
-            '3km': {'start_position_row': self['data/ir_87/measured/start_position_row'].item(),
-                    'end_position_row': self['data/ir_87/measured/end_position_row'].item(),
-                    'segment_height': self['data/ir_87/measured/end_position_row'].item() -
-                    self['data/ir_87/measured/start_position_row'].item() + 1,
+        if self.filename_info["coverage"] == "AF":
+            segment_position_info = {}
+            channel_data = [key for key in self.file_content.keys()
+                            if ((key.startswith("data/vis") or
+                                 key.startswith("data/ir") or
+                                 key.startswith("data/hrv") or
+                                 key.startswith("data/nir") or
+                                 key.startswith("data/wv"))
+                                and key.endswith("measured"))][0]
+            if 'hrv' in channel_data:
+                segment_position_info['1km'] = {
+                    'start_position_row': self[f'{channel_data}/start_position_row'].item(),
+                    'end_position_row': self[f'{channel_data}/end_position_row'].item(),
+                    'segment_height': (self[f'{channel_data}/end_position_row'].item() -
+                                       self[f'{channel_data}/start_position_row'].item() + 1),
+                    'segment_width': 11136}
+            else:
+                segment_position_info['3km'] = {
+                    'start_position_row': self[f'{channel_data}/start_position_row'].item(),
+                    'end_position_row': self[f'{channel_data}/end_position_row'].item(),
+                    'segment_height': (self[f'{channel_data}/end_position_row'].item() -
+                                       self[f'{channel_data}/start_position_row'].item() + 1),
                     'segment_width': 3712}
-        }
-
+        else:
+            segment_position_info = {
+                '1km': {'start_position_row': self['data/vis_04/measured/start_position_row'].item(),
+                        'end_position_row': self['data/vis_04/measured/end_position_row'].item(),
+                        'segment_height': self['data/vis_04/measured/end_position_row'].item() -
+                        self['data/vis_04/measured/start_position_row'].item() + 1,
+                        'segment_width': 11136},
+                '2km': {'start_position_row': self['data/ir_105/measured/start_position_row'].item(),
+                        'end_position_row': self['data/ir_105/measured/end_position_row'].item(),
+                        'segment_height': self['data/ir_105/measured/end_position_row'].item() -
+                        self['data/ir_105/measured/start_position_row'].item() + 1,
+                        'segment_width': 5568},
+            }
         return segment_position_info
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""
+        channel_name = _get_channel_name_from_dsname(key['name'])
+        # Get metadata for given dataset
+        measured = self.get_channel_measured_group_path(channel_name)
+
+        if measured not in self.file_content.keys():
+            return None
         logger.debug('Reading {} from {}'.format(key['name'], self.filename))
         if "pixel_quality" in key['name']:
             return self._get_dataset_quality(key['name'])
@@ -324,8 +349,8 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         actual_subsat_lat = float(np.nanmean(self._get_aux_data_lut_vector('subsatellite_latitude')))
         actual_sat_alt = float(np.nanmean(self._get_aux_data_lut_vector('platform_altitude')))
 
-        nominal_and_proj_subsat_lon = 0  # float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
-        nominal_and_proj_subsat_lat = 0
+        nominal_and_proj_subsat_lon = self._lon_0
+        nominal_and_proj_subsat_lat = self._lat_0
         nominal_and_proj_sat_alt = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
 
         orb_param_dict = {
@@ -394,7 +419,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
     @staticmethod
     def get_channel_measured_group_path(channel):
         """Get the channel's measured group path."""
-        measured_group_path = 'data/{}/measured'.format(channel)
+        measured_group_path = f'data/{channel}/measured'
 
         return measured_group_path
 
@@ -411,17 +436,12 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         logger.debug('Channel {} resolution: {}'.format(channel_name, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
-
         # Calculate full globe line extent
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
 
         extents = {}
         for coord in "xy":
             coord_radian = self["data/{:s}/measured/{:s}".format(channel_name, coord)]
-
-            # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
-            if coord == "x" and coord_radian.scale_factor > 0:
-                coord_radian.attrs['scale_factor'] *= -1
 
             # TODO remove this check when old versions of IDPF test data (<v5) are deprecated.
             if type(coord_radian.scale_factor) is np.float32:
@@ -430,6 +450,10 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
                 coord_radian.attrs['add_offset'] = coord_radian.attrs['add_offset'].astype('float64')
 
             coord_radian_num = coord_radian[:] * coord_radian.scale_factor + coord_radian.add_offset
+
+            # TODO remove this check when old versions of IDPF test data (<v4) are deprecated.
+            if coord == "x" and coord_radian.scale_factor > 0:
+                coord_radian_num *= -1
 
             # FCI defines pixels by centroids (see PUG), while pyresample
             # defines corners as lower left corner of lower left pixel, upper right corner of upper right pixel
@@ -473,6 +497,22 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
 
         return area_extent, nlines, ncols
 
+    @cached_property
+    def _lon_0(self):
+        try:
+            return float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        except ValueError:
+            warnings.warn(f"Invalid longitude of projection origin in {self.filename}, setting to 0.")
+            return 0
+
+    @cached_property
+    def _lat_0(self):
+        try:
+            return float(self["data/mtg_geos_projection/attr/latitude_of_projection_origin"])
+        except ValueError:
+            warnings.warn(f"Invalid latitude of projection origin in {self.filename}, setting to 0.")
+            return 0
+
     def get_area_def(self, key):
         """Calculate on-fly area definition for a dataset in geos-projection."""
         # assumption: channels with same resolution should have same area
@@ -483,7 +523,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
         rf = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
-        lon_0 = 0  # float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        lon_0 = self._lon_0
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
 
         area_extent, nlines, ncols = self.calc_area_extent(key)
@@ -546,7 +586,7 @@ class FCIL1cNCFileHandler(NetCDF4FileHandler):
     def calibrate_counts_to_rad(self, data, key):
         """Calibrate counts to radiances."""
         if key['name'] == 'ir_38':
-            data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
+            data = xr.where(2 ** 12 - 1 < data <= 2 ** 13 - 1,
                             (data * data.attrs.get("warm_scale_factor", 1) +
                              data.attrs.get("warm_add_offset", 0)),
                             (data * data.attrs.get("scale_factor", 1) +
