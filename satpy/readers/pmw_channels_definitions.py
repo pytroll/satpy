@@ -25,6 +25,33 @@ from typing import NamedTuple
 import numpy as np
 
 
+class FrequencyBandBaseArithmetics:
+    """Mixin class with basic frequency comparison operations."""
+
+    def __lt__(self, other):
+        """Compare to another frequency."""
+        if other is None:
+            return False
+        return super().__lt__(other)
+
+    def __gt__(self, other):
+        """Compare to another frequency."""
+        if other is None:
+            return True
+        return super().__gt__(other)
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
+    @classmethod
+    def convert(cls, frq):
+        """Convert `frq` to this type if possible."""
+        if isinstance(frq, dict):
+            return cls(**frq)
+        return frq
+
+
 class FrequencyQuadrupleSideBandBase(NamedTuple):
     """Base class for a frequency quadruple side band.
 
@@ -47,7 +74,7 @@ class FrequencyQuadrupleSideBandBase(NamedTuple):
     unit: str = "GHz"
 
 
-class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
+class FrequencyQuadrupleSideBand(FrequencyBandBaseArithmetics, FrequencyQuadrupleSideBandBase):
     """The frequency quadruple side band class.
 
     The elements of the quadruple-side-band type frequency band are the
@@ -87,22 +114,6 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
         if isinstance(other, (tuple, list)) and len(other) == 4:
             return other in self
         return super().__eq__(other)
-
-    def __lt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return False
-        return super().__lt__(other)
-
-    def __gt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return True
-        return super().__gt__(other)
-
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
 
     def __str__(self):
         """Format for print out."""
@@ -175,13 +186,6 @@ class FrequencyQuadrupleSideBand(FrequencyQuadrupleSideBandBase):
         else:
             return np.inf
 
-    @classmethod
-    def convert(cls, frq):
-        """Convert `frq` to this type if possible."""
-        if isinstance(frq, dict):
-            return cls(**frq)
-        return frq
-
 
 class FrequencyDoubleSideBandBase(NamedTuple):
     """Base class for a frequency double side band.
@@ -202,7 +206,7 @@ class FrequencyDoubleSideBandBase(NamedTuple):
     unit: str = "GHz"
 
 
-class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
+class FrequencyDoubleSideBand(FrequencyBandBaseArithmetics, FrequencyDoubleSideBandBase):
     """The frequency double side band class.
 
     The elements of the double-side-band type frequency band are the central
@@ -238,22 +242,6 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
         if isinstance(other, (tuple, list)) and len(other) == 3:
             return other in self
         return super().__eq__(other)
-
-    def __lt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return False
-        return super().__lt__(other)
-
-    def __gt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return True
-        return super().__gt__(other)
-
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
 
     def __str__(self):
         """Format for print out."""
@@ -337,13 +325,6 @@ class FrequencyDoubleSideBand(FrequencyDoubleSideBandBase):
         else:
             return np.inf
 
-    @classmethod
-    def convert(cls, frq):
-        """Convert `frq` to this type if possible."""
-        if isinstance(frq, dict):
-            return cls(**frq)
-        return frq
-
 
 class FrequencyRangeBase(NamedTuple):
     """Base class for frequency ranges.
@@ -356,7 +337,7 @@ class FrequencyRangeBase(NamedTuple):
     unit: str = "GHz"
 
 
-class FrequencyRange(FrequencyRangeBase):
+class FrequencyRange(FrequencyBandBaseArithmetics, FrequencyRangeBase):
     """The Frequency range class.
 
     The elements of the range are central and bandwidth values, and optionally
@@ -386,22 +367,6 @@ class FrequencyRange(FrequencyRangeBase):
         if isinstance(other, (tuple, list)) and len(other) == 2:
             return self[:2] == other
         return super().__eq__(other)
-
-    def __lt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return False
-        return super().__lt__(other)
-
-    def __gt__(self, other):
-        """Compare to another frequency."""
-        if other is None:
-            return True
-        return super().__gt__(other)
-
-    def __hash__(self):
-        """Hash this tuple."""
-        return tuple.__hash__(self)
 
     def __str__(self):
         """Format for print out."""
@@ -433,13 +398,6 @@ class FrequencyRange(FrequencyRangeBase):
         else:
             return np.inf
 
-    @classmethod
-    def convert(cls, frq):
-        """Convert `frq` to this type if possible."""
-        if isinstance(frq, dict):
-            return cls(**frq)
-        return frq
-
 
 def _is_inside_interval(value, central, width):
-    return (central - width/2 <= value <= central + width/2)
+    return central - width/2 <= value <= central + width/2
