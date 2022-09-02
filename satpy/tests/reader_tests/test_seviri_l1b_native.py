@@ -528,7 +528,7 @@ class TestNativeMSGArea(unittest.TestCase):
     """
 
     @staticmethod
-    def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, good_qual=True):
+    def create_test_header(earth_model, dataset_id, is_full_disk, is_rapid_scan, good_qual='OK'):
         """Create mocked NativeMSGFileHandler.
 
         Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
@@ -572,15 +572,10 @@ class TestNativeMSGArea(unittest.TestCase):
             n_hrv_cols = n_visir_cols * 3
             n_hrv_lines = n_visir_lines * 3
             ssp_lon = 0
-        # Set quality flag
-        if good_qual:
-            qqov = 'OK'
-        else:
-            qqov = 'NOK'
         header = {
             '15_MAIN_PRODUCT_HEADER': {
                 'QQOV': {'Name': 'QQOV',
-                         'Value': qqov}
+                         'Value': good_qual}
             },
             '15_DATA_HEADER': {
                 'ImageDescription': {
@@ -1385,14 +1380,14 @@ def test_header_warning():
         earth_model=1,
         is_full_disk=True,
         is_rapid_scan=0,
-        good_qual=True
+        good_qual='OK'
     )
     header_bad = TestNativeMSGArea.create_test_header(
         dataset_id=make_dataid(name='VIS006', resolution=3000),
         earth_model=1,
         is_full_disk=True,
         is_rapid_scan=0,
-        good_qual=False
+        good_qual='NOK'
     )
 
     with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile, \
@@ -1406,9 +1401,8 @@ def test_header_warning():
         exp_warning = "The quality flag for this file indicates not OK. Use this data with caution!"
 
         fromfile.return_value = header_good
-        with pytest.warns(None) as warnings:
+        with pytest.warns(None):
             NativeMSGFileHandler('myfile', {}, None)
-            print(warnings)
 
         fromfile.return_value = header_bad
         with pytest.warns(UserWarning, match=exp_warning):
