@@ -735,7 +735,17 @@ def test_frequency_quadruple_side_band_channel_equality():
 def test_frequency_quadruple_side_band_channel_distances():
     """Test the frequency quadruple side band object: get the distance between two bands."""
     frq_qdsb = FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036)
+    mydist = frq_qdsb.distance([57, 0.322, 0.05, 0.036])
+
+    frq_dict = {'central': 57, 'side': 0.322, 'sideside': 0.05,
+                'bandwidth': 0.036, 'unit': 'GHz'}
+    mydist = frq_qdsb.distance(frq_dict)
+    assert mydist == np.inf
+
     mydist = frq_qdsb.distance(57.372)
+    assert mydist == 0.0
+
+    mydist = frq_qdsb.distance(FrequencyQuadrupleSideBand(57, 0.322, 0.05, 0.036))
     assert mydist == 0.0
 
     mydist = frq_qdsb.distance(57.38)

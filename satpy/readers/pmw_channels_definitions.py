@@ -175,10 +175,6 @@ class FrequencyQuadrupleSideBand(FrequencyBandBaseArithmetics, FrequencyQuadrupl
                 left_side_dist = abs(value.central - value.side - value.sideside - left_left)
                 right_side_dist = abs(value.central + value.side + value.sideside - right_right)
             except AttributeError:
-                if isinstance(value, (tuple, list)):
-                    msg = 'Distance to a quadruple side band frequency not supported for this type'
-                    raise NotImplementedError(msg)
-
                 left_side_dist = abs(value - left_left)
                 right_side_dist = abs(value - right_right)
 
