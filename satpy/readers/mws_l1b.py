@@ -52,7 +52,7 @@ MWS_CHANNEL_NAMES_TO_NUMBER = {'1': 1, '2': 2, '3': 3, '4': 4,
                                '21': 21, '22': 22, '23': 23, '24': 24}
 
 MWS_CHANNEL_NAMES = list(MWS_CHANNEL_NAMES_TO_NUMBER.keys())
-MWS_CHANNELS = set(MWS_CHANNEL_NAMES_TO_NUMBER.keys())
+MWS_CHANNELS = set(MWS_CHANNEL_NAMES)
 
 
 def get_channel_index_from_name(chname):
