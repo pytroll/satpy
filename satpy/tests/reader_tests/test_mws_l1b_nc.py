@@ -143,22 +143,27 @@ class MWSL1BFakeFileWriter:
         shape = (N_SCANS, N_FOVS)
         longitude = group.createVariable(
             'mws_lon',
-            np.float32,
+            np.int32,
             dimensions=dimensions,
         )
-        longitude[:] = np.ones(shape)
+        longitude.scale_factor = 1.0E-4
+        longitude.add_offset = 0.0
+        longitude.missing_value = np.array((-2147483648), np.int32)
+        longitude[:] = 35.7535 * np.ones(shape)
+
         latitude = group.createVariable(
             'mws_lat',
             np.float32,
             dimensions=dimensions,
         )
         latitude[:] = 2. * np.ones(shape)
+
         azimuth = group.createVariable(
             'mws_solar_azimuth_angle',
             np.float32,
             dimensions=dimensions,
         )
-        azimuth[:] = 3. * np.ones(shape)
+        azimuth[:] = 179. * np.ones(shape)
 
     @staticmethod
     def _create_scan_dimensions(dataset):
@@ -177,6 +182,9 @@ class MWSL1BFakeFileWriter:
         toa_bt = group.createVariable(
             'mws_toa_brightness_temperature', np.float32, dimensions=('n_scans', 'n_fovs', 'n_channels',)
         )
+        toa_bt.scale_factor = 1.0  # 1.0E-8
+        toa_bt.add_offset = 0.0
+        toa_bt.missing_value = -2147483648
         toa_bt[:] = 240.0 * np.ones((N_SCANS, N_FOVS, N_CHANNELS))
 
     @staticmethod
@@ -259,6 +267,22 @@ class TestMwsL1bNCFileHandler:
         dataset_info = {'file_key': 'non/existing/data'}
         dataset = reader.get_dataset(dataset_id, dataset_info)
         assert dataset is None
+
+    def test_get_navigation_longitudes(self, caplog, fake_file, reader):
+        """Test get the longitudes."""
+        dataset_id = {'name': 'mws_lon'}
+        dataset_info = {'file_key': 'data/navigation_data/mws_lon'}
+
+        dataset = reader.get_dataset(dataset_id, dataset_info)
+
+        expected_lons = np.array([[35.753498, 35.753498, 35.753498, 35.753498, 35.753498],
+                                  [35.753498, 35.753498, 35.753498, 35.753498, 35.753498],
+                                  [35.753498, 35.753498, 35.753498, 35.753498, 35.753498],
+                                  [35.753498, 35.753498, 35.753498, 35.753498, 35.753498],
+                                  [35.753498, 35.753498, 35.753498, 35.753498, 35.753498]], dtype=np.float32)
+
+        longitudes = dataset[0:5, 0:5].data.compute()
+        np.testing.assert_allclose(longitudes, expected_lons)
 
     def test_get_dataset_logs_debug_message(self, caplog, fake_file, reader):
         """Test get dataset return none if data does not exist."""

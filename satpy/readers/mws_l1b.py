@@ -256,6 +256,7 @@ class MWSL1BFile(NetCDF4FileHandler):
             missing_value = variable.attrs['missing_value']
             variable.data = da.where(variable.data == missing_value, np.nan,
                                      variable.data * variable.attrs['scale_factor'] + variable.attrs['add_offset'])
+
         return variable
 
     def _get_global_attributes(self):
