@@ -66,7 +66,6 @@ extras_require = {
     'hsaf_grib': ['pygrib'],
     'fci_l1b_nc': ['hdf5plugin'],
     'remote_reading': ['fsspec'],
-    'fci_l1b_nc': ['hdf5plugin'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'awips_tiled': ['netCDF4 >= 1.1.8'],
