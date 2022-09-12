@@ -375,6 +375,47 @@ mtg_fci_fdss_2km:
     upper_right_xy: [5567999.994206558,  5567999.994206558]
     units: m
 
+# Full disk - segmented products
+mtg_fci_fdss_6km:
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 6 km resolution
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 1856
+    width: 1856
+  area_extent:
+    lower_left_xy: [-5567999.994200589, -5567999.994200589]
+    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    units: m
+
+mtg_fci_fdss_32km:
+  description:
+    MTG FCI Full Disk Scanning Service area definition
+    with 32 km resolution
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 348
+    width: 348
+  area_extent:
+    lower_left_xy: [-5567999.994200589, -5567999.994200589]
+    upper_right_xy: [5567999.994206558,  5567999.994206558]
+    units: m
+
 # Geostationary Operational Environmental Satellite (GOES) / ABI Instrument
 
 # Full disk

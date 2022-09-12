@@ -48,12 +48,16 @@ class NC_ABI_L2(NC_ABI_BASE):
 
     def _update_data_arr_with_filename_attrs(self, variable):
         _units = variable.attrs['units'] if 'units' in variable.attrs else None
-        variable.attrs.update({'platform_name': self.platform_name,
-                               'sensor': self.sensor,
-                               'units': _units,
-                               'satellite_latitude': float(self.nc['nominal_satellite_subpoint_lat']),
-                               'satellite_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
-                               'satellite_altitude': float(self.nc['nominal_satellite_height']) * 1000.})
+        variable.attrs.update({
+            'platform_name': self.platform_name,
+            'sensor': self.sensor,
+            'units': _units,
+            'orbital_parameters': {
+                'satellite_nominal_latitude': float(self.nc['nominal_satellite_subpoint_lat']),
+                'satellite_nominal_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
+                'satellite_nominal_altitude': float(self.nc['nominal_satellite_height']) * 1000.,
+            },
+        })
 
         if 'flag_meanings' in variable.attrs:
             variable.attrs['flag_meanings'] = variable.attrs['flag_meanings'].split(' ')

@@ -18,6 +18,7 @@
 """Testing of utils."""
 from __future__ import annotations
 
+import datetime
 import logging
 import typing
 import unittest
@@ -271,6 +272,28 @@ class TestGetSatPos:
         with pytest.raises(KeyError, match="Unable to determine satellite position.*"):
             get_satpos(data_arr)
 
+    def test_get_satpos_from_satname(self, caplog):
+        """Test getting satellite position from satellite name only."""
+        import pyorbital.tlefile
+
+        data_arr = xr.DataArray(
+                (),
+                attrs={
+                    "platform_name": "Meteosat-42",
+                    "sensor": "irives",
+                    "start_time": datetime.datetime(2031, 11, 20, 19, 18, 17)})
+        with mock.patch("pyorbital.tlefile.read") as plr:
+            plr.return_value = pyorbital.tlefile.Tle(
+                    "Meteosat-42",
+                    line1="1 40732U 15034A   22011.84285506  .00000004  00000+0  00000+0 0  9995",
+                    line2="2 40732   0.2533 325.0106 0000976 118.8734 330.4058  1.00272123 23817")
+            with caplog.at_level(logging.WARNING):
+                (lon, lat, alt) = get_satpos(data_arr, use_tle=True)
+            assert "Orbital parameters missing from metadata" in caplog.text
+            np.testing.assert_allclose(
+                    (lon, lat, alt),
+                    (119.39533705010592, -1.1491628298731498, 35803.19986408156))
+
 
 def test_make_fake_scene():
     """Test the make_fake_scene utility.
@@ -427,3 +450,120 @@ def _verify_unchanged_chunks(data_arrays: list[xr.DataArray],
                              orig_arrays: list[xr.DataArray]) -> None:
     for data_arr, orig_arr in zip(data_arrays, orig_arrays):
         assert data_arr.chunks == orig_arr.chunks
+
+
+def test_chunk_pixel_size():
+    """Check the chunk pixel size computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_pixel_size
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_pixel_size() is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_pixel_size() == 100
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_pixel_size() == 200
+
+
+def test_chunk_size_limit():
+    """Check the chunk size limit computations."""
+    from unittest.mock import patch
+
+    from satpy.utils import get_chunk_size_limit
+    with patch("satpy.utils.CHUNK_SIZE", None):
+        assert get_chunk_size_limit(np.uint8) is None
+    with patch("satpy.utils.CHUNK_SIZE", 10):
+        assert get_chunk_size_limit(np.float64) == 800
+    with patch("satpy.utils.CHUNK_SIZE", (10, 20)):
+        assert get_chunk_size_limit(np.int32) == 800
+
+
+def test_convert_remote_files_to_fsspec_local_files():
+    """Test convertion of remote files to fsspec objects.
+
+    Case without scheme/protocol, which should default to plain filenames.
+    """
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["/tmp/file1.nc", "file:///tmp/file2.nc"]
+    res = convert_remote_files_to_fsspec(filenames)
+    assert res == filenames
+
+
+def test_convert_remote_files_to_fsspec_mixed_sources():
+    """Test convertion of remote files to fsspec objects.
+
+    Case with mixed local and remote files.
+    """
+    from satpy.readers import FSFile
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", "file:///tmp/file3.nc"]
+    res = convert_remote_files_to_fsspec(filenames)
+    # Two local files, one remote
+    assert filenames[0] in res
+    assert filenames[2] in res
+    assert sum([isinstance(f, FSFile) for f in res]) == 1
+
+
+def test_convert_remote_files_to_fsspec_filename_dict():
+    """Test convertion of remote files to fsspec objects.
+
+    Case where filenames is a dictionary mapping readers and filenames.
+    """
+    from satpy.readers import FSFile
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = {
+        "reader1": ["/tmp/file1.nc", "/tmp/file2.nc"],
+        "reader2": ["s3://tmp/file3.nc", "file:///tmp/file4.nc", "/tmp/file5.nc"]
+    }
+    res = convert_remote_files_to_fsspec(filenames)
+
+    assert res["reader1"] == filenames["reader1"]
+    assert filenames["reader2"][1] in res["reader2"]
+    assert filenames["reader2"][2] in res["reader2"]
+    assert sum([isinstance(f, FSFile) for f in res["reader2"]]) == 1
+
+
+def test_convert_remote_files_to_fsspec_fsfile():
+    """Test convertion of remote files to fsspec objects.
+
+    Case where the some of the files are already FSFile objects.
+    """
+    from satpy.readers import FSFile
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["/tmp/file1.nc", "s3://data-bucket/file2.nc", FSFile("ssh:///tmp/file3.nc")]
+    res = convert_remote_files_to_fsspec(filenames)
+
+    assert sum([isinstance(f, FSFile) for f in res]) == 2
+
+
+def test_convert_remote_files_to_fsspec_windows_paths():
+    """Test convertion of remote files to fsspec objects.
+
+    Case where windows paths are used.
+    """
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = [r"C:\wintendo\file1.nc", "e:\\wintendo\\file2.nc", r"wintendo\file3.nc"]
+    res = convert_remote_files_to_fsspec(filenames)
+
+    assert res == filenames
+
+
+@mock.patch('fsspec.open_files')
+def test_convert_remote_files_to_fsspec_storage_options(open_files):
+    """Test convertion of remote files to fsspec objects.
+
+    Case with storage options given.
+    """
+    from satpy.utils import convert_remote_files_to_fsspec
+
+    filenames = ["s3://tmp/file1.nc"]
+    storage_options = {'anon': True}
+
+    _ = convert_remote_files_to_fsspec(filenames, storage_options=storage_options)
+
+    open_files.assert_called_once_with(filenames, **storage_options)

@@ -34,7 +34,6 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     @mock.patch('satpy.readers.goes_imager_nc.xr')
     @mock.patch.multiple('satpy.readers.goes_imager_nc.GOESNCBaseFileHandler',
-                         __abstractmethods__=set(),
                          _get_sector=mock.MagicMock())
     def setUp(self, xr_):
         """Set up the tests."""
@@ -280,9 +279,6 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                             'projection_latitude': 0.0,
                                             'projection_altitude': ALTITUDE,
                                             'yaw_flip': True},
-                     'satellite_longitude': -75.0,
-                     'satellite_latitude': 0.0,
-                     'satellite_altitude': ALTITUDE,
                      'platform_name': 'GOES-15',
                      'sensor': 'goes_imager',
                      'sector': UNKNOWN_SECTOR,

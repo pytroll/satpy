@@ -357,7 +357,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                 filetype_info)
 
         self.is_zipped = False
-        self._unzipped = unzip_file(self.filename)
+        self._unzipped = unzip_file(self.filename, prefix=str(filename_info['segment']).zfill(2))
         # Assume file is not zipped
         if self._unzipped:
             # But if it is, set the filename to point to unzipped temp file
@@ -436,6 +436,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Get the nominal end time."""
         return self._modify_observation_time_for_nominal(self.observation_end_time)
 
+    @staticmethod
+    def _is_valid_timeline(timeline):
+        """Check that the `observation_timeline` value is not a fill value."""
+        if int(timeline[:2]) > 23:
+            return False
+        return True
+
     def _modify_observation_time_for_nominal(self, observation_time):
         """Round observation time to a nominal time based on known observation frequency.
 
@@ -450,11 +457,16 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         """
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
+        if not self._is_valid_timeline(timeline):
+            warnings.warn("Observation timeline is fill value, not rounding observation time.")
+            return observation_time
+
         if self.observation_area == 'FLDK':
             dt = 0
         else:
             observation_frequency_seconds = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
             dt = observation_frequency_seconds * (int(self.observation_area[2:]) - 1)
+
         return observation_time.replace(
             hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
             second=dt % 60, microsecond=0)

@@ -25,7 +25,9 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
+import xarray as xr
 
+from satpy import DataQuery
 from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
@@ -211,80 +213,80 @@ class TestMultiScene(unittest.TestCase):
                     time_threshold=30)
             assert len(mscn.scenes) == 12
 
-    def test_group(self):
-        """Test group."""
-        from satpy import MultiScene, Scene
 
-        ds1 = _create_test_dataset(name='ds1')
-        ds2 = _create_test_dataset(name='ds2')
-        ds3 = _create_test_dataset(name='ds3')
-        ds4 = _create_test_dataset(name='ds4')
-        scene1 = Scene()
-        scene1['ds1'] = ds1
-        scene1['ds2'] = ds2
-        scene2 = Scene()
-        scene2['ds3'] = ds3
-        scene2['ds4'] = ds4
+class TestMultiSceneGrouping:
+    """Test dataset grouping in MultiScene."""
 
-        multi_scene = MultiScene([scene1, scene2])
-        groups = {make_dataid(name='odd', wavelength=(1, 2, 3)): ['ds1', 'ds3'],
-                  make_dataid(name='even', wavelength=(2, 3, 4)): ['ds2', 'ds4']}
-        multi_scene.group(groups)
-
-        self.assertSetEqual(multi_scene.shared_dataset_ids, set(groups.keys()))
-
-    def test_add_group_aliases(self):
-        """Test adding group aliases."""
-        import types
-
-        import numpy as np
-        import xarray as xr
-
+    @pytest.fixture
+    def scene1(self):
+        """Create first test scene."""
         from satpy import Scene
-        from satpy.multiscene import add_group_aliases
+        scene = Scene()
+        dsid1 = make_dataid(
+            name="ds1",
+            resolution=123,
+            wavelength=(1, 2, 3),
+            polarization="H"
+        )
+        scene[dsid1] = _create_test_dataset(name='ds1')
+        dsid2 = make_dataid(
+            name="ds2",
+            resolution=456,
+            wavelength=(4, 5, 6),
+            polarization="V"
+        )
+        scene[dsid2] = _create_test_dataset(name='ds2')
+        return scene
 
-        # Define test scenes
-        ds_id1 = make_dataid(name='ds1', wavelength=(10.7, 10.8, 10.9))
-        ds_id2 = make_dataid(name='ds2', wavelength=(1.9, 2.0, 2.1))
-        ds_id3 = make_dataid(name='ds3', wavelength=(10.8, 10.9, 11.0))
-        ds_id31 = make_dataid(name='ds31', polarization='H')
+    @pytest.fixture
+    def scene2(self):
+        """Create second test scene."""
+        from satpy import Scene
+        scene = Scene()
+        dsid1 = make_dataid(
+            name="ds3",
+            resolution=123.1,
+            wavelength=(1.1, 2.1, 3.1),
+            polarization="H"
+        )
+        scene[dsid1] = _create_test_dataset(name='ds3')
+        dsid2 = make_dataid(
+            name="ds4",
+            resolution=456.1,
+            wavelength=(4.1, 5.1, 6.1),
+            polarization="V"
+        )
+        scene[dsid2] = _create_test_dataset(name='ds4')
+        return scene
 
-        scene1 = Scene()
-        scene1[ds_id1] = xr.DataArray([1])
-        scene2 = Scene()
-        scene2[ds_id2] = xr.DataArray([2])
-        scene3 = Scene()
-        scene3[ds_id3] = xr.DataArray([3])
-        scene3[ds_id31] = xr.DataArray([4])
-        scenes = [scene1, scene2, scene3]
+    @pytest.fixture
+    def multi_scene(self, scene1, scene2):
+        """Create small multi scene for testing."""
+        from satpy import MultiScene
+        return MultiScene([scene1, scene2])
 
-        # Define groups
-        g1 = make_dataid(name='g1', wavelength=(10, 11, 12))
-        g2 = make_dataid(name='g2', wavelength=(1, 2, 3), polarization='V')
-        groups = {g1: ['ds1', 'ds3'], g2: ['ds2']}
+    @pytest.fixture
+    def groups(self):
+        """Get group definitions for the MultiScene."""
+        return {
+            DataQuery(name='odd'): ['ds1', 'ds3'],
+            DataQuery(name='even'): ['ds2', 'ds4']
+        }
 
-        # Test adding aliases
-        with_aliases = add_group_aliases(iter(scenes), groups)
-        self.assertIsInstance(with_aliases, types.GeneratorType)
-        with_aliases = list(with_aliases)
-        self.assertSetEqual(set(with_aliases[0].keys()), {g1, ds_id1})
-        self.assertSetEqual(set(with_aliases[1].keys()), {g2, ds_id2})
-        self.assertSetEqual(set(with_aliases[2].keys()), {g1, ds_id3, ds_id31})
+    def test_multi_scene_grouping(self, multi_scene, groups, scene1):
+        """Test grouping a MultiScene."""
+        multi_scene.group(groups)
+        shared_ids_exp = {make_dataid(name="odd"), make_dataid(name="even")}
+        assert multi_scene.shared_dataset_ids == shared_ids_exp
+        assert DataQuery(name='odd') not in scene1
+        xr.testing.assert_allclose(multi_scene.scenes[0]["ds1"], scene1["ds1"])
 
-        np.testing.assert_array_equal(with_aliases[0]['g1'].values, [1])
-        np.testing.assert_array_equal(with_aliases[0]['ds1'].values, [1])
-        np.testing.assert_array_equal(with_aliases[1]['g2'].values, [2])
-        np.testing.assert_array_equal(with_aliases[1]['ds2'].values, [2])
-        np.testing.assert_array_equal(with_aliases[2]['g1'].values, [3])
-        np.testing.assert_array_equal(with_aliases[2]['ds3'].values, [3])
-        np.testing.assert_array_equal(with_aliases[2]['ds31'].values, [4])
-
-        # Make sure that modifying the result doesn't modify the original
-        self.assertNotIn(g1, scene1)
-
-        # Adding an alias for multiple datasets in one scene should fail
-        gen = add_group_aliases([scene3], {g1: ['ds3', 'ds31']})
-        self.assertRaises(ValueError, list, gen)
+    def test_fails_to_add_multiple_datasets_from_the_same_scene_to_a_group(self, multi_scene):
+        """Test that multiple datasets from the same scene in one group fails."""
+        groups = {DataQuery(name='mygroup'): ['ds1', 'ds2']}
+        multi_scene.group(groups)
+        with pytest.raises(ValueError):
+            next(multi_scene.scenes)
 
 
 class TestMultiSceneSave(unittest.TestCase):

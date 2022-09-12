@@ -1,6 +1,10 @@
 reader:
-  description: SAFE Reader for SAR L2 OCN data
   name: safe_sar_l2_ocn
+  short_name: SAR l2 OCN
+  long_name: SAR Level 2 OCN data in SAFE format
+  description: SAFE Reader for SAR L2 OCN data
+  status: Defunct
+  supports_fsspec: false
   sensors: [sar-c]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

@@ -828,7 +828,9 @@ class NetCDFTemplate:
         # determine fill value and
         if 'encoding' in var_config:
             new_encoding.update(var_config['encoding'])
-        new_encoding.setdefault('dtype', 'uint16')
+        if "dtype" not in new_encoding:
+            new_encoding['dtype'] = 'int16'
+            new_encoding['_Unsigned'] = 'true'
         return new_encoding
 
     def _render_variable(self, data_arr):

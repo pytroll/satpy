@@ -23,22 +23,18 @@ For now, this includes enhancement configuration utilities.
 import logging
 import os
 import warnings
+from typing import Optional
 
 import dask.array as da
 import numpy as np
 import xarray as xr
 import yaml
-
-try:
-    from yaml import UnsafeLoader
-except ImportError:
-    from yaml import Loader as UnsafeLoader  # type: ignore
-
 from trollimage.xrimage import XRImage
 from trollsift import parser
+from yaml import UnsafeLoader
 
 from satpy import CHUNK_SIZE
-from satpy._config import config_search_paths, glob_config
+from satpy._config import config_search_paths, get_entry_points_config_dirs, glob_config
 from satpy.aux_download import DataDownloadMixin
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
@@ -110,13 +106,17 @@ def configs_for_writer(writer=None):
         # given a config filename or writer name
         config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
     else:
-        writer_configs = glob_config(os.path.join('writers', '*.yaml'))
+        paths = get_entry_points_config_dirs('satpy.writers')
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'), search_dirs=paths)
         config_files = set(writer_configs)
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
+        paths = get_entry_points_config_dirs('satpy.writers')
         writer_configs = config_search_paths(
-            os.path.join("writers", config_basename))
+            os.path.join("writers", config_basename),
+            search_dirs=paths,
+        )
 
         if not writer_configs:
             LOG.warning("No writer configs found for '%s'", writer)
@@ -403,7 +403,7 @@ def get_enhanced_image(dataset, enhance=None, overlay=None, decorate=None,
         dataset (xarray.DataArray): Data to be enhanced and converted to an image.
         enhance (bool or Enhancer): Whether to automatically enhance
             data to be more visually useful and to fit inside the file
-            format being saved to. By default this will default to using
+            format being saved to. By default, this will default to using
             the enhancement configuration files found using the default
             :class:`~satpy.writers.Enhancer` class. This can be set to
             `False` so that no enhancments are performed. This can also
@@ -662,7 +662,7 @@ class Writer(Plugin, DataDownloadMixin):
         Args:
             datasets (iterable): Iterable of `xarray.DataArray` objects to
                                  save using this writer.
-            compute (bool): If `True` (default), compute all of the saves to
+            compute (bool): If `True` (default), compute all the saves to
                             disk. If `False` then the return value is either
                             a :doc:`dask:delayed` object or two lists to
                             be passed to a :func:`dask.array.store` call.
@@ -672,7 +672,7 @@ class Writer(Plugin, DataDownloadMixin):
 
         Returns:
             Value returned depends on `compute` keyword argument. If
-            `compute` is `True` the value is the result of a either a
+            `compute` is `True` the value is the result of either a
             :func:`dask.array.store` operation or a :doc:`dask:delayed`
             compute, typically this is `None`. If `compute` is `False` then
             the result is either a :doc:`dask:delayed` object that can be
@@ -725,7 +725,7 @@ class Writer(Plugin, DataDownloadMixin):
             If `compute` is `False` then the returned value is either a
             :doc:`dask:delayed` object that can be computed using
             `delayed.compute()` or a tuple of (source, target) that should be
-            passed to :func:`dask.array.store`. If target is provided the the
+            passed to :func:`dask.array.store`. If target is provided the
             caller is responsible for calling `target.close()` if the target
             has this method.
 
@@ -760,7 +760,7 @@ class ImageWriter(Writer):
                 Base destination directories for all created files.
             enhance (bool or Enhancer): Whether to automatically enhance
                 data to be more visually useful and to fit inside the file
-                format being saved to. By default this will default to using
+                format being saved to. By default, this will default to using
                 the enhancement configuration files found using the default
                 :class:`~satpy.writers.Enhancer` class. This can be set to
                 `False` so that no enhancments are performed. This can also
@@ -812,7 +812,13 @@ class ImageWriter(Writer):
                                  decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
-    def save_image(self, img, filename=None, compute=True, **kwargs):
+    def save_image(
+            self,
+            img: XRImage,
+            filename: Optional[str] = None,
+            compute: bool = True,
+            **kwargs
+    ):
         """Save Image object to a given ``filename``.
 
         Args:
@@ -897,7 +903,7 @@ class DecisionTree(object):
             decision_dicts (dict): Dictionary of dictionaries. Each
                 sub-dictionary contains key/value pairs that can be
                 matched from the `find_match` method. Sub-dictionaries
-                can include additional keys outside of the ``match_keys``
+                can include additional keys outside the ``match_keys``
                 provided to act as the "result" of a query. The keys of
                 the root dict are arbitrary.
             match_keys (list): Keys of the provided dictionary to use for
@@ -1017,9 +1023,10 @@ class DecisionTree(object):
         """
         try:
             match = self._find_match(self._tree, self._match_keys, query_dict)
-        except (KeyError, IndexError, ValueError):
+        except (KeyError, IndexError, ValueError, TypeError):
             LOG.debug("Match exception:", exc_info=True)
             LOG.error("Error when finding matching decision section")
+            match = None
 
         if match is None:
             # only possible if no default section was provided
@@ -1061,6 +1068,7 @@ class EnhancementDecisionTree(DecisionTree):
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue
+                    LOG.debug(f"Adding enhancement configuration from file: {config_file}")
                     conf = recursive_dict_update(conf, enhancement_section)
             elif isinstance(config_file, dict):
                 conf = recursive_dict_update(conf, config_file)
@@ -1099,7 +1107,8 @@ class Enhancer(object):
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(config_fn)
+            paths = get_entry_points_config_dirs('satpy.enhancements')
+            self.enhancement_config_file = config_search_paths(config_fn, search_dirs=paths)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -1118,9 +1127,10 @@ class Enhancer(object):
             # one single sensor
             sensor = [sensor]
 
+        paths = get_entry_points_config_dirs('satpy.enhancements')
         for sensor_name in sensor:
             config_fn = os.path.join("enhancements", sensor_name + ".yaml")
-            config_files = config_search_paths(config_fn)
+            config_files = config_search_paths(config_fn, search_dirs=paths)
             # Note: Enhancement configuration files can't overwrite individual
             # options, only entire sections are overwritten
             for config_file in config_files:
@@ -1142,11 +1152,11 @@ class Enhancer(object):
         """Apply the enhancements."""
         enh_kwargs = self.enhancement_tree.find_match(**info)
 
-        LOG.debug("Enhancement configuration options: %s" %
-                  (str(enh_kwargs['operations']), ))
+        backup_id = f"<name={info.get('name')}, calibration={info.get('calibration')}>"
+        data_id = info.get("_satpy_id", backup_id)
+        LOG.debug(f"Data for {data_id} will be enhanced with options:\n\t{enh_kwargs['operations']}")
         for operation in enh_kwargs['operations']:
             fun = operation['method']
             args = operation.get('args', [])
             kwargs = operation.get('kwargs', {})
             fun(img, *args, **kwargs)
-        # img.enhance(**enh_kwargs)

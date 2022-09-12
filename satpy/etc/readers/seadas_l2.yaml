@@ -1,6 +1,10 @@
 reader:
-  description: MODIS and VIIRS SEADAS Reader
   name: seadas_l2
+  short_name: MODIS/VIIRS SEADAS
+  long_name: SEADAS L2 Chlorphyll A product in HDF4 format
+  description: MODIS and VIIRS SEADAS Reader
+  status: Beta
+  supports_fsspec: false
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [modis, viirs]
 

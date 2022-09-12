@@ -24,8 +24,22 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.file_handlers import BaseFileHandler, open_dataset
 from satpy.tests.utils import FakeFileHandler
+
+
+def test_open_dataset():
+    """Test xr.open_dataset wrapper."""
+    fn = mock.MagicMock()
+    str_file_path = "path/to/file.nc"
+    with mock.patch('xarray.open_dataset') as xr_open:
+        _ = open_dataset(fn, decode_cf=True, chunks=500)
+        fn.open.assert_called_once_with()
+        xr_open.assert_called_once_with(fn.open(), decode_cf=True, chunks=500)
+
+        xr_open.reset_mock()
+        _ = open_dataset(str_file_path, decode_cf=True, chunks=500)
+        xr_open.assert_called_once_with(str_file_path, decode_cf=True, chunks=500)
 
 
 class TestBaseFileHandler(unittest.TestCase):
@@ -33,8 +47,6 @@ class TestBaseFileHandler(unittest.TestCase):
 
     def setUp(self):
         """Set up the test."""
-        self._old_set = BaseFileHandler.__abstractmethods__
-        BaseFileHandler._abstractmethods__ = set()
         self.fh = BaseFileHandler(
             'filename', {'filename_info': 'bla'}, 'filetype_info')
 
@@ -176,10 +188,6 @@ class TestBaseFileHandler(unittest.TestCase):
         filename = Path('/bla/bla.nc')
         bfh = BaseFileHandler(filename, {'filename_info': 'bla'}, 'filetype_info')
         assert isinstance(bfh.filename, Path)
-
-    def tearDown(self):
-        """Tear down the test."""
-        BaseFileHandler.__abstractmethods__ = self._old_set
 
 
 @pytest.mark.parametrize(

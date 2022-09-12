@@ -944,10 +944,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             # Attributes only available for full disc images. YAML reader
             # doesn't like it if satellite_* is present but None
             data.attrs.update(
-                {'satellite_longitude': self.meta['lon0'],
-                 'satellite_latitude': self.meta['lat0'],
-                 'satellite_altitude': ALTITUDE,
-                 'nadir_row': self.meta['nadir_row'],
+                {'nadir_row': self.meta['nadir_row'],
                  'nadir_col': self.meta['nadir_col'],
                  'area_def_uniform_sampling': self.meta['area_def_uni']}
             )

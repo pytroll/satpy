@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2017 Satpy developers
+# Copyright (c) 2010-2022 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from typing import Callable
 
 import numpy as np
 import xarray as xr
@@ -34,6 +35,7 @@ from satpy.dependency_tree import DependencyTree
 from satpy.node import CompositorNode, MissingDependencies, ReaderNode
 from satpy.readers import load_readers
 from satpy.resample import get_area_def, prepare_resampler, resample_dataset
+from satpy.utils import convert_remote_files_to_fsspec, get_storage_options_from_reader_kwargs
 from satpy.writers import load_writer
 
 LOG = logging.getLogger(__name__)
@@ -71,13 +73,28 @@ class Scene:
                  reader_kwargs=None):
         """Initialize Scene with Reader and Compositor objects.
 
-        To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
-        then the available readers will be searched for a Reader that can support the provided files. This can take
-        a considerable amount of time so it is recommended that `reader` always be provided. Note without `filenames`
-        the Scene is created with no Readers available requiring Datasets to be added manually::
+        To load data `filenames` and preferably `reader` must be specified::
+
+            scn = Scene(filenames=glob('/path/to/viirs/sdr/files/*'), reader='viirs_sdr')
+
+
+        If ``filenames`` is provided without ``reader`` then the available readers
+        will be searched for a Reader that can support the provided files. This
+        can take a considerable amount of time so it is recommended that
+        ``reader`` always be provided. Note without ``filenames`` the Scene is
+        created with no Readers available requiring Datasets to be added
+        manually::
 
             scn = Scene()
             scn['my_dataset'] = Dataset(my_data_array, **my_info)
+
+        Further, notice that it is also possible to load a combination of files
+        or sets of files each requiring their specific reader. For that
+        ``filenames`` needs to be a `dict` (see parameters list below), e.g.::
+
+            scn = Scene(filenames={'nwcsaf-pps_nc': glob('/path/to/nwc/saf/pps/files/*'),
+                                   'modis_l1b': glob('/path/to/modis/lvl1/files/*')})
+
 
         Args:
             filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
@@ -91,21 +108,31 @@ class Scene:
                 sub-dictionaries to pass different arguments to different
                 reader instances.
 
+                Keyword arguments for remote file access are also given in this dictionary.
+                See `documentation <https://satpy.readthedocs.io/en/stable/remote_reading.html>`_
+                for usage examples.
+
         """
         self.attrs = dict()
+
+        storage_options, cleaned_reader_kwargs = get_storage_options_from_reader_kwargs(reader_kwargs)
+
         if filter_parameters:
-            if reader_kwargs is None:
-                reader_kwargs = {}
+            if cleaned_reader_kwargs is None:
+                cleaned_reader_kwargs = {}
             else:
-                reader_kwargs = reader_kwargs.copy()
-            reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
+                cleaned_reader_kwargs = cleaned_reader_kwargs.copy()
+            cleaned_reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
+        if filenames:
+            filenames = convert_remote_files_to_fsspec(filenames, storage_options)
+
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
-                                                      reader_kwargs=reader_kwargs)
+                                                      reader_kwargs=cleaned_reader_kwargs)
         self._datasets = DatasetDict()
         self._wishlist = set()
         self._dependency_tree = DependencyTree(self._readers)
@@ -223,15 +250,33 @@ class Scene:
             if not all(ad.crs == first_crs for ad in areas[1:]):
                 raise ValueError("Can't compare areas with different "
                                  "projections.")
+            return self._compare_area_defs(compare_func, areas)
+        return self._compare_swath_defs(compare_func, areas)
 
-            def key_func(ds):
-                return 1. / abs(ds.pixel_size_x)
-        else:
-            def key_func(ds):
-                return ds.shape
+    @staticmethod
+    def _compare_area_defs(compare_func: Callable, area_defs: list[AreaDefinition]) -> list[AreaDefinition]:
+        def _key_func(area_def: AreaDefinition) -> tuple:
+            """Get comparable version of area based on resolution.
 
-        # find the highest/lowest area among the provided
-        return compare_func(areas, key=key_func)
+            Pixel size x is the primary comparison parameter followed by
+            the y dimension pixel size. The extent of the area and the
+            name (area_id) of the area are also used to act as
+            "tiebreakers" between areas of the same resolution.
+
+            """
+            pixel_size_x_inverse = 1. / abs(area_def.pixel_size_x)
+            pixel_size_y_inverse = 1. / abs(area_def.pixel_size_y)
+            area_id = area_def.area_id
+            return pixel_size_x_inverse, pixel_size_y_inverse, area_def.area_extent, area_id
+        return compare_func(area_defs, key=_key_func)
+
+    @staticmethod
+    def _compare_swath_defs(compare_func: Callable, swath_defs: list[SwathDefinition]) -> list[SwathDefinition]:
+        def _key_func(swath_def: SwathDefinition) -> tuple:
+            attrs = getattr(swath_def.lons, "attrs", {})
+            lon_ds_name = attrs.get("name")
+            return swath_def.shape[1], swath_def.shape[0], lon_ds_name
+        return compare_func(swath_defs, key=_key_func)
 
     def _gather_all_areas(self, datasets):
         """Gather all areas from datasets.
@@ -271,6 +316,8 @@ class Scene:
     def max_area(self, datasets=None):
         """Get highest resolution area for the provided datasets. Deprecated.
 
+        Deprecated.  Use :meth:`finest_area` instead.
+
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
                                  be either `xarray.DataArray` objects or
@@ -296,6 +343,8 @@ class Scene:
 
     def min_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets. Deprecated.
+
+        Deprecated.  Use :meth:`coarsest_area` instead.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
@@ -1142,6 +1191,47 @@ class Scene:
                                           filename=filename,
                                           **kwargs)
         return writer.save_datasets(dataarrays, compute=compute, **save_kwargs)
+
+    def compute(self, **kwargs):
+        """Call `compute` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.compute` for more details.
+        Note that this will convert the contents of the DataArray to numpy arrays which
+        may not work with all parts of Satpy which may expect dask arrays.
+        """
+        from dask import compute
+        new_scn = self.copy()
+        datasets = compute(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def persist(self, **kwargs):
+        """Call `persist` on all Scene data arrays.
+
+        See :meth:`xarray.DataArray.persist` for more details.
+        """
+        from dask import persist
+        new_scn = self.copy()
+        datasets = persist(*(new_scn._datasets.values()), **kwargs)
+
+        for i, k in enumerate(new_scn._datasets.keys()):
+            new_scn[k] = datasets[i]
+
+        return new_scn
+
+    def chunk(self, **kwargs):
+        """Call `chunk` on all Scene  data arrays.
+
+        See :meth:`xarray.DataArray.chunk` for more details.
+        """
+        new_scn = self.copy()
+        for k in new_scn._datasets.keys():
+            new_scn[k] = new_scn[k].chunk(**kwargs)
+
+        return new_scn
 
     @staticmethod
     def _get_writer_by_ext(extension):
