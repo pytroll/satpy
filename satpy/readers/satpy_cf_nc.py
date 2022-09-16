@@ -183,6 +183,7 @@ import json
 import logging
 
 import xarray as xr
+from pyresample import AreaDefinition
 
 from satpy import CHUNK_SIZE
 from satpy.dataset.dataid import WavelengthRange
@@ -294,7 +295,20 @@ class SatpyCFFileHandler(BaseFileHandler):
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         if "orbital_parameters" in data.attrs:
             data.attrs["orbital_parameters"] = _str2dict(data.attrs["orbital_parameters"])
+
         return data
+
+    def get_area_def(self, dataset_id):
+        """Get area definition from CF complient netcdf."""
+        try:
+            area = AreaDefinition.from_cf(self.filename)
+            return area
+        except ValueError:
+            # No CF compliant projection information was found in the netcdf file or
+            # file contains 2D lat/lon arrays. To fall back to generating a SwathDefinition
+            # with the yaml_reader NotImplementedError is raised.
+            logger.debug("No AreaDefinition to load from nc file. Falling back to SwathDefinition.")
+            raise NotImplementedError
 
 
 def _str2dict(val):
