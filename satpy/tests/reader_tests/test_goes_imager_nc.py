@@ -34,7 +34,6 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     @mock.patch('satpy.readers.goes_imager_nc.xr')
     @mock.patch.multiple('satpy.readers.goes_imager_nc.GOESNCBaseFileHandler',
-                         __abstractmethods__=set(),
                          _get_sector=mock.MagicMock())
     def setUp(self, xr_):
         """Set up the tests."""
