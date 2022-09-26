@@ -565,10 +565,17 @@ SCAN_DURATION = {
 class GOESNCBaseFileHandler(BaseFileHandler):
     """File handler for GOES Imager data in netCDF format."""
 
-    def __init__(self, filename, filename_info, filetype_info, geo_data=None):
+    default_yaw_flip_sampling_distance = 10
+
+    def __init__(self, filename, filename_info, filetype_info, geo_data=None,
+                 yaw_flip_sampling_distance=None):
         """Initialize the reader."""
         super(GOESNCBaseFileHandler, self).__init__(filename, filename_info,
                                                     filetype_info)
+        self._yaw_flip_sampling_distance = (
+                yaw_flip_sampling_distance or
+                self.default_yaw_flip_sampling_distance
+        )
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
@@ -677,13 +684,13 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
         return None, None
 
-    @staticmethod
-    def _is_yaw_flip(lat, delta=10):
+    def _is_yaw_flip(self, lat):
         """Determine whether the satellite is yaw-flipped ('upside down')."""
         logger.debug('Computing yaw flip flag')
         # In case of yaw-flip the data and coordinates in the netCDF files are
         # also flipped. Just check whether the latitude increases or decrases
         # with the line number.
+        delta = self._yaw_flip_sampling_distance
         crow, ccol = np.array(lat.shape) // 2
         return (lat[crow+delta, ccol] - lat[crow, ccol]).values > 0
 
@@ -994,10 +1001,20 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
     vis_sectors = VIS_SECTORS
     ir_sectors = IR_SECTORS
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(
+            self,
+            filename,
+            filename_info,
+            filetype_info,
+            yaw_flip_sampling_distance=None
+    ):
         """Initialize the reader."""
-        super(GOESNCFileHandler, self).__init__(filename, filename_info,
-                                                filetype_info)
+        super(GOESNCFileHandler, self).__init__(
+            filename,
+            filename_info,
+            filetype_info,
+            yaw_flip_sampling_distance=yaw_flip_sampling_distance
+        )
 
     def get_dataset(self, key, info):
         """Load dataset designated by the given key from file."""
@@ -1058,10 +1075,22 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
     vis_sectors = IR_SECTORS  # VIS channel is downsampled to IR resolution
     ir_sectors = IR_SECTORS
 
-    def __init__(self, filename, filename_info, filetype_info, geo_data):
+    def __init__(
+            self,
+            filename,
+            filename_info,
+            filetype_info,
+            geo_data,
+            yaw_flip_sampling_distance=None
+    ):
         """Initialize the reader."""
-        super(GOESEUMNCFileHandler, self).__init__(filename, filename_info,
-                                                   filetype_info, geo_data)
+        super(GOESEUMNCFileHandler, self).__init__(
+            filename,
+            filename_info,
+            filetype_info,
+            geo_data,
+            yaw_flip_sampling_distance=yaw_flip_sampling_distance
+        )
 
     def get_dataset(self, key, info):
         """Load dataset designated by the given key from file."""
