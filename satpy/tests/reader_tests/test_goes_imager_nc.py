@@ -86,27 +86,6 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         self.assertEqual((nadir_row, nadir_col), (2, 1),
                          msg='Incorrect nadir pixel')
 
-    def test_get_earth_mask(self):
-        """Test identification of earth/space pixels."""
-        lat = xr.DataArray([-100, -90, -45, 0, 45, 90, 100])
-        expected = np.array([0, 1, 1, 1, 1, 1, 0])
-        mask = self.reader._get_earth_mask(lat)
-        self.assertTrue(np.all(mask == expected),
-                        msg='Incorrect identification of earth/space pixel')
-
-    def test_is_yaw_flip(self):
-        """Test yaw flip identification."""
-        lat_asc = xr.DataArray([[1, 1, 1],
-                                [2, 2, 2],
-                                [3, 3, 3]])
-        lat_dsc = xr.DataArray([[3, 3, 3],
-                                [2, 2, 3],
-                                [1, 1, 1]])
-        self.assertEqual(self.reader._is_yaw_flip(lat_asc, delta=1), True,
-                         msg='Yaw flip not identified')
-        self.assertEqual(self.reader._is_yaw_flip(lat_dsc, delta=1), False,
-                         msg='Yaw flip false alarm')
-
     def test_viscounts2radiance(self):
         """Test conversion from VIS counts to radiance."""
         # Reference data is for detector #1
@@ -217,15 +196,19 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 class TestMetadata:
     """Testcase for dataset metadata."""
 
+    @pytest.fixture(params=[True, False])
+    def yaw_flip(self, request):
+        """Set yaw-flip flag."""
+        return request.param
+
+    def _apply_yaw_flip(self, data_array, yaw_flip):
+        if yaw_flip:
+            data_array.data = np.flipud(data_array.data)
+        return data_array
+
     @pytest.fixture
-    def dataset(self):
-        """Create a fake dataset."""
-        data = xr.DataArray(
-            [[[1, 2, 3, 4],
-              [5, 6, 7, 8],
-              [9, 10, 11, 12]]],
-            dims=("time", "yc", "xc")
-        )
+    def lons_lats(self, yaw_flip):
+        """Get longitudes and latitudes."""
         lon = xr.DataArray(
             [[-1, 0, 1, 2],
              [-1, 0, 1, 2],
@@ -237,6 +220,19 @@ class TestMetadata:
              [1, 1, 1, 1],
              [-1, -1, -1, -1]],
             dims=("yc", "xc")
+        )
+        self._apply_yaw_flip(lat, yaw_flip)
+        return lon, lat
+
+    @pytest.fixture
+    def dataset(self, lons_lats):
+        """Create a fake dataset."""
+        lon, lat = lons_lats
+        data = xr.DataArray(
+            [[[1, 2, 3, 4],
+              [5, 6, 7, 8],
+              [9, 10, 11, 12]]],
+            dims=("time", "yc", "xc")
         )
         time = xr.DataArray(
             [np.datetime64("2018-01-01 12:00:00")],
@@ -255,7 +251,29 @@ class TestMetadata:
         )
 
     @pytest.fixture
-    def expected(self):
+    def earth_mask(self, yaw_flip):
+        """Get expected earth mask."""
+        earth_mask = xr.DataArray(
+            [[False, False, False, False],
+             [True, True, True, True],
+             [True, True, True, True]],
+            dims=("yc", "xc"),
+        )
+        self._apply_yaw_flip(earth_mask, yaw_flip)
+        return earth_mask
+
+    @pytest.fixture
+    def nadir_row(self, yaw_flip):
+        """Get expected Nadir row."""
+        return 0 if yaw_flip else 1
+
+    @pytest.fixture
+    def projection_latitude(self, yaw_flip):
+        """Get expected projection latitude."""
+        return -1 if yaw_flip else 1
+
+    @pytest.fixture
+    def expected(self, yaw_flip, earth_mask, nadir_row, projection_latitude):
         """Define expected metadata."""
         proj_dict = {
             'a': '6378169',
@@ -278,19 +296,13 @@ class TestMetadata:
             height=10810,
             area_extent=(-5434201.1352, -5415668.5992, 5434201.1352, 5415668.5992)
         )
-        earth_mask = xr.DataArray(
-            [[False, False, False, False],
-             [True, True, True, True],
-             [True, True, True, True]],
-            dims=("yc", "xc"),
-        )
         return {
             "area_def_uni": area,
             "earth_mask": earth_mask,
-            "yaw_flip": False,
+            "yaw_flip": yaw_flip,
             "lon0": 0,
-            "lat0": 1,
-            "nadir_row": 1,
+            "lat0": projection_latitude,
+            "nadir_row": nadir_row,
             "nadir_col": 1
         }
 
