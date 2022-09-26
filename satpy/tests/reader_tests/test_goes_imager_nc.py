@@ -23,6 +23,7 @@ from unittest import mock
 import numpy as np
 import pytest
 import xarray as xr
+from pyresample.geometry import AreaDefinition
 
 from satpy.tests.utils import make_dataid
 
@@ -211,6 +212,112 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         for sector, end_time in expected.items():
             self.reader.sector = sector
             self.assertEqual(self.reader.end_time, end_time)
+
+
+class TestMetadata:
+    """Testcase for dataset metadata."""
+
+    @pytest.fixture
+    def dataset(self):
+        """Create a fake dataset."""
+        data = xr.DataArray(
+            [[[1, 2, 3, 4],
+              [5, 6, 7, 8],
+              [9, 10, 11, 12]]],
+            dims=("time", "yc", "xc")
+        )
+        lon = xr.DataArray(
+            [[-1, 0, 1, 2],
+             [-1, 0, 1, 2],
+             [-1, 0, 1, 2]],
+            dims=("yc", "xc")
+        )
+        lat = xr.DataArray(
+            [[9999, 9999, 9999, 9999],
+             [1, 1, 1, 1],
+             [-1, -1, -1, -1]],
+            dims=("yc", "xc")
+        )
+        time = xr.DataArray(
+            [np.datetime64("2018-01-01 12:00:00")],
+            dims="time"
+        )
+        bands = xr.DataArray([1], dims="bands")
+        return xr.Dataset(
+            {
+                'data': data,
+                'lon': lon,
+                'lat': lat,
+                'time': time,
+                'bands': bands,
+            },
+            attrs={'Satellite Sensor': 'G-15'}
+        )
+
+    @pytest.fixture
+    def expected(self):
+        """Define expected metadata."""
+        proj_dict = {
+            'a': '6378169',
+            'h': '35785831',
+            'lon_0': '0',
+            'no_defs': 'None',
+            'proj': 'geos',
+            'rf': '295.488065897001',
+            'type': 'crs',
+            'units': 'm',
+            'x_0': '0',
+            'y_0': '0'
+        }
+        area = AreaDefinition(
+            area_id="goes_geos_uniform",
+            proj_id="goes_geos_uniform",
+            description="GOES-15 geostationary projection (uniform sampling)",
+            projection=proj_dict,
+            width=10847,
+            height=10810,
+            area_extent=(-5434201.1352, -5415668.5992, 5434201.1352, 5415668.5992)
+        )
+        earth_mask = xr.DataArray(
+            [[False, False, False, False],
+             [True, True, True, True],
+             [True, True, True, True]],
+            dims=("yc", "xc"),
+        )
+        return {
+            "area_def_uni": area,
+            "earth_mask": earth_mask,
+            "yaw_flip": False,
+            "lon0": 0,
+            "lat0": 1,
+            "nadir_row": 1,
+            "nadir_col": 1
+        }
+
+    @pytest.fixture
+    def mocked_file_handler(self, dataset):
+        """Mock file handler to load the given fake dataset."""
+        from satpy.readers.goes_imager_nc import FULL_DISC, GOESNCFileHandler
+        with mock.patch("satpy.readers.goes_imager_nc.xr") as xr_:
+            xr_.open_dataset.return_value = dataset
+            GOESNCFileHandler.vis_sectors[(3, 4)] = FULL_DISC
+            return GOESNCFileHandler(
+                filename='dummy',
+                filename_info={},
+                filetype_info={},
+                yaw_flip_sampling_distance=1
+            )
+
+    def test_metadata(self, mocked_file_handler, expected):
+        """Test dataset metadata."""
+        metadata = mocked_file_handler.meta
+        self._assert_earth_mask_equal(metadata, expected)
+        assert metadata == expected
+
+    def _assert_earth_mask_equal(self, metadata, expected):
+        earth_mask_tst = metadata.pop("earth_mask")
+        earth_mask_ref = expected.pop("earth_mask")
+        xr.testing.assert_allclose(earth_mask_tst, earth_mask_ref)
 
 
 class GOESNCFileHandlerTest(unittest.TestCase):
