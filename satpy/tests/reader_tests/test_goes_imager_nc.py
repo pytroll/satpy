@@ -25,6 +25,7 @@ import pytest
 import xarray as xr
 from pyresample.geometry import AreaDefinition
 
+from satpy.readers.goes_imager_nc import is_vis_channel
 from satpy.tests.utils import make_dataid
 
 
@@ -346,9 +347,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         self.all_coefs = CALIB_COEFS
         self.channels = sorted(self.coefs.keys())
         self.ir_channels = sorted([ch for ch in self.channels
-                                   if not GOESNCFileHandler._is_vis(ch)])
+                                   if not is_vis_channel(ch)])
         self.vis_channels = sorted([ch for ch in self.channels
-                                    if GOESNCFileHandler._is_vis(ch)])
+                                    if is_vis_channel(ch)])
 
         # Mock file access to return a fake dataset. Choose a medium count value
         # (100) to avoid elements being masked due to invalid
@@ -459,7 +460,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
     def test_calibrate(self):
         """Test whether the correct calibration methods are called."""
         for ch in self.channels:
-            if self.reader._is_vis(ch):
+            if is_vis_channel(ch):
                 calibs = {'radiance': '_viscounts2radiance',
                           'reflectance': '_calibrate_vis'}
             else:
@@ -524,9 +525,9 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
         self.all_coefs = CALIB_COEFS
         self.channels = sorted(self.coefs.keys())
         self.ir_channels = sorted([ch for ch in self.channels
-                                   if not GOESEUMNCFileHandler._is_vis(ch)])
+                                   if not is_vis_channel(ch)])
         self.vis_channels = sorted([ch for ch in self.channels
-                                    if GOESEUMNCFileHandler._is_vis(ch)])
+                                    if is_vis_channel(ch)])
 
         # Mock file access to return a fake dataset.
         nrows = ncols = 300
@@ -554,7 +555,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
     def test_get_dataset_radiance(self):
         """Test getting the radiances."""
         for ch in self.channels:
-            if not self.reader._is_vis(ch):
+            if not is_vis_channel(ch):
                 radiance = self.reader.get_dataset(
                     key=make_dataid(name=ch, calibration='radiance'), info={})
                 # ... this only compares the valid (unmasked) elements
@@ -565,7 +566,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
     def test_calibrate(self):
         """Test whether the correct calibration methods are called."""
         for ch in self.channels:
-            if not self.reader._is_vis(ch):
+            if not is_vis_channel(ch):
                 calibs = {'brightness_temperature': '_calibrate_ir'}
                 for calib, method in calibs.items():
                     with mock.patch.object(self.reader, method) as target_func:
@@ -613,9 +614,9 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
         self.all_coefs = CALIB_COEFS
         self.channels = sorted(self.coefs.keys())
         self.ir_channels = sorted([ch for ch in self.channels
-                                   if not GOESEUMNCFileHandler._is_vis(ch)])
+                                   if not is_vis_channel(ch)])
         self.vis_channels = sorted([ch for ch in self.channels
-                                    if GOESEUMNCFileHandler._is_vis(ch)])
+                                    if is_vis_channel(ch)])
 
         # Mock file access to return a fake dataset.
         nrows = ncols = 300
@@ -643,7 +644,7 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
     def test_get_dataset_reflectance(self):
         """Test getting the reflectance."""
         for ch in self.channels:
-            if self.reader._is_vis(ch):
+            if is_vis_channel(ch):
                 refl = self.reader.get_dataset(
                     key=make_dataid(name=ch, calibration='reflectance'), info={})
                 # ... this only compares the valid (unmasked) elements
