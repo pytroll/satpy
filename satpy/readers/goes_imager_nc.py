@@ -188,7 +188,6 @@ The main differences are:
 import logging
 import re
 from abc import abstractmethod
-from collections import namedtuple
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -708,8 +707,16 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                          'units': 'm'}
 
             # Calculate maximum scanning angles
-            xmax, ymax = get_geostationary_angle_extent(
-                namedtuple('area', ['proj_dict'])(proj_dict))
+            dummy_area = pyresample.geometry.AreaDefinition(
+                area_id='dummy',
+                proj_id='dummy',
+                description='dummy',
+                projection=proj_dict,
+                width=2,
+                height=2,
+                area_extent=[-1, -1, 1, 1]
+            )  # only projection is relevant here
+            xmax, ymax = get_geostationary_angle_extent(dummy_area)
 
             # Derive area extent using small angle approximation (maximum
             # scanning angle is ~8.6 degrees)
