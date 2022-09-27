@@ -50,7 +50,8 @@ data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0455', 'n
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
-                 'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
+                 'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3,
+                 'seviri_l2_bufr_amv': 1}
 
 
 class SeviriL2BufrFileHandler(BaseFileHandler):
