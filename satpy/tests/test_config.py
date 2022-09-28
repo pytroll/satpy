@@ -22,11 +22,11 @@ import contextlib
 import os
 import sys
 import unittest
+from importlib.metadata import EntryPoint
 from pathlib import Path
 from typing import Callable, Iterator
 from unittest import mock
 
-import pkg_resources
 import pytest
 
 import satpy
@@ -115,34 +115,46 @@ def fake_plugin_etc_path(
     package is installed and has made a satpy plugin available.
 
     """
-    etc_path, entry_points = _get_entry_point_list(tmp_path, entry_point_names)
+    etc_path, entry_points, module_paths = _get_entry_points_and_etc_paths(tmp_path, entry_point_names)
     fake_iter_entry_points = _create_fake_iter_entry_points(entry_points)
-    with mock.patch('satpy._config.pkg_resources.iter_entry_points', fake_iter_entry_points):
+    fake_importlib_files = _create_fake_importlib_files(module_paths)
+    with mock.patch('satpy._config.entry_points', fake_iter_entry_points), \
+            mock.patch('satpy._config.impr_files', fake_importlib_files):
         yield etc_path
 
 
-def _get_entry_point_list(
+def _get_entry_points_and_etc_paths(
         tmp_path: Path,
         entry_point_names: dict[str, list[str]]
-) -> tuple[Path, dict[str, list[pkg_resources.EntryPoint]]]:
-    dist_obj = pkg_resources.Distribution.from_filename('satpy_plugin-0.0.0-py3.8.egg')
-    etc_path = tmp_path / "satpy_plugin" / "etc"
+) -> tuple[Path, dict[str, list[EntryPoint]], dict[str, Path]]:
+    module_path = tmp_path / "satpy_plugin"
+    etc_path = module_path / "etc"
     etc_path.mkdir(parents=True, exist_ok=True)
-    entry_points: dict[str, list[pkg_resources.EntryPoint]] = {}
-    for entry_point_name, entry_point_values in entry_point_names.items():
-        entry_points[entry_point_name] = []
+    entry_points: dict[str, list[EntryPoint]] = {}
+    entry_point_module_paths: dict[str, Path] = {}
+    for ep_group, entry_point_values in entry_point_names.items():
+        entry_points[ep_group] = []
         for entry_point_value in entry_point_values:
-            ep = pkg_resources.EntryPoint.parse(entry_point_value)
-            ep.dist = dist_obj
-            ep.dist.module_path = tmp_path  # type: ignore
-            entry_points[entry_point_name].append(ep)
-    return etc_path, entry_points
+            parts = [part.strip() for part in entry_point_value.split("=")]
+            ep_name = parts[0]
+            ep_value = parts[1]
+            ep_module = ep_value.split(":")[0].strip()
+            ep = EntryPoint(name=ep_name, group=ep_group, value=ep_value)
+            entry_points[ep_group].append(ep)
+            entry_point_module_paths[ep_module] = module_path
+    return etc_path, entry_points, entry_point_module_paths
 
 
-def _create_fake_iter_entry_points(entry_points: dict[str, list[pkg_resources.EntryPoint]]) -> Callable[[str], list]:
-    def _fake_iter_entry_points(desired_entry_point_name: str) -> list:
-        return entry_points.get(desired_entry_point_name, [])
+def _create_fake_iter_entry_points(entry_points: dict[str, list[EntryPoint]]) -> Callable[[], dict[str, EntryPoint]]:
+    def _fake_iter_entry_points() -> dict:
+        return entry_points
     return _fake_iter_entry_points
+
+
+def _create_fake_importlib_files(module_paths: dict[str, Path]) -> Callable[[str], Path]:
+    def _fake_importlib_files(module_name: str) -> Path:
+        return module_paths[module_name]
+    return _fake_importlib_files
 
 
 @pytest.fixture

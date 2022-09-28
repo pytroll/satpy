@@ -62,6 +62,7 @@ The following people have made contributions to this project:
 - [Pascale Roquet (roquetp)](https://github.com/roquetp)
 - [Kristian Rune Larsen](https://github.com/)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
+- [Bengt Rydberg (BengtRydberg)](https://github.com/BengtRydberg)
 - Marco Sassi - meteoswiss
 - [Stefan Scheiblauer (StefanSnippetCoder)](https://github.com/StefanSnippetCoder)
 - [Ronald Scheirer](https://github.com/)
