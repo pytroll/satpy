@@ -955,49 +955,9 @@ enhancements:
           min_stretch: [ 0,  0,   0]
           max_stretch: [50, 50, 100]
 
-  low_level_moisture:
-    name: low_level_moisture
+  essl_low_level_moisture:
+    name: essl_low_level_moisture
     operations:
       - name: linear_stretch
         method: !!python/name:satpy.enhancements.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.35, max_stretch: 0.85}
-
-  colorized_low_level_moisture:
-    name: colorized_low_level_moisture
-    operations:
-      - name: linear_stretch
-        method: !!python/name:satpy.enhancements.stretch
-        kwargs: {stretch: 'crude', min_stretch: 1.1, max_stretch: 1.6}
-      - name: colorize
-        method: !!python/name:satpy.enhancements.colorize
-        kwargs:
-          palettes:
-            - values:  # to be corrected, should not be linear...
-              - 1.10
-              - 1.15
-              - 1.20
-              - 1.25
-              - 1.30
-              - 1.35
-              - 1.40
-              - 1.45
-              - 1.50
-              - 1.55
-              - 1.60
-              colors:
-            # colors obtained from Pieter Groenemeijer 2022-08-04,
-            # personal communication (email) to Gerrit Holl:
-            # #f8d385,#9bac51,#5f912d,#036533,#044739,#01473a,#150f3f,#3a093c,#680f41
-            # converted with:
-            # [[int((x:=b.lstrip("#"))[:2], 16), int(x[2:4], 16), int(x[4:6], 16)] for b in s.split(",")]
-              - [255, 255, 255]
-              - [253, 248, 186]
-              - [248, 211, 133]
-              - [155, 172, 81]
-              - [95, 145, 45]
-              - [3, 101, 51]
-              - [4, 71, 57]
-              - [1, 71, 58]
-              - [21, 15, 63]
-              - [58, 9, 60]
-              - [104, 15, 65]
