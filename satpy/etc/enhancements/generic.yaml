@@ -961,3 +961,9 @@ enhancements:
       - name: linear_stretch
         method: !!python/name:satpy.enhancements.stretch
         kwargs: {stretch: 'crude', min_stretch: 0.35, max_stretch: 0.85}
+
+  essl_colorized_low_level_moisture:
+    name: essl_colorized_low_level_moisture
+    operations:
+      - name: essl_moisture
+        method: !!python/name:satpy.enhancements.atmosphere.essl_moisture

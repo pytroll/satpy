@@ -534,10 +534,10 @@ composites:
       0.91 µm and the 0.86 µm channels.  Developed by the
       European Severe Storms Laboratory (ESSL).  The colorization
       is still under development and may be subject to change.
-    compositor: !!python/name:satpy.composites.atmosphere.ESSLMoisture
+    compositor: !!python/name:satpy.composites.RatioCompositor
     prerequisites:
-    - wavelength: 0.905
     - wavelength: 0.86
+    - wavelength: 0.905
     standard_name: essl_colorized_low_level_moisture
 
   day_essl_colorized_low_level_moisture:
