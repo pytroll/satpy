@@ -30,11 +30,11 @@ class GreenCorrector(GenericCompositor):
 
     The green band in FCI and AHI deliberately misses the chlorophyll peak
     in order to focus on aerosol and ash rather than on vegetation.  This
-    makes true colour RGBs look like all the forests have burnt down, which
-    they haven't yet.  To make them look a bit greener, this corrector allows
+    affects true colour RGBs, because vegetation looks brown rather than green.
+    To make vegetation look greener again, this corrector allows
     to simulate the green band as a fraction of two or more other channels.
 
-    To be used, the composite takes two re more input channels and a parameter
+    To be used, the composite takes two or more input channels and a parameter
     ``fractions`` that should be a list of floats with the same length as the
     number of channels.
 
