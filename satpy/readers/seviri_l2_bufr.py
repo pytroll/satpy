@@ -51,7 +51,7 @@ data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0455', 'n
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3,
-                 'seviri_l2_bufr_amv': 1}
+                 'seviri_l2_bufr_amv': 24}
 
 
 class SeviriL2BufrFileHandler(BaseFileHandler):
@@ -105,6 +105,10 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             self.mpef_header['RectificationLongitude'] = f'E{int(rectification_longitude * 10):04d}'
 
         self.with_adef = with_area_definition
+        if filetype_info['file_type'] == 'seviri_l2_bufr_amv':
+            logging.info("AMV BUFR data cannot be loaded with an area definition. Setting self.with_def = False.")
+            self.with_adef = False
+
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
