@@ -103,5 +103,8 @@ def _calc_essl_blue(ratio):
 
 def _is_fci_test_data(data):
     """Check if we are working with FCI test data."""
-    return (data.attrs["sensor"] == "fci" and
+    return ("sensor" in data.attrs and
+            "start_time" in data.attrs and
+            data.attrs["sensor"] == "fci" and
+            isinstance(data.attrs["start_time"], datetime.datetime) and
             data.attrs["start_time"] < datetime.datetime(2022, 11, 30))
