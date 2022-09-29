@@ -111,7 +111,7 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
             data = self._scale_data(data)
 
             if key['name'] in 'wvc_lon':
-                data = xr.where(data > 180, data - 360., data)
+                data = xr.where(data > 180, data - 360., data, keep_attrs=True)
         data.attrs.update(info)
         data.attrs.update(self.get_metadata())
         data.attrs.update(self.get_variable_metadata())
