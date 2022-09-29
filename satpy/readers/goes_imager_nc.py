@@ -1363,7 +1363,7 @@ def test_coefs(ir_url, vis_url):
 
 
 class AreaDefEstimator:
-    """Area definition estimator."""
+    """Estimate area definition for GOES-Imager."""
 
     def __init__(self, platform_name, channel):
         """Initialize the estimator."""
@@ -1371,7 +1371,11 @@ class AreaDefEstimator:
         self.channel = channel
 
     def get_area_def_with_uniform_sampling(self, projection_longitude):
-        """Get area definition with uniform sampling."""
+        """Get area definition with uniform sampling.
+
+        Pixel size is derived from altitude and N-S sampling angle. Area extent
+        is based on the maximum scanning angles at the limb of the earth.
+        """
         projection = self._get_projection(projection_longitude)
         area_extent = self._get_area_extent_at_max_scan_angle(projection)
         shape = self._get_shape_with_uniform_pixel_size(area_extent)
