@@ -111,7 +111,9 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
             data = self._scale_data(data)
 
             if key['name'] in 'wvc_lon':
-                data = xr.where(data > 180, data - 360., data, keep_attrs=True)
+                _attrs = data.attrs
+                data = xr.where(data > 180, data - 360., data)
+                data.attrs.update(_attrs)
         data.attrs.update(info)
         data.attrs.update(self.get_metadata())
         data.attrs.update(self.get_variable_metadata())
@@ -124,8 +126,10 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         return data * data.attrs['scale_factor'] + data.attrs['add_offset']
 
     def _mask_data(self, data):
-        data = xr.where(data == data.attrs['fill_value'], np.nan, data, keep_attrs=True)
+        _attrs = data.attrs
         valid_range = data.attrs['valid_range']
-        data = xr.where(data < valid_range[0], np.nan, data, keep_attrs=True)
-        data = xr.where(data > valid_range[1], np.nan, data, keep_attrs=True)
+        data = xr.where(data == data.attrs['fill_value'], np.nan, data)
+        data = xr.where(data < valid_range[0], np.nan, data)
+        data = xr.where(data > valid_range[1], np.nan, data)
+        data.attrs.update(_attrs)
         return data
