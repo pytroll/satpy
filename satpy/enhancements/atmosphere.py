@@ -22,12 +22,34 @@ import xarray as xr
 
 
 def essl_moisture(img, low=1.1, high=1.6) -> None:
-    """Low level moisture by European Severe Storms Laboratory (ESSL).
+    r"""Low level moisture by European Severe Storms Laboratory (ESSL).
 
-    Must be passed exactly two projectables.  The first one should correspond
-    to a channel at around 0.86 µm, the second one at 0.91 µm.
+    Expects a mode L image with data corresponding to the ratio of the
+    calibrated reflectancys for the 0.86 µm and 0.906 µm channel.
 
     This composite and its colorisation was developed by ESSL.
+
+    Ratio values are scaled from the range ``[low, high]``, which is by default
+    between 1.1 and 1.6, but might be tuned based on region or sensor,
+    to ``[0, 1]``.  Values outside this range are clipped.  Color values
+    for red, green, and blue are calculated as follows, where ``x`` is the
+    ratio between the 0.86 µm and 0.905 µm channels:
+
+    .. math::
+
+        R = \max(1.375 - 2.67 x, -0.75 + x) \\
+        G = 1 - \frac{8x}{7} \\
+        B = \max(0.75 - 1.5 x, 0.25 - (x - 0.75)^2) \\
+
+    The value of ``img.data`` is modified in-place.
+
+    A color interpretation guide is pending further adjustments to the
+    parameters for current and future sensors.
+
+    Args:
+        img: XRImage containing the relevant composite
+        low: optional, low end for scaling, defaults to 1.1
+        high: optional, high end for scaling, defaults to 1.6
     """
     ratio = img.data
     if _is_fci_test_data(img.data):
