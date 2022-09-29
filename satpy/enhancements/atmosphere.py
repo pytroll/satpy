@@ -15,6 +15,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Enhancements related to visualising atmospheric phenomena."""
 
+import datetime
+
 import dask.array as da
 import xarray as xr
 
@@ -28,6 +30,11 @@ def essl_moisture(img, low=1.1, high=1.6) -> None:
     This composite and its colorisation was developed by ESSL.
     """
     ratio = img.data
+    if _is_fci_test_data(img.data):
+        # Due to a bug in the FCI pre-launch simulated test data,
+        # the 0.86 µm channel is too bright.  To correct for this, its
+        # reflectances should be multiplied by 0.8.
+        ratio *= 0.8
 
     with xr.set_options(keep_attrs=True):
         ratio = _scale_and_clip(ratio, low, high)
@@ -70,3 +77,9 @@ def _calc_essl_blue(ratio):
     blue = xr.where(blue_a > blue_b, blue_a, blue_b)
     blue.data = da.clip(blue.data, 0, 1)
     return blue
+
+
+def _is_fci_test_data(data):
+    """Check if we are working with FCI test data."""
+    return (data.attrs["sensor"] == "fci" and
+            data.attrs["start_time"] < datetime.datetime(2022, 11, 30))

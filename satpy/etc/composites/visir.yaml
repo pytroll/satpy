@@ -511,7 +511,7 @@ composites:
       Greyscale low level moisture using the ratio between the
       0.91 µm and the 0.86 µm channels.  Developed by the
       European Severe Storms Laboratory (ESSL).  For a color version,
-      see essl_colorised_low_level_moisture.
+      see essl_colorized_low_level_moisture.
     compositor: !!python/name:satpy.composites.RatioCompositor
     prerequisites:
     - wavelength: 0.905
@@ -526,7 +526,7 @@ composites:
     day_night: day_only
     prerequisites:
     - name: essl_low_level_moisture
-    standard_name: day_essl_low_level_moisture
+    standard_name: essl_low_level_moisture
 
   essl_colorized_low_level_moisture:
     description: >
@@ -548,4 +548,4 @@ composites:
     day_night: day_only
     prerequisites:
     - name: essl_colorized_low_level_moisture
-    standard_name: day_essl_colorized_low_level_moisture
+    standard_name: essl_colorized_low_level_moisture
