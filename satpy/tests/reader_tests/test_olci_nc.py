@@ -19,16 +19,28 @@
 import unittest
 import unittest.mock as mock
 
+import numpy as np
 
+from satpy.readers.olci_nc import BitFlags
+
+flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
+             'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
+             'SATURATED', 'MEGLINT', 'HIGHGLINT', 'WHITECAPS',
+             'ADJAC', 'WV_FAIL', 'PAR_FAIL', 'AC_FAIL', 'OC4ME_FAIL',
+             'OCNN_FAIL', 'Extra_1', 'KDM_FAIL', 'Extra_2',
+             'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON',
+             'WHITE_SCATT', 'LOWRW', 'HIGHRW']
+
+
+@mock.patch('xarray.open_dataset')
 class TestOLCIReader(unittest.TestCase):
     """Test various olci_nc filehandlers."""
 
-    @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
         import xarray as xr
 
-        from satpy.readers.olci_nc import NCOLCI1B, NCOLCI2, NCOLCIBase, NCOLCICal, NCOLCIChannelBase, NCOLCIGeo
+        from satpy.readers.olci_nc import NCOLCI1B, NCOLCI2, NCOLCIBase, NCOLCIChannelBase, NCOLCIGeo
         from satpy.tests.utils import make_dataid
 
         cal_data = xr.Dataset(
@@ -44,11 +56,6 @@ class TestOLCIReader(unittest.TestCase):
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
 
         test = NCOLCIBase('somedir/somefile.nc', filename_info, 'c')
-        test.get_dataset(ds_id, filename_info)
-        mocked_dataset.assert_called()
-        mocked_dataset.reset_mock()
-
-        test = NCOLCICal('somedir/somefile.nc', filename_info, 'c')
         test.get_dataset(ds_id, filename_info)
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
@@ -76,7 +83,6 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
-    @mock.patch('xarray.open_dataset')
     def test_open_file_objects(self, mocked_open_dataset):
         """Test initialization of file handlers."""
         from satpy.readers.olci_nc import NCOLCIBase
@@ -92,90 +98,286 @@ class TestOLCIReader(unittest.TestCase):
         assert (open_file.open.return_value in mocked_open_dataset.call_args[0] or
                 open_file.open.return_value == mocked_open_dataset.call_args[1].get('filename_or_obj'))
 
-    @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
-        import numpy as np
+        from satpy.tests.utils import make_dataid
+        fh, _ = self._create_l2_filehandler(mocked_dataset)
+        ds_id = make_dataid(name='w_aer')
+        res = fh.get_dataset(ds_id, {'nc_key': 'T865', 'funky_attr': 'JBs'})
+        self.assertEqual(res.dtype, np.uint64)
+        assert res.attrs['funky_attr'] == 'JBs'
+        assert "nc_key" not in res.attrs.keys()
+
+    def _create_l2_filehandler(self, mocked_dataset):
+        """Create a filehandle for the l2 data."""
         import xarray as xr
 
         from satpy.readers.olci_nc import NCOLCI2
-        from satpy.tests.utils import make_dataid
-        mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
-                                                           np.array([1 << x for x in range(30)]).reshape(5, 6))},
-                                                 coords={'rows': np.arange(5),
-                                                         'columns': np.arange(6)})
-        ds_id = make_dataid(name='mask')
-        filename_info = {'mission_id': 'S3A', 'dataset_name': 'mask', 'start_time': 0, 'end_time': 0}
-        test = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
-        res = test.get_dataset(ds_id, {'nc_key': 'mask'})
-        self.assertEqual(res.dtype, np.dtype('bool'))
+        data = xr.DataArray((2 ** (np.arange(30))).astype(np.uint64).reshape(5, 6),
+                            dims=["rows", "columns"],
+                            coords={'rows': np.arange(5),
+                                    'columns': np.arange(6)})
+        mocked_dataset.return_value = xr.Dataset({'T865': data})
+        filename_info = {'mission_id': 'S3A', 'dataset_name': None, 'start_time': 0, 'end_time': 0}
+        fh = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
+        return fh, data
 
-    @mock.patch('xarray.open_dataset')
-    def test_olci_angles(self, mocked_dataset):
+
+@mock.patch('xarray.open_dataset')
+class TestOLCI2Flags(unittest.TestCase):
+    """Test the olci_nc flag filehandler."""
+
+    def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
-        import numpy as np
+        from satpy.tests.utils import make_dataid
+        fh, _ = self._create_wqsf_filehandler(mocked_dataset)
+        ds_id = make_dataid(name='wqsf')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF'})
+        self.assertEqual(res.dtype, np.uint64)
+
+    def _create_wqsf_filehandler(self, mocked_dataset, meanings="INVALID WATER LAND CLOUD"):
+        """Create a filehandle for the wqsf quality flags."""
+        import xarray as xr
+
+        from satpy.readers.olci_nc import NCOLCI2Flags
+        nb_flags = len(meanings.split())
+        wqsf_data = xr.DataArray((2 ** (np.arange(30) % nb_flags)).astype(np.uint64).reshape(5, 6),
+                                 dims=["rows", "columns"],
+                                 coords={'rows': np.arange(5),
+                                         'columns': np.arange(6)},
+                                 attrs={"flag_masks": 2 ** np.arange(nb_flags),
+                                        "flag_meanings": meanings})
+        mocked_dataset.return_value = xr.Dataset({'WQSF': wqsf_data})
+        filename_info = {'mission_id': 'S3A', 'dataset_name': None, 'start_time': 0, 'end_time': 0}
+        fh = NCOLCI2Flags('somedir/somefile.nc', filename_info, 'c')
+        return fh, wqsf_data
+
+    def test_meanings_are_read_from_file(self, mocked_dataset):
+        """Test that the flag meanings are read from the file."""
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset)
+        fh.create_bitflags(wqsf_data)
+        res = fh.getbitmask(wqsf_data, ["CLOUD"])
+        np.testing.assert_allclose(res, (np.arange(30) % 4).reshape(5, 6) == 3)
+
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, "NOTHING FISH SHRIMP TURTLES")
+        fh.create_bitflags(wqsf_data)
+        res = fh.getbitmask(wqsf_data, ["TURTLES"])
+        np.testing.assert_allclose(res, (np.arange(30) % 4).reshape(5, 6) == 3)
+
+    def test_get_mask(self, mocked_dataset):
+        """Test reading mask datasets."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        masked_items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                        "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                        "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+
+        ds_id = make_dataid(name='mask')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF', "masked_items": masked_items})
+        self.assertEqual(res.dtype, np.dtype("bool"))
+
+        expected = np.array([True, False,  True,  True,  True,  True, False,
+                             False,  True, True, False, False, False, False,
+                             False, False, False,  True, False,  True, False,
+                             False, False,  True,  True, False, False, True,
+                             False, True]).reshape(5, 6)
+        np.testing.assert_array_equal(res, expected)
+
+    def test_wqsf_has_bitflags_attribute(self, mocked_dataset):
+        """Test wqsf has a bitflags attribute."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        ds_id = make_dataid(name='wqsf')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF'})
+        assert isinstance(res.attrs["bitflags"], BitFlags)
+
+    def test_get_cloud_mask(self, mocked_dataset):
+        """Test reading the cloud_mask dataset."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        ds_id = make_dataid(name='cloud_mask')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF', "masked_items": ["CLOUD"]})
+        self.assertEqual(res.dtype, np.dtype("bool"))
+
+        expected = np.array([False, False,  False,  True,  False, False, False,
+                             False,  False, False, False, False, False, False,
+                             False, False, False,  False, False,  False, False,
+                             False, False,  False,  False, False, False, False,
+                             False, False]).reshape(5, 6)
+        np.testing.assert_array_equal(res, expected)
+
+    def test_get_ocnn_mask(self, mocked_dataset):
+        """Test reading the ocnn_mask dataset."""
+        from satpy.tests.utils import make_dataid
+        fh, wqsf_data = self._create_wqsf_filehandler(mocked_dataset, " ".join(flag_list))
+
+        ds_id = make_dataid(name='ocnn_mask')
+        res = fh.get_dataset(ds_id, {'nc_key': 'WQSF', "masked_items": ["OCNN_FAIL"]})
+        self.assertEqual(res.dtype, np.dtype("bool"))
+
+        expected = np.array([False, False,  False,  False,  False, False, False,
+                             False,  False, False, False, False, False, False,
+                             False, False, False,  False, False,  True, False,
+                             False, False,  False,  False, False, False, False,
+                             False, False]).reshape(5, 6)
+        np.testing.assert_array_equal(res, expected)
+
+
+class TestOLCIAngles(unittest.TestCase):
+    """Test the angles olci_nc filehandler."""
+
+    def setUp(self):
+        """Set up the test case."""
         import xarray as xr
 
         from satpy.readers.olci_nc import NCOLCIAngles
-        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
         }
+
+        self.patcher = mock.patch("xarray.open_dataset")
+        mocked_dataset = self.patcher.start()
+
         mocked_dataset.return_value = xr.Dataset({'SAA': (['tie_rows', 'tie_columns'],
-                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                          np.arange(30).reshape(5, 6)),
                                                   'SZA': (['tie_rows', 'tie_columns'],
-                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                          np.arange(30).reshape(5, 6) + 30),
                                                   'OAA': (['tie_rows', 'tie_columns'],
-                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                          np.arange(30).reshape(5, 6)),
                                                   'OZA': (['tie_rows', 'tie_columns'],
-                                                          np.array([1 << x for x in range(30)]).reshape(5, 6))},
-                                                 coords={'rows': np.arange(5),
-                                                         'columns': np.arange(6)},
+                                                          np.arange(30).reshape(5, 6) + 30)},
+                                                 coords={'tie_rows': np.arange(5),
+                                                         'tie_columns': np.arange(6)},
                                                  attrs=attr_dict)
-        filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
+        self.filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
+        self.file_handler = NCOLCIAngles('somedir/somefile.nc', self.filename_info, 'c')
 
-        ds_id = make_dataid(name='solar_azimuth_angle')
-        ds_id2 = make_dataid(name='satellite_zenith_angle')
-        test = NCOLCIAngles('somedir/somefile.nc', filename_info, 'c')
-        test.get_dataset(ds_id, filename_info)
-        test.get_dataset(ds_id2, filename_info)
-        mocked_dataset.assert_called()
-        mocked_dataset.reset_mock()
+        self.expected_data = np.array([[0, 1, 2, 3, 4, 5],
+                                       [3, 4, 5, 6, 7, 8],
+                                       [6, 7, 8, 9, 10, 11],
+                                       [9, 10, 11, 12, 13, 14],
+                                       [12, 13, 14, 15, 16, 17],
+                                       [15, 16, 17, 18, 19, 20],
+                                       [18, 19, 20, 21, 22, 23],
+                                       [21, 22, 23, 24, 25, 26],
+                                       [24, 25, 26, 27, 28, 29]]
+                                      )
 
-    @mock.patch('xarray.open_dataset')
-    def test_olci_meteo(self, mocked_dataset):
-        """Test reading datasets."""
-        import numpy as np
+    def test_olci_angles(self):
+        """Test reading angles datasets."""
+        from satpy.tests.utils import make_dataid
+        ds_id_sun_azimuth = make_dataid(name='solar_azimuth_angle')
+        ds_id_sat_zenith = make_dataid(name='satellite_zenith_angle')
+
+        azi = self.file_handler.get_dataset(ds_id_sun_azimuth, self.filename_info)
+        zen = self.file_handler.get_dataset(ds_id_sat_zenith, self.filename_info)
+        np.testing.assert_allclose(azi, self.expected_data, atol=0.5)
+        np.testing.assert_allclose(zen, self.expected_data + 30, atol=0.5)
+
+    def test_olci_angles_caches_interpolation(self):
+        """Test reading angles datasets caches interpolation."""
+        from satpy.tests.utils import make_dataid
+
+        ds_id = make_dataid(name='solar_zenith_angle')
+        self._check_interpolator_is_called_only_once(ds_id, ds_id)
+
+    def test_olci_different_angles_caches_interpolation(self):
+        """Test reading different angles datasets caches interpolation."""
+        from satpy.tests.utils import make_dataid
+
+        ds_id_zenith = make_dataid(name='solar_zenith_angle')
+        ds_id_azimuth = make_dataid(name='solar_azimuth_angle')
+        self._check_interpolator_is_called_only_once(ds_id_azimuth, ds_id_zenith)
+
+    def _check_interpolator_is_called_only_once(self, ds_id_1, ds_id_2):
+        """Check that the interpolation is used only once."""
+        with mock.patch("geotiepoints.interpolator.Interpolator") as interpolator:
+            interpolator.return_value.interpolate.return_value = (
+                self.expected_data, self.expected_data, self.expected_data)
+
+            self.file_handler.get_dataset(ds_id_2, self.filename_info)
+            self.file_handler.get_dataset(ds_id_1, self.filename_info)
+            assert (interpolator.call_count == 1)
+
+    def tearDown(self):
+        """Tear down the test case."""
+        self.patcher.stop()
+
+
+class TestOLCIMeteo(unittest.TestCase):
+    """Test the meteo olci_nc filehandler."""
+
+    def setUp(self):
+        """Set up the test case."""
         import xarray as xr
 
         from satpy.readers.olci_nc import NCOLCIMeteo
-        from satpy.tests.utils import make_dataid
         attr_dict = {
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
         }
         data = {'humidity': (['tie_rows', 'tie_columns'],
-                             np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                             np.arange(30).reshape(5, 6)),
                 'total_ozone': (['tie_rows', 'tie_columns'],
-                                np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                np.arange(30).reshape(5, 6)),
                 'sea_level_pressure': (['tie_rows', 'tie_columns'],
-                                       np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                       np.arange(30).reshape(5, 6)),
                 'total_columnar_water_vapour': (['tie_rows', 'tie_columns'],
-                                                np.array([1 << x for x in range(30)]).reshape(5, 6))}
+                                                np.arange(30).reshape(5, 6))}
+
+        self.patcher = mock.patch("xarray.open_dataset")
+        mocked_dataset = self.patcher.start()
+
         mocked_dataset.return_value = xr.Dataset(data,
                                                  coords={'rows': np.arange(5),
                                                          'columns': np.arange(6)},
                                                  attrs=attr_dict)
-        filename_info = {'mission_id': 'S3A', 'dataset_name': 'humidity', 'start_time': 0, 'end_time': 0}
+        self.filename_info = {'mission_id': 'S3A', 'dataset_name': 'humidity', 'start_time': 0, 'end_time': 0}
+        self.file_handler = NCOLCIMeteo('somedir/somefile.nc', self.filename_info, 'c')
+
+        self.expected_data = np.array([[0, 1, 2, 3, 4, 5],
+                                       [3, 4, 5, 6, 7, 8],
+                                       [6, 7, 8, 9, 10, 11],
+                                       [9, 10, 11, 12, 13, 14],
+                                       [12, 13, 14, 15, 16, 17],
+                                       [15, 16, 17, 18, 19, 20],
+                                       [18, 19, 20, 21, 22, 23],
+                                       [21, 22, 23, 24, 25, 26],
+                                       [24, 25, 26, 27, 28, 29]]
+                                      )
+
+    def tearDown(self):
+        """Tear down the test case."""
+        self.patcher.stop()
+
+    def test_olci_meteo_reading(self):
+        """Test reading meteo datasets."""
+        from satpy.tests.utils import make_dataid
+
+        ds_id_humidity = make_dataid(name='humidity')
+        ds_id_total_ozone = make_dataid(name='total_ozone')
+
+        humidity = self.file_handler.get_dataset(ds_id_humidity, self.filename_info)
+        total_ozone = self.file_handler.get_dataset(ds_id_total_ozone, self.filename_info)
+
+        np.testing.assert_allclose(humidity, self.expected_data, atol=1e-10)
+        np.testing.assert_allclose(total_ozone, self.expected_data, atol=1e-10)
+
+    def test_olci_meteo_caches_interpolation(self):
+        """Test reading meteo datasets caches interpolation."""
+        from satpy.tests.utils import make_dataid
 
         ds_id = make_dataid(name='humidity')
-        ds_id2 = make_dataid(name='total_ozone')
-        test = NCOLCIMeteo('somedir/somefile.nc', filename_info, 'c')
-        test.get_dataset(ds_id, filename_info)
-        test.get_dataset(ds_id2, filename_info)
-        mocked_dataset.assert_called()
-        mocked_dataset.reset_mock()
+        with mock.patch("geotiepoints.interpolator.Interpolator") as interpolator:
+            interpolator.return_value.interpolate.return_value = (self.expected_data, )
+
+            self.file_handler.get_dataset(ds_id, self.filename_info)
+            self.file_handler.get_dataset(ds_id, self.filename_info)
+            assert(interpolator.call_count == 1)
 
 
 class TestBitFlags(unittest.TestCase):
@@ -183,31 +385,52 @@ class TestBitFlags(unittest.TestCase):
 
     def test_bitflags(self):
         """Test the BitFlags class."""
-        from functools import reduce
+        nb_flags = len(flag_list)
 
-        import numpy as np
+        # As a test, the data is just an array with the possible masks
+        data = 2 ** np.arange(nb_flags)
+        masks = 2 ** np.arange(nb_flags)
 
-        from satpy.readers.olci_nc import BitFlags
-        flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                     'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
-                     'SATURATED', 'MEGLINT', 'HIGHGLINT', 'WHITECAPS',
-                     'ADJAC', 'WV_FAIL', 'PAR_FAIL', 'AC_FAIL', 'OC4ME_FAIL',
-                     'OCNN_FAIL', 'Extra_1', 'KDM_FAIL', 'Extra_2',
-                     'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON',
-                     'WHITE_SCATT', 'LOWRW', 'HIGHRW']
-
-        bits = np.array([1 << x for x in range(len(flag_list))])
-
-        bflags = BitFlags(bits)
+        bflags = BitFlags(masks, flag_list)
 
         items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
                  "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
                  "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
 
-        mask = reduce(np.logical_or, [bflags[item] for item in items])
+        mask = bflags.match_any(items, data)
         expected = np.array([True, False,  True,  True,  True,  True, False,
                              False,  True, True, False, False, False, False,
                              False, False, False,  True, False,  True, False,
                              False, False,  True,  True, False, False, True,
                              False])
-        self.assertTrue(all(mask == expected))
+        np.testing.assert_array_equal(mask, expected)
+
+    def test_match_item(self):
+        """Test matching one item."""
+        nb_flags = len(flag_list)
+
+        # As a test, the data is just an array with the possible masks
+        data = 2 ** np.arange(nb_flags)
+        masks = 2 ** np.arange(nb_flags)
+
+        bflags = BitFlags(masks, flag_list)
+        mask = bflags.match_item("INVALID", data)
+        expected = np.array([True, False, False, False, False, False, False,
+                             False, False, False, False, False, False, False,
+                             False, False, False, False, False, False, False,
+                             False, False, False, False, False, False, False,
+                             False])
+        np.testing.assert_array_equal(mask, expected)
+
+    def test_equality(self):
+        """Test equality."""
+        nb_flags = len(flag_list)
+
+        # As a test, the data is just an array with the possible masks
+        masks = 2 ** np.arange(nb_flags)
+
+        one = BitFlags(masks, flag_list)
+
+        two = BitFlags(masks, flag_list)
+
+        assert one == two

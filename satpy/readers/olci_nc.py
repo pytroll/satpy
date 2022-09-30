@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 Satpy developers
+# Copyright (c) 2016-2021 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -59,39 +59,38 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
 
-class BitFlags(object):
+class BitFlags:
     """Manipulate flags stored bitwise."""
 
-    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                 'Extra_1',
-                 'KDM_FAIL',
-                 'Extra_2',
-                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                 'LOWRW', 'HIGHRW']
-
-    meaning = {f: i for i, f in enumerate(flag_list)}
-
-    def __init__(self, value):
+    def __init__(self, masks, meanings):
         """Init the flags."""
-        self._value = value
+        self._masks = masks
+        self._meanings = meanings
+        self._map = dict(zip(meanings, masks))
 
-    def __getitem__(self, item):
-        """Get the item."""
-        pos = self.meaning[item]
-        data = self._value
-        if isinstance(data, xr.DataArray):
-            data = data.data
-            res = ((data >> pos) % 2).astype(bool)
-            res = xr.DataArray(res, coords=self._value.coords,
-                               attrs=self._value.attrs,
-                               dims=self._value.dims)
-        else:
-            res = ((data >> pos) % 2).astype(bool)
-        return res
+    @property
+    def masks(self):
+        """Return masks."""
+        return self._masks
+
+    @property
+    def meanings(self):
+        """Return meanings."""
+        return self._meanings
+
+    def match_item(self, item, data):
+        """Match any of the item."""
+        mask = self._map[item]
+        return np.bitwise_and(data, mask).astype(np.bool)
+
+    def match_any(self, items, data):
+        """Match any of the items in data."""
+        mask = reduce(np.bitwise_or, [self._map[item] for item in items])
+        return np.bitwise_and(data, mask).astype(np.bool)
+
+    def __eq__(self, other):
+        """Check equality."""
+        return all(self._masks == other.masks) and self._meanings == other.meanings
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -146,9 +145,16 @@ class NCOLCIBase(BaseFileHandler):
         with suppress(IOError, OSError, AttributeError, TypeError):
             self.nc.close()
 
-
-class NCOLCICal(NCOLCIBase):
-    """Dummy class for calibration."""
+    def _fill_dataarray_attrs(self, data, key, info=None):
+        """Fill the dataarray with relevant attributes."""
+        data.attrs['platform_name'] = self.platform_name
+        data.attrs['sensor'] = self.sensor
+        data.attrs.update(key.to_dict())
+        if info is not None:
+            info = info.copy()
+            for key in ["nc_key", "coordinates", "file_type", "name"]:
+                info.pop(key, None)
+            data.attrs.update(info)
 
 
 class NCOLCIGeo(NCOLCIBase):
@@ -173,18 +179,13 @@ class NCOLCI1B(NCOLCIChannelBase):
         super().__init__(filename, filename_info, filetype_info, engine)
         self.cal = cal.nc
 
-    @staticmethod
-    def _get_items(idx, solar_flux):
-        """Get items."""
-        return solar_flux[idx]
-
     def _get_solar_flux(self, band):
         """Get the solar flux for the band."""
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
-        return da.map_blocks(self._get_items, d_index.data,
-                             solar_flux=solar_flux, dtype=solar_flux.dtype)
+        return da.map_blocks(_take_indices, d_index.data,
+                             data=solar_flux, dtype=solar_flux.dtype)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -200,10 +201,13 @@ class NCOLCI1B(NCOLCIChannelBase):
             radiances = radiances / sflux * np.pi * 100
             radiances.attrs['units'] = '%'
 
-        radiances.attrs['platform_name'] = self.platform_name
-        radiances.attrs['sensor'] = self.sensor
-        radiances.attrs.update(key.to_dict())
+        self._fill_dataarray_attrs(radiances, key)
         return radiances
+
+
+def _take_indices(idx, data):
+    """Take values from data using idx."""
+    return data[idx]
 
 
 class NCOLCI2(NCOLCIChannelBase):
@@ -219,24 +223,44 @@ class NCOLCI2(NCOLCIChannelBase):
         else:
             dataset = self.nc[info['nc_key']]
 
-        if key['name'] == 'wqsf':
-            dataset.attrs['_FillValue'] = 1
-        elif key['name'] == 'mask':
-            dataset = self.getbitmask(dataset)
-
-        dataset.attrs['platform_name'] = self.platform_name
-        dataset.attrs['sensor'] = self.sensor
-        dataset.attrs.update(key.to_dict())
+        self._fill_dataarray_attrs(dataset, key, info)
         return dataset
 
-    def getbitmask(self, wqsf, items=None):
-        """Get the bitmask."""
+
+class NCOLCI2Flags(NCOLCIChannelBase):
+    """File handler for OLCI l2 flag files.
+
+    A correctly-initialized BitFlags instance is added to the "bitflags"
+    attribute in case the masked items are not defined (eg for wqsf).
+    """
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug('Reading %s.', key['name'])
+        dataset = self.nc[info['nc_key']]
+        self.create_bitflags(dataset)
+
+        if key['name'] == 'wqsf':
+            dataset.attrs['_FillValue'] = 1
+        elif "masked_items" in info:
+            dataset = self.getbitmask(dataset, info["masked_items"])
+
+        self._fill_dataarray_attrs(dataset, key)
+        return dataset
+
+    def create_bitflags(self, dataset):
+        """Create the bitflags attribute."""
+        bflags = BitFlags(dataset.attrs['flag_masks'],
+                          dataset.attrs['flag_meanings'].split())
+        dataset.attrs["bitflags"] = bflags
+
+    def getbitmask(self, dataset, items=None):
+        """Generate the bitmask."""
         if items is None:
             items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
                      "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
                      "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
-        bflags = BitFlags(wqsf)
-        return reduce(np.logical_or, [bflags[item] for item in items])
+        return dataset.attrs["bitflags"].match_any(items, dataset)
 
 
 class NCOLCILowResData(NCOLCIBase):
@@ -253,7 +277,7 @@ class NCOLCILowResData(NCOLCIBase):
         self.c_step = self.nc.attrs['ac_subsampling_factor']
 
     def _do_interpolate(self, data):
-
+        """Do the interpolation."""
         if not isinstance(data, tuple):
             data = (data,)
 
@@ -291,7 +315,8 @@ class NCOLCIAngles(NCOLCILowResData):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key['name'] not in self.datasets:
+        key_name = key['name']
+        if key_name not in self.datasets:
             return
 
         logger.debug('Reading %s.', key['name'])
@@ -311,12 +336,9 @@ class NCOLCIAngles(NCOLCILowResData):
             else:
                 raise NotImplementedError("Don't know how to read " + key['name'])
         else:
-            values = self.nc[self.datasets[key['name']]]
+            values = self.nc[self.datasets[key_name]]
 
-        values.attrs['platform_name'] = self.platform_name
-        values.attrs['sensor'] = self.sensor
-
-        values.attrs.update(key.to_dict())
+        self._fill_dataarray_attrs(values, key)
         return values
 
     @cached_property
@@ -336,6 +358,7 @@ class NCOLCIAngles(NCOLCILowResData):
         return azi, zen
 
     def _interpolate_angles(self, azi, zen):
+        """Interpolate angles."""
         aattrs = azi.attrs
         zattrs = zen.attrs
         x, y, z = angle2xyz(azi, zen)
@@ -383,8 +406,5 @@ class NCOLCIMeteo(NCOLCILowResData):
         else:
             values = self.nc[key['name']]
 
-        values.attrs['platform_name'] = self.platform_name
-        values.attrs['sensor'] = self.sensor
-
-        values.attrs.update(key.to_dict())
+        self._fill_dataarray_attrs(values, key)
         return values
