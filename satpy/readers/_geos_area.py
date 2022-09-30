@@ -71,41 +71,79 @@ def get_area_extent(pdict):
             lfac: Line scaling factor
             coff: Column offset factor
             loff: Line offset factor
-            scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
+            scandir: 'N2S' for standard (NW->SE), 'S2N' for inverse (SE->NW)
     Returns:
         aex: An area extent for the scene
 
+
+    The general relation between (line, col) and (y, x) is:
+
+        y = (line - loff) / lfac
+        x = (col - coff) / cfac
+
+    There are two common scanning directions:
+
+    1) North-West to South-East:
+
+                         y
+                         ^
+                         |
+               0.5       |
+            0.5 ---------|-------------> cols
+                |        |         |
+                |        |         |
+                |        |         |
+        ----------------------------------------> x
+                |        |         |
+                |        |         |
+                |        |         |
+                |-------------------
+                |        |          \
+                V        |          image
+              lines      |
+
+    Here the "x" and "cols" axes are parallel, but the "y" and "lines" axes
+    point into opposite directions. That means cfac must be positive and lfac
+    must be negative.
+
+    2) South-East to North-West: In this case just invert the x and y axes. Then
+    the "x" and "cols" axes point into opposite directions while the "y" and "lines"
+    axes are parallel. That means cfac must be negative and lfac must be positive.
+
+    Note: lfac and cfac in the data might have different signs than what is expected
+    here (e.g. both negative for SEVIRI or both positive for AHI). In that case this
+    method will change the sign as explained above.
+
+    Once the signs of lfac and cfac have been determined, use the above formulas
+    to compute the x/y coordinates at the lower left and upper right corner of the
+    image:
+
+        lower left:  (line, col) = (nlines + 0.5, 0.5)
+        upper right: (line, col) = (0.5, ncols + 0.5)
+
+    By convention the center of the upper left pixel is (line, col) = (1, 1), so the
+    upper left corner is (0.5, 0.5).
     """
-    # count starts at 1
-    cols = 1 - 0.5
+    # Set sign of lfac and cfac dependening on the scanning direction
+    lfac_sign = -1 if pdict['scandir'] == 'N2S' else 1
+    lfac = np.fabs(pdict['lfac']) * lfac_sign
+    cfac_sign = 1 if pdict['scandir'] == 'N2S' else -1
+    cfac = np.fabs(pdict['cfac']) * cfac_sign
 
-    if pdict['scandir'] == 'S2N':
-        lines = 0.5 - 1
-        scanmult = -1
-    else:
-        lines = 1 - 0.5
-        scanmult = 1
-    # Lower left x, y scanning angles in degrees
-    ll_x, ll_y = get_xy_from_linecol(lines * scanmult,
-                                     cols,
-                                     (pdict['loff'], pdict['coff']),
-                                     (pdict['lfac'], pdict['cfac']))
+    factors = (lfac, cfac)
+    offsets = (pdict['loff'], pdict['coff'])
 
-    cols += pdict['ncols']
-    lines += pdict['nlines']
-    # Upper right x, y scanning angles in degrees
-    ur_x, ur_y = get_xy_from_linecol(lines * scanmult,
-                                     cols,
-                                     (pdict['loff'], pdict['coff']),
-                                     (pdict['lfac'], pdict['cfac']))
-    if pdict['scandir'] == 'S2N':
-        ll_y *= -1
-        ur_y *= -1
+    # Lower left corner of the image
+    col = 0.5
+    line = pdict['nlines'] + 0.5
+    ll_x, ll_y = get_xy_from_linecol(line, col, offsets, factors)
 
-    # Convert degrees to radians and create area extent
-    aex = make_ext(ll_x=ll_x, ur_x=ur_x, ll_y=ll_y, ur_y=ur_y, h=pdict['h'])
+    # Upper right corner of the image
+    col = pdict['ncols'] + 0.5
+    line = 0.5
+    ur_x, ur_y = get_xy_from_linecol(line, col, offsets, factors)
 
-    return aex
+    return make_ext(ll_x=ll_x, ll_y=ll_y, ur_x=ur_x, ur_y=ur_y, h=pdict['h'])
 
 
 def get_area_definition(pdict, a_ext):
