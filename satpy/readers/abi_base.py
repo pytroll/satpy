@@ -18,6 +18,7 @@
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
 import logging
+from contextlib import suppress
 from datetime import datetime
 
 import numpy as np
@@ -76,7 +77,8 @@ class NC_ABI_BASE(BaseFileHandler):
         if 't' in nc.dims or 't' in nc.coords:
             nc = nc.rename({'t': 'time'})
         if 'goes_lat_lon_projection' in nc:
-            nc = nc.rename({'lon': 'x', 'lat': 'y'})
+            with suppress(ValueError):
+                nc = nc.rename({'lon': 'x', 'lat': 'y'})
         return nc
 
     @property
