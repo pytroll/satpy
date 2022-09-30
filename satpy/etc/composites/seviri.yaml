@@ -618,3 +618,26 @@ composites:
       - method: equal
         value: High_semitransparent_above_snow_ice
         transparency: 60
+
+  synthetictruecolor_nocorr:
+    compositor: !!python/name:satpy.composites.MSGQuicklook
+    prerequisites:
+      - name: IR_016
+      - name: VIS008
+      - name: VIS006
+    standard_name: synthetictruecolor
+
+  synthetictruecolor:
+    description: >
+      RGB synthetic image similar to what a human eye would see, Synthetic True Color,
+    references:
+      CIRA Quick Guide: https://www.frontiersin.org/articles/10.3389/frsen.2021.666516/full
+    compositor: !!python/name:satpy.composites.SyntheticTrueColor
+    prerequisites:
+      - name: IR_016
+        modifiers: [sunz_corrected]
+      - name: VIS008
+        modifiers: [sunz_corrected]
+      - name: VIS006
+        modifiers: [sunz_corrected]
+    standard_name: synthetictruecolor
