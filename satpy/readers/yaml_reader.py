@@ -1412,7 +1412,8 @@ class GEOVariableSegmentYAMLReader(GEOSegmentYAMLReader):
         segment_heights = dict()
         for filetype, filetype_seginfos in self.segment_infos.items():
             filetype_seg_heights = {'1km': _compute_optimal_missing_segment_heights(filetype_seginfos, '1km', 11136),
-                                    '2km': _compute_optimal_missing_segment_heights(filetype_seginfos, '2km', 5568)}
+                                    '2km': _compute_optimal_missing_segment_heights(filetype_seginfos, '2km', 5568),
+                                    '3km': _compute_optimal_missing_segment_heights(filetype_seginfos, '3km', 3712)}
             segment_heights.update({filetype: filetype_seg_heights})
         return segment_heights
 
@@ -1436,9 +1437,11 @@ def _get_width_to_grid_type(seg_info):
 
 def _compute_optimal_missing_segment_heights(seg_infos, grid_type, expected_vertical_size):
     # initialise positioning arrays
-    segment_start_rows, segment_end_rows, segment_heights = _init_positioning_arrays_for_variable_padding(
-        seg_infos['available_segment_infos'], grid_type, seg_infos['expected_segments'])
-
+    try:
+        segment_start_rows, segment_end_rows, segment_heights = _init_positioning_arrays_for_variable_padding(
+            seg_infos['available_segment_infos'], grid_type, seg_infos['expected_segments'])
+    except KeyError:
+        return None
     # populate start row of first segment and end row of last segment with known values
     segment_start_rows[0] = 1
     segment_end_rows[seg_infos['expected_segments'] - 1] = expected_vertical_size
