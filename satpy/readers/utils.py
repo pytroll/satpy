@@ -247,8 +247,8 @@ def unzip_file(filename, prefix=None):
             return tmpfilepath
 
         # Otherwise, fall back to the original method
-        with closing(bz2.BZ2File(filename)) as bz2file:
-            with closing(os.fdopen(fdn, 'wb')) as ofpt:
+        with bz2.open(filename) as bz2file:
+            with os.fdopen(fdn, 'wb') as ofpt:
                 try:
                     ofpt.write(bz2file.read())
                 except IOError:
