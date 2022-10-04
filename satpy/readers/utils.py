@@ -23,7 +23,7 @@ import os
 import shutil
 import tempfile
 import warnings
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from io import BytesIO
 from shutil import which
 from subprocess import PIPE, Popen  # nosec
@@ -233,7 +233,7 @@ def unzip_file(filename, prefix=None):
             if status != 0:
                 raise IOError("pbzip2 error '%s', failed, status=%d"
                               % (filename, status))
-            with os.fdopen(fdn, 'wb') as ofpt:
+            with closing(os.fdopen(fdn, 'wb')) as ofpt:
                 try:
                     stdout.seek(0)
                     shutil.copyfileobj(stdout, ofpt)
