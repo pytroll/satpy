@@ -15,54 +15,64 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS.
+"""Reader for GOES 8-15 imager data in netCDF format.
 
-Also handles GOES 15 data in netCDF format reformated by Eumetsat
+Supports netCDF files from both NOAA-CLASS and EUMETSAT.
 
-GOES Imager netCDF files contain geolocated detector counts. If ordering via
-NOAA CLASS, select 16 bits/pixel.
 
-Important note: Some essential information are missing in the netCDF files,
-which might render them inappropriate for certain applications. The unknowns
-are:
 
-    1. Subsatellite point
-    2. Calibration coefficients
-    3. Detector-scanline assignment, i.e. information about which scanline
-       was recorded by which detector
+NOAA-CLASS
+==========
 
-Items 1. and 2. are not critical because the images are geo-located and NOAA
-provides static calibration coefficients ([VIS], [IR]). The detector-scanline
-assignment however cannot be reconstructed properly. This is where an
-approximation has to be applied (see below).
+GOES-Imager netCDF files from NOAA-CLASS contain detector counts alongside
+latitude and longitude coordinates.
+
+.. note ::
+   If ordering files via NOAA CLASS, select 16 bits/pixel.
+
+
+.. note ::
+   Some essential information are missing in the netCDF files:
+
+      1. Subsatellite point
+      2. Calibration coefficients
+      3. Detector-scanline assignment, i.e. information about which scanline
+         was recorded by which detector
+
+   Items 1. and 2. are not critical because the images are geo-located and NOAA
+   provides static calibration coefficients (`[VIS]`_, `[IR]`_). The
+   detector-scanline assignment however cannot be reconstructed properly. This
+   is where an approximation has to be applied (see below).
+
 
 
 Oversampling
-============
+------------
 
 GOES-Imager oversamples the viewed scene in E-W direction by a factor of
 1.75: IR/VIS pixels are 112/28 urad on a side, but the instrument samples
-every 64/16 urad in E-W direction (see [BOOK-I] and [BOOK-N]). That means
+every 64/16 urad in E-W direction (see `[BOOK-I]`_ and `[BOOK-N]`_). That means
 pixels are actually overlapping on the ground. This cannot be represented
 by a pyresample area definition.
 
 For full disk images it is possible to estimate an area definition with uniform
 sampling where pixels don't overlap. This can be used for resampling and is
-available via `scene[dataset].attrs["area_def_uni"]`. The area extent is
-based on the maximum scanning angles of the instrument.
+available via ``scene[dataset].attrs["area_def_uni"]``. The pixel size is derived
+from altitude and N-S sampling angle. The area extent is based on the maximum
+scanning angles at the earth's limb.
 
 
 Calibration
-===========
+-----------
 
-Calibration is performed according to [VIS] and [IR], but with an average
+Calibration is performed according to `[VIS]`_ and `[IR]`_, but with an average
 calibration coefficient applied to all detectors in a certain channel. The
 reason for and impact of this approximation is described below.
 
 The GOES imager simultaneously records multiple scanlines per sweep using
 multiple detectors per channel. The VIS channel has 8 detectors, the IR
 channels have 1-2 detectors (see e.g. Figures 3-5a/b, 3-6a/b and 3-7/a-b in
-[BOOK-N]). Each detector has its own calibration coefficients, so in order to
+`[BOOK-N]`_). Each detector has its own calibration coefficients, so in order to
 perform an accurate calibration, the detector-scanline assignment is needed.
 
 In theory it is known which scanline was recorded by which detector
@@ -70,7 +80,7 @@ In theory it is known which scanline was recorded by which detector
 mounted flexes due to thermal gradients in the instrument which leads to a N-S
 shift of +/- 8 visible or +/- 2 IR pixels. This shift is compensated in the
 GVAR scan formation process, but in a way which is hard to reconstruct
-properly afterwards. See [GVAR], section 3.2.1. for details.
+properly afterwards. See `[GVAR]`_, section 3.2.1. for details.
 
 Since the calibration coefficients of the detectors in a certain channel only
 differ slightly, a workaround is to calibrate each scanline with the average
@@ -175,19 +185,12 @@ Channel Diff  Unit
 13_3    0.008 K
 ======= ===== ====
 
-References:
-- [GVAR] https://goes.gsfc.nasa.gov/text/GVARRDL98.pdf
-- [BOOK-N] https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf
-- [BOOK-I] https://goes.gsfc.nasa.gov/text/databook/databook.pdf
-- [IR] https://www.ospo.noaa.gov/Operations/GOES/calibration/gvar-conversion.html
-- [VIS] https://www.ospo.noaa.gov/Operations/GOES/calibration/goes-vis-ch-calibration.html
-- [FAQ] https://www.ncdc.noaa.gov/sites/default/files/attachments/Satellite-Frequently-Asked-Questions_2.pdf
-- [SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
-- [SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 
-Eumetsat formatted netCDF data:
+EUMETSAT
+========
 
-The main differences are:
+During tandem operations of GOES-15 and GOES-17, EUMETSAT distributed a
+variant of this dataset with the following differences:
 
 1. The geolocation is in a separate file, used for all bands
 2. VIS data is calibrated to Albedo (or reflectance)
@@ -196,6 +199,28 @@ The main differences are:
 5. File name differs also slightly
 6. Data is received via EumetCast
 
+
+References
+==========
+
+- `[GVAR]`_  GVAR transmission format
+- `[BOOK-N]`_ GOES-N databook
+- `[BOOK-I]`_ GOES-I databook (broken)
+- `[IR]`_ Conversion of GVAR Infrared Data to Scene Radiance or Temperature
+- `[VIS]`_ Calibration of the Visible Channels of the GOES Imagers and Sounders
+- `[GLOSSARY]`_ GVAR_IMG Glossary
+- `[SCHED-W]`_ GOES-15 Routine Imager Schedule
+- `[SCHED-E]`_ Optimized GOES-East Routine Imager Schedule
+
+
+.. _[GVAR]: https://noaasis.noaa.gov/NOAASIS/pubs/nesdis82.PDF
+.. _[BOOK-N]: https://www.nasa.gov/pdf/148080main_GOES-N%20Databook%20with%20Copyright.pdf
+.. _[BOOK-I]: https://goes.gsfc.nasa.gov/text/databook/databook.pdf
+.. _[IR]: https://www.ospo.noaa.gov/Operations/GOES/calibration/gvar-conversion.html
+.. _[VIS]: https://www.ospo.noaa.gov/Operations/GOES/calibration/goes-vis-ch-calibration.html
+.. _[GLOSSARY]: https://www.avl.class.noaa.gov/release/glossary/GVAR_IMG.htm
+.. _[SCHED-W]: https://www.ospo.noaa.gov/Operations/GOES/15/imager-routine.html
+.. _[SCHED-E]: http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 """
 
 import logging
@@ -1024,7 +1049,7 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
     def calibrate(self, counts, calibration, channel):
         """Perform calibration."""
         # Convert 16bit counts from netCDF4 file to the original 10bit
-        # GVAR counts by dividing by 32. See [FAQ].
+        # GVAR counts by dividing by 32. See [GLOSSARY].
         counts = counts / 32.
 
         coefs = CALIB_COEFS[self.platform_name][channel]
@@ -1366,13 +1391,14 @@ class AreaDefEstimator:
     """Estimate area definition for GOES-Imager."""
 
     def __init__(self, platform_name, channel):
-        """Initialize the estimator."""
+        """Create the instance."""
         self.platform_name = platform_name
         self.channel = channel
 
     def get_area_def_with_uniform_sampling(self, projection_longitude):
         """Get area definition with uniform sampling.
 
+        The area definition is based on geometry and instrument properties:
         Pixel size is derived from altitude and N-S sampling angle. Area extent
         is based on the maximum scanning angles at the limb of the earth.
         """
