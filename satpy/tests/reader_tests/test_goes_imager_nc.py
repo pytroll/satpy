@@ -314,11 +314,11 @@ class TestMetadata:
         with mock.patch("satpy.readers.goes_imager_nc.xr") as xr_:
             xr_.open_dataset.return_value = dataset
             GOESNCFileHandler.vis_sectors[(3, 4)] = FULL_DISC
+            GOESNCFileHandler.yaw_flip_sampling_distance = 1
             return GOESNCFileHandler(
                 filename='dummy',
                 filename_info={},
                 filetype_info={},
-                yaw_flip_sampling_distance=1
             )
 
     def test_metadata(self, mocked_file_handler, expected):
