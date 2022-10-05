@@ -493,22 +493,6 @@ datasets:
             - mws_lon
             - mws_lat
 
-# --- Land surface data ---
-    surface_type:
-        name: surface_type
-        standard_name: surface_type
-        file_type: mws_l1b_nc
-        coordinates:
-            - mws_lon
-            - mws_lat
-    terrain_elevation:
-        name: terrain_elevation
-        standard_name: terrain_elevation
-        file_type: mws_l1b_nc
-        coordinates:
-            - mws_lon
-            - mws_lat
-
 
 file_types:
     mws_l1b_nc:
