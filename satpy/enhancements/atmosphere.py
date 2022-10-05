@@ -25,9 +25,9 @@ def essl_moisture(img, low=1.1, high=1.6) -> None:
     r"""Low level moisture by European Severe Storms Laboratory (ESSL).
 
     Expects a mode L image with data corresponding to the ratio of the
-    calibrated reflectancys for the 0.86 µm and 0.906 µm channel.
+    calibrated reflectances for the 0.86 µm and 0.906 µm channel.
 
-    This composite and its colorisation was developed by ESSL.
+    This composite and its colorisation were developed by ESSL.
 
     Ratio values are scaled from the range ``[low, high]``, which is by default
     between 1.1 and 1.6, but might be tuned based on region or sensor,
