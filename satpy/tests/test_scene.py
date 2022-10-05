@@ -826,7 +826,7 @@ class TestSceneAvailableDatasets:
         num_reader_ds = 21 + 6
         assert len(id_list) == num_reader_ds
         id_list = scene.all_dataset_ids(composites=True)
-        assert len(id_list) == num_reader_ds + 29
+        assert len(id_list) == num_reader_ds + 33
 
     def test_all_datasets_multiple_reader(self):
         """Test all datasets for multiple readers."""
