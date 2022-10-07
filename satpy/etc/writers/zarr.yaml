@@ -1,0 +1,7 @@
+writer:
+  name: zarr
+  description: zarr Writer
+  writer: !!python/name:satpy.writers.zarr_writer.ZarrWriter
+  filename: '{name}_{start_time:%Y%m%d_%H%M%S}.zarr'
+  compress: DEFLATE
+  zlevel: 6
