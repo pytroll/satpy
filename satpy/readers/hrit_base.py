@@ -356,7 +356,8 @@ class HRITSegment:
         self.bpp = mda['number_of_bits_per_pixel']
         self.compressed = mda['compression_flag_for_data'] == 1
         self.offset = mda['total_header_length']
-        self.zipped = os.fspath(filename).endswith('.bz2')
+        self.bzipped = os.fspath(filename).endswith('.bz2')
+        self.gzipped = os.fspath(filename).endswith('.gz')
 
     def read_data(self):
         """Read the data."""
@@ -367,12 +368,13 @@ class HRITSegment:
         return data
 
     def _read_data_from_file(self):
-        # check, if 'filename' is a file on disk,
-        #  or a file like obj, possibly residing already in memory
-        try:
-            return self._read_data_from_disk()
-        except (FileNotFoundError, AttributeError):
+        if self._is_file_like():
             return self._read_file_like()
+        return self._read_data_from_disk()
+
+    def _is_file_like(self):
+        from satpy.readers import FSFile
+        return isinstance(self.filename, FSFile)
 
     def _read_data_from_disk(self):
         # For reading the image data, unzip_context is faster than generic_open

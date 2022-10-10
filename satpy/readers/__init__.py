@@ -680,6 +680,7 @@ class FSFile(os.PathLike):
             fs (fsspec filesystem, optional)
                 Object implementing the fsspec filesystem protocol.
         """
+        self._file_handle = file
         try:
             self._file = file.path
             self._fs = file.fs
@@ -704,6 +705,8 @@ class FSFile(os.PathLike):
 
         This is read-only.
         """
+        if self._file_handle.compression:
+            return self._file_handle.open()
         try:
             return self._fs.open(self._file, *args, **kwargs)
         except AttributeError:
