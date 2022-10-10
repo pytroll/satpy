@@ -51,7 +51,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         self.band = 1
         self.nc = xr.Dataset(
             {'data': xr.DataArray(self.dummy3d, dims=('time', 'yc', 'xc')),
-             'lon': xr.DataArray(data=self.dummy2d,  dims=('yc', 'xc')),
+             'lon': xr.DataArray(data=self.dummy2d, dims=('yc', 'xc')),
              'lat': xr.DataArray(data=self.dummy2d, dims=('yc', 'xc')),
              'time': xr.DataArray(data=np.array([self.time],
                                                 dtype='datetime64[ms]'),
@@ -371,7 +371,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
         xr_.open_dataset.return_value = xr.Dataset(
             {'data': xr.DataArray(data=self.counts, dims=('time', 'yc', 'xc')),
-             'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
+             'lon': xr.DataArray(data=self.lon, dims=('yc', 'xc')),
              'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc')),
              'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
                                   dims=('time',)),
