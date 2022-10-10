@@ -269,26 +269,20 @@ class TestMetadata:
         return earth_mask
 
     @pytest.fixture
-    def nadir_row(self, yaw_flip):
-        """Get expected Nadir row."""
-        return 0 if yaw_flip else 1
-
-    @pytest.fixture
-    def projection_latitude(self, yaw_flip):
-        """Get expected projection latitude."""
-        return -1 if yaw_flip else 1
-
-    @pytest.fixture
-    def shape(self, channel_id):
-        """Get expected image shape."""
+    def geometry(self, channel_id, yaw_flip):
+        """Get expected geometry."""
         shapes = {
             1: {"width": 10847, "height": 10810},
             2: {"width": 2712, "height": 2702}
         }
-        return shapes[channel_id]
+        return {
+            "nadir_row": 0 if yaw_flip else 1,
+            "projection_longitude": -1 if yaw_flip else 1,
+            "shape": shapes[channel_id]
+        }
 
     @pytest.fixture
-    def expected(self, yaw_flip, earth_mask, nadir_row, projection_latitude, shape):
+    def expected(self, geometry, earth_mask, yaw_flip):
         """Define expected metadata."""
         proj_dict = {
             'a': '6378169',
@@ -308,15 +302,15 @@ class TestMetadata:
             description="GOES-15 geostationary projection (uniform sampling)",
             projection=proj_dict,
             area_extent=(-5434201.1352, -5415668.5992, 5434201.1352, 5415668.5992),
-            **shape
+            **geometry["shape"]
         )
         return {
             "area_def_uni": area,
             "earth_mask": earth_mask,
             "yaw_flip": yaw_flip,
             "lon0": 0,
-            "lat0": projection_latitude,
-            "nadir_row": nadir_row,
+            "lat0": geometry["projection_longitude"],
+            "nadir_row": geometry["nadir_row"],
             "nadir_col": 1
         }
 
