@@ -706,7 +706,7 @@ class FSFile(os.PathLike):
 
         This is read-only.
         """
-        if self._file_handle and self._file_handle.compression:
+        if self._file_handle and hasattr(self._file_handle, "compression") and self._file_handle.compression:
             return self._file_handle.open()
         try:
             return self._fs.open(self._file, *args, **kwargs)
