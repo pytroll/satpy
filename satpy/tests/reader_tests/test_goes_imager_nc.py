@@ -197,6 +197,11 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 class TestMetadata:
     """Testcase for dataset metadata."""
 
+    @pytest.fixture(params=[1, 2])
+    def channel_id(self, request):
+        """Set channel ID."""
+        return request.param
+
     @pytest.fixture(params=[True, False])
     def yaw_flip(self, request):
         """Set yaw-flip flag."""
@@ -226,7 +231,7 @@ class TestMetadata:
         return lon, lat
 
     @pytest.fixture
-    def dataset(self, lons_lats):
+    def dataset(self, lons_lats, channel_id):
         """Create a fake dataset."""
         lon, lat = lons_lats
         data = xr.DataArray(
@@ -239,7 +244,7 @@ class TestMetadata:
             [np.datetime64("2018-01-01 12:00:00")],
             dims="time"
         )
-        bands = xr.DataArray([1], dims="bands")
+        bands = xr.DataArray([channel_id], dims="bands")
         return xr.Dataset(
             {
                 'data': data,
@@ -274,7 +279,16 @@ class TestMetadata:
         return -1 if yaw_flip else 1
 
     @pytest.fixture
-    def expected(self, yaw_flip, earth_mask, nadir_row, projection_latitude):
+    def shape(self, channel_id):
+        """Get expected image shape."""
+        shapes = {
+            1: {"width": 10847, "height": 10810},
+            2: {"width": 2712, "height": 2702}
+        }
+        return shapes[channel_id]
+
+    @pytest.fixture
+    def expected(self, yaw_flip, earth_mask, nadir_row, projection_latitude, shape):
         """Define expected metadata."""
         proj_dict = {
             'a': '6378169',
@@ -293,9 +307,8 @@ class TestMetadata:
             proj_id="goes_geos_uniform",
             description="GOES-15 geostationary projection (uniform sampling)",
             projection=proj_dict,
-            width=10847,
-            height=10810,
-            area_extent=(-5434201.1352, -5415668.5992, 5434201.1352, 5415668.5992)
+            area_extent=(-5434201.1352, -5415668.5992, 5434201.1352, 5415668.5992),
+            **shape
         )
         return {
             "area_def_uni": area,
@@ -314,6 +327,7 @@ class TestMetadata:
         with mock.patch("satpy.readers.goes_imager_nc.xr") as xr_:
             xr_.open_dataset.return_value = dataset
             GOESNCFileHandler.vis_sectors[(3, 4)] = FULL_DISC
+            GOESNCFileHandler.ir_sectors[(3, 4)] = FULL_DISC
             GOESNCFileHandler.yaw_flip_sampling_distance = 1
             return GOESNCFileHandler(
                 filename='dummy',
@@ -509,6 +523,28 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                              ncols=ncols)
             self.assertEqual(sector, sector_ref,
                              msg='Incorrect sector identification')
+
+
+class TestChannelIdentification:
+    """Test identification of channel type."""
+
+    @pytest.mark.parametrize(
+        "channel_name,expected",
+        [
+            ("00_7", True),
+            ("10_7", False),
+            (1, True),
+            (2, False)
+        ]
+    )
+    def test_is_vis_channel(self, channel_name, expected):
+        """Test vis channel identification."""
+        assert is_vis_channel(channel_name) == expected
+
+    def test_invalid_channel(self):
+        """Test handling of invalid channel type."""
+        with pytest.raises(ValueError):
+            is_vis_channel({"foo": "bar"})
 
 
 class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
