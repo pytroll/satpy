@@ -60,7 +60,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
             attrs={'Satellite Sensor': 'G-15'})
 
         geo_data = xr.Dataset(
-            {'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
+            {'lon': xr.DataArray(data=self.lon, dims=('yc', 'xc')),
              'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc'))},
             attrs={'Satellite Sensor': 'G-15'})
 
@@ -149,7 +149,7 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
             attrs={'Satellite Sensor': 'G-15'})
 
         geo_data = xr.Dataset(
-            {'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
+            {'lon': xr.DataArray(data=self.lon, dims=('yc', 'xc')),
              'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc'))},
             attrs={'Satellite Sensor': 'G-15'})
 
