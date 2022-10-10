@@ -356,8 +356,7 @@ class HRITSegment:
         self.bpp = mda['number_of_bits_per_pixel']
         self.compressed = mda['compression_flag_for_data'] == 1
         self.offset = mda['total_header_length']
-        self.bzipped = os.fspath(filename).endswith('.bz2')
-        self.gzipped = os.fspath(filename).endswith('.gz')
+        self.zipped = os.fspath(filename).endswith('.bz2')
 
     def read_data(self):
         """Read the data."""
