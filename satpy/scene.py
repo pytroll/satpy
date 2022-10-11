@@ -275,7 +275,8 @@ class Scene:
         def _key_func(swath_def: SwathDefinition) -> tuple:
             attrs = getattr(swath_def.lons, "attrs", {})
             lon_ds_name = attrs.get("name")
-            return swath_def.shape[1], swath_def.shape[0], lon_ds_name
+            rev_shape = swath_def.shape[::-1]
+            return rev_shape + (lon_ds_name,)
         return compare_func(swath_defs, key=_key_func)
 
     def _gather_all_areas(self, datasets):
