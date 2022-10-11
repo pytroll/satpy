@@ -41,6 +41,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
     def __getitem__(self, key):
+        """Return copy of dataarray to prevent manipulating attributes in the original"""
         val = self.file_content[key]
         if isinstance(val, xr.core.dataarray.DataArray):
             val = val.copy()
