@@ -509,6 +509,7 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
     def test_properties(self):
         """Test platform_name."""
         from datetime import datetime
+
         from satpy.readers import load_reader
         filenames = [
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
