@@ -450,14 +450,27 @@ class TestMultiFiller(unittest.TestCase):
         """Test filling."""
         from satpy.composites import MultiFiller
         comp = MultiFiller(name='fill_test')
-        a = xr.DataArray(np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]))
-        b = xr.DataArray(np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]))
-        c = xr.DataArray(np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]))
-        d = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]))
-        e = xr.DataArray(np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]))
+        attrs = {"units": "K"}
+        a = xr.DataArray(
+                np.array([1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]),
+                attrs=attrs.copy())
+        b = xr.DataArray(
+                np.array([np.nan, 2, 3, np.nan, np.nan, np.nan, np.nan]),
+                attrs=attrs.copy())
+        c = xr.DataArray(
+                np.array([np.nan, 22, 3, np.nan, np.nan, np.nan, 7]),
+                attrs=attrs.copy())
+        d = xr.DataArray(
+                np.array([np.nan, np.nan, np.nan, np.nan, np.nan, 6, np.nan]),
+                attrs=attrs.copy())
+        e = xr.DataArray(
+                np.array([np.nan, np.nan, np.nan, np.nan, 5, np.nan, np.nan]),
+                attrs=attrs.copy())
         expected = xr.DataArray(np.array([1, 2, 3, np.nan, 5, 6, 7]))
         res = comp([a, b, c], optional_datasets=[d, e])
         np.testing.assert_allclose(res.data, expected.data)
+        assert "units" in res.attrs
+        assert res.attrs["units"] == "K"
 
 
 class TestLuminanceSharpeningCompositor(unittest.TestCase):
@@ -1613,12 +1626,15 @@ class TestLongitudeMaskingCompositor(unittest.TestCase):
         area = mock.MagicMock()
         lons = np.array([-180., -100., -50., 0., 50., 100., 180.])
         area.get_lonlats = mock.MagicMock(return_value=[lons, []])
-        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]), attrs={'area': area})
+        a = xr.DataArray(np.array([1, 2, 3, 4, 5, 6, 7]),
+                         attrs={'area': area, 'units': 'K'})
 
         comp = LongitudeMaskingCompositor(name='test', lon_min=-40., lon_max=120.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, np.nan]))
         res = comp([a])
         np.testing.assert_allclose(res.data, expected.data)
+        assert "units" in res.attrs
+        assert res.attrs["units"] == "K"
 
         comp = LongitudeMaskingCompositor(name='test', lon_min=-40.)
         expected = xr.DataArray(np.array([np.nan, np.nan, np.nan, 4, 5, 6, 7]))
